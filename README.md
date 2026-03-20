@@ -1,2 +1,2 @@
-# afterworlds
+# Afterworlds
 Afterworlds storybuilder using the Sojourn engine.
