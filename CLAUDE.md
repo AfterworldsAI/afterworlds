@@ -106,3 +106,29 @@ make a load-bearing choice without explicit approval:
 - Extended TTL caching must be enabled by default wherever provider supports it
 - Free tier must preserve basic continuity dignity — silent continuity failure
   is not acceptable at any tier
+
+## Note-Taking (Self-Improvement Loop)
+
+After each task, log any correction, preference, or pattern learned during
+that task. This is how the project accumulates institutional memory across
+sessions.
+
+**Trigger conditions — log when:**
+- You were corrected on an implementation decision
+- You discovered a behavioral pattern not covered by existing rules
+- You made an assumption that turned out to be wrong
+- You found a better approach than what the spec implied
+
+**Format:** one line, dated, plain language.
+`[YYYY-MM-DD] <lesson learned>`
+
+**Where to log:**
+- Project-wide lessons go in the Lessons section below
+- Subsystem-specific lessons go in the relevant file in `/context/`
+- When three or more related lessons accumulate anywhere, create a new
+  context file in `/context/`, add it to the folder tree in the docs,
+  and note it below
+
+**Lessons:**
+
+<!-- Claude Code appends dated one-line lessons here as they are learned -->
