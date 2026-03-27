@@ -37,3 +37,11 @@ pip-audit
 pip install pre-commit
 pre-commit install
 ```
+
+The `.secrets.baseline` file tracks known non-secret strings so `detect-secrets`
+does not emit false positives. It is committed to the repo. If you add content
+that triggers a false positive, regenerate it with:
+
+```bash
+detect-secrets scan > .secrets.baseline
+```
