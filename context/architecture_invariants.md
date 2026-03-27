@@ -48,8 +48,7 @@ class StoryContent(Base):
 ```
 
 **CI invariant test anchor:**
-Confirm Story Bible tables and Turn/Node tables share no columns and are
-never joined in a single query that returns both prose and canon fields.
+Confirm Story Bible tables and Turn/Node tables are never joined in a single query that returns both prose and canon fields in the same result set. Shared neutral fields (id, story_id, timestamps) are acceptable — commingling of prose content and canon content in a single row or query result is not.
 
 ---
 
