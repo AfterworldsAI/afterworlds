@@ -155,34 +155,77 @@ pipeline depth. Assert call count == 1 in pipeline orchestration tests.
 
 ## Invariant 5 — Output gated until contradiction checker clears
 
-**What this means:** Nothing is returned to the user until both the Writer
-pass and the Contradiction pass have completed. The contradiction checker
-runs in parallel with the Writer; the gate holds until both resolve.
+**What this means:** The contradiction checker runs on the Writer's output —
+it checks the generated prose for continuity violations against the Story
+Bible and recent context. It therefore cannot start until the Writer pass
+has completed. Nothing is returned to the user until the checker clears.
+
+Note: the construction readiness doc uses the phrase "parallel sync" to
+describe the checker's pipeline position. This refers to the checker and
+the Extractor running concurrently with each other (both consume
+`writer_result`), not the checker running concurrently with the Writer.
+The Writer is always upstream of both.
 
 **Correct:**
 ```python
+async def run_pipeline(
+    stable_prefix: StablePrefix,
+    volatile_suffix: VolatileSuffix,
+    planner_result: PlannerResult,
+) -> PipelineResult:
+    # Writer runs first — checker needs its output
+    writer_result = await writer_pass(stable_prefix, volatile_suffix, planner_result)
+
+    # Extractor and Contradiction both consume writer_result — run concurrently
+    extractor_task = asyncio.create_task(
+        extractor_pass(stable_prefix, writer_result)
+    )
+    contradiction_task = asyncio.create_task(
+        contradiction_pass(stable_prefix, writer_result)
+    )
+    extractor_result, contradiction_result = await asyncio.gather(
+        extractor_task, contradiction_task
+    )
+
+    # Gate: nothing delivered until checker clears
+    if contradiction_result.has_violations:
+        return handle_contradiction(contradiction_result)
+
+    safety_result = await safety_pass(stable_prefix, writer_result)
+    return PipelineResult(
+        writer_result=writer_result,
+        extractor_result=extractor_result,
+        contradiction_result=contradiction_result,
+        safety_result=safety_result,
+    )
+```
+
+**Violation (checker runs without prose):**
+```python
+# Wrong — contradiction_pass receives only context, not writer output
 writer_task = asyncio.create_task(writer_pass(context))
 contradiction_task = asyncio.create_task(contradiction_pass(context))
 writer_result, contradiction_result = await asyncio.gather(
     writer_task, contradiction_task
 )
-if contradiction_result.has_violations:
-    return handle_contradiction(contradiction_result)
-return deliver_to_user(writer_result)
+# Checker ran without seeing the prose — continuity violations in the
+# generated text will not be caught
 ```
 
-**Violation:**
+**Violation (output delivered before checker):**
 ```python
-writer_result = await writer_pass(context)
-await deliver_to_user(writer_result)          # delivered before checker runs — violation
-contradiction_result = await contradiction_pass(context)
+writer_result = await writer_pass(stable_prefix, volatile_suffix, planner_result)
+await deliver_to_user(writer_result)  # delivered before checker runs — violation
+contradiction_result = await contradiction_pass(stable_prefix, writer_result)
 ```
 
 **CI invariant test anchor:**
-Inject a deliberate contradiction (dead character acting; item never
-acquired; violated locked fact) and assert that output is never delivered
-when the checker returns violations. The listed examples are test anchors,
-not an exhaustive definition of detectable violations.
+Assert that `contradiction_pass` always receives `writer_result` as an
+argument, never only `context`. Inject a deliberate contradiction into
+`writer_result` (dead character acting; item never acquired; violated locked
+fact) and assert that output is never delivered when the checker returns
+violations. The listed examples are test anchors, not an exhaustive
+definition of detectable violations.
 
 ---
 
