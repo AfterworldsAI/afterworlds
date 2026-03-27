@@ -86,7 +86,7 @@ Established the complete project skeleton per Issue 1 scope:
 
 No drift from design principles. This issue contains no application logic.
 Tooling choices (Black, Ruff, mypy strict, pytest, pip-audit, detect-secrets)
-match the CI gates defined in Construction Readiness Item 12 exactly.
+match the CI gates defined in the Construction Readiness Document, "CI Gates as Quality Handoff Contract" section, exactly.
 
 ---
 
