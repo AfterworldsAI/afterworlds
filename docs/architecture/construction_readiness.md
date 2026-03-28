@@ -560,7 +560,6 @@ Every PR description includes an Architecture Notes section. If Claude Code's im
 | Linting | Ruff | pyproject.toml; zero tolerance |
 | Type checking | mypy | Strict mode; zero tolerance |
 | Unit tests | pytest | Minimum 80% coverage on new code |
-| Build validation | uvicorn startup smoke test | App must start without error |
 | Dependency scanning | pip-audit | Block on known vulnerabilities |
 | Secret scanning | detect-secrets | Pre-commit hook; block on any secret pattern |
 
@@ -570,6 +569,7 @@ Every PR description includes an Architecture Notes section. If Claude Code's im
 |---|---|
 | Story Bible and prose history stored in separate tables, never commingled | Issue 4 |
 | Prompt assembly follows stable-prefix-first order; assembled once per turn, never per pass | Issue 8 |
+| App starts without error — uvicorn startup smoke test | Issue 9 |
 | Extractor cannot write directly to canon without classification step | Issue 10 |
 | Output never delivered until contradiction checker clears | Issue 11 |
 | Free tier never receives full five-pass pipeline | Issue 12 |
