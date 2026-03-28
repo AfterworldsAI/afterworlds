@@ -559,7 +559,6 @@ Every PR description includes an Architecture Notes section. If Claude Code's im
 | Formatting | Black | pyproject.toml; zero tolerance |
 | Linting | Ruff | pyproject.toml; zero tolerance |
 | Type checking | mypy | Strict mode; zero tolerance |
-| Unit tests | pytest | Minimum 80% coverage on new code |
 | Dependency scanning | pip-audit | Block on known vulnerabilities |
 | Secret scanning | detect-secrets | Pre-commit hook; block on any secret pattern |
 
@@ -567,6 +566,7 @@ Every PR description includes an Architecture Notes section. If Claude Code's im
 
 | Invariant | Added at issue |
 |---|---|
+| Unit tests | pytest | Minimum 80% coverage on new code | Issue 2 |
 | Story Bible and prose history stored in separate tables, never commingled | Issue 4 |
 | Prompt assembly follows stable-prefix-first order; assembled once per turn, never per pass | Issue 8 |
 | App starts without error — uvicorn startup smoke test | Issue 9 |
