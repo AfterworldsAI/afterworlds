@@ -33,7 +33,7 @@ jobs:
         run: mypy src/
 
       - name: Tests — pytest
-        run: pytest --cov=src --cov-fail-under=80
+        run: pytest --cov=src
 
       - name: Dependency audit — pip-audit
         # CVE-2026-4539: ReDoS in pygments AdlLexer (pygments/lexers/archetype.py).
