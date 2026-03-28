@@ -67,7 +67,7 @@ Established the complete project skeleton per Issue 1 scope:
 
 ### Test Summary
 
-- Trivial smoke test (`tests/test_smoke.py`) confirms pytest harness runs
+- Trivial smoke test (`tests/test_placeholder.py`) confirms pytest harness runs
 - No application logic tests — none in scope for Issue 1
 - CI pipeline confirmed passing end-to-end on this PR itself
 
