@@ -267,11 +267,11 @@ Context splits into a **stable prefix** (cacheable, paid once per session) and a
 **Pass-forward additions (not cached):** ~2,000–2,500 tokens total across pipeline.
 
 **Gross input tokens per turn — all passes, before caching:**
-
+Note: The per-turn cost estimates and pricing margins in the section below were calculated against the original (understated) token totals and should be re-examined against these corrected numbers before being used as a reliable cost model.
 | Scenario | Minimal | Moderate | Complex |
 |---|---|---|---|
-| Free tier (4 passes) | ~33,000 | ~51,000 | ~72,000 |
-| Paid tier (5 passes) | ~44,000 | ~73,000 | ~115,000 |
+| Free tier (4 passes) | ~47,000 | ~76,000 | ~118,000 |
+| Paid tier (5 passes) | ~58,000 | ~95,000 | ~147,000 |
 
 These numbers are materially reduced by caching. The stable prefix — which dominates gross input — is paid at full price once per session and at ~10% for each subsequent pass within a turn.
 
