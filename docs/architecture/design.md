@@ -405,6 +405,7 @@ These are construction milestones, not product versions. They describe build ord
 - Vector retrieval memory (ChromaDB)
 - Hosted subscription credit/top-up entitlement framework
 - BYOK API support with perpetual-license and Cloud Services entitlements
+- All CI gates passing; no failing checks at release
 
 ### v2 — Advanced branching + multimodal
 - Image generation from Node metadata
