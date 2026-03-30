@@ -105,7 +105,7 @@ class Dnd5eCharacterSheet(RpgCharacterSheetBase):
     ability_scores: AbilityScores
     skills: dict[str, int] = Field(default_factory=dict)
     equipment: list[str] = Field(default_factory=list)
-    current_hp: int
+    current_hp: int = Field(ge=0)
     maximum_hp: int = Field(ge=0)
     spell_slots: dict[int, SpellSlotLevel] = Field(default_factory=dict)
 

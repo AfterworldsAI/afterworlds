@@ -10,9 +10,10 @@ Architecture invariant enforced here:
 - Writing session state holds beat constraints and version history pointers.
 """
 
+from typing import Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from afterworlds.models.enums import DiceHandling, PacingStage, WritingPersona
 
@@ -72,6 +73,22 @@ class BranchTree(BaseModel):
 
     nodes: dict[str, BranchNode] = Field(default_factory=dict)
     root_node_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def keys_match_node_ids(self) -> Self:
+        for key, branch_node in self.nodes.items():
+            try:
+                key_uuid = UUID(key)
+            except ValueError:
+                raise ValueError(
+                    f"BranchTree key {key!r} is not a valid UUID string"
+                )
+            if key_uuid != branch_node.node_id:
+                raise ValueError(
+                    f"BranchTree key {key!r} does not match "
+                    f"BranchNode.node_id {branch_node.node_id}"
+                )
+        return self
 
 
 class PlotThread(BaseModel):

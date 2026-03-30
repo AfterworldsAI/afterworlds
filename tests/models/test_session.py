@@ -126,6 +126,20 @@ class TestBranchTree:
         assert str(uid) in tree.nodes
         assert tree.root_node_id == uid
 
+    def test_mismatched_key_and_node_id_raises(self) -> None:
+        """Key must equal the embedded node_id — mismatches are rejected."""
+        uid1, uid2 = uuid4(), uuid4()
+        bn = BranchNode(node_id=uid1)
+        with pytest.raises(ValidationError, match="does not match"):
+            BranchTree(nodes={str(uid2): bn})
+
+    def test_non_uuid_key_raises(self) -> None:
+        """Non-UUID string keys are rejected."""
+        uid = uuid4()
+        bn = BranchNode(node_id=uid)
+        with pytest.raises(ValidationError, match="not a valid UUID string"):
+            BranchTree(nodes={"not-a-uuid": bn})
+
 
 class TestPlotThread:
     def test_defaults(self) -> None:

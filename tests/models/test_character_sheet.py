@@ -222,6 +222,16 @@ class TestDnd5eCharacterSheet:
         sheet = _make_sheet(current_hp=3, maximum_hp=12)
         assert sheet.current_hp != sheet.maximum_hp
 
+    def test_current_hp_zero_valid(self) -> None:
+        """current_hp of 0 (unconscious/dead) is a valid state."""
+        sheet = _make_sheet(current_hp=0, maximum_hp=10)
+        assert sheet.current_hp == 0
+
+    def test_current_hp_negative_raises(self) -> None:
+        """Negative current_hp is not a valid D&D 5e state; must be rejected."""
+        with pytest.raises(ValidationError):
+            _make_sheet(current_hp=-1, maximum_hp=10)
+
     def test_spell_slots_empty_by_default(self) -> None:
         sheet = _make_sheet()
         assert sheet.spell_slots == {}
