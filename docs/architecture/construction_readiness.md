@@ -506,7 +506,7 @@ Issues 12–21 will be formally written with acceptance criteria as Issues 1–1
 
 **Issue 4 — Story Bible Schema and Service**
 - *Goal:* Implement the Story Bible as a structured, partitioned, append-safe canon store
-- *In scope:* Static / dynamic / provisional partition schema; Events Ledger with tiered inclusion policy (recent N + high-significance flag; start N at 15, tune with testing); Locked Facts and Forbidden Facts as first-class entries; Relationship Ledger; Character entries with role tagging and static/dynamic field separation; Story Bible CRUD service; Extractor proposal staging area (not Extractor logic — Issue 9); significance flagging criteria to be defined during this issue
+- *In scope:* Static / dynamic / provisional partition schema; Events Ledger with tiered inclusion policy (recent N + high-significance flag; start N at 15, tune with testing); Locked Facts and Forbidden Facts as first-class entries; Relationship Ledger; Character entries with role tagging and static/dynamic field separation; Story Bible CRUD service; Extractor proposal staging area (not Extractor logic — Issue 10); significance flagging criteria to be defined during this issue
 - *Out of scope:* Rolling summary — Issue 6; Extractor classification logic — Issue 10; any prompt construction
 - *Deliverables:* Story Bible schema in SQLite; service for reading active context window per tiered inclusion policy; unit tests
 - *Acceptance criteria:* Static partition requires explicit confirmation to update; Events Ledger loads correct subset per tiered inclusion policy; Locked Facts are queryable as a distinct set; provisional entries are staged separately from ratified canon
