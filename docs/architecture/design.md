@@ -1,4 +1,4 @@
-# Afterworlds: Synthesized Design Document (v6)
+# Afterworlds: Synthesized Design Document (v7)
 
 ---
 
@@ -92,7 +92,7 @@ Six layers, each with a distinct role:
 | Story Bible | Structured canon | Always |
 | Rules Package | Retrieved mechanical canon or external canon-pack context | On demand by mode |
 | Retrieval Memory | Vector DB of past scenes, pulled by semantic relevance | On demand |
-| Contradiction Checker | Pre-output scan for continuity violations | Every turn (depth varies by tier) |
+| Contradiction Checker | Pre-output scan for continuity violations | Every turn; core checker always on, retrieval depth may expand with entitlement or user-configured cost guardrails |
 
 ### Contradiction Checker — What It Catches
 
@@ -104,16 +104,15 @@ Six layers, each with a distinct role:
 
 This is what separates "better memory" as a marketing claim from "better memory" as a product reality.
 
-**Free tier:** lightweight Planner + Writer + lightweight contradiction check (recent context + locked facts only) + Safety
-**Paid tier:** full five-pass pipeline with deep validation against complete Story Bible and vector history
+Continuity checking is part of the product, not a premium ornament. Afterworlds does not ship a degraded access path that removes canon maintenance or contradiction prevention in order to manufacture an upsell. All real product access paths — hosted subscription, starter access if offered, and BYOK — run the same five-pass pipeline.
 
-A free tier that silently fails on continuity isn't a funnel — it's an anti-demo. Basic dignity must be preserved at every tier.
+Commercial differences may later affect usage entitlements, retrieval budgets, or service allowances, but not whether the core continuity machinery exists.
 
 ---
 
 ## 4. The Narrative Orchestration Pipeline
 
-Every input passes through the Sojourn orchestration pipeline, with depth, pass composition, and model selection determined by mode, tier, and task complexity.
+Every input passes through the canonical five-pass Sojourn orchestration pipeline. Mode, access path, and task complexity may influence model class, retrieval depth, and billing behavior, but not whether the Planner, Writer, Extractor, Contradiction, and Safety passes exist.
 
 ### Step 1 — Intent Classification
 
@@ -151,9 +150,9 @@ Stack in priority order:
 | **Contradiction** | Checks output against Story Bible before it leaves the system |
 | **Safety** | Policy and moderation check |
 
-**Tier routing:**
-Free tier runs lightweight Planner + Writer + lightweight Contradiction + Safety.
-Paid tier runs the full five-pass stack.
+**Access routing:**
+Hosted subscription, starter access if offered, and BYOK all run the full five-pass stack.
+Commercial routing governs credit consumption, top-up prompts, Cloud Services entitlements, and provider billing path — not whether core continuity passes are removed.
 
 ### Step 4 — Extractor Update Policy
 
@@ -212,15 +211,15 @@ All three modes run on the Sojourn pipeline. They differ in prompt contract, pla
 
 - **System prompt:** AI is collaborative writing partner — not GM, not architect. Role and orientation determined by persona selection. The user is the author of record in all cases.
 - **Optional canon packs (future-lightweight extension):** Writing mode may attach an external canon/lore pack when the Sojourner is writing in an existing setting or franchise.
-- **Persona-based relationship model:** No explicit submode labels. The player selects a persona from a gallery divided into two categories — Guides and Peers — which determines the AI's fundamental relationship orientation.
-  - **Guides** (Chiron, Merlin, Vidura): developmental mentors. Primary orientation is teaching through making — craft goals, generative exercises, targeted feedback aimed at a specific craft objective. Manuscript repair is not their function; bringing existing prose to a Guide is a diagnostic path only ("what should we work on?").
+- **Persona-based relationship model:** No explicit submode labels. The player selects a persona from a gallery divided into two categories — Mentors and Peers — which determines the AI's fundamental relationship orientation.
+  - **Mentors** (Chiron, Merlin, Vidura): developmental mentors. Primary orientation is teaching through making — craft goals, generative exercises, targeted feedback aimed at a specific craft objective. Manuscript repair is not their function; bringing existing prose to a Mentor is a diagnostic path only ("what should we work on?").
   - **Peers** (Odin, Athena, Thoth): creative collaborators. Primary orientation is making alongside the user — generating prose, proposing directions, pushing the work forward. Teaching available but not default; a Peer speaks up about craft only when something is genuinely holding the work back, or when asked.
 - **Beat Control:** Sojourner sets milestone constraints ("By end of this chapter, X must happen") the AI is bound to honor.
 - **Exposed controls:** Tense, POV, length, style density, dialogue/narration ratio, genre conventions.
 - **Version history and draft branching** — compare outputs, restore previous versions.
 - All writing is rewriting.
 - Strongest style conditioning of the three modes.
-- Guide focus: craft development through making. Peer focus: project-forward collaboration with the user as author of record throughout.
+- Mentor focus: craft development through making. Peer focus: project-forward collaboration with the user as author of record throughout.
 
 ---
 
@@ -301,18 +300,78 @@ Anthropic's default 5-minute cache window is short for a narrative app where a S
 
 ## 8. Business Model
 
-Afterworlds is designed around an ethical fee structure. Competitor models gate content behind Stars, ads, and subscription tiers. The complaints are predictable consequences of that design.
+Afterworlds is designed around an ethical, AI-native fee structure that aligns user value with real platform cost **without degrading the core narrative engine by tier**.
 
-Afterworlds' structure:
+The core product promise is continuity: persistent state, canon maintenance, and coherent story progression across turns and sessions. Those are not premium embellishments. They are the product. For that reason, Afterworlds does **not** operate on a crippled free-tier model that removes core pipeline functions. All paying access paths use the same canonical five-pass Sojourn pipeline. Access classes differ in billing path, credit allowance, and hosted-service entitlements — not in continuity quality.
 
-| Tier | What You Get |
+### Commercial Structure
+
+| Access Path | What You Get |
 |---|---|
-| **Free** | 50 turns/month, lightweight Planner + Writer + lightweight Contradiction + Safety |
-| **Paid subscription** | Full five-pass Sojourn pipeline, longer chapters, (image generation, voice narration, What-If? branching in v2) |
-| **BYOK one-time purchase** | Full functionality, Sojourner supplies API key, flat fee covers infrastructure only — no grind, no content gate |
-| **Open-source core** | Community trust and adoption; monetize hosted version for non-technical Sojourners |
+| **Hosted Subscription** | Full five-pass Sojourn pipeline, monthly included credits, transparent top-ups, optional limited rollover, hosted storage, sync, pack ingestion, and ongoing platform access |
+| **BYOK Perpetual License** | Permanent right to use Afterworlds with the Sojourner's own API keys; full pipeline parity with hosted users; first year of Cloud Services included |
+| **BYOK Cloud Services Renewal** | Optional annual renewal for continued hosted storage, sync, ingestion processing, remote access, and other ongoing platform services after the first included year |
+| **Starter Access (optional launch/on-ramp)** | Small paid entry package that uses the same full pipeline and consumes normal hosted credits; exists to reduce first-purchase friction without introducing a degraded free tier |
+| **Open-source core** | Community trust and adoption; hosted services, convenience layers, and non-technical onboarding remain monetized |
 
-The gating in competitor platforms is primarily a monetization decision, not purely a principled safety architecture. Safety, legal risk, and platform compliance all contribute to content restrictions in the industry broadly — but the specific pattern of locking NSFW content behind premium currency while offering it freely to paying users is transparently incentive-driven. Afterworlds' BYOK model sidesteps that incentive structure by design.
+### Hosted Subscription Model
+
+The hosted subscription is a **metered subscription with credits**, not an "all you can eat" promise detached from model cost.
+
+- A monthly subscription includes a defined credit allotment
+- Credits are consumed by actual use of the hosted system
+- Transparent top-ups are always available
+- Limited rollover may be offered, but must be capped and legible
+- When credits are exhausted, the system stops or prompts for top-up — it does not silently degrade story quality
+
+This structure matches the economics of AI-native products while remaining understandable to users. Afterworlds should never hide usage reality behind fake abundance and then recover margin through degraded output, surprise caps, or manipulative gating.
+
+### BYOK Structure
+
+BYOK is a first-class path, not a fallback.
+
+The BYOK offer is intentionally split into two distinct components:
+
+1. **Perpetual BYOK License**
+   - one-time purchase
+   - grants permanent rights to use Afterworlds with the Sojourner's own model/provider credentials
+   - includes all core product functionality and future bug fixes / core improvements covered by the license terms
+
+2. **Cloud Services**
+   - first year included with the BYOK purchase
+   - optional annual renewal thereafter
+   - covers ongoing hosted services such as cloud storage, sync, backups, remote access, pack ingestion processing, and similar platform costs
+
+This distinction is critical. The perpetual license is the software/product right. Cloud Services are the ongoing hosted-service layer. Afterworlds should never describe BYOK as a pure one-time purchase if continued hosted service depends on recurring platform expense.
+
+### Non-Renewal Behavior for BYOK Cloud Services
+
+If a BYOK user does not renew Cloud Services, the product should fail gracefully and ethically:
+
+- retain read/export/download access to owned stories and content where practical
+- suspend or reduce only the genuinely ongoing-cost hosted services
+- allow later reactivation without penalty
+- never hold user-created story data hostage as leverage for renewal
+
+The user loses hosted convenience and ongoing platform services — not ownership of their work.
+
+### Future Revenue Layers
+
+These are not required for v1, but the business model should remain compatible with them from the start:
+
+- **Creator marketplace / shareable story templates (v3)** with user-trust-oriented payout logic
+- **Institutional licensing** for schools, libraries, workshops, and studios using per-seat, pooled-credit, or capped-usage models
+- **Optional expansion packs / major feature expansions** for BYOK users, provided these are genuinely new capabilities rather than backfilled bug fixes or withheld essentials
+
+### Ethical Principles
+
+- Do not degrade continuity by tier
+- Do not hide usage economics behind misleading "unlimited" language
+- Do not trap users with dark-pattern upgrade or renewal flows
+- Do not conflate perpetual software rights with recurring hosted-service costs
+- Do not gate core dignity behind premium currency mechanics
+
+Afterworlds' commercial model should feel like a clear exchange, not a carnival game: the Sojourner either pays for hosted usage directly, or brings their own model costs and pays only for the continuing platform services they actually consume.
 
 ---
 
@@ -329,7 +388,7 @@ These are construction milestones, not product versions. They describe build ord
 - Extractor classification policy
 - Lightweight contradiction checker
 - Full five-pass pipeline orchestration
-- Tier routing and BYOK support
+- Entitlement routing, hosted credits/top-ups, and BYOK support
 
 ### v1 — First release-capable text product
 - Full five-pass Sojourn pipeline
@@ -337,14 +396,15 @@ These are construction milestones, not product versions. They describe build ord
 - RPG mode includes: modular Rules Package support with d20 as the first curated and ingested exemplar; two dice handling modes (Player rolls / AI rolls); GM cheating toggle; mandatory pre-play sequence (world setup → character creation → play); character sheet as first-class persistent object
 - Branching mode includes: plot graph, pacing stage tracking calibrated to length preference, 3–5 branch options per beat with freeform input as equal first-class option
 - Branching mode excludes: visual story map, non-destructive What If? branching (both deferred to v2)
-- Writing mode includes: persona-based relationship model — three Guide personas (Chiron, Merlin, Vidura) and three Peer personas (Odin, Athena, Thoth)
+- Writing mode includes: persona-based relationship model — three Mentor personas (Chiron, Merlin, Vidura) and three Peer personas (Odin, Athena, Thoth)
 - Full story hierarchy (Story / Arc / Chapter / Node / Turn)
 - Rolling summary + Story Bible
 - Extractor with update classification policy
 - Contradiction checker
 - SQLite persistence
 - Vector retrieval memory (ChromaDB)
-- BYOK API support
+- Hosted subscription credit/top-up entitlement framework
+- BYOK API support with perpetual-license and Cloud Services entitlements
 
 ### v2 — Advanced branching + multimodal
 - Image generation from Node metadata
