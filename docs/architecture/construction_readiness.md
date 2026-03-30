@@ -731,57 +731,21 @@ The following are architectural invariants, not conventions. Codex reviews again
 
 ## Item 15 — Known Unknowns Are Listed Explicitly
 
-**Resolved before construction — no longer unknowns:**
+All known unknowns — both resolved and open — are maintained in the canonical reference document:
 
-| Item | Decision |
-|---|---|
-| Vector DB | ChromaDB, self-hosted from day one |
-| Contradiction checker approach | Lightweight model-assisted, parallel sync |
-| Intent classifier approach | Lightweight model call |
-| Business model and pricing | Committed — see Item 8 |
-| Story Bible schema | Committed — see Items 4–5 |
-| Mode prompt contracts | Written — see Item 6 and `/docs/prompts/` |
-| BYOK commercial structure | Committed — see Item 8 |
-| Writing mode structure | Persona-based — Mentors (Chiron, Merlin, Vidura) and Peers (Odin, Athena, Thoth); no explicit submode labels |
-| RPG dice handling | Two modes: Player rolls / AI rolls; hidden rolls are a narrative mechanic, not a player setting |
+**`/docs/architecture/known_unknowns.md`**
 
-**Acceptable to resolve during construction:**
-
-| Unknown | When to resolve |
-|---|---|
-| React or Svelte for the initial frontend | Before Issue 19 |
-| Exact ChromaDB collection schema for story/rules vectors | Before Issue 18 |
-| Exact FastAPI route shapes | Before Issue 18 |
-| Rolling summary compression trigger value (N turns) | During Issue 6; start at 10, tune with testing |
-| Events Ledger tiered inclusion N value (recent events to load) | During Issue 4; start at 15, tune with testing |
-| Significance flagging criteria for Events Ledger | During Issue 4 |
-| Session resumption UX on cache miss | During Issue 14 |
-| Mentor and Peer persona behavioral implementation details (six personas: Chiron, Merlin, Vidura, Odin, Athena, Thoth) | During Issue 17 |
+That document includes: the full list of decisions resolved before construction, the full list of open unknowns with resolution windows and context, and instructions for Claude Code and Codex on how to handle unknowns encountered during implementation.
 
 ---
 
 ## Item 16 — Minimal End-to-End Slice Is Defined
 
-**Primary spine demo — Branching mode (proves the machine lives):**
+The full spine demo definition — including all three mode slices, prerequisites, step-by-step pass criteria, and failure modes to watch for — is maintained in the canonical reference document:
 
-1. User creates a new Story with a minimal Story Bible (setting, one protagonist, one dramatic hook)
-2. Selects Branching mode with default configuration
-3. Backend classifies intent (branch choice)
-4. Context is assembled from new/empty state — stable prefix confirmed correct, pacing stage initialized to Setup
-5. Writer generates a narrative beat; contradiction checker runs in parallel
-6. Output is gated until checker clears; prose is delivered
-7. Branch generation call produces 3–5 action options alongside a freeform text field as equal options
-8. Turn is saved to SQLite; Node is created with pacing stage metadata
-9. Story Bible and rolling summary update path runs — Extractor proposes; no locked facts to confirm on first turn
-10. User selects a branch or types freeform input; second turn submitted; correct prior state and pacing stage load; response is coherent with first turn and advances pacing naturally
+**`/docs/architecture/spine_demo.md`**
 
-This is the proof of life. All three modes extend from this spine.
-
-**RPG mode follow-on slice:** Same flow, but gated on the first d20 Rules Package already existing. Pre-play sequence runs first: world setup confirmed, character sheet complete. Step 3 retrieves the relevant d20 Rules Package slices. If `dice_mode = AI rolls`, step 6 narrates the consequence of the roll result with the roll value shown to the player. If `dice_mode = Player rolls`, the GM announces the required check and modifiers and waits for the player to report their roll before narrating the outcome. Hidden rolls for NPC/enemy checks the player has no in-world awareness of are resolved privately in both modes.
-
-**Rules-enabled MVP dependency:** RPG mode is not MVP-ready until one curated d20 Rules Package has been ingested, published, and made queryable through the Context Builder. Branching and Writing modes may ignore this dependency in v1 unless a canon-pack use case is explicitly being tested.
-
-**Writing mode follow-on slice:** Same flow, but the player has selected a Mentor persona (e.g., Chiron). The Mentor reads the completed setup form, opens with a brief confirmation and a craft-focused clarifying question, and then invites the user to write toward a specific craft goal. Step 6 returns targeted feedback aimed at that goal — not a manuscript repair response. The Mentor never begins by receiving existing prose for correction.
+The primary spine is Branching mode. RPG and Writing mode slices extend from it. All three must pass before v1 is declared release-capable (Issue 21).
 
 ---
 
