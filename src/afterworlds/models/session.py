@@ -79,8 +79,8 @@ class BranchTree(BaseModel):
         for key, branch_node in self.nodes.items():
             try:
                 key_uuid = UUID(key)
-            except ValueError:
-                raise ValueError(f"BranchTree key {key!r} is not a valid UUID string")
+            except ValueError as err:
+                raise ValueError(f"BranchTree key {key!r} is not a valid UUID string") from err
             if key_uuid != branch_node.node_id:
                 raise ValueError(
                     f"BranchTree key {key!r} does not match "
