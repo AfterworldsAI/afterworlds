@@ -7,7 +7,9 @@ name = "afterworlds"
 version = "0.1.0"
 description = "Afterworlds interactive storytelling platform built on the Sojourn Story State Machine"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.7",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -48,10 +50,17 @@ ignore = []
 python_version = "3.12"
 strict = true
 files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--tb=short"
+addopts = "--tb=short --cov=src/afterworlds --cov-report=term-missing --cov-fail-under=80"
+pythonpath = ["."]
