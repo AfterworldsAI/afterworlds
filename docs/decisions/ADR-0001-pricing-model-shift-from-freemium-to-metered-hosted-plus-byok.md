@@ -22,11 +22,13 @@ This design initially appeared attractive because it followed a familiar SaaS pa
 During architecture review, a critical flaw was identified in the degraded free-tier design. The reduced free pipeline omitted the **Extractor** pass. Without the Extractor, the system had no reliable mechanism to:
 
 - propose Story Bible updates
-- apply or stage world-state changes
-- keep dynamic canon current across turns
+- classify and stage candidate continuity/state updates for later policy-governed persistence
+- keep dynamic canon current across turns without collapsing the separation between proposal and canonical application
 - maintain continuity quality at the level the product promises
 
 This exposed a deeper issue than a single missing pass.
+
+For clarity: the Extractor does **not** write canon directly. Its role is to propose and classify candidate updates so the system can later commit only what policy allows — for example, auto-committing transient state, staging locked facts for explicit confirmation, and preventing raw generation from silently becoming law.
 
 Afterworlds is not primarily selling generic AI text generation. It is selling **persistent, coherent, stateful narrative experience**: continuity, canon maintenance, memory integrity, and believable progression across turns and sessions. A free experience that removed core continuity machinery would not function as a true demonstration of the product. It would train users to believe the product was unreliable.
 
