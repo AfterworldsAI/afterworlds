@@ -11,3 +11,12 @@
 - Enforce that no PR merges with failing CI.
 - Prefer high-signal comments over nitpicks.
 - Call out missing tests when acceptance criteria mention tests.
+
+## Comment labeling
+- Prefix any comment that requires a design, architectural, ethical, or policy
+  judgment with `[OWNER DECISION]:` at the start of that comment.
+
+## Auto-fix trigger
+- After posting any review that requests changes, post a follow-up comment with
+  exactly this text:
+  `@claude fix the concrete issues in this review. Skip any comment prefixed with [OWNER DECISION].`
