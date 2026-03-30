@@ -219,7 +219,9 @@ Full protocol in each mode's prompt file. The UI provides an explicit OOC button
 
 The checker is designed to catch continuity violations including but not limited to: dead characters acting, items never acquired, location/name drift, POV/tense shift, and violated locked facts. The listed categories are common failure modes, not an exhaustive definition.
 
-**Pipeline position:** Parallel sync. The checker fires the moment context is assembled — concurrent with the Writer pass, not after it. Output is gated on both completing before anything ships to the user. In the common case, the checker (small/fast model) finishes before or near the Writer, and the latency hit approaches zero.
+**Pipeline position:** The checker runs immediately on the Writer's candidate output — evaluating the generated prose against the Story Bible and assembled context before anything is delivered to the user. It does not run on input context alone; it must see what the Writer produced in order to catch contradictions introduced by generation (for example, a dead character acting in newly generated prose).
+
+Output is gated on the checker clearing. Nothing is delivered to the user until it does. Because the checker uses a small, fast model, the latency added to the turn approaches zero in practice.
 
 Nothing is delivered to the user until the checker clears. Contradictions are caught before they're read, not flagged after the fact.
 
@@ -565,7 +567,7 @@ Issues 12–21 will be formally written with acceptance criteria as Issues 1–1
 **Issue 9 — Minimal Writer Path**
 - *Goal:* Prove end-to-end that a player input goes in and coherent prose comes out — single pass, no orchestration
 - *In scope:* Single Writer LLM call using assembled context; response parsing; Turn saved to SQLite; no Planner, no Extractor, no Contradiction, no Safety yet
-- *Out of scope:* Full pipeline orchestration — Issue 11; mode-specific prompt contracts — Issues 15–17; this is a proof-of-life call, not a production path
+- *Out of scope:* Full pipeline orchestration — Issue 12; mode-specific prompt contracts — Issues 15–17; this is a proof-of-life call, not a production path
 - *Deliverables:* Working Writer call with context builder output as input; Turn persistence; integration test confirming round-trip
 - *Acceptance criteria:* Input goes in, prose comes out, Turn is saved; context assembly confirmed correct before the call; response is parseable
 - *Test requirements:* Integration test: full round-trip from input to saved Turn; context content verification before call
@@ -583,12 +585,12 @@ Issues 12–21 will be formally written with acceptance criteria as Issues 1–1
 ---
 
 **Issue 11 — Lightweight Contradiction Checker**
-- *Goal:* Implement the contradiction checker per the architecture defined in Item 7 (parallel sync gate, small/fast model)
-- *In scope:* Contradiction checker LLM call with focused prompt; parallel execution alongside Writer pass; baseline scope against recent context + active Story Bible context; output gate logic; contradiction result schema
+- *Goal:* Implement the contradiction checker per the architecture defined in Item 7 (sequential gate on Writer output, small/fast model)
+- *In scope:* Contradiction checker LLM call with focused prompt; checker evaluates Writer candidate output against Story Bible and assembled context; baseline scope against recent context + active Story Bible context; output gate logic; contradiction result schema
 - *Out of scope:* Retrieval expansion beyond the currently wired context sources — deferred until ChromaDB is integrated (Issue 18); pipeline orchestration wiring — Issue 12
-- *Deliverables:* Working contradiction checker; parallel execution proof; gate logic; unit tests
-- *Acceptance criteria:* Checker fires on context assembly, not after Writer output; output is gated — nothing ships until checker clears; baseline scope correctly covers recent context + active Story Bible context; contradictions caught and reported before delivery
-- *Test requirements:* Parallel execution tests; gate behavior tests; scope boundary tests (baseline context vs. expanded retrieval once available); known contradiction detection tests using representative examples (dead character acting, item never acquired, locked fact violated) — these are test anchors, not the complete set of detectable violations
+- *Deliverables:* Working contradiction checker; gate logic; unit tests
+- *Acceptance criteria:* Checker evaluates Writer output before delivery, not input context alone; output is gated — nothing ships until checker clears; baseline scope correctly covers recent context + active Story Bible context; contradictions caught and reported before delivery
+- *Test requirements:* Gate behavior tests; scope boundary tests (baseline context vs. expanded retrieval once available); known contradiction detection tests using representative examples (dead character acting, item never acquired, locked fact violated) — these are test anchors, not the complete set of detectable violations
 
 ---
 
