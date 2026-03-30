@@ -12,7 +12,7 @@
 
 **For Codex:** Flag any PR that appears to resolve or work around a Known Unknown without a corresponding ADR in `/docs/decisions/` and explicit owner confirmation.
 
-**For the project owner:** When a decision is made, move the item from "Open" to "Resolved," record the decision and rationale here, and write an ADR in `/docs/decisions/`.
+**For the project owner:** When a decision is made during construction, move the item from "Open" to "Resolved," record the decision and rationale here, and write an ADR in `/docs/decisions/`. Pre-construction design decisions are documented in the Design doc and CRD, which serve as their auditable record — no separate ADR is required for items resolved before construction began.
 
 ---
 
@@ -150,4 +150,4 @@ When construction surfaces a decision that isn't covered by existing docs and sh
 
 ---
 
-*This document is a canonical architecture artifact. Updates require a PR with an Architecture Notes section. Resolving a Known Unknown requires a corresponding ADR in `/docs/decisions/`.*
+*This document is a canonical architecture artifact. Updates require a PR with an Architecture Notes section. Resolving a Known Unknown during construction requires a corresponding ADR in `/docs/decisions/`. Items in the Resolved table that were decided before construction began are documented in the Design doc and CRD.*
