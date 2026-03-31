@@ -98,14 +98,40 @@ make a load-bearing choice without explicit approval:
 
 ## Business Model Constraints — Architectural Invariants
 
-- Free tier turn cap: 50/month — enforced at API layer, not UI
-- Free tier pipeline: lightweight Planner + Writer + lightweight Contradiction
-  + Safety only — never the full five-pass pipeline
-- Paid tier: full five-pass pipeline
-- BYOK is a first-class path — all features must work identically under BYOK
-- Extended TTL caching must be enabled by default wherever provider supports it
-- Free tier must preserve basic continuity dignity — silent continuity failure
-  is not acceptable at any tier
+There is **one canonical five-pass pipeline** (Planner → Writer → Extractor →
+Contradiction → Safety) for all paying access paths. No commercial tier may
+remove core continuity functions. A degraded free-tier pipeline is not part
+of this product.
+
+Access paths and their constraints:
+
+- **Hosted Subscription:** metered subscription with included monthly credits +
+  transparent top-ups. When credits are exhausted, the system stops or prompts
+  for top-up — it never silently degrades output quality or drops pipeline
+  passes.
+- **BYOK Perpetual License:** permanent product rights with full pipeline
+  parity. First year of Cloud Services included. BYOK is a first-class path —
+  not a fallback or reduced-function mode.
+- **BYOK Cloud Services Renewal:** optional annual renewal for ongoing hosted
+  services (storage, sync, backup, remote access, ingestion processing). The
+  perpetual license and the Cloud Services layer must not be collapsed in code
+  or entitlement logic.
+- **Starter Access (optional):** small paid entry package using the same full
+  pipeline and normal hosted credits. Not a free tier. Not a degraded path.
+
+Additional invariants:
+
+- Extended TTL caching must be enabled by default wherever the provider
+  supports it — this is an economic requirement, not a preference
+- Stable prompt prefix is assembled once per turn and shared across all passes
+  — rebuilding it per pass is an architectural violation
+- Entitlement routing governs billing path, credit balance, Cloud Services
+  status, and storage/ingestion entitlements — never whether the core
+  continuity pipeline exists
+- BYOK non-renewal must preserve read/export/download access to owned work;
+  user content must never be held hostage as leverage for renewal
+- Top-up flows must be transparent and non-manipulative — no dark patterns,
+  no concealed overage behavior
 
 ## Note-Taking (Self-Improvement Loop)
 
