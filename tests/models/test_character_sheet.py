@@ -174,13 +174,13 @@ class TestRpgCharacterSheetBase:
 
     def test_base_has_no_hp_fields(self) -> None:
         """Base model must not encode HP fields — those belong to the concrete model."""
-        assert not hasattr(RpgCharacterSheetBase, "current_hp")
-        assert not hasattr(RpgCharacterSheetBase, "maximum_hp")
+        assert "current_hp" not in RpgCharacterSheetBase.model_fields
+        assert "maximum_hp" not in RpgCharacterSheetBase.model_fields
 
     def test_base_has_no_ability_score_fields(self) -> None:
         """Base model must not encode ability score fields — ruleset-specific."""
-        assert not hasattr(RpgCharacterSheetBase, "ability_scores")
-        assert not hasattr(RpgCharacterSheetBase, "strength")
+        assert "ability_scores" not in RpgCharacterSheetBase.model_fields
+        assert "strength" not in RpgCharacterSheetBase.model_fields
 
     def test_base_accepts_any_rules_package_id(self) -> None:
         """Base model accepts any rules_package_id — no ruleset-specific validation."""
