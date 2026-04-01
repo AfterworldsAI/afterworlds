@@ -7,8 +7,6 @@ on:
 jobs:
   auto-fix:
     # Only run when Codex submits a "changes requested" review.
-    # Replace YOUR_CODEX_BOT_USERNAME with the exact login that posts Codex reviews,
-    # e.g. openai-codex[bot].
     if: >
       github.event.review.state == 'changes_requested' &&
       github.event.review.user.login == 'chatgpt-codex-connector[bot]'
@@ -38,6 +36,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
+      - name: Debug review event
+        shell: bash
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "review_state=${{ github.event.review.state }}"
+          echo "review_user=${{ github.event.review.user.login }}"
+          echo "pr_number=${{ github.event.pull_request.number }}"
+          echo "review_id=${{ github.event.review.id }}"
+
       - name: Check auto-fix iteration count
         id: check_iterations
         shell: bash
@@ -62,12 +69,14 @@ jobs:
           exit 0
 
       - name: Fetch Codex review summary and inline comments
+        id: review_data
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REVIEW_ID="${{ github.event.review.id }}"
+          REVIEW_FILE="$RUNNER_TEMP/codex_review.txt"
 
           REVIEW_BODY=$(gh api \
             "/repos/${{ github.repository }}/pulls/reviews/$REVIEW_ID" \
@@ -95,70 +104,74 @@ jobs:
             else
               echo "(no inline comments)"
             fi
-          } > codex_review.txt
+          } > "$REVIEW_FILE"
 
-      - name: Prepare Claude prompt
-        shell: bash
-        run: |
-          cat > claude_prompt.txt <<'PROMPT_EOF'
-          You are resolving review comments from Codex on a pull request.
-
-          Files available in the repository root:
-          - codex_review.txt
-          - CLAUDE.md (if present)
-          - docs/architecture/known_unknowns.md (if present)
-
-          Your job:
-          1. Read codex_review.txt carefully.
-          2. Treat any comment prefixed with [OWNER DECISION] as out of scope.
-          3. Also treat any comment that requires a design, architectural, ethical,
-             product, or policy judgment as an owner decision even if it is not
-             labeled.
-          4. Fix only concrete implementation issues that can be addressed
-             confidently inside the existing PR scope.
-          5. Do not modify any file under .github/workflows/.
-          6. Do not change CI thresholds or gate settings.
-          7. Do not resolve Known Unknowns from docs/architecture/known_unknowns.md.
-          8. Do not widen scope beyond the review comments.
-          9. If you encounter owner-decision items, write them to a file named
-             owner_decisions_report.md as a markdown bullet list. If there are none,
-             do not create that file.
-
-          When you are done editing files, stop. Do not commit. Do not push.
-          PROMPT_EOF
+          echo "review_file=$REVIEW_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
-          prompt: ${{ github.workspace }}/claude_prompt.txt
+          prompt: |
+            You are resolving review comments from Codex on a pull request.
+
+            Files available to read in the repository and runner:
+            - ${{ steps.review_data.outputs.review_file }}
+            - CLAUDE.md (if present)
+            - docs/architecture/known_unknowns.md (if present)
+
+            Your job:
+            1. Read ${{ steps.review_data.outputs.review_file }} carefully.
+            2. Treat any comment prefixed with [OWNER DECISION] as out of scope.
+            3. Also treat any comment that requires a design, architectural, ethical,
+               product, or policy judgment as an owner decision even if it is not labeled.
+            4. Fix only concrete implementation issues that can be addressed
+               confidently inside the existing PR scope.
+            5. Do not modify any file under .github/workflows/.
+            6. Do not change CI thresholds or gate settings.
+            7. Do not resolve Known Unknowns from docs/architecture/known_unknowns.md.
+            8. Do not widen scope beyond the review comments.
+            9. If you encounter owner-decision items, write them to a file named
+               ${{ runner.temp }}/owner_decisions_report.md as a markdown bullet list.
+               If there are none, do not create that file.
+            10. When you are done editing files, stop. Do not commit. Do not push.
+
           claude_args: "--max-turns 10"
 
       - name: Post owner-decision summary if present
-        if: hashFiles('owner_decisions_report.md') != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
+          REPORT_FILE="$RUNNER_TEMP/owner_decisions_report.md"
+          COMMENT_FILE="$RUNNER_TEMP/owner_decisions_comment.md"
+
+          if [ ! -f "$REPORT_FILE" ]; then
+            echo "No owner-decision report present."
+            exit 0
+          fi
+
           {
             echo "⚠️ **Items requiring owner decision**"
             echo
-            cat owner_decisions_report.md
-          } > owner_decisions_comment.md
+            cat "$REPORT_FILE"
+          } > "$COMMENT_FILE"
 
           gh pr comment "${{ github.event.pull_request.number }}" \
-            --body-file owner_decisions_comment.md
+            --body-file "$COMMENT_FILE"
 
       - name: Configure git identity
-        shell: bash
-        run: |
-          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
-
-          USER_ID=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)
-          git config user.email "${USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+        id: git_identity
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          USER_ID=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)
+          echo "user_id=$USER_ID" >> "$GITHUB_OUTPUT"
+
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
       - name: Commit changes if any
         id: commit_changes
