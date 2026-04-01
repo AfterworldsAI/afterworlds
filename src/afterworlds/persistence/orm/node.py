@@ -30,9 +30,7 @@ class NodeORM(Base):
     )
     mode_metadata: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
 
-    chapter: Mapped[ChapterORM] = relationship(
-        "ChapterORM", back_populates="nodes"
-    )
+    chapter: Mapped[ChapterORM] = relationship("ChapterORM", back_populates="nodes")
     turns: Mapped[list[TurnORM]] = relationship(
         "TurnORM",
         back_populates="node",
