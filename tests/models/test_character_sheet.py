@@ -313,6 +313,11 @@ class TestDnd5eCharacterSheet:
         with pytest.raises(ValidationError):
             _make_sheet(character_class=42)  # type: ignore[arg-type]
 
+    def test_ability_scores_are_typed_model(self) -> None:
+        sheet = _make_sheet()
+        assert isinstance(sheet.ability_scores, Dnd5eAbilityScores)
+
+
     def test_sheet_is_source_of_truth_for_hp_not_session_state(self) -> None:
         """HP must live on the sheet.  RPG session state must not own HP."""
         from afterworlds.models.enums import DiceHandling
