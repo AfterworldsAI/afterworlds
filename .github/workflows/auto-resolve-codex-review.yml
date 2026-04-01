@@ -1,0 +1,181 @@
+name: Auto-resolve Codex review comments
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  auto-fix:
+    # Only run when Codex submits a "changes requested" review.
+    # Replace YOUR_CODEX_BOT_USERNAME with the exact login that posts Codex reviews,
+    # e.g. openai-codex[bot].
+    if: >
+      github.event.review.state == 'changes_requested' &&
+      github.event.review.user.login == 'chatgpt-codex-connector[bot]'
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Create GitHub App token for push/comment operations
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.AUTO_FIX_APP_ID }}
+          private-key: ${{ secrets.AUTO_FIX_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Check auto-fix iteration count
+        id: check_iterations
+        shell: bash
+        run: |
+          COUNT=$(git log --oneline --format="%s" | grep -c "^auto-fix:" || true)
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+          if [ "$COUNT" -ge 3 ]; then
+            echo "cap_reached=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cap_reached=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post cap-reached comment and halt
+        if: steps.check_iterations.outputs.cap_reached == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "⚠️ **Auto-fix loop reached iteration cap (3 attempts).** This PR needs owner review before further automated fixes can run."
+          exit 0
+
+      - name: Fetch Codex review summary and inline comments
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          REVIEW_ID="${{ github.event.review.id }}"
+
+          REVIEW_BODY=$(gh api \
+            "/repos/${{ github.repository }}/pulls/reviews/$REVIEW_ID" \
+            --jq '.body // "(no summary provided)"')
+
+          INLINE=$(gh api \
+            "/repos/${{ github.repository }}/pulls/$PR_NUMBER/comments" \
+            --jq --argjson rid "$REVIEW_ID" '
+              [
+                .[]
+                | select(.pull_request_review_id == $rid)
+                | "### " + .path + " (line " + ((.line // .original_line // 0) | tostring) + ")\n" + .body
+              ] | join("\n\n---\n\n")
+            ')
+
+          {
+            echo "# Codex Review — PR #$PR_NUMBER"
+            echo
+            echo "## Review Summary"
+            echo "$REVIEW_BODY"
+            echo
+            echo "## Inline Comments"
+            if [ -n "$INLINE" ]; then
+              echo "$INLINE"
+            else
+              echo "(no inline comments)"
+            fi
+          } > codex_review.txt
+
+      - name: Prepare Claude prompt
+        shell: bash
+        run: |
+          cat > claude_prompt.txt <<'PROMPT_EOF'
+          You are resolving review comments from Codex on a pull request.
+
+          Files available in the repository root:
+          - codex_review.txt
+          - CLAUDE.md (if present)
+          - docs/architecture/known_unknowns.md (if present)
+
+          Your job:
+          1. Read codex_review.txt carefully.
+          2. Treat any comment prefixed with [OWNER DECISION] as out of scope.
+          3. Also treat any comment that requires a design, architectural, ethical,
+             product, or policy judgment as an owner decision even if it is not
+             labeled.
+          4. Fix only concrete implementation issues that can be addressed
+             confidently inside the existing PR scope.
+          5. Do not modify any file under .github/workflows/.
+          6. Do not change CI thresholds or gate settings.
+          7. Do not resolve Known Unknowns from docs/architecture/known_unknowns.md.
+          8. Do not widen scope beyond the review comments.
+          9. If you encounter owner-decision items, write them to a file named
+             owner_decisions_report.md as a markdown bullet list. If there are none,
+             do not create that file.
+
+          When you are done editing files, stop. Do not commit. Do not push.
+          PROMPT_EOF
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          prompt: ${{ github.workspace }}/claude_prompt.txt
+          claude_args: "--max-turns 10"
+
+      - name: Post owner-decision summary if present
+        if: hashFiles('owner_decisions_report.md') != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          {
+            echo "⚠️ **Items requiring owner decision**"
+            echo
+            cat owner_decisions_report.md
+          } > owner_decisions_comment.md
+
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body-file owner_decisions_comment.md
+
+      - name: Configure git identity
+        shell: bash
+        run: |
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+
+          USER_ID=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)
+          git config user.email "${USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Commit changes if any
+        id: commit_changes
+        shell: bash
+        run: |
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "auto-fix: resolve Codex review comments"
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push fixes
+        if: steps.commit_changes.outputs.committed == 'true'
+        shell: bash
+        run: |
+          git push origin "${{ github.event.pull_request.head.ref }}"
