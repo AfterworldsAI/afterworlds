@@ -69,6 +69,7 @@ jobs:
           exit 0
 
       - name: Fetch Codex review summary and inline comments
+        id: review_data
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
@@ -106,7 +107,6 @@ jobs:
           } > "$REVIEW_FILE"
 
           echo "review_file=$REVIEW_FILE" >> "$GITHUB_OUTPUT"
-        id: review_data
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
@@ -140,13 +140,17 @@ jobs:
           claude_args: "--max-turns 10"
 
       - name: Post owner-decision summary if present
-        if: hashFiles(format('{0}/owner_decisions_report.md', runner.temp)) != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
           REPORT_FILE="$RUNNER_TEMP/owner_decisions_report.md"
           COMMENT_FILE="$RUNNER_TEMP/owner_decisions_comment.md"
+
+          if [ ! -f "$REPORT_FILE" ]; then
+            echo "No owner-decision report present."
+            exit 0
+          fi
 
           {
             echo "⚠️ **Items requiring owner decision**"
