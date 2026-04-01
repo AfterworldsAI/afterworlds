@@ -1,11 +1,14 @@
 """Unit tests for RPG character sheet models.
 
-Key invariants tested:
+Architectural boundary tested here:
 - Character sheet is a distinct Pydantic model (not dict / blob / freeform field)
-- current_hp cannot exceed maximum_hp
-- Ability scores are within valid D&D 5e range (1–30)
-- Spell slot used cannot exceed total
-- rules_package_id is required
+- ``RpgCharacterSheetBase`` contains no rule-adjudication semantics
+- ``Dnd5eAbilityScores`` and all D&D 5e validators are scoped to the concrete
+  v1 model, not the base persistence layer
+- ``current_hp`` cannot exceed ``maximum_hp`` (D&D 5e-scoped constraint)
+- Ability scores are within the D&D 5e range (1–30)
+- Spell slot ``used`` cannot exceed ``total`` (structural invariant)
+- ``rules_package_id`` is required
 - Character sheet is the source of truth for HP and spell slots
 """
 
@@ -16,14 +19,14 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from afterworlds.models.character_sheet import (
-    AbilityScores,
+    Dnd5eAbilityScores,
     Dnd5eCharacterSheet,
     RpgCharacterSheetBase,
     SpellSlotLevel,
 )
 
 
-def _make_scores(**overrides: int) -> AbilityScores:
+def _make_scores(**overrides: int) -> Dnd5eAbilityScores:
     defaults = dict(
         strength=10,
         dexterity=12,
@@ -33,7 +36,7 @@ def _make_scores(**overrides: int) -> AbilityScores:
         charisma=11,
     )
     defaults.update(overrides)
-    return AbilityScores(**defaults)
+    return Dnd5eAbilityScores(**defaults)
 
 
 def _make_sheet(**overrides: object) -> Dnd5eCharacterSheet:
@@ -54,7 +57,7 @@ def _make_sheet(**overrides: object) -> Dnd5eCharacterSheet:
     return Dnd5eCharacterSheet(**defaults)  # type: ignore[arg-type]
 
 
-class TestAbilityScores:
+class TestDnd5eAbilityScores:
     def test_valid_scores(self) -> None:
         scores = _make_scores()
         assert scores.strength == 10
@@ -87,7 +90,7 @@ class TestAbilityScores:
 
     def test_invalid_type_raises(self) -> None:
         with pytest.raises(ValidationError):
-            AbilityScores(
+            Dnd5eAbilityScores(
                 strength="high",  # type: ignore[arg-type]
                 dexterity=10,
                 constitution=10,
@@ -169,6 +172,28 @@ class TestRpgCharacterSheetBase:
         )
         assert b1.sheet_id != b2.sheet_id
 
+    def test_base_has_no_hp_fields(self) -> None:
+        """Base model must not encode HP fields — those belong to the concrete model."""
+        assert "current_hp" not in RpgCharacterSheetBase.model_fields
+        assert "maximum_hp" not in RpgCharacterSheetBase.model_fields
+
+    def test_base_has_no_ability_score_fields(self) -> None:
+        """Base model must not encode ability score fields — ruleset-specific."""
+        assert "ability_scores" not in RpgCharacterSheetBase.model_fields
+        assert "strength" not in RpgCharacterSheetBase.model_fields
+
+    def test_base_accepts_any_rules_package_id(self) -> None:
+        """Base model accepts any rules_package_id — no ruleset-specific validation."""
+        now = datetime.now(UTC)
+        base = RpgCharacterSheetBase(
+            story_id=uuid4(),
+            rules_package_id="some-future-ruleset-v1",
+            character_name="X",
+            created_at=now,
+            updated_at=now,
+        )
+        assert base.rules_package_id == "some-future-ruleset-v1"
+
 
 class TestDnd5eCharacterSheet:
     def test_instantiation_valid(self) -> None:
@@ -204,6 +229,11 @@ class TestDnd5eCharacterSheet:
         assert hasattr(sheet, "spell_slots")
         assert hasattr(sheet, "rules_package_id")
 
+    def test_ability_scores_are_dnd5e_typed_model(self) -> None:
+        """ability_scores must be the D&D 5e-specific model, not a generic type."""
+        sheet = _make_sheet()
+        assert isinstance(sheet.ability_scores, Dnd5eAbilityScores)
+
     def test_current_hp_below_maximum_valid(self) -> None:
         sheet = _make_sheet(current_hp=5, maximum_hp=10)
         assert sheet.current_hp == 5
@@ -214,6 +244,7 @@ class TestDnd5eCharacterSheet:
         assert sheet.current_hp == sheet.maximum_hp
 
     def test_current_hp_exceeds_maximum_raises(self) -> None:
+        """D&D 5e-scoped: current HP cannot exceed maximum HP."""
         with pytest.raises(ValidationError, match="current_hp"):
             _make_sheet(current_hp=11, maximum_hp=10)
 
@@ -222,15 +253,14 @@ class TestDnd5eCharacterSheet:
         sheet = _make_sheet(current_hp=3, maximum_hp=12)
         assert sheet.current_hp != sheet.maximum_hp
 
-    def test_current_hp_zero_valid(self) -> None:
-        """current_hp of 0 (unconscious/dead) is a valid state."""
-        sheet = _make_sheet(current_hp=0, maximum_hp=10)
-        assert sheet.current_hp == 0
+    def test_current_hp_allows_negative(self) -> None:
+        """No universal HP floor is imposed — negative HP is valid stored state.
 
-    def test_current_hp_negative_raises(self) -> None:
-        """Negative current_hp is not a valid D&D 5e state; must be rejected."""
-        with pytest.raises(ValidationError):
-            _make_sheet(current_hp=-1, maximum_hp=10)
+        Rules consequences for HP reaching or going below zero belong to the
+        adjudication layer, not the persistence model.
+        """
+        sheet = _make_sheet(current_hp=-5, maximum_hp=10)
+        assert sheet.current_hp == -5
 
     def test_spell_slots_empty_by_default(self) -> None:
         sheet = _make_sheet()
@@ -282,10 +312,6 @@ class TestDnd5eCharacterSheet:
     def test_invalid_character_class_type(self) -> None:
         with pytest.raises(ValidationError):
             _make_sheet(character_class=42)  # type: ignore[arg-type]
-
-    def test_ability_scores_are_typed_model(self) -> None:
-        sheet = _make_sheet()
-        assert isinstance(sheet.ability_scores, AbilityScores)
 
     def test_sheet_is_source_of_truth_for_hp_not_session_state(self) -> None:
         """HP must live on the sheet.  RPG session state must not own HP."""

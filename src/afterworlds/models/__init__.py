@@ -4,7 +4,7 @@ Public re-exports for convenient import by other modules.
 """
 
 from afterworlds.models.character_sheet import (
-    AbilityScores,
+    Dnd5eAbilityScores,
     Dnd5eCharacterSheet,
     RpgCharacterSheetBase,
     SpellSlotLevel,
@@ -82,7 +82,7 @@ __all__ = [
     "BranchingSessionState",
     "WritingSessionState",
     # character sheet
-    "AbilityScores",
+    "Dnd5eAbilityScores",
     "SpellSlotLevel",
     "RpgCharacterSheetBase",
     "Dnd5eCharacterSheet",
