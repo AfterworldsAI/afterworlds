@@ -30,6 +30,17 @@ from tests.persistence.conftest import make_story
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
+def _make_base_sheet_from_dnd5e(sheet: Dnd5eCharacterSheet) -> RpgCharacterSheetBase:
+    return RpgCharacterSheetBase(
+        sheet_id=sheet.sheet_id,
+        story_id=sheet.story_id,
+        rules_package_id=sheet.rules_package_id,
+        character_name=sheet.character_name,
+        created_at=sheet.created_at,
+        updated_at=sheet.updated_at,
+    )
+
+
 def _make_base_sheet(story_id: str) -> RpgCharacterSheetBase:
     from uuid import UUID
 
@@ -142,6 +153,7 @@ def test_dnd5e_sheet_round_trip(session):  # type: ignore[no-untyped-def]
     story = make_story()
     create_story(session, story)
     sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
     created = create_dnd5e_sheet(session, sheet)
     session.commit()
 
@@ -162,6 +174,7 @@ def test_dnd5e_sheet_current_hp_max_hp_distinct(session):  # type: ignore[no-unt
     story = make_story()
     create_story(session, story)
     sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
     create_dnd5e_sheet(session, sheet)
     session.commit()
 
@@ -177,6 +190,7 @@ def test_dnd5e_sheet_spell_slots_round_trip(session):  # type: ignore[no-untyped
     story = make_story()
     create_story(session, story)
     sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
     create_dnd5e_sheet(session, sheet)
     session.commit()
 
@@ -225,12 +239,11 @@ def test_dnd5e_sheet_base_fk_chain(session):  # type: ignore[no-untyped-def]
         session.flush()
 
 
-def test_dnd5e_sheet_story_fk_enforced(session):  # type: ignore[no-untyped-def]
-    """Base sheet FK → stories is enforced (non-existent story_id fails)."""
+def test_dnd5e_sheet_requires_base_row(session):  # type: ignore[no-untyped-def]
+    """create_dnd5e_sheet raises ValueError when no base row exists."""
     sheet = _make_dnd5e_sheet(str(uuid4()))
-    with pytest.raises(IntegrityError):
+    with pytest.raises(ValueError, match="create_rpg_base_sheet"):
         create_dnd5e_sheet(session, sheet)
-        session.flush()
 
 
 def test_update_dnd5e_sheet(session):  # type: ignore[no-untyped-def]
@@ -238,6 +251,7 @@ def test_update_dnd5e_sheet(session):  # type: ignore[no-untyped-def]
     story = make_story()
     create_story(session, story)
     sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
     create_dnd5e_sheet(session, sheet)
     session.commit()
 
@@ -264,6 +278,7 @@ def test_delete_dnd5e_sheet(session):  # type: ignore[no-untyped-def]
     story = make_story()
     create_story(session, story)
     sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
     create_dnd5e_sheet(session, sheet)
     session.commit()
 

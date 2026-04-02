@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.state import (
@@ -77,11 +78,9 @@ def get_world_state(session: Session, world_state_id: UUID) -> WorldState | None
 
 def get_world_state_by_story(session: Session, story_id: UUID) -> WorldState | None:
     """Return the WorldState for a given story, or None."""
-    row = (
-        session.query(WorldStateORM)
-        .filter(WorldStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(WorldStateORM).where(WorldStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     return _world_state_orm_to_model(row)
@@ -93,11 +92,9 @@ def update_world_state_static(
     static_data: WorldStateStaticPartition,
 ) -> WorldState | None:
     """Update only the static partition columns.  Dynamic columns are untouched."""
-    row = (
-        session.query(WorldStateORM)
-        .filter(WorldStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(WorldStateORM).where(WorldStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     row.static_setting_name = static_data.setting_name
@@ -115,11 +112,9 @@ def update_world_state_dynamic(
     dynamic_data: WorldStateDynamicPartition,
 ) -> WorldState | None:
     """Update only the dynamic partition columns.  Static columns are untouched."""
-    row = (
-        session.query(WorldStateORM)
-        .filter(WorldStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(WorldStateORM).where(WorldStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     row.dynamic_current_location = dynamic_data.current_location
@@ -199,11 +194,9 @@ def get_character_state_by_story(
     session: Session, story_id: UUID
 ) -> CharacterState | None:
     """Return the CharacterState for a given story, or None."""
-    row = (
-        session.query(CharacterStateORM)
-        .filter(CharacterStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(CharacterStateORM).where(CharacterStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     return _char_state_orm_to_model(row)
@@ -215,11 +208,9 @@ def update_character_state_static(
     static_data: CharacterStateStaticPartition,
 ) -> CharacterState | None:
     """Update only the static partition columns.  Dynamic columns are untouched."""
-    row = (
-        session.query(CharacterStateORM)
-        .filter(CharacterStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(CharacterStateORM).where(CharacterStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     row.static_character_name = static_data.character_name
@@ -234,11 +225,9 @@ def update_character_state_dynamic(
     dynamic_data: CharacterStateDynamicPartition,
 ) -> CharacterState | None:
     """Update only the dynamic partition columns.  Static columns are untouched."""
-    row = (
-        session.query(CharacterStateORM)
-        .filter(CharacterStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(CharacterStateORM).where(CharacterStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     row.dynamic_current_location = dynamic_data.current_location

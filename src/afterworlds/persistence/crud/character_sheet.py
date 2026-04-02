@@ -122,19 +122,12 @@ def create_dnd5e_sheet(
     session: Session, sheet: Dnd5eCharacterSheet
 ) -> Dnd5eCharacterSheet:
     """Persist base + dnd5e rows and return the complete sheet."""
-    # Ensure base row exists (create if missing)
     base_row = session.get(RpgCharacterSheetBaseORM, str(sheet.sheet_id))
     if base_row is None:
-        base_row = RpgCharacterSheetBaseORM(
-            sheet_id=str(sheet.sheet_id),
-            story_id=str(sheet.story_id),
-            rules_package_id=sheet.rules_package_id,
-            character_name=sheet.character_name,
-            created_at=sheet.created_at.isoformat(),
-            updated_at=sheet.updated_at.isoformat(),
+        raise ValueError(
+            f"No RpgCharacterSheetBase row found for sheet_id={sheet.sheet_id!r}. "
+            "Call create_rpg_base_sheet before create_dnd5e_sheet."
         )
-        session.add(base_row)
-        session.flush()
 
     # Serialize spell_slots: dict[int, SpellSlotLevel] → dict[str, dict]
     spell_slots_serialised = {

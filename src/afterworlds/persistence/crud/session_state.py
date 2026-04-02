@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.session import (
@@ -66,11 +67,9 @@ def get_rpg_session_state_by_story(
     session: Session, story_id: UUID
 ) -> RpgSessionState | None:
     """Return the RpgSessionState for a story, or None."""
-    row = (
-        session.query(RpgSessionStateORM)
-        .filter(RpgSessionStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(RpgSessionStateORM).where(RpgSessionStateORM.story_id == str(story_id))
+    ).first()
     if row is None:
         return None
     return _rpg_orm_to_model(row)
@@ -160,11 +159,11 @@ def get_branching_session_state_by_story(
     session: Session, story_id: UUID
 ) -> BranchingSessionState | None:
     """Return the BranchingSessionState for a story, or None."""
-    row = (
-        session.query(BranchingSessionStateORM)
-        .filter(BranchingSessionStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(BranchingSessionStateORM).where(
+            BranchingSessionStateORM.story_id == str(story_id)
+        )
+    ).first()
     if row is None:
         return None
     return _branching_orm_to_model(row)
@@ -244,11 +243,11 @@ def get_writing_session_state_by_story(
     session: Session, story_id: UUID
 ) -> WritingSessionState | None:
     """Return the WritingSessionState for a story, or None."""
-    row = (
-        session.query(WritingSessionStateORM)
-        .filter(WritingSessionStateORM.story_id == str(story_id))
-        .first()
-    )
+    row = session.scalars(
+        select(WritingSessionStateORM).where(
+            WritingSessionStateORM.story_id == str(story_id)
+        )
+    ).first()
     if row is None:
         return None
     return _writing_orm_to_model(row)
