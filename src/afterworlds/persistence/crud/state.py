@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -103,6 +104,7 @@ def update_world_state_static(
     row.static_world_rules = list(static_data.world_rules)
     row.static_geography = static_data.geography
     row.static_time_period = static_data.time_period
+    row.updated_at = datetime.now(tz=timezone.utc).isoformat()
     session.flush()
     return _world_state_orm_to_model(row)
 
@@ -124,6 +126,7 @@ def update_world_state_dynamic(
     row.dynamic_time_of_day = dynamic_data.time_of_day
     row.dynamic_weather = dynamic_data.weather
     row.dynamic_faction_standings = dict(dynamic_data.faction_standings)
+    row.updated_at = datetime.now(tz=timezone.utc).isoformat()
     session.flush()
     return _world_state_orm_to_model(row)
 
@@ -220,6 +223,7 @@ def update_character_state_static(
     if row is None:
         return None
     row.static_character_name = static_data.character_name
+    row.updated_at = datetime.now(tz=timezone.utc).isoformat()
     session.flush()
     return _char_state_orm_to_model(row)
 
@@ -241,6 +245,7 @@ def update_character_state_dynamic(
     row.dynamic_status_effects = list(dynamic_data.status_effects)
     row.dynamic_relationship_meters = dict(dynamic_data.relationship_meters)
     row.dynamic_inventory = list(dynamic_data.inventory)
+    row.updated_at = datetime.now(tz=timezone.utc).isoformat()
     session.flush()
     return _char_state_orm_to_model(row)
 

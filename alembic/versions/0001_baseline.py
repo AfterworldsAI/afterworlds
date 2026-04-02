@@ -149,6 +149,25 @@ def upgrade() -> None:
     )
 
     # ------------------------------------------------------------------
+    # rpg_character_sheet_bases
+    # (must precede rpg_session_states — character_sheet_id FK target)
+    # ------------------------------------------------------------------
+    op.create_table(
+        "rpg_character_sheet_bases",
+        sa.Column("sheet_id", sa.String(36), primary_key=True),
+        sa.Column(
+            "story_id",
+            sa.String(36),
+            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("rules_package_id", sa.Text, nullable=False),
+        sa.Column("character_name", sa.Text, nullable=False),
+        sa.Column("created_at", sa.String(64), nullable=False),
+        sa.Column("updated_at", sa.String(64), nullable=False),
+    )
+
+    # ------------------------------------------------------------------
     # rpg_session_states
     # ------------------------------------------------------------------
     op.create_table(
@@ -160,7 +179,12 @@ def upgrade() -> None:
             sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("character_sheet_id", sa.String(36), nullable=False),
+        sa.Column(
+            "character_sheet_id",
+            sa.String(36),
+            sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
         sa.Column("dice_handling", sa.String(32), nullable=False),
         sa.Column("active_quests", sa.JSON, nullable=False),
         sa.Column("combat_context", sa.JSON, nullable=False),
@@ -182,7 +206,12 @@ def upgrade() -> None:
         sa.Column("pacing_stage", sa.String(32), nullable=False),
         sa.Column("branch_tree", sa.JSON, nullable=False),
         sa.Column("plot_thread_tracker", sa.JSON, nullable=False),
-        sa.Column("current_node_id", sa.String(36), nullable=True),
+        sa.Column(
+            "current_node_id",
+            sa.String(36),
+            sa.ForeignKey("nodes.node_id", ondelete="SET NULL"),
+            nullable=True,
+        ),
         sa.UniqueConstraint(
             "story_id", name="uq_branching_session_states_story_id"
         ),
@@ -206,24 +235,6 @@ def upgrade() -> None:
         sa.UniqueConstraint(
             "story_id", name="uq_writing_session_states_story_id"
         ),
-    )
-
-    # ------------------------------------------------------------------
-    # rpg_character_sheet_bases
-    # ------------------------------------------------------------------
-    op.create_table(
-        "rpg_character_sheet_bases",
-        sa.Column("sheet_id", sa.String(36), primary_key=True),
-        sa.Column(
-            "story_id",
-            sa.String(36),
-            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("rules_package_id", sa.Text, nullable=False),
-        sa.Column("character_name", sa.Text, nullable=False),
-        sa.Column("created_at", sa.String(64), nullable=False),
-        sa.Column("updated_at", sa.String(64), nullable=False),
     )
 
     # ------------------------------------------------------------------
@@ -253,10 +264,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("dnd5e_character_sheets")
-    op.drop_table("rpg_character_sheet_bases")
     op.drop_table("writing_session_states")
     op.drop_table("branching_session_states")
     op.drop_table("rpg_session_states")
+    op.drop_table("rpg_character_sheet_bases")
     op.drop_table("character_states")
     op.drop_table("world_states")
     op.drop_table("turns")

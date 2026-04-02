@@ -13,6 +13,7 @@ import afterworlds.persistence.orm.state  # noqa: F401
 
 # Import all ORM models to ensure they register with Base.metadata
 import afterworlds.persistence.orm.story  # noqa: F401
+from afterworlds.models.character_sheet import RpgCharacterSheetBase
 from afterworlds.models.enums import StoryMode
 from afterworlds.models.story import Arc, Chapter, Story
 from afterworlds.persistence.database import create_engine, create_session_factory
@@ -59,3 +60,16 @@ def make_chapter(arc_id: str, title: str = "Chapter One", order: int = 1) -> Cha
     from uuid import UUID
 
     return Chapter(arc_id=UUID(arc_id), title=title, order=order)
+
+
+def make_base_sheet(story_id: str) -> RpgCharacterSheetBase:
+    from uuid import UUID
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    return RpgCharacterSheetBase(
+        story_id=UUID(story_id),
+        rules_package_id="dnd5e",
+        character_name="Test Character",
+        created_at=now,
+        updated_at=now,
+    )

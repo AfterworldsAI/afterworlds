@@ -12,6 +12,7 @@ from afterworlds.models.enums import IntentType
 from afterworlds.models.node import (
     BranchingNodeMetadata,
     Node,
+    NodeMetadata,
     RpgNodeMetadata,
     StateDelta,
     WritingNodeMetadata,
@@ -264,6 +265,54 @@ def test_delete_turn(session):  # type: ignore[no-untyped-def]
     assert delete_turn(session, turn.turn_id) is True
     session.commit()
     assert get_turn(session, turn.turn_id) is None
+
+
+def test_delete_node_preserves_turns_with_null_node_id(session):  # type: ignore[no-untyped-def]
+    """Deleting a Node must set Turn.node_id to NULL, not delete the Turn."""
+    chapter = _setup_chapter(session)
+    node = _make_node(str(chapter.chapter_id))
+    create_node(session, node)
+    session.commit()
+
+    turn = Turn(
+        user_input="Describe the forest",
+        assistant_output="Tall oaks surround you.",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+        intent_classification=IntentType.LORE_QUESTION,
+        node_id=node.node_id,
+    )
+    create_turn(session, turn)
+    session.commit()
+
+    # Deleting the node must NOT delete the turn
+    assert delete_node(session, node.node_id) is True
+    session.commit()
+
+    fetched_turn = get_turn(session, turn.turn_id)
+    assert fetched_turn is not None, "Turn was deleted when node was deleted — cascade is wrong"
+    assert fetched_turn.node_id is None, "Turn.node_id should be NULL after node deletion"
+
+
+def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped-def]
+    """NodeMetadata with a datetime timestamp serialises to JSON without error."""
+    chapter = _setup_chapter(session)
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="A moonlit clearing.",
+        intent_type=IntentType.ACTION,
+        metadata=NodeMetadata(
+            pov="third_person",
+            timestamp=datetime(2026, 3, 15, 21, 0, 0, tzinfo=UTC),
+        ),
+    )
+    create_node(session, node)
+    session.commit()
+
+    fetched = get_node(session, node.node_id)
+    assert fetched is not None
+    assert fetched.metadata.timestamp is not None
+    assert fetched.metadata.timestamp.year == 2026
+    assert fetched.metadata.pov == "third_person"
 
 
 def test_chapter_node_ids_populated(session):  # type: ignore[no-untyped-def]

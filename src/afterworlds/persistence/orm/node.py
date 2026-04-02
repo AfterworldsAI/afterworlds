@@ -34,7 +34,7 @@ class NodeORM(Base):
     turns: Mapped[list[TurnORM]] = relationship(
         "TurnORM",
         back_populates="node",
-        cascade="all, delete-orphan",
+        cascade="save-update, merge",
     )
 
 

@@ -24,7 +24,11 @@ class RpgSessionStateORM(Base):
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
     )
-    character_sheet_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    character_sheet_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
     dice_handling: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     active_quests: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
     combat_context: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
@@ -47,7 +51,11 @@ class BranchingSessionStateORM(Base):
     pacing_stage: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     branch_tree: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
     plot_thread_tracker: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
-    current_node_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    current_node_id: Mapped[str | None] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("nodes.node_id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
 
 class WritingSessionStateORM(Base):

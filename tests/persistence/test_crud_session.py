@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -30,17 +30,15 @@ from afterworlds.persistence.crud.session_state import (
     update_rpg_session_state,
     update_writing_session_state,
 )
+from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.story import create_story
-from tests.persistence.conftest import make_story
+from tests.persistence.conftest import make_base_sheet, make_story
 
 
-def _make_rpg_state(story_id: str) -> RpgSessionState:
-    from uuid import UUID
-
-    sheet_id = uuid4()
+def _make_rpg_state(story_id: str, sheet_id: UUID | None = None) -> RpgSessionState:
     return RpgSessionState(
         story_id=UUID(story_id),
-        character_sheet_id=sheet_id,
+        character_sheet_id=sheet_id if sheet_id is not None else uuid4(),
         dice_handling=DiceHandling.AI_ROLLS,
         active_quests=["Find the artifact"],
         combat_context=CombatContext(
@@ -51,9 +49,9 @@ def _make_rpg_state(story_id: str) -> RpgSessionState:
     )
 
 
-def _make_branching_state(story_id: str) -> BranchingSessionState:
-    from uuid import UUID
-
+def _make_branching_state(
+    story_id: str, current_node_id: UUID | None = None
+) -> BranchingSessionState:
     node_id = uuid4()
     return BranchingSessionState(
         story_id=UUID(story_id),
@@ -63,7 +61,7 @@ def _make_branching_state(story_id: str) -> BranchingSessionState:
             root_node_id=node_id,
         ),
         plot_thread_tracker=[PlotThread(description="Mystery of the locked door")],
-        current_node_id=node_id,
+        current_node_id=current_node_id,
     )
 
 
@@ -88,7 +86,11 @@ def test_rpg_session_state_round_trip(session):  # type: ignore[no-untyped-def]
     """Round-trip RpgSessionState."""
     story = make_story()
     create_story(session, story)
-    state = _make_rpg_state(str(story.story_id))
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
     created = create_rpg_session_state(session, state)
     session.commit()
 
@@ -105,11 +107,15 @@ def test_rpg_session_state_unique_story(session):  # type: ignore[no-untyped-def
     """A second RpgSessionState for the same story_id raises IntegrityError."""
     story = make_story()
     create_story(session, story)
-    s1 = _make_rpg_state(str(story.story_id))
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    s1 = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
     create_rpg_session_state(session, s1)
     session.commit()
 
-    s2 = _make_rpg_state(str(story.story_id))
+    s2 = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
     with pytest.raises(IntegrityError):
         create_rpg_session_state(session, s2)
         session.flush()
@@ -127,7 +133,11 @@ def test_update_rpg_session_state(session):  # type: ignore[no-untyped-def]
     """update_rpg_session_state changes dice_handling and combat_context."""
     story = make_story()
     create_story(session, story)
-    state = _make_rpg_state(str(story.story_id))
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
     create_rpg_session_state(session, state)
     session.commit()
 
@@ -150,7 +160,11 @@ def test_delete_rpg_session_state(session):  # type: ignore[no-untyped-def]
     """delete_rpg_session_state removes the row."""
     story = make_story()
     create_story(session, story)
-    state = _make_rpg_state(str(story.story_id))
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
     create_rpg_session_state(session, state)
     session.commit()
 
@@ -175,7 +189,7 @@ def test_branching_session_state_round_trip(session):  # type: ignore[no-untyped
     fetched = get_branching_session_state(session, created.session_id)
     assert fetched is not None
     assert fetched.pacing_stage == PacingStage.ESCALATION
-    assert fetched.current_node_id is not None
+    assert fetched.current_node_id is None
     assert len(fetched.branch_tree.nodes) == 1
     assert len(fetched.plot_thread_tracker) == 1
     assert fetched.plot_thread_tracker[0].description == "Mystery of the locked door"
@@ -302,3 +316,43 @@ def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
     assert delete_writing_session_state(session, state.session_id) is True
     session.commit()
     assert get_writing_session_state(session, state.session_id) is None
+
+
+# ---------------------------------------------------------------------------
+# FK enforcement — new constraints added in review fixes
+# ---------------------------------------------------------------------------
+
+
+def test_rpg_session_character_sheet_fk_enforced(session):  # type: ignore[no-untyped-def]
+    """RpgSessionState with non-existent character_sheet_id raises IntegrityError."""
+    story = make_story()
+    create_story(session, story)
+    session.commit()
+
+    # sheet_id not in rpg_character_sheet_bases → FK violation
+    state = _make_rpg_state(str(story.story_id), sheet_id=None)
+    with pytest.raises(IntegrityError):
+        create_rpg_session_state(session, state)
+        session.flush()
+
+
+def test_branching_current_node_id_fk_enforced(session):  # type: ignore[no-untyped-def]
+    """BranchingSessionState with non-existent current_node_id raises IntegrityError."""
+    from afterworlds.persistence.orm.session_state import BranchingSessionStateORM
+
+    story = make_story()
+    create_story(session, story)
+    session.commit()
+
+    # Insert directly to bypass Pydantic UUID validation; non-existent node_id → FK violation
+    row = BranchingSessionStateORM(
+        session_id=str(uuid4()),
+        story_id=str(story.story_id),
+        pacing_stage="setup",
+        branch_tree={},
+        plot_thread_tracker=[],
+        current_node_id=str(uuid4()),
+    )
+    session.add(row)
+    with pytest.raises(IntegrityError):
+        session.flush()

@@ -290,3 +290,88 @@ def test_delete_char_state(session):  # type: ignore[no-untyped-def]
     assert delete_character_state(session, cs.character_state_id) is True
     session.commit()
     assert get_character_state(session, cs.character_state_id) is None
+
+
+# ---------------------------------------------------------------------------
+# updated_at refresh tests
+# ---------------------------------------------------------------------------
+
+
+def test_world_state_static_update_refreshes_updated_at(session):  # type: ignore[no-untyped-def]
+    """update_world_state_static must advance updated_at."""
+    story = make_story()
+    create_story(session, story)
+    ws = _make_world_state(str(story.story_id))
+    create_world_state(session, ws)
+    session.commit()
+
+    new_static = WorldStateStaticPartition(
+        setting_name="New Realm",
+        world_rules=["no magic"],
+        geography=None,
+        time_period=None,
+    )
+    result = update_world_state_static(session, story.story_id, new_static)
+    session.commit()
+
+    assert result is not None
+    # updated_at stored as ISO string and coerced back to datetime by Pydantic
+    assert result.updated_at != ws.updated_at
+
+
+def test_world_state_dynamic_update_refreshes_updated_at(session):  # type: ignore[no-untyped-def]
+    """update_world_state_dynamic must advance updated_at."""
+    story = make_story()
+    create_story(session, story)
+    ws = _make_world_state(str(story.story_id))
+    create_world_state(session, ws)
+    session.commit()
+
+    new_dynamic = WorldStateDynamicPartition(
+        current_location="Castle",
+        time_of_day="noon",
+        weather="clear",
+        faction_standings={},
+    )
+    result = update_world_state_dynamic(session, story.story_id, new_dynamic)
+    session.commit()
+
+    assert result is not None
+    assert result.updated_at != ws.updated_at
+
+
+def test_char_state_static_update_refreshes_updated_at(session):  # type: ignore[no-untyped-def]
+    """update_character_state_static must advance updated_at."""
+    story = make_story()
+    create_story(session, story)
+    cs = _make_char_state(str(story.story_id))
+    create_character_state(session, cs)
+    session.commit()
+
+    new_static = CharacterStateStaticPartition(character_name="New Name")
+    result = update_character_state_static(session, story.story_id, new_static)
+    session.commit()
+
+    assert result is not None
+    assert result.updated_at != cs.updated_at
+
+
+def test_char_state_dynamic_update_refreshes_updated_at(session):  # type: ignore[no-untyped-def]
+    """update_character_state_dynamic must advance updated_at."""
+    story = make_story()
+    create_story(session, story)
+    cs = _make_char_state(str(story.story_id))
+    create_character_state(session, cs)
+    session.commit()
+
+    new_dynamic = CharacterStateDynamicPartition(
+        current_location="City",
+        status_effects=[],
+        relationship_meters={},
+        inventory=[],
+    )
+    result = update_character_state_dynamic(session, story.story_id, new_dynamic)
+    session.commit()
+
+    assert result is not None
+    assert result.updated_at != cs.updated_at

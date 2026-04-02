@@ -84,7 +84,7 @@ def create_node(session: Session, node: Node) -> Node:
         state_delta=node.state_delta.model_dump(),
         branching_logic=[str(uid) for uid in node.branching_logic],
         intent_type=node.intent_type.value,
-        metadata_=node.metadata.model_dump(),
+        metadata_=node.metadata.model_dump(mode="json"),
         mode_metadata=mm_dict,
     )
     session.add(row)
@@ -112,7 +112,7 @@ def update_node(session: Session, node: Node) -> Node | None:
     row.state_delta = node.state_delta.model_dump()
     row.branching_logic = [str(uid) for uid in node.branching_logic]
     row.intent_type = node.intent_type.value
-    row.metadata_ = node.metadata.model_dump()
+    row.metadata_ = node.metadata.model_dump(mode="json")
     row.mode_metadata = mm_dict
     session.flush()
     return _node_orm_to_model(row)
