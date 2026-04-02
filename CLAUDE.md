@@ -157,4 +157,7 @@ sessions.
 
 **Lessons:**
 
+[2026-04-02] Always run `black src/ tests/` (not just `--check`) before committing — Black formatting failures in CI are a recurring pattern, especially for long lines introduced in new test helpers.
+[2026-04-02] Pin Black to an exact version (`black==X.Y.Z`) — a loose `>=` bound lets CI and local installs diverge, causing one to reformat files the other considers clean.
+
 <!-- Claude Code appends dated one-line lessons here as they are learned -->
