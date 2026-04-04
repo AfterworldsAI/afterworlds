@@ -289,8 +289,12 @@ def test_delete_node_preserves_turns_with_null_node_id(session):  # type: ignore
     session.commit()
 
     fetched_turn = get_turn(session, turn.turn_id)
-    assert fetched_turn is not None, "Turn was deleted when node was deleted — cascade is wrong"
-    assert fetched_turn.node_id is None, "Turn.node_id should be NULL after node deletion"
+    assert (
+        fetched_turn is not None
+    ), "Turn was deleted when node was deleted — cascade is wrong"
+    assert (
+        fetched_turn.node_id is None
+    ), "Turn.node_id should be NULL after node deletion"
 
 
 def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped-def]

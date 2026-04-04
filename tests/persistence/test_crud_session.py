@@ -17,6 +17,7 @@ from afterworlds.models.session import (
     RpgSessionState,
     WritingSessionState,
 )
+from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.session_state import (
     create_branching_session_state,
     create_rpg_session_state,
@@ -30,7 +31,6 @@ from afterworlds.persistence.crud.session_state import (
     update_rpg_session_state,
     update_writing_session_state,
 )
-from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.story import create_story
 from tests.persistence.conftest import make_base_sheet, make_story
 
@@ -344,7 +344,8 @@ def test_branching_current_node_id_fk_enforced(session):  # type: ignore[no-unty
     create_story(session, story)
     session.commit()
 
-    # Insert directly to bypass Pydantic UUID validation; non-existent node_id → FK violation
+    # Insert directly to bypass Pydantic UUID validation;
+    # non-existent node_id → FK violation
     row = BranchingSessionStateORM(
         session_id=str(uuid4()),
         story_id=str(story.story_id),
