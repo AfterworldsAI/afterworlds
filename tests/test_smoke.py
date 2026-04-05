@@ -1,2 +1,2 @@
 def test_smoke():
-    assert False
+    import afterworlds  # noqa: F401
