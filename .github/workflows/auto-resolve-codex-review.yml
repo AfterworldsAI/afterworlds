@@ -4,6 +4,10 @@ on:
   pull_request_review:
     types: [submitted]
 
+concurrency:
+  group: auto-resolve-codex-review-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   auto-fix:
     # Only run when Codex submits a "changes requested" review.
@@ -13,14 +17,15 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    # The workflow itself only needs read perms; write operations use the app token.
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      pull-requests: read
 
     steps:
       - name: Create GitHub App token for push/comment operations
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.AUTO_FIX_APP_ID }}
           private-key: ${{ secrets.AUTO_FIX_APP_PRIVATE_KEY }}
@@ -39,17 +44,30 @@ jobs:
       - name: Debug review event
         shell: bash
         run: |
+          set -euo pipefail
           echo "event_name=${{ github.event_name }}"
           echo "review_state=${{ github.event.review.state }}"
           echo "review_user=${{ github.event.review.user.login }}"
           echo "pr_number=${{ github.event.pull_request.number }}"
           echo "review_id=${{ github.event.review.id }}"
+          echo "base_ref=${{ github.event.pull_request.base.ref }}"
+          echo "head_ref=${{ github.event.pull_request.head.ref }}"
 
       - name: Check auto-fix iteration count
         id: check_iterations
         shell: bash
         run: |
-          COUNT=$(git log --oneline --format="%s" | grep -c "^auto-fix:" || true)
+          set -euo pipefail
+
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+
+          # Make sure the base branch ref exists locally for merge-base calculation.
+          git fetch origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}" --no-tags
+
+          MERGE_BASE="$(git merge-base "origin/${BASE_REF}" HEAD)"
+          COUNT="$(git log --format="%s" "${MERGE_BASE}..HEAD" \
+            | grep -c '^auto-fix: resolve Codex review comments$' || true)"
+
           echo "count=$COUNT" >> "$GITHUB_OUTPUT"
 
           if [ "$COUNT" -ge 3 ]; then
@@ -58,57 +76,63 @@ jobs:
             echo "cap_reached=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Post cap-reached comment and halt
+      - name: Post cap-reached comment
         if: steps.check_iterations.outputs.cap_reached == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
+          set -euo pipefail
           gh pr comment "${{ github.event.pull_request.number }}" \
             --body "⚠️ **Auto-fix loop reached iteration cap (3 attempts).** This PR needs owner review before further automated fixes can run."
-          exit 0
 
       - name: Fetch Codex review summary and inline comments
+        if: steps.check_iterations.outputs.cap_reached != 'true'
         id: review_data
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
+          set -euo pipefail
+
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REVIEW_ID="${{ github.event.review.id }}"
           REVIEW_FILE="$RUNNER_TEMP/codex_review.txt"
 
-          REVIEW_BODY=$(gh api \
-            "/repos/${{ github.repository }}/pulls/reviews/$REVIEW_ID" \
-            --jq '.body // "(no summary provided)"')
+          REVIEW_BODY="$(gh api \
+            "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}" \
+            --jq '.body // "(no summary provided)"')"
 
-          INLINE=$(gh api \
-            "/repos/${{ github.repository }}/pulls/$PR_NUMBER/comments" \
-            --jq --argjson rid "$REVIEW_ID" '
-              [
-                .[]
-                | select(.pull_request_review_id == $rid)
-                | "### " + .path + " (line " + ((.line // .original_line // 0) | tostring) + ")\n" + .body
-              ] | join("\n\n---\n\n")
-            ')
+          INLINE="$(
+            gh api --paginate --slurp \
+              "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/comments?per_page=100" \
+            | jq -r --argjson rid "$REVIEW_ID" '
+                [
+                  .[][]
+                  | select(.pull_request_review_id == $rid)
+                  | "### " + .path + " (line " + ((.line // .original_line // 0) | tostring) + ")\n" + .body
+                ] | join("\n\n---\n\n")
+              '
+          )"
 
           {
-            echo "# Codex Review — PR #$PR_NUMBER"
+            echo "# Codex Review — PR #${PR_NUMBER}"
             echo
             echo "## Review Summary"
-            echo "$REVIEW_BODY"
+            echo "${REVIEW_BODY}"
             echo
             echo "## Inline Comments"
-            if [ -n "$INLINE" ]; then
-              echo "$INLINE"
+            if [ -n "${INLINE}" ]; then
+              echo "${INLINE}"
             else
               echo "(no inline comments)"
             fi
-          } > "$REVIEW_FILE"
+          } > "${REVIEW_FILE}"
 
-          echo "review_file=$REVIEW_FILE" >> "$GITHUB_OUTPUT"
+          echo "review_file=${REVIEW_FILE}" >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code
+        if: steps.check_iterations.outputs.cap_reached != 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -132,18 +156,22 @@ jobs:
             6. Do not change CI thresholds or gate settings.
             7. Do not resolve Known Unknowns from docs/architecture/known_unknowns.md.
             8. Do not widen scope beyond the review comments.
-            9. If you encounter owner-decision items, write them to a file named
-               ${{ runner.temp }}/owner_decisions_report.md as a markdown bullet list.
+            9. If you encounter owner-decision items, write them to:
+               ${{ runner.temp }}/owner_decisions_report.md
+               as a markdown bullet list.
                If there are none, do not create that file.
             10. When you are done editing files, stop. Do not commit. Do not push.
-
-          claude_args: "--max-turns 10"
+          claude_args: |
+            --max-turns 10
 
       - name: Post owner-decision summary if present
+        if: steps.check_iterations.outputs.cap_reached != 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
+          set -euo pipefail
+
           REPORT_FILE="$RUNNER_TEMP/owner_decisions_report.md"
           COMMENT_FILE="$RUNNER_TEMP/owner_decisions_comment.md"
 
@@ -161,22 +189,45 @@ jobs:
           gh pr comment "${{ github.event.pull_request.number }}" \
             --body-file "$COMMENT_FILE"
 
+      - name: Verify forbidden files were not changed
+        if: steps.check_iterations.outputs.cap_reached != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          UNSTAGED="$(git diff --name-only)"
+          STAGED="$(git diff --cached --name-only)"
+          UNTRACKED="$(git ls-files --others --exclude-standard)"
+          CHANGED="$(printf '%s\n%s\n%s\n' "$UNSTAGED" "$STAGED" "$UNTRACKED" | sed '/^$/d' | sort -u)"
+
+          if echo "$CHANGED" | grep -E '^(\.github/workflows/|pyproject\.toml$|\.pre-commit-config\.yaml$)' >/dev/null; then
+            echo "Forbidden file changes detected:"
+            echo "$CHANGED" | grep -E '^(\.github/workflows/|pyproject\.toml$|\.pre-commit-config\.yaml$)' || true
+            exit 1
+          fi
+
       - name: Configure git identity
+        if: steps.check_iterations.outputs.cap_reached != 'true'
         id: git_identity
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
         run: |
-          USER_ID=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)
-          echo "user_id=$USER_ID" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          USER_ID="$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)"
+          echo "user_id=${USER_ID}" >> "$GITHUB_OUTPUT"
 
           git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
           git config user.email "${USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
       - name: Commit changes if any
+        if: steps.check_iterations.outputs.cap_reached != 'true'
         id: commit_changes
         shell: bash
         run: |
+          set -euo pipefail
+
           git add -A
 
           if git diff --cached --quiet; then
@@ -188,7 +239,22 @@ jobs:
           echo "committed=true" >> "$GITHUB_OUTPUT"
 
       - name: Push fixes
-        if: steps.commit_changes.outputs.committed == 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.commit_changes.outputs.committed == 'true'
         shell: bash
         run: |
+          set -euo pipefail
           git push origin "${{ github.event.pull_request.head.ref }}"
+
+      - name: Request Codex re-review
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.commit_changes.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "@codex review"
