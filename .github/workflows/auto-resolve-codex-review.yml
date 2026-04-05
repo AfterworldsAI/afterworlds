@@ -158,10 +158,15 @@ jobs:
             ACTIONABLE=true
             REASON="review has inline comments"
           elif [ -n "${SUMMARY_TEXT}" ] && [ "${SUMMARY_TEXT}" != "(no summary provided)" ]; then
-            NORMALIZED_SUMMARY="$(printf '%s' "${SUMMARY_LOWER}" | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//; s/[.!]+$//')"
+            NORMALIZED_SUMMARY="$(printf '%s' "${SUMMARY_LOWER}" \
+              | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//; s/[.!?]+$//')"
 
             if printf '%s' "${NORMALIZED_SUMMARY}" | grep -Eq \
-              '^(didn.t find any major issues|no major issues|no issues found|no actionable findings|looks good|lgtm|nothing to fix|more of your lovely prs please)$'; then
+              '(^|[[:space:]])(but|however|except|aside from|though|although|please|should|need(s|ed)?|must|fix|add|change|update|remove|rename|refactor|correct|resolve|address|missing|broken|failing|fails|failure|bug|issue(s)? with)([[:space:]]|$)'; then
+              ACTIONABLE=true
+              REASON="summary contains explicit fix/request language"
+            elif printf '%s' "${NORMALIZED_SUMMARY}" | grep -Eq \
+              '^(i (didn.t|did not) find any major issues|didn.t find any major issues|did not find any major issues|no major issues( found)?|no issues found|no actionable findings|looks good( to me)?|lgtm|nothing to fix|more of your lovely prs please)$'; then
               ACTIONABLE=false
               REASON="summary is praise-only / no-issues"
             else
@@ -184,7 +189,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
-          allowed_bots: "chatgpt-codex-connector[bot]"
+          allowed_bots: "chatgpt-codex-connector,chatgpt-codex-connector[bot]"
           prompt: |
             You are resolving review comments from Codex on a pull request.
 
