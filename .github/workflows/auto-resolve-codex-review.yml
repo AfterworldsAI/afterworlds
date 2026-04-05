@@ -97,7 +97,6 @@ jobs:
           REVIEW_ID="${{ github.event.review.id }}"
           REVIEW_FILE="$RUNNER_TEMP/codex_review.txt"
           SUMMARY_FILE="$RUNNER_TEMP/codex_review_summary.txt"
-          INLINE_FILE="$RUNNER_TEMP/codex_review_inline.txt"
 
           REVIEW_BODY="$(gh api \
             "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}" \
@@ -113,8 +112,6 @@ jobs:
                   | "### " + .path + " (line " + ((.line // .original_line // 0) | tostring) + ")\n" + .body
                 ] | join("\n\n---\n\n")
               ')"
-
-          printf '%s\n' "$INLINE" > "$INLINE_FILE"
 
           INLINE_COUNT="$(gh api --paginate --slurp \
             "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments?per_page=100" \
@@ -179,16 +176,16 @@ jobs:
           echo "actionable=${ACTIONABLE}"
           echo "reason=${REASON}"
 
-            - name: Run Claude Code
-              if: >
-                  steps.check_iterations.outputs.cap_reached != 'true' &&
-                  steps.classify_review.outputs.actionable == 'true'
-              uses: anthropics/claude-code-action@v1
-              with:
-                  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-                  github_token: ${{ steps.app-token.outputs.token }}
-                  allowed_bots: "chatgpt-codex-connector[bot]"
-                  prompt: |
+      - name: Run Claude Code
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          allowed_bots: "chatgpt-codex-connector[bot]"
+          prompt: |
             You are resolving review comments from Codex on a pull request.
 
             The GitHub review may be a comment-only review. Use the substance of the review,
