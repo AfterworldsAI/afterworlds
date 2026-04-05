@@ -245,3 +245,15 @@ jobs:
         run: |
           set -euo pipefail
           git push origin "${{ github.event.pull_request.head.ref }}"
+
+      - name: Request Codex re-review
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.commit_changes.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "@codex review"
