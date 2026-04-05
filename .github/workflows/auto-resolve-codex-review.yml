@@ -10,10 +10,8 @@ concurrency:
 
 jobs:
   auto-fix:
-    # Only run when Codex submits a "changes requested" review.
-    if: >
-      github.event.review.state == 'changes_requested' &&
-      github.event.review.user.login == 'chatgpt-codex-connector[bot]'
+    # Run on any submitted review from the Codex connector bot.
+    if: github.event.review.user.login == 'chatgpt-codex-connector[bot]'
 
     runs-on: ubuntu-latest
 
@@ -98,25 +96,32 @@ jobs:
           PR_NUMBER="${{ github.event.pull_request.number }}"
           REVIEW_ID="${{ github.event.review.id }}"
           REVIEW_FILE="$RUNNER_TEMP/codex_review.txt"
+          SUMMARY_FILE="$RUNNER_TEMP/codex_review_summary.txt"
 
           REVIEW_BODY="$(gh api \
             "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}" \
             --jq '.body // "(no summary provided)"')"
 
-          INLINE="$(
-            gh api --paginate --slurp \
-              "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/comments?per_page=100" \
-            | jq -r --argjson rid "$REVIEW_ID" '
+          printf '%s\n' "$REVIEW_BODY" > "$SUMMARY_FILE"
+
+          INLINE="$(gh api --paginate --slurp \
+            "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments?per_page=100" \
+            | jq -r '
                 [
                   .[][]
-                  | select(.pull_request_review_id == $rid)
                   | "### " + .path + " (line " + ((.line // .original_line // 0) | tostring) + ")\n" + .body
                 ] | join("\n\n---\n\n")
-              '
-          )"
+              ')"
+
+          INLINE_COUNT="$(gh api --paginate --slurp \
+            "/repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews/${REVIEW_ID}/comments?per_page=100" \
+            | jq '[.[][]] | length')"
 
           {
             echo "# Codex Review — PR #${PR_NUMBER}"
+            echo
+            echo "## Review State"
+            echo "${{ github.event.review.state }}"
             echo
             echo "## Review Summary"
             echo "${REVIEW_BODY}"
@@ -130,15 +135,66 @@ jobs:
           } > "${REVIEW_FILE}"
 
           echo "review_file=${REVIEW_FILE}" >> "$GITHUB_OUTPUT"
+          echo "summary_file=${SUMMARY_FILE}" >> "$GITHUB_OUTPUT"
+          echo "inline_count=${INLINE_COUNT}" >> "$GITHUB_OUTPUT"
+
+      - name: Classify Codex review
+        if: steps.check_iterations.outputs.cap_reached != 'true'
+        id: classify_review
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          INLINE_COUNT="${{ steps.review_data.outputs.inline_count }}"
+          SUMMARY_FILE="${{ steps.review_data.outputs.summary_file }}"
+
+          SUMMARY_TEXT="$(tr '\n' ' ' < "$SUMMARY_FILE" | tr -s ' ' | sed 's/^ *//; s/ *$//')"
+          SUMMARY_LOWER="$(printf '%s' "$SUMMARY_TEXT" | tr '[:upper:]' '[:lower:]')"
+
+          ACTIONABLE=false
+          REASON="no actionable findings detected"
+
+          if [ "${INLINE_COUNT}" -gt 0 ]; then
+            ACTIONABLE=true
+            REASON="review has inline comments"
+          elif [ -n "${SUMMARY_TEXT}" ] && [ "${SUMMARY_TEXT}" != "(no summary provided)" ]; then
+            NORMALIZED_SUMMARY="$(printf '%s' "${SUMMARY_LOWER}" \
+              | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//; s/[.!?]+$//')"
+
+            if printf '%s' "${NORMALIZED_SUMMARY}" | grep -Eq \
+              '(^|[[:space:]])(but|however|except|aside from|though|although|please|should|need(s|ed)?|must|fix|add|change|update|remove|rename|refactor|correct|resolve|address|missing|broken|failing|fails|failure|bug|issue(s)? with)([[:space:]]|$)'; then
+              ACTIONABLE=true
+              REASON="summary contains explicit fix/request language"
+            elif printf '%s' "${NORMALIZED_SUMMARY}" | grep -Eq \
+              '^(i (didn.t|did not) find any major issues|didn.t find any major issues|did not find any major issues|no major issues( found)?|no issues found|no actionable findings|looks good( to me)?|lgtm|nothing to fix|more of your lovely prs please)$'; then
+              ACTIONABLE=false
+              REASON="summary is praise-only / no-issues"
+            else
+              ACTIONABLE=true
+              REASON="summary may contain actionable feedback"
+            fi
+          fi
+
+          echo "actionable=${ACTIONABLE}" >> "$GITHUB_OUTPUT"
+          echo "reason=${REASON}" >> "$GITHUB_OUTPUT"
+
+          echo "actionable=${ACTIONABLE}"
+          echo "reason=${REASON}"
 
       - name: Run Claude Code
-        if: steps.check_iterations.outputs.cap_reached != 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ steps.app-token.outputs.token }}
+          allowed_bots: "chatgpt-codex-connector,chatgpt-codex-connector[bot]"
           prompt: |
             You are resolving review comments from Codex on a pull request.
+
+            The GitHub review may be a comment-only review. Use the substance of the review,
+            not the GitHub review type, to decide what to fix.
 
             Files available to read in the repository and runner:
             - ${{ steps.review_data.outputs.review_file }}
@@ -165,7 +221,9 @@ jobs:
             --max-turns 10
 
       - name: Post owner-decision summary if present
-        if: steps.check_iterations.outputs.cap_reached != 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         shell: bash
@@ -190,7 +248,9 @@ jobs:
             --body-file "$COMMENT_FILE"
 
       - name: Verify forbidden files were not changed
-        if: steps.check_iterations.outputs.cap_reached != 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -207,7 +267,9 @@ jobs:
           fi
 
       - name: Configure git identity
-        if: steps.check_iterations.outputs.cap_reached != 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
         id: git_identity
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -222,7 +284,9 @@ jobs:
           git config user.email "${USER_ID}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
       - name: Commit changes if any
-        if: steps.check_iterations.outputs.cap_reached != 'true'
+        if: >
+          steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true'
         id: commit_changes
         shell: bash
         run: |
@@ -241,6 +305,7 @@ jobs:
       - name: Push fixes
         if: >
           steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true' &&
           steps.commit_changes.outputs.committed == 'true'
         shell: bash
         run: |
@@ -250,6 +315,7 @@ jobs:
       - name: Request Codex re-review
         if: >
           steps.check_iterations.outputs.cap_reached != 'true' &&
+          steps.classify_review.outputs.actionable == 'true' &&
           steps.commit_changes.outputs.committed == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
