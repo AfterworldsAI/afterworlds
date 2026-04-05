@@ -197,7 +197,8 @@ jobs:
 
           UNSTAGED="$(git diff --name-only)"
           STAGED="$(git diff --cached --name-only)"
-          CHANGED="$(printf '%s\n%s\n' "$UNSTAGED" "$STAGED" | sed '/^$/d' | sort -u)"
+          UNTRACKED="$(git ls-files --others --exclude-standard)"
+          CHANGED="$(printf '%s\n%s\n%s\n' "$UNSTAGED" "$STAGED" "$UNTRACKED" | sed '/^$/d' | sort -u)"
 
           if echo "$CHANGED" | grep -E '^(\.github/workflows/|pyproject\.toml$|\.pre-commit-config\.yaml$)' >/dev/null; then
             echo "Forbidden file changes detected:"
