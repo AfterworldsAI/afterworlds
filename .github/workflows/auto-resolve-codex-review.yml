@@ -189,7 +189,6 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "chatgpt-codex-connector,chatgpt-codex-connector[bot]"
-          show_full_output: true
           settings: |
             {
               "permissions": {
