@@ -189,6 +189,30 @@ jobs:
           github_token: ${{ steps.app-token.outputs.token }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "chatgpt-codex-connector,chatgpt-codex-connector[bot]"
+          settings: |
+            {
+              "permissions": {
+                "allow": [
+                  "Read",
+                  "LS",
+                  "Glob",
+                  "Grep",
+                  "Edit",
+                  "MultiEdit",
+                  "Write",
+                  "Bash(pytest:*)",
+                  "Bash(python -m pytest:*)",
+                  "Bash(git status:*)",
+                  "Bash(git diff:*)",
+                  "Bash(git log:*)"
+                ],
+                "deny": [
+                  "Bash(git add:*)",
+                  "Bash(git commit:*)",
+                  "Bash(git push:*)"
+                ]
+              }
+            }
           prompt: |
             You are resolving review comments from Codex on a pull request.
 
