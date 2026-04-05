@@ -161,8 +161,10 @@ jobs:
             ACTIONABLE=true
             REASON="review has inline comments"
           elif [ -n "${SUMMARY_TEXT}" ] && [ "${SUMMARY_TEXT}" != "(no summary provided)" ]; then
-            if printf '%s' "${SUMMARY_LOWER}" | grep -Eq \
-              '(^|[^a-z])(didn.t find any major issues|no major issues|no issues found|no actionable findings|looks good|lgtm|nothing to fix|more of your lovely prs please)([^a-z]|$)'; then
+            NORMALIZED_SUMMARY="$(printf '%s' "${SUMMARY_LOWER}" | sed -E 's/[[:space:]]+/ /g; s/^[[:space:]]+//; s/[[:space:]]+$//; s/[.!]+$//')"
+
+            if printf '%s' "${NORMALIZED_SUMMARY}" | grep -Eq \
+              '^(didn.t find any major issues|no major issues|no issues found|no actionable findings|looks good|lgtm|nothing to fix|more of your lovely prs please)$'; then
               ACTIONABLE=false
               REASON="summary is praise-only / no-issues"
             else
@@ -177,15 +179,16 @@ jobs:
           echo "actionable=${ACTIONABLE}"
           echo "reason=${REASON}"
 
-      - name: Run Claude Code
-        if: >
-          steps.check_iterations.outputs.cap_reached != 'true' &&
-          steps.classify_review.outputs.actionable == 'true'
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ steps.app-token.outputs.token }}
-          prompt: |
+            - name: Run Claude Code
+              if: >
+                  steps.check_iterations.outputs.cap_reached != 'true' &&
+                  steps.classify_review.outputs.actionable == 'true'
+              uses: anthropics/claude-code-action@v1
+              with:
+                  anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+                  github_token: ${{ steps.app-token.outputs.token }}
+                  allowed_bots: "chatgpt-codex-connector[bot]"
+                  prompt: |
             You are resolving review comments from Codex on a pull request.
 
             The GitHub review may be a comment-only review. Use the substance of the review,
