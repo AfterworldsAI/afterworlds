@@ -287,10 +287,12 @@ class StoryBibleService:
         # Setting
         setting_row = (
             self._session.execute(
-                select(SBSettingORM).where(
+                select(SBSettingORM)
+                .where(
                     SBSettingORM.story_id == sid,
                     SBSettingORM.is_active.is_(True),
                 )
+                .order_by(SBSettingORM.created_at.desc())
             )
             .scalars()
             .first()
@@ -592,6 +594,11 @@ class StoryBibleService:
         if row is None:
             raise EntityNotFoundError(f"Proposal {proposal_id} not found.")
 
+        if row.status != ProposalStatus.PENDING.value:
+            raise ValueError(
+                f"Proposal {proposal_id} is already {row.status}; cannot ratify."
+            )
+
         ptype = ProposalType(row.proposal_type)
         if ptype == ProposalType.LOCKED_FACT and not confirmed:
             raise ConfirmationRequiredError(
@@ -638,6 +645,10 @@ class StoryBibleService:
         row = self._session.get(SBProvisionalStagingORM, str(proposal_id))
         if row is None:
             raise EntityNotFoundError(f"Proposal {proposal_id} not found.")
+        if row.status != ProposalStatus.PENDING.value:
+            raise ValueError(
+                f"Proposal {proposal_id} is already {row.status}; cannot reject."
+            )
         row.status = ProposalStatus.REJECTED.value
         self._session.flush()
         return _proposal_orm_to_model(row)

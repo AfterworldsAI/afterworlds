@@ -448,6 +448,54 @@ class TestStagingArea:
         assert row is not None
         assert row.status == "rejected"
 
+    def test_double_ratify_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying an already-RATIFIED proposal must raise ValueError."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.UNRESOLVED_THREAD,
+            proposed_value={"description": "Thread once."},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        service.ratify_update(staged.proposal_id)
+
+        with pytest.raises(ValueError, match="already"):
+            service.ratify_update(staged.proposal_id)
+
+    def test_ratify_after_reject_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A REJECTED proposal must not be re-ratified."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            proposed_value={"fact": "sky is purple"},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        service.reject_update(staged.proposal_id)
+
+        with pytest.raises(ValueError, match="already"):
+            service.ratify_update(staged.proposal_id)
+
+    def test_reject_after_ratify_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A RATIFIED proposal must not be silently downgraded to REJECTED."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            proposed_value={"fact": "sun rises in the west"},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        service.ratify_update(staged.proposal_id)
+
+        with pytest.raises(ValueError, match="already"):
+            service.reject_update(staged.proposal_id)
+
     def test_all_four_proposal_types_representable(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
