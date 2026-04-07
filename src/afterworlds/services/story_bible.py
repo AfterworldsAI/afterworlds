@@ -414,10 +414,12 @@ class StoryBibleService:
         """Return all active locked facts for a story as a distinct set."""
         rows = (
             self._session.execute(
-                select(SBLockedFactORM).where(
+                select(SBLockedFactORM)
+                .where(
                     SBLockedFactORM.story_id == str(story_id),
                     SBLockedFactORM.is_active.is_(True),
                 )
+                .order_by(SBLockedFactORM.created_at.asc())
             )
             .scalars()
             .all()
@@ -428,10 +430,12 @@ class StoryBibleService:
         """Return all active forbidden facts for a story as a distinct set."""
         rows = (
             self._session.execute(
-                select(SBForbiddenFactORM).where(
+                select(SBForbiddenFactORM)
+                .where(
                     SBForbiddenFactORM.story_id == str(story_id),
                     SBForbiddenFactORM.is_active.is_(True),
                 )
+                .order_by(SBForbiddenFactORM.created_at.asc())
             )
             .scalars()
             .all()
@@ -612,7 +616,6 @@ class StoryBibleService:
                 "Pass confirmed=True to proceed."
             )
 
-        row.status = ProposalStatus.RATIFIED.value
         now = _now_iso()
 
         if ptype == ProposalType.LOCKED_FACT:
@@ -622,6 +625,7 @@ class StoryBibleService:
                     f"Proposal {proposal_id} is missing required 'fact_text' "
                     "in proposed_value; cannot write blank canon entry."
                 )
+            row.status = ProposalStatus.RATIFIED.value
             lf_row = SBLockedFactORM(
                 locked_fact_id=str(uuid4()),
                 story_id=row.story_id,
@@ -640,6 +644,7 @@ class StoryBibleService:
                     f"Proposal {proposal_id} is missing required 'description' "
                     "in proposed_value; cannot write blank canon entry."
                 )
+            row.status = ProposalStatus.RATIFIED.value
             thread_row = SBUnresolvedThreadORM(
                 thread_id=str(uuid4()),
                 story_id=row.story_id,
@@ -650,6 +655,9 @@ class StoryBibleService:
                 created_at=now,
             )
             self._session.add(thread_row)
+
+        else:
+            row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()
         return _proposal_orm_to_model(row)
