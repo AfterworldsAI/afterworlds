@@ -658,9 +658,35 @@ class StoryBibleService:
     # ------------------------------------------------------------------
 
     def create_setting(
-        self, story_id: UUID, setting: StoryBibleSetting
+        self, story_id: UUID, setting: StoryBibleSetting, *, confirmed: bool = False
     ) -> StoryBibleSetting:
-        """Persist a new Story Bible setting entry."""
+        """Persist a new Story Bible setting entry.
+
+        If an active setting already exists for the story, ``confirmed=True``
+        is required; raises ``ConfirmationRequiredError`` otherwise.  The prior
+        active setting is deactivated (soft-deleted) before the new one is
+        written, so only one active setting exists per story at a time.
+        """
+        sid = str(story_id)
+        existing = (
+            self._session.execute(
+                select(SBSettingORM)
+                .where(
+                    SBSettingORM.story_id == sid,
+                    SBSettingORM.is_active.is_(True),
+                )
+                .order_by(SBSettingORM.created_at.desc())
+            )
+            .scalars()
+            .first()
+        )
+        if existing is not None and not confirmed:
+            raise ConfirmationRequiredError(
+                "Replacing an active setting requires explicit Sojourner "
+                "confirmation.  Pass confirmed=True to proceed."
+            )
+        if existing is not None:
+            existing.is_active = False
         row = SBSettingORM(
             setting_id=str(setting.setting_id),
             story_id=str(story_id),
@@ -751,7 +777,18 @@ class StoryBibleService:
     def add_relationship(
         self, story_id: UUID, ledger: RelationshipLedger
     ) -> RelationshipLedger:
-        """Persist a new relationship ledger entry."""
+        """Persist a new relationship ledger entry.
+
+        Raises ``EntityNotFoundError`` if either cast member does not exist
+        as an active entry in this story.
+        """
+        sid = str(story_id)
+        for cast_id in (ledger.subject_cast_id, ledger.object_cast_id):
+            cast_row = self._session.get(SBCastEntryORM, str(cast_id))
+            if cast_row is None or cast_row.story_id != sid or not cast_row.is_active:
+                raise EntityNotFoundError(
+                    f"CastEntry {cast_id} not found for story {story_id}."
+                )
         row = SBRelationshipLedgerORM(
             relationship_id=str(ledger.relationship_id),
             story_id=str(story_id),

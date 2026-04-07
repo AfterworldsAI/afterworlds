@@ -28,6 +28,7 @@ from tests.services.conftest import (
     make_forbidden_fact,
     make_locked_fact,
     make_relationship,
+    make_setting,
 )
 
 # ---------------------------------------------------------------------------
@@ -551,6 +552,123 @@ class TestSoftDelete:
         assert all(
             "soft" in m for m in methods
         ), f"Found non-soft delete method(s): {methods}"
+
+
+# ---------------------------------------------------------------------------
+# Setting confirmation guard
+# ---------------------------------------------------------------------------
+
+
+class TestSettingConfirmationGuard:
+    def test_first_setting_requires_no_confirmation(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Creating the first setting needs no confirmation."""
+        s = make_setting(story_id)
+        result = service.create_setting(story_id, s)
+        assert result.is_active is True
+
+    def test_second_setting_raises_without_confirmation(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Replacing an active setting without confirmed=True must raise."""
+        service.create_setting(story_id, make_setting(story_id))
+
+        with pytest.raises(ConfirmationRequiredError):
+            service.create_setting(story_id, make_setting(story_id))
+
+    def test_second_setting_with_confirmation_deactivates_prior(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A confirmed replacement deactivates the previous active setting."""
+        first = make_setting(story_id)
+        service.create_setting(story_id, first)
+
+        second = make_setting(story_id)
+        second = second.model_copy(update={"summary": "New world order."})
+        service.create_setting(story_id, second, confirmed=True)
+
+        from afterworlds.persistence.orm.story_bible import SBSettingORM
+
+        first_row = service._session.get(SBSettingORM, str(first.setting_id))
+        assert first_row is not None
+        assert first_row.is_active is False
+
+    def test_only_one_active_setting_after_confirmed_replacement(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """After a confirmed replacement, exactly one active setting exists."""
+        service.create_setting(story_id, make_setting(story_id))
+        service.create_setting(story_id, make_setting(story_id), confirmed=True)
+
+        ctx = service.get_active_context_window(story_id)
+        assert ctx.setting is not None
+        assert ctx.setting.summary == "A dark fantasy realm."
+
+
+# ---------------------------------------------------------------------------
+# Relationship cast ID validation
+# ---------------------------------------------------------------------------
+
+
+class TestRelationshipCastValidation:
+    def test_add_relationship_with_unknown_subject_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """subject_cast_id that doesn't exist must raise EntityNotFoundError."""
+        from uuid import uuid4
+
+        from afterworlds.services.story_bible import EntityNotFoundError
+
+        serena = make_cast_entry(story_id, "Serena")
+        service.add_cast_entry(story_id, serena)
+
+        rel = make_relationship(story_id, uuid4(), serena.cast_id)
+        with pytest.raises(EntityNotFoundError):
+            service.add_relationship(story_id, rel)
+
+    def test_add_relationship_with_unknown_object_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """object_cast_id that doesn't exist must raise EntityNotFoundError."""
+        from uuid import uuid4
+
+        from afterworlds.services.story_bible import EntityNotFoundError
+
+        aldric = make_cast_entry(story_id, "Aldric")
+        service.add_cast_entry(story_id, aldric)
+
+        rel = make_relationship(story_id, aldric.cast_id, uuid4())
+        with pytest.raises(EntityNotFoundError):
+            service.add_relationship(story_id, rel)
+
+    def test_add_relationship_with_cross_story_cast_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Cast entry belonging to a different story must raise EntityNotFoundError."""
+        from datetime import UTC, datetime
+
+        from afterworlds.models.enums import StoryMode
+        from afterworlds.models.story import Story
+        from afterworlds.persistence.crud.story import create_story
+        from afterworlds.services.story_bible import EntityNotFoundError
+
+        # Create a second story so the FK constraint is satisfied
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        other_story = Story(
+            title="Other Story", mode=StoryMode.RPG, created_at=now, updated_at=now
+        )
+        create_story(service._session, other_story)
+
+        stranger = make_cast_entry(other_story.story_id, "Stranger")
+        service.add_cast_entry(other_story.story_id, stranger)
+
+        aldric = make_cast_entry(story_id, "Aldric")
+        service.add_cast_entry(story_id, aldric)
+
+        rel = make_relationship(story_id, aldric.cast_id, stranger.cast_id)
+        with pytest.raises(EntityNotFoundError):
+            service.add_relationship(story_id, rel)
 
 
 # ---------------------------------------------------------------------------
