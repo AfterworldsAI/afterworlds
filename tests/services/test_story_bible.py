@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -524,10 +524,14 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A RATIFIED proposal must not be silently downgraded to REJECTED."""
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
         proposal = ProvisionalProposal(
             story_id=story_id,
             proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "sun rises in the west"},
+            target_entity_type="cast_entry",
+            target_entity_id=str(entry.cast_id),
+            proposed_value={"is_alive": False},
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
         staged = service.stage_proposed_update(story_id, proposal)
@@ -616,6 +620,57 @@ class TestStagingArea:
         updated = service.get_character(story_id, entry.cast_id)
         assert updated is not None
         assert updated.is_alive is False
+
+    def test_soft_fact_wrong_entity_type_raises_on_ratification(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying soft_fact with non-cast_entry target_entity_type raises."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            target_entity_type="setting",
+            target_entity_id=str(uuid4()),
+            proposed_value={"is_alive": True},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        with pytest.raises(ValueError, match="produced no canon updates"):
+            service.ratify_update(staged.proposal_id)
+
+    def test_soft_fact_missing_target_id_raises_on_ratification(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying soft_fact with no target_entity_id raises."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            target_entity_type="cast_entry",
+            target_entity_id=None,
+            proposed_value={"is_alive": True},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        with pytest.raises(ValueError, match="produced no canon updates"):
+            service.ratify_update(staged.proposal_id)
+
+    def test_soft_fact_no_valid_keys_raises_on_ratification(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying soft_fact whose proposed_value has no _CAST_DYNAMIC_FIELDS
+        keys raises rather than silently dropping the update."""
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            target_entity_type="cast_entry",
+            target_entity_id=str(entry.cast_id),
+            proposed_value={"unknown_field": "value"},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        with pytest.raises(ValueError, match="produced no canon updates"):
+            service.ratify_update(staged.proposal_id)
 
     def test_all_four_proposal_types_representable(
         self, service: StoryBibleService, story_id: UUID

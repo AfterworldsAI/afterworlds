@@ -681,6 +681,10 @@ class StoryBibleService:
             # target cast entry via update_dynamic_field, then mark RATIFIED.
             # Status is set after the apply so a failure leaves the proposal
             # PENDING rather than incorrectly RATIFIED.
+            # We require at least one field to actually be written; if nothing
+            # applies (wrong entity type, missing ID, or no recognised keys)
+            # we raise so the proposal stays PENDING and can be corrected.
+            updates_applied = 0
             if row.target_entity_type == "cast_entry" and row.target_entity_id:
                 target_id = UUID(row.target_entity_id)
                 story_uuid = UUID(row.story_id)
@@ -693,6 +697,13 @@ class StoryBibleService:
                             value,
                             source_turn_id=row.source_turn_id,
                         )
+                        updates_applied += 1
+            if updates_applied == 0:
+                raise ValueError(
+                    f"Proposal {proposal_id} (type={ptype.value}) produced no "
+                    "canon updates: target_entity_type, target_entity_id, or "
+                    "proposed_value keys are invalid.  Proposal remains PENDING."
+                )
             row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()
