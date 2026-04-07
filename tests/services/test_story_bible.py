@@ -796,7 +796,7 @@ class TestRelationshipActivecastConsistency:
     def test_relationship_excluded_when_object_is_soft_deleted(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        """Soft-deleting the object cast member removes the relationship from context."""
+        """Soft-deleting the object cast member removes it from context."""
         aldric = make_cast_entry(story_id, "Aldric")
         serena = make_cast_entry(story_id, "Serena")
         service.add_cast_entry(story_id, aldric)
