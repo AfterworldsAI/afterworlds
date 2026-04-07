@@ -28,6 +28,7 @@ silently.
 - **Secret scanning:** detect-secrets (pre-commit hook)
 
 ## Build & Test Commands
+
 ```bash
 # Create and activate virtualenv
 python -m venv venv
@@ -78,23 +79,44 @@ violation and must be flagged in the PR, not silently resolved.
   any deviation and rationale
 - Scope creep is a review failure — stay within issue boundaries
 
+## Review-Loop Boundary Check
+
+If repeated review rounds on the same PR begin focusing on the same file or
+function, or if review feedback shifts from concrete defects to questions of
+ownership, semantics, architectural placement, or which issue should own a
+behavior, treat that as a boundary problem rather than “the next patch.”
+
+When this happens:
+
+- Stop iterative fix/re-review cycling.
+- Classify the remaining feedback as:
+  - merge-blocking defect,
+  - issue-scope boundary problem,
+  - Known Unknown,
+  - non-blocking improvement.
+- Do not resolve boundary or ownership questions unilaterally in code.
+- Raise the issue explicitly in the PR description or PR comments under
+  **Architecture Notes**.
+- Pause for owner decision when the implementation appears to cross issue
+  scope, touch a Known Unknown, or require a new ownership rule.
+
+Do not keep patching a hotspot indefinitely just because a reviewer produced
+another comment. Repeated churn on the same hotspot is evidence that the PR may
+have crossed its intended boundary.
+
 ## Commit Format
 
-Conventional commits:
+Conventional commits:  
 `type(scope): description`
-Types: feat, fix, refactor, test, docs, chore
+
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+
 Example: `feat(story-bible): implement tiered inclusion policy for events ledger`
 
 ## Known Unknowns — Do Not Resolve Silently
 
-These are open decisions. If you encounter them, flag and pause — do not
-make a load-bearing choice without explicit approval:
-
-- React vs. Svelte for the frontend (resolve before Issue 19)
-- Exact ChromaDB collection schema (resolve before Issue 18)
-- Exact FastAPI route shapes (resolve before Issue 18)
-- Rolling summary compression trigger N value (start at 10, tune with testing)
-- Events Ledger tiered inclusion N value (start at 15, tune with testing)
+See `/docs/architecture/known_unknowns.md`. If implementation touches a listed
+unknown, stop and flag it in the PR — do not resolve it unilaterally.
 
 ## Business Model Constraints — Architectural Invariants
 
@@ -140,31 +162,33 @@ that task. This is how the project accumulates institutional memory across
 sessions.
 
 **Trigger conditions — log when:**
+
 - You were corrected on an implementation decision
 - You discovered a behavioral pattern not covered by existing rules
 - You made an assumption that turned out to be wrong
 - You found a better approach than what the spec implied
 
-**Format:** one line, dated, plain language.
+**Format:** one line, dated, plain language.  
 `[YYYY-MM-DD] <lesson learned>`
 
 **Where to log:**
+
 - Project-wide lessons go in the Lessons section below
 - Subsystem-specific lessons go in the relevant file in `/context/`
 - When three or more related lessons accumulate anywhere, create a new
   context file in `/context/`, add it to the folder tree in the docs,
   and note it below
 
-**Lessons:**
+## Lessons
 
-Lessons:
+[2026-04-02] Before committing, run the full local gate sequence on the exact branch head you plan to push: `black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest -q`. A green Black check alone does not mean the branch is CI-clean.
 
-[2026-04-02] Before committing, run the full local gate sequence on the exact branch head you plan to push: black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest -q. A green Black check alone does not mean the branch is CI-clean.
-
-[2026-04-02] When CI reports a specific file in a formatter or lint failure, verify that the file’s diff is actually staged and included in a pushed commit. A local fix is not complete until git diff, git status, and the commit contents confirm it was committed.
+[2026-04-02] When CI reports a specific file in a formatter or lint failure, verify that the file’s diff is actually staged and included in a pushed commit. A local fix is not complete until `git diff`, `git status`, and the commit contents confirm it was committed.
 
 [2026-04-02] When fixing a reported formatter or lint issue, inspect the files changed in the commit(s) being pushed. If CI complained about a file and that file is absent from the pushed commit summary, assume the fix did not reach GitHub.
 
 [2026-04-02] Pin Black to an exact version in dev dependencies to reduce avoidable CI/local drift, but do not assume version drift is the root cause without proof from the failing file, the actual commit contents, and the current CI run.
+
+[2026-04-07] CRD issue numbers (Issue 4, Issue 8, Issue 18, …) and GitHub issue numbers (#43, #44, #45, …) are different namespaces. Always write "CRD Issue N" for construction-readiness document references and "#N" for GitHub issue/ +PR references. Never use bare "Issue N" — every AI tool reviewed so far conflates the two sequences.
 
 <!-- Claude Code appends dated one-line lessons here as they are learned -->
