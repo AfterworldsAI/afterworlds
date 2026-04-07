@@ -123,6 +123,27 @@ class TestTieredInclusionPolicy:
         descriptions = {ev.description for ev in ctx.events}
         assert "The king died." in descriptions
 
+    def test_event_window_is_stable_with_identical_timestamps(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """N-window must be deterministic when events share a timestamp."""
+        shared_ts = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+        for i in range(EVENTS_LEDGER_N + 3):
+            e = make_event(
+                story_id,
+                desc=f"Event {i}",
+                significance=EventSignificance.ROUTINE,
+            )
+            e = e.model_copy(update={"created_at": shared_ts})
+            service.add_event(story_id, e)
+
+        ctx1 = service.get_active_context_window(story_id)
+        ctx2 = service.get_active_context_window(story_id)
+        ids1 = [str(ev.event_id) for ev in ctx1.events]
+        ids2 = [str(ev.event_id) for ev in ctx2.events]
+        assert ids1 == ids2
+        assert len(ids1) == EVENTS_LEDGER_N
+
     def test_n_is_configurable_not_hardcoded(self) -> None:
         """EVENTS_LEDGER_N is a module-level constant, not embedded in logic."""
         assert isinstance(EVENTS_LEDGER_N, int)
@@ -550,6 +571,51 @@ class TestStagingArea:
 
         ctx = service.get_active_context_window(story_id)
         assert ctx.active_plot_threads == []
+
+    def test_soft_fact_proposal_applies_dynamic_field_on_ratification(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying a soft_fact proposal must apply proposed_value to the entity."""
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            target_entity_type="cast_entry",
+            target_entity_id=str(entry.cast_id),
+            proposed_value={"current_location": "The Iron Tower"},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        ratified = service.ratify_update(staged.proposal_id)
+
+        assert ratified.status == ProposalStatus.RATIFIED
+        updated = service.get_character(story_id, entry.cast_id)
+        assert updated is not None
+        assert updated.current_location == "The Iron Tower"
+
+    def test_transient_state_proposal_applies_dynamic_field_on_ratification(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Ratifying a transient_state proposal must apply proposed_value."""
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.TRANSIENT_STATE,
+            target_entity_type="cast_entry",
+            target_entity_id=str(entry.cast_id),
+            proposed_value={"is_alive": False},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        service.ratify_update(staged.proposal_id)
+
+        updated = service.get_character(story_id, entry.cast_id)
+        assert updated is not None
+        assert updated.is_alive is False
 
     def test_all_four_proposal_types_representable(
         self, service: StoryBibleService, story_id: UUID

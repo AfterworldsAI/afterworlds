@@ -389,7 +389,7 @@ class StoryBibleService:
                     SBEventORM.story_id == story_id_str,
                     SBEventORM.is_active.is_(True),
                 )
-                .order_by(SBEventORM.created_at.desc())
+                .order_by(SBEventORM.created_at.desc(), SBEventORM.event_id.asc())
             )
             .scalars()
             .all()
@@ -611,9 +611,12 @@ class StoryBibleService:
         - ``locked_fact``:  creates a LockedFact entry in ``sb_locked_facts``.
         - ``unresolved_thread``: creates an UnresolvedThread in
           ``sb_unresolved_threads``.
-        - ``soft_fact`` / ``transient_state``: marks ratified; entity update
-          is performed by the Extractor service (Issue 10) via
-          ``update_dynamic_field``.
+        - ``soft_fact`` / ``transient_state``: applies ``proposed_value``
+          key/value pairs as dynamic field updates on the target cast entry
+          (keys not in ``_CAST_DYNAMIC_FIELDS`` are silently skipped), then
+          marks the proposal ``RATIFIED``.  Entity types other than
+          ``cast_entry`` are not yet supported and are ratified without
+          applying an entity update.
 
         Raises ``EntityNotFoundError`` if the proposal does not exist.
         """
@@ -674,6 +677,22 @@ class StoryBibleService:
             self._session.add(thread_row)
 
         else:
+            # soft_fact / transient_state: apply proposed_value fields to the
+            # target cast entry via update_dynamic_field, then mark RATIFIED.
+            # Status is set after the apply so a failure leaves the proposal
+            # PENDING rather than incorrectly RATIFIED.
+            if row.target_entity_type == "cast_entry" and row.target_entity_id:
+                target_id = UUID(row.target_entity_id)
+                story_uuid = UUID(row.story_id)
+                for field, value in row.proposed_value.items():
+                    if field in _CAST_DYNAMIC_FIELDS:
+                        self.update_dynamic_field(
+                            story_uuid,
+                            target_id,
+                            field,
+                            value,
+                            source_turn_id=row.source_turn_id,
+                        )
             row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()
