@@ -20,6 +20,7 @@ from afterworlds.services.story_bible import (
     ALWAYS_INCLUDE_SIGNIFICANCE,
     EVENTS_LEDGER_N,
     ConfirmationRequiredError,
+    EntityNotFoundError,
     StoryBibleService,
 )
 from tests.services.conftest import (
@@ -502,6 +503,22 @@ class TestStagingArea:
         service.ratify_update(staged.proposal_id)
 
         with pytest.raises(ValueError, match="already"):
+            service.ratify_update(staged.proposal_id)
+
+    def test_ratify_soft_deleted_proposal_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A soft-deleted (inactive) proposal must not be ratified."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.SOFT_FACT,
+            proposed_value={"fact": "sky is purple"},
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+        service.soft_delete("proposal", staged.proposal_id)
+
+        with pytest.raises(EntityNotFoundError):
             service.ratify_update(staged.proposal_id)
 
     def test_ratify_after_reject_raises(

@@ -307,7 +307,7 @@ class StoryBibleService:
                     SBCastEntryORM.story_id == sid,
                     SBCastEntryORM.is_active.is_(True),
                 )
-                .order_by(SBCastEntryORM.created_at.asc())
+                .order_by(SBCastEntryORM.created_at.asc(), SBCastEntryORM.cast_id.asc())
             )
             .scalars()
             .all()
@@ -623,6 +623,11 @@ class StoryBibleService:
         row = self._session.get(SBProvisionalStagingORM, str(proposal_id))
         if row is None:
             raise EntityNotFoundError(f"Proposal {proposal_id} not found.")
+
+        if not row.is_active:
+            raise EntityNotFoundError(
+                f"Proposal {proposal_id} has been soft-deleted and cannot be ratified."
+            )
 
         if row.status != ProposalStatus.PENDING.value:
             raise ValueError(
