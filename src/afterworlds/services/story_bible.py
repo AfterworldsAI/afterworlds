@@ -299,13 +299,15 @@ class StoryBibleService:
         )
         setting = _setting_orm_to_model(setting_row) if setting_row else None
 
-        # Cast (active entries only)
+        # Cast (active entries only, deterministic order)
         cast_rows = (
             self._session.execute(
-                select(SBCastEntryORM).where(
+                select(SBCastEntryORM)
+                .where(
                     SBCastEntryORM.story_id == sid,
                     SBCastEntryORM.is_active.is_(True),
                 )
+                .order_by(SBCastEntryORM.created_at.asc())
             )
             .scalars()
             .all()
@@ -318,27 +320,31 @@ class StoryBibleService:
         # Forbidden facts
         forbidden_facts = self.get_forbidden_facts(story_id)
 
-        # Relationship ledger (active entries)
+        # Relationship ledger (active entries, deterministic order)
         rel_rows = (
             self._session.execute(
-                select(SBRelationshipLedgerORM).where(
+                select(SBRelationshipLedgerORM)
+                .where(
                     SBRelationshipLedgerORM.story_id == sid,
                     SBRelationshipLedgerORM.is_active.is_(True),
                 )
+                .order_by(SBRelationshipLedgerORM.created_at.asc())
             )
             .scalars()
             .all()
         )
         relationship_ledger = [_relationship_orm_to_model(r) for r in rel_rows]
 
-        # Active plot threads (open, active)
+        # Active plot threads (open, active, deterministic order)
         thread_rows = (
             self._session.execute(
-                select(SBUnresolvedThreadORM).where(
+                select(SBUnresolvedThreadORM)
+                .where(
                     SBUnresolvedThreadORM.story_id == sid,
                     SBUnresolvedThreadORM.status == ThreadStatus.OPEN.value,
                     SBUnresolvedThreadORM.is_active.is_(True),
                 )
+                .order_by(SBUnresolvedThreadORM.created_at.asc())
             )
             .scalars()
             .all()
@@ -610,10 +616,16 @@ class StoryBibleService:
         now = _now_iso()
 
         if ptype == ProposalType.LOCKED_FACT:
+            fact_text = row.proposed_value.get("fact_text", "")
+            if not fact_text:
+                raise ValueError(
+                    f"Proposal {proposal_id} is missing required 'fact_text' "
+                    "in proposed_value; cannot write blank canon entry."
+                )
             lf_row = SBLockedFactORM(
                 locked_fact_id=str(uuid4()),
                 story_id=row.story_id,
-                fact_text=row.proposed_value.get("fact_text", ""),
+                fact_text=fact_text,
                 source_turn_id=row.source_turn_id,
                 confirmation_timestamp=now,
                 is_active=True,
@@ -622,10 +634,16 @@ class StoryBibleService:
             self._session.add(lf_row)
 
         elif ptype == ProposalType.UNRESOLVED_THREAD:
+            description = row.proposed_value.get("description", "")
+            if not description:
+                raise ValueError(
+                    f"Proposal {proposal_id} is missing required 'description' "
+                    "in proposed_value; cannot write blank canon entry."
+                )
             thread_row = SBUnresolvedThreadORM(
                 thread_id=str(uuid4()),
                 story_id=row.story_id,
-                description=row.proposed_value.get("description", ""),
+                description=description,
                 source_turn_id=row.source_turn_id,
                 status=ThreadStatus.OPEN.value,
                 is_active=True,
@@ -668,24 +686,22 @@ class StoryBibleService:
         written, so only one active setting exists per story at a time.
         """
         sid = str(story_id)
-        existing = (
+        existing_rows = (
             self._session.execute(
-                select(SBSettingORM)
-                .where(
+                select(SBSettingORM).where(
                     SBSettingORM.story_id == sid,
                     SBSettingORM.is_active.is_(True),
                 )
-                .order_by(SBSettingORM.created_at.desc())
             )
             .scalars()
-            .first()
+            .all()
         )
-        if existing is not None and not confirmed:
+        if existing_rows and not confirmed:
             raise ConfirmationRequiredError(
                 "Replacing an active setting requires explicit Sojourner "
                 "confirmation.  Pass confirmed=True to proceed."
             )
-        if existing is not None:
+        for existing in existing_rows:
             existing.is_active = False
         row = SBSettingORM(
             setting_id=str(setting.setting_id),

@@ -352,6 +352,24 @@ class TestRelationshipLedger:
         subjects = [r.subject_cast_id for r in ctx.relationship_ledger]
         assert aldric.cast_id in subjects
 
+    def test_context_window_cast_order_is_deterministic(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Cast list in context window must be in stable created_at ASC order."""
+        for i, name in enumerate(["Zara", "Aldric", "Mira"]):
+            e = make_cast_entry(story_id, name)
+            e = e.model_copy(
+                update={"created_at": datetime(2026, 1, i + 1, tzinfo=UTC)}
+            )
+            service.add_cast_entry(story_id, e)
+
+        ctx1 = service.get_active_context_window(story_id)
+        ctx2 = service.get_active_context_window(story_id)
+        names1 = [c.name for c in ctx1.cast]
+        names2 = [c.name for c in ctx2.cast]
+        assert names1 == names2
+        assert names1 == ["Zara", "Aldric", "Mira"]
+
     def test_asymmetric_relationships_representable(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
@@ -497,6 +515,42 @@ class TestStagingArea:
         with pytest.raises(ValueError, match="already"):
             service.reject_update(staged.proposal_id)
 
+    def test_ratify_locked_fact_with_missing_fact_text_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A locked_fact proposal missing fact_text must raise; no blank canon."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.LOCKED_FACT,
+            proposed_value={},  # fact_text absent
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+
+        with pytest.raises(ValueError, match="fact_text"):
+            service.ratify_update(staged.proposal_id, confirmed=True)
+
+        # No blank locked fact should have been written
+        assert service.get_locked_facts(story_id) == []
+
+    def test_ratify_unresolved_thread_with_missing_description_raises(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Unresolved_thread proposal missing description must raise; no blank canon."""
+        proposal = ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ProposalType.UNRESOLVED_THREAD,
+            proposed_value={},  # description absent
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+        staged = service.stage_proposed_update(story_id, proposal)
+
+        with pytest.raises(ValueError, match="description"):
+            service.ratify_update(staged.proposal_id)
+
+        ctx = service.get_active_context_window(story_id)
+        assert ctx.active_plot_threads == []
+
     def test_all_four_proposal_types_representable(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
@@ -604,6 +658,50 @@ class TestSettingConfirmationGuard:
         ctx = service.get_active_context_window(story_id)
         assert ctx.setting is not None
         assert ctx.setting.summary == "A dark fantasy realm."
+
+    def test_confirmed_replacement_deactivates_all_prior_active_settings(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """All pre-existing active settings are deactivated, not just one."""
+        from sqlalchemy import select as sa_select
+
+        from afterworlds.persistence.orm.story_bible import SBSettingORM
+
+        # Bypass the guard to force two active rows (simulates stale data)
+        s1 = make_setting(story_id)
+        s2 = make_setting(story_id)
+        for s in (s1, s2):
+            service._session.add(
+                SBSettingORM(
+                    setting_id=str(s.setting_id),
+                    story_id=str(story_id),
+                    summary=s.summary,
+                    world_rules=s.world_rules,
+                    geography=s.geography,
+                    time_period=s.time_period,
+                    is_active=True,
+                    created_at=s.created_at.isoformat(),
+                )
+            )
+        service._session.flush()
+
+        # Confirmed replacement must deactivate both stale rows
+        new_setting = make_setting(story_id)
+        new_setting = new_setting.model_copy(update={"summary": "Brand new world."})
+        service.create_setting(story_id, new_setting, confirmed=True)
+
+        active_rows = (
+            service._session.execute(
+                sa_select(SBSettingORM).where(
+                    SBSettingORM.story_id == str(story_id),
+                    SBSettingORM.is_active.is_(True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(active_rows) == 1
+        assert active_rows[0].summary == "Brand new world."
 
 
 # ---------------------------------------------------------------------------
