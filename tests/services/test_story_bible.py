@@ -770,6 +770,104 @@ class TestRelationshipCastValidation:
 
 
 # ---------------------------------------------------------------------------
+# Relationship / inactive cast consistency
+# ---------------------------------------------------------------------------
+
+
+class TestRelationshipActivecastConsistency:
+    def test_relationship_excluded_when_subject_is_soft_deleted(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Soft-deleting a cast member must remove their relationships from context."""
+        aldric = make_cast_entry(story_id, "Aldric")
+        serena = make_cast_entry(story_id, "Serena")
+        service.add_cast_entry(story_id, aldric)
+        service.add_cast_entry(story_id, serena)
+
+        rel = make_relationship(story_id, aldric.cast_id, serena.cast_id)
+        service.add_relationship(story_id, rel)
+
+        service.soft_delete("cast_entry", aldric.cast_id)
+
+        ctx = service.get_active_context_window(story_id)
+        # Aldric is inactive; the relationship must not appear
+        assert ctx.relationship_ledger == []
+
+    def test_relationship_excluded_when_object_is_soft_deleted(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Soft-deleting the object cast member removes the relationship from context."""
+        aldric = make_cast_entry(story_id, "Aldric")
+        serena = make_cast_entry(story_id, "Serena")
+        service.add_cast_entry(story_id, aldric)
+        service.add_cast_entry(story_id, serena)
+
+        rel = make_relationship(story_id, aldric.cast_id, serena.cast_id)
+        service.add_relationship(story_id, rel)
+
+        service.soft_delete("cast_entry", serena.cast_id)
+
+        ctx = service.get_active_context_window(story_id)
+        assert ctx.relationship_ledger == []
+
+    def test_relationship_retained_when_both_cast_members_active(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """Relationship is included when both cast members remain active."""
+        aldric = make_cast_entry(story_id, "Aldric")
+        serena = make_cast_entry(story_id, "Serena")
+        service.add_cast_entry(story_id, aldric)
+        service.add_cast_entry(story_id, serena)
+
+        rel = make_relationship(story_id, aldric.cast_id, serena.cast_id)
+        service.add_relationship(story_id, rel)
+
+        ctx = service.get_active_context_window(story_id)
+        assert len(ctx.relationship_ledger) == 1
+        assert ctx.relationship_ledger[0].subject_cast_id == aldric.cast_id
+
+
+# ---------------------------------------------------------------------------
+# Static field validation before flush
+# ---------------------------------------------------------------------------
+
+
+class TestStaticFieldValidation:
+    def test_invalid_role_value_raises_before_persisting(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """An invalid CastRole value must raise ValueError without persisting."""
+        from afterworlds.persistence.orm.story_bible import SBCastEntryORM
+
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+
+        with pytest.raises(ValueError):
+            service.update_static_field(
+                story_id, entry.cast_id, "role", "not_a_valid_role", confirmed=True
+            )
+
+        # The ORM row must still hold the original valid role
+        row = service._session.get(SBCastEntryORM, str(entry.cast_id))
+        assert row is not None
+        assert row.static_role == "protagonist"
+
+    def test_valid_role_value_persists_correctly(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """A valid role update must succeed and return the updated entry."""
+        from afterworlds.models.enums import CastRole
+
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+
+        updated = service.update_static_field(
+            story_id, entry.cast_id, "role", "antagonist", confirmed=True
+        )
+        assert updated.role == CastRole.ANTAGONIST
+
+
+# ---------------------------------------------------------------------------
 # get_active_context_window return type
 # ---------------------------------------------------------------------------
 

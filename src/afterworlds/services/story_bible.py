@@ -321,6 +321,9 @@ class StoryBibleService:
         forbidden_facts = self.get_forbidden_facts(story_id)
 
         # Relationship ledger (active entries, deterministic order)
+        # Only include relationships where both cast members are still active,
+        # so ctx.cast and ctx.relationship_ledger are self-consistent.
+        active_cast_ids = {str(c.cast_id) for c in cast}
         rel_rows = (
             self._session.execute(
                 select(SBRelationshipLedgerORM)
@@ -333,7 +336,12 @@ class StoryBibleService:
             .scalars()
             .all()
         )
-        relationship_ledger = [_relationship_orm_to_model(r) for r in rel_rows]
+        relationship_ledger = [
+            _relationship_orm_to_model(r)
+            for r in rel_rows
+            if r.subject_cast_id in active_cast_ids
+            and r.object_cast_id in active_cast_ids
+        ]
 
         # Active plot threads (open, active, deterministic order)
         thread_rows = (
@@ -484,9 +492,18 @@ class StoryBibleService:
                 f"CastEntry {entity_id} not found for story {story_id}."
             )
         col_name = f"static_{field}"
+        old_val = getattr(row, col_name)
         _set_cast_column(row, col_name, value)
+        try:
+            model = _cast_orm_to_model(row)
+        except (ValueError, KeyError) as exc:
+            # Restore the original value so the ORM object stays consistent.
+            setattr(row, col_name, old_val)
+            raise ValueError(
+                f"Invalid value {value!r} for static field '{field}': {exc}"
+            ) from exc
         self._session.flush()
-        return _cast_orm_to_model(row)
+        return model
 
     def update_dynamic_field(
         self,
