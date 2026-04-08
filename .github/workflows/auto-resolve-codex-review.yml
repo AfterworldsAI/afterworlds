@@ -241,7 +241,7 @@ jobs:
                If there are none, do not create that file.
             10. When you are done editing files, stop. Do not commit. Do not push.
           claude_args: |
-            --max-turns 10
+            --max-turns 20
 
       - name: Post owner-decision summary if present
         if: >
