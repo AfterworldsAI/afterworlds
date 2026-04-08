@@ -2,7 +2,7 @@
 
 *Canonical reference for all open design and implementation decisions.*
 *Maintained throughout construction. Update this file when an unknown is resolved or a new one surfaces.*
-*Last updated: March 2026*
+*Last updated: April 2026*
 
 ---
 
@@ -27,6 +27,8 @@ These were open questions during design. Decisions are recorded here for traceab
 | Intent classifier approach | Lightweight model call | Classifies before context assembly; see Issue 7 |
 | Business model and pricing | Metered hosted subscription with credits + BYOK perpetual license + first-year Cloud Services | See Item 8 in CRD and Design doc Section 8 |
 | Story Bible schema | Committed | Static / dynamic / provisional partitions, Events Ledger, Locked/Forbidden Facts; see Issue 4 |
+| Events Ledger tiered inclusion N value | 15 (configurable constant) | Resolved during Issue 4. Implemented as `EVENTS_LEDGER_N = 15` in `services/story_bible.py`. Tune with testing. See ADR-0005. |
+| Significance flagging criteria for Events Ledger | Seven-value enum; six qualify for always-include | Resolved during Issue 4. Always-include: CHARACTER_DEATH, LOCKED_FACT_ESTABLISHED, MAJOR_PLOT_TURN, RELATIONSHIP_CHANGE, WORLD_STATE_CHANGE, FORBIDDEN_FACT_ESTABLISHED. ROUTINE is the only non-always-include value. See ADR-0005. |
 | Mode prompt contracts | Written | Versioned .md files in `/docs/prompts/`; see Item 6 in CRD |
 | BYOK commercial structure | Perpetual license + first year of Cloud Services included; optional annual renewal thereafter | License and services must not be collapsed in code or UX language |
 | Writing mode structure | Persona-based — Mentors (Chiron, Merlin, Vidura) and Peers (Odin, Athena, Thoth) | No explicit submode labels; category communicated through persona descriptions |
@@ -81,26 +83,6 @@ These are genuinely open. Each has a designated resolution window. Do not resolv
 **Why it's open:** The right trigger depends on average turn length, Story Bible growth rate, and acceptable context window pressure — all of which are empirically determined. 10 is a reasonable starting point based on cost model assumptions but must be validated with testing.
 
 **What resolution requires:** During Issue 6, implement the trigger as a configurable value (not a hardcoded constant). Run representative test scenarios. Document the final chosen value and the test evidence in an ADR.
-
----
-
-### Events Ledger tiered inclusion N value (recent events to load)
-
-**Resolve during:** Issue 4. Starting value: 15 events.
-
-**Why it's open:** The right N balances context window pressure against continuity coverage. Too low and the checker misses recent history; too high and the stable prefix bloats. 15 is a starting estimate.
-
-**What resolution requires:** During Issue 4, implement N as a configurable constant. Test against representative story scenarios at minimal, moderate, and complex Story Bible sizes. Document the final value and rationale in an ADR.
-
----
-
-### Significance flagging criteria for Events Ledger
-
-**Resolve during:** Issue 4.
-
-**Why it's open:** "High-significance" events are the ones that survive tiered inclusion even when they fall outside the N most recent. The criteria for what counts as high-significance — character death, locked fact establishment, major plot turning point, etc. — need to be defined and implemented as part of the Events Ledger service.
-
-**What resolution requires:** Define a significance taxonomy during Issue 4. Implement as a structured enum or classification, not a freeform flag. Document criteria in an ADR. The Extractor will eventually propose significance levels; the Issue 4 implementation sets the schema it must conform to.
 
 ---
 
