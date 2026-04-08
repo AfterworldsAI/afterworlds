@@ -608,15 +608,16 @@ class StoryBibleService:
         raises ``ConfirmationRequiredError`` otherwise.
 
         Ratification effects by type:
-        - ``locked_fact``:  creates a LockedFact entry in ``sb_locked_facts``.
-        - ``unresolved_thread``: creates an UnresolvedThread in
+        - ``locked_fact``:  creates a ``LockedFact`` entry in
+          ``sb_locked_facts`` after confirmation.
+        - ``unresolved_thread``: creates an ``UnresolvedThread`` in
           ``sb_unresolved_threads``.
-        - ``soft_fact`` / ``transient_state``: applies ``proposed_value``
-          key/value pairs as dynamic field updates on the target cast entry
-          (keys not in ``_CAST_DYNAMIC_FIELDS`` are silently skipped), then
-          marks the proposal ``RATIFIED``.  Entity types other than
-          ``cast_entry`` are not yet supported and are ratified without
-          applying an entity update.
+        - ``soft_fact`` / ``transient_state``: marks the proposal
+          ``RATIFIED`` only.  Applying ``proposed_value`` to live canon is
+          the responsibility of the Extractor service (CRD Issue 10), which
+          reads ``RATIFIED`` proposals and routes them to the appropriate
+          canon update path.  ``StoryBibleService`` does not auto-apply
+          these proposal types.
 
         Raises ``EntityNotFoundError`` if the proposal does not exist.
         """
@@ -682,33 +683,11 @@ class StoryBibleService:
             self._session.add(thread_row)
 
         else:
-            # soft_fact / transient_state: apply proposed_value fields to the
-            # target cast entry via update_dynamic_field, then mark RATIFIED.
-            # Status is set after the apply so a failure leaves the proposal
-            # PENDING rather than incorrectly RATIFIED.
-            # We require at least one field to actually be written; if nothing
-            # applies (wrong entity type, missing ID, or no recognised keys)
-            # we raise so the proposal stays PENDING and can be corrected.
-            updates_applied = 0
-            if row.target_entity_type == "cast_entry" and row.target_entity_id:
-                target_id = UUID(row.target_entity_id)
-                story_uuid = UUID(row.story_id)
-                for field, value in row.proposed_value.items():
-                    if field in _CAST_DYNAMIC_FIELDS:
-                        self.update_dynamic_field(
-                            story_uuid,
-                            target_id,
-                            field,
-                            value,
-                            source_turn_id=row.source_turn_id,
-                        )
-                        updates_applied += 1
-            if updates_applied == 0:
-                raise ValueError(
-                    f"Proposal {proposal_id} (type={ptype.value}) produced no "
-                    "canon updates: target_entity_type, target_entity_id, or "
-                    "proposed_value keys are invalid.  Proposal remains PENDING."
-                )
+            # soft_fact / transient_state: mark RATIFIED only.
+            # Applying proposed_value to live canon is the responsibility of
+            # the Extractor service (CRD Issue 10).  This ratification step
+            # records Sojourner approval; the Extractor reads RATIFIED
+            # proposals and routes them to the appropriate canon update path.
             row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()

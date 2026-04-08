@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 
@@ -541,13 +541,9 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A RATIFIED proposal must not be silently downgraded to REJECTED."""
-        entry = make_cast_entry(story_id)
-        service.add_cast_entry(story_id, entry)
         proposal = ProvisionalProposal(
             story_id=story_id,
             proposal_type=ProposalType.SOFT_FACT,
-            target_entity_type="cast_entry",
-            target_entity_id=str(entry.cast_id),
             proposed_value={"is_alive": False},
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
@@ -593,12 +589,18 @@ class TestStagingArea:
         ctx = service.get_active_context_window(story_id)
         assert ctx.active_plot_threads == []
 
-    def test_soft_fact_proposal_applies_dynamic_field_on_ratification(
+    def test_soft_fact_ratification_marks_proposal_ratified(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        """Ratifying a soft_fact proposal must apply proposed_value to the entity."""
+        """Ratifying a soft_fact proposal sets status RATIFIED.
+
+        CRD Issue 4 scope: StoryBibleService records Sojourner approval only.
+        Applying proposed_value to live canon is deferred to the Extractor
+        (CRD Issue 10); the cast entry must be unchanged after ratification.
+        """
         entry = make_cast_entry(story_id)
         service.add_cast_entry(story_id, entry)
+        original_location = entry.current_location
 
         proposal = ProvisionalProposal(
             story_id=story_id,
@@ -612,14 +614,20 @@ class TestStagingArea:
         ratified = service.ratify_update(staged.proposal_id)
 
         assert ratified.status == ProposalStatus.RATIFIED
-        updated = service.get_character(story_id, entry.cast_id)
-        assert updated is not None
-        assert updated.current_location == "The Iron Tower"
+        # CRD Issue 4 regression: canon must NOT be modified at ratification
+        unchanged = service.get_character(story_id, entry.cast_id)
+        assert unchanged is not None
+        assert unchanged.current_location == original_location
 
-    def test_transient_state_proposal_applies_dynamic_field_on_ratification(
+    def test_transient_state_ratification_marks_proposal_ratified(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        """Ratifying a transient_state proposal must apply proposed_value."""
+        """Ratifying a transient_state proposal sets status RATIFIED.
+
+        CRD Issue 4 scope: StoryBibleService records Sojourner approval only.
+        Applying proposed_value to live canon is deferred to the Extractor
+        (CRD Issue 10); the cast entry must be unchanged after ratification.
+        """
         entry = make_cast_entry(story_id)
         service.add_cast_entry(story_id, entry)
 
@@ -632,62 +640,45 @@ class TestStagingArea:
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
         staged = service.stage_proposed_update(story_id, proposal)
-        service.ratify_update(staged.proposal_id)
+        ratified = service.ratify_update(staged.proposal_id)
 
-        updated = service.get_character(story_id, entry.cast_id)
-        assert updated is not None
-        assert updated.is_alive is False
+        assert ratified.status == ProposalStatus.RATIFIED
+        # CRD Issue 4 regression: canon must NOT be modified at ratification
+        unchanged = service.get_character(story_id, entry.cast_id)
+        assert unchanged is not None
+        assert unchanged.is_alive is True
 
-    def test_soft_fact_wrong_entity_type_raises_on_ratification(
+    def test_soft_fact_ratification_does_not_apply_to_canon(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        """Ratifying soft_fact with non-cast_entry target_entity_type raises."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            target_entity_type="setting",
-            target_entity_id=str(uuid4()),
-            proposed_value={"is_alive": True},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
-        staged = service.stage_proposed_update(story_id, proposal)
-        with pytest.raises(ValueError, match="produced no canon updates"):
-            service.ratify_update(staged.proposal_id)
+        """Regression: soft_fact ratification must not auto-apply to live canon.
 
-    def test_soft_fact_missing_target_id_raises_on_ratification(
-        self, service: StoryBibleService, story_id: UUID
-    ) -> None:
-        """Ratifying soft_fact with no target_entity_id raises."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            target_entity_type="cast_entry",
-            target_entity_id=None,
-            proposed_value={"is_alive": True},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
-        staged = service.stage_proposed_update(story_id, proposal)
-        with pytest.raises(ValueError, match="produced no canon updates"):
-            service.ratify_update(staged.proposal_id)
-
-    def test_soft_fact_no_valid_keys_raises_on_ratification(
-        self, service: StoryBibleService, story_id: UUID
-    ) -> None:
-        """Ratifying soft_fact whose proposed_value has no _CAST_DYNAMIC_FIELDS
-        keys raises rather than silently dropping the update."""
+        StoryBibleService.ratify_update() is CRD Issue 4 scope (schema /
+        service / staging).  Routing a RATIFIED soft_fact proposal to the
+        appropriate canon update path is CRD Issue 10 (Extractor) scope.
+        This test guards against future drift that re-introduces auto-apply
+        inside ratify_update.
+        """
         entry = make_cast_entry(story_id)
         service.add_cast_entry(story_id, entry)
+
         proposal = ProvisionalProposal(
             story_id=story_id,
             proposal_type=ProposalType.SOFT_FACT,
             target_entity_type="cast_entry",
             target_entity_id=str(entry.cast_id),
-            proposed_value={"unknown_field": "value"},
+            proposed_value={"is_alive": False},
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
         staged = service.stage_proposed_update(story_id, proposal)
-        with pytest.raises(ValueError, match="produced no canon updates"):
-            service.ratify_update(staged.proposal_id)
+        ratified = service.ratify_update(staged.proposal_id)
+
+        # Proposal is RATIFIED — Extractor can now act on it
+        assert ratified.status == ProposalStatus.RATIFIED
+        # Live canon is unchanged — apply is deferred to CRD Issue 10
+        character = service.get_character(story_id, entry.cast_id)
+        assert character is not None
+        assert character.is_alive is True
 
     def test_all_four_proposal_types_representable(
         self, service: StoryBibleService, story_id: UUID
