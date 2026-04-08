@@ -268,6 +268,34 @@ class TestDynamicVersioning:
         # First update had old_value=None; second had old_value="First Place"
         assert "First Place" in locations
 
+    def test_invalid_dynamic_value_raises_before_persisting(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        """An invalid dynamic value must raise without persisting the bad state.
+
+        Validates the fix for the validate-before-flush bug: prior to the fix,
+        the ORM row mutation and history row were flushed before model
+        validation ran, leaving invalid canon in the session even when the
+        method raised.
+        """
+        entry = make_cast_entry(story_id)
+        service.add_cast_entry(story_id, entry)
+
+        with pytest.raises(ValueError):
+            service.update_dynamic_field(
+                story_id, entry.cast_id, "is_alive", "not_a_bool"
+            )
+
+        # Live canon must be unchanged
+        refreshed = service.get_character(story_id, entry.cast_id)
+        assert refreshed is not None
+        assert refreshed.is_alive is True
+
+        # No history row must have been written for the failed update
+        history = service.get_dynamic_field_history("cast_entry", entry.cast_id)
+        failed = [h for h in history if h.field_name == "is_alive"]
+        assert failed == []
+
 
 # ---------------------------------------------------------------------------
 # Locked facts

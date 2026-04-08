@@ -167,4 +167,6 @@ Lessons:
 
 [2026-04-02] Pin Black to an exact version in dev dependencies to reduce avoidable CI/local drift, but do not assume version drift is the root cause without proof from the failing file, the actual commit contents, and the current CI run.
 
+[2026-04-07] CRD issue numbers (Issue 4, Issue 8, Issue 18, …) and GitHub issue numbers (#43, #44, #45, …) are different namespaces. Always write "CRD Issue N" for construction-readiness document references and "#N" for GitHub issue/PR references. Never use bare "Issue N" — every AI tool reviewed so far conflates the two sequences.
+
 <!-- Claude Code appends dated one-line lessons here as they are learned -->

@@ -535,7 +535,18 @@ class StoryBibleService:
             )
         col_name = f"dynamic_{field}"
         old_val: object = getattr(row, col_name)
-        # Record prior value in history before mutating
+        _set_cast_column(row, col_name, value)
+        # Validate the candidate state before writing anything to the session.
+        try:
+            model = _cast_orm_to_model(row)
+        except (ValueError, KeyError) as exc:
+            # Restore the original value so the ORM object stays consistent
+            # and no mutation or history row reaches the session.
+            setattr(row, col_name, old_val)
+            raise ValueError(
+                f"Invalid value {value!r} for dynamic field '{field}': {exc}"
+            ) from exc
+        # Validation passed — record history and flush.
         history_row = SBDynamicFieldHistoryORM(
             history_id=str(uuid4()),
             entity_type="cast_entry",
@@ -546,9 +557,8 @@ class StoryBibleService:
             source_turn_id=source_turn_id,
         )
         self._session.add(history_row)
-        _set_cast_column(row, col_name, value)
         self._session.flush()
-        return _cast_orm_to_model(row)
+        return model
 
     # ------------------------------------------------------------------
     # Events Ledger
