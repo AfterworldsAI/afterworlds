@@ -702,6 +702,10 @@ class StoryBibleService:
         row = self._session.get(SBProvisionalStagingORM, str(proposal_id))
         if row is None:
             raise EntityNotFoundError(f"Proposal {proposal_id} not found.")
+        if not row.is_active:
+            raise EntityNotFoundError(
+                f"Proposal {proposal_id} has been soft-deleted and cannot be rejected."
+            )
         if row.status != ProposalStatus.PENDING.value:
             raise ValueError(
                 f"Proposal {proposal_id} is already {row.status}; cannot reject."
