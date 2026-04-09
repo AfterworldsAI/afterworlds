@@ -36,6 +36,7 @@ from afterworlds.models.rules_package import (
     ActionEntity,
     ConditionEntity,
     ItemEntity,
+    MechanicalEntity,
     RuleOverride,
     SpellEntity,
     StatBlockEntity,
@@ -1202,3 +1203,89 @@ class TestPackageConsistencyConstraints:
                 target_entity_id=eid_b,
             )
             session.commit()
+
+
+# ---------------------------------------------------------------------------
+# get_package_by_id — disabled sources excluded from returned detail
+# ---------------------------------------------------------------------------
+
+
+class TestGetPackageByIdDisabledSources:
+    def test_disabled_source_excluded_from_package_detail(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """get_package_by_id must not include disabled sources in the returned
+        RulesPackageDetail.sources list."""
+        pid = _insert_package(session)
+        _insert_source(session, package_id=pid, name="Active Source", is_enabled=True)
+        _insert_source(
+            session, package_id=pid, name="Disabled Source", is_enabled=False
+        )
+        session.commit()
+
+        result = svc.get_package_by_id(UUID(pid))
+
+        assert result is not None
+        assert [s.name for s in result.sources] == ["Active Source"]
+
+    def test_package_with_all_sources_disabled_returns_empty_sources(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """A package with every source disabled returns an empty sources list."""
+        pid = _insert_package(session)
+        _insert_source(session, package_id=pid, is_enabled=False)
+        session.commit()
+
+        result = svc.get_package_by_id(UUID(pid))
+
+        assert result is not None
+        assert result.sources == []
+
+
+# ---------------------------------------------------------------------------
+# MechanicalEntity — structured_data type must match entity_type
+# ---------------------------------------------------------------------------
+
+
+class TestMechanicalEntityTypeConsistency:
+    def test_mismatched_structured_data_raises(self) -> None:
+        """Constructing a MechanicalEntity with structured_data whose type does
+        not match entity_type must raise a ValidationError."""
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="does not match entity_type"):
+            MechanicalEntity(
+                rules_package_id=uuid4(),
+                source_id=uuid4(),
+                entity_type=MechanicalEntityTypeEnum.SPELL,
+                name="Fireball",
+                structured_data=ConditionEntity(effects=["burning"]),
+                source_document="PHB",
+                source_locator_type="page",
+                source_locator_value="241",
+                created_at=datetime.now(UTC),
+            )
+
+    def test_matching_structured_data_accepted(self) -> None:
+        """A MechanicalEntity with correctly typed structured_data must
+        construct without error."""
+        entity = MechanicalEntity(
+            rules_package_id=uuid4(),
+            source_id=uuid4(),
+            entity_type=MechanicalEntityTypeEnum.SPELL,
+            name="Fireball",
+            structured_data=SpellEntity(
+                casting_time="1 action",
+                range="150 feet",
+                duration="Instantaneous",
+                components=["V", "S", "M"],
+                effect_description="8d6 fire damage.",
+            ),
+            source_document="PHB",
+            source_locator_type="page",
+            source_locator_value="241",
+            created_at=datetime.now(UTC),
+        )
+        assert entity.entity_type == MechanicalEntityTypeEnum.SPELL
+        assert isinstance(entity.structured_data, SpellEntity)

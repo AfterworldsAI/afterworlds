@@ -244,7 +244,10 @@ class RulesPackageService:
         source_rows = (
             self._session.execute(
                 select(RuleSourceORM)
-                .where(RuleSourceORM.rules_package_id == str(package_id))
+                .where(
+                    RuleSourceORM.rules_package_id == str(package_id),
+                    RuleSourceORM.is_enabled == True,  # noqa: E712
+                )
                 .order_by(RuleSourceORM.precedence_rank)
             )
             .scalars()

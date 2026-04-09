@@ -199,6 +199,16 @@ class RuleChunk(BaseModel):
     created_at: datetime
 
 
+# Mapping from entity_type discriminator to the expected structured_data type.
+_ENTITY_TYPE_TO_DATA_CLASS: dict[MechanicalEntityTypeEnum, type] = {
+    MechanicalEntityTypeEnum.SPELL: SpellEntity,
+    MechanicalEntityTypeEnum.CONDITION: ConditionEntity,
+    MechanicalEntityTypeEnum.STAT_BLOCK: StatBlockEntity,
+    MechanicalEntityTypeEnum.ACTION: ActionEntity,
+    MechanicalEntityTypeEnum.ITEM: ItemEntity,
+}
+
+
 # ---------------------------------------------------------------------------
 # Structured mechanical entity
 # ---------------------------------------------------------------------------
@@ -227,6 +237,18 @@ class MechanicalEntity(BaseModel):
     source_section_label: str | None = None
     is_enabled: bool = True
     created_at: datetime
+
+    @model_validator(mode="after")
+    def structured_data_matches_entity_type(self) -> Self:
+        """Ensure structured_data is the concrete type for entity_type."""
+        expected = _ENTITY_TYPE_TO_DATA_CLASS[self.entity_type]
+        if not isinstance(self.structured_data, expected):
+            raise ValueError(
+                f"structured_data type {type(self.structured_data).__name__!r} "
+                f"does not match entity_type {self.entity_type!r} "
+                f"(expected {expected.__name__!r})"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
