@@ -337,15 +337,18 @@ class RulesPackageService:
         if source_id is not None:
             stmt = stmt.where(MechanicalEntityORM.source_id == str(source_id))
 
-        row = self._session.execute(stmt).scalar_one_or_none()
+        row = self._session.execute(stmt).scalars().first()
         return _orm_to_entity(row) if row is not None else None
 
-    def get_overrides_for_chunk(self, chunk_id: UUID) -> list[RuleOverride]:
-        """Retrieve active overrides for a chunk, ordered by precedence."""
+    def get_overrides_for_chunk(
+        self, chunk_id: UUID, package_id: UUID
+    ) -> list[RuleOverride]:
+        """Retrieve active overrides for a chunk, scoped to its package."""
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)
                 .where(
+                    RuleOverrideORM.rules_package_id == str(package_id),
                     RuleOverrideORM.target_chunk_id == str(chunk_id),
                     RuleOverrideORM.is_enabled == True,  # noqa: E712
                 )
@@ -356,12 +359,15 @@ class RulesPackageService:
         )
         return [_orm_to_override(r) for r in rows]
 
-    def get_overrides_for_entity(self, entity_id: UUID) -> list[RuleOverride]:
-        """Retrieve active overrides for an entity, ordered by precedence."""
+    def get_overrides_for_entity(
+        self, entity_id: UUID, package_id: UUID
+    ) -> list[RuleOverride]:
+        """Retrieve active overrides for an entity, scoped to its package."""
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)
                 .where(
+                    RuleOverrideORM.rules_package_id == str(package_id),
                     RuleOverrideORM.target_entity_id == str(entity_id),
                     RuleOverrideORM.is_enabled == True,  # noqa: E712
                 )
@@ -436,7 +442,9 @@ class RulesPackageService:
                 include_non_published=include_non_published,
             )
             if entity is not None:
-                overrides = self.get_overrides_for_entity(entity.entity_id)
+                overrides = self.get_overrides_for_entity(
+                    entity.entity_id, entity.rules_package_id
+                )
                 applied_entities.append(
                     AppliedEntity(
                         entity=entity,
@@ -459,7 +467,7 @@ class RulesPackageService:
         - ``replace``: replaces current content with payload content.
         - ``append``: appends payload content to current content.
         """
-        overrides = self.get_overrides_for_chunk(chunk.chunk_id)
+        overrides = self.get_overrides_for_chunk(chunk.chunk_id, chunk.rules_package_id)
         content = chunk.content
         is_disabled = False
         applied_ids: list[UUID] = []

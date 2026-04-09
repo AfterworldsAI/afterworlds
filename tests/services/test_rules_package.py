@@ -1003,5 +1003,5 @@ class TestGetPackageById:
             precedence=1,
         )
         session.commit()
-        overrides = svc.get_overrides_for_chunk(UUID(cid))
+        overrides = svc.get_overrides_for_chunk(UUID(cid), UUID(pid))
         assert [str(o.override_id) for o in overrides] == [oid2, oid1]
