@@ -38,9 +38,7 @@ def upgrade() -> None:
         sa.Column("system", sa.String(32), nullable=False),
         sa.Column("version", sa.String(64), nullable=False),
         sa.Column("is_enabled", sa.Boolean, nullable=False, default=True),
-        sa.Column(
-            "publication_status", sa.String(32), nullable=False, default="draft"
-        ),
+        sa.Column("publication_status", sa.String(32), nullable=False, default="draft"),
         sa.Column("published_at", sa.String(64), nullable=True),
         sa.Column("created_at", sa.String(64), nullable=False),
         sa.Column("updated_at", sa.String(64), nullable=False),
@@ -64,11 +62,17 @@ def upgrade() -> None:
         sa.Column("precedence_rank", sa.Integer, nullable=False),
         sa.Column("is_enabled", sa.Boolean, nullable=False, default=True),
         sa.Column("created_at", sa.String(64), nullable=False),
+        sa.UniqueConstraint(
+            "rules_package_id",
+            "source_id",
+            name="uq_rp_sources_package_source",
+        ),
     )
 
     # ------------------------------------------------------------------
     # rp_chunks — atomic rule text units (immutable after creation)
     # source_id is non-nullable by design (ADR-0008).
+    # Composite FK enforces that source_id belongs to the same package.
     # ------------------------------------------------------------------
     op.create_table(
         "rp_chunks",
@@ -79,11 +83,12 @@ def upgrade() -> None:
             sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "source_id",
-            sa.String(36),
-            sa.ForeignKey("rp_sources.source_id", ondelete="CASCADE"),
-            nullable=False,
+        sa.Column("source_id", sa.String(36), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "source_id"],
+            ["rp_sources.rules_package_id", "rp_sources.source_id"],
+            ondelete="CASCADE",
+            name="fk_rp_chunks_package_source",
         ),
         sa.Column("subsystem", sa.String(32), nullable=False),
         sa.Column("content", sa.Text, nullable=False),
@@ -98,6 +103,7 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     # rp_mechanical_entities — typed structured entity records
     # source_id is non-nullable by design (ADR-0008).
+    # Composite FK enforces that source_id belongs to the same package.
     # ------------------------------------------------------------------
     op.create_table(
         "rp_mechanical_entities",
@@ -108,11 +114,12 @@ def upgrade() -> None:
             sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "source_id",
-            sa.String(36),
-            sa.ForeignKey("rp_sources.source_id", ondelete="CASCADE"),
-            nullable=False,
+        sa.Column("source_id", sa.String(36), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "source_id"],
+            ["rp_sources.rules_package_id", "rp_sources.source_id"],
+            ondelete="CASCADE",
+            name="fk_rp_mechanical_entities_package_source",
         ),
         sa.Column("entity_type", sa.String(32), nullable=False),
         sa.Column("name", sa.Text, nullable=False),

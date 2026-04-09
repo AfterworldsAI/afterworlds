@@ -52,6 +52,11 @@ class RuleSourceORM(Base):
     """
 
     __tablename__ = "rp_sources"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "rules_package_id", "source_id", name="uq_rp_sources_package_source"
+        ),
+    )
 
     source_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     rules_package_id: Mapped[str] = mapped_column(
@@ -78,6 +83,14 @@ class RuleChunkORM(Base):
     """
 
     __tablename__ = "rp_chunks"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "source_id"],
+            ["rp_sources.rules_package_id", "rp_sources.source_id"],
+            ondelete="CASCADE",
+            name="fk_rp_chunks_package_source",
+        ),
+    )
 
     chunk_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     rules_package_id: Mapped[str] = mapped_column(
@@ -85,11 +98,7 @@ class RuleChunkORM(Base):
         sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
         nullable=False,
     )
-    source_id: Mapped[str] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_sources.source_id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    source_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     subsystem: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     content: Mapped[str] = mapped_column(sa.Text, nullable=False)
     source_document: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -112,6 +121,14 @@ class MechanicalEntityORM(Base):
     """
 
     __tablename__ = "rp_mechanical_entities"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "source_id"],
+            ["rp_sources.rules_package_id", "rp_sources.source_id"],
+            ondelete="CASCADE",
+            name="fk_rp_mechanical_entities_package_source",
+        ),
+    )
 
     entity_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     rules_package_id: Mapped[str] = mapped_column(
@@ -119,11 +136,7 @@ class MechanicalEntityORM(Base):
         sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
         nullable=False,
     )
-    source_id: Mapped[str] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_sources.source_id", ondelete="CASCADE"),
-        nullable=False,
-    )
+    source_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     entity_type: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     name: Mapped[str] = mapped_column(sa.Text, nullable=False)
     structured_data: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)

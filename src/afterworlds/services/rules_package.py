@@ -327,12 +327,20 @@ class RulesPackageService:
         if not enabled_source_ids:
             return None
 
-        stmt = select(MechanicalEntityORM).where(
-            MechanicalEntityORM.rules_package_id == str(package_id),
-            MechanicalEntityORM.entity_type == entity_type.value,
-            MechanicalEntityORM.name == name,
-            MechanicalEntityORM.is_enabled == True,  # noqa: E712
-            MechanicalEntityORM.source_id.in_(enabled_source_ids),
+        stmt = (
+            select(MechanicalEntityORM)
+            .join(
+                RuleSourceORM,
+                MechanicalEntityORM.source_id == RuleSourceORM.source_id,
+            )
+            .where(
+                MechanicalEntityORM.rules_package_id == str(package_id),
+                MechanicalEntityORM.entity_type == entity_type.value,
+                MechanicalEntityORM.name == name,
+                MechanicalEntityORM.is_enabled == True,  # noqa: E712
+                MechanicalEntityORM.source_id.in_(enabled_source_ids),
+            )
+            .order_by(RuleSourceORM.precedence_rank)
         )
         if source_id is not None:
             stmt = stmt.where(MechanicalEntityORM.source_id == str(source_id))

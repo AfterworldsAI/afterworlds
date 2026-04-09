@@ -922,6 +922,40 @@ class TestGetEntityByTypeAndName:
         assert isinstance(result.structured_data, ConditionEntity)
         assert result.structured_data.effects == ["from_b"]
 
+    def test_no_source_id_uses_lowest_precedence_rank(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session)
+        sid1 = _insert_source(
+            session, package_id=pid, name="Source A", precedence_rank=1
+        )
+        sid2 = _insert_source(
+            session, package_id=pid, name="Source B", precedence_rank=2
+        )
+        _insert_entity(
+            session,
+            package_id=pid,
+            source_id=sid1,
+            name="Blinded",
+            entity_type="condition",
+            structured_data={"effects": ["from_a"]},
+        )
+        _insert_entity(
+            session,
+            package_id=pid,
+            source_id=sid2,
+            name="Blinded",
+            entity_type="condition",
+            structured_data={"effects": ["from_b"]},
+        )
+        session.commit()
+        result = svc.get_entity_by_type_and_name(
+            UUID(pid), MechanicalEntityTypeEnum.CONDITION, "Blinded"
+        )
+        assert result is not None
+        assert isinstance(result.structured_data, ConditionEntity)
+        assert result.structured_data.effects == ["from_a"]
+
     def test_disabled_entity_not_returned(
         self, session: Session, svc: RulesPackageService
     ) -> None:
