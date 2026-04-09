@@ -35,8 +35,8 @@ from afterworlds.models.enums import (
     OverrideOriginEnum,
     PublicationStatusEnum,
     RuleSourceCategoryEnum,
-    RuleSubsystemEnum,
     RulesSystemEnum,
+    RuleSubsystemEnum,
     SourceLocatorTypeEnum,
 )
 from afterworlds.models.rules_package import (
