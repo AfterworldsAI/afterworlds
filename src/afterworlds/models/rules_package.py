@@ -12,10 +12,10 @@ Package is a standalone corpus with no cross-dependency on narrative state.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Self
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, model_validator
-from typing_extensions import Self
 
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -23,8 +23,8 @@ from afterworlds.models.enums import (
     OverrideOriginEnum,
     PublicationStatusEnum,
     RuleSourceCategoryEnum,
-    RuleSubsystemEnum,
     RulesSystemEnum,
+    RuleSubsystemEnum,
     SourceLocatorTypeEnum,
 )
 
