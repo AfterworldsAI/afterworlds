@@ -28,7 +28,6 @@ from afterworlds.models.enums import (
     SourceLocatorTypeEnum,
 )
 
-
 # ---------------------------------------------------------------------------
 # Mechanical entity data models — one distinct typed model per entity_type
 # ---------------------------------------------------------------------------
@@ -104,7 +103,7 @@ class ChunkOverridePayload(BaseModel):
 
     Entity-targeting override patch semantics (structured patch shapes for
     StatBlockEntity, SpellEntity, etc.) are deferred.  In this issue,
-    entity-targeting overrides carry a plain ``{\"content\": ...}`` payload
+    entity-targeting overrides carry a plain ``{"content": ...}`` payload
     only.  See ADR-0007.
     """
 

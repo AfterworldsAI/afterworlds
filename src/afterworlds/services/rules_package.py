@@ -65,7 +65,6 @@ from afterworlds.persistence.orm.rules_package import (
     RulesPackageORM,
 )
 
-
 # ---------------------------------------------------------------------------
 # Module-level helpers — ORM row → Pydantic model conversion
 # These are pure functions with no side effects.
@@ -159,12 +158,8 @@ def _orm_to_override(row: RuleOverrideORM) -> RuleOverride:
     return RuleOverride(
         override_id=UUID(row.override_id),
         rules_package_id=UUID(row.rules_package_id),
-        target_chunk_id=(
-            UUID(row.target_chunk_id) if row.target_chunk_id else None
-        ),
-        target_entity_id=(
-            UUID(row.target_entity_id) if row.target_entity_id else None
-        ),
+        target_chunk_id=(UUID(row.target_chunk_id) if row.target_chunk_id else None),
+        target_entity_id=(UUID(row.target_entity_id) if row.target_entity_id else None),
         override_origin=OverrideOriginEnum(row.override_origin),
         override_operation=OverrideOperationEnum(row.override_operation),
         override_payload=row.override_payload,
@@ -278,15 +273,11 @@ class RulesPackageService:
         if pkg_row is None or not self._package_accessible(
             pkg_row, include_non_published
         ):
-            return ChunksResult(
-                package_id=package_id, subsystem=subsystem, chunks=[]
-            )
+            return ChunksResult(package_id=package_id, subsystem=subsystem, chunks=[])
 
         enabled_source_ids = self._enabled_source_ids_for_package(package_id)
         if not enabled_source_ids:
-            return ChunksResult(
-                package_id=package_id, subsystem=subsystem, chunks=[]
-            )
+            return ChunksResult(package_id=package_id, subsystem=subsystem, chunks=[])
 
         chunk_rows = (
             self._session.execute(

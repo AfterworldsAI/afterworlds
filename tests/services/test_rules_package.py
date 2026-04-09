@@ -48,8 +48,10 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
-from afterworlds.services.rules_package import RulesPackageService, _deserialize_entity_data
-
+from afterworlds.services.rules_package import (
+    RulesPackageService,
+    _deserialize_entity_data,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers — direct ORM row inserts for test setup
@@ -231,9 +233,9 @@ class TestRpTablePrefix:
             "rp_overrides",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
-        assert expected == actual, (
-            f"Expected rp_* tables: {sorted(expected)}\nFound: {sorted(actual)}"
-        )
+        assert (
+            expected == actual
+        ), f"Expected rp_* tables: {sorted(expected)}\nFound: {sorted(actual)}"
 
 
 # ---------------------------------------------------------------------------
@@ -268,15 +270,15 @@ class TestRpFkSeparation:
 class TestSourceProvenance:
     def test_chunk_source_id_is_non_nullable(self) -> None:
         col = RuleChunkORM.__table__.c["source_id"]
-        assert not col.nullable, (
-            "source_id on rp_chunks must be non-nullable (ADR-0008)"
-        )
+        assert (
+            not col.nullable
+        ), "source_id on rp_chunks must be non-nullable (ADR-0008)"
 
     def test_entity_source_id_is_non_nullable(self) -> None:
         col = MechanicalEntityORM.__table__.c["source_id"]
-        assert not col.nullable, (
-            "source_id on rp_mechanical_entities must be non-nullable (ADR-0008)"
-        )
+        assert (
+            not col.nullable
+        ), "source_id on rp_mechanical_entities must be non-nullable (ADR-0008)"
 
 
 # ---------------------------------------------------------------------------
@@ -323,9 +325,7 @@ class TestRuleOverrideTargetConstraintPydantic:
 
 
 class TestRuleOverrideTargetConstraintDb:
-    def test_db_check_constraint_rejects_both_targets(
-        self, session: Session
-    ) -> None:
+    def test_db_check_constraint_rejects_both_targets(self, session: Session) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
         cid = _insert_chunk(session, package_id=pid, source_id=sid)
@@ -348,9 +348,7 @@ class TestRuleOverrideTargetConstraintDb:
             )
             session.commit()
 
-    def test_db_check_constraint_rejects_no_target(
-        self, session: Session
-    ) -> None:
+    def test_db_check_constraint_rejects_no_target(self, session: Session) -> None:
         pid = _insert_package(session)
         session.commit()
         with pytest.raises(sa.exc.IntegrityError):
@@ -456,9 +454,9 @@ class TestEntityTypeModels:
         }
         covered_types = set(type_to_data.keys())
         all_types = set(MechanicalEntityTypeEnum)
-        assert covered_types == all_types, (
-            f"Missing coverage for: {all_types - covered_types}"
-        )
+        assert (
+            covered_types == all_types
+        ), f"Missing coverage for: {all_types - covered_types}"
         for etype, data in type_to_data.items():
             result = _deserialize_entity_data(etype, data)
             assert result is not None
@@ -473,9 +471,7 @@ class TestPublicationLifecycle:
     def test_draft_package_not_surfaced_at_play_time(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        pid = _insert_package(
-            session, publication_status="draft", published_at=None
-        )
+        pid = _insert_package(session, publication_status="draft", published_at=None)
         session.commit()
         assert svc.get_package_by_id(UUID(pid)) is None
 
@@ -498,9 +494,7 @@ class TestPublicationLifecycle:
     def test_draft_accessible_with_include_non_published(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        pid = _insert_package(
-            session, publication_status="draft", published_at=None
-        )
+        pid = _insert_package(session, publication_status="draft", published_at=None)
         session.commit()
         result = svc.get_package_by_id(UUID(pid), include_non_published=True)
         assert result is not None
@@ -509,9 +503,7 @@ class TestPublicationLifecycle:
     def test_disabled_package_never_surfaced(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        pid = _insert_package(
-            session, is_enabled=False, publication_status="published"
-        )
+        pid = _insert_package(session, is_enabled=False, publication_status="published")
         session.commit()
         assert svc.get_package_by_id(UUID(pid)) is None
         assert svc.get_package_by_id(UUID(pid), include_non_published=True) is None
@@ -519,9 +511,7 @@ class TestPublicationLifecycle:
     def test_draft_chunks_not_surfaced_at_play_time(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        pid = _insert_package(
-            session, publication_status="draft", published_at=None
-        )
+        pid = _insert_package(session, publication_status="draft", published_at=None)
         sid = _insert_source(session, package_id=pid)
         _insert_chunk(session, package_id=pid, source_id=sid)
         session.commit()
@@ -575,9 +565,7 @@ class TestSourceMembership:
     ) -> None:
         pid = _insert_package(session)
         disabled_sid = _insert_source(session, package_id=pid, is_enabled=False)
-        _insert_entity(
-            session, package_id=pid, source_id=disabled_sid, name="Blinded"
-        )
+        _insert_entity(session, package_id=pid, source_id=disabled_sid, name="Blinded")
         session.commit()
         result = svc.get_entity_by_type_and_name(
             UUID(pid), MechanicalEntityTypeEnum.CONDITION, "Blinded"
@@ -606,9 +594,7 @@ class TestOverrideNonMutation:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Original."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Original.")
         _insert_override(
             session,
             package_id=pid,
@@ -626,9 +612,7 @@ class TestOverrideNonMutation:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Original."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Original.")
         _insert_override(
             session,
             package_id=pid,
@@ -646,9 +630,7 @@ class TestOverrideNonMutation:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Original."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Original.")
         _insert_override(
             session,
             package_id=pid,
@@ -657,9 +639,7 @@ class TestOverrideNonMutation:
             payload={"content": "Replaced."},
         )
         session.commit()
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].chunk.content == "Original."
         assert slice_.chunks[0].applied_content == "Replaced."
 
@@ -675,9 +655,7 @@ class TestOverridePrecedence:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Base."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Base.")
         # Insert higher precedence first to verify sorting, not insertion order
         _insert_override(
             session,
@@ -698,9 +676,7 @@ class TestOverridePrecedence:
         session.commit()
         # precedence=1 replace: "Base." → "One"
         # precedence=2 append:  "One" → "One Two"
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].applied_content == "One Two"
 
     def test_disable_override_stops_further_processing(
@@ -708,9 +684,7 @@ class TestOverridePrecedence:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Base."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Base.")
         _insert_override(
             session,
             package_id=pid,
@@ -728,9 +702,7 @@ class TestOverridePrecedence:
             precedence=2,
         )
         session.commit()
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].is_disabled is True
         assert slice_.chunks[0].applied_content == ""
         # Disable override was applied; append override was not
@@ -741,9 +713,7 @@ class TestOverridePrecedence:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Base."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Base.")
         _insert_override(
             session,
             package_id=pid,
@@ -754,9 +724,7 @@ class TestOverridePrecedence:
             is_enabled=False,
         )
         session.commit()
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].applied_content == "Base."
         assert slice_.chunks[0].override_ids_applied == []
 
@@ -765,9 +733,7 @@ class TestOverridePrecedence:
     ) -> None:
         pid = _insert_package(session)
         sid = _insert_source(session, package_id=pid)
-        cid = _insert_chunk(
-            session, package_id=pid, source_id=sid, content="Base."
-        )
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Base.")
         _insert_override(
             session,
             package_id=pid,
@@ -777,9 +743,7 @@ class TestOverridePrecedence:
             precedence=1,
         )
         session.commit()
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].applied_content == "Base. Addendum."
 
 
@@ -809,9 +773,7 @@ class TestGetActiveRuleSlice:
             content="Spell rule.",
         )
         session.commit()
-        slice_ = svc.get_active_rule_slice(
-            UUID(pid), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert len(slice_.chunks) == 1
         assert slice_.chunks[0].chunk.content == "Combat rule."
 
@@ -840,9 +802,7 @@ class TestGetActiveRuleSlice:
     def test_nonexistent_package_returns_empty_slice(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        slice_ = svc.get_active_rule_slice(
-            uuid4(), [RuleSubsystemEnum.COMBAT], []
-        )
+        slice_ = svc.get_active_rule_slice(uuid4(), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks == []
         assert slice_.entities == []
 
@@ -1010,20 +970,14 @@ class TestGetPackageById:
         self, session: Session, svc: RulesPackageService
     ) -> None:
         pid = _insert_package(session)
-        _insert_source(
-            session, package_id=pid, name="Supplement", precedence_rank=2
-        )
-        _insert_source(
-            session, package_id=pid, name="Core Rulebook", precedence_rank=1
-        )
+        _insert_source(session, package_id=pid, name="Supplement", precedence_rank=2)
+        _insert_source(session, package_id=pid, name="Core Rulebook", precedence_rank=1)
         session.commit()
         result = svc.get_package_by_id(UUID(pid))
         assert result is not None
         assert [s.name for s in result.sources] == ["Core Rulebook", "Supplement"]
 
-    def test_nonexistent_package_returns_none(
-        self, svc: RulesPackageService
-    ) -> None:
+    def test_nonexistent_package_returns_none(self, svc: RulesPackageService) -> None:
         assert svc.get_package_by_id(uuid4()) is None
 
     def test_overrides_for_chunk_ordered_by_precedence(
