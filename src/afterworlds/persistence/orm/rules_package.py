@@ -84,6 +84,9 @@ class RuleChunkORM(Base):
 
     __tablename__ = "rp_chunks"
     __table_args__ = (
+        sa.UniqueConstraint(
+            "rules_package_id", "chunk_id", name="uq_rp_chunks_package_chunk"
+        ),
         sa.ForeignKeyConstraint(
             ["rules_package_id", "source_id"],
             ["rp_sources.rules_package_id", "rp_sources.source_id"],
@@ -122,6 +125,11 @@ class MechanicalEntityORM(Base):
 
     __tablename__ = "rp_mechanical_entities"
     __table_args__ = (
+        sa.UniqueConstraint(
+            "rules_package_id",
+            "entity_id",
+            name="uq_rp_entities_package_entity",
+        ),
         sa.ForeignKeyConstraint(
             ["rules_package_id", "source_id"],
             ["rp_sources.rules_package_id", "rp_sources.source_id"],
@@ -164,6 +172,24 @@ class RuleOverrideORM(Base):
             " OR (target_chunk_id IS NOT NULL AND target_entity_id IS NULL)",
             name="ck_rp_overrides_exactly_one_target",
         ),
+        # Composite FKs enforce that target belongs to the same package as
+        # the override.  NULL target_chunk_id / target_entity_id is exempt
+        # from FK checking per SQL standard (the other column is set instead).
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "target_chunk_id"],
+            ["rp_chunks.rules_package_id", "rp_chunks.chunk_id"],
+            ondelete="CASCADE",
+            name="fk_rp_overrides_package_chunk",
+        ),
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "target_entity_id"],
+            [
+                "rp_mechanical_entities.rules_package_id",
+                "rp_mechanical_entities.entity_id",
+            ],
+            ondelete="CASCADE",
+            name="fk_rp_overrides_package_entity",
+        ),
     )
 
     override_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
@@ -172,16 +198,8 @@ class RuleOverrideORM(Base):
         sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
         nullable=False,
     )
-    target_chunk_id: Mapped[str | None] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_chunks.chunk_id", ondelete="CASCADE"),
-        nullable=True,
-    )
-    target_entity_id: Mapped[str | None] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_mechanical_entities.entity_id", ondelete="CASCADE"),
-        nullable=True,
-    )
+    target_chunk_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    target_entity_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
     override_origin: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     override_operation: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     # JSON-serialised payload string.

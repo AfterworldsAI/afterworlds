@@ -84,6 +84,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("source_id", sa.String(36), nullable=False),
+        sa.UniqueConstraint(
+            "rules_package_id", "chunk_id", name="uq_rp_chunks_package_chunk"
+        ),
         sa.ForeignKeyConstraint(
             ["rules_package_id", "source_id"],
             ["rp_sources.rules_package_id", "rp_sources.source_id"],
@@ -115,6 +118,11 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("source_id", sa.String(36), nullable=False),
+        sa.UniqueConstraint(
+            "rules_package_id",
+            "entity_id",
+            name="uq_rp_entities_package_entity",
+        ),
         sa.ForeignKeyConstraint(
             ["rules_package_id", "source_id"],
             ["rp_sources.rules_package_id", "rp_sources.source_id"],
@@ -145,18 +153,8 @@ def upgrade() -> None:
             sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column(
-            "target_chunk_id",
-            sa.String(36),
-            sa.ForeignKey("rp_chunks.chunk_id", ondelete="CASCADE"),
-            nullable=True,
-        ),
-        sa.Column(
-            "target_entity_id",
-            sa.String(36),
-            sa.ForeignKey("rp_mechanical_entities.entity_id", ondelete="CASCADE"),
-            nullable=True,
-        ),
+        sa.Column("target_chunk_id", sa.String(36), nullable=True),
+        sa.Column("target_entity_id", sa.String(36), nullable=True),
         sa.Column("override_origin", sa.String(32), nullable=False),
         sa.Column("override_operation", sa.String(32), nullable=False),
         sa.Column("override_payload", sa.Text, nullable=False),
@@ -167,6 +165,21 @@ def upgrade() -> None:
             "(target_chunk_id IS NULL AND target_entity_id IS NOT NULL)"
             " OR (target_chunk_id IS NOT NULL AND target_entity_id IS NULL)",
             name="ck_rp_overrides_exactly_one_target",
+        ),
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "target_chunk_id"],
+            ["rp_chunks.rules_package_id", "rp_chunks.chunk_id"],
+            ondelete="CASCADE",
+            name="fk_rp_overrides_package_chunk",
+        ),
+        sa.ForeignKeyConstraint(
+            ["rules_package_id", "target_entity_id"],
+            [
+                "rp_mechanical_entities.rules_package_id",
+                "rp_mechanical_entities.entity_id",
+            ],
+            ondelete="CASCADE",
+            name="fk_rp_overrides_package_entity",
         ),
     )
 

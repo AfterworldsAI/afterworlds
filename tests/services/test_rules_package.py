@@ -1039,3 +1039,166 @@ class TestGetPackageById:
         session.commit()
         overrides = svc.get_overrides_for_chunk(UUID(cid), UUID(pid))
         assert [str(o.override_id) for o in overrides] == [oid2, oid1]
+
+
+# ---------------------------------------------------------------------------
+# Deterministic ordering — chunk list, entity resolution, override ordering
+# ---------------------------------------------------------------------------
+
+
+class TestDeterministicOrdering:
+    def test_chunks_ordered_by_source_precedence_then_chunk_id(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """Chunks from lower precedence_rank sources appear first; within a
+        source, chunks are ordered by chunk_id for stable iteration."""
+        pid = _insert_package(session)
+        sid_low = _insert_source(
+            session, package_id=pid, name="Core", precedence_rank=1
+        )
+        sid_high = _insert_source(
+            session, package_id=pid, name="Supplement", precedence_rank=2
+        )
+        # Insert in reverse order to confirm ordering is not insertion-based.
+        cid_b = _insert_chunk(
+            session,
+            package_id=pid,
+            source_id=sid_low,
+            content="Core chunk B",
+            chunk_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        )
+        cid_a = _insert_chunk(
+            session,
+            package_id=pid,
+            source_id=sid_low,
+            content="Core chunk A",
+            chunk_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        )
+        cid_supp = _insert_chunk(
+            session, package_id=pid, source_id=sid_high, content="Supplement chunk"
+        )
+        session.commit()
+        result = svc.get_chunks_by_subsystem(UUID(pid), RuleSubsystemEnum.COMBAT)
+        ids = [str(c.chunk_id) for c in result.chunks]
+        # Core (rank 1) chunks before Supplement (rank 2); within Core, UUID order.
+        assert ids.index(cid_a) < ids.index(cid_b)
+        assert ids.index(cid_b) < ids.index(cid_supp)
+
+    def test_entity_resolution_tie_break_by_entity_id(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """When two sources share the same precedence_rank, entity_id is the
+        stable tie-breaker — the lexicographically smaller entity_id wins."""
+        pid = _insert_package(session)
+        sid1 = _insert_source(
+            session, package_id=pid, name="Source A", precedence_rank=1
+        )
+        sid2 = _insert_source(
+            session, package_id=pid, name="Source B", precedence_rank=1
+        )
+        eid_first = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        eid_second = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        _insert_entity(
+            session,
+            package_id=pid,
+            source_id=sid2,
+            name="Blinded",
+            entity_type="condition",
+            entity_id=eid_second,
+            structured_data={"effects": ["second"]},
+        )
+        _insert_entity(
+            session,
+            package_id=pid,
+            source_id=sid1,
+            name="Blinded",
+            entity_type="condition",
+            entity_id=eid_first,
+            structured_data={"effects": ["first"]},
+        )
+        session.commit()
+        result = svc.get_entity_by_type_and_name(
+            UUID(pid), MechanicalEntityTypeEnum.CONDITION, "Blinded"
+        )
+        assert result is not None
+        assert str(result.entity_id) == eid_first
+
+    def test_override_tie_break_by_override_id(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """When two overrides share the same precedence, override_id is the
+        stable tie-breaker — lexicographically smaller override_id is applied
+        first."""
+        pid = _insert_package(session)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid)
+        oid_first = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        oid_second = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        _insert_override(
+            session,
+            override_id=oid_second,
+            package_id=pid,
+            target_chunk_id=cid,
+            operation="append",
+            payload={"content": " second"},
+            precedence=1,
+        )
+        _insert_override(
+            session,
+            override_id=oid_first,
+            package_id=pid,
+            target_chunk_id=cid,
+            operation="append",
+            payload={"content": " first"},
+            precedence=1,
+        )
+        session.commit()
+        overrides = svc.get_overrides_for_chunk(UUID(cid), UUID(pid))
+        assert [str(o.override_id) for o in overrides] == [oid_first, oid_second]
+
+
+# ---------------------------------------------------------------------------
+# Package-consistency constraints — schema-level enforcement
+# ---------------------------------------------------------------------------
+
+
+class TestPackageConsistencyConstraints:
+    def test_cross_package_chunk_override_rejected_by_schema(
+        self, session: Session
+    ) -> None:
+        """An override row whose rules_package_id does not match the targeted
+        chunk's rules_package_id must be rejected by the composite FK."""
+        pid_a = _insert_package(session, name="Package A")
+        pid_b = _insert_package(session, name="Package B")
+        _insert_source(session, package_id=pid_a)
+        sid_b = _insert_source(session, package_id=pid_b)
+        cid_b = _insert_chunk(session, package_id=pid_b, source_id=sid_b)
+        session.commit()
+        # Insert override belonging to pkg_A but targeting a chunk from pkg_B.
+        with pytest.raises(sa.exc.IntegrityError):
+            _insert_override(
+                session,
+                package_id=pid_a,
+                target_chunk_id=cid_b,
+            )
+            session.commit()
+
+    def test_cross_package_entity_override_rejected_by_schema(
+        self, session: Session
+    ) -> None:
+        """An override row whose rules_package_id does not match the targeted
+        entity's rules_package_id must be rejected by the composite FK."""
+        pid_a = _insert_package(session, name="Package A")
+        pid_b = _insert_package(session, name="Package B")
+        _insert_source(session, package_id=pid_a)
+        sid_b = _insert_source(session, package_id=pid_b)
+        eid_b = _insert_entity(session, package_id=pid_b, source_id=sid_b)
+        session.commit()
+        with pytest.raises(sa.exc.IntegrityError):
+            _insert_override(
+                session,
+                package_id=pid_a,
+                target_chunk_id=None,
+                target_entity_id=eid_b,
+            )
+            session.commit()

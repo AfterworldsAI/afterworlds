@@ -281,12 +281,18 @@ class RulesPackageService:
 
         chunk_rows = (
             self._session.execute(
-                select(RuleChunkORM).where(
+                select(RuleChunkORM)
+                .join(
+                    RuleSourceORM,
+                    RuleChunkORM.source_id == RuleSourceORM.source_id,
+                )
+                .where(
                     RuleChunkORM.rules_package_id == str(package_id),
                     RuleChunkORM.subsystem == subsystem.value,
                     RuleChunkORM.is_enabled == True,  # noqa: E712
                     RuleChunkORM.source_id.in_(enabled_source_ids),
                 )
+                .order_by(RuleSourceORM.precedence_rank, RuleChunkORM.chunk_id)
             )
             .scalars()
             .all()
@@ -340,7 +346,7 @@ class RulesPackageService:
                 MechanicalEntityORM.is_enabled == True,  # noqa: E712
                 MechanicalEntityORM.source_id.in_(enabled_source_ids),
             )
-            .order_by(RuleSourceORM.precedence_rank)
+            .order_by(RuleSourceORM.precedence_rank, MechanicalEntityORM.entity_id)
         )
         if source_id is not None:
             stmt = stmt.where(MechanicalEntityORM.source_id == str(source_id))
@@ -360,7 +366,7 @@ class RulesPackageService:
                     RuleOverrideORM.target_chunk_id == str(chunk_id),
                     RuleOverrideORM.is_enabled == True,  # noqa: E712
                 )
-                .order_by(RuleOverrideORM.precedence)
+                .order_by(RuleOverrideORM.precedence, RuleOverrideORM.override_id)
             )
             .scalars()
             .all()
@@ -379,7 +385,7 @@ class RulesPackageService:
                     RuleOverrideORM.target_entity_id == str(entity_id),
                     RuleOverrideORM.is_enabled == True,  # noqa: E712
                 )
-                .order_by(RuleOverrideORM.precedence)
+                .order_by(RuleOverrideORM.precedence, RuleOverrideORM.override_id)
             )
             .scalars()
             .all()
@@ -426,12 +432,18 @@ class RulesPackageService:
             subsystem_values = [s.value for s in subsystem_tags]
             chunk_rows = (
                 self._session.execute(
-                    select(RuleChunkORM).where(
+                    select(RuleChunkORM)
+                    .join(
+                        RuleSourceORM,
+                        RuleChunkORM.source_id == RuleSourceORM.source_id,
+                    )
+                    .where(
                         RuleChunkORM.rules_package_id == str(package_id),
                         RuleChunkORM.subsystem.in_(subsystem_values),
                         RuleChunkORM.is_enabled == True,  # noqa: E712
                         RuleChunkORM.source_id.in_(enabled_source_ids),
                     )
+                    .order_by(RuleSourceORM.precedence_rank, RuleChunkORM.chunk_id)
                 )
                 .scalars()
                 .all()
