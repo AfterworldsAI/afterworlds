@@ -1,19 +1,24 @@
-"""CI invariant test: Story Bible tables are structurally separate from prose
-history tables.
+"""CI invariant tests: structural separation of Story Bible and Rules Package.
 
-Architecture invariant (Issue 4):
+Architecture invariant (CRD Issue 4):
   No ``sb_*`` table may carry a ForeignKey constraint that references any
   prose history table (nodes, turns, arcs, chapters).
 
   Story Bible tables reference ``stories`` (the top-level hierarchy) which
   is explicitly permitted.  Provenance references to turns are stored as
   plain strings — not FK constraints.
+
+Architecture invariant (CRD Issue 5a):
+  No ``rp_*`` table may carry a ForeignKey constraint that references any
+  non-``rp_*`` table.  Cross-subsystem references (e.g. character sheet
+  ``rules_package_id``) must use plain strings without FK constraints.
 """
 
 from __future__ import annotations
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
@@ -25,8 +30,14 @@ _PROSE_HISTORY_TABLES: frozenset[str] = frozenset(
     {"nodes", "turns", "arcs", "chapters"}
 )
 
-# All Story Bible table names carry this prefix.
+# Table prefix constants
 _SB_PREFIX = "sb_"
+_RP_PREFIX = "rp_"
+
+
+# ---------------------------------------------------------------------------
+# Story Bible structural invariants (CRD Issue 4)
+# ---------------------------------------------------------------------------
 
 
 def test_story_bible_tables_exist_with_sb_prefix() -> None:
@@ -107,3 +118,48 @@ def test_source_turn_id_is_not_a_fk_constraint() -> None:
             f"{table_name}.source_turn_id must not be a FK to turns; "
             "it is a plain provenance string."
         )
+
+
+# ---------------------------------------------------------------------------
+# Rules Package structural invariants (CRD Issue 5a)
+# ---------------------------------------------------------------------------
+
+
+def test_rules_package_tables_exist_with_rp_prefix() -> None:
+    """All five Rules Package tables must be registered with the rp_ prefix."""
+    expected = {
+        "rp_packages",
+        "rp_sources",
+        "rp_chunks",
+        "rp_mechanical_entities",
+        "rp_overrides",
+    }
+    actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
+    assert (
+        expected == actual
+    ), f"Expected rp_* tables: {sorted(expected)}\nFound: {sorted(actual)}"
+
+
+def test_no_rp_table_fk_to_non_rp_tables() -> None:
+    """No rp_* table may carry a FK that references a non-rp_* table.
+
+    rp_* tables may reference other rp_* tables (intra-subsystem cohesion).
+    All cross-subsystem references must be plain strings without FK
+    constraints, preserving structural independence of the Rules Package.
+    """
+    violations: list[str] = []
+
+    for table_name, table in Base.metadata.tables.items():
+        if not table_name.startswith(_RP_PREFIX):
+            continue
+        for fk in table.foreign_keys:
+            target_table = fk.column.table.name
+            if not target_table.startswith(_RP_PREFIX):
+                violations.append(
+                    f"  {table_name}.{fk.parent.name} → {target_table}.{fk.column.name}"
+                )
+
+    assert not violations, (
+        "rp_* tables must not carry FK constraints to non-rp_* tables.\n"
+        "Violations found:\n" + "\n".join(violations)
+    )
