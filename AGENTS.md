@@ -20,7 +20,7 @@ Agents must distinguish between:
 
 Trigger this check when:
 - the same PR receives repeated review/fix/re-review cycles,
-- the same file or function is revised across multiple review rounds,
+- the same file, function, query path, schema hotspot, or service hotspot is revised across multiple review rounds,
 - review feedback shifts from correctness defects to questions of semantics, ownership, architectural placement, or where behavior belongs,
 - a proposed fix would move behavior into an issue that does not clearly own it.
 
@@ -37,7 +37,27 @@ When triggered:
 
 Repeated review churn on one hotspot is a coordination signal, not just a coding task.
 
+## Hotspot audit rule
+
+If a PR has already gone through two or more review rounds on the same hotspot, do not keep issuing isolated patch comments indefinitely.
+
+Instead:
+1. Treat the hotspot as a defect family, not as unrelated one-off comments.
+2. Ask whether the implementation has addressed the whole defect class or only the latest symptom.
+3. Prefer one bundled hotspot audit over a long sequence of micro-fix comments.
+4. Evaluate likely sibling defects in the same area, including:
+   - nondeterministic selection or ordering,
+   - missing tie-breakers on precedence-based queries,
+   - package/scope/isolation leaks across related tables or services,
+   - missing integrity constraints for cross-table references,
+   - play-time reads that may behave inconsistently across equivalent inputs.
+5. If the remaining work is still concrete and in scope, request that the hotspot be fixed as a bundled pass.
+6. If the remaining work is no longer clearly concrete and in scope, switch to `[OWNER DECISION]:` handling instead of continuing the patch loop.
+
+The goal is to prevent infinite review churn on one hotspot while still catching real sibling defects in the same defect family.
+
 ## Comment labeling
 
 - Prefix any comment that requires a design, architectural, ethical, policy, or ownership judgment with `[OWNER DECISION]:` at the start of that comment.
 - If a review thread appears to have crossed from defect-fixing into boundary or ownership dispute, label the relevant comment with `[OWNER DECISION]:` rather than presenting it as an ordinary fix request.
+- If repeated comments on the same hotspot suggest a bundled hotspot audit is needed, say so explicitly rather than continuing to drip-feed one new patch comment per review round.

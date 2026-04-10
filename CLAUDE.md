@@ -5,21 +5,14 @@ Read it fully at the start of every session before taking any action.
 
 ## Project
 
-Afterworlds is an interactive storytelling platform built on the Sojourn Story
-State Machine. It lets users inhabit and continue narrative worlds across three
-modes: RPG, Branching, and Writing. The target users are called Sojourners.
-This is a solo-developer project operated under AfterworldsAI, LLC.
+Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. It lets users inhabit and continue narrative worlds across three modes: RPG, Branching, and Writing. The target users are called Sojourners. This is a solo-developer project operated under AfterworldsAI, LLC.
 
-The authoritative design documents are in /docs/architecture/. Read them before
-making any architectural decision. If your implementation would deviate from
-anything in those documents, flag it in your PR description — do not resolve it
-silently.
+The authoritative design documents are in `/docs/architecture/`. Read them before making any architectural decision. If your implementation would deviate from anything in those documents, flag it in your PR description — do not resolve it silently.
 
 ## Language & Tooling
 
 - **Language:** Python 3.12 only
-- **Package management:** pip + virtualenv only — do not introduce Poetry, PDM,
-  uv, or any alternative dependency manager
+- **Package management:** pip + virtualenv only — do not introduce Poetry, PDM, uv, or any alternative dependency manager
 - **Testing:** pytest (minimum 80% coverage on new code)
 - **Type checking:** mypy strict mode — zero tolerance
 - **Formatting:** Black — zero tolerance
@@ -30,43 +23,28 @@ silently.
 ## Build & Test Commands
 
 ```bash
-# Create and activate virtualenv
 python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # Mac/Linux
 
-# Install dependencies
 pip install -e ".[dev]"
-
-# Run tests
 pytest
-
-# Type check
 mypy src/
-
-# Format
 black src/ tests/
-
-# Lint
 ruff check src/ tests/
-
-# Dependency audit
 pip-audit
 ```
 
 ## Architecture Principles — Non-Negotiable
 
-These must not be violated. Any code that breaks them is an architectural
-violation and must be flagged in the PR, not silently resolved.
+These must not be violated. Any code that breaks them is an architectural violation and must be flagged in the PR, not silently resolved.
 
-1. Story Bible is structurally separate from prose history
-2. Six memory layers have distinct roles: Immediate / Rolling Summary /
-   Story Bible / Rules Package / Retrieval Memory / Contradiction Checker
-3. Intent is classified before context is assembled
-4. Pipeline is staged: Planner → Writer → Extractor → Contradiction → Safety
-5. Extractor proposes canon updates — it does not write canon directly
-6. Stable prompt prefix is assembled once per turn and shared across all
-   passes for caching efficiency
+1. Story Bible is structurally separate from prose history.
+2. Six memory layers have distinct roles: Immediate / Rolling Summary / Story Bible / Rules Package / Retrieval Memory / Contradiction Checker.
+3. Intent is classified before context is assembled.
+4. Pipeline is staged: Planner → Writer → Extractor → Contradiction → Safety.
+5. Extractor proposes canon updates — it does not write canon directly.
+6. Stable prompt prefix is assembled once per turn and shared across all passes for caching efficiency.
 
 ## Repository & PR Rules
 
@@ -74,39 +52,51 @@ violation and must be flagged in the PR, not silently resolved.
 - No direct commits to main under any circumstances
 - Open a PR for every issue; PRs are not merged without Codex review passing
 - No PR merges with failing CI
-- Every PR description must include an **Architecture Notes** section:
-  either "No drift from design principles" or an explicit description of
-  any deviation and rationale
+- Every PR description must include an **Architecture Notes** section: either `No drift from design principles` or an explicit description of any deviation and rationale
 - Scope creep is a review failure — stay within issue boundaries
 
 ## Review-Loop Boundary Check
 
-If repeated review rounds on the same PR begin focusing on the same file or
-function, or if review feedback shifts from concrete defects to questions of
-ownership, semantics, architectural placement, or which issue should own a
-behavior, treat that as a boundary problem rather than “the next patch.”
+If repeated review rounds on the same PR begin focusing on the same file, function, query path, schema hotspot, or service hotspot, or if feedback shifts from concrete defects to questions of ownership, semantics, architectural placement, or which issue should own a behavior, treat that as a boundary problem rather than “the next patch.”
 
 When this happens:
 
 - Stop iterative fix/re-review cycling.
 - Classify the remaining feedback as:
-  - merge-blocking defect,
-  - issue-scope boundary problem,
-  - Known Unknown,
-  - non-blocking improvement.
+  - merge-blocking defect
+  - issue-scope boundary problem
+  - Known Unknown
+  - non-blocking improvement
 - Do not resolve boundary or ownership questions unilaterally in code.
-- Raise the issue explicitly in the PR description or PR comments under
-  **Architecture Notes**.
-- Pause for owner decision when the implementation appears to cross issue
-  scope, touch a Known Unknown, or require a new ownership rule.
+- Raise the issue explicitly in the PR description or PR comments under **Architecture Notes**.
+- Pause for owner decision when the implementation appears to cross issue scope, touch a Known Unknown, or require a new ownership rule.
 
-Do not keep patching a hotspot indefinitely just because a reviewer produced
-another comment. Repeated churn on the same hotspot is evidence that the PR may
-have crossed its intended boundary.
+Do not keep patching a hotspot indefinitely just because a reviewer produced another comment. Repeated churn on the same hotspot is evidence that the PR may have crossed its intended boundary.
+
+## Hotspot Review Escalation Rule
+
+If Codex or any reviewer produces repeated comments on the same hotspot across two or more review rounds, do not keep fixing comments one-by-one indefinitely.
+
+Instead:
+
+1. Stop and treat the hotspot as a defect family, not as isolated comments.
+2. Perform one bundled hotspot audit covering closely related sibling defects in the same area.
+3. Fix the concrete defect class in one pass, within the current issue scope.
+4. Re-request review only after the bundled hotspot pass is complete.
+5. If further review on the same hotspot still appears after that bundled pass, do not continue iterative patching automatically.
+6. Classify the remaining feedback as:
+   - merge-blocking defect
+   - scope/boundary problem
+   - Known Unknown
+   - non-blocking improvement
+7. Surface any scope/boundary problem explicitly in the PR Architecture Notes and pause for owner decision rather than silently extending scope.
+
+Repeated comments on one hotspot are a coordination signal. They are not, by themselves, an instruction to continue infinite patch/re-review cycling.
 
 ## Commit Format
 
-Conventional commits:  
+Conventional commits:
+
 `type(scope): description`
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
@@ -115,80 +105,56 @@ Example: `feat(story-bible): implement tiered inclusion policy for events ledger
 
 ## Known Unknowns — Do Not Resolve Silently
 
-See `/docs/architecture/known_unknowns.md`. If implementation touches a listed
-unknown, stop and flag it in the PR — do not resolve it unilaterally.
+See `/docs/architecture/known_unknowns.md`. If implementation touches a listed unknown, stop and flag it in the PR — do not resolve it unilaterally.
 
 ## Business Model Constraints — Architectural Invariants
 
-There is **one canonical five-pass pipeline** (Planner → Writer → Extractor →
-Contradiction → Safety) for all paying access paths. No commercial tier may
-remove core continuity functions. A degraded free-tier pipeline is not part
-of this product.
+There is **one canonical five-pass pipeline** (Planner → Writer → Extractor → Contradiction → Safety) for all paying access paths. No commercial tier may remove core continuity functions. A degraded free-tier pipeline is not part of this product.
 
-Access paths and their constraints:
+### Access paths and their constraints
 
-- **Hosted Subscription:** metered subscription with included monthly credits +
-  transparent top-ups. When credits are exhausted, the system stops or prompts
-  for top-up — it never silently degrades output quality or drops pipeline
-  passes.
-- **BYOK Perpetual License:** permanent product rights with full pipeline
-  parity. First year of Cloud Services included. BYOK is a first-class path —
-  not a fallback or reduced-function mode.
-- **BYOK Cloud Services Renewal:** optional annual renewal for ongoing hosted
-  services (storage, sync, backup, remote access, ingestion processing). The
-  perpetual license and the Cloud Services layer must not be collapsed in code
-  or entitlement logic.
-- **Starter Access (optional):** small paid entry package using the same full
-  pipeline and normal hosted credits. Not a free tier. Not a degraded path.
+- **Hosted Subscription:** metered subscription with included monthly credits + transparent top-ups. When credits are exhausted, the system stops or prompts for top-up — it never silently degrades output quality or drops pipeline passes.
+- **BYOK Perpetual License:** permanent product rights with full pipeline parity. First year of Cloud Services included. BYOK is a first-class path — not a fallback or reduced-function mode.
+- **BYOK Cloud Services Renewal:** optional annual renewal for ongoing hosted services (storage, sync, backup, remote access, ingestion processing). The perpetual license and the Cloud Services layer must not be collapsed in code or entitlement logic.
+- **Starter Access (optional):** small paid entry package using the same full pipeline and normal hosted credits. Not a free tier. Not a degraded path.
 
-Additional invariants:
+### Additional invariants
 
-- Extended TTL caching must be enabled by default wherever the provider
-  supports it — this is an economic requirement, not a preference
-- Stable prompt prefix is assembled once per turn and shared across all passes
-  — rebuilding it per pass is an architectural violation
-- Entitlement routing governs billing path, credit balance, Cloud Services
-  status, and storage/ingestion entitlements — never whether the core
-  continuity pipeline exists
-- BYOK non-renewal must preserve read/export/download access to owned work;
-  user content must never be held hostage as leverage for renewal
-- Top-up flows must be transparent and non-manipulative — no dark patterns,
-  no concealed overage behavior
+- Extended TTL caching must be enabled by default wherever the provider supports it — this is an economic requirement, not a preference.
+- Stable prompt prefix is assembled once per turn and shared across all passes — rebuilding it per pass is an architectural violation.
+- Entitlement routing governs billing path, credit balance, Cloud Services status, and storage/ingestion entitlements — never whether the core continuity pipeline exists.
+- BYOK non-renewal must preserve read/export/download access to owned work; user content must never be held hostage as leverage for renewal.
+- Top-up flows must be transparent and non-manipulative — no dark patterns, no concealed overage behavior.
 
 ## Note-Taking (Self-Improvement Loop)
 
-After each task, log any correction, preference, or pattern learned during
-that task. This is how the project accumulates institutional memory across
-sessions.
+After each task, log any correction, preference, or pattern learned during that task. This is how the project accumulates institutional memory across sessions.
 
-**Trigger conditions — log when:**
+### Trigger conditions — log when
 
 - You were corrected on an implementation decision
 - You discovered a behavioral pattern not covered by existing rules
 - You made an assumption that turned out to be wrong
 - You found a better approach than what the spec implied
 
-**Format:** one line, dated, plain language.  
+### Format
+
+One line, dated, plain language:
+
 `[YYYY-MM-DD] <lesson learned>`
 
-**Where to log:**
+### Where to log
 
 - Project-wide lessons go in the Lessons section below
 - Subsystem-specific lessons go in the relevant file in `/context/`
-- When three or more related lessons accumulate anywhere, create a new
-  context file in `/context/`, add it to the folder tree in the docs,
-  and note it below
+- When three or more related lessons accumulate anywhere, create a new context file in `/context/`, add it to the folder tree in the docs, and note it below
 
 ## Lessons
 
-[2026-04-02] Before committing, run the full local gate sequence on the exact branch head you plan to push: `black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest -q`. A green Black check alone does not mean the branch is CI-clean.
-
-[2026-04-02] When CI reports a specific file in a formatter or lint failure, verify that the file’s diff is actually staged and included in a pushed commit. A local fix is not complete until `git diff`, `git status`, and the commit contents confirm it was committed.
-
-[2026-04-02] When fixing a reported formatter or lint issue, inspect the files changed in the commit(s) being pushed. If CI complained about a file and that file is absent from the pushed commit summary, assume the fix did not reach GitHub.
-
-[2026-04-02] Pin Black to an exact version in dev dependencies to reduce avoidable CI/local drift, but do not assume version drift is the root cause without proof from the failing file, the actual commit contents, and the current CI run.
-
-[2026-04-07] CRD issue numbers (Issue 4, Issue 8, Issue 18, …) and GitHub issue numbers (#43, #44, #45, …) are different namespaces. Always write "CRD Issue N" for construction-readiness document references and "#N" for GitHub issue/ +PR references. Never use bare "Issue N" — every AI tool reviewed so far conflates the two sequences.
+- [2026-04-02] Before committing, run the full local gate sequence on the exact branch head you plan to push: `black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest -q`. A green Black check alone does not mean the branch is CI-clean.
+- [2026-04-02] When CI reports a specific file in a formatter or lint failure, verify that the file’s diff is actually staged and included in a pushed commit. A local fix is not complete until `git diff`, `git status`, and the commit contents confirm it was committed.
+- [2026-04-02] When fixing a reported formatter or lint issue, inspect the files changed in the commit(s) being pushed. If CI complained about a file and that file is absent from the pushed commit summary, assume the fix did not reach GitHub.
+- [2026-04-02] Pin Black to an exact version in dev dependencies to reduce avoidable CI/local drift, but do not assume version drift is the root cause without proof from the failing file, the actual commit contents, and the current CI run.
+- [2026-04-07] CRD issue numbers (Issue 4, Issue 8, Issue 18, …) and GitHub issue numbers (#43, #44, #45, …) are different namespaces. Always write `CRD Issue N` for construction-readiness document references and `#N` for GitHub issue/PR references. Never use bare `Issue N` — every AI tool reviewed so far conflates the two sequences.
 
 <!-- Claude Code appends dated one-line lessons here as they are learned -->
