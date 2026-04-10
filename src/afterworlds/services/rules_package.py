@@ -358,9 +358,26 @@ class RulesPackageService:
         return _orm_to_entity(row) if row is not None else None
 
     def get_overrides_for_chunk(
-        self, chunk_id: UUID, package_id: UUID
+        self,
+        chunk_id: UUID,
+        package_id: UUID,
+        include_non_published: bool = False,
     ) -> list[RuleOverride]:
-        """Retrieve active overrides for a chunk, scoped to its package."""
+        """Retrieve active overrides for a chunk, scoped to its package.
+
+        Respects package accessibility.  Returns [] for a missing, disabled,
+        draft, or retired package under normal play-time access.
+        """
+        pkg_row = self._session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == str(package_id)
+            )
+        ).scalar_one_or_none()
+        if pkg_row is None or not self._package_accessible(
+            pkg_row, include_non_published
+        ):
+            return []
+
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)
@@ -377,9 +394,26 @@ class RulesPackageService:
         return [_orm_to_override(r) for r in rows]
 
     def get_overrides_for_entity(
-        self, entity_id: UUID, package_id: UUID
+        self,
+        entity_id: UUID,
+        package_id: UUID,
+        include_non_published: bool = False,
     ) -> list[RuleOverride]:
-        """Retrieve active overrides for an entity, scoped to its package."""
+        """Retrieve active overrides for an entity, scoped to its package.
+
+        Respects package accessibility.  Returns [] for a missing, disabled,
+        draft, or retired package under normal play-time access.
+        """
+        pkg_row = self._session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == str(package_id)
+            )
+        ).scalar_one_or_none()
+        if pkg_row is None or not self._package_accessible(
+            pkg_row, include_non_published
+        ):
+            return []
+
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)

@@ -1410,3 +1410,119 @@ class TestNullPayloadContentHandling:
 
         assert len(result.chunks) == 1
         assert result.chunks[0].applied_content == "New text."
+
+
+# ---------------------------------------------------------------------------
+# get_overrides_for_chunk / get_overrides_for_entity — package accessibility gate
+# ---------------------------------------------------------------------------
+
+
+class TestOverridePackageAccessibilityGate:
+    """get_overrides_for_chunk and get_overrides_for_entity must respect the
+    same package accessibility contract as the other play-time read methods."""
+
+    # -- chunk override paths -----------------------------------------------
+
+    def test_chunk_overrides_disabled_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, is_enabled=False)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid)
+        _insert_override(session, package_id=pid, target_chunk_id=cid)
+        session.commit()
+
+        assert svc.get_overrides_for_chunk(UUID(cid), UUID(pid)) == []
+
+    def test_chunk_overrides_draft_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="draft", published_at=None)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid)
+        _insert_override(session, package_id=pid, target_chunk_id=cid)
+        session.commit()
+
+        assert svc.get_overrides_for_chunk(UUID(cid), UUID(pid)) == []
+
+    def test_chunk_overrides_retired_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="retired")
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid)
+        _insert_override(session, package_id=pid, target_chunk_id=cid)
+        session.commit()
+
+        assert svc.get_overrides_for_chunk(UUID(cid), UUID(pid)) == []
+
+    def test_chunk_overrides_draft_package_accessible_with_flag(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="draft", published_at=None)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid)
+        _insert_override(session, package_id=pid, target_chunk_id=cid)
+        session.commit()
+
+        result = svc.get_overrides_for_chunk(
+            UUID(cid), UUID(pid), include_non_published=True
+        )
+        assert len(result) == 1
+
+    # -- entity override paths ----------------------------------------------
+
+    def test_entity_overrides_disabled_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, is_enabled=False)
+        sid = _insert_source(session, package_id=pid)
+        eid = _insert_entity(session, package_id=pid, source_id=sid)
+        _insert_override(
+            session, package_id=pid, target_chunk_id=None, target_entity_id=eid
+        )
+        session.commit()
+
+        assert svc.get_overrides_for_entity(UUID(eid), UUID(pid)) == []
+
+    def test_entity_overrides_draft_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="draft", published_at=None)
+        sid = _insert_source(session, package_id=pid)
+        eid = _insert_entity(session, package_id=pid, source_id=sid)
+        _insert_override(
+            session, package_id=pid, target_chunk_id=None, target_entity_id=eid
+        )
+        session.commit()
+
+        assert svc.get_overrides_for_entity(UUID(eid), UUID(pid)) == []
+
+    def test_entity_overrides_retired_package_returns_empty(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="retired")
+        sid = _insert_source(session, package_id=pid)
+        eid = _insert_entity(session, package_id=pid, source_id=sid)
+        _insert_override(
+            session, package_id=pid, target_chunk_id=None, target_entity_id=eid
+        )
+        session.commit()
+
+        assert svc.get_overrides_for_entity(UUID(eid), UUID(pid)) == []
+
+    def test_entity_overrides_draft_package_accessible_with_flag(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        pid = _insert_package(session, publication_status="draft", published_at=None)
+        sid = _insert_source(session, package_id=pid)
+        eid = _insert_entity(session, package_id=pid, source_id=sid)
+        _insert_override(
+            session, package_id=pid, target_chunk_id=None, target_entity_id=eid
+        )
+        session.commit()
+
+        result = svc.get_overrides_for_entity(
+            UUID(eid), UUID(pid), include_non_published=True
+        )
+        assert len(result) == 1
