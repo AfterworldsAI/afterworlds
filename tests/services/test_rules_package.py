@@ -1289,3 +1289,124 @@ class TestMechanicalEntityTypeConsistency:
         )
         assert entity.entity_type == MechanicalEntityTypeEnum.SPELL
         assert isinstance(entity.structured_data, SpellEntity)
+
+
+# ---------------------------------------------------------------------------
+# get_package_by_id — source ordering is fully stable (tie-break by source_id)
+# ---------------------------------------------------------------------------
+
+
+class TestGetPackageByIdSourceOrdering:
+    def test_equal_precedence_sources_ordered_by_source_id(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """When two sources share the same precedence_rank, source_id provides
+        a stable secondary sort so the order is deterministic across reads."""
+        pid = _insert_package(session)
+        sid_high = "ffffffff-ffff-ffff-ffff-ffffffffffff"
+        sid_low = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        # Insert high source_id first to confirm ordering is not insertion-based.
+        _insert_source(
+            session,
+            source_id=sid_high,
+            package_id=pid,
+            name="High ID",
+            precedence_rank=1,
+        )
+        _insert_source(
+            session,
+            source_id=sid_low,
+            package_id=pid,
+            name="Low ID",
+            precedence_rank=1,
+        )
+        session.commit()
+
+        result = svc.get_package_by_id(UUID(pid))
+
+        assert result is not None
+        assert [str(s.source_id) for s in result.sources] == [sid_low, sid_high]
+
+
+# ---------------------------------------------------------------------------
+# _apply_chunk_overrides — null payload content is rejected for replace/append
+# ---------------------------------------------------------------------------
+
+
+class TestNullPayloadContentHandling:
+    def test_replace_with_null_content_does_not_erase_chunk(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """A replace override whose payload has content=null must be skipped;
+        the original chunk content must be preserved."""
+        pid = _insert_package(session)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(
+            session, package_id=pid, source_id=sid, content="Original text."
+        )
+        _insert_override(
+            session,
+            package_id=pid,
+            target_chunk_id=cid,
+            operation="replace",
+            payload={"content": None},
+            precedence=1,
+        )
+        session.commit()
+
+        result = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
+
+        assert len(result.chunks) == 1
+        applied = result.chunks[0]
+        assert applied.applied_content == "Original text."
+        assert applied.override_ids_applied == []
+
+    def test_append_with_null_content_does_not_modify_chunk(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """An append override whose payload has content=null must be skipped;
+        the original chunk content must be unchanged."""
+        pid = _insert_package(session)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(
+            session, package_id=pid, source_id=sid, content="Base text."
+        )
+        _insert_override(
+            session,
+            package_id=pid,
+            target_chunk_id=cid,
+            operation="append",
+            payload={"content": None},
+            precedence=1,
+        )
+        session.commit()
+
+        result = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
+
+        assert len(result.chunks) == 1
+        applied = result.chunks[0]
+        assert applied.applied_content == "Base text."
+        assert applied.override_ids_applied == []
+
+    def test_replace_with_valid_content_still_applies(
+        self, session: Session, svc: RulesPackageService
+    ) -> None:
+        """A replace override with non-null content must still be applied
+        normally after the null-guard is in place."""
+        pid = _insert_package(session)
+        sid = _insert_source(session, package_id=pid)
+        cid = _insert_chunk(session, package_id=pid, source_id=sid, content="Old text.")
+        _insert_override(
+            session,
+            package_id=pid,
+            target_chunk_id=cid,
+            operation="replace",
+            payload={"content": "New text."},
+            precedence=1,
+        )
+        session.commit()
+
+        result = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
+
+        assert len(result.chunks) == 1
+        assert result.chunks[0].applied_content == "New text."

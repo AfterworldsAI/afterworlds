@@ -248,7 +248,7 @@ class RulesPackageService:
                     RuleSourceORM.rules_package_id == str(package_id),
                     RuleSourceORM.is_enabled == True,  # noqa: E712
                 )
-                .order_by(RuleSourceORM.precedence_rank)
+                .order_by(RuleSourceORM.precedence_rank, RuleSourceORM.source_id)
             )
             .scalars()
             .all()
@@ -496,20 +496,26 @@ class RulesPackageService:
         applied_ids: list[UUID] = []
 
         for override in overrides:
-            applied_ids.append(override.override_id)
             if override.override_operation == OverrideOperationEnum.DISABLE:
+                applied_ids.append(override.override_id)
                 is_disabled = True
                 break
             elif override.override_operation == OverrideOperationEnum.REPLACE:
                 payload = ChunkOverridePayload.model_validate_json(
                     override.override_payload
                 )
-                content = payload.content or ""
+                if payload.content is None:
+                    continue  # malformed replace payload; skip without applying
+                applied_ids.append(override.override_id)
+                content = payload.content
             elif override.override_operation == OverrideOperationEnum.APPEND:
                 payload = ChunkOverridePayload.model_validate_json(
                     override.override_payload
                 )
-                content = content + (payload.content or "")
+                if payload.content is None:
+                    continue  # malformed append payload; skip without applying
+                applied_ids.append(override.override_id)
+                content = content + payload.content
 
         return AppliedChunk(
             chunk=chunk,
