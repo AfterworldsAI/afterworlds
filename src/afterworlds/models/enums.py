@@ -123,3 +123,125 @@ class ProposalStatus(StrEnum):
     PENDING = "pending"
     RATIFIED = "ratified"
     REJECTED = "rejected"
+
+
+# ---------------------------------------------------------------------------
+# Rules Package enums
+# ---------------------------------------------------------------------------
+
+
+class RulesSystemEnum(StrEnum):
+    """Supported rule systems for a RulesPackage.
+
+    ``d20`` is the only v1 exemplar.  Additional systems slot in as additional
+    Rules Packages using the same schema without structural changes.
+    """
+
+    D20 = "d20"
+
+
+class PublicationStatusEnum(StrEnum):
+    """Publication lifecycle status for a RulesPackage.
+
+    ``draft`` — in progress, not visible to play-time queries.
+    ``published`` — released and available for play.
+    ``retired`` — no longer active; excluded from play-time queries.
+    """
+
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    RETIRED = "retired"
+
+
+class RuleSourceCategoryEnum(StrEnum):
+    """Classification of a source document within a RulesPackage.
+
+    This field classifies the *kind* of source document.  It does NOT
+    determine authority ordering.  Authority ordering within a package is
+    governed by ``RuleSource.precedence_rank``.  Do not infer winning-rule
+    behaviour from category alone.
+
+    ``adventure`` corresponds to what D&D players call a published adventure
+    module.  The term ``module`` is not used as a model or table name to
+    avoid overloading.
+    """
+
+    CORE_RULEBOOK = "core_rulebook"
+    SUPPLEMENT = "supplement"
+    ADVENTURE = "adventure"
+
+
+class RuleSubsystemEnum(StrEnum):
+    """Subsystem tag for scoping RuleChunk retrieval.
+
+    Used by the Context Builder to retrieve only the rule chunks relevant
+    to the current turn's needs (e.g. attack resolution, a spell lookup).
+    """
+
+    COMBAT = "combat"
+    SPELLS = "spells"
+    CONDITIONS = "conditions"
+    MOVEMENT = "movement"
+    ITEMS = "items"
+    CLASSES = "classes"
+    RACES = "races"
+    GENERAL = "general"
+
+
+class MechanicalEntityTypeEnum(StrEnum):
+    """Discriminated entity type for MechanicalEntity records.
+
+    Each value maps to a distinct typed Pydantic model:
+    ``spell`` → SpellEntity, ``condition`` → ConditionEntity,
+    ``stat_block`` → StatBlockEntity, ``action`` → ActionEntity,
+    ``item`` → ItemEntity.
+    """
+
+    CONDITION = "condition"
+    ACTION = "action"
+    SPELL = "spell"
+    ITEM = "item"
+    STAT_BLOCK = "stat_block"
+
+
+class OverrideOriginEnum(StrEnum):
+    """Origin classification for a RuleOverride.
+
+    ``house_rule`` — Sojourner-configured override for a play session.
+    ``package_patch`` — administrative correction to packaged content.
+    """
+
+    HOUSE_RULE = "house_rule"
+    PACKAGE_PATCH = "package_patch"
+
+
+class OverrideOperationEnum(StrEnum):
+    """Operation applied by a RuleOverride to its target record.
+
+    ``replace`` — replace target content with override content.
+    ``append`` — append override content to existing target content.
+    ``disable`` — disable the target record (excluded from active results).
+    """
+
+    REPLACE = "replace"
+    APPEND = "append"
+    DISABLE = "disable"
+
+
+class SourceLocatorTypeEnum(StrEnum):
+    """Type discriminator for the source locator on RuleChunk/MechanicalEntity.
+
+    Supports different source location schemes without forcing a rigid
+    document/section/anchor column triad on sources that may not have a
+    uniform page/section/anchor shape.
+
+    ``page`` — a page number (e.g. ``"p. 72"``).
+    ``heading_anchor`` — a heading identifier (e.g. ``"#spells-fireball"``).
+    ``section_path`` — a hierarchical section path (e.g. ``"Chapter 3 > Combat"``).
+    ``range`` — a page range (e.g. ``"pp. 72-74"``).
+    """
+
+    PAGE = "page"
+    HEADING_ANCHOR = "heading_anchor"
+    SECTION_PATH = "section_path"
+    RANGE = "range"
