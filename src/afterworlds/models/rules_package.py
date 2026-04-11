@@ -11,6 +11,7 @@ Package is a standalone corpus with no cross-dependency on narrative state.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Self
 from uuid import UUID, uuid4
@@ -333,6 +334,56 @@ class AppliedEntity(BaseModel):
 
     entity: MechanicalEntity
     override_ids_applied: list[UUID]
+
+
+class RulesPackageManifest(BaseModel):
+    """Manifest record for a RulesPackage — attribution, licensing, and gate flags.
+
+    One manifest per package.  Publication is gated on ``sql_ingest_complete``
+    and ``vector_write_complete`` both being True.
+    """
+
+    manifest_id: UUID = Field(default_factory=uuid4)
+    rules_package_id: UUID
+    authoritative_source_document: str  # e.g. "D&D SRD 5.2.1"
+    authoritative_source_version: str  # e.g. "5.2.1"
+    package_license: str  # e.g. "CC BY 4.0"
+    transform_status: str  # description of transformation from source
+    parsing_convenience_source: str | None = None  # markdown mirror identity if used
+    attribution_text: str  # CC BY 4.0 attribution/change-indication text
+    sql_ingest_complete: bool = False
+    vector_write_complete: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class IngestionConfig:
+    """Configuration for a rules package ingestion run.
+
+    Passed to ``IngestionService.ingest`` to parameterise the pipeline.
+    """
+
+    package_name: str
+    package_version: str
+    system: str = "d20"
+    source_name: str = "SRD 5.2.1"
+    source_category: str = "core_rulebook"
+    source_precedence_rank: int = 1
+    authoritative_source_document: str = "D&D SRD 5.2.1"
+    authoritative_source_version: str = "5.2.1"
+    package_license: str = "CC BY 4.0"
+    transform_status: str = "Structured JSON derived from authoritative SRD PDF"
+    parsing_convenience_source: str | None = None
+    attribution_text: str = (
+        "This work includes material from the Systems Reference Document 5.2.1 "
+        "('SRD 5.2.1') by Wizards of the Coast LLC, available at "
+        "https://www.dndbeyond.com/resources/1781-systems-reference-document-srd. "
+        "The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 "
+        "International License, available at "
+        "https://creativecommons.org/licenses/by/4.0/legalcode."
+    )
+    extra_tags: list[str] = field(default_factory=list)
 
 
 class ActiveRuleSlice(BaseModel):
