@@ -271,11 +271,19 @@ class IngestionService:
                 "SQL ingestion is incomplete."
             )
 
-        # Gate 4: vector write complete
+        # Gate 4: manifest flag records vector write complete
         if not manifest_row.vector_write_complete:
             raise PublicationError(
                 f"Package {package_id!r}: vector_write_complete is False — "
                 "vector write is incomplete."
+            )
+
+        # Gate 5: live vector index check — collection may have been reset
+        # after ingest, leaving the manifest flag stale.
+        if not vector_writer.has_chunks(package_id):
+            raise PublicationError(
+                f"Package {package_id!r}: vector index contains no chunks — "
+                "re-run ingest() to repopulate before publishing."
             )
 
         # All gates passed — publish

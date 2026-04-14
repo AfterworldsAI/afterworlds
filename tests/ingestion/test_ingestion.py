@@ -704,6 +704,41 @@ class TestManifest:
                 vector_writer=vector_writer,
             )
 
+    def test_publication_fails_if_vector_index_empty_despite_manifest_flag(
+        self,
+        session: Any,
+        ingestion_result: Any,
+        chroma_client: chromadb.ClientAPI,
+    ) -> None:
+        """publish() fails when manifest flag is True but live vector index is empty.
+
+        Regression test for P1: gate 4 previously only checked the persisted
+        manifest flag and would pass even if the Chroma collection was deleted or
+        reset between ingest and publish.
+        """
+        # Verify manifest flag is True after ingest
+        m = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == ingestion_result.package_id
+            )
+        ).scalar_one()
+        assert m.vector_write_complete is True
+
+        # Delete the Chroma collection to simulate a reset between ingest and publish
+        collection_name = f"rp_chunks_interim_{ingestion_result.package_id[:8]}"
+        chroma_client.delete_collection(collection_name)
+
+        vector_writer = VectorWriter(chroma_client)
+        service = IngestionService(
+            IngestionConfig(package_name="Test SRD", package_version="5.2.1")
+        )
+        with pytest.raises(PublicationError, match="vector index contains no chunks"):
+            service.publish(
+                session=session,
+                package_id=ingestion_result.package_id,
+                vector_writer=vector_writer,
+            )
+
     def test_publication_fails_if_manifest_missing(
         self,
         session: Any,

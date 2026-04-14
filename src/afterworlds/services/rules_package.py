@@ -487,7 +487,9 @@ class RulesPackageService:
             )
             for chunk_row in chunk_rows:
                 chunk = _orm_to_chunk(chunk_row)
-                applied_chunks.append(self._apply_chunk_overrides(chunk))
+                applied_chunks.append(
+                    self._apply_chunk_overrides(chunk, include_non_published)
+                )
 
         # Collect specific entities by (type, name) reference
         applied_entities: list[AppliedEntity] = []
@@ -500,7 +502,9 @@ class RulesPackageService:
             )
             if entity is not None:
                 overrides = self.get_overrides_for_entity(
-                    entity.entity_id, entity.rules_package_id
+                    entity.entity_id,
+                    entity.rules_package_id,
+                    include_non_published=include_non_published,
                 )
                 applied_entities.append(
                     AppliedEntity(
@@ -517,14 +521,20 @@ class RulesPackageService:
 
     # -- Internal helpers ---------------------------------------------------
 
-    def _apply_chunk_overrides(self, chunk: RuleChunk) -> AppliedChunk:
+    def _apply_chunk_overrides(
+        self, chunk: RuleChunk, include_non_published: bool = False
+    ) -> AppliedChunk:
         """Apply active overrides to *chunk* in ascending precedence order.
 
         - ``disable``: marks the chunk as disabled; stops further processing.
         - ``replace``: replaces current content with payload content.
         - ``append``: appends payload content to current content.
         """
-        overrides = self.get_overrides_for_chunk(chunk.chunk_id, chunk.rules_package_id)
+        overrides = self.get_overrides_for_chunk(
+            chunk.chunk_id,
+            chunk.rules_package_id,
+            include_non_published=include_non_published,
+        )
         content = chunk.content
         is_disabled = False
         applied_ids: list[UUID] = []
