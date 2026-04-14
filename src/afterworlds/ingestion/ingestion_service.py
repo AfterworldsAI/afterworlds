@@ -189,9 +189,13 @@ class IngestionService:
             now,
         )
 
-        # 5. Vector write
+        # 5. Vector write — new chunks only.  If the collection is empty after
+        # this write (re-ingest with a deleted/reset collection), repopulate
+        # from all persisted SQL chunks so the manifest flag reflects reality.
         vector_writer = VectorWriter(chroma_client)
         vector_writer.write_chunks(written_chunks, package_id, written_chunk_ids)
+        if not vector_writer.has_chunks(package_id):
+            self._repopulate_vector_index(session, package_id, vector_writer)
         vector_chunks_written = len(written_chunks)
 
         # 6. Upsert manifest
@@ -360,28 +364,33 @@ class IngestionService:
         source_file_name: str,
         now: str,
     ) -> tuple[int, int, list[ParsedChunk], list[str]]:
-        """Persist parsed chunks; skip existing ones by section_path.
+        """Persist parsed chunks; skip existing ones by (source_id, section_path).
+
+        The deduplication key is scoped to the source so that two different
+        sources with overlapping section paths each produce their own chunk row,
+        preserving precedence-based retrieval across layered rulebooks.
 
         Returns
         -------
         (written_count, skipped_count, written_chunks, written_chunk_ids)
         """
-        # Build set of already-persisted section paths for this package
-        existing_locators: set[str] = set(
-            session.execute(
-                select(RuleChunkORM.source_locator_value).where(
-                    RuleChunkORM.rules_package_id == package_id
-                )
-            )
-            .scalars()
-            .all()
-        )
+        # Build set of (source_id, source_locator_value) already persisted
+        existing_locators: set[tuple[str, str]] = {
+            (str(row[0]), str(row[1]))
+            for row in session.execute(
+                select(
+                    RuleChunkORM.source_id,
+                    RuleChunkORM.source_locator_value,
+                ).where(RuleChunkORM.rules_package_id == package_id)
+            ).all()
+        }
         written = 0
         skipped = 0
         written_chunks: list[ParsedChunk] = []
         written_chunk_ids: list[str] = []
         for chunk in parsed_chunks:
-            if chunk.section_path in existing_locators:
+            key = (source_id, chunk.section_path)
+            if key in existing_locators:
                 skipped += 1
                 continue
             chunk_id = _make_chunk_id()
@@ -400,7 +409,7 @@ class IngestionService:
                     created_at=now,
                 )
             )
-            existing_locators.add(chunk.section_path)
+            existing_locators.add(key)
             written += 1
             written_chunks.append(chunk)
             written_chunk_ids.append(chunk_id)
@@ -416,17 +425,22 @@ class IngestionService:
         source_file_name: str,
         now: str,
     ) -> tuple[int, int]:
-        """Persist parsed entities; skip existing ones by (entity_type, name).
+        """Persist parsed entities; skip existing by (source_id, entity_type, name).
+
+        The deduplication key is scoped to the source so that two different
+        sources with the same entity name each produce their own row, preserving
+        source-aware lookup and precedence ordering across layered rulebooks.
 
         Returns
         -------
         (written_count, skipped_count)
         """
-        # Build set of (entity_type_value, name) already persisted
-        existing_keys: set[tuple[str, str]] = {
-            (str(row[0]), str(row[1]))
+        # Build set of (source_id, entity_type_value, name) already persisted
+        existing_keys: set[tuple[str, str, str]] = {
+            (str(row[0]), str(row[1]), str(row[2]))
             for row in session.execute(
                 select(
+                    MechanicalEntityORM.source_id,
                     MechanicalEntityORM.entity_type,
                     MechanicalEntityORM.name,
                 ).where(MechanicalEntityORM.rules_package_id == package_id)
@@ -435,7 +449,7 @@ class IngestionService:
         written = 0
         skipped = 0
         for ent in parsed_entities:
-            key = (ent.entity_type.value, ent.name)
+            key = (source_id, ent.entity_type.value, ent.name)
             if key in existing_keys:
                 skipped += 1
                 continue
@@ -499,3 +513,37 @@ class IngestionService:
                 )
             )
         session.flush()
+
+    def _repopulate_vector_index(
+        self,
+        session: Session,
+        package_id: str,
+        vector_writer: VectorWriter,
+    ) -> None:
+        """Write all persisted SQL chunks for *package_id* to the vector store.
+
+        Called when the vector collection is empty after the initial write step
+        (re-ingest scenario: all chunks were skipped by SQL idempotency but the
+        Chroma collection was deleted or reset between runs).
+        """
+        rows = session.execute(
+            select(
+                RuleChunkORM.chunk_id,
+                RuleChunkORM.content,
+                RuleChunkORM.subsystem,
+                RuleChunkORM.source_locator_value,
+            ).where(RuleChunkORM.rules_package_id == package_id)
+        ).all()
+        if not rows:
+            return
+        chunk_ids = [str(r[0]) for r in rows]
+        contents = [str(r[1]) for r in rows]
+        subsystems = [str(r[2]) for r in rows]
+        source_locators = [str(r[3]) for r in rows]
+        vector_writer.write_chunks_raw(
+            package_id=package_id,
+            chunk_ids=chunk_ids,
+            contents=contents,
+            subsystems=subsystems,
+            source_locators=source_locators,
+        )

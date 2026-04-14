@@ -136,6 +136,37 @@ class VectorWriter:
             ids.append(cid)
         collection.upsert(documents=documents, metadatas=metadatas, ids=ids)
 
+    def write_chunks_raw(
+        self,
+        package_id: str,
+        chunk_ids: list[str],
+        contents: list[str],
+        subsystems: list[str],
+        source_locators: list[str],
+    ) -> None:
+        """Upsert chunk data supplied as plain lists (no ParsedChunk required).
+
+        Used by the re-ingest repopulation path, which reads data from SQL rows
+        rather than from a fresh parse.  Metadata fields mirror ``write_chunks``.
+
+        KNOWN UNKNOWN: See module docstring for schema caveats.
+        """
+        if not chunk_ids:
+            return
+        collection = self._get_or_create_collection(package_id)
+        metadatas: list[_Metadata] = [
+            {
+                "package_id": package_id,
+                "chunk_id": cid,
+                "subsystem": sub,
+                "source_document": loc,
+            }
+            for cid, sub, loc in zip(
+                chunk_ids, subsystems, source_locators, strict=True
+            )
+        ]
+        collection.upsert(documents=contents, metadatas=metadatas, ids=chunk_ids)
+
     def query(
         self,
         query_text: str,

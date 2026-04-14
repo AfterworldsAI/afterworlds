@@ -966,6 +966,93 @@ class TestIdempotency:
         assert result2.entities_written == 0
         assert result2.entities_skipped == 10
 
+    def test_second_source_with_overlapping_section_paths_creates_new_chunks(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Two sources with identical section paths each persist their own chunks.
+
+        Regression test for P1 (line 385): before the fix, chunk deduplication
+        was keyed only on source_locator_value at package scope, so a second
+        source with overlapping paths would silently drop all its chunks.
+        """
+        # First ingest using the default source ("Test Source")
+        result1 = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+        assert result1.chunks_written == 24
+
+        # Second ingest using a different source — same section paths
+        second_config = IngestionConfig(
+            package_name="Test SRD",
+            package_version="5.2.1",
+            system="d20",
+            source_name="Supplement Source",
+            source_category="supplement",
+            source_precedence_rank=2,
+        )
+        second_service = IngestionService(second_config)
+        result2 = second_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="supplement.json",
+            chroma_client=chroma_client,
+        )
+        # Second source must write its own chunk rows, not skip them
+        assert result2.chunks_written == 24
+        assert result2.chunks_skipped == 0
+        # Total in DB: 2 sources × 24 chunks each
+        total = session.execute(select(RuleChunkORM)).scalars().all()
+        assert len(total) == 48
+
+    def test_second_source_with_overlapping_entity_names_creates_new_entities(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Two sources with the same entity names each persist their own rows.
+
+        Regression test for P1 (line 440): before the fix, entity deduplication
+        was keyed only on (entity_type, name) at package scope, so a second
+        source with the same entity names would silently drop all its entities.
+        """
+        result1 = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+        assert result1.entities_written == 10
+
+        second_config = IngestionConfig(
+            package_name="Test SRD",
+            package_version="5.2.1",
+            system="d20",
+            source_name="Supplement Source",
+            source_category="supplement",
+            source_precedence_rank=2,
+        )
+        second_service = IngestionService(second_config)
+        result2 = second_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="supplement.json",
+            chroma_client=chroma_client,
+        )
+        # Second source must write its own entity rows
+        assert result2.entities_written == 10
+        assert result2.entities_skipped == 0
+        total = session.execute(select(MechanicalEntityORM)).scalars().all()
+        assert len(total) == 20
+
 
 # ---------------------------------------------------------------------------
 # Override immutability
@@ -1243,6 +1330,47 @@ class TestVectorIndex:
         """has_chunks returns False for a package with no vector data."""
         vector_writer = VectorWriter(chroma_client)
         assert not vector_writer.has_chunks("nonexistent-package-id")
+
+    def test_reingest_repopulates_vector_index_after_collection_reset(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+        ingestion_result: Any,
+    ) -> None:
+        """Re-ingest repopulates Chroma when the collection is deleted/reset.
+
+        Regression test for P1 (line 195): before the fix, re-ingest skipped
+        all SQL-existing chunks, wrote 0 vectors, and left vector_write_complete
+        stuck at False permanently.
+        """
+        # Verify the collection exists after the first ingest
+        vector_writer = VectorWriter(chroma_client)
+        assert vector_writer.has_chunks(ingestion_result.package_id)
+
+        # Delete the Chroma collection to simulate a storage reset
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        chroma_client.delete_collection(_collection_name(ingestion_result.package_id))
+        assert not vector_writer.has_chunks(ingestion_result.package_id)
+
+        # Re-ingest: all SQL chunks will be skipped, but vector should repopulate
+        ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+
+        # Vector index must be repopulated and manifest flag must be True
+        assert vector_writer.has_chunks(ingestion_result.package_id)
+        manifest = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == ingestion_result.package_id
+            )
+        ).scalar_one()
+        assert manifest.vector_write_complete is True
 
 
 # ---------------------------------------------------------------------------
