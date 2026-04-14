@@ -1457,6 +1457,34 @@ class TestVectorIndex:
         assert len(result.chunk_ids) > 0
         assert len(result.documents) > 0
 
+    def test_vector_metadata_source_document_is_file_name(
+        self,
+        ingestion_result: Any,
+        chroma_client: chromadb.ClientAPI,
+    ) -> None:
+        """source_document metadata field stores the file name, not section path.
+
+        Regression test: write_chunks() stored chunk.section_path in the
+        source_document field instead of the source file name passed to ingest().
+        Fix threads source_document_name through write_chunks() and reads
+        source_document (not source_locator_value) in _repopulate_vector_index.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        result = collection.get(include=["metadatas"])
+        metadatas = result["metadatas"]
+        assert metadatas, "collection must contain documents after ingest"
+        for meta in metadatas:
+            assert meta is not None
+            doc_name = meta.get("source_document")
+            # Must be the source file name, not a section-path string
+            assert (
+                doc_name == "test_srd.json"
+            ), f"source_document metadata should be 'test_srd.json', got {doc_name!r}"
+
     def test_vector_writer_no_chunks_has_chunks_false(
         self,
         chroma_client: chromadb.ClientAPI,
@@ -1559,7 +1587,7 @@ class TestVectorIndex:
             chunk_ids=["test-chunk-b"],
             contents=["Package B content"],
             subsystems=["combat"],
-            source_locators=["b/section"],
+            source_documents=["b.json"],
         )
 
         # Package A's collection must report only package A's chunks

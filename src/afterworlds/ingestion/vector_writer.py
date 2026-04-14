@@ -100,7 +100,11 @@ class VectorWriter:
         return result
 
     def write_chunks(
-        self, chunks: list[ParsedChunk], package_id: str, chunk_ids: list[str]
+        self,
+        chunks: list[ParsedChunk],
+        package_id: str,
+        chunk_ids: list[str],
+        source_document_name: str,
     ) -> None:
         """Upsert parsed chunks into the interim ChromaDB collection.
 
@@ -113,6 +117,9 @@ class VectorWriter:
         chunk_ids:
             Parallel list of chunk UUIDs (as strings) corresponding to each
             entry in *chunks*.  Must be the same length as *chunks*.
+        source_document_name:
+            The source file name stored in the ``source_document`` metadata
+            field (e.g. ``"srd_5e.json"``).
 
         Notes
         -----
@@ -134,7 +141,7 @@ class VectorWriter:
                 "package_id": package_id,
                 "chunk_id": cid,
                 "subsystem": chunk.subsystem.value,
-                "source_document": chunk.section_path,
+                "source_document": source_document_name,
             }
             metadatas.append(meta)
             ids.append(cid)
@@ -146,12 +153,19 @@ class VectorWriter:
         chunk_ids: list[str],
         contents: list[str],
         subsystems: list[str],
-        source_locators: list[str],
+        source_documents: list[str],
     ) -> None:
         """Upsert chunk data supplied as plain lists (no ParsedChunk required).
 
         Used by the re-ingest repopulation path, which reads data from SQL rows
         rather than from a fresh parse.  Metadata fields mirror ``write_chunks``.
+
+        Parameters
+        ----------
+        source_documents:
+            Parallel list of source file names for the ``source_document``
+            metadata field.  Must match the ``source_document`` column from
+            the corresponding SQL rows.
 
         KNOWN UNKNOWN: See module docstring for schema caveats.
         """
@@ -163,10 +177,10 @@ class VectorWriter:
                 "package_id": package_id,
                 "chunk_id": cid,
                 "subsystem": sub,
-                "source_document": loc,
+                "source_document": doc,
             }
-            for cid, sub, loc in zip(
-                chunk_ids, subsystems, source_locators, strict=True
+            for cid, sub, doc in zip(
+                chunk_ids, subsystems, source_documents, strict=True
             )
         ]
         collection.upsert(documents=contents, metadatas=metadatas, ids=chunk_ids)

@@ -196,7 +196,12 @@ class IngestionService:
         # repopulate by deleting the collection and rebuilding from all
         # persisted SQL rows so the manifest flag reflects true completeness.
         vector_writer = VectorWriter(chroma_client)
-        vector_writer.write_chunks(written_chunks, package_id, written_chunk_ids)
+        vector_writer.write_chunks(
+            written_chunks,
+            package_id,
+            written_chunk_ids,
+            source_document_name=source_file_name,
+        )
         sql_chunk_count = self._sql_chunk_count(session, package_id)
         repopulated_count = 0
         if vector_writer.count_chunks(package_id) != sql_chunk_count:
@@ -569,7 +574,7 @@ class IngestionService:
                 RuleChunkORM.chunk_id,
                 RuleChunkORM.content,
                 RuleChunkORM.subsystem,
-                RuleChunkORM.source_locator_value,
+                RuleChunkORM.source_document,
             ).where(RuleChunkORM.rules_package_id == package_id)
         ).all()
         if not rows:
@@ -577,12 +582,12 @@ class IngestionService:
         chunk_ids = [str(r[0]) for r in rows]
         contents = [str(r[1]) for r in rows]
         subsystems = [str(r[2]) for r in rows]
-        source_locators = [str(r[3]) for r in rows]
+        source_documents = [str(r[3]) for r in rows]
         vector_writer.write_chunks_raw(
             package_id=package_id,
             chunk_ids=chunk_ids,
             contents=contents,
             subsystems=subsystems,
-            source_locators=source_locators,
+            source_documents=source_documents,
         )
         return len(rows)
