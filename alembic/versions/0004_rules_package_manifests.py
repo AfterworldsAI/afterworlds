@@ -1,6 +1,6 @@
 """Rules Package Manifests table — CRD Issue 5b.
 
-Adds ``rules_package_manifests`` table to support the ingestion pipeline.
+Adds ``rp_manifests`` table to support the ingestion pipeline.
 One manifest per package (enforced by UNIQUE constraint).  Both
 ``sql_ingest_complete`` and ``vector_write_complete`` must be True before
 a package may be published.
@@ -25,7 +25,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     op.create_table(
-        "rules_package_manifests",
+        "rp_manifests",
         sa.Column("manifest_id", sa.String(36), primary_key=True),
         sa.Column(
             "rules_package_id",
@@ -55,4 +55,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_table("rules_package_manifests")
+    op.drop_table("rp_manifests")

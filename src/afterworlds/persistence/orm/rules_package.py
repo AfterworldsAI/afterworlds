@@ -167,7 +167,7 @@ class RulesPackageManifestORM(Base):
     on ``rules_package_id``.
     """
 
-    __tablename__ = "rules_package_manifests"
+    __tablename__ = "rp_manifests"
     __table_args__ = (
         sa.UniqueConstraint(
             "rules_package_id",
