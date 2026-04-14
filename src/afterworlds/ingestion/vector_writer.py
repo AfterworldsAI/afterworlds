@@ -49,10 +49,13 @@ _COLLECTION_PREFIX = "rp_chunks_interim_"
 def _collection_name(package_id: str) -> str:
     """Derive the interim collection name from a package UUID string.
 
+    Uses the full 32-hex-char UUID (hyphens stripped) to guarantee
+    collision-freedom across all packages.
+
     KNOWN UNKNOWN: naming convention — see module docstring.
     """
-    short = package_id.replace("-", "")[:8]
-    return f"{_COLLECTION_PREFIX}{short}"
+    full_hex = package_id.replace("-", "")
+    return f"{_COLLECTION_PREFIX}{full_hex}"
 
 
 # ---------------------------------------------------------------------------

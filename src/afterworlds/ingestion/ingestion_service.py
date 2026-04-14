@@ -308,6 +308,7 @@ class IngestionService:
             select(RulesPackageORM).where(
                 RulesPackageORM.name == cfg.package_name,
                 RulesPackageORM.version == cfg.package_version,
+                RulesPackageORM.system == RulesSystemEnum(cfg.system).value,
             )
         ).scalar_one_or_none()
         if existing is not None:

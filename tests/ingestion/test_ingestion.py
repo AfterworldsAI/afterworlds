@@ -725,8 +725,9 @@ class TestManifest:
         assert m.vector_write_complete is True
 
         # Delete the Chroma collection to simulate a reset between ingest and publish
-        collection_name = f"rp_chunks_interim_{ingestion_result.package_id[:8]}"
-        chroma_client.delete_collection(collection_name)
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        chroma_client.delete_collection(_collection_name(ingestion_result.package_id))
 
         vector_writer = VectorWriter(chroma_client)
         service = IngestionService(
@@ -1053,6 +1054,58 @@ class TestIdempotency:
         total = session.execute(select(MechanicalEntityORM)).scalars().all()
         assert len(total) == 20
 
+    def test_same_name_version_different_system_creates_separate_packages(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Packages with the same name+version but different system are distinct.
+
+        Regression test for P1 (line 311): before the fix, _upsert_package
+        keyed only on (name, version), so a second ruleset with the same
+        name/version but a different system would silently reuse the first
+        package row and merge both corpora under one rules_package_id.
+
+        A pre-existing package with a hypothetical future system value is
+        inserted directly (bypassing IngestionService) to simulate a second
+        system that shares the same name/version as the default d20 package.
+        """
+        from datetime import UTC, datetime
+        from uuid import uuid4
+
+        # Insert a pre-existing package row with the same name/version but a
+        # different system value (simulating a future system not yet in the enum)
+        other_pkg_id = str(uuid4())
+        now = datetime.now(UTC).isoformat()
+        session.add(
+            RulesPackageORM(
+                rules_package_id=other_pkg_id,
+                name="Test SRD",
+                system="future_system",
+                version="5.2.1",
+                is_enabled=True,
+                publication_status="draft",
+                published_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.commit()
+
+        # Ingest with the default d20 system: must create a NEW package,
+        # not reuse the pre-existing "future_system" row
+        result = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+        packages = session.execute(select(RulesPackageORM)).scalars().all()
+        assert len(packages) == 2
+        assert result.package_id != other_pkg_id
+
 
 # ---------------------------------------------------------------------------
 # Override immutability
@@ -1371,6 +1424,72 @@ class TestVectorIndex:
             )
         ).scalar_one()
         assert manifest.vector_write_complete is True
+
+    def test_distinct_packages_use_separate_collections(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Two packages with the same UUID prefix write to separate collections.
+
+        Regression test for P2 (vector_writer.py line 55): before the fix,
+        _collection_name truncated to 8 hex chars, so two packages sharing
+        the same 8-char prefix used the same Chroma collection, causing
+        cross-contaminated results and incorrect has_chunks() gating.
+        """
+        # First ingest creates package A
+        result_a = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="a.json",
+            chroma_client=chroma_client,
+        )
+
+        # Craft package B whose UUID shares the same first 8 hex chars as A
+        pid_a = result_a.package_id  # e.g. "aabbccdd-xxxx-..."
+        prefix = pid_a.replace("-", "")[:8]
+        # Build a distinct UUID that differs only after the 8th hex char
+        colliding_suffix = "0" * 24
+        pkg_b_id = (
+            f"{prefix}{colliding_suffix[:4]}-"
+            f"{colliding_suffix[4:8]}-"
+            f"{colliding_suffix[8:12]}-"
+            f"{colliding_suffix[12:16]}-"
+            f"{colliding_suffix[16:]}"
+        )
+        if pkg_b_id == pid_a:
+            # Extremely unlikely; ensure they differ
+            colliding_suffix = "f" * 24
+            pkg_b_id = (
+                f"{prefix}{colliding_suffix[:4]}-"
+                f"{colliding_suffix[4:8]}-"
+                f"{colliding_suffix[8:12]}-"
+                f"{colliding_suffix[12:16]}-"
+                f"{colliding_suffix[16:]}"
+            )
+        assert pkg_b_id != pid_a
+
+        vector_writer = VectorWriter(chroma_client)
+        # Write a single doc directly to package B's collection
+        vector_writer.write_chunks_raw(
+            package_id=pkg_b_id,
+            chunk_ids=["test-chunk-b"],
+            contents=["Package B content"],
+            subsystems=["combat"],
+            source_locators=["b/section"],
+        )
+
+        # Package A's collection must report only package A's chunks
+        collection_a = chroma_client.get_collection(
+            f"rp_chunks_interim_{pid_a.replace('-', '')}"
+        )
+        ids_a = collection_a.get()["ids"]
+        assert "test-chunk-b" not in ids_a
+
+        # Package B must be independently queryable
+        assert vector_writer.has_chunks(pkg_b_id)
 
 
 # ---------------------------------------------------------------------------
