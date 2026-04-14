@@ -1828,6 +1828,40 @@ class TestSRDParser:
             with pytest.raises(ParseError, match="section_path is missing or blank"):
                 parser.parse_chunks(bad_data)
 
+    def test_parse_entities_blank_section_path_raises(self) -> None:
+        """parse_entities raises ParseError when section_path is missing or blank.
+
+        Mirrors the same validation added to parse_chunks: a blank section_path
+        is silently coerced to "" by str(), which then collapses multiple
+        blank-path entities onto the same dedup key in _persist_entities,
+        causing silent data loss.
+        """
+        parser = SRDParser()
+        for bad_path in ("", None):
+            bad_data: dict[str, Any] = {
+                "sections": [],
+                "entities": [
+                    {
+                        "entity_type": "spell",
+                        "name": "Fireball",
+                        "subsystem": "spells",
+                        "section_path": bad_path,
+                        "page_ref": "p. 1",
+                        "data": {
+                            "casting_time": "1 action",
+                            "range": "150 feet",
+                            "components": "V, S, M",
+                            "duration": "Instantaneous",
+                            "description": "A bright streak flashes.",
+                            "level": 3,
+                            "school": "Evocation",
+                        },
+                    }
+                ],
+            }
+            with pytest.raises(ParseError, match="section_path is missing or blank"):
+                parser.parse_entities(bad_data)
+
     def test_parse_chunks_bad_subsystem_raises(self) -> None:
         parser = SRDParser()
         bad_data: dict[str, Any] = {

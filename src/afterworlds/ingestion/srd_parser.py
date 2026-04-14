@@ -226,7 +226,8 @@ class SRDParser:
         Raises
         ------
         ParseError
-            For unrecognised entity_type/subsystem or data validation failure.
+            For unrecognised entity_type/subsystem, data validation failure,
+            or missing/blank section_path.
         """
         entities_raw = srd_data.get("entities", [])
         entities: list[ParsedEntity] = []
@@ -234,8 +235,13 @@ class SRDParser:
             name = str(ent.get("name", ""))
             raw_entity_type = str(ent.get("entity_type", ""))
             raw_subsystem = str(ent.get("subsystem", ""))
-            section_path = str(ent.get("section_path", ""))
+            raw_section_path = ent.get("section_path", "")
             page_ref = str(ent.get("page_ref", ""))
+            if not raw_section_path:
+                raise ParseError(
+                    f"Entity[{i}] ({name!r}): section_path is missing or blank"
+                )
+            section_path = str(raw_section_path)
             raw_data: dict[str, Any] = ent.get("data", {})
             try:
                 entity_type = _parse_entity_type(raw_entity_type)
