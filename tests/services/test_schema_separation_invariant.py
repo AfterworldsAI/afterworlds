@@ -126,14 +126,13 @@ def test_source_turn_id_is_not_a_fk_constraint() -> None:
 
 
 def test_rules_package_tables_exist_with_rp_prefix() -> None:
-    """All six Rules Package tables must be registered with the rp_ prefix."""
+    """All five Rules Package tables must be registered with the rp_ prefix."""
     expected = {
         "rp_packages",
         "rp_sources",
         "rp_chunks",
         "rp_mechanical_entities",
         "rp_overrides",
-        "rp_manifests",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

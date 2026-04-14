@@ -225,14 +225,13 @@ def svc(session: Session) -> RulesPackageService:
 
 
 class TestRpTablePrefix:
-    def test_all_six_rp_tables_registered(self) -> None:
+    def test_all_five_rp_tables_registered(self) -> None:
         expected = {
             "rp_packages",
             "rp_sources",
             "rp_chunks",
             "rp_mechanical_entities",
             "rp_overrides",
-            "rp_manifests",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
