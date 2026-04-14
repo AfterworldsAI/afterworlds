@@ -2,8 +2,8 @@
 
 INTERIM COLLECTION SCHEMA — subject to revision in CRD Issue 18
 ================================================================
-Collection: "rp_chunks_interim_{package_id_short}"
-  where package_id_short = first 8 chars of the package UUID (no hyphens).
+Collection: "rp_chunks_interim_{package_id_hex}"
+  where package_id_hex = full 32-hex-char UUID (hyphens stripped).
 
 Metadata per document:
   - package_id      : str  — full rules_package_id UUID string
@@ -205,10 +205,17 @@ class VectorWriter:
             chunk_ids=chunk_ids, distances=distances, documents=documents
         )
 
-    def has_chunks(self, package_id: str) -> bool:
-        """Return True if the collection for *package_id* has any documents."""
+    def count_chunks(self, package_id: str) -> int:
+        """Return the number of documents in the collection for *package_id*.
+
+        Returns 0 if the collection does not exist or cannot be accessed.
+        """
         try:
             collection = self._client.get_collection(_collection_name(package_id))
-            return int(collection.count()) > 0
+            return int(collection.count())
         except Exception:
-            return False
+            return 0
+
+    def has_chunks(self, package_id: str) -> bool:
+        """Return True if the collection for *package_id* has any documents."""
+        return self.count_chunks(package_id) > 0

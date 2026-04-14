@@ -733,7 +733,7 @@ class TestManifest:
         service = IngestionService(
             IngestionConfig(package_name="Test SRD", package_version="5.2.1")
         )
-        with pytest.raises(PublicationError, match="vector index contains no chunks"):
+        with pytest.raises(PublicationError, match="vector index has 0 documents"):
             service.publish(
                 session=session,
                 package_id=ingestion_result.package_id,
@@ -771,6 +771,43 @@ class TestManifest:
             service.publish(
                 session=session,
                 package_id="aaaaaaaa-0000-0000-0000-000000000001",
+                vector_writer=vector_writer,
+            )
+
+    def test_publication_fails_on_partial_vector_loss(
+        self,
+        session: Any,
+        ingestion_result: Any,
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """publish() fails when Chroma has fewer docs than SQL chunks.
+
+        Regression test for P1 (line 203 / Gate 5): has_chunks() returns True
+        in partial-loss, so the old non-empty check would let publication
+        proceed while large parts of the index are missing.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Remove some (but not all) documents from Chroma to simulate partial loss
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        all_ids = collection.get()["ids"]
+        assert len(all_ids) > 1, "fixture must have multiple chunks"
+        collection.delete(ids=all_ids[:3])  # delete first 3; rest remain
+
+        # Collection is non-empty so has_chunks() would pass, but count < sql
+        vector_writer = VectorWriter(chroma_client)
+        assert vector_writer.has_chunks(ingestion_result.package_id)
+
+        service = IngestionService(
+            IngestionConfig(package_name="Test SRD", package_version="5.2.1")
+        )
+        with pytest.raises(PublicationError, match="vector index has"):
+            service.publish(
+                session=session,
+                package_id=ingestion_result.package_id,
                 vector_writer=vector_writer,
             )
 
@@ -1490,6 +1527,128 @@ class TestVectorIndex:
 
         # Package B must be independently queryable
         assert vector_writer.has_chunks(pkg_b_id)
+
+    def test_partial_vector_loss_triggers_repopulation_on_reingest(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+        ingestion_result: Any,
+    ) -> None:
+        """Re-ingest restores full Chroma coverage after partial-loss.
+
+        Regression test for P1 (line 203): the old repopulation trigger was
+        `has_chunks() == False` (total-loss only). After partial deletion, Chroma
+        is non-empty so repopulation was skipped, leaving the index incomplete
+        and vector_complete potentially True despite missing chunks.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Simulate partial-loss by deleting some Chroma documents
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        all_ids = collection.get()["ids"]
+        sql_total = len(all_ids)
+        collection.delete(ids=all_ids[:5])
+        assert collection.count() == sql_total - 5
+
+        # Re-ingest: SQL skips all existing chunks, but Chroma count < sql_count
+        # triggers repopulation of the full set
+        ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+
+        # Full coverage must be restored
+        vector_writer = VectorWriter(chroma_client)
+        assert vector_writer.count_chunks(ingestion_result.package_id) == sql_total
+
+        # Manifest must record completion
+        manifest = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == ingestion_result.package_id
+            )
+        ).scalar_one()
+        assert manifest.vector_write_complete is True
+
+    def test_vector_complete_false_when_count_mismatch_after_ingest(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+        ingestion_result: Any,
+    ) -> None:
+        """vector_write_complete reflects count-parity, not just non-emptiness.
+
+        Regression test for P1 (line 203): before the fix, vector_complete was
+        derived from has_chunks() so partial-loss that left even one document
+        in Chroma would record the manifest as complete.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Partial-loss: delete all but one document
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        all_ids = collection.get()["ids"]
+        collection.delete(ids=all_ids[1:])  # keep exactly one
+        assert collection.count() == 1
+
+        # Ingest a fresh session with a new source to force a new ingest run
+        # without adding any new SQL chunks (all 24 from original source exist)
+        # — the count mismatch should still be detected and repopulated.
+        result = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+
+        # After re-ingest the manifest must be True (repopulation ran)
+        session.expire_all()
+        manifest = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == result.package_id
+            )
+        ).scalar_one()
+        assert manifest.vector_write_complete is True
+        vector_writer = VectorWriter(chroma_client)
+        assert vector_writer.count_chunks(result.package_id) == len(all_ids)
+
+    def test_vector_chunks_written_nonzero_after_repopulation(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+        ingestion_result: Any,
+    ) -> None:
+        """vector_chunks_written reflects repopulated count, not just new SQL inserts.
+
+        Regression test for P2 (line 199): before the fix, vector_chunks_written
+        was always set from len(written_chunks), so idempotent re-runs that
+        triggered Chroma repopulation still reported 0 vector writes.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Delete the Chroma collection entirely (total-loss)
+        chroma_client.delete_collection(_collection_name(ingestion_result.package_id))
+
+        # Re-ingest: SQL skips all 24 chunks (written=0) but repopulates Chroma
+        result = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+
+        assert result.chunks_written == 0  # all SQL chunks already existed
+        assert result.vector_chunks_written > 0  # repopulation count reported
 
 
 # ---------------------------------------------------------------------------

@@ -11,8 +11,8 @@ Architecture invariants
 - Publication gate: fails explicitly if SQL ingest, manifest, or vector write
   is incomplete.
 - Idempotency: re-running with the same data does not duplicate records.
-  Existing chunks are detected by (rules_package_id, source_locator_value).
-  Existing entities are detected by (rules_package_id, entity_type, name).
+  Existing chunks are detected by (rules_package_id, source_id, source_locator_value).
+  Existing entities are detected by (rules_package_id, source_id, entity_type, name).
   Existing sources are detected by (rules_package_id, name).
 
 KNOWN UNKNOWN: ChromaDB collection schema is designated for CRD Issue 18
@@ -189,18 +189,24 @@ class IngestionService:
             now,
         )
 
-        # 5. Vector write — new chunks only.  If the collection is empty after
-        # this write (re-ingest with a deleted/reset collection), repopulate
-        # from all persisted SQL chunks so the manifest flag reflects reality.
+        # 5. Vector write — new chunks only, then verify full coverage.
+        # sql_chunk_count is computed after flush so it includes both existing
+        # and newly inserted rows.  If the Chroma count falls short of the SQL
+        # count (total-loss or partial-loss scenario), repopulate from all
+        # persisted SQL rows so the manifest flag reflects true completeness.
         vector_writer = VectorWriter(chroma_client)
         vector_writer.write_chunks(written_chunks, package_id, written_chunk_ids)
-        if not vector_writer.has_chunks(package_id):
-            self._repopulate_vector_index(session, package_id, vector_writer)
-        vector_chunks_written = len(written_chunks)
+        sql_chunk_count = self._sql_chunk_count(session, package_id)
+        repopulated_count = 0
+        if vector_writer.count_chunks(package_id) < sql_chunk_count:
+            repopulated_count = self._repopulate_vector_index(
+                session, package_id, vector_writer
+            )
+        vector_chunks_written = len(written_chunks) + repopulated_count
 
         # 6. Upsert manifest
         sql_complete = True
-        vector_complete = vector_writer.has_chunks(package_id)
+        vector_complete = vector_writer.count_chunks(package_id) == sql_chunk_count
         self._upsert_manifest(
             session,
             package_id,
@@ -282,11 +288,16 @@ class IngestionService:
                 "vector write is incomplete."
             )
 
-        # Gate 5: live vector index check — collection may have been reset
-        # after ingest, leaving the manifest flag stale.
-        if not vector_writer.has_chunks(package_id):
+        # Gate 5: live vector coverage check — verify that the Chroma collection
+        # contains exactly as many documents as there are SQL chunks for this
+        # package.  A stale manifest flag (collection deleted/partially reset
+        # after ingest) or a partial-loss scenario both fail here.
+        sql_chunk_count = self._sql_chunk_count(session, package_id)
+        chroma_chunk_count = vector_writer.count_chunks(package_id)
+        if chroma_chunk_count < sql_chunk_count:
             raise PublicationError(
-                f"Package {package_id!r}: vector index contains no chunks — "
+                f"Package {package_id!r}: vector index has {chroma_chunk_count} "
+                f"documents but SQL has {sql_chunk_count} chunks — "
                 "re-run ingest() to repopulate before publishing."
             )
 
@@ -515,17 +526,39 @@ class IngestionService:
             )
         session.flush()
 
+    def _sql_chunk_count(self, session: Session, package_id: str) -> int:
+        """Return the total number of RuleChunk rows for *package_id* in SQL.
+
+        Used to validate Chroma coverage: the vector collection should contain
+        exactly this many documents after a complete ingest.
+
+        KNOWN UNKNOWN: this assumes a 1-to-1 SQL-chunk-to-vector-doc mapping,
+        which is correct for Issue 5b but may change under CRD Issue 18 if the
+        chunking strategy is revised.
+        """
+        from sqlalchemy import func
+
+        result = session.execute(
+            select(func.count()).where(RuleChunkORM.rules_package_id == package_id)
+        ).scalar_one()
+        return int(result)
+
     def _repopulate_vector_index(
         self,
         session: Session,
         package_id: str,
         vector_writer: VectorWriter,
-    ) -> None:
+    ) -> int:
         """Write all persisted SQL chunks for *package_id* to the vector store.
 
-        Called when the vector collection is empty after the initial write step
-        (re-ingest scenario: all chunks were skipped by SQL idempotency but the
-        Chroma collection was deleted or reset between runs).
+        Called when the Chroma document count falls below the SQL chunk count
+        (total-loss or partial-loss recovery).  Uses upsert, so existing
+        documents are overwritten without duplication.
+
+        Returns
+        -------
+        int
+            Number of SQL rows passed to the vector store upsert.
         """
         rows = session.execute(
             select(
@@ -536,7 +569,7 @@ class IngestionService:
             ).where(RuleChunkORM.rules_package_id == package_id)
         ).all()
         if not rows:
-            return
+            return 0
         chunk_ids = [str(r[0]) for r in rows]
         contents = [str(r[1]) for r in rows]
         subsystems = [str(r[2]) for r in rows]
@@ -548,3 +581,4 @@ class IngestionService:
             subsystems=subsystems,
             source_locators=source_locators,
         )
+        return len(rows)
