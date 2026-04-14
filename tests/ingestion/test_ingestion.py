@@ -811,6 +811,50 @@ class TestManifest:
                 vector_writer=vector_writer,
             )
 
+    def test_publication_fails_on_surplus_vector_count(
+        self,
+        session: Any,
+        ingestion_result: Any,
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """publish() fails when Chroma has more docs than SQL chunks.
+
+        Regression test for P1 (Gate 5 !=): the old ``< sql_count`` check
+        would let surplus-count packages through Gate 5.  A surplus means
+        stale documents from a failed partial run are present; the collection
+        is inconsistent and must be repaired before publishing.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Add an extra phantom document so Chroma count > SQL chunk count
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        collection.upsert(
+            documents=["phantom surplus doc"],
+            metadatas=[
+                {
+                    "package_id": ingestion_result.package_id,
+                    "chunk_id": "surplus-id",
+                    "subsystem": "combat",
+                    "source_document": "phantom.json",
+                }
+            ],
+            ids=["surplus-id"],
+        )
+
+        vector_writer = VectorWriter(chroma_client)
+        service = IngestionService(
+            IngestionConfig(package_name="Test SRD", package_version="5.2.1")
+        )
+        with pytest.raises(PublicationError, match="vector index has"):
+            service.publish(
+                session=session,
+                package_id=ingestion_result.package_id,
+                vector_writer=vector_writer,
+            )
+
 
 # ---------------------------------------------------------------------------
 # Publication flow
@@ -1655,6 +1699,65 @@ class TestVectorIndex:
         assert result.chunks_written == 0  # all SQL chunks already existed
         assert result.vector_chunks_written > 0  # repopulation count reported
 
+    def test_surplus_vector_count_triggers_repopulation_on_reingest(
+        self,
+        session: Any,
+        srd_data_fixture: dict[str, Any],
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+        ingestion_result: Any,
+    ) -> None:
+        """Re-ingest detects surplus Chroma docs (count > sql_count) and rebuilds.
+
+        Scenario: a run writes vectors and then fails before SQL commit, leaving
+        extra Chroma documents with no corresponding SQL rows.  On the next run
+        count > sql_count; upsert alone cannot remove the surplus so the
+        repopulation path must delete-and-rebuild to restore exact parity.
+
+        Regression test for P1: before this fix the trigger was
+        ``count < sql_count``, so surplus was silently ignored and the package
+        was left with ``vector_write_complete=False`` permanently.
+        """
+        from afterworlds.ingestion.vector_writer import _collection_name
+
+        # Simulate surplus: manually add an extra doc that has no SQL row
+        collection = chroma_client.get_collection(
+            _collection_name(ingestion_result.package_id)
+        )
+        original_count = collection.count()
+        collection.upsert(
+            documents=["phantom doc with no SQL row"],
+            metadatas=[
+                {
+                    "package_id": ingestion_result.package_id,
+                    "chunk_id": "phantom-id",
+                    "subsystem": "combat",
+                    "source_document": "phantom.json",
+                }
+            ],
+            ids=["phantom-id"],
+        )
+        assert collection.count() == original_count + 1
+
+        # Re-ingest: count > sql_count should trigger delete-and-rebuild
+        result = ingestion_service.ingest(
+            session=session,
+            srd_data=srd_data_fixture,
+            source_file_name="test_srd.json",
+            chroma_client=chroma_client,
+        )
+
+        # After re-ingest collection must match SQL exactly (no phantom)
+        session.expire_all()
+        manifest = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == result.package_id
+            )
+        ).scalar_one()
+        assert manifest.vector_write_complete is True
+        vector_writer = VectorWriter(chroma_client)
+        assert vector_writer.count_chunks(result.package_id) == original_count
+
 
 # ---------------------------------------------------------------------------
 # SRD Parser unit tests
@@ -1671,6 +1774,31 @@ class TestSRDParser:
         parser = SRDParser()
         entities = parser.parse_entities(srd_data_fixture)
         assert len(entities) == 10
+
+    def test_parse_chunks_blank_section_path_raises(self) -> None:
+        """parse_chunks raises ParseError when section_path is missing or blank.
+
+        Regression test for P2 (srd_parser.py:191): before this fix a blank
+        section_path was silently coerced to "" which then collapsed multiple
+        blank-path sections onto the same dedup key in _persist_chunks,
+        causing silent data loss during ingestion.
+        """
+        parser = SRDParser()
+        for bad_path in ("", None):
+            bad_data: dict[str, Any] = {
+                "sections": [
+                    {
+                        "heading": "Attack Rolls",
+                        "content": "Roll d20.",
+                        "subsystem": "combat",
+                        "section_path": bad_path,
+                        "page_ref": "p. 1",
+                    }
+                ],
+                "entities": [],
+            }
+            with pytest.raises(ParseError, match="section_path is missing or blank"):
+                parser.parse_chunks(bad_data)
 
     def test_parse_chunks_bad_subsystem_raises(self) -> None:
         parser = SRDParser()

@@ -180,7 +180,7 @@ class SRDParser:
         Raises
         ------
         ParseError
-            For unrecognised subsystem values.
+            For unrecognised subsystem values or missing/blank section_path.
         """
         sections = srd_data.get("sections", [])
         chunks: list[ParsedChunk] = []
@@ -188,8 +188,13 @@ class SRDParser:
             heading = str(section.get("heading", ""))
             content = str(section.get("content", ""))
             raw_subsystem = str(section.get("subsystem", ""))
-            section_path = str(section.get("section_path", ""))
+            raw_section_path = section.get("section_path", "")
             page_ref = str(section.get("page_ref", ""))
+            if not raw_section_path:
+                raise ParseError(
+                    f"Section[{i}] ({heading!r}): section_path is missing or blank"
+                )
+            section_path = str(raw_section_path)
             try:
                 subsystem = _parse_subsystem(raw_subsystem)
             except ParseError as exc:

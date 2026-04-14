@@ -24,6 +24,7 @@ until CRD Issue 18 is complete.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -219,3 +220,15 @@ class VectorWriter:
     def has_chunks(self, package_id: str) -> bool:
         """Return True if the collection for *package_id* has any documents."""
         return self.count_chunks(package_id) > 0
+
+    def delete_collection(self, package_id: str) -> None:
+        """Delete the Chroma collection for *package_id* if it exists.
+
+        Used by the repopulation path before rebuilding from SQL ground truth
+        to ensure surplus documents are removed.  No-op if the collection does
+        not exist.
+
+        KNOWN UNKNOWN: See module docstring for schema caveats.
+        """
+        with contextlib.suppress(Exception):
+            self._client.delete_collection(_collection_name(package_id))

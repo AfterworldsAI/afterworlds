@@ -191,14 +191,15 @@ class IngestionService:
 
         # 5. Vector write — new chunks only, then verify full coverage.
         # sql_chunk_count is computed after flush so it includes both existing
-        # and newly inserted rows.  If the Chroma count falls short of the SQL
-        # count (total-loss or partial-loss scenario), repopulate from all
+        # and newly inserted rows.  If the Chroma count does not exactly match
+        # the SQL count (total-loss, partial-loss, or surplus scenario),
+        # repopulate by deleting the collection and rebuilding from all
         # persisted SQL rows so the manifest flag reflects true completeness.
         vector_writer = VectorWriter(chroma_client)
         vector_writer.write_chunks(written_chunks, package_id, written_chunk_ids)
         sql_chunk_count = self._sql_chunk_count(session, package_id)
         repopulated_count = 0
-        if vector_writer.count_chunks(package_id) < sql_chunk_count:
+        if vector_writer.count_chunks(package_id) != sql_chunk_count:
             repopulated_count = self._repopulate_vector_index(
                 session, package_id, vector_writer
             )
@@ -290,15 +291,16 @@ class IngestionService:
 
         # Gate 5: live vector coverage check — verify that the Chroma collection
         # contains exactly as many documents as there are SQL chunks for this
-        # package.  A stale manifest flag (collection deleted/partially reset
-        # after ingest) or a partial-loss scenario both fail here.
+        # package.  Any mismatch (deficit or surplus) fails here: a deficit
+        # means vectors are missing; a surplus means stale docs from a failed
+        # partial run remain.  Both leave the package in an inconsistent state.
         sql_chunk_count = self._sql_chunk_count(session, package_id)
         chroma_chunk_count = vector_writer.count_chunks(package_id)
-        if chroma_chunk_count < sql_chunk_count:
+        if chroma_chunk_count != sql_chunk_count:
             raise PublicationError(
                 f"Package {package_id!r}: vector index has {chroma_chunk_count} "
                 f"documents but SQL has {sql_chunk_count} chunks — "
-                "re-run ingest() to repopulate before publishing."
+                "re-run ingest() to repair before publishing."
             )
 
         # All gates passed — publish
@@ -549,17 +551,19 @@ class IngestionService:
         package_id: str,
         vector_writer: VectorWriter,
     ) -> int:
-        """Write all persisted SQL chunks for *package_id* to the vector store.
+        """Rebuild the vector collection for *package_id* from SQL ground truth.
 
-        Called when the Chroma document count falls below the SQL chunk count
-        (total-loss or partial-loss recovery).  Uses upsert, so existing
-        documents are overwritten without duplication.
+        Called when the Chroma document count does not exactly match the SQL
+        chunk count (deficit, surplus, or total-loss).  Deletes the collection
+        first so surplus documents are removed, then writes all SQL chunks via
+        upsert to guarantee an exact match.
 
         Returns
         -------
         int
-            Number of SQL rows passed to the vector store upsert.
+            Number of SQL rows written to the vector store.
         """
+        vector_writer.delete_collection(package_id)
         rows = session.execute(
             select(
                 RuleChunkORM.chunk_id,
