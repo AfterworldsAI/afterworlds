@@ -1575,7 +1575,7 @@ class TestVectorIndex:
         ).scalar_one()
         assert manifest.vector_write_complete is True
 
-    def test_vector_complete_false_when_count_mismatch_after_ingest(
+    def test_reingest_repopulates_when_single_document_survives_partial_loss(
         self,
         session: Any,
         srd_data_fixture: dict[str, Any],
@@ -1583,11 +1583,16 @@ class TestVectorIndex:
         ingestion_service: IngestionService,
         ingestion_result: Any,
     ) -> None:
-        """vector_write_complete reflects count-parity, not just non-emptiness.
+        """Re-ingest detects partial-loss via count-parity and restores full coverage.
+
+        Scenario: all but one Chroma document are deleted (partial-loss that leaves
+        the collection non-empty).  A subsequent ingest() must detect the shortfall
+        via count_chunks() < sql_count, repopulate from SQL, and record
+        vector_write_complete=True with the full chunk count in Chroma.
 
         Regression test for P1 (line 203): before the fix, vector_complete was
-        derived from has_chunks() so partial-loss that left even one document
-        in Chroma would record the manifest as complete.
+        derived from has_chunks(), so this single-survivor state would pass the
+        completeness check and the missing chunks would never be recovered.
         """
         from afterworlds.ingestion.vector_writer import _collection_name
 
