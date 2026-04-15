@@ -138,10 +138,13 @@ class IngestionService:
     ) -> IngestionResult:
         """Run the full ingestion pipeline.
 
+        0. Parse all SRD data (chunks + entities) before any DB work so that a
+           ParseError aborts cleanly with no partial state written to the session.
         1. Upsert RulesPackage row (or locate existing).
         2. Upsert RuleSource row.
-        3. Parse sections → RuleChunk rows (idempotent — skip existing).
-        4. Parse entities → MechanicalEntity rows (idempotent — skip existing).
+        3. Persist parsed chunks → RuleChunk rows (idempotent — skip existing).
+        4. Persist parsed entities → MechanicalEntity rows (idempotent — skip
+           existing).
         5. Write chunks to ChromaDB vector store.
         6. Upsert manifest row with gate flags.
         7. Commit.
@@ -162,6 +165,12 @@ class IngestionService:
         IngestionResult
             Counts and package/source IDs.
         """
+        # 0. Parse everything first — no DB writes yet.
+        # If either raises ParseError, the session is untouched and the caller
+        # sees a clean failure with no partial package/source/chunk state.
+        parsed_chunks = self._parser.parse_chunks(srd_data)
+        parsed_entities = self._parser.parse_entities(srd_data)
+
         now = _now_iso()
 
         # 1. Upsert package row
@@ -170,16 +179,14 @@ class IngestionService:
         # 2. Upsert source row
         source_id = self._upsert_source(session, package_id, now)
 
-        # 3. Parse + persist chunks
-        parsed_chunks = self._parser.parse_chunks(srd_data)
+        # 3. Persist chunks
         chunks_written, chunks_skipped, written_chunks, written_chunk_ids = (
             self._persist_chunks(
                 session, parsed_chunks, package_id, source_id, source_file_name, now
             )
         )
 
-        # 4. Parse + persist entities
-        parsed_entities = self._parser.parse_entities(srd_data)
+        # 4. Persist entities
         entities_written, entities_skipped = self._persist_entities(
             session,
             parsed_entities,

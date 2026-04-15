@@ -528,6 +528,75 @@ class TestIngestionCorrectness:
 
 
 # ---------------------------------------------------------------------------
+# Atomicity
+# ---------------------------------------------------------------------------
+
+
+class TestIngestionAtomicity:
+    def test_parse_error_in_entities_leaves_no_partial_state(
+        self,
+        session: Any,
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """ParseError during entity parsing leaves zero rows in the session.
+
+        Regression test for P1: previously parse_chunks() was called and its
+        results flushed to the DB before parse_entities() ran.  A ParseError
+        from bad entity data would then leave partial package/source/chunk rows
+        committed to the transaction, violating the all-or-nothing ingest
+        contract.
+
+        Fix: both parse steps now run before any DB work, so a ParseError
+        aborts with no partial state written.
+        """
+        bad_srd: dict[str, Any] = {
+            "sections": [
+                {
+                    "heading": "Attack Rolls",
+                    "content": "Roll d20.",
+                    "subsystem": "combat",
+                    "section_path": "combat/attack-rolls",
+                    "page_ref": "p. 1",
+                }
+            ],
+            "entities": [
+                {
+                    "entity_type": "spell",
+                    "name": "Fireball",
+                    "subsystem": "spells",
+                    "section_path": "spells/fireball",
+                    "page_ref": "p. 1",
+                    "data": {},  # Missing required fields — triggers ParseError
+                }
+            ],
+        }
+        from afterworlds.ingestion.srd_parser import ParseError
+        from afterworlds.persistence.orm.rules_package import (
+            MechanicalEntityORM,
+            RuleChunkORM,
+            RuleSourceORM,
+            RulesPackageManifestORM,
+            RulesPackageORM,
+        )
+
+        with pytest.raises(ParseError):
+            ingestion_service.ingest(
+                session=session,
+                srd_data=bad_srd,
+                source_file_name="bad.json",
+                chroma_client=chroma_client,
+            )
+
+        # No rows should have been written
+        assert session.execute(select(RulesPackageORM)).scalars().all() == []
+        assert session.execute(select(RuleSourceORM)).scalars().all() == []
+        assert session.execute(select(RuleChunkORM)).scalars().all() == []
+        assert session.execute(select(MechanicalEntityORM)).scalars().all() == []
+        assert session.execute(select(RulesPackageManifestORM)).scalars().all() == []
+
+
+# ---------------------------------------------------------------------------
 # Per-record provenance
 # ---------------------------------------------------------------------------
 
