@@ -190,11 +190,11 @@ class SRDParser:
             raw_subsystem = str(section.get("subsystem", ""))
             raw_section_path = section.get("section_path", "")
             page_ref = str(section.get("page_ref", ""))
-            if not raw_section_path:
+            section_path = str(raw_section_path).strip() if raw_section_path else ""
+            if not section_path:
                 raise ParseError(
                     f"Section[{i}] ({heading!r}): section_path is missing or blank"
                 )
-            section_path = str(raw_section_path)
             try:
                 subsystem = _parse_subsystem(raw_subsystem)
             except ParseError as exc:
@@ -237,11 +237,11 @@ class SRDParser:
             raw_subsystem = str(ent.get("subsystem", ""))
             raw_section_path = ent.get("section_path", "")
             page_ref = str(ent.get("page_ref", ""))
-            if not raw_section_path:
+            section_path = str(raw_section_path).strip() if raw_section_path else ""
+            if not section_path:
                 raise ParseError(
                     f"Entity[{i}] ({name!r}): section_path is missing or blank"
                 )
-            section_path = str(raw_section_path)
             raw_data: dict[str, Any] = ent.get("data", {})
             try:
                 entity_type = _parse_entity_type(raw_entity_type)

@@ -855,6 +855,46 @@ class TestManifest:
                 vector_writer=vector_writer,
             )
 
+    def test_empty_payload_sets_sql_ingest_incomplete_and_blocks_publish(
+        self,
+        session: Any,
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Empty payload sets sql_ingest_complete=False; publish() rejects.
+
+        Regression test for P1: ingest() previously set sql_ingest_complete=True
+        unconditionally, so an empty SRD payload (no sections, no entities) could
+        produce a manifest with both gate flags true and allow publish() to succeed
+        on a package containing no usable rules content.
+        """
+        empty_data: dict[str, Any] = {"sections": [], "entities": []}
+        result = ingestion_service.ingest(
+            session=session,
+            srd_data=empty_data,
+            source_file_name="empty.json",
+            chroma_client=chroma_client,
+        )
+        assert result.chunks_written == 0
+        assert result.entities_written == 0
+
+        # Manifest must record sql_ingest_complete=False
+        m = session.execute(
+            select(RulesPackageManifestORM).where(
+                RulesPackageManifestORM.rules_package_id == result.package_id
+            )
+        ).scalar_one()
+        assert m.sql_ingest_complete is False
+
+        # publish() must reject the package at Gate 3
+        vector_writer = VectorWriter(chroma_client)
+        with pytest.raises(PublicationError, match="sql_ingest_complete"):
+            ingestion_service.publish(
+                session=session,
+                package_id=result.package_id,
+                vector_writer=vector_writer,
+            )
+
 
 # ---------------------------------------------------------------------------
 # Publication flow
@@ -1804,15 +1844,14 @@ class TestSRDParser:
         assert len(entities) == 10
 
     def test_parse_chunks_blank_section_path_raises(self) -> None:
-        """parse_chunks raises ParseError when section_path is missing or blank.
+        """parse_chunks raises ParseError for missing/blank/whitespace section_path.
 
-        Regression test for P2 (srd_parser.py:191): before this fix a blank
-        section_path was silently coerced to "" which then collapsed multiple
-        blank-path sections onto the same dedup key in _persist_chunks,
-        causing silent data loss during ingestion.
+        Regression test: blank and whitespace-only section_path values collapse
+        multiple sections onto the same dedup key in _persist_chunks, causing
+        silent data loss during ingestion.
         """
         parser = SRDParser()
-        for bad_path in ("", None):
+        for bad_path in ("", None, "   "):
             bad_data: dict[str, Any] = {
                 "sections": [
                     {
@@ -1829,15 +1868,14 @@ class TestSRDParser:
                 parser.parse_chunks(bad_data)
 
     def test_parse_entities_blank_section_path_raises(self) -> None:
-        """parse_entities raises ParseError when section_path is missing or blank.
+        """parse_entities raises ParseError for missing/blank/whitespace section_path.
 
-        Mirrors the same validation added to parse_chunks: a blank section_path
-        is silently coerced to "" by str(), which then collapses multiple
-        blank-path entities onto the same dedup key in _persist_entities,
-        causing silent data loss.
+        Mirrors the same validation as parse_chunks: blank and whitespace-only
+        section_path values collapse multiple entities onto the same dedup key
+        in _persist_entities, causing silent data loss.
         """
         parser = SRDParser()
-        for bad_path in ("", None):
+        for bad_path in ("", None, "   "):
             bad_data: dict[str, Any] = {
                 "sections": [],
                 "entities": [

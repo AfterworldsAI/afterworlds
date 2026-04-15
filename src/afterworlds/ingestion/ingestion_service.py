@@ -211,7 +211,11 @@ class IngestionService:
         vector_chunks_written = len(written_chunks) + repopulated_count
 
         # 6. Upsert manifest
-        sql_complete = True
+        # sql_ingest_complete requires at least one chunk in the SQL store.
+        # An empty payload (zero sections) must not be marked complete —
+        # publishing a package with no rules content would break downstream
+        # retrieval and adjudication paths.
+        sql_complete = sql_chunk_count > 0
         vector_complete = vector_writer.count_chunks(package_id) == sql_chunk_count
         self._upsert_manifest(
             session,
