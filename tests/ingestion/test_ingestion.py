@@ -658,7 +658,7 @@ class TestProvenance:
 
 class TestManifest:
     def test_manifest_persisted(self, session: Any, ingestion_result: Any) -> None:
-        """Manifest row persisted as distinct row in rules_package_manifests."""
+        """Manifest row persisted as distinct row in rp_manifests."""
         manifests = session.execute(select(RulesPackageManifestORM)).scalars().all()
         assert len(manifests) == 1
         m = manifests[0]
