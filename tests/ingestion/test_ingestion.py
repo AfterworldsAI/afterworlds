@@ -2072,3 +2072,145 @@ class TestSRDParser:
         entities = parser.parse_entities(srd_data_fixture)
         for ent in entities:
             assert ent.entity_type in MechanicalEntityTypeEnum
+
+
+# ---------------------------------------------------------------------------
+# Upsert conflict recovery (Issue #60)
+# ---------------------------------------------------------------------------
+
+
+class TestUpsertConflictRecovery:
+    """Savepoint-based IntegrityError recovery in _upsert_package / _upsert_source.
+
+    These tests exercise the concurrent-insert recovery path: when the initial
+    read-before-insert finds no existing row but the subsequent insert hits a
+    unique-constraint IntegrityError (a concurrent writer won the race), the
+    helpers must roll back the savepoint, re-read the winner's row by logical
+    key, and return the existing ID — leaving the outer transaction intact and
+    the DB with exactly one row.
+    """
+
+    def test_upsert_package_recovers_from_concurrent_insert(
+        self,
+        session: Any,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """_upsert_package returns winner's ID when insert races to IntegrityError.
+
+        Simulates a concurrent writer that inserted the same (name, version,
+        system) row between this caller's read (which saw None) and flush.
+        The savepoint rolls back; the recovery path re-reads the winner row.
+        """
+        from datetime import UTC, datetime
+        from unittest.mock import MagicMock, patch
+        from uuid import uuid4
+
+        now = datetime.now(UTC).isoformat()
+        cfg = ingestion_service._config
+
+        # Pre-insert the winner row (represents the concurrent writer)
+        winner_id = str(uuid4())
+        session.add(
+            RulesPackageORM(
+                rules_package_id=winner_id,
+                name=cfg.package_name,
+                system="d20",
+                version=cfg.package_version,
+                is_enabled=True,
+                publication_status="draft",
+                published_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.flush()
+
+        # Patch the first session.execute call to return None, simulating the
+        # pre-race read that found no row before the concurrent insert landed.
+        _real_execute = session.execute
+        call_count: dict[str, int] = {"n": 0}
+
+        def _first_miss(stmt: Any, *args: Any, **kwargs: Any) -> Any:
+            if call_count["n"] == 0:
+                call_count["n"] += 1
+                mock_result = MagicMock()
+                mock_result.scalar_one_or_none.return_value = None
+                return mock_result
+            return _real_execute(stmt, *args, **kwargs)
+
+        with patch.object(session, "execute", side_effect=_first_miss):
+            result_id = ingestion_service._upsert_package(session, now)
+
+        assert result_id == winner_id
+        pkgs = session.execute(select(RulesPackageORM)).scalars().all()
+        assert len(pkgs) == 1
+
+    def test_upsert_source_recovers_from_concurrent_insert(
+        self,
+        session: Any,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """_upsert_source returns winner's ID when insert races to IntegrityError.
+
+        Simulates a concurrent writer that inserted the same (rules_package_id,
+        name) row between this caller's read (None) and flush.  The savepoint
+        rolls back; the recovery path re-reads the winner row.
+        """
+        from datetime import UTC, datetime
+        from unittest.mock import MagicMock, patch
+        from uuid import uuid4
+
+        now = datetime.now(UTC).isoformat()
+        cfg = ingestion_service._config
+
+        # Pre-insert a package the source will belong to; flush first so the
+        # FK from rp_sources → rp_packages is satisfied when the source is inserted.
+        package_id = str(uuid4())
+        session.add(
+            RulesPackageORM(
+                rules_package_id=package_id,
+                name=cfg.package_name,
+                system="d20",
+                version=cfg.package_version,
+                is_enabled=True,
+                publication_status="draft",
+                published_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        session.flush()
+
+        # Pre-insert the winner source row (concurrent writer's row)
+        winner_src_id = str(uuid4())
+        session.add(
+            RuleSourceORM(
+                source_id=winner_src_id,
+                rules_package_id=package_id,
+                name=cfg.source_name,
+                category="core_rulebook",
+                precedence_rank=cfg.source_precedence_rank,
+                is_enabled=True,
+                created_at=now,
+            )
+        )
+        session.flush()
+
+        # Patch: first execute returns None (pre-race read)
+        _real_execute = session.execute
+        call_count2: dict[str, int] = {"n": 0}
+
+        def _first_miss_src(stmt: Any, *args: Any, **kwargs: Any) -> Any:
+            if call_count2["n"] == 0:
+                call_count2["n"] += 1
+                mock_result = MagicMock()
+                mock_result.scalar_one_or_none.return_value = None
+                return mock_result
+            return _real_execute(stmt, *args, **kwargs)
+
+        with patch.object(session, "execute", side_effect=_first_miss_src):
+            result_id = ingestion_service._upsert_source(session, package_id, now)
+
+        assert result_id == winner_src_id
+        sources = session.execute(select(RuleSourceORM)).scalars().all()
+        assert len(sources) == 1
