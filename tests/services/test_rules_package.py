@@ -225,13 +225,14 @@ def svc(session: Session) -> RulesPackageService:
 
 
 class TestRpTablePrefix:
-    def test_all_five_rp_tables_registered(self) -> None:
+    def test_all_rp_tables_registered(self) -> None:
         expected = {
             "rp_packages",
             "rp_sources",
             "rp_chunks",
             "rp_mechanical_entities",
             "rp_overrides",
+            "rp_manifests",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
@@ -925,8 +926,8 @@ class TestGetEntityByTypeAndName:
     def test_scoped_to_package(
         self, session: Session, svc: RulesPackageService
     ) -> None:
-        pid1 = _insert_package(session)
-        pid2 = _insert_package(session)
+        pid1 = _insert_package(session, name="Package One")
+        pid2 = _insert_package(session, name="Package Two")
         sid1 = _insert_source(session, package_id=pid1)
         sid2 = _insert_source(session, package_id=pid2)
         _insert_entity(
@@ -1593,3 +1594,138 @@ class TestOverridePackageAccessibilityGate:
             UUID(eid), UUID(pid), include_non_published=True
         )
         assert len(result) == 1
+
+
+# ---------------------------------------------------------------------------
+# rp_packages — logical-key uniqueness: (name, version, system)
+# AC from issue #60
+# ---------------------------------------------------------------------------
+
+
+class TestRpPackagesLogicalKeyUniqueness:
+    def test_duplicate_name_version_system_rejected(self, session: Session) -> None:
+        """Inserting two rp_packages rows with the same (name, version, system)
+        must raise IntegrityError at the DB layer."""
+        _insert_package(session, name="Core Rules", system="d20", version="5.0")
+        session.commit()
+        with pytest.raises(sa.exc.IntegrityError):
+            _insert_package(session, name="Core Rules", system="d20", version="5.0")
+            session.commit()
+
+    def test_same_name_version_different_system_allowed(self, session: Session) -> None:
+        """Two packages with the same name and version but different system
+        are distinct logical identities and must both be accepted."""
+        _insert_package(session, name="Core Rules", system="d20", version="5.0")
+        _insert_package(session, name="Core Rules", system="gurps", version="5.0")
+        session.commit()
+        rows = session.execute(sa.select(RulesPackageORM)).scalars().all()
+        assert len(rows) == 2
+
+    def test_same_name_system_different_version_allowed(self, session: Session) -> None:
+        """Two packages with the same name and system but different version
+        are distinct logical identities and must both be accepted."""
+        _insert_package(session, name="Core Rules", system="d20", version="5.0")
+        _insert_package(session, name="Core Rules", system="d20", version="6.0")
+        session.commit()
+        rows = session.execute(sa.select(RulesPackageORM)).scalars().all()
+        assert len(rows) == 2
+
+    def test_upsert_package_finds_existing_row_after_constraint_added(
+        self, session: Session
+    ) -> None:
+        """IngestionService._upsert_package returns existing package_id when a
+        package with the same (name, version, system) already exists — confirming
+        the service read-before-insert path is conflict-safe against the new
+        unique constraint."""
+        from afterworlds.ingestion.ingestion_service import IngestionService
+        from afterworlds.models.rules_package import IngestionConfig
+
+        cfg = IngestionConfig(
+            package_name="Core Rules", package_version="5.0", system="d20"
+        )
+        svc = IngestionService(cfg)
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC).isoformat()
+        pid_first = svc._upsert_package(session, now)
+        session.commit()
+
+        pid_second = svc._upsert_package(session, now)
+        assert pid_first == pid_second
+
+
+# ---------------------------------------------------------------------------
+# rp_sources — logical-key uniqueness: (rules_package_id, name)
+# AC from issue #60
+# ---------------------------------------------------------------------------
+
+
+class TestRpSourcesLogicalKeyUniqueness:
+    def test_duplicate_package_id_name_rejected(self, session: Session) -> None:
+        """Inserting two rp_sources rows with the same (rules_package_id, name)
+        must raise IntegrityError at the DB layer."""
+        pid = _insert_package(session)
+        session.commit()
+        _insert_source(session, package_id=pid, name="SRD 5.2.1")
+        session.commit()
+        with pytest.raises(sa.exc.IntegrityError):
+            _insert_source(session, package_id=pid, name="SRD 5.2.1")
+            session.commit()
+
+    def test_same_name_different_package_allowed(self, session: Session) -> None:
+        """The same source name under two different packages is allowed — the
+        logical key is scoped to the package."""
+        pid_a = _insert_package(session, name="Package A")
+        pid_b = _insert_package(session, name="Package B")
+        session.commit()
+        _insert_source(session, package_id=pid_a, name="SRD 5.2.1")
+        _insert_source(session, package_id=pid_b, name="SRD 5.2.1")
+        session.commit()
+        rows = session.execute(sa.select(RuleSourceORM)).scalars().all()
+        assert len(rows) == 2
+
+    def test_upsert_source_finds_existing_row_after_constraint_added(
+        self, session: Session
+    ) -> None:
+        """IngestionService._upsert_source returns existing source_id when a
+        source with the same (rules_package_id, name) already exists — confirming
+        the service read-before-insert path is conflict-safe."""
+        from afterworlds.ingestion.ingestion_service import IngestionService
+        from afterworlds.models.rules_package import IngestionConfig
+
+        cfg = IngestionConfig(
+            package_name="Test Package",
+            package_version="1.0",
+            system="d20",
+            source_name="Core Rulebook",
+        )
+        svc_obj = IngestionService(cfg)
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC).isoformat()
+        pid = svc_obj._upsert_package(session, now)
+        sid_first = svc_obj._upsert_source(session, pid, now)
+        session.commit()
+
+        sid_second = svc_obj._upsert_source(session, pid, now)
+        assert sid_first == sid_second
+
+
+# ---------------------------------------------------------------------------
+# rp_manifests — table name alignment with rp_* family (issue #60 rename)
+# ---------------------------------------------------------------------------
+
+
+class TestRpManifestTableName:
+    def test_manifest_table_is_rp_manifests(self) -> None:
+        """The manifest ORM class must use the rp_manifests table name, not
+        the legacy rules_package_manifests name."""
+        from afterworlds.persistence.orm.rules_package import RulesPackageManifestORM
+
+        assert RulesPackageManifestORM.__tablename__ == "rp_manifests"
+
+    def test_manifest_table_included_in_rp_family(self) -> None:
+        """rp_manifests must be present in Base.metadata under the rp_* prefix
+        so the FK separation invariant check covers it."""
+        assert "rp_manifests" in Base.metadata.tables
+        assert "rules_package_manifests" not in Base.metadata.tables

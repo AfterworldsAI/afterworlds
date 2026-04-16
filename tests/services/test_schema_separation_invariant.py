@@ -126,13 +126,19 @@ def test_source_turn_id_is_not_a_fk_constraint() -> None:
 
 
 def test_rules_package_tables_exist_with_rp_prefix() -> None:
-    """All five Rules Package tables must be registered with the rp_ prefix."""
+    """All Rules Package tables must be registered with the rp_ prefix.
+
+    Updated in issue #60: rp_manifests replaces the legacy
+    rules_package_manifests name, bringing the manifest table into the
+    rp_* naming family.
+    """
     expected = {
         "rp_packages",
         "rp_sources",
         "rp_chunks",
         "rp_mechanical_entities",
         "rp_overrides",
+        "rp_manifests",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

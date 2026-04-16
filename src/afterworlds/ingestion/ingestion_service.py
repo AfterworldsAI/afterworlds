@@ -255,7 +255,7 @@ class IngestionService:
         """Publish a RulesPackage after passing all gate checks.
 
         Gate checks (in order):
-        1. Package exists and is accessible.
+        1. Package exists and ``is_enabled`` is True.
         2. Manifest row exists for the package.
         3. ``sql_ingest_complete`` is True.
         4. ``vector_write_complete`` is True.
@@ -268,7 +268,10 @@ class IngestionService:
         PublicationError
             If any gate check fails.
         """
-        # Gate 1: package exists
+        # Gate 1: package exists and is enabled.
+        # Publishing a disabled package would create contradictory lifecycle
+        # state: the package would be marked published but excluded from all
+        # play-time queries by the is_enabled check in _package_accessible().
         pkg_row = session.execute(
             select(RulesPackageORM).where(
                 RulesPackageORM.rules_package_id == package_id
@@ -277,6 +280,10 @@ class IngestionService:
         if pkg_row is None:
             raise PublicationError(
                 f"Package {package_id!r} not found — cannot publish."
+            )
+        if not pkg_row.is_enabled:
+            raise PublicationError(
+                f"Package {package_id!r} is disabled — cannot publish."
             )
 
         # Gate 2: manifest exists

@@ -843,6 +843,37 @@ class TestManifest:
                 vector_writer=vector_writer,
             )
 
+    def test_publication_fails_if_package_disabled(
+        self,
+        session: Any,
+        ingestion_result: Any,
+        chroma_client: chromadb.ClientAPI,
+        ingestion_service: IngestionService,
+    ) -> None:
+        """Gate 1: publish() raises PublicationError for a disabled package.
+
+        A disabled package that passes all other gates must still be rejected:
+        marking it published while is_enabled=False creates contradictory
+        lifecycle state — the package would show publication_status=published
+        but be invisible to all play-time queries (which gate on is_enabled).
+        """
+        # Disable the package after ingest
+        pkg_row = session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == ingestion_result.package_id
+            )
+        ).scalar_one()
+        pkg_row.is_enabled = False
+        session.commit()
+
+        vector_writer = VectorWriter(chroma_client)
+        with pytest.raises(PublicationError, match="is disabled"):
+            ingestion_service.publish(
+                session=session,
+                package_id=ingestion_result.package_id,
+                vector_writer=vector_writer,
+            )
+
     def test_publication_fails_on_partial_vector_loss(
         self,
         session: Any,
