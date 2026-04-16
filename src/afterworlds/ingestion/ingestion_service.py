@@ -28,6 +28,7 @@ from uuid import uuid4
 
 from chromadb.api import ClientAPI as ChromaClientAPI
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.srd_parser import ParsedChunk, ParsedEntity, SRDParser
@@ -255,7 +256,7 @@ class IngestionService:
         """Publish a RulesPackage after passing all gate checks.
 
         Gate checks (in order):
-        1. Package exists and is accessible.
+        1. Package exists and ``is_enabled`` is True.
         2. Manifest row exists for the package.
         3. ``sql_ingest_complete`` is True.
         4. ``vector_write_complete`` is True.
@@ -268,7 +269,10 @@ class IngestionService:
         PublicationError
             If any gate check fails.
         """
-        # Gate 1: package exists
+        # Gate 1: package exists and is enabled.
+        # Publishing a disabled package would create contradictory lifecycle
+        # state: the package would be marked published but excluded from all
+        # play-time queries by the is_enabled check in _package_accessible().
         pkg_row = session.execute(
             select(RulesPackageORM).where(
                 RulesPackageORM.rules_package_id == package_id
@@ -277,6 +281,10 @@ class IngestionService:
         if pkg_row is None:
             raise PublicationError(
                 f"Package {package_id!r} not found — cannot publish."
+            )
+        if not pkg_row.is_enabled:
+            raise PublicationError(
+                f"Package {package_id!r} is disabled — cannot publish."
             )
 
         # Gate 2: manifest exists
@@ -331,36 +339,64 @@ class IngestionService:
     # ------------------------------------------------------------------
 
     def _upsert_package(self, session: Session, now: str) -> str:
-        """Return the existing package_id or create a new package row."""
+        """Return the existing package_id or create a new package row.
+
+        Uses a read-before-insert fast path.  If a concurrent writer inserts
+        the same logical key between the read and the insert, the flush will
+        hit the ``uq_rp_packages_name_version_system`` constraint and raise an
+        ``IntegrityError``.  The savepoint is rolled back (outer transaction
+        intact) and the winner's row is re-read by logical key.
+        """
         cfg = self._config
+        system_value = RulesSystemEnum(cfg.system).value
         existing = session.execute(
             select(RulesPackageORM).where(
                 RulesPackageORM.name == cfg.package_name,
                 RulesPackageORM.version == cfg.package_version,
-                RulesPackageORM.system == RulesSystemEnum(cfg.system).value,
+                RulesPackageORM.system == system_value,
             )
         ).scalar_one_or_none()
         if existing is not None:
             return str(existing.rules_package_id)
         package_id = _make_package_id()
-        session.add(
-            RulesPackageORM(
-                rules_package_id=package_id,
-                name=cfg.package_name,
-                system=RulesSystemEnum(cfg.system).value,
-                version=cfg.package_version,
-                is_enabled=True,
-                publication_status=PublicationStatusEnum.DRAFT.value,
-                published_at=None,
-                created_at=now,
-                updated_at=now,
-            )
-        )
-        session.flush()
+        try:
+            with session.begin_nested():
+                session.add(
+                    RulesPackageORM(
+                        rules_package_id=package_id,
+                        name=cfg.package_name,
+                        system=system_value,
+                        version=cfg.package_version,
+                        is_enabled=True,
+                        publication_status=PublicationStatusEnum.DRAFT.value,
+                        published_at=None,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                session.flush()
+        except IntegrityError:
+            # Concurrent insert won the race.  Savepoint rolled back; outer
+            # transaction intact.  Re-read the winner's row by logical key.
+            row = session.execute(
+                select(RulesPackageORM).where(
+                    RulesPackageORM.name == cfg.package_name,
+                    RulesPackageORM.version == cfg.package_version,
+                    RulesPackageORM.system == system_value,
+                )
+            ).scalar_one()
+            return str(row.rules_package_id)
         return package_id
 
     def _upsert_source(self, session: Session, package_id: str, now: str) -> str:
-        """Return the existing source_id or create a new source row."""
+        """Return the existing source_id or create a new source row.
+
+        Uses a read-before-insert fast path.  If a concurrent writer inserts
+        the same logical key between the read and the insert, the flush will
+        hit the ``uq_rp_sources_name`` constraint and raise an
+        ``IntegrityError``.  The savepoint is rolled back (outer transaction
+        intact) and the winner's row is re-read by logical key.
+        """
         cfg = self._config
         existing = session.execute(
             select(RuleSourceORM).where(
@@ -371,18 +407,30 @@ class IngestionService:
         if existing is not None:
             return str(existing.source_id)
         source_id = _make_source_id()
-        session.add(
-            RuleSourceORM(
-                source_id=source_id,
-                rules_package_id=package_id,
-                name=cfg.source_name,
-                category=RuleSourceCategoryEnum(cfg.source_category).value,
-                precedence_rank=cfg.source_precedence_rank,
-                is_enabled=True,
-                created_at=now,
-            )
-        )
-        session.flush()
+        try:
+            with session.begin_nested():
+                session.add(
+                    RuleSourceORM(
+                        source_id=source_id,
+                        rules_package_id=package_id,
+                        name=cfg.source_name,
+                        category=RuleSourceCategoryEnum(cfg.source_category).value,
+                        precedence_rank=cfg.source_precedence_rank,
+                        is_enabled=True,
+                        created_at=now,
+                    )
+                )
+                session.flush()
+        except IntegrityError:
+            # Concurrent insert won the race.  Savepoint rolled back; outer
+            # transaction intact.  Re-read the winner's row by logical key.
+            row = session.execute(
+                select(RuleSourceORM).where(
+                    RuleSourceORM.rules_package_id == package_id,
+                    RuleSourceORM.name == cfg.source_name,
+                )
+            ).scalar_one()
+            return str(row.source_id)
         return source_id
 
     def _persist_chunks(

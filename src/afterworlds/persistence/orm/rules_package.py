@@ -29,6 +29,14 @@ class RulesPackageORM(Base):
     """Persisted RulesPackage row."""
 
     __tablename__ = "rp_packages"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "name",
+            "version",
+            "system",
+            name="uq_rp_packages_name_version_system",
+        ),
+    )
 
     rules_package_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     name: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -53,6 +61,20 @@ class RuleSourceORM(Base):
 
     __tablename__ = "rp_sources"
     __table_args__ = (
+        # Logical-identity uniqueness: (rules_package_id, name) is the natural
+        # key for a RuleSource within a package.  Enforces the same dedup key
+        # used by IngestionService._upsert_source() at the DB level.
+        sa.UniqueConstraint(
+            "rules_package_id",
+            "name",
+            name="uq_rp_sources_name",
+        ),
+        # Required for composite FK targets from rp_chunks and
+        # rp_mechanical_entities.  SQLAlchemy / SQLite require the referenced
+        # column set to be covered by a UNIQUE constraint.  Since source_id is
+        # already a UUID PK (globally unique), this constraint is redundant as a
+        # uniqueness guard but cannot be dropped without breaking the composite
+        # FK references above.
         sa.UniqueConstraint(
             "rules_package_id", "source_id", name="uq_rp_sources_package_source"
         ),
@@ -167,11 +189,11 @@ class RulesPackageManifestORM(Base):
     on ``rules_package_id``.
     """
 
-    __tablename__ = "rules_package_manifests"
+    __tablename__ = "rp_manifests"
     __table_args__ = (
         sa.UniqueConstraint(
             "rules_package_id",
-            name="uq_rules_package_manifests_package",
+            name="uq_rp_manifests_package",
         ),
     )
 
