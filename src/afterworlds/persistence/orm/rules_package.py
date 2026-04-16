@@ -156,6 +156,49 @@ class MechanicalEntityORM(Base):
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
+class RulesPackageManifestORM(Base):
+    """Persisted RulesPackageManifest row — one per package, publication gate.
+
+    The manifest carries attribution, licensing, and ingest-completion flags.
+    Publication is blocked until both ``sql_ingest_complete`` and
+    ``vector_write_complete`` are True.
+
+    One manifest per package is enforced at the DB layer via a UNIQUE constraint
+    on ``rules_package_id``.
+    """
+
+    __tablename__ = "rules_package_manifests"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "rules_package_id",
+            name="uq_rules_package_manifests_package",
+        ),
+    )
+
+    manifest_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    rules_package_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    authoritative_source_document: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    authoritative_source_version: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    package_license: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    transform_status: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    parsing_convenience_source: Mapped[str | None] = mapped_column(
+        sa.Text, nullable=True
+    )
+    attribution_text: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    sql_ingest_complete: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
+    vector_write_complete: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False
+    )
+    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    updated_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
 class RuleOverrideORM(Base):
     """Persisted RuleOverride row — non-mutating layered override record.
 

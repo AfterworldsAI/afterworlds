@@ -248,7 +248,7 @@ class RulesPackageService:
                     RuleSourceORM.rules_package_id == str(package_id),
                     RuleSourceORM.is_enabled == True,  # noqa: E712
                 )
-                .order_by(RuleSourceORM.precedence_rank)
+                .order_by(RuleSourceORM.precedence_rank, RuleSourceORM.source_id)
             )
             .scalars()
             .all()
@@ -358,9 +358,26 @@ class RulesPackageService:
         return _orm_to_entity(row) if row is not None else None
 
     def get_overrides_for_chunk(
-        self, chunk_id: UUID, package_id: UUID
+        self,
+        chunk_id: UUID,
+        package_id: UUID,
+        include_non_published: bool = False,
     ) -> list[RuleOverride]:
-        """Retrieve active overrides for a chunk, scoped to its package."""
+        """Retrieve active overrides for a chunk, scoped to its package.
+
+        Respects package accessibility.  Returns [] for a missing, disabled,
+        draft, or retired package under normal play-time access.
+        """
+        pkg_row = self._session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == str(package_id)
+            )
+        ).scalar_one_or_none()
+        if pkg_row is None or not self._package_accessible(
+            pkg_row, include_non_published
+        ):
+            return []
+
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)
@@ -377,9 +394,26 @@ class RulesPackageService:
         return [_orm_to_override(r) for r in rows]
 
     def get_overrides_for_entity(
-        self, entity_id: UUID, package_id: UUID
+        self,
+        entity_id: UUID,
+        package_id: UUID,
+        include_non_published: bool = False,
     ) -> list[RuleOverride]:
-        """Retrieve active overrides for an entity, scoped to its package."""
+        """Retrieve active overrides for an entity, scoped to its package.
+
+        Respects package accessibility.  Returns [] for a missing, disabled,
+        draft, or retired package under normal play-time access.
+        """
+        pkg_row = self._session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == str(package_id)
+            )
+        ).scalar_one_or_none()
+        if pkg_row is None or not self._package_accessible(
+            pkg_row, include_non_published
+        ):
+            return []
+
         rows = (
             self._session.execute(
                 select(RuleOverrideORM)
@@ -453,7 +487,9 @@ class RulesPackageService:
             )
             for chunk_row in chunk_rows:
                 chunk = _orm_to_chunk(chunk_row)
-                applied_chunks.append(self._apply_chunk_overrides(chunk))
+                applied_chunks.append(
+                    self._apply_chunk_overrides(chunk, include_non_published)
+                )
 
         # Collect specific entities by (type, name) reference
         applied_entities: list[AppliedEntity] = []
@@ -466,7 +502,9 @@ class RulesPackageService:
             )
             if entity is not None:
                 overrides = self.get_overrides_for_entity(
-                    entity.entity_id, entity.rules_package_id
+                    entity.entity_id,
+                    entity.rules_package_id,
+                    include_non_published=include_non_published,
                 )
                 applied_entities.append(
                     AppliedEntity(
@@ -483,33 +521,45 @@ class RulesPackageService:
 
     # -- Internal helpers ---------------------------------------------------
 
-    def _apply_chunk_overrides(self, chunk: RuleChunk) -> AppliedChunk:
+    def _apply_chunk_overrides(
+        self, chunk: RuleChunk, include_non_published: bool = False
+    ) -> AppliedChunk:
         """Apply active overrides to *chunk* in ascending precedence order.
 
         - ``disable``: marks the chunk as disabled; stops further processing.
         - ``replace``: replaces current content with payload content.
         - ``append``: appends payload content to current content.
         """
-        overrides = self.get_overrides_for_chunk(chunk.chunk_id, chunk.rules_package_id)
+        overrides = self.get_overrides_for_chunk(
+            chunk.chunk_id,
+            chunk.rules_package_id,
+            include_non_published=include_non_published,
+        )
         content = chunk.content
         is_disabled = False
         applied_ids: list[UUID] = []
 
         for override in overrides:
-            applied_ids.append(override.override_id)
             if override.override_operation == OverrideOperationEnum.DISABLE:
+                applied_ids.append(override.override_id)
                 is_disabled = True
                 break
             elif override.override_operation == OverrideOperationEnum.REPLACE:
                 payload = ChunkOverridePayload.model_validate_json(
                     override.override_payload
                 )
-                content = payload.content or ""
+                if payload.content is None:
+                    continue  # malformed replace payload; skip without applying
+                applied_ids.append(override.override_id)
+                content = payload.content
             elif override.override_operation == OverrideOperationEnum.APPEND:
                 payload = ChunkOverridePayload.model_validate_json(
                     override.override_payload
                 )
-                content = content + (payload.content or "")
+                if payload.content is None:
+                    continue  # malformed append payload; skip without applying
+                applied_ids.append(override.override_id)
+                content = content + payload.content
 
         return AppliedChunk(
             chunk=chunk,
