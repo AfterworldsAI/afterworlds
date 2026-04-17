@@ -40,7 +40,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from afterworlds.models.rolling_summary import RollingSummary
+from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.rolling_summary import RollingSummaryORM
+from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 
 # ---------------------------------------------------------------------------
 # Configurable constants
@@ -89,6 +91,43 @@ def should_compress(story_turn_count: int, n: int = ROLLING_SUMMARY_N) -> bool:
         True if ``story_turn_count > 0`` and ``story_turn_count % n == 0``.
     """
     return story_turn_count > 0 and story_turn_count % n == 0
+
+
+# ---------------------------------------------------------------------------
+# Coverage validation
+# ---------------------------------------------------------------------------
+
+
+def _validate_turn_belongs_to_story(
+    session: Session, turn_id: UUID, story_id: UUID
+) -> None:
+    """Raise ValueError if the turn is not attributable to the story.
+
+    Resolves attribution via the full persisted lineage:
+    Turn → Node → Chapter → Arc → Story.  A turn with no Node link
+    (``node_id = NULL``) is correctly rejected — it has no story attribution.
+
+    Args:
+        session: active SQLAlchemy session.
+        turn_id: UUID of the Turn being validated.
+        story_id: UUID of the Story it must belong to.
+
+    Raises:
+        ValueError: if no lineage path from the turn to the story can be
+            found in the database.
+    """
+    row = session.execute(
+        select(TurnORM.turn_id)
+        .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+        .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+        .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+        .where(TurnORM.turn_id == str(turn_id), ArcORM.story_id == str(story_id))
+    ).first()
+    if row is None:
+        raise ValueError(
+            f"Turn {turn_id} is not attributable to story {story_id} "
+            "via persisted Node lineage"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -176,6 +215,8 @@ class RollingSummaryService:
             The newly created (or pre-existing idempotent) :class:`RollingSummary`.
 
         Raises:
+            ValueError: if ``from_turn_id`` or ``through_turn_id`` cannot be
+                attributed to ``story_id`` via persisted Node lineage.
             IntegrityError: re-raised only if the DB constraint is violated
                 but no conflicting row can be found (truly unexpected state).
         """
@@ -195,6 +236,10 @@ class RollingSummaryService:
         )
         if existing is not None:
             return _orm_to_model(existing)
+
+        # --- Validate coverage turns belong to this story ---
+        _validate_turn_belongs_to_story(self._session, from_turn_id, story_id)
+        _validate_turn_belongs_to_story(self._session, through_turn_id, story_id)
 
         # --- Fetch prior summary text ---
         prior = self.get_current_summary(story_id)

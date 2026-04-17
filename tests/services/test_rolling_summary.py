@@ -44,8 +44,9 @@ from afterworlds.models.story import Story
 from afterworlds.persistence.crud.story import create_story
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
-from afterworlds.persistence.orm.node import TurnORM
+from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.rolling_summary import RollingSummaryORM
+from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 from afterworlds.services.rolling_summary import (
     ROLLING_SUMMARY_N,
     RollingSummaryService,
@@ -97,23 +98,43 @@ def story_id(session) -> UUID:  # type: ignore[no-untyped-def]
 
 
 def _make_turn(session, story_id: UUID, *, label: str = "t") -> UUID:  # type: ignore[no-untyped-def]
-    """Persist a minimal Turn row and return its UUID.
+    """Persist an Arc → Chapter → Node → Turn chain and return the Turn UUID.
 
-    ``node_id`` is intentionally left as None — the FK is nullable and we do
-    not need a Node hierarchy to test rolling-summary coverage anchoring.
-    Foreign keys are enforced in tests (PRAGMA foreign_keys = ON), so the
-    Turn row must genuinely exist; Node ancestry is not required.
+    Each call creates its own Arc, Chapter, and Node so the Turn is
+    unambiguously attributable to ``story_id`` via persisted Node lineage.
+    This satisfies the service-layer coverage validation added in the P1 fix:
+    ``compress()`` now verifies both coverage turns trace back to the given
+    story through the full lineage before persisting a new summary row.
 
-    ``story_id`` is accepted for callsite clarity but is not stored on the
-    Turn row directly (Turns hang off Nodes, not Stories).  It is included
-    in the helper signature to make multi-story tests readable.
+    Foreign keys are enforced in tests (``PRAGMA foreign_keys = ON``), so
+    all parent rows must exist in the DB.
     """
+    arc_id = str(uuid4())
+    chapter_id = str(uuid4())
+    node_id = str(uuid4())
     turn_id = str(uuid4())
     now = datetime.now(UTC).isoformat()
     session.add(
+        ArcORM(arc_id=arc_id, story_id=str(story_id), title=f"Arc-{label}", order=0)
+    )
+    session.add(
+        ChapterORM(chapter_id=chapter_id, arc_id=arc_id, title=f"Ch-{label}", order=0)
+    )
+    session.add(
+        NodeORM(
+            node_id=node_id,
+            chapter_id=chapter_id,
+            content=f"Content-{label}",
+            state_delta={},
+            branching_logic=[],
+            intent_type=IntentType.ACTION.value,
+            metadata_={},
+        )
+    )
+    session.add(
         TurnORM(
             turn_id=turn_id,
-            node_id=None,
+            node_id=node_id,
             user_input=f"Input {label}",
             assistant_output=f"Output {label}",
             timestamp=now,
@@ -669,6 +690,81 @@ class TestGeneratorDependency:
         # gen.assert_called_once() proves a real call was not made to any
         # external service — the injected callable received the invocation.
         gen.assert_called_once()
+
+
+# ===========================================================================
+# Coverage integrity — turns must belong to the given story
+# ===========================================================================
+
+
+class TestCoverageIntegrity:
+    """compress() validates that coverage turns trace back to the story."""
+
+    def test_from_turn_wrong_story_raises_value_error(
+        self, session, story_id: UUID
+    ) -> None:
+        """compress() rejects from_turn_id that belongs to a different story."""
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        other = Story(title="Other", mode=StoryMode.RPG, created_at=now, updated_at=now)
+        create_story(session, other)
+        session.commit()
+
+        from_turn = _make_turn(session, other.story_id, label="from")
+        through_turn = _make_turn(session, story_id, label="through")
+        svc = _make_service(session)
+
+        with pytest.raises(ValueError, match="is not attributable to story"):
+            svc.compress(story_id, from_turn, through_turn, ["text"])
+
+    def test_through_turn_wrong_story_raises_value_error(
+        self, session, story_id: UUID
+    ) -> None:
+        """compress() rejects through_turn_id that belongs to a different story."""
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        other = Story(title="Other", mode=StoryMode.RPG, created_at=now, updated_at=now)
+        create_story(session, other)
+        session.commit()
+
+        from_turn = _make_turn(session, story_id, label="from")
+        through_turn = _make_turn(session, other.story_id, label="through")
+        svc = _make_service(session)
+
+        with pytest.raises(ValueError, match="is not attributable to story"):
+            svc.compress(story_id, from_turn, through_turn, ["text"])
+
+    def test_orphan_from_turn_raises_value_error(self, session, story_id: UUID) -> None:
+        """compress() rejects an orphan turn (node_id=None) as from_turn_id."""
+        orphan_id = str(uuid4())
+        now = datetime.now(UTC).isoformat()
+        session.add(
+            TurnORM(
+                turn_id=orphan_id,
+                node_id=None,
+                user_input="orphan input",
+                assistant_output="orphan output",
+                timestamp=now,
+                intent_classification=IntentType.ACTION.value,
+            )
+        )
+        session.flush()
+
+        through_turn = _make_turn(session, story_id, label="through")
+        svc = _make_service(session)
+
+        with pytest.raises(ValueError, match="is not attributable to story"):
+            svc.compress(story_id, UUID(orphan_id), through_turn, ["text"])
+
+    def test_both_turns_correct_story_does_not_raise(
+        self, session, story_id: UUID
+    ) -> None:
+        """compress() succeeds when both turns are attributable to the given story."""
+        t1 = _make_turn(session, story_id, label="t1")
+        t10 = _make_turn(session, story_id, label="t10")
+        svc = _make_service(session)
+
+        result = svc.compress(story_id, t1, t10, ["text"])
+
+        assert result.story_id == story_id
 
 
 # ===========================================================================
