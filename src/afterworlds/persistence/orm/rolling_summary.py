@@ -11,12 +11,15 @@ ARCHITECTURE INVARIANT:
     summary's coverage range is anchored to real persisted Turn rows, making
     coverage provenance readable from the row itself.
 
-Uniqueness constraints:
-  - ``(story_id, compressed_through_turn_id)`` — UNIQUE.  Prevents duplicate
-    coverage.  This is the DB-layer idempotency gate.
-  - One ``is_current = True`` row per story — enforced by a partial unique index
-    created in the Alembic migration via op.execute().  Service logic atomically
-    clears the previous current marker before setting the new one.
+Uniqueness constraints (enforced in both ORM metadata and Alembic migration):
+  - ``(story_id, compressed_through_turn_id)`` — UNIQUE (UniqueConstraint).
+    Prevents duplicate coverage.  This is the DB-layer idempotency gate.
+  - One ``is_current = True`` row per story — partial unique index on
+    ``(story_id) WHERE is_current = 1``.  Declared in ``__table_args__`` so
+    ``Base.metadata.create_all()`` enforces the same contract as the Alembic
+    migration path (migration 0006 mirrors this via op.execute()).  Service
+    logic atomically clears the previous current marker before setting the new
+    one so the index is never transiently violated within a single flush.
 """
 
 from __future__ import annotations
@@ -58,5 +61,15 @@ class RollingSummaryORM(Base):
             "story_id",
             "compressed_through_turn_id",
             name="uq_rs_story_through_turn",
+        ),
+        # Partial unique index: at most one is_current = True row per story.
+        # sqlite_where makes this a SQLite-native partial index so both the
+        # Alembic migration path (op.execute) and the create_all() path
+        # (used in tests) enforce the same constraint.
+        sa.Index(
+            "uq_rs_current_per_story",
+            "story_id",
+            unique=True,
+            sqlite_where=sa.text("is_current = 1"),
         ),
     )

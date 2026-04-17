@@ -25,7 +25,6 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 # ---------------------------------------------------------------------------
@@ -60,18 +59,15 @@ from afterworlds.services.rolling_summary import (
 
 @pytest.fixture()
 def engine():  # type: ignore[no-untyped-def]
-    """In-memory SQLite engine with all tables created."""
+    """In-memory SQLite engine with all tables created.
+
+    The partial unique index ``uq_rs_current_per_story`` (one is_current row
+    per story) is now declared in ``RollingSummaryORM.__table_args__`` via a
+    ``sqlite_where`` Index, so ``create_all()`` creates it automatically.  No
+    manual DDL is required here.
+    """
     eng = create_engine("sqlite://")
     Base.metadata.create_all(eng)
-    # Create the partial unique index (mirrors migration 0006 op.execute).
-    with eng.connect() as conn:
-        conn.execute(
-            text(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uq_rs_current_per_story "
-                "ON rolling_summaries (story_id) WHERE is_current = 1"
-            )
-        )
-        conn.commit()
     yield eng
     Base.metadata.drop_all(eng)
     eng.dispose()

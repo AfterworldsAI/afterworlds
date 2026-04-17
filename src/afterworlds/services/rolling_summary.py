@@ -16,8 +16,8 @@ Design constraints from the issue spec:
     heuristics.  The DB enforces this via a UNIQUE constraint on
     ``(story_id, compressed_through_turn_id)``.
   - Exactly one row per story may be ``is_current = True`` at any time.
-    Enforced by a partial unique index (see migration 0006) and by service
-    logic that atomically clears the previous current marker.
+    Enforced by a partial unique index (migration 0006 and ORM metadata) and
+    by service logic that atomically clears the previous current marker.
   - The summary generation callable is injected — no hardwired provider or
     model.  For tests, a stub can be passed in.
   - No prompt assembly, no Context Builder integration, no pipeline calls.
@@ -155,8 +155,16 @@ class RollingSummaryService:
 
         The new row is inserted with ``is_current = True``.  The prior
         current row (if any) is atomically flipped to ``is_current = False``
-        within the same flush so the DB partial unique index is never
+        within the same savepoint so the DB partial unique index is never
         transiently violated.
+
+        **Conflict handling:** all writes (the prior-current flip and the new
+        row insert) are executed inside a ``begin_nested()`` savepoint.  If a
+        concurrent writer wins the ``uq_rs_story_through_turn`` race between
+        the service-layer idempotency check and the flush, the savepoint is
+        rolled back automatically and the caller's outer transaction remains
+        intact.  The existing row written by the winner is re-queried and
+        returned.  The full session is never rolled back.
 
         Args:
             story_id: UUID of the story being compressed.
@@ -168,8 +176,8 @@ class RollingSummaryService:
             The newly created (or pre-existing idempotent) :class:`RollingSummary`.
 
         Raises:
-            IntegrityError: if the DB constraint is violated by a concurrent
-                writer (should not occur in normal single-writer usage).
+            IntegrityError: re-raised only if the DB constraint is violated
+                but no conflicting row can be found (truly unexpected state).
         """
         sid = str(story_id)
         through_id = str(through_turn_id)
@@ -198,13 +206,10 @@ class RollingSummaryService:
         # --- Generate new summary text ---
         new_text = self._generator(prior_text, turn_texts)
 
-        # --- Atomically clear previous current marker ---
-        if prior is not None:
-            prior_row = self._session.get(RollingSummaryORM, str(prior.summary_id))
-            if prior_row is not None:
-                prior_row.is_current = False
-
-        # --- Persist new row ---
+        # --- Persist: all writes inside a savepoint ---
+        # Both the prior-current flip and the new-row insert are inside the
+        # savepoint so a concurrent-write IntegrityError rolls back only this
+        # operation, leaving the caller's outer transaction intact.
         now = datetime.now(UTC).isoformat()
         new_row = RollingSummaryORM(
             summary_id=str(uuid4()),
@@ -216,12 +221,32 @@ class RollingSummaryService:
             is_current=True,
             created_at=now,
         )
-        self._session.add(new_row)
         try:
-            self._session.flush()
+            with self._session.begin_nested():
+                if prior is not None:
+                    prior_row = self._session.get(
+                        RollingSummaryORM, str(prior.summary_id)
+                    )
+                    if prior_row is not None:
+                        prior_row.is_current = False
+                self._session.add(new_row)
+                self._session.flush()
         except IntegrityError:
-            self._session.rollback()
-            raise
+            # Savepoint rolled back; outer transaction intact.
+            # Re-read the row that won the constraint race.
+            conflict_row = (
+                self._session.execute(
+                    select(RollingSummaryORM).where(
+                        RollingSummaryORM.story_id == sid,
+                        RollingSummaryORM.compressed_through_turn_id == through_id,
+                    )
+                )
+                .scalars()
+                .first()
+            )
+            if conflict_row is not None:
+                return _orm_to_model(conflict_row)
+            raise  # unexpected — no conflicting row found
 
         return _orm_to_model(new_row)
 
