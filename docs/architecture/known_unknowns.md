@@ -28,6 +28,7 @@ These were open questions during design. Decisions are recorded here for traceab
 | Business model and pricing | Metered hosted subscription with credits + BYOK perpetual license + first-year Cloud Services | See Item 8 in CRD and Design doc Section 8 |
 | Story Bible schema | Committed | Static / dynamic / provisional partitions, Events Ledger, Locked/Forbidden Facts; see Issue 4 |
 | Events Ledger tiered inclusion N value | 15 (configurable constant) | Resolved during Issue 4. Implemented as `EVENTS_LEDGER_N = 15` in `services/story_bible.py`. Tune with testing. See ADR-0005. |
+| Rolling summary compression trigger value (N turns) | Provisional N = 10 (configurable constant); empirical finalization deferred to Issue 8 | Escape hatch invoked during Issue 6: Context Builder not yet wired; stable-prefix-pressure evidence unavailable. Implemented as `ROLLING_SUMMARY_N = 10` in `services/rolling_summary.py`. Must be finalized in Issue 8 — not deferred past Issue 8. See ADR-0009. |
 | Significance flagging criteria for Events Ledger | Seven-value enum; six qualify for always-include | Resolved during Issue 4. Always-include: CHARACTER_DEATH, LOCKED_FACT_ESTABLISHED, MAJOR_PLOT_TURN, RELATIONSHIP_CHANGE, WORLD_STATE_CHANGE, FORBIDDEN_FACT_ESTABLISHED. ROUTINE is the only non-always-include value. See ADR-0005. |
 | Mode prompt contracts | Written | Versioned .md files in `/docs/prompts/`; see Item 6 in CRD |
 | BYOK commercial structure | Perpetual license + first year of Cloud Services included; optional annual renewal thereafter | License and services must not be collapsed in code or UX language |
@@ -73,16 +74,6 @@ These are genuinely open. Each has a designated resolution window. Do not resolv
 **Why it's open:** Route design is best decided once the service layer is stable. Premature route definitions create churn if underlying service contracts change during Issues 2–11.
 
 **What resolution requires:** Define route naming conventions, versioning strategy (e.g., `/api/v1/`), request/response payload shapes for core operations (create story, submit turn, retrieve state). Document before implementation begins.
-
----
-
-### Rolling summary compression trigger value (N turns)
-
-**Resolve during:** Issue 6. Starting value: 10 turns.
-
-**Why it's open:** The right trigger depends on average turn length, Story Bible growth rate, and acceptable context window pressure — all of which are empirically determined. 10 is a reasonable starting point based on cost model assumptions but must be validated with testing.
-
-**What resolution requires:** During Issue 6, implement the trigger as a configurable value (not a hardcoded constant). Run representative test scenarios. Document the final chosen value and the test evidence in an ADR.
 
 ---
 

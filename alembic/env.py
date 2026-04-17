@@ -16,6 +16,7 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
+import afterworlds.persistence.orm.rolling_summary  # noqa: F401
 
 config = context.config
 
