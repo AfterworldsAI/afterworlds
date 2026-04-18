@@ -9,6 +9,13 @@ from afterworlds.models.character_sheet import (
     RpgCharacterSheetBase,
     SpellSlotLevel,
 )
+from afterworlds.models.context import (
+    AssembledContext,
+    PassForwardEntry,
+    PassForwardLedger,
+    StablePrefix,
+    VolatileSuffix,
+)
 from afterworlds.models.enums import (
     DiceHandling,
     IntentType,
@@ -25,6 +32,7 @@ from afterworlds.models.node import (
     StateDelta,
     WritingNodeMetadata,
 )
+from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.models.session import (
     BranchingSessionState,
     BranchNode,
@@ -81,6 +89,14 @@ __all__ = [
     "PlotThread",
     "BranchingSessionState",
     "WritingSessionState",
+    # context builder types
+    "StablePrefix",
+    "VolatileSuffix",
+    "PassForwardEntry",
+    "PassForwardLedger",
+    "AssembledContext",
+    # rules package
+    "RuleSliceRequest",
     # character sheet
     "Dnd5eAbilityScores",
     "SpellSlotLevel",

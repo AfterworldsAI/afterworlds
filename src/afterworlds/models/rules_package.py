@@ -386,6 +386,23 @@ class IngestionConfig:
     extra_tags: list[str] = field(default_factory=list)
 
 
+class RuleSliceRequest(BaseModel):
+    """Typed parameter bundle for RulesPackageService.get_active_rule_slice.
+
+    Introduced in Issue 8 (Context Builder) per the instruction to reuse this
+    model from Issue 5a's namespace rather than creating a parallel model in
+    the Context Builder.  The model was not defined during Issue 5a — it is
+    added here now.  See PR Architecture Notes for scope rationale.
+    """
+
+    package_id: UUID
+    subsystem_tags: list[RuleSubsystemEnum] = Field(default_factory=list)
+    entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] = Field(
+        default_factory=list
+    )
+    include_non_published: bool = False
+
+
 class ActiveRuleSlice(BaseModel):
     """Stable named typed payload returned by get_active_rule_slice.
 
