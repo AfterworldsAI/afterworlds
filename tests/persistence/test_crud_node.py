@@ -41,7 +41,7 @@ def _make_node(chapter_id: str) -> Node:
     return Node(
         chapter_id=UUID(chapter_id),
         content="A dark forest path diverges before you.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
     )
 
 
@@ -69,7 +69,7 @@ def test_node_round_trip_basic(session):  # type: ignore[no-untyped-def]
     assert fetched.node_id == node.node_id
     assert fetched.chapter_id == chapter.chapter_id
     assert fetched.content == node.content
-    assert fetched.intent_type == IntentType.ACTION
+    assert fetched.intent_type == IntentType.IN_CHARACTER_ACTION
     assert fetched.mode_metadata is None
     assert fetched.branching_logic == []
 
@@ -104,7 +104,7 @@ def test_node_mode_metadata_rpg_round_trip(session):  # type: ignore[no-untyped-
     node = Node(
         chapter_id=chapter.chapter_id,
         content="You roll for initiative.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         mode_metadata=RpgNodeMetadata(
             mechanical_notes="DC 15 Athletics check",
             dice_results=[12, 8],
@@ -153,7 +153,7 @@ def test_node_state_delta_round_trip(session):  # type: ignore[no-untyped-def]
     node = Node(
         chapter_id=chapter.chapter_id,
         content="You find a sword.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         state_delta=delta,
     )
     create_node(session, node)
@@ -220,7 +220,7 @@ def test_turn_round_trip_with_node(session):  # type: ignore[no-untyped-def]
         user_input="Go north",
         assistant_output="You head north into the forest.",
         timestamp=datetime(2026, 1, 1, tzinfo=UTC),
-        intent_classification=IntentType.ACTION,
+        intent_classification=IntentType.IN_CHARACTER_ACTION,
         node_id=node.node_id,
     )
     created = create_turn(session, turn)
@@ -303,7 +303,7 @@ def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped
     node = Node(
         chapter_id=chapter.chapter_id,
         content="A moonlit clearing.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         metadata=NodeMetadata(
             pov="third_person",
             timestamp=datetime(2026, 3, 15, 21, 0, 0, tzinfo=UTC),

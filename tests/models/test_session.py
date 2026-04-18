@@ -93,7 +93,9 @@ class TestRpgSessionState:
         """Mode-specific session state must not bleed into base Node schema."""
         from afterworlds.models.enums import IntentType
 
-        node = Node(chapter_id=uuid4(), content="x", intent_type=IntentType.ACTION)
+        node = Node(
+            chapter_id=uuid4(), content="x", intent_type=IntentType.IN_CHARACTER_ACTION
+        )
         assert not hasattr(node, "dice_handling")
         assert not hasattr(node, "active_quests")
         assert not hasattr(node, "combat_context")

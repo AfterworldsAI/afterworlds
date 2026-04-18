@@ -127,7 +127,7 @@ def _make_turn(session, story_id: UUID, *, label: str = "t") -> UUID:  # type: i
             content=f"Content-{label}",
             state_delta={},
             branching_logic=[],
-            intent_type=IntentType.ACTION.value,
+            intent_type=IntentType.IN_CHARACTER_ACTION.value,
             metadata_={},
         )
     )
@@ -138,7 +138,7 @@ def _make_turn(session, story_id: UUID, *, label: str = "t") -> UUID:  # type: i
             user_input=f"Input {label}",
             assistant_output=f"Output {label}",
             timestamp=now,
-            intent_classification=IntentType.ACTION.value,
+            intent_classification=IntentType.IN_CHARACTER_ACTION.value,
         )
     )
     session.flush()
@@ -743,7 +743,7 @@ class TestCoverageIntegrity:
                 user_input="orphan input",
                 assistant_output="orphan output",
                 timestamp=now,
-                intent_classification=IntentType.ACTION.value,
+                intent_classification=IntentType.IN_CHARACTER_ACTION.value,
             )
         )
         session.flush()
