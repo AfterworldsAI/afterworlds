@@ -398,6 +398,20 @@ class TestMalformedOutputHandling:
         with pytest.raises(IntentClassificationError):
             svc.classify("I draw my sword.", STORY_ID)
 
+    def test_none_response_raises_error(self) -> None:
+        """None returned by model caller → IntentClassificationError."""
+        caller: MagicMock = MagicMock(return_value=None)
+        svc = IntentClassifierService(caller)  # type: ignore[arg-type]
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
+    def test_bytes_response_raises_error(self) -> None:
+        """bytes returned by model caller → IntentClassificationError."""
+        caller: MagicMock = MagicMock(return_value=b"{}")
+        svc = IntentClassifierService(caller)  # type: ignore[arg-type]
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
 
 # ===========================================================================
 # IntentClassificationResult schema validation
@@ -514,6 +528,51 @@ class TestSchemaValidation:
                 "confidence": 0.6,
                 "ambiguous": True,
                 "secondary_intent": None,  # invariant violated
+            }
+        )
+        svc, _ = _make_service(bad)
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I attack.", STORY_ID)
+
+    def test_ambiguous_true_with_secondary_equal_to_primary_raises(
+        self,
+    ) -> None:
+        """ambiguous=True with secondary_intent == intent_type is invalid."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="secondary_intent must differ"):
+            IntentClassificationResult(
+                intent_type=IntentType.IN_CHARACTER_ACTION,
+                confidence=0.7,
+                raw_input="test",
+                ambiguous=True,
+                secondary_intent=IntentType.IN_CHARACTER_ACTION,
+            )
+
+    def test_ambiguous_true_with_distinct_secondary_intent_valid(
+        self,
+    ) -> None:
+        """ambiguous=True with secondary_intent != intent_type is valid."""
+        result = IntentClassificationResult(
+            intent_type=IntentType.LORE_QUESTION,
+            confidence=0.65,
+            raw_input="test",
+            ambiguous=True,
+            secondary_intent=IntentType.DIALOGUE,
+        )
+        assert result.ambiguous is True
+        assert result.secondary_intent == IntentType.DIALOGUE
+
+    def test_ambiguous_true_matching_secondary_raises_classification_error(
+        self,
+    ) -> None:
+        """secondary_intent == intent_type in model JSON → IntentClassificationError."""
+        bad = json.dumps(
+            {
+                "intent_type": "in_character_action",
+                "confidence": 0.7,
+                "ambiguous": True,
+                "secondary_intent": "in_character_action",  # same as primary
             }
         )
         svc, _ = _make_service(bad)

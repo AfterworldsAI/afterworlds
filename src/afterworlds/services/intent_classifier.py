@@ -161,7 +161,7 @@ Return ONLY a JSON object with this exact structure — no markdown fences, no\
 
 
 def _parse_model_response(
-    raw_response: str, raw_input: str
+    raw_response: object, raw_input: str
 ) -> IntentClassificationResult:
     """Parse and validate the model's JSON response.
 
@@ -174,9 +174,15 @@ def _parse_model_response(
         Validated IntentClassificationResult.
 
     Raises:
-        IntentClassificationError: if the response cannot be parsed as valid
-            JSON or cannot be validated against IntentClassificationResult.
+        IntentClassificationError: if raw_response is not a str, if the
+            response cannot be parsed as valid JSON, or if it cannot be
+            validated against IntentClassificationResult.
     """
+    if not isinstance(raw_response, str):
+        raise IntentClassificationError(
+            "Model caller returned non-string response: "
+            f"{type(raw_response).__name__!r}"
+        )
     text = raw_response.strip()
     # Strip markdown code fences if the model wraps its response
     if text.startswith("```"):

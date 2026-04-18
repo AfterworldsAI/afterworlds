@@ -64,6 +64,14 @@ class IntentClassificationResult(BaseModel):
             raise ValueError("secondary_intent must be set when ambiguous is True")
         if not self.ambiguous and self.secondary_intent is not None:
             raise ValueError("secondary_intent must be None when ambiguous is False")
+        if (
+            self.ambiguous
+            and self.secondary_intent is not None
+            and self.secondary_intent == self.intent_type
+        ):
+            raise ValueError(
+                "secondary_intent must differ from intent_type when ambiguous is True"
+            )
         return self
 
 
