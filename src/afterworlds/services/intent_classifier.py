@@ -190,6 +190,11 @@ def _parse_model_response(
             f"Model returned non-JSON output: {exc!r}"
         ) from exc
 
+    if not isinstance(data, dict):
+        raise IntentClassificationError(
+            f"Model returned valid JSON but not an object: {type(data).__name__!r}"
+        )
+
     # The service owns raw_input — always override to guarantee it matches the
     # actual submitted input rather than whatever the model echoed.
     data["raw_input"] = raw_input

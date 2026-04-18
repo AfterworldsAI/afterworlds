@@ -374,6 +374,30 @@ class TestMalformedOutputHandling:
         result = svc.classify("I draw my sword.", STORY_ID)
         assert result.intent_type == IntentType.IN_CHARACTER_ACTION
 
+    def test_json_array_raises_error(self) -> None:
+        """Valid JSON but an array, not an object → IntentClassificationError."""
+        svc, _ = _make_service("[]")
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
+    def test_json_null_raises_error(self) -> None:
+        """Valid JSON null → IntentClassificationError."""
+        svc, _ = _make_service("null")
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
+    def test_json_string_raises_error(self) -> None:
+        """Valid JSON string → IntentClassificationError."""
+        svc, _ = _make_service('"hello"')
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
+    def test_json_number_raises_error(self) -> None:
+        """Valid JSON number → IntentClassificationError."""
+        svc, _ = _make_service("123")
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I draw my sword.", STORY_ID)
+
 
 # ===========================================================================
 # IntentClassificationResult schema validation
