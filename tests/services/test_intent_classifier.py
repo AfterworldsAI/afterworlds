@@ -476,6 +476,50 @@ class TestSchemaValidation:
                 ambiguous=False,
             )
 
+    def test_ambiguous_true_with_null_secondary_intent_raises(self) -> None:
+        """ambiguous=True with secondary_intent=None violates the invariant."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="secondary_intent must be set"):
+            IntentClassificationResult(
+                intent_type=IntentType.IN_CHARACTER_ACTION,
+                confidence=0.6,
+                raw_input="test",
+                ambiguous=True,
+                secondary_intent=None,
+            )
+
+    def test_ambiguous_false_with_secondary_intent_set_raises(self) -> None:
+        """ambiguous=False with secondary_intent set violates the invariant."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="secondary_intent must be None"):
+            IntentClassificationResult(
+                intent_type=IntentType.IN_CHARACTER_ACTION,
+                confidence=0.95,
+                raw_input="test",
+                ambiguous=False,
+                secondary_intent=IntentType.DIALOGUE,
+            )
+
+    def test_ambiguous_true_malformed_model_output_raises_classification_error(
+        self,
+    ) -> None:
+        """ambiguous=True with null secondary_intent → IntentClassificationError."""
+        import json
+
+        bad = json.dumps(
+            {
+                "intent_type": "in_character_action",
+                "confidence": 0.6,
+                "ambiguous": True,
+                "secondary_intent": None,  # invariant violated
+            }
+        )
+        svc, _ = _make_service(bad)
+        with pytest.raises(IntentClassificationError):
+            svc.classify("I attack.", STORY_ID)
+
 
 # ===========================================================================
 # Model-call isolation (injectable dependency)

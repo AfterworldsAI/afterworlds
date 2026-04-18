@@ -12,9 +12,9 @@ from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from afterworlds.models.enums import IntentType
+from afterworlds.models.enums import IntentType, normalize_legacy_intent_type
 
 
 class StateDelta(BaseModel):
@@ -87,3 +87,10 @@ class Node(BaseModel):
     intent_type: IntentType
     metadata: NodeMetadata = Field(default_factory=NodeMetadata)
     mode_metadata: ModeMetadata | None = None
+
+    @field_validator("intent_type", mode="before")
+    @classmethod
+    def _coerce_legacy_intent_type(cls, v: object) -> object:
+        if isinstance(v, str):
+            return normalize_legacy_intent_type(v)
+        return v

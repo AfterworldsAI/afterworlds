@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from afterworlds.models.enums import IntentType
 
@@ -57,6 +57,14 @@ class IntentClassificationResult(BaseModel):
     raw_input: str
     ambiguous: bool
     secondary_intent: IntentType | None = None
+
+    @model_validator(mode="after")
+    def _check_ambiguous_secondary_intent(self) -> IntentClassificationResult:
+        if self.ambiguous and self.secondary_intent is None:
+            raise ValueError("secondary_intent must be set when ambiguous is True")
+        if not self.ambiguous and self.secondary_intent is not None:
+            raise ValueError("secondary_intent must be None when ambiguous is False")
+        return self
 
 
 class IntentClassificationError(Exception):
