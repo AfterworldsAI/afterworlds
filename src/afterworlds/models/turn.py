@@ -7,9 +7,9 @@ but are not the same concept.  Collapsing them is architectural debt.
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from afterworlds.models.enums import IntentType
+from afterworlds.models.enums import IntentType, normalize_legacy_intent_type
 
 
 class Turn(BaseModel):
@@ -31,3 +31,10 @@ class Turn(BaseModel):
     timestamp: datetime
     intent_classification: IntentType
     node_id: UUID | None = None
+
+    @field_validator("intent_classification", mode="before")
+    @classmethod
+    def _coerce_legacy_intent_classification(cls, v: object) -> object:
+        if isinstance(v, str):
+            return normalize_legacy_intent_type(v)
+        return v

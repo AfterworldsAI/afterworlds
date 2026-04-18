@@ -41,7 +41,7 @@ def _make_node(chapter_id: str) -> Node:
     return Node(
         chapter_id=UUID(chapter_id),
         content="A dark forest path diverges before you.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
     )
 
 
@@ -69,7 +69,7 @@ def test_node_round_trip_basic(session):  # type: ignore[no-untyped-def]
     assert fetched.node_id == node.node_id
     assert fetched.chapter_id == chapter.chapter_id
     assert fetched.content == node.content
-    assert fetched.intent_type == IntentType.ACTION
+    assert fetched.intent_type == IntentType.IN_CHARACTER_ACTION
     assert fetched.mode_metadata is None
     assert fetched.branching_logic == []
 
@@ -104,7 +104,7 @@ def test_node_mode_metadata_rpg_round_trip(session):  # type: ignore[no-untyped-
     node = Node(
         chapter_id=chapter.chapter_id,
         content="You roll for initiative.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         mode_metadata=RpgNodeMetadata(
             mechanical_notes="DC 15 Athletics check",
             dice_results=[12, 8],
@@ -153,7 +153,7 @@ def test_node_state_delta_round_trip(session):  # type: ignore[no-untyped-def]
     node = Node(
         chapter_id=chapter.chapter_id,
         content="You find a sword.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         state_delta=delta,
     )
     create_node(session, node)
@@ -220,7 +220,7 @@ def test_turn_round_trip_with_node(session):  # type: ignore[no-untyped-def]
         user_input="Go north",
         assistant_output="You head north into the forest.",
         timestamp=datetime(2026, 1, 1, tzinfo=UTC),
-        intent_classification=IntentType.ACTION,
+        intent_classification=IntentType.IN_CHARACTER_ACTION,
         node_id=node.node_id,
     )
     created = create_turn(session, turn)
@@ -303,7 +303,7 @@ def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped
     node = Node(
         chapter_id=chapter.chapter_id,
         content="A moonlit clearing.",
-        intent_type=IntentType.ACTION,
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         metadata=NodeMetadata(
             pov="third_person",
             timestamp=datetime(2026, 3, 15, 21, 0, 0, tzinfo=UTC),
@@ -317,6 +317,116 @@ def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped
     assert fetched.metadata.timestamp is not None
     assert fetched.metadata.timestamp.year == 2026
     assert fetched.metadata.pov == "third_person"
+
+
+def test_legacy_intent_type_action_loads_as_in_character_action(  # type: ignore[no-untyped-def]
+    session,
+) -> None:
+    """Legacy 'action' string persisted in nodes.intent_type loads correctly.
+
+    Rows written before the Issue 7 taxonomy rename stored 'action' as the
+    wire value.  The Node field_validator must coerce it to IN_CHARACTER_ACTION
+    so ORM→model conversion does not raise a validation error.
+    """
+    from afterworlds.persistence.orm.node import NodeORM
+
+    chapter = _setup_chapter(session)
+    row = NodeORM(
+        node_id=str(uuid4()),
+        chapter_id=str(chapter.chapter_id),
+        content="Legacy node",
+        state_delta={},
+        branching_logic=[],
+        intent_type="action",  # pre-Issue-7 legacy value
+        metadata_={},
+    )
+    session.add(row)
+    session.flush()
+
+    fetched = get_node(session, chapter.chapter_id.__class__(row.node_id))
+    assert fetched is not None
+    assert fetched.intent_type == IntentType.IN_CHARACTER_ACTION
+
+
+def test_legacy_intent_type_milestone_loads_as_beat_milestone(  # type: ignore[no-untyped-def]
+    session,
+) -> None:
+    """Legacy 'milestone' string persisted in nodes.intent_type loads correctly."""
+    from afterworlds.persistence.orm.node import NodeORM
+
+    chapter = _setup_chapter(session)
+    row = NodeORM(
+        node_id=str(uuid4()),
+        chapter_id=str(chapter.chapter_id),
+        content="Legacy milestone node",
+        state_delta={},
+        branching_logic=[],
+        intent_type="milestone",  # pre-Issue-7 legacy value
+        metadata_={},
+    )
+    session.add(row)
+    session.flush()
+
+    fetched = get_node(session, chapter.chapter_id.__class__(row.node_id))
+    assert fetched is not None
+    assert fetched.intent_type == IntentType.BEAT_MILESTONE
+
+
+def test_legacy_intent_classification_action_loads_as_in_character_action(  # type: ignore[no-untyped-def]
+    session,
+) -> None:
+    """Legacy 'action' string in turns.intent_classification loads correctly."""
+    from datetime import UTC, datetime
+
+    from afterworlds.persistence.orm.node import NodeORM, TurnORM
+
+    chapter = _setup_chapter(session)
+    node_id = str(uuid4())
+    session.add(
+        NodeORM(
+            node_id=node_id,
+            chapter_id=str(chapter.chapter_id),
+            content="Node for turn",
+            state_delta={},
+            branching_logic=[],
+            intent_type="in_character_action",
+            metadata_={},
+        )
+    )
+    turn_id = str(uuid4())
+    session.add(
+        TurnORM(
+            turn_id=turn_id,
+            node_id=node_id,
+            user_input="legacy input",
+            assistant_output="legacy output",
+            timestamp=datetime.now(UTC).isoformat(),
+            intent_classification="action",  # pre-Issue-7 legacy value
+        )
+    )
+    session.flush()
+
+    fetched = get_turn(session, chapter.chapter_id.__class__(turn_id))
+    assert fetched is not None
+    assert fetched.intent_classification == IntentType.IN_CHARACTER_ACTION
+
+
+def test_canonical_intent_values_still_load_correctly(  # type: ignore[no-untyped-def]
+    session,
+) -> None:
+    """Canonical Issue 7 values are unaffected by the legacy coercion."""
+    chapter = _setup_chapter(session)
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="Canonical node",
+        intent_type=IntentType.BEAT_MILESTONE,
+    )
+    create_node(session, node)
+    session.commit()
+
+    fetched = get_node(session, node.node_id)
+    assert fetched is not None
+    assert fetched.intent_type == IntentType.BEAT_MILESTONE
 
 
 def test_chapter_node_ids_populated(session):  # type: ignore[no-untyped-def]

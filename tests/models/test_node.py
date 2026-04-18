@@ -28,7 +28,7 @@ def _make_node(**kwargs: object) -> Node:
     defaults: dict[str, object] = {
         "chapter_id": uuid4(),
         "content": "The door creaks open.",
-        "intent_type": IntentType.ACTION,
+        "intent_type": IntentType.IN_CHARACTER_ACTION,
     }
     defaults.update(kwargs)
     return Node(**defaults)  # type: ignore[arg-type]
@@ -164,5 +164,5 @@ class TestNode:
             Node(
                 chapter_id="not-a-uuid",  # type: ignore[arg-type]
                 content="x",
-                intent_type=IntentType.ACTION,
+                intent_type=IntentType.IN_CHARACTER_ACTION,
             )

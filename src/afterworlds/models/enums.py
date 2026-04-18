@@ -4,15 +4,49 @@ from enum import StrEnum
 
 
 class IntentType(StrEnum):
-    """Classified intent of a user input or story beat."""
+    """Classified intent of a user input or story beat.
 
-    ACTION = "action"
+    The full eight-type taxonomy is defined in Issue 7 (CRD Issue 7).
+    ``Node.intent_type`` uses this same enum but logically draws from the
+    narrower five-type subset (IN_CHARACTER_ACTION, DIALOGUE,
+    AUTHOR_INSTRUCTION, BRANCH_CHOICE, BEAT_MILESTONE) that describes what a
+    Node *represents* in the story graph.  ``Turn.intent_classification`` uses
+    the full taxonomy, including REWIND, LORE_QUESTION, and OOC.
+    """
+
+    IN_CHARACTER_ACTION = "in_character_action"
     DIALOGUE = "dialogue"
     AUTHOR_INSTRUCTION = "author_instruction"
     BRANCH_CHOICE = "branch_choice"
-    MILESTONE = "milestone"
+    BEAT_MILESTONE = "beat_milestone"
     REWIND = "rewind"
     LORE_QUESTION = "lore_question"
+    OOC = "ooc"
+
+
+# ---------------------------------------------------------------------------
+# Legacy persistence compatibility
+# ---------------------------------------------------------------------------
+
+#: Maps pre-Issue-7 persisted wire values to the canonical Issue 7 taxonomy.
+#: The ORM stores raw enum .value strings; rows written before the rename need
+#: to survive ORM→model conversion without a data migration.
+_LEGACY_INTENT_MAP: dict[str, str] = {
+    "action": "in_character_action",
+    "milestone": "beat_milestone",
+}
+
+
+def normalize_legacy_intent_type(v: str) -> str:
+    """Return the canonical IntentType wire value, coercing legacy values.
+
+    Args:
+        v: raw string from the persistence layer (or any string input).
+
+    Returns:
+        The canonical wire value, or ``v`` unchanged if already canonical.
+    """
+    return _LEGACY_INTENT_MAP.get(v, v)
 
 
 class StoryMode(StrEnum):

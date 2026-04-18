@@ -22,7 +22,7 @@ def _make_turn(**kwargs: object) -> Turn:
         "user_input": "I try the door.",
         "assistant_output": "The door swings open with a groan.",
         "timestamp": make_datetime(),
-        "intent_classification": IntentType.ACTION,
+        "intent_classification": IntentType.IN_CHARACTER_ACTION,
     }
     defaults.update(kwargs)
     return Turn(**defaults)  # type: ignore[arg-type]
@@ -33,7 +33,7 @@ class TestTurn:
         turn = _make_turn()
         assert turn.user_input == "I try the door."
         assert turn.assistant_output == "The door swings open with a groan."
-        assert turn.intent_classification == IntentType.ACTION
+        assert turn.intent_classification == IntentType.IN_CHARACTER_ACTION
         assert turn.node_id is None
 
     def test_turn_id_auto_generated(self) -> None:
