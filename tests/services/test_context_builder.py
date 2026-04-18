@@ -629,6 +629,138 @@ def test_rule_slice_request_without_service_raises() -> None:
         )
 
 
+def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
+    """Rule slice end-to-end: seam called, slice wired to AssembledContext, rendered.
+
+    Exercises _render_rule_slice (models/context.py lines 139-158) which was
+    otherwise untested — the enabled-chunk path and entity path both fire here.
+    Canonical order verified: stable prefix → rule slice → volatile suffix.
+    """
+    from afterworlds.models.enums import (
+        MechanicalEntityTypeEnum,
+        RuleSubsystemEnum,
+        SourceLocatorTypeEnum,
+    )
+    from afterworlds.models.rules_package import (
+        ActiveRuleSlice,
+        AppliedChunk,
+        AppliedEntity,
+        ConditionEntity,
+        MechanicalEntity,
+        RuleChunk,
+        RuleSliceRequest,
+    )
+
+    package_id = uuid4()
+    source_id = uuid4()
+
+    chunk = RuleChunk(
+        rules_package_id=package_id,
+        source_id=source_id,
+        subsystem=RuleSubsystemEnum.COMBAT,
+        content="When you make an attack roll...",
+        source_document="SRD 5.2",
+        source_locator_type=SourceLocatorTypeEnum.PAGE,
+        source_locator_value="p. 72",
+        created_at=_NOW,
+    )
+    applied_chunk = AppliedChunk(
+        chunk=chunk,
+        applied_content="CHUNK_CONTENT_SENTINEL",
+        is_disabled=False,
+        override_ids_applied=[],
+    )
+
+    entity = MechanicalEntity(
+        rules_package_id=package_id,
+        source_id=source_id,
+        entity_type=MechanicalEntityTypeEnum.CONDITION,
+        name="ENTITY_NAME_SENTINEL",
+        structured_data=ConditionEntity(effects=["Incapacitated", "Can't move"]),
+        source_document="SRD 5.2",
+        source_locator_type=SourceLocatorTypeEnum.PAGE,
+        source_locator_value="p. 290",
+        created_at=_NOW,
+    )
+    applied_entity = AppliedEntity(entity=entity, override_ids_applied=[])
+
+    active_slice = ActiveRuleSlice(
+        package_id=package_id,
+        chunks=[applied_chunk],
+        entities=[applied_entity],
+    )
+
+    class _StubRulesPackageService:
+        def __init__(self) -> None:
+            self.call_count: int = 0
+            self.last_package_id: UUID | None = None
+            self.last_subsystem_tags: list[RuleSubsystemEnum] | None = None
+            self.last_entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] | None = (
+                None
+            )
+
+        def get_active_rule_slice(
+            self,
+            package_id: UUID,
+            subsystem_tags: list[RuleSubsystemEnum],
+            entity_refs: list[tuple[MechanicalEntityTypeEnum, str]],
+            include_non_published: bool = False,
+        ) -> ActiveRuleSlice:
+            self.call_count += 1
+            self.last_package_id = package_id
+            self.last_subsystem_tags = subsystem_tags
+            self.last_entity_refs = entity_refs
+            return active_slice
+
+    stub_rules = _StubRulesPackageService()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=_CountingRetrievalMemoryProvider(),
+        rules_package_service=stub_rules,
+    )
+
+    req = RuleSliceRequest(
+        package_id=package_id,
+        subsystem_tags=[RuleSubsystemEnum.COMBAT],
+        entity_refs=[(MechanicalEntityTypeEnum.CONDITION, "ENTITY_NAME_SENTINEL")],
+    )
+    volatile_input = "I attack the goblin."
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        system_prompt=_SYSTEM_PROMPT,
+        current_input=volatile_input,
+        classified_intent=_make_classified_intent(IntentType.IN_CHARACTER_ACTION),
+        rule_slice_request=req,
+    )
+
+    # Seam was called with the request's exact parameters
+    assert stub_rules.call_count == 1
+    assert stub_rules.last_package_id == package_id
+    assert stub_rules.last_subsystem_tags == [RuleSubsystemEnum.COMBAT]
+    assert stub_rules.last_entity_refs == [
+        (MechanicalEntityTypeEnum.CONDITION, "ENTITY_NAME_SENTINEL")
+    ]
+
+    # Slice is wired onto AssembledContext (not inside stable_prefix)
+    assert assembled.rule_slice is active_slice
+    assert not hasattr(assembled.stable_prefix, "rule_slice")
+
+    # Canonical order: stable prefix → rule slice content → volatile suffix
+    full = assembled.render_for_pass()
+    sys_pos = full.find(_SYSTEM_PROMPT)
+    chunk_pos = full.find("CHUNK_CONTENT_SENTINEL")
+    entity_pos = full.find("ENTITY_NAME_SENTINEL")
+    volatile_pos = full.find(volatile_input)
+
+    assert chunk_pos != -1, "chunk applied_content missing from render_for_pass"
+    assert entity_pos != -1, "entity name missing from render_for_pass"
+    assert sys_pos < chunk_pos, "rule slice must appear after stable prefix"
+    assert chunk_pos < volatile_pos, "rule slice must appear before volatile suffix"
+    assert entity_pos < volatile_pos, "entity must appear before volatile suffix"
+
+
 # ===========================================================================
 # Rolling summary tests
 # ===========================================================================
