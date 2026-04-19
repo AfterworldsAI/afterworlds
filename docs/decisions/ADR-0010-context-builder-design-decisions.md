@@ -2,64 +2,103 @@
 
 **Status:** Accepted
 **Date:** 2026-04-18
-**Issue:** CRD Issue 8 — Context Builder (GitHub #TBD)
+**Issue:** CRD Issue 8 — Context Builder (GitHub #68)
 **Scope:** Rule slice placement; ROLLING_SUMMARY_N status; RuleSliceRequest scope
 
 ---
 
-## Decision 1 — Rule Slice is Separate from StablePrefix
+## Decision 1 — Rule Slice is Inside StablePrefix (Revised)
+
+**Note:** This decision reverses the initial implementation choice.  The
+original implementation stored `rule_slice` as a separate field on
+`AssembledContext`.  Issue #68 review established that the canonical Issue 8
+contract requires `rules_package_slice` to be a named field inside
+`StablePrefix`.  This revision supersedes the original decision.
 
 ### Context
 
 CRD Issue 8 requires the Context Builder to retrieve rule slices for RPG mode.
-The question is whether the rule slice belongs inside `StablePrefix` (alongside
-the system prompt, Story Bible, and rolling summary) or is stored separately.
+The canonical Issue 8 field order for `StablePrefix` is:
 
-The CRD stable-prefix cost model assumes a cache hit rate of ~88% with extended
-TTL (1-hour).  This rate depends on the stable prefix being byte-for-byte
-identical across turns within the same session.
+1. `system_prompt` — mode contract
+2. `story_bible_context` — ratified Story Bible canon
+3. `rolling_summary_text` — compressed narrative history
+4. `rules_package_slice` — RPG rule slice (mode × intent policy gate)
+5. `retrieval_memory` — vector retrieval payload
 
-`RuleSliceRequest.subsystem_tags` and `entity_refs` can change between turns:
-a combat turn queries `COMBAT` subsystem; the next turn queries `SPELLS`.  A
-different query produces a different slice, which changes the stable prefix
-byte sequence and busts the cache hit for that turn.
+This five-field shape is the stable-prefix contract between the Context Builder
+(Issue 8) and the pipeline (Issue 12).  Every field must be a named attribute
+on `StablePrefix`; no field may float on `AssembledContext` as a peer of
+`stable_prefix`.
+
+A secondary concern is cache economics: the CRD stable-prefix cost model
+assumes ~88% cache hit rate with extended TTL (1-hour).  Including a
+query-dependent rule slice inside `StablePrefix` can change the stable prefix
+byte sequence between turns (combat turn → COMBAT subsystem; lore turn →
+SPELLS subsystem), which busts the cache for those turns.
 
 ### Decision
 
-**Rule slice is stored as a separate field (`rule_slice`) on `AssembledContext`,
-not inside `StablePrefix`.**
+**`rules_package_slice` is a named field (field #4) on `StablePrefix`, per the
+canonical Issue 8 contract.**
 
 The assembled context structure is:
 
 ```
 AssembledContext
-  stable_prefix      — system prompt + Story Bible + rolling summary
-  rule_slice         — ActiveRuleSlice | None (separate from stable prefix)
-  volatile_suffix    — recent turns + current input + intent
-  pass_forward_ledger — mutable per-pass additions
+  stable_prefix         — system_prompt + story_bible_context +
+                          rolling_summary_text + rules_package_slice +
+                          retrieval_memory
+  volatile_suffix       — recent turns + current input + intent
+  pass_forward_ledger   — mutable per-pass additions
 ```
 
-`AssembledContext.render_for_pass()` renders all components in the documented
-canonical order (stable prefix → rule slice → pass-forward ledger → volatile
-suffix), so the pipeline (Issue 12) always sees the correct prompt structure.
+`StablePrefix.render()` renders all five fields in canonical order.
+`AssembledContext.render_for_pass()` renders stable prefix → pass-forward
+ledger → volatile suffix.
+
+A mode × intent policy gate in `build_stable_prefix()` ensures rule slices are
+only retrieved for RPG mode with qualifying intents (IN_CHARACTER_ACTION,
+DIALOGUE, LORE_QUESTION).  Non-qualifying combinations produce
+`rules_package_slice = None`, which is omitted from the rendered output.
+
+### Cache Tradeoff
+
+Including `rules_package_slice` inside `StablePrefix` means that turns with
+different subsystem queries (combat vs. lore) will produce different stable
+prefix byte sequences and not share cache entries.  This is accepted because:
+
+- The mode × intent policy gate means most non-combat turns yield
+  `rules_package_slice = None`, which is identical across those turns and
+  therefore cache-friendly.
+- RPG combat turns (where the slice changes) are expected to be sequential
+  within the same encounter; cross-encounter cache busts are acceptable.
+- Where to draw the cache breakpoint (stable vs. volatile) for the rule slice
+  is an Issue 12 (pipeline) and Issue 14 (caching) concern.  Forcing the
+  correct Issue 8 field shape now avoids a larger architectural correction later.
 
 ### Rationale
 
-- Cache economics: keeping rule_slice separate preserves the stable prefix as
-  a stable byte sequence across turns with different subsystem queries.
-- Architectural clarity: the CRD explicitly lists "system prompt + mode contract
-  + Story Bible active context + rolling summary" as stable prefix components.
-  Rule slice is not in that list.
-- The CRD says "retrieves rule slices on demand by mode" — "on demand" implies
-  per-turn, not per-session.
+- Issue #68 contract: the Issue 8 review explicitly requires `rules_package_slice`
+  as named field #4 on `StablePrefix`.  Issue #68 wins over the original
+  implementation choice (CLAUDE.md non-negotiable rule).
+- Architectural clarity: all stable memory layers (Story Bible, rolling summary,
+  rules, retrieval) belong inside `StablePrefix`.  A rule slice floating on
+  `AssembledContext` as a peer of `stable_prefix` confuses the partition
+  semantics that the pipeline relies on.
+- The pipeline (Issue 12) should receive a complete `StablePrefix` that it can
+  pass unchanged across all five passes — not an `AssembledContext` with a
+  floating field it must thread separately.
 
 ### Consequences
 
-- `StablePrefix` does not contain `rule_slice`.  Tests verify this structurally.
-- `AssembledContext.render_for_pass()` inserts the rule slice text between
-  stable prefix and volatile suffix (optimal position for context layering).
-- The pipeline (Issue 12) must pass the `AssembledContext` (including its
-  `rule_slice`) to each pass, not just the `stable_prefix`.
+- `StablePrefix` has five named fields in canonical order.  Tests verify this
+  structurally and verify the render order.
+- `AssembledContext` does not have a `rule_slice` field.  Any consumer that
+  depended on the old placement must read from
+  `assembled_context.stable_prefix.rules_package_slice`.
+- The cache tradeoff for rule-slice-containing stable prefixes is acknowledged
+  and accepted.  Empirical cache measurement deferred to Issue 12/Issue 14.
 
 ---
 

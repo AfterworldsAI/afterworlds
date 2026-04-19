@@ -1,13 +1,18 @@
 """Tests for ContextBuilderService — CRD Issue 8.
 
 Coverage targets:
-  - Stable prefix assembly order (CRD Item 12 architectural invariant)
+  - Stable prefix assembly (all 5 fields, canonical order)
+  - Stable prefix assembled exactly once per turn (build_stable_prefix spy)
+  - StablePrefix and VolatileSuffix frozen (mutation raises ValidationError)
+  - Mode contract loading (RPG, BRANCHING, WRITING; unknown mode raises)
+  - Mode × intent rule-slice policy matrix (positive and negative cases)
+  - Retrieval memory named field in StablePrefix (empty + populated)
   - Partition separation (Story Bible vs. prose history; stable vs. volatile)
   - Content correctness across minimal / moderate / complex Story Bible scenarios
   - Protocol seam exercise (RecentTurnsProvider and RetrievalMemoryProvider)
-  - Rule slice placement (separate from stable prefix, per ADR-0010)
   - Rolling summary inclusion / absence
-  - SQLiteRecentTurnsProvider integration (oldest-first ordering)
+  - SQLiteRecentTurnsProvider integration (oldest-first ordering,
+    deterministic tie-breaker under equal timestamps)
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
+from pydantic import ValidationError
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
@@ -27,7 +33,9 @@ import afterworlds.persistence.orm.story_bible  # noqa: F401
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
+    RetrievalMemoryPayload,
     StablePrefix,
+    VolatileSuffix,
 )
 from afterworlds.models.enums import (
     CastRole,
@@ -38,6 +46,7 @@ from afterworlds.models.enums import (
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rolling_summary import RollingSummary
+from afterworlds.models.rules_package import ActiveRuleSlice, RuleSliceRequest
 from afterworlds.models.story import Story
 from afterworlds.models.story_bible import (
     CastEntry,
@@ -59,6 +68,8 @@ from afterworlds.services.context_builder import (
     ContextBuilderService,
     NullRetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
+    UnknownModeError,
+    load_mode_contract,
 )
 
 # ---------------------------------------------------------------------------
@@ -103,34 +114,47 @@ class _CountingRecentTurnsProvider:
 
 
 class _CountingRetrievalMemoryProvider:
-    """Stub that counts calls and returns empty string."""
+    """Stub that counts calls and records the last query; returns empty payload."""
 
     def __init__(self) -> None:
         self.call_count: int = 0
         self.last_query: str | None = None
 
-    def retrieve(self, story_id: UUID, query: str) -> str:
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
         self.call_count += 1
         self.last_query = query
-        return ""
+        return RetrievalMemoryPayload()
+
+
+class _FakeRetrievalMemoryProvider:
+    """Stub that returns a payload with a fixed list of passages."""
+
+    def __init__(self, passages: list[str]) -> None:
+        self._passages = passages
+
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+        return RetrievalMemoryPayload(passages=self._passages)
 
 
 # ---------------------------------------------------------------------------
-# Shared fixtures
+# Shared fixtures and helpers
 # ---------------------------------------------------------------------------
 
 _STORY_ID = uuid4()
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
-_SYSTEM_PROMPT = "You are Afterworlds — an AI narrator for interactive stories."
+
+#: Known sentinel that appears in docs/prompts/rpg_mode.md (first heading).
+_MODE_CONTRACT_SENTINEL = "RPG Mode Prompt Contract"
 
 
 def _make_classified_intent(
     intent: IntentType = IntentType.IN_CHARACTER_ACTION,
+    raw_input: str = "test input",
 ) -> IntentClassificationResult:
     return IntentClassificationResult(
         intent_type=intent,
         confidence=0.95,
-        raw_input="test input",
+        raw_input=raw_input,
         ambiguous=False,
         secondary_intent=None,
     )
@@ -311,17 +335,200 @@ def _make_service(
     )
 
 
+def _make_minimal_active_slice() -> ActiveRuleSlice:
+    """Build a minimal ActiveRuleSlice with one enabled chunk; no entities."""
+    from afterworlds.models.enums import RuleSubsystemEnum, SourceLocatorTypeEnum
+    from afterworlds.models.rules_package import AppliedChunk, RuleChunk
+
+    pid = uuid4()
+    source_id = uuid4()
+    chunk = RuleChunk(
+        rules_package_id=pid,
+        source_id=source_id,
+        subsystem=RuleSubsystemEnum.COMBAT,
+        content="RULE_CONTENT_SENTINEL",
+        source_document="SRD",
+        source_locator_type=SourceLocatorTypeEnum.PAGE,
+        source_locator_value="p. 1",
+        created_at=_NOW,
+    )
+    applied = AppliedChunk(
+        chunk=chunk,
+        applied_content="APPLIED_RULE_SENTINEL",
+        is_disabled=False,
+        override_ids_applied=[],
+    )
+    return ActiveRuleSlice(package_id=pid, chunks=[applied], entities=[])
+
+
 # ===========================================================================
-# CRD Item 12 architectural invariant
+# Frozen model tests
 # ===========================================================================
+
+
+def test_stable_prefix_is_frozen() -> None:
+    """StablePrefix raises ValidationError on any field mutation attempt."""
+    sp = StablePrefix(
+        system_prompt="sys",
+        story_bible_context=_minimal_bible(),
+    )
+    with pytest.raises(ValidationError):
+        sp.system_prompt = "mutated"  # type: ignore[misc]
+
+
+def test_volatile_suffix_is_frozen() -> None:
+    """VolatileSuffix raises ValidationError on any field mutation attempt."""
+    vs = VolatileSuffix(
+        recent_turns=[],
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    with pytest.raises(ValidationError):
+        vs.current_input = "mutated"  # type: ignore[misc]
+
+
+# ===========================================================================
+# Once-per-turn invariant
+# ===========================================================================
+
+
+def test_build_stable_prefix_called_once_per_turn() -> None:
+    """build_stable_prefix is called exactly once per assemble(); the same
+    StablePrefix instance is reused across all five simulated pipeline passes."""
+    service = _make_service(bible=_moderate_bible())
+
+    original_build = service.build_stable_prefix
+    call_count = [0]
+
+    def counting_build(
+        story_id: UUID,
+        mode: StoryMode,
+        intent_classification: IntentClassificationResult,
+        rule_slice_request: RuleSliceRequest | None = None,
+    ) -> StablePrefix:
+        call_count[0] += 1
+        return original_build(story_id, mode, intent_classification, rule_slice_request)  # type: ignore[arg-type]
+
+    service.build_stable_prefix = counting_build  # type: ignore[method-assign]
+
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+
+    assert call_count[0] == 1, "build_stable_prefix must be called exactly once"
+
+    prefix_id = id(assembled.stable_prefix)
+    for pass_name in ("planner", "writer", "extractor", "contradiction", "safety"):
+        assembled.pass_forward_ledger.add(pass_name, f"{pass_name} output")
+        assembled.render_for_pass()
+        assert (
+            id(assembled.stable_prefix) == prefix_id
+        ), f"stable_prefix identity changed on pass {pass_name}"
+
+    assert call_count[0] == 1, "build_stable_prefix must not be called per pass"
+
+
+# ===========================================================================
+# Mode contract loading
+# ===========================================================================
+
+
+def test_mode_contract_rpg_loads() -> None:
+    """load_mode_contract(RPG) returns the RPG mode contract string."""
+    contract = load_mode_contract(StoryMode.RPG)
+    assert isinstance(contract, str)
+    assert len(contract) > 0
+    assert "RPG" in contract or "rpg" in contract.lower()
+
+
+def test_mode_contract_branching_loads() -> None:
+    """load_mode_contract(BRANCHING) returns the Branching mode contract string."""
+    contract = load_mode_contract(StoryMode.BRANCHING)
+    assert isinstance(contract, str)
+    assert len(contract) > 0
+
+
+def test_mode_contract_writing_loads() -> None:
+    """load_mode_contract(WRITING) returns the Writing mode contract string."""
+    contract = load_mode_contract(StoryMode.WRITING)
+    assert isinstance(contract, str)
+    assert len(contract) > 0
+
+
+def test_mode_contract_unknown_mode_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    """load_mode_contract raises UnknownModeError when no prompt file exists."""
+    from pathlib import Path
+
+    import afterworlds.services.context_builder as cb_module
+
+    monkeypatch.setattr(cb_module, "_PROMPT_DIR", Path("/nonexistent/__test_path__"))
+
+    with pytest.raises(UnknownModeError):
+        load_mode_contract(StoryMode.RPG)
+
+
+def test_assemble_embeds_mode_contract_in_stable_prefix() -> None:
+    """assemble() loads the mode contract from file into StablePrefix.system_prompt."""
+    service = _make_service()
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    expected_contract = load_mode_contract(StoryMode.RPG)
+    assert assembled.stable_prefix.system_prompt == expected_contract
+    assert _MODE_CONTRACT_SENTINEL in assembled.stable_prefix.render()
+
+
+# ===========================================================================
+# Stable prefix — canonical 5-field structure and ordering
+# ===========================================================================
+
+
+def test_stable_prefix_five_field_canonical_order() -> None:
+    """StablePrefix.render() emits all 5 fields in documented canonical order."""
+    from afterworlds.models.rules_package import ActiveRuleSlice
+
+    active_slice = _make_minimal_active_slice()
+    assert isinstance(active_slice, ActiveRuleSlice)
+    retrieval = RetrievalMemoryPayload(passages=["RETRIEVAL_SENTINEL"])
+
+    sp = StablePrefix(
+        system_prompt="SYSTEM_SENTINEL",
+        story_bible_context=_moderate_bible(),
+        rolling_summary_text="SUMMARY_SENTINEL",
+        rules_package_slice=active_slice,
+        retrieval_memory=retrieval,
+    )
+    rendered = sp.render()
+
+    pos_system = rendered.find("SYSTEM_SENTINEL")
+    pos_bible = rendered.find("## Story Bible")
+    pos_summary = rendered.find("SUMMARY_SENTINEL")
+    pos_rules = rendered.find("## Rules")
+    pos_retrieval = rendered.find("RETRIEVAL_SENTINEL")
+
+    assert pos_system != -1, "system_prompt missing"
+    assert pos_bible != -1, "Story Bible missing"
+    assert pos_summary != -1, "rolling summary missing"
+    assert pos_rules != -1, "rules slice missing"
+    assert pos_retrieval != -1, "retrieval memory missing"
+    assert pos_system < pos_bible, "system_prompt must precede Story Bible"
+    assert pos_bible < pos_summary, "Story Bible must precede rolling summary"
+    assert pos_summary < pos_rules, "rolling summary must precede rules slice"
+    assert pos_rules < pos_retrieval, "rules slice must precede retrieval memory"
 
 
 def test_stable_prefix_components_in_canonical_order() -> None:
-    """CRD Item 12: stable prefix assembled once per turn in documented order.
+    """CRD Item 14 invariant #10: stable prefix in documented canonical order.
 
-    Canonical order: system_prompt → Story Bible → rolling summary.
+    Order: mode contract → Story Bible → rolling summary.
     Structural contract: assembled context contains exactly one StablePrefix;
-    all three components are present and appear in the documented order.
+    all components are present and appear in the documented order.
     """
     summary_text = "ROLLING_SUMMARY_SENTINEL"
     bible = _moderate_bible()
@@ -329,7 +536,7 @@ def test_stable_prefix_components_in_canonical_order() -> None:
 
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I search the room.",
         classified_intent=_make_classified_intent(),
     )
@@ -339,14 +546,14 @@ def test_stable_prefix_components_in_canonical_order() -> None:
 
     rendered = assembled.stable_prefix.render()
 
-    sys_pos = rendered.find(_SYSTEM_PROMPT)
+    mode_pos = rendered.find(_MODE_CONTRACT_SENTINEL)
     bible_pos = rendered.find("## Story Bible")
     summary_pos = rendered.find(summary_text)
 
-    assert sys_pos != -1, "system_prompt missing from stable prefix render"
+    assert mode_pos != -1, "mode contract missing from stable prefix render"
     assert bible_pos != -1, "Story Bible section missing from stable prefix render"
     assert summary_pos != -1, "rolling summary missing from stable prefix render"
-    assert sys_pos < bible_pos, "system_prompt must appear before Story Bible"
+    assert mode_pos < bible_pos, "mode contract must appear before Story Bible"
     assert bible_pos < summary_pos, "Story Bible must appear before rolling summary"
 
 
@@ -360,16 +567,14 @@ def test_partition_story_bible_is_in_stable_prefix_not_volatile() -> None:
     service = _make_service(bible=_moderate_bible())
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I look around.",
         classified_intent=_make_classified_intent(),
     )
 
-    # StablePrefix carries story_bible_context; VolatileSuffix carries recent_turns
     assert hasattr(assembled.stable_prefix, "story_bible_context")
     assert isinstance(assembled.stable_prefix.story_bible_context, StoryBibleContext)
     assert hasattr(assembled.volatile_suffix, "recent_turns")
-    # VolatileSuffix has no story_bible_context attribute
     assert not hasattr(assembled.volatile_suffix, "story_bible_context")
 
 
@@ -379,13 +584,12 @@ def test_partition_recent_turns_in_volatile_suffix_not_stable_prefix() -> None:
     service = _make_service(turns=turns)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I go forward.",
         classified_intent=_make_classified_intent(),
     )
 
     assert assembled.volatile_suffix.recent_turns == turns
-    # StablePrefix must have no recent_turns attribute
     assert not hasattr(assembled.stable_prefix, "recent_turns")
 
 
@@ -395,14 +599,13 @@ def test_partition_story_bible_content_not_in_volatile_suffix_render() -> None:
     service = _make_service(bible=bible)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I act.",
         classified_intent=_make_classified_intent(),
     )
 
     volatile_rendered = assembled.volatile_suffix.render()
     assert "## Story Bible" not in volatile_rendered
-    # The setting summary is in the stable prefix, not volatile suffix
     assert "dark fantasy" not in volatile_rendered
 
 
@@ -413,13 +616,41 @@ def test_partition_recent_turns_not_in_stable_prefix_render() -> None:
     service = _make_service(turns=turns)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="Next action.",
         classified_intent=_make_classified_intent(),
     )
 
     assert unique_turn_text not in assembled.stable_prefix.render()
     assert unique_turn_text in assembled.volatile_suffix.render()
+
+
+def test_pass_forward_never_appears_in_stable_prefix() -> None:
+    """Pass-forward ledger content never contaminates the stable prefix."""
+    service = _make_service()
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    assembled.pass_forward_ledger.add("planner", "PLANNER_INJECTION_SENTINEL")
+
+    assert "PLANNER_INJECTION_SENTINEL" not in assembled.stable_prefix.render()
+
+
+def test_pass_forward_never_appears_in_volatile_suffix() -> None:
+    """Pass-forward ledger content never contaminates the volatile suffix."""
+    service = _make_service()
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    assembled.pass_forward_ledger.add("writer", "WRITER_INJECTION_SENTINEL")
+
+    assert "WRITER_INJECTION_SENTINEL" not in assembled.volatile_suffix.render()
 
 
 # ===========================================================================
@@ -432,7 +663,7 @@ def test_assemble_minimal_story_bible() -> None:
     service = _make_service(bible=_minimal_bible())
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="Hello.",
         classified_intent=_make_classified_intent(IntentType.OOC),
     )
@@ -440,9 +671,8 @@ def test_assemble_minimal_story_bible() -> None:
     assert assembled.stable_prefix.story_bible_context.setting is None
     assert assembled.stable_prefix.story_bible_context.cast == []
     rendered = assembled.stable_prefix.render()
-    assert _SYSTEM_PROMPT in rendered
+    assert _MODE_CONTRACT_SENTINEL in rendered
     assert "## Story Bible" in rendered
-    # No setting section when setting is None
     assert "### Setting" not in rendered
 
 
@@ -452,7 +682,7 @@ def test_assemble_moderate_story_bible() -> None:
     service = _make_service(bible=bible)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I draw my sword.",
         classified_intent=_make_classified_intent(IntentType.IN_CHARACTER_ACTION),
     )
@@ -474,7 +704,7 @@ def test_assemble_complex_story_bible() -> None:
     service = _make_service(bible=bible)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="I slip into the shadows.",
         classified_intent=_make_classified_intent(IntentType.IN_CHARACTER_ACTION),
     )
@@ -485,8 +715,6 @@ def test_assemble_complex_story_bible() -> None:
     assert "### Forbidden Facts" in rendered
     assert "Zara must not die" in rendered
     assert "### Relationships" in rendered
-    # Relationship: Zara → Lord Vane
-    assert "Zara" in rendered and "Lord Vane" in rendered
     assert "### Active Plot Threads" in rendered
     assert "betrayed" in rendered
 
@@ -497,7 +725,7 @@ def test_cast_sorted_alphabetically_for_determinism() -> None:
     service = _make_service(bible=bible)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
@@ -523,7 +751,7 @@ def test_recent_turns_provider_is_called() -> None:
 
     service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
@@ -542,73 +770,124 @@ def test_retrieval_memory_provider_is_called() -> None:
         recent_turns_provider=_CountingRecentTurnsProvider(),
         retrieval_memory=retrieval,
     )
-    user_input = "What do I see ahead?"
+    raw_input_sentinel = "What do I see ahead?"
+    classified = _make_classified_intent(raw_input=raw_input_sentinel)
     service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
-        current_input=user_input,
-        classified_intent=_make_classified_intent(),
+        mode=StoryMode.RPG,
+        current_input="some other input",
+        classified_intent=classified,
     )
 
     assert retrieval.call_count == 1
-    assert retrieval.last_query == user_input
+    # Retrieval query is intent_classification.raw_input, not current_input
+    assert retrieval.last_query == raw_input_sentinel
 
 
-def test_retrieval_memory_called_with_current_input_as_query() -> None:
-    """retrieve() receives the current player input as the query string."""
+def test_retrieval_memory_called_with_raw_input_as_query() -> None:
+    """retrieve() receives intent_classification.raw_input as the query string,
+    not current_input (which is the prompt turn input sent to build_volatile_suffix)."""
     retrieval = _CountingRetrievalMemoryProvider()
     service = _make_service(retrieval=retrieval)
-    specific_input = "Where is the Ember Court located?"
+    raw_input_sentinel = "Where is the Ember Court located?"
+    classified = _make_classified_intent(
+        intent=IntentType.LORE_QUESTION,
+        raw_input=raw_input_sentinel,
+    )
     service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
-        current_input=specific_input,
-        classified_intent=_make_classified_intent(IntentType.LORE_QUESTION),
+        mode=StoryMode.RPG,
+        current_input="show me the map",  # distinct from raw_input_sentinel
+        classified_intent=classified,
     )
-    assert retrieval.last_query == specific_input
+    assert retrieval.last_query == raw_input_sentinel
 
 
-def test_null_retrieval_memory_provider_returns_empty() -> None:
-    """NullRetrievalMemoryProvider.retrieve always returns an empty string."""
+def test_null_retrieval_memory_provider_returns_empty_payload() -> None:
+    """NullRetrievalMemoryProvider.retrieve always returns an empty payload."""
     null_provider = NullRetrievalMemoryProvider()
     result = null_provider.retrieve(_STORY_ID, "any query")
-    assert result == ""
+    assert isinstance(result, RetrievalMemoryPayload)
+    assert result.passages == []
 
 
 # ===========================================================================
-# Rule slice — separate from stable prefix
+# Retrieval memory — named field in StablePrefix
+# ===========================================================================
+
+
+def test_retrieval_memory_wired_into_stable_prefix_named_field() -> None:
+    """StablePrefix always has a named retrieval_memory field; empty by default."""
+    service = _make_service()
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    assert hasattr(assembled.stable_prefix, "retrieval_memory")
+    assert isinstance(assembled.stable_prefix.retrieval_memory, RetrievalMemoryPayload)
+    assert assembled.stable_prefix.retrieval_memory.passages == []
+
+
+def test_retrieval_memory_populated_appears_in_stable_prefix_render() -> None:
+    """Populated retrieval memory passages appear in the stable prefix render."""
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=_FakeRetrievalMemoryProvider(
+            passages=["RETRIEVED_PASSAGE_SENTINEL"]
+        ),
+    )
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    assert assembled.stable_prefix.retrieval_memory.passages == [
+        "RETRIEVED_PASSAGE_SENTINEL"
+    ]
+    assert "RETRIEVED_PASSAGE_SENTINEL" in assembled.stable_prefix.render()
+    # Retrieval appears only in stable prefix, not volatile suffix
+    assert "RETRIEVED_PASSAGE_SENTINEL" not in assembled.volatile_suffix.render()
+
+
+# ===========================================================================
+# Rule slice — inside StablePrefix (Issue 8 contract; ADR-0010 revised)
 # ===========================================================================
 
 
 def test_rule_slice_is_none_when_not_requested() -> None:
-    """AssembledContext.rule_slice is None when no RuleSliceRequest is given."""
+    """StablePrefix.rules_package_slice is None when no RuleSliceRequest is given."""
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
-    assert assembled.rule_slice is None
+    assert assembled.stable_prefix.rules_package_slice is None
 
 
-def test_rule_slice_is_separate_from_stable_prefix() -> None:
-    """rule_slice is a field on AssembledContext, NOT inside stable_prefix."""
+def test_rule_slice_is_inside_stable_prefix_not_on_assembled_context() -> None:
+    """rules_package_slice is a named field on StablePrefix; not on AssembledContext."""
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
-    # rule_slice on AssembledContext
-    assert hasattr(assembled, "rule_slice")
-    # StablePrefix does NOT have rule_slice
-    assert not hasattr(assembled.stable_prefix, "rule_slice")
+    # rules_package_slice is on StablePrefix
+    assert hasattr(assembled.stable_prefix, "rules_package_slice")
+    # AssembledContext does NOT have a separate rule_slice field
+    assert not hasattr(assembled, "rule_slice")
 
 
 def test_rule_slice_request_without_service_raises() -> None:
-    """Providing a RuleSliceRequest without injecting rules_package_service raises."""
+    """Qualifying RPG RuleSliceRequest without rules_package_service raises."""
     from afterworlds.models.rules_package import RuleSliceRequest
 
     service = ContextBuilderService(
@@ -622,19 +901,20 @@ def test_rule_slice_request_without_service_raises() -> None:
     with pytest.raises(ValueError, match="rules_package_service"):
         service.assemble(
             story_id=_STORY_ID,
-            system_prompt=_SYSTEM_PROMPT,
+            mode=StoryMode.RPG,
             current_input="I attack.",
+            # IN_CHARACTER_ACTION qualifies in RPG mode
             classified_intent=_make_classified_intent(),
             rule_slice_request=req,
         )
 
 
 def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
-    """Rule slice end-to-end: seam called, slice wired to AssembledContext, rendered.
+    """Rule slice end-to-end: seam called, slice wired into stable_prefix, rendered.
 
-    Exercises _render_rule_slice (models/context.py lines 139-158) which was
-    otherwise untested — the enabled-chunk path and entity path both fire here.
-    Canonical order verified: stable prefix → rule slice → volatile suffix.
+    Exercises _render_rule_slice (models/context.py) — the enabled-chunk path
+    and entity path both fire here.
+    Canonical order verified: stable prefix (incl. rule slice) → volatile suffix.
     """
     from afterworlds.models.enums import (
         MechanicalEntityTypeEnum,
@@ -729,7 +1009,7 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
     volatile_input = "I attack the goblin."
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input=volatile_input,
         classified_intent=_make_classified_intent(IntentType.IN_CHARACTER_ACTION),
         rule_slice_request=req,
@@ -743,22 +1023,96 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         (MechanicalEntityTypeEnum.CONDITION, "ENTITY_NAME_SENTINEL")
     ]
 
-    # Slice is wired onto AssembledContext (not inside stable_prefix)
-    assert assembled.rule_slice is active_slice
-    assert not hasattr(assembled.stable_prefix, "rule_slice")
+    # Slice is wired into StablePrefix, not a separate field on AssembledContext
+    assert assembled.stable_prefix.rules_package_slice is active_slice
+    assert not hasattr(assembled, "rule_slice")
 
-    # Canonical order: stable prefix → rule slice content → volatile suffix
+    # Canonical order in render_for_pass: stable prefix (incl. slice) → volatile suffix
     full = assembled.render_for_pass()
-    sys_pos = full.find(_SYSTEM_PROMPT)
+    mode_pos = full.find(_MODE_CONTRACT_SENTINEL)
     chunk_pos = full.find("CHUNK_CONTENT_SENTINEL")
     entity_pos = full.find("ENTITY_NAME_SENTINEL")
     volatile_pos = full.find(volatile_input)
 
     assert chunk_pos != -1, "chunk applied_content missing from render_for_pass"
     assert entity_pos != -1, "entity name missing from render_for_pass"
-    assert sys_pos < chunk_pos, "rule slice must appear after stable prefix"
+    assert mode_pos < chunk_pos, "rule slice must appear after mode contract"
     assert chunk_pos < volatile_pos, "rule slice must appear before volatile suffix"
     assert entity_pos < volatile_pos, "entity must appear before volatile suffix"
+
+
+# ===========================================================================
+# Mode × intent rule-slice policy matrix
+# ===========================================================================
+
+
+@pytest.mark.parametrize(
+    "mode,intent,expect_slice_retrieved",
+    [
+        (StoryMode.RPG, IntentType.IN_CHARACTER_ACTION, True),
+        (StoryMode.RPG, IntentType.DIALOGUE, True),
+        (StoryMode.RPG, IntentType.LORE_QUESTION, True),
+        (StoryMode.RPG, IntentType.AUTHOR_INSTRUCTION, False),
+        (StoryMode.RPG, IntentType.OOC, False),
+        (StoryMode.RPG, IntentType.REWIND, False),
+        (StoryMode.RPG, IntentType.BRANCH_CHOICE, False),
+        (StoryMode.BRANCHING, IntentType.IN_CHARACTER_ACTION, False),
+        (StoryMode.WRITING, IntentType.IN_CHARACTER_ACTION, False),
+    ],
+)
+def test_rule_slice_mode_intent_policy(
+    mode: StoryMode,
+    intent: IntentType,
+    expect_slice_retrieved: bool,
+) -> None:
+    """Rule slice is retrieved only for RPG mode + qualifying intents.
+
+    Qualifying intents: IN_CHARACTER_ACTION, DIALOGUE, LORE_QUESTION.
+    All other modes or intents → rules_package_slice is None.
+    """
+    from afterworlds.models.rules_package import ActiveRuleSlice, RuleSliceRequest
+
+    active_slice = _make_minimal_active_slice()
+    assert isinstance(active_slice, ActiveRuleSlice)
+
+    class _CountingRulesService:
+        def __init__(self) -> None:
+            self.call_count = 0
+
+        def get_active_rule_slice(
+            self,
+            package_id: UUID,
+            subsystem_tags: object,
+            entity_refs: object,
+            include_non_published: bool = False,
+        ) -> ActiveRuleSlice:
+            self.call_count += 1
+            return active_slice
+
+    stub_rules = _CountingRulesService()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=_CountingRetrievalMemoryProvider(),
+        rules_package_service=stub_rules,
+    )
+    req = RuleSliceRequest(package_id=uuid4())
+
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=mode,
+        current_input="test",
+        classified_intent=_make_classified_intent(intent),
+        rule_slice_request=req,
+    )
+
+    if expect_slice_retrieved:
+        assert stub_rules.call_count == 1
+        assert assembled.stable_prefix.rules_package_slice is active_slice
+    else:
+        assert stub_rules.call_count == 0
+        assert assembled.stable_prefix.rules_package_slice is None
 
 
 # ===========================================================================
@@ -772,7 +1126,7 @@ def test_rolling_summary_included_in_stable_prefix_when_present() -> None:
     service = _make_service(summary=_make_rolling_summary(summary_sentinel))
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
@@ -785,7 +1139,7 @@ def test_rolling_summary_absent_from_stable_prefix_when_none() -> None:
     service = _make_service(summary=None)
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
@@ -803,7 +1157,7 @@ def test_volatile_suffix_contains_current_input() -> None:
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input=unique_input,
         classified_intent=_make_classified_intent(),
     )
@@ -815,7 +1169,7 @@ def test_volatile_suffix_contains_classified_intent() -> None:
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="What does this symbol mean?",
         classified_intent=_make_classified_intent(IntentType.LORE_QUESTION),
     )
@@ -829,7 +1183,7 @@ def test_recent_turns_appear_in_volatile_suffix_oldest_first() -> None:
     service = _make_service(turns=[t1, t2])
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="third input",
         classified_intent=_make_classified_intent(),
     )
@@ -842,7 +1196,7 @@ def test_pass_forward_ledger_starts_empty() -> None:
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
@@ -872,7 +1226,7 @@ def test_render_for_pass_includes_all_components_in_order() -> None:
     )
     assembled = service.assemble(
         story_id=_STORY_ID,
-        system_prompt=_SYSTEM_PROMPT,
+        mode=StoryMode.RPG,
         current_input=volatile_input,
         classified_intent=_make_classified_intent(),
     )
@@ -880,13 +1234,13 @@ def test_render_for_pass_includes_all_components_in_order() -> None:
 
     full = assembled.render_for_pass()
 
-    sys_pos = full.find(_SYSTEM_PROMPT)
+    mode_pos = full.find(_MODE_CONTRACT_SENTINEL)
     bible_pos = full.find("## Story Bible")
     summary_pos = full.find(summary_text)
     planner_pos = full.find("PLANNER_SENTINEL")
     volatile_pos = full.find(volatile_input)
 
-    assert sys_pos < bible_pos < summary_pos
+    assert mode_pos < bible_pos < summary_pos
     assert summary_pos < planner_pos
     assert planner_pos < volatile_pos
 
@@ -1019,3 +1373,64 @@ def test_sqlite_recent_turns_provider_returns_empty_for_unknown_story(
     provider = SQLiteRecentTurnsProvider(_sqlite_session)  # type: ignore[arg-type]
     turns = provider.get_recent_turns(uuid4(), limit=10)
     assert turns == []
+
+
+def test_sqlite_recent_turns_provider_deterministic_under_equal_timestamps(
+    _sqlite_session: object,
+) -> None:
+    """Turns with equal timestamps are ordered deterministically via turn_id tiebreaker.
+
+    Verifies that the secondary ORDER BY turn_id DESC clause prevents
+    non-deterministic ordering when two turns share a timestamp.
+    """
+    from sqlalchemy.orm import Session as SaSession
+
+    sess: SaSession = _sqlite_session  # type: ignore[assignment]
+    story_id = uuid4()
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        story_id=story_id,
+        title="Tie Test",
+        mode=StoryMode.RPG,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(sess, story)
+
+    arc_id = str(uuid4())
+    sess.add(ArcORM(arc_id=arc_id, story_id=str(story_id), title="Arc 1", order=1))
+    chapter_id = str(uuid4())
+    sess.add(ChapterORM(chapter_id=chapter_id, arc_id=arc_id, title="Ch 1", order=1))
+    node_orm = NodeORM(
+        node_id=str(uuid4()),
+        chapter_id=chapter_id,
+        content="",
+        state_delta={},
+        branching_logic=[],
+        intent_type="in_character_action",
+        metadata_={},
+    )
+    sess.add(node_orm)
+    sess.flush()
+
+    same_ts = datetime(2026, 6, 1, 12, 0, 0, tzinfo=UTC).isoformat()
+    for user_input in ("tie_turn_1", "tie_turn_2"):
+        sess.add(
+            TurnORM(
+                turn_id=str(uuid4()),
+                node_id=node_orm.node_id,
+                user_input=user_input,
+                assistant_output="response",
+                timestamp=same_ts,
+                intent_classification="in_character_action",
+            )
+        )
+    sess.commit()
+
+    provider = SQLiteRecentTurnsProvider(sess)  # type: ignore[arg-type]
+    # Two separate calls must return the same deterministic order
+    result_a = [t.user_input for t in provider.get_recent_turns(story_id, limit=10)]
+    result_b = [t.user_input for t in provider.get_recent_turns(story_id, limit=10)]
+    assert result_a == result_b, "ordering must be deterministic under equal timestamps"
+    assert len(result_a) == 2

@@ -1,26 +1,30 @@
 """Context Builder service — CRD Issue 8.
 
 Assembles the full context payload for each pipeline pass.  The stable prefix
-is assembled exactly once per turn and stored on the returned AssembledContext;
-the pipeline (Issue 12) shares it across all passes without rebuilding it.
+is assembled exactly once per turn via build_stable_prefix() and stored on the
+returned AssembledContext; the pipeline (Issue 12) shares it across all passes
+without rebuilding it.
 
 Key constraints from the issue spec:
-  - Stable prefix assembled once per turn, never per pass (CRD Item 12,
-    Principle 6).
-  - Story Bible and rolling summary in stable prefix; recent turns in volatile
-    suffix — never mixed.
-  - Rule slice stored separately from stable prefix (see ADR-0010) so that
-    query-dependent slice changes between turns do not bust the cache window.
+  - Stable prefix assembled once per turn, never per pass (CRD Item 14,
+    architectural invariant #10).
+  - Story Bible, rolling summary, rules_package_slice, and retrieval memory
+    all live inside StablePrefix.  Recent turns live in volatile suffix.
+  - Rule slice uses a mode×intent policy gate: RPG mode +
+    (IN_CHARACTER_ACTION | DIALOGUE | LORE_QUESTION) + request → retrieve;
+    all other cases → omit.
   - RecentTurnsProvider and RetrievalMemoryProvider are Protocol seams.
     Neither is hard-coded to a concrete implementation.  ChromaDB integration
     lands in Issue 18.
-  - NullRetrievalMemoryProvider returns empty until Issue 18.
+  - NullRetrievalMemoryProvider returns empty RetrievalMemoryPayload until
+    Issue 18.
   - No pipeline calls, no Writer invocation, no Story Bible writes.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
@@ -30,6 +34,7 @@ from sqlalchemy.orm import Session
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
+    RetrievalMemoryPayload,
     StablePrefix,
     VolatileSuffix,
 )
@@ -37,6 +42,7 @@ from afterworlds.models.enums import (
     IntentType,
     MechanicalEntityTypeEnum,
     RuleSubsystemEnum,
+    StoryMode,
     normalize_legacy_intent_type,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
@@ -56,6 +62,46 @@ from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 #: ~10 verbatim turns).  Tune once the Writer path (Issue 9) provides real
 #: turn-length data.
 RECENT_TURNS_LIMIT: int = 10
+
+# ---------------------------------------------------------------------------
+# Mode contract loading
+# ---------------------------------------------------------------------------
+
+#: Root directory for mode prompt files.  Patchable in tests.
+_PROMPT_DIR: Path = Path(__file__).parents[3] / "docs" / "prompts"
+
+
+class UnknownModeError(ValueError):
+    """Raised by load_mode_contract when no prompt file exists for the mode."""
+
+
+def load_mode_contract(mode: StoryMode) -> str:
+    """Load the versioned mode contract from docs/prompts/{mode}_mode.md.
+
+    Raises:
+        UnknownModeError: if the expected prompt file does not exist.
+    """
+    prompt_path = _PROMPT_DIR / f"{mode.value}_mode.md"
+    try:
+        return prompt_path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise UnknownModeError(
+            f"No mode contract file found for mode {mode!r} at {prompt_path}"
+        ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Mode × intent rule-slice policy
+# ---------------------------------------------------------------------------
+
+#: Intent types that qualify for rule slice retrieval in RPG mode.
+_RPG_QUALIFYING_INTENTS: frozenset[IntentType] = frozenset(
+    {
+        IntentType.IN_CHARACTER_ACTION,
+        IntentType.DIALOGUE,
+        IntentType.LORE_QUESTION,
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -78,17 +124,17 @@ class RecentTurnsProvider(Protocol):
 class RetrievalMemoryProvider(Protocol):
     """Protocol for the vector retrieval memory seam (ChromaDB, Issue 18).
 
-    Returns retrieved context text for the current query.  Until Issue 18
-    is implemented, use :class:`NullRetrievalMemoryProvider` which always
-    returns an empty string.
+    Returns a typed RetrievalMemoryPayload for the current query.  Until
+    Issue 18 is implemented, use :class:`NullRetrievalMemoryProvider` which
+    always returns an empty payload.
 
-    The provider is called by the Context Builder on every turn so that:
+    The provider is called by build_stable_prefix() on every turn so that:
       - The seam is exercised and verifiable in tests.
       - Issue 18 can plug in ChromaDB without changing the service.
     """
 
-    def retrieve(self, story_id: UUID, query: str) -> str:
-        """Return retrieved context text for *query* in *story_id*, or empty."""
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+        """Return retrieval payload for *query* in *story_id*, or empty."""
         ...
 
 
@@ -121,15 +167,15 @@ class _RulesPackageServiceLike(Protocol):
 
 
 class NullRetrievalMemoryProvider:
-    """Retrieval memory provider that always returns empty.
+    """Retrieval memory provider that always returns an empty payload.
 
     Used until ChromaDB integration (Issue 18) provides a real implementation.
     The Context Builder still calls retrieve() on every turn so the seam is
     exercised and the call site does not need to change in Issue 18.
     """
 
-    def retrieve(self, story_id: UUID, query: str) -> str:
-        return ""
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+        return RetrievalMemoryPayload()
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +219,7 @@ class SQLiteRecentTurnsProvider:
                 .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
                 .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
                 .where(ArcORM.story_id == str(story_id))
-                .order_by(TurnORM.timestamp.desc())
+                .order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
                 .limit(limit)
             )
             .scalars()
@@ -191,8 +237,15 @@ class SQLiteRecentTurnsProvider:
 class ContextBuilderService:
     """Assembles the full context payload for one pipeline turn.
 
-    Stable prefix is assembled exactly once per call to :meth:`assemble` and
-    stored on the returned :class:`AssembledContext`.  The pipeline (Issue 12)
+    Public builder contract (Issue 8):
+      build_stable_prefix(story_id, mode, intent_classification,
+                          rule_slice_request=None) -> StablePrefix
+      build_volatile_suffix(story_id, raw_input, intent_classification)
+                          -> VolatileSuffix
+      assemble(...) -> AssembledContext   # convenience; delegates to both
+
+    Stable prefix is assembled exactly once per call to :meth:`build_stable_prefix`
+    (and therefore once per call to :meth:`assemble`).  The pipeline (Issue 12)
     passes the same AssembledContext to all five passes without calling this
     service again — the stable-prefix-once-per-turn invariant is maintained
     by the caller, not enforced internally.
@@ -201,10 +254,11 @@ class ContextBuilderService:
         story_bible_service: service with get_active_context_window.
         rolling_summary_service: service with get_current_summary.
         recent_turns_provider: Protocol seam for recent turn retrieval.
-        retrieval_memory: Protocol seam for vector retrieval (empty until
-            Issue 18; use NullRetrievalMemoryProvider).
+        retrieval_memory: Protocol seam for vector retrieval (empty payload
+            until Issue 18; use NullRetrievalMemoryProvider).
         rules_package_service: optional service for RPG rule slice retrieval.
-            Required when assemble() is called with a RuleSliceRequest.
+            Required when build_stable_prefix() is called in RPG mode with a
+            qualifying intent and a RuleSliceRequest.
     """
 
     def __init__(
@@ -221,87 +275,145 @@ class ContextBuilderService:
         self._retrieval_memory = retrieval_memory
         self._rules_package_service = rules_package_service
 
-    def assemble(
+    def build_stable_prefix(
         self,
         story_id: UUID,
-        system_prompt: str,
-        current_input: str,
-        classified_intent: IntentClassificationResult,
+        mode: StoryMode,
+        intent_classification: IntentClassificationResult,
         rule_slice_request: RuleSliceRequest | None = None,
-    ) -> AssembledContext:
-        """Assemble the full context payload for one pipeline turn.
+    ) -> StablePrefix:
+        """Assemble the stable prefix for one pipeline turn.
 
-        Assembly order (matches CRD §Item 8 stable-prefix-first contract):
-          Stable prefix: system_prompt → Story Bible → rolling summary
-          Rule slice:    separate from stable prefix (see ADR-0010)
-          Volatile suffix: recent turns (oldest-first) → current input + intent
-
-        The retrieval memory seam is called on every turn.  Its result is
-        currently empty (NullRetrievalMemoryProvider) and is not yet wired
-        into the assembled context — Issue 18 will expand this seam.
+        Assembly order (canonical Issue 8 field order):
+          1. system_prompt — mode contract loaded from docs/prompts/
+          2. story_bible_context — ratified Story Bible canon
+          3. rolling_summary_text — compressed narrative history (if present)
+          4. rules_package_slice — RPG rule slice (mode×intent policy gate)
+          5. retrieval_memory — vector retrieval payload (empty until Issue 18)
 
         Args:
             story_id: UUID of the story this turn belongs to.
-            system_prompt: fully composed system prompt including mode contract.
-            current_input: raw player input string for this turn.
-            classified_intent: typed result from IntentClassifierService.
+            mode: StoryMode for the current session (governs rule slice policy
+                and mode contract loading).
+            intent_classification: typed result from IntentClassifierService.
+                raw_input is used as the retrieval query.
             rule_slice_request: optional parameter bundle for RPG rule slice.
-                Requires rules_package_service to have been injected.
+                Only honoured when mode is RPG and intent qualifies.
 
         Returns:
-            AssembledContext with stable prefix, optional rule slice, volatile
-            suffix, and an empty PassForwardLedger ready for pipeline use.
+            Frozen StablePrefix ready to share across all pipeline passes.
 
         Raises:
-            ValueError: if rule_slice_request is provided but
+            UnknownModeError: if no prompt file exists for the given mode.
+            ValueError: if a qualifying RPG rule_slice_request is provided but
                 rules_package_service was not injected.
         """
-        # 1. Assemble stable prefix — once per turn, not per pass.
+        # 1. Load mode contract.
+        system_prompt = load_mode_contract(mode)
+
+        # 2. Story Bible.
         bible_context = self._story_bible_service.get_active_context_window(story_id)
+
+        # 3. Rolling summary.
         rolling_summary = self._rolling_summary_service.get_current_summary(story_id)
         rolling_summary_text = rolling_summary.text if rolling_summary else None
 
-        stable_prefix = StablePrefix(
-            system_prompt=system_prompt,
-            story_bible_context=bible_context,
-            rolling_summary_text=rolling_summary_text,
-        )
-
-        # 2. Retrieve rule slice (separate from stable prefix per ADR-0010).
-        rule_slice: ActiveRuleSlice | None = None
-        if rule_slice_request is not None:
+        # 4. Rule slice — mode × intent policy gate.
+        rules_package_slice: ActiveRuleSlice | None = None
+        if (
+            mode is StoryMode.RPG
+            and intent_classification.intent_type in _RPG_QUALIFYING_INTENTS
+            and rule_slice_request is not None
+        ):
             if self._rules_package_service is None:
                 raise ValueError(
                     "rule_slice_request provided but rules_package_service was not "
                     "injected into ContextBuilderService"
                 )
-            rule_slice = self._rules_package_service.get_active_rule_slice(
+            rules_package_slice = self._rules_package_service.get_active_rule_slice(
                 package_id=rule_slice_request.package_id,
                 subsystem_tags=rule_slice_request.subsystem_tags,
                 entity_refs=rule_slice_request.entity_refs,
                 include_non_published=rule_slice_request.include_non_published,
             )
 
-        # 3. Retrieve recent turns (oldest-first from provider).
+        # 5. Retrieval memory — seam called on every turn; empty until Issue 18.
+        retrieval_payload = self._retrieval_memory.retrieve(
+            story_id, intent_classification.raw_input
+        )
+
+        return StablePrefix(
+            system_prompt=system_prompt,
+            story_bible_context=bible_context,
+            rolling_summary_text=rolling_summary_text,
+            rules_package_slice=rules_package_slice,
+            retrieval_memory=retrieval_payload,
+        )
+
+    def build_volatile_suffix(
+        self,
+        story_id: UUID,
+        raw_input: str,
+        intent_classification: IntentClassificationResult,
+    ) -> VolatileSuffix:
+        """Assemble the volatile suffix for one pipeline turn.
+
+        Args:
+            story_id: UUID of the story this turn belongs to.
+            raw_input: raw player input string for this turn.
+            intent_classification: typed result from IntentClassifierService.
+
+        Returns:
+            Frozen VolatileSuffix containing recent turns (oldest-first),
+            current input, and classified intent.
+        """
         recent_turns = self._recent_turns_provider.get_recent_turns(
             story_id, limit=RECENT_TURNS_LIMIT
         )
-
-        # 4. Call retrieval memory seam — empty until Issue 18.
-        #    Called on every turn so the seam is exercised and Issue 18 can
-        #    wire in results without changing the service or tests.
-        self._retrieval_memory.retrieve(story_id, current_input)
-
-        # 5. Assemble volatile suffix.
-        volatile_suffix = VolatileSuffix(
+        return VolatileSuffix(
             recent_turns=recent_turns,
-            current_input=current_input,
-            classified_intent=classified_intent,
+            current_input=raw_input,
+            classified_intent=intent_classification,
         )
 
+    def assemble(
+        self,
+        story_id: UUID,
+        mode: StoryMode,
+        current_input: str,
+        classified_intent: IntentClassificationResult,
+        rule_slice_request: RuleSliceRequest | None = None,
+    ) -> AssembledContext:
+        """Assemble the full context payload for one pipeline turn.
+
+        Convenience method that delegates to build_stable_prefix() and
+        build_volatile_suffix(), then wraps both in an AssembledContext with
+        an empty PassForwardLedger.
+
+        Args:
+            story_id: UUID of the story this turn belongs to.
+            mode: StoryMode for the current session.
+            current_input: raw player input string for this turn.
+            classified_intent: typed result from IntentClassifierService.
+            rule_slice_request: optional parameter bundle for RPG rule slice.
+
+        Returns:
+            AssembledContext with stable prefix, volatile suffix, and an empty
+            PassForwardLedger ready for pipeline use.
+
+        Raises:
+            UnknownModeError: if no prompt file exists for the given mode.
+            ValueError: if a qualifying RPG rule_slice_request is provided but
+                rules_package_service was not injected.
+        """
+        stable_prefix = self.build_stable_prefix(
+            story_id, mode, classified_intent, rule_slice_request
+        )
+        volatile_suffix = self.build_volatile_suffix(
+            story_id, current_input, classified_intent
+        )
         return AssembledContext(
             stable_prefix=stable_prefix,
-            rule_slice=rule_slice,
             volatile_suffix=volatile_suffix,
             pass_forward_ledger=PassForwardLedger(),
         )

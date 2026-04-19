@@ -1,16 +1,15 @@
 """Context models for the Context Builder — CRD Issue 8.
 
 These models form the typed payload the Context Builder assembles and the
-pipeline (Issue 12) consumes.  Three structural partitions are kept strictly
+pipeline (Issue 12) consumes.  Five structural partitions are kept strictly
 separate:
 
   stable_prefix  — assembled once per turn; shared across all pipeline passes.
-                   Contains system prompt, Story Bible active context, rolling
-                   summary.  Never rebuilt per pass — architectural invariant
-                   (CRD Item 12, CRD Item 2 Principle 6).
-  rule_slice     — optional ActiveRuleSlice (RPG mode only); stored separately
-                   from stable_prefix so query-dependent slice changes between
-                   turns do not bust the stable-prefix cache window.
+                   Contains system prompt + mode contract (field 1), Story Bible
+                   active context (field 2), rolling summary (field 3),
+                   rules_package_slice (field 4), retrieval memory (field 5).
+                   Never rebuilt per pass — architectural invariant (CRD Item
+                   12, CRD Item 2 Principle 6).
   volatile_suffix — assembled per turn; contains recent turns verbatim and the
                    current player input + classified intent.
   pass_forward_ledger — mutable ledger of content injected by each pipeline
@@ -19,12 +18,7 @@ separate:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
-from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    pass
+from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rules_package import ActiveRuleSlice
@@ -159,6 +153,32 @@ def _render_rule_slice(rule_slice: ActiveRuleSlice) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Retrieval memory payload
+# ---------------------------------------------------------------------------
+
+
+class RetrievalMemoryPayload(BaseModel):
+    """Typed payload returned by RetrievalMemoryProvider.retrieve().
+
+    ``passages`` is empty until ChromaDB integration (Issue 18) provides
+    real retrieval results.  The empty default ensures StablePrefix always has
+    a named ``retrieval_memory`` field; Issue 18 populates it without changing
+    the model schema.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    passages: list[str] = Field(default_factory=list)
+
+
+def _render_retrieval_memory(payload: RetrievalMemoryPayload) -> str:
+    if not payload.passages:
+        return ""
+    passages_text = "\n".join(f"- {p}" for p in payload.passages)
+    return f"## Retrieved Context\n{passages_text}"
+
+
+# ---------------------------------------------------------------------------
 # Pass-forward ledger
 # ---------------------------------------------------------------------------
 
@@ -201,24 +221,32 @@ class PassForwardLedger(BaseModel):
 class StablePrefix(BaseModel):
     """Stable prompt prefix — assembled once per turn, shared across all passes.
 
-    Partition contents (in render order):
-      1. system_prompt — includes mode contract; provided by the caller
+    Partition contents (canonical render order):
+      1. system_prompt — mode contract loaded from docs/prompts/{mode}_mode.md
       2. story_bible_context — ratified canon, rendered from StoryBibleContext
       3. rolling_summary_text — compressed narrative history, or None
+      4. rules_package_slice — RPG rule slice (mode×intent policy gate); None
+         if mode is not RPG or intent does not qualify
+      5. retrieval_memory — vector retrieval payload; empty until Issue 18
 
     The raw StoryBibleContext is preserved alongside the rendered text so
     tests and downstream consumers can inspect the structured data without
     re-parsing.
 
-    The rule slice is intentionally NOT part of StablePrefix — it is stored
-    separately on AssembledContext.  Subsystem queries can change between
-    turns (combat turn vs. lore turn), and including the slice here would
-    bust the stable-prefix cache window.  See ADR-0010.
+    All five fields are present on every StablePrefix instance.  Fields 4 and 5
+    default to None / empty payload so non-RPG and non-retrieval turns carry no
+    unnecessary content.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     system_prompt: str
     story_bible_context: StoryBibleContext
     rolling_summary_text: str | None = None
+    rules_package_slice: ActiveRuleSlice | None = None
+    retrieval_memory: RetrievalMemoryPayload = Field(
+        default_factory=RetrievalMemoryPayload
+    )
 
     def render(self) -> str:
         """Return the assembled stable prefix text in canonical order."""
@@ -228,6 +256,11 @@ class StablePrefix(BaseModel):
         ]
         if self.rolling_summary_text is not None:
             parts.append(self.rolling_summary_text)
+        if self.rules_package_slice is not None:
+            parts.append(_render_rule_slice(self.rules_package_slice))
+        retrieval_text = _render_retrieval_memory(self.retrieval_memory)
+        if retrieval_text:
+            parts.append(retrieval_text)
         return "\n\n".join(parts)
 
 
@@ -247,6 +280,8 @@ class VolatileSuffix(BaseModel):
     recent_turns is always oldest-first in this model.  The provider is
     responsible for returning turns in that order (see context_builder.py).
     """
+
+    model_config = ConfigDict(frozen=True)
 
     recent_turns: list[Turn]
     current_input: str
@@ -276,7 +311,6 @@ class AssembledContext(BaseModel):
 
     Structural partitions:
       stable_prefix      — assembled once; shared across all passes.
-      rule_slice         — optional; separate from stable_prefix for cache.
       volatile_suffix    — recent turns + current input.
       pass_forward_ledger — mutable; pipeline passes add to it as they run.
 
@@ -285,7 +319,6 @@ class AssembledContext(BaseModel):
     """
 
     stable_prefix: StablePrefix
-    rule_slice: ActiveRuleSlice | None = None
     volatile_suffix: VolatileSuffix
     pass_forward_ledger: PassForwardLedger = Field(default_factory=PassForwardLedger)
 
@@ -293,14 +326,12 @@ class AssembledContext(BaseModel):
         """Render the full prompt for one pipeline pass.
 
         Canonical order:
-          1. stable prefix (system + Story Bible + rolling summary)
-          2. rule slice (RPG mode only)
-          3. pass-forward ledger entries from prior passes (may be empty)
-          4. volatile suffix (recent turns + current input + intent)
+          1. stable prefix (system + Story Bible + rolling summary +
+             rules_package_slice + retrieval_memory)
+          2. pass-forward ledger entries from prior passes (may be empty)
+          3. volatile suffix (recent turns + current input + intent)
         """
         parts: list[str] = [self.stable_prefix.render()]
-        if self.rule_slice is not None:
-            parts.append(_render_rule_slice(self.rule_slice))
         ledger_text = self.pass_forward_ledger.render()
         if ledger_text:
             parts.append(ledger_text)
