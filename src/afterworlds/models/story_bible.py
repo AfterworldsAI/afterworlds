@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.models.enums import (
     CastRole,
@@ -30,10 +30,12 @@ class StoryBibleSetting(BaseModel):
     Partition: static.  Requires Sojourner confirmation to update.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     setting_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     summary: str
-    world_rules: list[str] = Field(default_factory=list)
+    world_rules: tuple[str, ...] = ()
     geography: str | None = None
     time_period: str | None = None
     is_active: bool = True
@@ -50,13 +52,15 @@ class CastEntry(BaseModel):
     field history table on every update.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     cast_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     name: str  # static
     role: CastRole  # static
-    traits: list[str] = Field(default_factory=list)  # static
-    goals: list[str] = Field(default_factory=list)  # static
-    secrets: list[str] = Field(default_factory=list)  # static
+    traits: tuple[str, ...] = ()  # static
+    goals: tuple[str, ...] = ()  # static
+    secrets: tuple[str, ...] = ()  # static
     background: str | None = None  # static
     current_location: str | None = None  # dynamic
     current_status: str | None = None  # dynamic
@@ -74,6 +78,8 @@ class LockedFact(BaseModel):
     Partition: static.  Distinct from ForbiddenFact; queryable as a
     distinct set via ``get_locked_facts``.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     locked_fact_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
@@ -98,6 +104,8 @@ class ForbiddenFact(BaseModel):
     distinct set via ``get_forbidden_facts``.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     forbidden_fact_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     fact_text: str
@@ -114,6 +122,8 @@ class Event(BaseModel):
     See ``services.story_bible.ALWAYS_INCLUDE_SIGNIFICANCE`` for the
     always-include set.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     event_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
@@ -134,6 +144,8 @@ class RelationshipLedger(BaseModel):
     history on every update.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     relationship_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     subject_cast_id: UUID
@@ -153,6 +165,8 @@ class UnresolvedThread(BaseModel):
     Active plot threads in the context window are the subset of
     UnresolvedThreads with status=OPEN, loaded per service policy.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     thread_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
@@ -219,13 +233,19 @@ class StoryBibleContext(BaseModel):
     all events whose significance qualifies for always-include, regardless
     of recency.  The N value and always-include set are defined in the
     service layer — see ``services.story_bible``.
+
+    All collection fields are tuples so that the frozen constraint is
+    deep — StablePrefix.frozen=True cannot prevent list.append() on nested
+    mutable lists, but tuple fields are inherently immutable.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     story_id: UUID
     setting: StoryBibleSetting | None
-    cast: list[CastEntry]
-    locked_facts: list[LockedFact]
-    forbidden_facts: list[ForbiddenFact]
-    relationship_ledger: list[RelationshipLedger]
-    active_plot_threads: list[UnresolvedThread]
-    events: list[Event]
+    cast: tuple[CastEntry, ...]
+    locked_facts: tuple[LockedFact, ...]
+    forbidden_facts: tuple[ForbiddenFact, ...]
+    relationship_ledger: tuple[RelationshipLedger, ...]
+    active_plot_threads: tuple[UnresolvedThread, ...]
+    events: tuple[Event, ...]

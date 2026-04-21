@@ -382,14 +382,14 @@ class TestEntityTypeModels:
             casting_time="1 action",
             range="60 feet",
             duration="Instantaneous",
-            components=["V", "S"],
+            components=("V", "S"),
             effect_description="Deals 8d6 fire damage.",
         )
         assert e.casting_time == "1 action"
-        assert e.components == ["V", "S"]
+        assert e.components == ("V", "S")
 
     def test_condition_entity(self) -> None:
-        e = ConditionEntity(effects=["Cannot see", "Disadvantage on attacks"])
+        e = ConditionEntity(effects=("Cannot see", "Disadvantage on attacks"))
         assert len(e.effects) == 2
 
     def test_stat_block_entity(self) -> None:
@@ -403,7 +403,7 @@ class TestEntityTypeModels:
             intelligence=10,
             wisdom=10,
             charisma=8,
-            actions=["Multiattack", "Longsword"],
+            actions=("Multiattack", "Longsword"),
         )
         assert e.armor_class == 15
 
@@ -419,7 +419,7 @@ class TestEntityTypeModels:
     def test_item_entity(self) -> None:
         e = ItemEntity(
             item_type="weapon",
-            properties=["versatile"],
+            properties=("versatile",),
             weight=3.0,
             value="15 gp",
         )
@@ -728,7 +728,7 @@ class TestOverridePrecedence:
         session.commit()
         slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].applied_content == "Base."
-        assert slice_.chunks[0].override_ids_applied == []
+        assert slice_.chunks[0].override_ids_applied == ()
 
     def test_append_override_adds_to_content(
         self, session: Session, svc: RulesPackageService
@@ -805,8 +805,8 @@ class TestGetActiveRuleSlice:
         self, session: Session, svc: RulesPackageService
     ) -> None:
         slice_ = svc.get_active_rule_slice(uuid4(), [RuleSubsystemEnum.COMBAT], [])
-        assert slice_.chunks == []
-        assert slice_.entities == []
+        assert slice_.chunks == ()
+        assert slice_.entities == ()
 
     def test_missing_entity_ref_not_included(
         self, session: Session, svc: RulesPackageService
@@ -819,7 +819,7 @@ class TestGetActiveRuleSlice:
             [],
             [(MechanicalEntityTypeEnum.CONDITION, "Nonexistent")],
         )
-        assert slice_.entities == []
+        assert slice_.entities == ()
 
     def test_entity_overrides_recorded_in_applied_entity(
         self, session: Session, svc: RulesPackageService
@@ -952,7 +952,7 @@ class TestGetEntityByTypeAndName:
         )
         assert result is not None
         assert isinstance(result.structured_data, ConditionEntity)
-        assert result.structured_data.effects == ["pkg1"]
+        assert result.structured_data.effects == ("pkg1",)
 
     def test_source_id_filter_resolves_ambiguity(
         self, session: Session, svc: RulesPackageService
@@ -989,7 +989,7 @@ class TestGetEntityByTypeAndName:
         )
         assert result is not None
         assert isinstance(result.structured_data, ConditionEntity)
-        assert result.structured_data.effects == ["from_b"]
+        assert result.structured_data.effects == ("from_b",)
 
     def test_no_source_id_uses_lowest_precedence_rank(
         self, session: Session, svc: RulesPackageService
@@ -1023,7 +1023,7 @@ class TestGetEntityByTypeAndName:
         )
         assert result is not None
         assert isinstance(result.structured_data, ConditionEntity)
-        assert result.structured_data.effects == ["from_a"]
+        assert result.structured_data.effects == ("from_a",)
 
     def test_disabled_entity_not_returned(
         self, session: Session, svc: RulesPackageService
@@ -1328,7 +1328,7 @@ class TestMechanicalEntityTypeConsistency:
                 source_id=uuid4(),
                 entity_type=MechanicalEntityTypeEnum.SPELL,
                 name="Fireball",
-                structured_data=ConditionEntity(effects=["burning"]),
+                structured_data=ConditionEntity(effects=("burning",)),
                 source_document="PHB",
                 source_locator_type="page",
                 source_locator_value="241",
@@ -1347,7 +1347,7 @@ class TestMechanicalEntityTypeConsistency:
                 casting_time="1 action",
                 range="150 feet",
                 duration="Instantaneous",
-                components=["V", "S", "M"],
+                components=("V", "S", "M"),
                 effect_description="8d6 fire damage.",
             ),
             source_document="PHB",
@@ -1427,7 +1427,7 @@ class TestNullPayloadContentHandling:
         assert len(result.chunks) == 1
         applied = result.chunks[0]
         assert applied.applied_content == "Original text."
-        assert applied.override_ids_applied == []
+        assert applied.override_ids_applied == ()
 
     def test_append_with_null_content_does_not_modify_chunk(
         self, session: Session, svc: RulesPackageService
@@ -1454,7 +1454,7 @@ class TestNullPayloadContentHandling:
         assert len(result.chunks) == 1
         applied = result.chunks[0]
         assert applied.applied_content == "Base text."
-        assert applied.override_ids_applied == []
+        assert applied.override_ids_applied == ()
 
     def test_replace_with_valid_content_still_applies(
         self, session: Session, svc: RulesPackageService

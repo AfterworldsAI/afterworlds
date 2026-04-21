@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -40,21 +40,27 @@ class SpellEntity(BaseModel):
     Fields reflect what Issue 15 adjudication will need.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     casting_time: str
     range: str
     duration: str
-    components: list[str] = Field(default_factory=list)
+    components: tuple[str, ...] = ()
     effect_description: str
 
 
 class ConditionEntity(BaseModel):
     """Typed data for a condition mechanical entity."""
 
-    effects: list[str] = Field(default_factory=list)
+    model_config = ConfigDict(frozen=True)
+
+    effects: tuple[str, ...] = ()
 
 
 class StatBlockEntity(BaseModel):
     """Typed data for a stat block mechanical entity (d20 v1 shape)."""
+
+    model_config = ConfigDict(frozen=True)
 
     armor_class: int
     hit_points: int
@@ -65,11 +71,13 @@ class StatBlockEntity(BaseModel):
     intelligence: int
     wisdom: int
     charisma: int
-    actions: list[str] = Field(default_factory=list)
+    actions: tuple[str, ...] = ()
 
 
 class ActionEntity(BaseModel):
     """Typed data for an action mechanical entity."""
+
+    model_config = ConfigDict(frozen=True)
 
     action_type: str
     description: str
@@ -80,8 +88,10 @@ class ActionEntity(BaseModel):
 class ItemEntity(BaseModel):
     """Typed data for an item mechanical entity (d20 v1 shape)."""
 
+    model_config = ConfigDict(frozen=True)
+
     item_type: str
-    properties: list[str] = Field(default_factory=list)
+    properties: tuple[str, ...] = ()
     weight: float | None = None
     value: str | None = None
 
@@ -187,6 +197,8 @@ class RuleChunk(BaseModel):
     immutable after creation; layered changes go through RuleOverride.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     chunk_id: UUID = Field(default_factory=uuid4)
     rules_package_id: UUID
     source_id: UUID  # Required; no orphaned chunks
@@ -225,6 +237,8 @@ class MechanicalEntity(BaseModel):
     Source records are immutable after creation; layered changes go through
     RuleOverride.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     entity_id: UUID = Field(default_factory=uuid4)
     rules_package_id: UUID
@@ -317,10 +331,12 @@ class ChunksResult(BaseModel):
 class AppliedChunk(BaseModel):
     """A rule chunk with active overrides applied in precedence order."""
 
+    model_config = ConfigDict(frozen=True)
+
     chunk: RuleChunk
     applied_content: str  # Content after override layering; empty if disabled
     is_disabled: bool  # True when a disable override is active
-    override_ids_applied: list[UUID]
+    override_ids_applied: tuple[UUID, ...]
 
 
 class AppliedEntity(BaseModel):
@@ -332,8 +348,10 @@ class AppliedEntity(BaseModel):
     requires them.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     entity: MechanicalEntity
-    override_ids_applied: list[UUID]
+    override_ids_applied: tuple[UUID, ...]
 
 
 class RulesPackageManifest(BaseModel):
@@ -386,6 +404,23 @@ class IngestionConfig:
     extra_tags: list[str] = field(default_factory=list)
 
 
+class RuleSliceRequest(BaseModel):
+    """Typed parameter bundle for RulesPackageService.get_active_rule_slice.
+
+    Introduced in Issue 8 (Context Builder) per the instruction to reuse this
+    model from Issue 5a's namespace rather than creating a parallel model in
+    the Context Builder.  The model was not defined during Issue 5a — it is
+    added here now.  See PR Architecture Notes for scope rationale.
+    """
+
+    package_id: UUID
+    subsystem_tags: list[RuleSubsystemEnum] = Field(default_factory=list)
+    entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] = Field(
+        default_factory=list
+    )
+    include_non_published: bool = False
+
+
 class ActiveRuleSlice(BaseModel):
     """Stable named typed payload returned by get_active_rule_slice.
 
@@ -395,8 +430,14 @@ class ActiveRuleSlice(BaseModel):
 
     Deterministic lookup against provided subsystem/entity references only.
     Not a semantic search result — semantic retrieval belongs to Issue 18.
+
+    Frozen with tuple collections so that ``StablePrefix.rules_package_slice``
+    is effectively deeply immutable: pipeline passes cannot append/remove
+    chunks or entities, nor reassign fields on ``AppliedChunk``/``AppliedEntity``.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     package_id: UUID
-    chunks: list[AppliedChunk]
-    entities: list[AppliedEntity]
+    chunks: tuple[AppliedChunk, ...]
+    entities: tuple[AppliedEntity, ...]

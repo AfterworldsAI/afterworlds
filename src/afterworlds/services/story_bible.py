@@ -120,7 +120,7 @@ def _setting_orm_to_model(row: SBSettingORM) -> StoryBibleSetting:
         setting_id=UUID(row.setting_id),
         story_id=UUID(row.story_id),
         summary=row.summary,
-        world_rules=list(row.world_rules),
+        world_rules=tuple(row.world_rules),
         geography=row.geography,
         time_period=row.time_period,
         is_active=row.is_active,
@@ -136,9 +136,9 @@ def _cast_orm_to_model(row: SBCastEntryORM) -> CastEntry:
         story_id=UUID(row.story_id),
         name=row.static_name,
         role=CastRole(row.static_role),
-        traits=list(row.static_traits),
-        goals=list(row.static_goals),
-        secrets=list(row.static_secrets),
+        traits=tuple(row.static_traits),
+        goals=tuple(row.static_goals),
+        secrets=tuple(row.static_secrets),
         background=row.static_background,
         current_location=row.dynamic_current_location,
         current_status=row.dynamic_current_status,
@@ -312,7 +312,7 @@ class StoryBibleService:
             .scalars()
             .all()
         )
-        cast = [_cast_orm_to_model(r) for r in cast_rows]
+        cast = tuple(_cast_orm_to_model(r) for r in cast_rows)
 
         # Locked facts
         locked_facts = self.get_locked_facts(story_id)
@@ -336,12 +336,12 @@ class StoryBibleService:
             .scalars()
             .all()
         )
-        relationship_ledger = [
+        relationship_ledger = tuple(
             _relationship_orm_to_model(r)
             for r in rel_rows
             if r.subject_cast_id in active_cast_ids
             and r.object_cast_id in active_cast_ids
-        ]
+        )
 
         # Active plot threads (open, active, deterministic order)
         thread_rows = (
@@ -357,7 +357,7 @@ class StoryBibleService:
             .scalars()
             .all()
         )
-        active_plot_threads = [_thread_orm_to_model(r) for r in thread_rows]
+        active_plot_threads = tuple(_thread_orm_to_model(r) for r in thread_rows)
 
         # Events Ledger — tiered inclusion
         events = self._get_tiered_events(sid)
@@ -366,11 +366,11 @@ class StoryBibleService:
             story_id=story_id,
             setting=setting,
             cast=cast,
-            locked_facts=locked_facts,
-            forbidden_facts=forbidden_facts,
+            locked_facts=tuple(locked_facts),
+            forbidden_facts=tuple(forbidden_facts),
             relationship_ledger=relationship_ledger,
             active_plot_threads=active_plot_threads,
-            events=events,
+            events=tuple(events),
         )
 
     def _get_tiered_events(self, story_id_str: str) -> list[Event]:
