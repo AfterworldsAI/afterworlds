@@ -127,16 +127,6 @@ class _CountingRetrievalMemoryProvider:
         return RetrievalMemoryPayload()
 
 
-class _FakeRetrievalMemoryProvider:
-    """Stub that returns a payload with a fixed list of passages."""
-
-    def __init__(self, passages: list[str]) -> None:
-        self._passages = passages
-
-    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
-        return RetrievalMemoryPayload(passages=self._passages)
-
-
 # ---------------------------------------------------------------------------
 # Shared fixtures and helpers
 # ---------------------------------------------------------------------------
@@ -830,48 +820,6 @@ def test_recent_turns_provider_is_called() -> None:
     assert provider.last_limit is not None and provider.last_limit > 0
 
 
-def test_retrieval_memory_provider_is_called() -> None:
-    """RetrievalMemoryProvider.retrieve is called on every assemble() call."""
-    retrieval = _CountingRetrievalMemoryProvider()
-    service = ContextBuilderService(
-        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
-        rolling_summary_service=_FixedRollingSummaryService(),
-        recent_turns_provider=_CountingRecentTurnsProvider(),
-        retrieval_memory=retrieval,
-    )
-    raw_input_sentinel = "What do I see ahead?"
-    classified = _make_classified_intent(raw_input=raw_input_sentinel)
-    service.assemble(
-        story_id=_STORY_ID,
-        mode=StoryMode.RPG,
-        current_input="some other input",
-        classified_intent=classified,
-    )
-
-    assert retrieval.call_count == 1
-    # Retrieval query is intent_classification.raw_input, not current_input
-    assert retrieval.last_query == raw_input_sentinel
-
-
-def test_retrieval_memory_called_with_raw_input_as_query() -> None:
-    """retrieve() receives intent_classification.raw_input as the query string,
-    not current_input (which is the prompt turn input sent to build_volatile_suffix)."""
-    retrieval = _CountingRetrievalMemoryProvider()
-    service = _make_service(retrieval=retrieval)
-    raw_input_sentinel = "Where is the Ember Court located?"
-    classified = _make_classified_intent(
-        intent=IntentType.LORE_QUESTION,
-        raw_input=raw_input_sentinel,
-    )
-    service.assemble(
-        story_id=_STORY_ID,
-        mode=StoryMode.RPG,
-        current_input="show me the map",  # distinct from raw_input_sentinel
-        classified_intent=classified,
-    )
-    assert retrieval.last_query == raw_input_sentinel
-
-
 def test_null_retrieval_memory_provider_returns_empty_payload() -> None:
     """NullRetrievalMemoryProvider.retrieve always returns an empty payload."""
     null_provider = NullRetrievalMemoryProvider()
@@ -885,8 +833,13 @@ def test_null_retrieval_memory_provider_returns_empty_payload() -> None:
 # ===========================================================================
 
 
-def test_retrieval_memory_wired_into_stable_prefix_named_field() -> None:
-    """StablePrefix always has a named retrieval_memory field; empty by default."""
+def test_retrieval_memory_placeholder_field_exists_and_is_empty() -> None:
+    """StablePrefix has a typed retrieval_memory field; Issue 8 always leaves it empty.
+
+    The field is the reserved typed placeholder (ADR-0010 Decision 4). Issue 8
+    does not materialize query-dependent retrieval results into the cacheable
+    stable block. Placement is deferred to Issue 18.
+    """
     service = _make_service()
     assembled = service.assemble(
         story_id=_STORY_ID,
@@ -899,15 +852,46 @@ def test_retrieval_memory_wired_into_stable_prefix_named_field() -> None:
     assert assembled.stable_prefix.retrieval_memory.passages == []
 
 
-def test_retrieval_memory_populated_appears_in_stable_prefix_render() -> None:
-    """Populated retrieval memory passages appear in the stable prefix render."""
+def test_retrieval_seam_not_called_from_stable_prefix() -> None:
+    """build_stable_prefix() does not call retrieve() on the injected provider.
+
+    Query-dependent retrieval must not enter the cacheable stable block
+    (ADR-0010 Decision 4). The seam is injected for Issue 18 but must not fire
+    during stable prefix assembly.
+    """
+    retrieval = _CountingRetrievalMemoryProvider()
     service = ContextBuilderService(
         story_bible_service=_FixedStoryBibleService(_minimal_bible()),
         rolling_summary_service=_FixedRollingSummaryService(),
         recent_turns_provider=_CountingRecentTurnsProvider(),
-        retrieval_memory=_FakeRetrievalMemoryProvider(
-            passages=["RETRIEVED_PASSAGE_SENTINEL"]
-        ),
+        retrieval_memory=retrieval,
+    )
+    service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(raw_input="some query"),
+    )
+    assert retrieval.call_count == 0
+
+
+def test_stable_prefix_retrieval_memory_always_empty_regardless_of_provider() -> None:
+    """Stable prefix retrieval_memory is empty even when provider would return passages.
+
+    Verifies the cache-boundary invariant: the service must not route
+    turn-varying retrieval results through the cacheable stable block regardless
+    of what the injected provider would return (ADR-0010 Decision 4).
+    """
+
+    class _AlwaysPopulatedProvider:
+        def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+            return RetrievalMemoryPayload(passages=["SHOULD_NOT_APPEAR"])
+
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=_AlwaysPopulatedProvider(),
     )
     assembled = service.assemble(
         story_id=_STORY_ID,
@@ -915,12 +899,8 @@ def test_retrieval_memory_populated_appears_in_stable_prefix_render() -> None:
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
-    assert assembled.stable_prefix.retrieval_memory.passages == [
-        "RETRIEVED_PASSAGE_SENTINEL"
-    ]
-    assert "RETRIEVED_PASSAGE_SENTINEL" in assembled.stable_prefix.render()
-    # Retrieval appears only in stable prefix, not volatile suffix
-    assert "RETRIEVED_PASSAGE_SENTINEL" not in assembled.volatile_suffix.render()
+    assert assembled.stable_prefix.retrieval_memory.passages == []
+    assert "SHOULD_NOT_APPEAR" not in assembled.stable_prefix.render()
 
 
 # ===========================================================================

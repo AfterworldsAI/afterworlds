@@ -213,3 +213,72 @@ This PR adds a new model to `models/rules_package.py` that was in scope for
 Issue 5a but not defined there.  This is a minor scope boundary extension; it
 is surfaced here rather than silently omitted or defined as a duplicate in the
 Context Builder namespace.
+
+---
+
+## Decision 4 — Retrieval Memory Cache Boundary Reconciliation
+
+**Status:** Accepted
+**Date:** 2026-04-21
+**Trigger:** Codex P2 review comment on PR #69 (round 3); owner decision posted
+  in thread `PRRC_kwDORsj9Fs65ox7S`.
+
+### Context
+
+The round-2 implementation of Issue 8 called
+`RetrievalMemoryProvider.retrieve(story_id, intent_classification.raw_input)`
+from inside `build_stable_prefix()` and stored the returned payload in
+`StablePrefix.retrieval_memory`.
+
+This creates a cache-boundary violation: the stable prefix is the cacheable
+block shared across all pipeline passes and across turns where Story Bible,
+rolling summary, and mode contract are unchanged.  A retrieval query keyed off
+`intent_classification.raw_input` (which varies every turn) makes the "stable"
+prefix vary per turn, collapsing cross-turn cache reuse.  This conflicts with:
+
+- `docs/architecture/design.md` — stable prefix is the block above retrieved facts
+- CRD Item 12 / architectural invariant: stable prefix assembled once per turn
+  and shared unchanged across all passes
+- The ~88% cache hit rate the CRD cost model depends on
+
+### Decision
+
+**Issue 8 preserves the injectable retrieval seam and typed placeholder
+contract.  Issue 8 does NOT materialize query-dependent retrieval results
+inside the cacheable stable prefix.**
+
+Specifically:
+
+1. `RetrievalMemoryProvider` remains injectable via `ContextBuilderService.__init__`
+   (seam preserved; Issue 18 replaces `NullRetrievalMemoryProvider` without
+   changing the constructor signature).
+2. `StablePrefix.retrieval_memory` remains as a named typed field
+   (`RetrievalMemoryPayload`).  It is always empty (`passages=[]`) when
+   assembled by Issue 8 code.
+3. `build_stable_prefix()` does NOT call `self._retrieval_memory.retrieve()`.
+   `StablePrefix` is constructed with `retrieval_memory=RetrievalMemoryPayload()`.
+4. Real placement of query-dependent retrieval results is deferred to
+   **Issue 18** (ChromaDB integration), informed by the provider/prompt-boundary
+   work from Issues 9 (Writer), 12 (pipeline), and 14 (caching).  Issue 18
+   will determine whether retrieval results belong in the volatile suffix, a
+   separate retrieval block, or elsewhere.
+
+### Rationale
+
+- The cache-boundary violation in round-2 was a direct conflict with the
+  stable-prefix architectural invariant (CLAUDE.md non-negotiable).
+- Deferring placement to Issue 18 is the correct scope boundary: Issue 8 owns
+  the seam and the typed contract; Issue 18 owns retrieval implementation and
+  prompt-boundary placement.
+- Removing the `retrieve()` call from `build_stable_prefix()` removes the
+  violation without prematurely designing retrieval placement.
+
+### Consequences
+
+- `StablePrefix.retrieval_memory` is always `RetrievalMemoryPayload(passages=[])`
+  when assembled by the Context Builder.  The field exists for schema continuity
+  and renders nothing in the stable prefix output.
+- Tests that previously asserted query-dependent retrieval was wired into the
+  stable prefix are replaced with tests that assert non-materialization.
+- Issue 18 must decide final placement; this ADR records the defer explicitly
+  so that decision is not lost.

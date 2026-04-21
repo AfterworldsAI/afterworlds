@@ -8,16 +8,19 @@ without rebuilding it.
 Key constraints from the issue spec:
   - Stable prefix assembled once per turn, never per pass (CRD Item 14,
     architectural invariant #10).
-  - Story Bible, rolling summary, rules_package_slice, and retrieval memory
-    all live inside StablePrefix.  Recent turns live in volatile suffix.
+  - Story Bible, rolling summary, and rules_package_slice live inside
+    StablePrefix.  Recent turns live in volatile suffix.
   - Rule slice uses a mode×intent policy gate: RPG mode +
     (IN_CHARACTER_ACTION | DIALOGUE | LORE_QUESTION) + request → retrieve;
     all other cases → omit.
   - RecentTurnsProvider and RetrievalMemoryProvider are Protocol seams.
     Neither is hard-coded to a concrete implementation.  ChromaDB integration
     lands in Issue 18.
-  - NullRetrievalMemoryProvider returns empty RetrievalMemoryPayload until
-    Issue 18.
+  - StablePrefix.retrieval_memory is a reserved typed placeholder.  Issue 8
+    preserves the injectable seam and typed contract but does NOT materialize
+    query-dependent retrieval results inside the cacheable stable block.  Real
+    retrieval placement is deferred to Issue 18 (ADR-0010 Decision 4).
+  - NullRetrievalMemoryProvider is the default until Issue 18.
   - No pipeline calls, no Writer invocation, no Story Bible writes.
 """
 
@@ -124,13 +127,12 @@ class RecentTurnsProvider(Protocol):
 class RetrievalMemoryProvider(Protocol):
     """Protocol for the vector retrieval memory seam (ChromaDB, Issue 18).
 
-    Returns a typed RetrievalMemoryPayload for the current query.  Until
-    Issue 18 is implemented, use :class:`NullRetrievalMemoryProvider` which
-    always returns an empty payload.
-
-    The provider is called by build_stable_prefix() on every turn so that:
-      - The seam is exercised and verifiable in tests.
-      - Issue 18 can plug in ChromaDB without changing the service.
+    Issue 8 preserves this injectable seam and the typed contract but does NOT
+    call retrieve() from build_stable_prefix().  Query-dependent retrieval
+    results must not enter the cacheable stable block.  The seam is injected
+    so Issue 18 can wire real retrieval without changing the service constructor
+    signature.  Actual retrieval placement is deferred to Issue 18
+    (ADR-0010 Decision 4).
     """
 
     def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
@@ -169,9 +171,8 @@ class _RulesPackageServiceLike(Protocol):
 class NullRetrievalMemoryProvider:
     """Retrieval memory provider that always returns an empty payload.
 
-    Used until ChromaDB integration (Issue 18) provides a real implementation.
-    The Context Builder still calls retrieve() on every turn so the seam is
-    exercised and the call site does not need to change in Issue 18.
+    Default provider until ChromaDB integration (Issue 18).  Issue 18 replaces
+    this with a real provider; the service constructor signature is unchanged.
     """
 
     def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
@@ -289,14 +290,16 @@ class ContextBuilderService:
           2. story_bible_context — ratified Story Bible canon
           3. rolling_summary_text — compressed narrative history (if present)
           4. rules_package_slice — RPG rule slice (mode×intent policy gate)
-          5. retrieval_memory — vector retrieval payload (empty until Issue 18)
+          5. retrieval_memory — reserved typed placeholder; always empty in
+             Issue 8.  Query-dependent retrieval must not enter the cacheable
+             stable block (ADR-0010 Decision 4).  Issue 18 owns placement.
 
         Args:
             story_id: UUID of the story this turn belongs to.
             mode: StoryMode for the current session (governs rule slice policy
                 and mode contract loading).
             intent_classification: typed result from IntentClassifierService.
-                raw_input is used as the retrieval query.
+                Used for mode×intent rule slice gate.
             rule_slice_request: optional parameter bundle for RPG rule slice.
                 Only honoured when mode is RPG and intent qualifies.
 
@@ -337,17 +340,16 @@ class ContextBuilderService:
                 include_non_published=rule_slice_request.include_non_published,
             )
 
-        # 5. Retrieval memory — seam called on every turn; empty until Issue 18.
-        retrieval_payload = self._retrieval_memory.retrieve(
-            story_id, intent_classification.raw_input
-        )
-
+        # 5. Retrieval memory — reserved placeholder; not materialized in Issue 8.
+        # Query-dependent retrieval must not enter the cacheable stable block
+        # (ADR-0010 Decision 4).  self._retrieval_memory seam is injected for
+        # Issue 18 to wire without changing the constructor signature.
         return StablePrefix(
             system_prompt=system_prompt,
             story_bible_context=bible_context,
             rolling_summary_text=rolling_summary_text,
             rules_package_slice=rules_package_slice,
-            retrieval_memory=retrieval_payload,
+            retrieval_memory=RetrievalMemoryPayload(),
         )
 
     def build_volatile_suffix(
