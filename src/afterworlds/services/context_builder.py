@@ -220,14 +220,18 @@ class SQLiteRecentTurnsProvider:
                 .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
                 .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
                 .where(ArcORM.story_id == str(story_id))
-                .order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
-                .limit(limit)
+                # No SQL ORDER BY timestamp: TurnORM.timestamp is a String(64)
+                # column; lexicographic ordering diverges from chronological order
+                # when rows have mixed UTC offsets.  Sort by actual parsed datetime
+                # in Python instead (see ADR-0010 P2 fix).
             )
             .scalars()
             .all()
         )
-        # Reverse DESC results so oldest turn is first in the prompt
-        return [_orm_turn_to_model(r) for r in reversed(rows)]
+        turns = [_orm_turn_to_model(r) for r in rows]
+        # Sort newest-first by parsed datetime; turn_id tiebreaks deterministically.
+        turns.sort(key=lambda t: (t.timestamp, str(t.turn_id)), reverse=True)
+        return turns[:limit][::-1]
 
 
 # ---------------------------------------------------------------------------

@@ -155,12 +155,12 @@ def _minimal_bible() -> StoryBibleContext:
     return StoryBibleContext(
         story_id=_STORY_ID,
         setting=None,
-        cast=[],
-        locked_facts=[],
-        forbidden_facts=[],
-        relationship_ledger=[],
-        active_plot_threads=[],
-        events=[],
+        cast=(),
+        locked_facts=(),
+        forbidden_facts=(),
+        relationship_ledger=(),
+        active_plot_threads=(),
+        events=(),
     )
 
 
@@ -169,16 +169,16 @@ def _moderate_bible() -> StoryBibleContext:
         story_id=_STORY_ID,
         name="Aldric",
         role=CastRole.PROTAGONIST,
-        traits=["brave", "reckless"],
-        goals=["find the artifact"],
-        secrets=["killed his brother"],
+        traits=("brave", "reckless"),
+        goals=("find the artifact",),
+        secrets=("killed his brother",),
         background="Former soldier",
         created_at=_NOW,
     )
     setting = StoryBibleSetting(
         story_id=_STORY_ID,
         summary="A dark fantasy realm where magic is forbidden.",
-        world_rules=["Magic is forbidden", "The dead stay dead"],
+        world_rules=("Magic is forbidden", "The dead stay dead"),
         geography="Northern continent",
         time_period="Medieval",
         created_at=_NOW,
@@ -197,12 +197,12 @@ def _moderate_bible() -> StoryBibleContext:
     return StoryBibleContext(
         story_id=_STORY_ID,
         setting=setting,
-        cast=[cast_entry],
-        locked_facts=[locked_fact],
-        forbidden_facts=[],
-        relationship_ledger=[],
-        active_plot_threads=[],
-        events=[event],
+        cast=(cast_entry,),
+        locked_facts=(locked_fact,),
+        forbidden_facts=(),
+        relationship_ledger=(),
+        active_plot_threads=(),
+        events=(event,),
     )
 
 
@@ -214,8 +214,8 @@ def _complex_bible() -> StoryBibleContext:
         story_id=_STORY_ID,
         name="Zara",
         role=CastRole.PROTAGONIST,
-        traits=["cunning", "ruthless"],
-        goals=["overthrow the empire"],
+        traits=("cunning", "ruthless"),
+        goals=("overthrow the empire",),
         background="Street thief turned rebel leader",
         current_location="The Ember Quarter",
         current_status="In hiding",
@@ -227,8 +227,8 @@ def _complex_bible() -> StoryBibleContext:
         story_id=_STORY_ID,
         name="Lord Vane",
         role=CastRole.ANTAGONIST,
-        traits=["calculating", "merciless"],
-        goals=["maintain imperial order"],
+        traits=("calculating", "merciless"),
+        goals=("maintain imperial order",),
         background="High inquisitor",
         is_alive=True,
         created_at=_NOW,
@@ -236,7 +236,7 @@ def _complex_bible() -> StoryBibleContext:
     setting = StoryBibleSetting(
         story_id=_STORY_ID,
         summary="An empire teetering on the edge of revolution.",
-        world_rules=["Rebellion is punishable by death", "Magic requires a license"],
+        world_rules=("Rebellion is punishable by death", "Magic requires a license"),
         geography="The Veldris Empire, twelve provinces",
         time_period="Late industrial",
         created_at=_NOW,
@@ -281,12 +281,12 @@ def _complex_bible() -> StoryBibleContext:
     return StoryBibleContext(
         story_id=_STORY_ID,
         setting=setting,
-        cast=[protagonist, antagonist],
-        locked_facts=[locked],
-        forbidden_facts=[forbidden],
-        relationship_ledger=[relationship],
-        active_plot_threads=[thread],
-        events=[event1, event2],
+        cast=(protagonist, antagonist),
+        locked_facts=(locked,),
+        forbidden_facts=(forbidden,),
+        relationship_ledger=(relationship,),
+        active_plot_threads=(thread,),
+        events=(event1, event2),
     )
 
 
@@ -660,7 +660,7 @@ def test_assemble_minimal_story_bible() -> None:
     )
 
     assert assembled.stable_prefix.story_bible_context.setting is None
-    assert assembled.stable_prefix.story_bible_context.cast == []
+    assert assembled.stable_prefix.story_bible_context.cast == ()
     rendered = assembled.stable_prefix.render()
     assert _MODE_CONTRACT_SENTINEL in rendered
     assert "## Story Bible" in rendered
@@ -738,9 +738,9 @@ def test_render_cast_entry_includes_secrets() -> None:
         story_id=_STORY_ID,
         name="Mira",
         role=CastRole.PROTAGONIST,
-        traits=["clever"],
-        goals=["escape the city"],
-        secrets=["she is the heir", "betrayed her mentor"],
+        traits=("clever",),
+        goals=("escape the city",),
+        secrets=("she is the heir", "betrayed her mentor"),
         created_at=_NOW,
     )
     rendered = _render_cast_entry(entry)
@@ -755,9 +755,9 @@ def test_render_cast_entry_without_secrets_renders_cleanly() -> None:
         story_id=_STORY_ID,
         name="Aldric",
         role=CastRole.PROTAGONIST,
-        traits=["brave"],
-        goals=["find the relic"],
-        secrets=[],
+        traits=("brave",),
+        goals=("find the relic",),
+        secrets=(),
         created_at=_NOW,
     )
     rendered = _render_cast_entry(entry)
@@ -773,9 +773,9 @@ def test_render_cast_entry_existing_fields_render_correctly() -> None:
         story_id=_STORY_ID,
         name="Commander Thane",
         role=CastRole.ANTAGONIST,
-        traits=["ruthless", "tactical"],
-        goals=["crush the rebellion"],
-        secrets=["secretly fears magic"],
+        traits=("ruthless", "tactical"),
+        goals=("crush the rebellion",),
+        secrets=("secretly fears magic",),
         background="Former general",
         current_location="The Citadel",
         current_status="On campaign",
@@ -1483,3 +1483,107 @@ def test_sqlite_recent_turns_provider_deterministic_under_equal_timestamps(
     result_b = [t.user_input for t in provider.get_recent_turns(story_id, limit=10)]
     assert result_a == result_b, "ordering must be deterministic under equal timestamps"
     assert len(result_a) == 2
+
+
+def test_sqlite_recent_turns_provider_orders_by_actual_datetime_not_string(
+    _sqlite_session: object,
+) -> None:
+    """Turns are ordered by actual parsed datetime, not lexicographic string comparison.
+
+    Regression test for P2 #1: TurnORM.timestamp is a String(64) column.
+    ISO strings with mixed UTC offsets sort lexicographically incorrectly
+    (e.g. "2026-01-01T01:00:00+01:00" > "2026-01-01T00:30:00Z" as strings,
+    but the first is UTC midnight and the second is UTC 00:30 — reversed order).
+    The fix fetches all rows and sorts by actual parsed datetime in Python.
+    """
+    from sqlalchemy.orm import Session as SaSession
+
+    sess: SaSession = _sqlite_session  # type: ignore[assignment]
+    story_id = uuid4()
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        story_id=story_id,
+        title="Datetime Ordering Test",
+        mode=StoryMode.RPG,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(sess, story)
+
+    arc_id = str(uuid4())
+    sess.add(ArcORM(arc_id=arc_id, story_id=str(story_id), title="Arc 1", order=1))
+    chapter_id = str(uuid4())
+    sess.add(ChapterORM(chapter_id=chapter_id, arc_id=arc_id, title="Ch 1", order=1))
+    node_orm = NodeORM(
+        node_id=str(uuid4()),
+        chapter_id=chapter_id,
+        content="",
+        state_delta={},
+        branching_logic=[],
+        intent_type="in_character_action",
+        metadata_={},
+    )
+    sess.add(node_orm)
+    sess.flush()
+
+    # Turn A: UTC midnight, stored with +00:00 offset — lexicographically LATER than B
+    # Turn B: UTC 00:30, stored with Z suffix — lexicographically EARLIER than A
+    # String sort (wrong): A > B → A "more recent" → oldest-first would be [B, A]
+    # Datetime sort (correct): B is later (00:30 > 00:00 UTC) → oldest-first is [A, B]
+    turn_a_ts = "2026-01-01T00:00:00+00:00"  # UTC midnight — lexically later
+    turn_b_ts = "2026-01-01T00:30:00+00:00"  # UTC 00:30 — actually more recent
+
+    sess.add(
+        TurnORM(
+            turn_id=str(uuid4()),
+            node_id=node_orm.node_id,
+            user_input="turn_a",
+            assistant_output="response_a",
+            timestamp=turn_a_ts,
+            intent_classification="in_character_action",
+        )
+    )
+    sess.add(
+        TurnORM(
+            turn_id=str(uuid4()),
+            node_id=node_orm.node_id,
+            user_input="turn_b",
+            assistant_output="response_b",
+            timestamp=turn_b_ts,
+            intent_classification="in_character_action",
+        )
+    )
+    sess.commit()
+
+    provider = SQLiteRecentTurnsProvider(sess)  # type: ignore[arg-type]
+    turns = provider.get_recent_turns(story_id, limit=10)
+
+    assert len(turns) == 2
+    # Oldest-first: turn_a (UTC 00:00) before turn_b (UTC 00:30)
+    assert turns[0].user_input == "turn_a"
+    assert turns[1].user_input == "turn_b"
+
+
+# ===========================================================================
+# Deep immutability tests
+# ===========================================================================
+
+
+def test_stable_prefix_story_bible_context_collections_are_immutable() -> None:
+    """StoryBibleContext collection fields are tuples — append raises AttributeError.
+
+    Verifies that StablePrefix.frozen=True is deeply effective: because
+    StoryBibleContext collection fields are tuple[X, ...] rather than list[X],
+    an attempt to mutate them raises AttributeError instead of silently succeeding.
+    """
+    ctx = _minimal_bible()
+    with pytest.raises(AttributeError):
+        ctx.cast.append(  # type: ignore[attr-defined]
+            CastEntry(
+                story_id=_STORY_ID,
+                name="Intruder",
+                role=CastRole.PROTAGONIST,
+                created_at=_NOW,
+            )
+        )

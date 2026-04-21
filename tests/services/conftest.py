@@ -75,7 +75,7 @@ def make_setting(story_id: UUID) -> StoryBibleSetting:
     return StoryBibleSetting(
         story_id=story_id,
         summary="A dark fantasy realm.",
-        world_rules=["Magic exists", "The dead stay dead"],
+        world_rules=("Magic exists", "The dead stay dead"),
         geography="Northern continent",
         time_period="Medieval",
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -87,9 +87,9 @@ def make_cast_entry(story_id: UUID, name: str = "Aldric") -> CastEntry:
         story_id=story_id,
         name=name,
         role=CastRole.PROTAGONIST,
-        traits=["brave", "reckless"],
-        goals=["find the artifact"],
-        secrets=["killed his brother"],
+        traits=("brave", "reckless"),
+        goals=("find the artifact",),
+        secrets=("killed his brother",),
         background="Former soldier",
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )

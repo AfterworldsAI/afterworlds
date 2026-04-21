@@ -222,8 +222,8 @@ class TestPartitionIsolation:
         # The context window must not include staging entries as canon
         ctx = service.get_active_context_window(story_id)
         # Locked facts and forbidden facts should be empty
-        assert ctx.locked_facts == []
-        assert ctx.forbidden_facts == []
+        assert ctx.locked_facts == ()
+        assert ctx.forbidden_facts == ()
 
 
 # ---------------------------------------------------------------------------
@@ -631,7 +631,7 @@ class TestStagingArea:
             service.ratify_update(staged.proposal_id)
 
         ctx = service.get_active_context_window(story_id)
-        assert ctx.active_plot_threads == []
+        assert ctx.active_plot_threads == ()
 
     def test_soft_fact_ratification_marks_proposal_ratified(
         self, service: StoryBibleService, story_id: UUID
@@ -964,7 +964,7 @@ class TestRelationshipActivecastConsistency:
 
         ctx = service.get_active_context_window(story_id)
         # Aldric is inactive; the relationship must not appear
-        assert ctx.relationship_ledger == []
+        assert ctx.relationship_ledger == ()
 
     def test_relationship_excluded_when_object_is_soft_deleted(
         self, service: StoryBibleService, story_id: UUID
@@ -981,7 +981,7 @@ class TestRelationshipActivecastConsistency:
         service.soft_delete("cast_entry", serena.cast_id)
 
         ctx = service.get_active_context_window(story_id)
-        assert ctx.relationship_ledger == []
+        assert ctx.relationship_ledger == ()
 
     def test_relationship_retained_when_both_cast_members_active(
         self, service: StoryBibleService, story_id: UUID
@@ -1051,12 +1051,12 @@ class TestContextWindowPayload:
     ) -> None:
         ctx = service.get_active_context_window(story_id)
         assert isinstance(ctx, StoryBibleContext)
-        assert isinstance(ctx.cast, list)
-        assert isinstance(ctx.locked_facts, list)
-        assert isinstance(ctx.forbidden_facts, list)
-        assert isinstance(ctx.relationship_ledger, list)
-        assert isinstance(ctx.active_plot_threads, list)
-        assert isinstance(ctx.events, list)
+        assert isinstance(ctx.cast, tuple)
+        assert isinstance(ctx.locked_facts, tuple)
+        assert isinstance(ctx.forbidden_facts, tuple)
+        assert isinstance(ctx.relationship_ledger, tuple)
+        assert isinstance(ctx.active_plot_threads, tuple)
+        assert isinstance(ctx.events, tuple)
 
     def test_context_window_excludes_provisional_entries(
         self, service: StoryBibleService, story_id: UUID
