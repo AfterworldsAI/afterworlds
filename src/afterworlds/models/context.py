@@ -170,7 +170,7 @@ class RetrievalMemoryPayload(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    passages: list[str] = Field(default_factory=list)
+    passages: tuple[str, ...] = ()
 
 
 def _render_retrieval_memory(payload: RetrievalMemoryPayload) -> str:

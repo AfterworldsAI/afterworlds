@@ -487,7 +487,7 @@ def test_stable_prefix_five_field_canonical_order() -> None:
 
     active_slice = _make_minimal_active_slice()
     assert isinstance(active_slice, ActiveRuleSlice)
-    retrieval = RetrievalMemoryPayload(passages=["RETRIEVAL_SENTINEL"])
+    retrieval = RetrievalMemoryPayload(passages=("RETRIEVAL_SENTINEL",))
 
     sp = StablePrefix(
         system_prompt="SYSTEM_SENTINEL",
@@ -826,7 +826,7 @@ def test_null_retrieval_memory_provider_returns_empty_payload() -> None:
     null_provider = NullRetrievalMemoryProvider()
     result = null_provider.retrieve(_STORY_ID, "any query")
     assert isinstance(result, RetrievalMemoryPayload)
-    assert result.passages == []
+    assert result.passages == ()
 
 
 # ===========================================================================
@@ -850,7 +850,7 @@ def test_retrieval_memory_placeholder_field_exists_and_is_empty() -> None:
     )
     assert hasattr(assembled.stable_prefix, "retrieval_memory")
     assert isinstance(assembled.stable_prefix.retrieval_memory, RetrievalMemoryPayload)
-    assert assembled.stable_prefix.retrieval_memory.passages == []
+    assert assembled.stable_prefix.retrieval_memory.passages == ()
 
 
 def test_retrieval_seam_not_called_from_stable_prefix() -> None:
@@ -886,7 +886,7 @@ def test_stable_prefix_retrieval_memory_always_empty_regardless_of_provider() ->
 
     class _AlwaysPopulatedProvider:
         def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
-            return RetrievalMemoryPayload(passages=["SHOULD_NOT_APPEAR"])
+            return RetrievalMemoryPayload(passages=("SHOULD_NOT_APPEAR",))
 
     service = ContextBuilderService(
         story_bible_service=_FixedStoryBibleService(_minimal_bible()),
@@ -900,7 +900,7 @@ def test_stable_prefix_retrieval_memory_always_empty_regardless_of_provider() ->
         current_input="test",
         classified_intent=_make_classified_intent(),
     )
-    assert assembled.stable_prefix.retrieval_memory.passages == []
+    assert assembled.stable_prefix.retrieval_memory.passages == ()
     assert "SHOULD_NOT_APPEAR" not in assembled.stable_prefix.render()
 
 
@@ -1006,7 +1006,7 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         source_id=source_id,
         entity_type=MechanicalEntityTypeEnum.CONDITION,
         name="ENTITY_NAME_SENTINEL",
-        structured_data=ConditionEntity(effects=["Incapacitated", "Can't move"]),
+        structured_data=ConditionEntity(effects=("Incapacitated", "Can't move")),
         source_document="SRD 5.2",
         source_locator_type=SourceLocatorTypeEnum.PAGE,
         source_locator_value="p. 290",
@@ -1642,3 +1642,54 @@ def test_stable_prefix_rules_package_slice_is_immutable() -> None:
     # override_ids_applied is a tuple — append must fail
     with pytest.raises(AttributeError):
         rps.chunks[0].override_ids_applied.append(uuid4())  # type: ignore[attr-defined]
+
+
+def test_rule_chunk_is_immutable() -> None:
+    """RuleChunk nested inside AppliedChunk is frozen — field mutation raises
+    ValidationError, closing the immutability chain through the rule slice."""
+    rps = _make_minimal_active_slice()
+    with pytest.raises(ValidationError):
+        rps.chunks[0].chunk.content = "hacked"  # type: ignore[misc]
+
+
+def test_story_bible_leaf_models_are_immutable() -> None:
+    """LockedFact, ForbiddenFact, Event, RelationshipLedger, UnresolvedThread are
+    all frozen — field reassignment raises ValidationError."""
+    bible = _complex_bible()
+
+    with pytest.raises(ValidationError):
+        bible.locked_facts[0].fact_text = "mutated"  # type: ignore[misc]
+
+    with pytest.raises(ValidationError):
+        bible.forbidden_facts[0].fact_text = "mutated"  # type: ignore[misc]
+
+    with pytest.raises(ValidationError):
+        bible.events[0].description = "mutated"  # type: ignore[misc]
+
+    with pytest.raises(ValidationError):
+        bible.active_plot_threads[0].description = "mutated"  # type: ignore[misc]
+
+    with pytest.raises(ValidationError):
+        bible.relationship_ledger[0].current_status_description = "mutated"  # type: ignore[misc]
+
+
+def test_retrieval_memory_passages_is_immutable() -> None:
+    """RetrievalMemoryPayload.passages is a tuple — append raises AttributeError."""
+    payload = RetrievalMemoryPayload()
+    with pytest.raises(AttributeError):
+        payload.passages.append("injected")  # type: ignore[attr-defined]
+
+
+def test_stable_prefix_render_is_stable() -> None:
+    """StablePrefix.render() is deterministic — two successive calls return
+    identical output, verifying the once-per-turn caching invariant."""
+    service = _make_service(bible=_moderate_bible(), summary=_make_rolling_summary())
+    assembled = service.assemble(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        current_input="test",
+        classified_intent=_make_classified_intent(),
+    )
+    first = assembled.stable_prefix.render()
+    second = assembled.stable_prefix.render()
+    assert first == second

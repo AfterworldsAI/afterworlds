@@ -40,21 +40,27 @@ class SpellEntity(BaseModel):
     Fields reflect what Issue 15 adjudication will need.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     casting_time: str
     range: str
     duration: str
-    components: list[str] = Field(default_factory=list)
+    components: tuple[str, ...] = ()
     effect_description: str
 
 
 class ConditionEntity(BaseModel):
     """Typed data for a condition mechanical entity."""
 
-    effects: list[str] = Field(default_factory=list)
+    model_config = ConfigDict(frozen=True)
+
+    effects: tuple[str, ...] = ()
 
 
 class StatBlockEntity(BaseModel):
     """Typed data for a stat block mechanical entity (d20 v1 shape)."""
+
+    model_config = ConfigDict(frozen=True)
 
     armor_class: int
     hit_points: int
@@ -65,11 +71,13 @@ class StatBlockEntity(BaseModel):
     intelligence: int
     wisdom: int
     charisma: int
-    actions: list[str] = Field(default_factory=list)
+    actions: tuple[str, ...] = ()
 
 
 class ActionEntity(BaseModel):
     """Typed data for an action mechanical entity."""
+
+    model_config = ConfigDict(frozen=True)
 
     action_type: str
     description: str
@@ -80,8 +88,10 @@ class ActionEntity(BaseModel):
 class ItemEntity(BaseModel):
     """Typed data for an item mechanical entity (d20 v1 shape)."""
 
+    model_config = ConfigDict(frozen=True)
+
     item_type: str
-    properties: list[str] = Field(default_factory=list)
+    properties: tuple[str, ...] = ()
     weight: float | None = None
     value: str | None = None
 
@@ -187,6 +197,8 @@ class RuleChunk(BaseModel):
     immutable after creation; layered changes go through RuleOverride.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     chunk_id: UUID = Field(default_factory=uuid4)
     rules_package_id: UUID
     source_id: UUID  # Required; no orphaned chunks
@@ -225,6 +237,8 @@ class MechanicalEntity(BaseModel):
     Source records are immutable after creation; layered changes go through
     RuleOverride.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     entity_id: UUID = Field(default_factory=uuid4)
     rules_package_id: UUID

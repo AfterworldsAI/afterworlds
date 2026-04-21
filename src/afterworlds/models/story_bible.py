@@ -79,6 +79,8 @@ class LockedFact(BaseModel):
     distinct set via ``get_locked_facts``.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     locked_fact_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     fact_text: str
@@ -102,6 +104,8 @@ class ForbiddenFact(BaseModel):
     distinct set via ``get_forbidden_facts``.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     forbidden_fact_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     fact_text: str
@@ -118,6 +122,8 @@ class Event(BaseModel):
     See ``services.story_bible.ALWAYS_INCLUDE_SIGNIFICANCE`` for the
     always-include set.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     event_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
@@ -138,6 +144,8 @@ class RelationshipLedger(BaseModel):
     history on every update.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     relationship_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     subject_cast_id: UUID
@@ -157,6 +165,8 @@ class UnresolvedThread(BaseModel):
     Active plot threads in the context window are the subset of
     UnresolvedThreads with status=OPEN, loaded per service policy.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     thread_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
