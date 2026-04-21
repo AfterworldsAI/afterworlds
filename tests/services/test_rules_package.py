@@ -728,7 +728,7 @@ class TestOverridePrecedence:
         session.commit()
         slice_ = svc.get_active_rule_slice(UUID(pid), [RuleSubsystemEnum.COMBAT], [])
         assert slice_.chunks[0].applied_content == "Base."
-        assert slice_.chunks[0].override_ids_applied == []
+        assert slice_.chunks[0].override_ids_applied == ()
 
     def test_append_override_adds_to_content(
         self, session: Session, svc: RulesPackageService
@@ -805,8 +805,8 @@ class TestGetActiveRuleSlice:
         self, session: Session, svc: RulesPackageService
     ) -> None:
         slice_ = svc.get_active_rule_slice(uuid4(), [RuleSubsystemEnum.COMBAT], [])
-        assert slice_.chunks == []
-        assert slice_.entities == []
+        assert slice_.chunks == ()
+        assert slice_.entities == ()
 
     def test_missing_entity_ref_not_included(
         self, session: Session, svc: RulesPackageService
@@ -819,7 +819,7 @@ class TestGetActiveRuleSlice:
             [],
             [(MechanicalEntityTypeEnum.CONDITION, "Nonexistent")],
         )
-        assert slice_.entities == []
+        assert slice_.entities == ()
 
     def test_entity_overrides_recorded_in_applied_entity(
         self, session: Session, svc: RulesPackageService
@@ -1427,7 +1427,7 @@ class TestNullPayloadContentHandling:
         assert len(result.chunks) == 1
         applied = result.chunks[0]
         assert applied.applied_content == "Original text."
-        assert applied.override_ids_applied == []
+        assert applied.override_ids_applied == ()
 
     def test_append_with_null_content_does_not_modify_chunk(
         self, session: Session, svc: RulesPackageService
@@ -1454,7 +1454,7 @@ class TestNullPayloadContentHandling:
         assert len(result.chunks) == 1
         applied = result.chunks[0]
         assert applied.applied_content == "Base text."
-        assert applied.override_ids_applied == []
+        assert applied.override_ids_applied == ()
 
     def test_replace_with_valid_content_still_applies(
         self, session: Session, svc: RulesPackageService

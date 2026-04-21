@@ -348,9 +348,9 @@ def _make_minimal_active_slice() -> ActiveRuleSlice:
         chunk=chunk,
         applied_content="APPLIED_RULE_SENTINEL",
         is_disabled=False,
-        override_ids_applied=[],
+        override_ids_applied=(),
     )
-    return ActiveRuleSlice(package_id=pid, chunks=[applied], entities=[])
+    return ActiveRuleSlice(package_id=pid, chunks=(applied,), entities=())
 
 
 # ===========================================================================
@@ -998,7 +998,7 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         chunk=chunk,
         applied_content="CHUNK_CONTENT_SENTINEL",
         is_disabled=False,
-        override_ids_applied=[],
+        override_ids_applied=(),
     )
 
     entity = MechanicalEntity(
@@ -1012,12 +1012,12 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         source_locator_value="p. 290",
         created_at=_NOW,
     )
-    applied_entity = AppliedEntity(entity=entity, override_ids_applied=[])
+    applied_entity = AppliedEntity(entity=entity, override_ids_applied=())
 
     active_slice = ActiveRuleSlice(
         package_id=package_id,
-        chunks=[applied_chunk],
-        entities=[applied_entity],
+        chunks=(applied_chunk,),
+        entities=(applied_entity,),
     )
 
     class _StubRulesPackageService:
@@ -1612,3 +1612,33 @@ def test_stable_prefix_story_bible_context_collections_are_immutable() -> None:
                 created_at=_NOW,
             )
         )
+
+
+def test_stable_prefix_rules_package_slice_is_immutable() -> None:
+    """ActiveRuleSlice stored in stable_prefix.rules_package_slice is deeply immutable.
+
+    ActiveRuleSlice, AppliedChunk, and AppliedEntity are all frozen Pydantic
+    models with tuple collection fields.  Verifies that:
+    - Appending to chunks/entities (tuples) raises AttributeError.
+    - Reassigning a frozen field on AppliedChunk raises ValidationError.
+    - Appending to override_ids_applied (tuple) raises AttributeError.
+    """
+    from pydantic import ValidationError
+
+    rps = _make_minimal_active_slice()
+
+    # chunks is a tuple — append must fail
+    with pytest.raises(AttributeError):
+        rps.chunks.append(rps.chunks[0])  # type: ignore[attr-defined]
+
+    # entities is a tuple — append must fail
+    with pytest.raises(AttributeError):
+        rps.entities.append(None)  # type: ignore[arg-type, attr-defined]
+
+    # AppliedChunk is frozen — normal field reassignment must raise ValidationError
+    with pytest.raises(ValidationError):
+        rps.chunks[0].applied_content = "injected"  # type: ignore[misc]
+
+    # override_ids_applied is a tuple — append must fail
+    with pytest.raises(AttributeError):
+        rps.chunks[0].override_ids_applied.append(uuid4())  # type: ignore[attr-defined]

@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -317,10 +317,12 @@ class ChunksResult(BaseModel):
 class AppliedChunk(BaseModel):
     """A rule chunk with active overrides applied in precedence order."""
 
+    model_config = ConfigDict(frozen=True)
+
     chunk: RuleChunk
     applied_content: str  # Content after override layering; empty if disabled
     is_disabled: bool  # True when a disable override is active
-    override_ids_applied: list[UUID]
+    override_ids_applied: tuple[UUID, ...]
 
 
 class AppliedEntity(BaseModel):
@@ -332,8 +334,10 @@ class AppliedEntity(BaseModel):
     requires them.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     entity: MechanicalEntity
-    override_ids_applied: list[UUID]
+    override_ids_applied: tuple[UUID, ...]
 
 
 class RulesPackageManifest(BaseModel):
@@ -412,8 +416,14 @@ class ActiveRuleSlice(BaseModel):
 
     Deterministic lookup against provided subsystem/entity references only.
     Not a semantic search result — semantic retrieval belongs to Issue 18.
+
+    Frozen with tuple collections so that ``StablePrefix.rules_package_slice``
+    is effectively deeply immutable: pipeline passes cannot append/remove
+    chunks or entities, nor reassign fields on ``AppliedChunk``/``AppliedEntity``.
     """
 
+    model_config = ConfigDict(frozen=True)
+
     package_id: UUID
-    chunks: list[AppliedChunk]
-    entities: list[AppliedEntity]
+    chunks: tuple[AppliedChunk, ...]
+    entities: tuple[AppliedEntity, ...]

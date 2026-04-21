@@ -459,7 +459,7 @@ class RulesPackageService:
         if pkg_row is None or not self._package_accessible(
             pkg_row, include_non_published
         ):
-            return ActiveRuleSlice(package_id=package_id, chunks=[], entities=[])
+            return ActiveRuleSlice(package_id=package_id, chunks=(), entities=())
 
         enabled_source_ids = self._enabled_source_ids_for_package(package_id)
 
@@ -509,14 +509,14 @@ class RulesPackageService:
                 applied_entities.append(
                     AppliedEntity(
                         entity=entity,
-                        override_ids_applied=[o.override_id for o in overrides],
+                        override_ids_applied=tuple(o.override_id for o in overrides),
                     )
                 )
 
         return ActiveRuleSlice(
             package_id=package_id,
-            chunks=applied_chunks,
-            entities=applied_entities,
+            chunks=tuple(applied_chunks),
+            entities=tuple(applied_entities),
         )
 
     # -- Internal helpers ---------------------------------------------------
@@ -565,5 +565,5 @@ class RulesPackageService:
             chunk=chunk,
             applied_content="" if is_disabled else content,
             is_disabled=is_disabled,
-            override_ids_applied=applied_ids,
+            override_ids_applied=tuple(applied_ids),
         )
