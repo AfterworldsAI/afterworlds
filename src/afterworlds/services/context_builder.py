@@ -66,6 +66,16 @@ from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 #: turn-length data.
 RECENT_TURNS_LIMIT: int = 10
 
+#: Extra candidate rows fetched beyond ``limit`` in get_recent_turns().
+#: TurnORM.timestamp is a String(64) ISO column.  Strings stored as UTC
+#: (+00:00 or naive-UTC) sort lexicographically correctly; the buffer adds
+#: headroom for any rows stored with non-UTC offsets that could be
+#: lexicographically misplaced near the limit boundary.  Python datetime sort
+#: on the candidate set then selects the correct most-recent limit turns.
+#: In practice (all application writes use UTC) the SQL ORDER BY is exact and
+#: the buffer is never consumed.
+_TIMESTAMP_SAFETY_BUFFER: int = 10
+
 # ---------------------------------------------------------------------------
 # Mode contract loading
 # ---------------------------------------------------------------------------
@@ -213,6 +223,13 @@ class SQLiteRecentTurnsProvider:
 
     def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
         """Return up to *limit* most-recent turns for *story_id*, oldest-first."""
+        # Fetch a bounded candidate set: SQL ORDER BY on the ISO timestamp string
+        # is correct for rows stored as UTC (+00:00 or naive), which covers all
+        # application write paths.  The buffer extends the window so any row
+        # stored with a non-UTC offset that is lexicographically misplaced near
+        # the limit boundary is still included as a candidate.  Python datetime
+        # sort on this bounded set then selects the correct most-recent limit
+        # turns without materializing the full story history.
         rows = (
             self._session.execute(
                 select(TurnORM)
@@ -220,16 +237,15 @@ class SQLiteRecentTurnsProvider:
                 .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
                 .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
                 .where(ArcORM.story_id == str(story_id))
-                # No SQL ORDER BY timestamp: TurnORM.timestamp is a String(64)
-                # column; lexicographic ordering diverges from chronological order
-                # when rows have mixed UTC offsets.  Sort by actual parsed datetime
-                # in Python instead (see ADR-0010 P2 fix).
+                .order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
+                .limit(limit + _TIMESTAMP_SAFETY_BUFFER)
             )
             .scalars()
             .all()
         )
         turns = [_orm_turn_to_model(r) for r in rows]
-        # Sort newest-first by parsed datetime; turn_id tiebreaks deterministically.
+        # Re-sort by actual parsed datetime to correct any offset-induced
+        # misordering within the candidate set.
         turns.sort(key=lambda t: (t.timestamp, str(t.turn_id)), reverse=True)
         return turns[:limit][::-1]
 

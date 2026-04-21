@@ -66,6 +66,7 @@ from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 from afterworlds.services.context_builder import (
+    _TIMESTAMP_SAFETY_BUFFER,
     ContextBuilderService,
     NullRetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
@@ -1563,6 +1564,30 @@ def test_sqlite_recent_turns_provider_orders_by_actual_datetime_not_string(
     # Oldest-first: turn_a (UTC 00:00) before turn_b (UTC 00:30)
     assert turns[0].user_input == "turn_a"
     assert turns[1].user_input == "turn_b"
+
+
+def test_sqlite_recent_turns_provider_bounded_returns_correct_subset(
+    _sqlite_session: object,
+) -> None:
+    """Provider returns the correct most-recent turns for a story with many turns.
+
+    Seeds more turns than the SQL candidate window (limit + _TIMESTAMP_SAFETY_BUFFER)
+    to verify the bounded fetch selects the correct most-recent subset without
+    materializing the full story history.
+    """
+    story_id = uuid4()
+    limit = 5
+    # Seed more turns than candidate_limit = limit + _TIMESTAMP_SAFETY_BUFFER
+    # so the SQL LIMIT actually binds and constrains the candidate set.
+    n_turns = limit + _TIMESTAMP_SAFETY_BUFFER + 5  # 20 — all with distinct UTC times
+    inputs = _seed_story_with_turns(_sqlite_session, story_id, n_turns=n_turns)
+
+    provider = SQLiteRecentTurnsProvider(_sqlite_session)  # type: ignore[arg-type]
+    turns = provider.get_recent_turns(story_id, limit=limit)
+
+    assert len(turns) == limit
+    # The most-recent 5 of 20 turns — oldest-first within that group
+    assert [t.user_input for t in turns] == inputs[-limit:]
 
 
 # ===========================================================================
