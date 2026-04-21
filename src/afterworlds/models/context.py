@@ -122,6 +122,8 @@ def _render_cast_entry(entry: CastEntry) -> str:
         lines.append(f"  Traits: {', '.join(entry.traits)}")
     if entry.goals:
         lines.append(f"  Goals: {', '.join(entry.goals)}")
+    if entry.secrets:
+        lines.append(f"  Secrets: {', '.join(entry.secrets)}")
     return "\n".join(lines)
 
 

@@ -36,6 +36,7 @@ from afterworlds.models.context import (
     RetrievalMemoryPayload,
     StablePrefix,
     VolatileSuffix,
+    _render_cast_entry,
 )
 from afterworlds.models.enums import (
     CastRole,
@@ -696,6 +697,8 @@ def test_assemble_moderate_story_bible() -> None:
     assert "The king is dead." in rendered
     assert "### Events" in rendered
     assert "assassin" in rendered
+    # CastEntry.secrets must appear in the stable prefix (contract-compliance)
+    assert "killed his brother" in rendered
 
 
 def test_assemble_complex_story_bible() -> None:
@@ -732,6 +735,72 @@ def test_cast_sorted_alphabetically_for_determinism() -> None:
     rendered = assembled.stable_prefix.render()
     # "Lord Vane" sorts before "Zara" alphabetically
     assert rendered.index("Lord Vane") < rendered.index("Zara")
+
+
+# ===========================================================================
+# _render_cast_entry unit tests
+# ===========================================================================
+
+
+def test_render_cast_entry_includes_secrets() -> None:
+    """CastEntry.secrets are rendered in the cast block."""
+    entry = CastEntry(
+        story_id=_STORY_ID,
+        name="Mira",
+        role=CastRole.PROTAGONIST,
+        traits=["clever"],
+        goals=["escape the city"],
+        secrets=["she is the heir", "betrayed her mentor"],
+        created_at=_NOW,
+    )
+    rendered = _render_cast_entry(entry)
+    assert "she is the heir" in rendered
+    assert "betrayed her mentor" in rendered
+    assert "Secrets:" in rendered
+
+
+def test_render_cast_entry_without_secrets_renders_cleanly() -> None:
+    """CastEntry with no secrets renders without a Secrets line."""
+    entry = CastEntry(
+        story_id=_STORY_ID,
+        name="Aldric",
+        role=CastRole.PROTAGONIST,
+        traits=["brave"],
+        goals=["find the relic"],
+        secrets=[],
+        created_at=_NOW,
+    )
+    rendered = _render_cast_entry(entry)
+    assert "Secrets:" not in rendered
+    assert "Aldric" in rendered
+    assert "brave" in rendered
+    assert "find the relic" in rendered
+
+
+def test_render_cast_entry_existing_fields_render_correctly() -> None:
+    """All existing CastEntry fields still render correctly after secrets addition."""
+    entry = CastEntry(
+        story_id=_STORY_ID,
+        name="Commander Thane",
+        role=CastRole.ANTAGONIST,
+        traits=["ruthless", "tactical"],
+        goals=["crush the rebellion"],
+        secrets=["secretly fears magic"],
+        background="Former general",
+        current_location="The Citadel",
+        current_status="On campaign",
+        is_alive=True,
+        created_at=_NOW,
+    )
+    rendered = _render_cast_entry(entry)
+    assert "Commander Thane" in rendered
+    assert "antagonist" in rendered
+    assert "Former general" in rendered
+    assert "The Citadel" in rendered
+    assert "On campaign" in rendered
+    assert "ruthless" in rendered
+    assert "crush the rebellion" in rendered
+    assert "secretly fears magic" in rendered
 
 
 # ===========================================================================
