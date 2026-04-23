@@ -16,6 +16,8 @@ Architectural invariants enforced here:
     exception.  Raw strings and dicts are not returned.
   - No Turn is persisted when the provider call fails or produces empty output.
   - The Writer does not create Nodes; the caller supplies node_id.
+  - node_id lineage is verified against story_id before any provider call or
+    Turn persistence; a mismatched or nonexistent node raises WriterPassError.
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ from sqlalchemy.orm import Session
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import IntentType
 from afterworlds.models.turn import Turn
-from afterworlds.persistence.crud.node import create_turn
+from afterworlds.persistence.crud.node import create_turn, node_belongs_to_story
 from afterworlds.pipeline.writer.caller import (
     AnthropicModelCaller,
     WriterModelCaller,
@@ -80,9 +82,9 @@ class WriterService:
             built_context: AssembledContext produced by Issue 8's
                 ContextBuilderService.  The Writer does not assemble context
                 itself; AssembledContext is the input contract.
-            story_id: UUID of the story this turn belongs to.  Passed through
-                to the persisted Turn's lineage context; not used directly by
-                the Writer but present for future orchestration consumers.
+            story_id: UUID of the story this turn belongs to.  Validated
+                against the node_id lineage (Node → Chapter → Arc → Story)
+                before any provider call or Turn persistence.
             node_id: UUID of the already-seeded Node to link the Turn to.
                 The Writer does not create Nodes — the caller is responsible for
                 having seeded a valid Arc/Chapter/Node chain.
@@ -92,10 +94,17 @@ class WriterService:
             identifier, latency, and token/cache metrics.
 
         Raises:
-            WriterPassError: if the provider call fails, the response is
-                malformed, or the parsed output is empty after trimming.
-                No Turn is persisted in any error case.
+            WriterPassError: if node_id does not belong to story_id, the
+                provider call fails, the response is malformed, or the parsed
+                output is empty after trimming.  No Turn is persisted in any
+                error case.
         """
+        if not node_belongs_to_story(self._session, node_id, story_id):
+            raise WriterPassError(
+                f"node {node_id} does not belong to story {story_id}; "
+                "no Turn persisted"
+            )
+
         payload = self._renderer.render(built_context)
 
         try:

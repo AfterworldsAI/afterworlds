@@ -11,6 +11,7 @@ Coverage targets (from the Issue 9 test requirements):
   - Model caller injection: fake is invoked; no real network call
   - Cache metrics propagation: usage fields surface correctly; None when absent
   - Turn persistence round-trip: ICR, user_input, assistant_output, node_id
+  - Lineage validation: mismatched or nonexistent node raises WriterPassError, no Turn
 """
 
 from __future__ import annotations
@@ -75,8 +76,8 @@ def session(engine):  # type: ignore[no-untyped-def]
 
 
 @pytest.fixture()
-def seeded_node_id(session):  # type: ignore[no-untyped-def]
-    """Seed Story → Arc → Chapter → Node and return the Node UUID."""
+def seeded_ids(session):  # type: ignore[no-untyped-def]
+    """Seed Story → Arc → Chapter → Node; return (story_id, node_id)."""
     from afterworlds.models.node import Node
 
     now = datetime(2026, 1, 1, tzinfo=UTC)
@@ -101,7 +102,7 @@ def seeded_node_id(session):  # type: ignore[no-untyped-def]
     )
     create_node(session, node)
     session.commit()
-    return node.node_id
+    return story.story_id, node.node_id
 
 
 def _make_icr(
@@ -208,50 +209,52 @@ def _make_fake_caller(  # type: ignore[no-untyped-def]
 
 
 class TestHappyPath:
-    def test_write_returns_writer_result(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_write_returns_writer_result(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """write() returns a WriterResult with non-empty assistant_output."""
+        story_id, node_id = seeded_ids
         fake = _make_fake_caller(_fake_message("The door swings open with a groan."))
         service = WriterService(session, _make_config(), fake)
-        story_id = uuid4()
 
-        result = service.write(_make_assembled(), story_id, seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert isinstance(result, WriterResult)
         assert result.assistant_output == "The door swings open with a groan."
         assert result.turn_id is not None
 
-    def test_turn_persisted_linked_to_node(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_turn_persisted_linked_to_node(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """A Turn row is persisted and linked to the supplied node_id."""
+        story_id, node_id = seeded_ids
         fake = _make_fake_caller(_fake_message("You enter the chamber."))
         service = WriterService(session, _make_config(), fake)
         assembled = _make_assembled("Enter the chamber.")
 
-        result = service.write(assembled, uuid4(), seeded_node_id)
+        result = service.write(assembled, story_id, node_id)
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
-        assert fetched.node_id == seeded_node_id
+        assert fetched.node_id == node_id
         assert fetched.assistant_output == "You enter the chamber."
         assert fetched.user_input == "Enter the chamber."
 
     def test_turn_user_input_matches_assembled_input(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """Persisted Turn.user_input matches the current_input from AssembledContext."""
+        story_id, node_id = seeded_ids
         raw = "What do I see?"
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(raw), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(raw), story_id, node_id)
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
         assert fetched.user_input == raw
 
-    def test_turn_icr_round_trips(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_turn_icr_round_trips(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """ICR round-trips as typed IntentClassificationResult, not as a string."""
+        story_id, node_id = seeded_ids
         assembled = _make_assembled("I attack.")
-        # Override the ICR with a specific one
         icr = IntentClassificationResult(
             intent_type=IntentType.IN_CHARACTER_ACTION,
             confidence=0.88,
@@ -259,7 +262,6 @@ class TestHappyPath:
             ambiguous=False,
         )
 
-        # Rebuild with a specific ICR
         vs = VolatileSuffix(
             recent_turns=[],
             current_input="I attack.",
@@ -273,7 +275,7 @@ class TestHappyPath:
 
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
-        result = service.write(assembled_with_icr, uuid4(), seeded_node_id)
+        result = service.write(assembled_with_icr, story_id, node_id)
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
@@ -289,13 +291,14 @@ class TestHappyPath:
         assert fetched.intent_classification_result.raw_input == "I attack."
 
     def test_return_turn_id_matches_persisted_row(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """The turn_id in WriterResult matches the persisted Turn row."""
+        story_id, node_id = seeded_ids
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
@@ -309,9 +312,10 @@ class TestHappyPath:
 
 class TestParsing:
     def test_multiple_text_blocks_concatenated_in_order(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """Multiple text blocks are concatenated in order, not reordered."""
+        story_id, node_id = seeded_ids
         multi_block_msg = Message(
             id="msg_multi",
             type="message",
@@ -329,39 +333,43 @@ class TestParsing:
         fake = _make_fake_caller(multi_block_msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert result.assistant_output == "Part one. Part two. Part three."
 
-    def test_whitespace_trimmed(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_whitespace_trimmed(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """Leading and trailing whitespace is trimmed from the concatenated output."""
+        story_id, node_id = seeded_ids
         msg = _fake_message(text="  \n  The room is dark.  \n  ")
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert result.assistant_output == "The room is dark."
 
-    def test_empty_after_trim_raises_writer_pass_error(self, session) -> None:  # type: ignore[no-untyped-def]
+    def test_empty_after_trim_raises_writer_pass_error(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
         """Whitespace-only response raises WriterPassError; no Turn persisted."""
+        story_id, node_id = seeded_ids
         msg = _fake_message(text="   \n   ")
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
-        node_id = uuid4()
 
         with pytest.raises(WriterPassError):
-            service.write(_make_assembled(), uuid4(), node_id)
+            service.write(_make_assembled(), story_id, node_id)
 
-        # Verify no Turn was persisted
-        # Check by counting rows — if any exist they'd be unrelated
         from afterworlds.persistence.orm.node import TurnORM
 
         rows = session.query(TurnORM).filter(TurnORM.node_id == str(node_id)).all()
         assert rows == []
 
-    def test_malformed_response_raises_writer_pass_error(self, session) -> None:  # type: ignore[no-untyped-def]
+    def test_malformed_response_raises_writer_pass_error(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
         """Non-Message response raises WriterPassError with cause; no Turn persisted."""
+        story_id, node_id = seeded_ids
 
         def bad_caller(payload: AnthropicMessagesPayload) -> object:  # type: ignore[return]
             return {"not": "a message"}
@@ -369,20 +377,21 @@ class TestParsing:
         service = WriterService(session, _make_config(), bad_caller)  # type: ignore[arg-type]
 
         with pytest.raises(WriterPassError):
-            service.write(_make_assembled(), uuid4(), uuid4())
+            service.write(_make_assembled(), story_id, node_id)
 
     def test_provider_exception_raises_writer_pass_error(  # type: ignore[no-untyped-def]
         self,
         session,
+        seeded_ids,
     ) -> None:
         """Provider exception raises WriterPassError wrapping original."""
+        story_id, node_id = seeded_ids
         original_exc = ConnectionError("network failure")
         fake = _make_fake_caller(raise_exc=original_exc)
         service = WriterService(session, _make_config(), fake)
-        node_id = uuid4()
 
         with pytest.raises(WriterPassError) as exc_info:
-            service.write(_make_assembled(), uuid4(), node_id)
+            service.write(_make_assembled(), story_id, node_id)
 
         assert exc_info.value.__cause__ is original_exc
 
@@ -393,17 +402,69 @@ class TestParsing:
 
 
 # ---------------------------------------------------------------------------
+# Lineage validation
+# ---------------------------------------------------------------------------
+
+
+class TestLineageValidation:
+    def test_mismatched_story_raises_writer_pass_error(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """write() raises WriterPassError when node_id does not belong to story_id."""
+        _correct_story_id, node_id = seeded_ids
+        wrong_story_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(WriterPassError, match="does not belong to story"):
+            service.write(_make_assembled(), wrong_story_id, node_id)
+
+    def test_mismatched_story_no_turn_persisted(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """No Turn is persisted when the lineage check fails."""
+        _correct_story_id, node_id = seeded_ids
+        wrong_story_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(WriterPassError):
+            service.write(_make_assembled(), wrong_story_id, node_id)
+
+        from afterworlds.persistence.orm.node import TurnORM
+
+        rows = session.query(TurnORM).filter(TurnORM.node_id == str(node_id)).all()
+        assert rows == []
+
+    def test_nonexistent_node_raises_writer_pass_error(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """write() raises WriterPassError when node_id was never seeded."""
+        story_id, _seeded_node_id = seeded_ids
+        phantom_node_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(WriterPassError, match="does not belong to story"):
+            service.write(_make_assembled(), story_id, phantom_node_id)
+
+
+# ---------------------------------------------------------------------------
 # Model caller injection
 # ---------------------------------------------------------------------------
 
 
 class TestModelCallerInjection:
-    def test_fake_caller_is_invoked(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_fake_caller_is_invoked(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """The injected fake caller is invoked with the rendered payload."""
+        story_id, node_id = seeded_ids
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        service.write(_make_assembled(), uuid4(), seeded_node_id)
+        service.write(_make_assembled(), story_id, node_id)
 
         assert len(fake.captured) == 1  # type: ignore[attr-defined]
         payload = fake.captured[0]  # type: ignore[attr-defined]
@@ -411,18 +472,16 @@ class TestModelCallerInjection:
         assert "messages" in payload
         assert "system" in payload
 
-    def test_no_real_network_call(self, session, seeded_node_id) -> None:  # type: ignore[no-untyped-def]
+    def test_no_real_network_call(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """Service does not attempt a real network call when a fake is injected."""
-        # If the real SDK were called without an API key, it would raise.
-        # The fake must be invoked instead.
+        story_id, node_id = seeded_ids
         import os
 
         env_backup = os.environ.pop("ANTHROPIC_API_KEY", None)
         try:
             fake = _make_fake_caller()
             service = WriterService(session, _make_config(), fake)
-            # Should not raise even without an API key, since the fake is used
-            service.write(_make_assembled(), uuid4(), seeded_node_id)
+            service.write(_make_assembled(), story_id, node_id)
         finally:
             if env_backup is not None:
                 os.environ["ANTHROPIC_API_KEY"] = env_backup
@@ -435,9 +494,10 @@ class TestModelCallerInjection:
 
 class TestCacheMetrics:
     def test_cache_metrics_present_when_reported(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """WriterResult surfaces all four token counts when reported."""
+        story_id, node_id = seeded_ids
         msg = _fake_message(
             text="The scene unfolds.",
             input_tokens=200,
@@ -448,7 +508,7 @@ class TestCacheMetrics:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert result.input_token_count == 200
         assert result.output_token_count == 80
@@ -456,9 +516,10 @@ class TestCacheMetrics:
         assert result.cache_creation_token_count == 50
 
     def test_cache_metrics_none_when_not_reported(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """Cache token fields are None (not 0) when the provider omits them."""
+        story_id, node_id = seeded_ids
         msg = _fake_message(
             text="The scene unfolds.",
             input_tokens=100,
@@ -469,20 +530,21 @@ class TestCacheMetrics:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert result.cache_read_token_count is None
         assert result.cache_creation_token_count is None
 
     def test_model_identifier_format(  # type: ignore[no-untyped-def]
-        self, session, seeded_node_id
+        self, session, seeded_ids
     ) -> None:
         """model_identifier is formatted as 'anthropic:<model_string>'."""
+        story_id, node_id = seeded_ids
         msg = _fake_message()
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), uuid4(), seeded_node_id)
+        result = service.write(_make_assembled(), story_id, node_id)
 
         assert result.model_identifier.startswith("anthropic:")
         assert "claude" in result.model_identifier

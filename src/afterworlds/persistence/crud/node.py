@@ -175,3 +175,24 @@ def delete_turn(session: Session, turn_id: UUID) -> bool:
     session.delete(row)
     session.flush()
     return True
+
+
+def node_belongs_to_story(session: Session, node_id: UUID, story_id: UUID) -> bool:
+    """Return True if node_id exists and its lineage traces back to story_id.
+
+    Walks Node → Chapter → Arc and checks Arc.story_id.  Returns False for a
+    node that does not exist or belongs to a different story.
+    """
+    from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+    result = (
+        session.query(NodeORM.node_id)
+        .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+        .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+        .filter(
+            NodeORM.node_id == str(node_id),
+            ArcORM.story_id == str(story_id),
+        )
+        .first()
+    )
+    return result is not None
