@@ -592,6 +592,24 @@ class TestCacheMetrics:
         assert result.cache_read_token_count is None
         assert result.cache_creation_token_count is None
 
+    def test_zero_token_counts_preserved(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """Reported zero token counts are preserved as 0, not collapsed to None."""
+        story_id, node_id = seeded_ids
+        msg = _fake_message(
+            text="The scene unfolds.",
+            input_tokens=0,
+            output_tokens=0,
+        )
+        fake = _make_fake_caller(msg)
+        service = WriterService(session, _make_config(), fake)
+
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
+
+        assert result.input_token_count == 0
+        assert result.output_token_count == 0
+
     def test_model_identifier_format(  # type: ignore[no-untyped-def]
         self, session, seeded_ids
     ) -> None:

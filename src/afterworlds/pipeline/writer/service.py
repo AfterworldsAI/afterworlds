@@ -147,8 +147,8 @@ class WriterService:
             assistant_output=prose,
             model_identifier=f"anthropic:{response.model}",
             latency_ms=latency_ms,
-            input_token_count=usage.input_tokens or None,
-            output_token_count=usage.output_tokens or None,
+            input_token_count=usage.input_tokens,
+            output_token_count=usage.output_tokens,
             cache_read_token_count=usage.cache_read_input_tokens,
             cache_creation_token_count=usage.cache_creation_input_tokens,
         )
