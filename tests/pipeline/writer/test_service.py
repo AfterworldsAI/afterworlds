@@ -17,7 +17,7 @@ Coverage targets (from the Issue 9 test requirements):
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from anthropic.types import Message, TextBlock, Usage
@@ -117,14 +117,17 @@ def _make_icr(
     )
 
 
-def _make_assembled(raw_input: str = "I push the door.") -> AssembledContext:
-    story_id = uuid4()
+def _make_assembled(
+    raw_input: str = "I push the door.",
+    story_id: UUID | None = None,
+) -> AssembledContext:
+    sid = story_id if story_id is not None else uuid4()
     context = StoryBibleContext(
-        story_id=story_id,
+        story_id=sid,
         setting=None,
         cast=(
             CastEntry(
-                story_id=story_id,
+                story_id=sid,
                 name="Aldric",
                 role=CastRole.PROTAGONIST,
                 created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -215,7 +218,7 @@ class TestHappyPath:
         fake = _make_fake_caller(_fake_message("The door swings open with a groan."))
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert isinstance(result, WriterResult)
         assert result.assistant_output == "The door swings open with a groan."
@@ -226,7 +229,7 @@ class TestHappyPath:
         story_id, node_id = seeded_ids
         fake = _make_fake_caller(_fake_message("You enter the chamber."))
         service = WriterService(session, _make_config(), fake)
-        assembled = _make_assembled("Enter the chamber.")
+        assembled = _make_assembled("Enter the chamber.", story_id=story_id)
 
         result = service.write(assembled, story_id, node_id)
 
@@ -245,7 +248,9 @@ class TestHappyPath:
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(raw), story_id, node_id)
+        result = service.write(
+            _make_assembled(raw, story_id=story_id), story_id, node_id
+        )
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
@@ -254,7 +259,7 @@ class TestHappyPath:
     def test_turn_icr_round_trips(self, session, seeded_ids) -> None:  # type: ignore[no-untyped-def]
         """ICR round-trips as typed IntentClassificationResult, not as a string."""
         story_id, node_id = seeded_ids
-        assembled = _make_assembled("I attack.")
+        assembled = _make_assembled("I attack.", story_id=story_id)
         icr = IntentClassificationResult(
             intent_type=IntentType.IN_CHARACTER_ACTION,
             confidence=0.88,
@@ -298,7 +303,7 @@ class TestHappyPath:
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
@@ -333,7 +338,7 @@ class TestParsing:
         fake = _make_fake_caller(multi_block_msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert result.assistant_output == "Part one. Part two. Part three."
 
@@ -344,7 +349,7 @@ class TestParsing:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert result.assistant_output == "The room is dark."
 
@@ -358,7 +363,7 @@ class TestParsing:
         service = WriterService(session, _make_config(), fake)
 
         with pytest.raises(WriterPassError):
-            service.write(_make_assembled(), story_id, node_id)
+            service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         from afterworlds.persistence.orm.node import TurnORM
 
@@ -377,7 +382,7 @@ class TestParsing:
         service = WriterService(session, _make_config(), bad_caller)  # type: ignore[arg-type]
 
         with pytest.raises(WriterPassError):
-            service.write(_make_assembled(), story_id, node_id)
+            service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
     def test_provider_exception_raises_writer_pass_error(  # type: ignore[no-untyped-def]
         self,
@@ -391,7 +396,7 @@ class TestParsing:
         service = WriterService(session, _make_config(), fake)
 
         with pytest.raises(WriterPassError) as exc_info:
-            service.write(_make_assembled(), story_id, node_id)
+            service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert exc_info.value.__cause__ is original_exc
 
@@ -418,7 +423,9 @@ class TestLineageValidation:
         service = WriterService(session, _make_config(), fake)
 
         with pytest.raises(WriterPassError, match="does not belong to story"):
-            service.write(_make_assembled(), wrong_story_id, node_id)
+            service.write(
+                _make_assembled(story_id=wrong_story_id), wrong_story_id, node_id
+            )
 
     def test_mismatched_story_no_turn_persisted(  # type: ignore[no-untyped-def]
         self, session, seeded_ids
@@ -431,7 +438,9 @@ class TestLineageValidation:
         service = WriterService(session, _make_config(), fake)
 
         with pytest.raises(WriterPassError):
-            service.write(_make_assembled(), wrong_story_id, node_id)
+            service.write(
+                _make_assembled(story_id=wrong_story_id), wrong_story_id, node_id
+            )
 
         from afterworlds.persistence.orm.node import TurnORM
 
@@ -449,7 +458,55 @@ class TestLineageValidation:
         service = WriterService(session, _make_config(), fake)
 
         with pytest.raises(WriterPassError, match="does not belong to story"):
-            service.write(_make_assembled(), story_id, phantom_node_id)
+            service.write(_make_assembled(story_id=story_id), story_id, phantom_node_id)
+
+    def test_mismatched_context_story_raises_writer_pass_error(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """WriterPassError raised when built_context story_id differs from story_id."""
+        story_id, node_id = seeded_ids
+        other_story_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(
+            WriterPassError, match="built_context was assembled for story"
+        ):
+            service.write(_make_assembled(story_id=other_story_id), story_id, node_id)
+
+    def test_mismatched_context_story_no_turn_persisted(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """No Turn is persisted when built_context story_id does not match story_id."""
+        story_id, node_id = seeded_ids
+        other_story_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(WriterPassError):
+            service.write(_make_assembled(story_id=other_story_id), story_id, node_id)
+
+        from afterworlds.persistence.orm.node import TurnORM
+
+        rows = session.query(TurnORM).filter(TurnORM.node_id == str(node_id)).all()
+        assert rows == []
+
+    def test_mismatched_context_story_no_provider_call(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """The provider is never called when built_context story_id does not match."""
+        story_id, node_id = seeded_ids
+        other_story_id = uuid4()
+
+        fake = _make_fake_caller()
+        service = WriterService(session, _make_config(), fake)
+
+        with pytest.raises(WriterPassError):
+            service.write(_make_assembled(story_id=other_story_id), story_id, node_id)
+
+        assert len(fake.captured) == 0  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -464,7 +521,7 @@ class TestModelCallerInjection:
         fake = _make_fake_caller()
         service = WriterService(session, _make_config(), fake)
 
-        service.write(_make_assembled(), story_id, node_id)
+        service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert len(fake.captured) == 1  # type: ignore[attr-defined]
         payload = fake.captured[0]  # type: ignore[attr-defined]
@@ -481,7 +538,7 @@ class TestModelCallerInjection:
         try:
             fake = _make_fake_caller()
             service = WriterService(session, _make_config(), fake)
-            service.write(_make_assembled(), story_id, node_id)
+            service.write(_make_assembled(story_id=story_id), story_id, node_id)
         finally:
             if env_backup is not None:
                 os.environ["ANTHROPIC_API_KEY"] = env_backup
@@ -508,7 +565,7 @@ class TestCacheMetrics:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert result.input_token_count == 200
         assert result.output_token_count == 80
@@ -530,7 +587,7 @@ class TestCacheMetrics:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert result.cache_read_token_count is None
         assert result.cache_creation_token_count is None
@@ -544,7 +601,7 @@ class TestCacheMetrics:
         fake = _make_fake_caller(msg)
         service = WriterService(session, _make_config(), fake)
 
-        result = service.write(_make_assembled(), story_id, node_id)
+        result = service.write(_make_assembled(story_id=story_id), story_id, node_id)
 
         assert result.model_identifier.startswith("anthropic:")
         assert "claude" in result.model_identifier

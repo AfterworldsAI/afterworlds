@@ -18,6 +18,9 @@ Architectural invariants enforced here:
   - The Writer does not create Nodes; the caller supplies node_id.
   - node_id lineage is verified against story_id before any provider call or
     Turn persistence; a mismatched or nonexistent node raises WriterPassError.
+  - built_context.stable_prefix.story_bible_context.story_id is verified
+    against story_id before rendering; a mismatch raises WriterPassError so
+    cross-story context contamination is caught before any provider call.
 """
 
 from __future__ import annotations
@@ -94,15 +97,22 @@ class WriterService:
             identifier, latency, and token/cache metrics.
 
         Raises:
-            WriterPassError: if node_id does not belong to story_id, the
-                provider call fails, the response is malformed, or the parsed
-                output is empty after trimming.  No Turn is persisted in any
-                error case.
+            WriterPassError: if built_context was assembled for a different
+                story_id, if node_id does not belong to story_id, the provider
+                call fails, the response is malformed, or the parsed output is
+                empty after trimming.  No Turn is persisted in any error case.
         """
         if not node_belongs_to_story(self._session, node_id, story_id):
             raise WriterPassError(
                 f"node {node_id} does not belong to story {story_id}; "
                 "no Turn persisted"
+            )
+
+        context_story_id = built_context.stable_prefix.story_bible_context.story_id
+        if context_story_id != story_id:
+            raise WriterPassError(
+                f"built_context was assembled for story {context_story_id}, "
+                f"not story {story_id}; no Turn persisted"
             )
 
         payload = self._renderer.render(built_context)
