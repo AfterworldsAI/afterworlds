@@ -4,12 +4,15 @@ Turn and Node are intentionally distinct types.  They often correspond 1:1
 but are not the same concept.  Collapsing them is architectural debt.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
 from afterworlds.models.enums import IntentType, normalize_legacy_intent_type
+from afterworlds.models.intent_classification import IntentClassificationResult
 
 
 class Turn(BaseModel):
@@ -20,7 +23,10 @@ class Turn(BaseModel):
     - ``user_input`` — the raw user submission
     - ``assistant_output`` — the raw AI response
     - ``timestamp`` — when the interaction occurred
-    - ``intent_classification`` — classified intent for this Turn
+    - ``intent_classification`` — classified intent enum for this Turn
+    - ``intent_classification_result`` — full typed ICR from the pipeline;
+      populated by the Writer pass (Issue 9) and nullable for pre-pipeline
+      Turns written before the Writer existed.
     - ``node_id`` — optional link to the associated Node (may be None when the
       Turn does not yet correspond to a persisted Node, e.g. during pre-play)
     """
@@ -31,6 +37,7 @@ class Turn(BaseModel):
     timestamp: datetime
     intent_classification: IntentType
     node_id: UUID | None = None
+    intent_classification_result: IntentClassificationResult | None = None
 
     @field_validator("intent_classification", mode="before")
     @classmethod

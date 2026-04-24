@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.node import (
     BranchingNodeMetadata,
     ModeMetadata,
@@ -56,6 +57,11 @@ def _node_orm_to_model(row: NodeORM) -> Node:
 
 
 def _turn_orm_to_model(row: TurnORM) -> Turn:
+    icr: IntentClassificationResult | None = None
+    if row.intent_classification_result is not None:
+        icr = IntentClassificationResult.model_validate(
+            row.intent_classification_result
+        )
     return Turn(
         turn_id=UUID(row.turn_id),
         node_id=UUID(row.node_id) if row.node_id is not None else None,
@@ -63,6 +69,7 @@ def _turn_orm_to_model(row: TurnORM) -> Turn:
         assistant_output=row.assistant_output,
         timestamp=row.timestamp,  # type: ignore[arg-type]
         intent_classification=row.intent_classification,  # type: ignore[arg-type]
+        intent_classification_result=icr,
     )
 
 
@@ -135,6 +142,9 @@ def delete_node(session: Session, node_id: UUID) -> bool:
 
 def create_turn(session: Session, turn: Turn) -> Turn:
     """Persist a new Turn and return it."""
+    icr_dict: dict[str, Any] | None = None
+    if turn.intent_classification_result is not None:
+        icr_dict = turn.intent_classification_result.model_dump(mode="json")
     row = TurnORM(
         turn_id=str(turn.turn_id),
         node_id=str(turn.node_id) if turn.node_id is not None else None,
@@ -142,6 +152,7 @@ def create_turn(session: Session, turn: Turn) -> Turn:
         assistant_output=turn.assistant_output,
         timestamp=turn.timestamp.isoformat(),
         intent_classification=turn.intent_classification.value,
+        intent_classification_result=icr_dict,
     )
     session.add(row)
     session.flush()
@@ -164,3 +175,24 @@ def delete_turn(session: Session, turn_id: UUID) -> bool:
     session.delete(row)
     session.flush()
     return True
+
+
+def node_belongs_to_story(session: Session, node_id: UUID, story_id: UUID) -> bool:
+    """Return True if node_id exists and its lineage traces back to story_id.
+
+    Walks Node → Chapter → Arc and checks Arc.story_id.  Returns False for a
+    node that does not exist or belongs to a different story.
+    """
+    from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+    result = (
+        session.query(NodeORM.node_id)
+        .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+        .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+        .filter(
+            NodeORM.node_id == str(node_id),
+            ArcORM.story_id == str(story_id),
+        )
+        .first()
+    )
+    return result is not None

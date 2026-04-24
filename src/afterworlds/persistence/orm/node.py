@@ -53,6 +53,9 @@ class TurnORM(Base):
     assistant_output: Mapped[str] = mapped_column(sa.Text, nullable=False)
     timestamp: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     intent_classification: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    intent_classification_result: Mapped[dict[str, Any] | None] = mapped_column(
+        sa.JSON, nullable=True
+    )
 
     node: Mapped[NodeORM | None] = relationship("NodeORM", back_populates="turns")
 
