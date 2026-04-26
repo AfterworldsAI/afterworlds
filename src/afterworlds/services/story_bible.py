@@ -737,29 +737,6 @@ class StoryBibleService:
         self._session.flush()
         return _proposal_orm_to_model(row)
 
-    def get_pending_proposals(self, story_id: UUID) -> list[ProvisionalProposal]:
-        """Return all active PENDING proposals for a story.
-
-        Surfaces locked-fact proposals that require Sojourner confirmation before
-        they can be ratified.  Also returns any other proposal that arrived in
-        PENDING state (e.g. unresolvable soft-fact or transient-state proposals
-        queued by the Extractor service for manual review).
-        """
-        rows = (
-            self._session.execute(
-                select(SBProvisionalStagingORM)
-                .where(
-                    SBProvisionalStagingORM.story_id == str(story_id),
-                    SBProvisionalStagingORM.status == ProposalStatus.PENDING.value,
-                    SBProvisionalStagingORM.is_active.is_(True),
-                )
-                .order_by(SBProvisionalStagingORM.created_at.asc())
-            )
-            .scalars()
-            .all()
-        )
-        return [_proposal_orm_to_model(r) for r in rows]
-
     def list_pending_locked_fact_proposals(
         self, story_id: UUID
     ) -> list[ProvisionalProposal]:

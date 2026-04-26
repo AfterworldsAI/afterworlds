@@ -76,11 +76,16 @@ from afterworlds.models.enums import (
     IntentType,
     ProposalStatus,
     ProposalType,
+    RelationshipType,
     StoryMode,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.story import Arc, Chapter, Story
-from afterworlds.models.story_bible import CastEntry, StoryBibleContext
+from afterworlds.models.story_bible import (
+    CastEntry,
+    RelationshipLedger,
+    StoryBibleContext,
+)
 from afterworlds.persistence.crud.node import create_node
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.persistence.database import create_engine, create_session_factory
@@ -88,6 +93,7 @@ from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.story_bible import (
     SBEventORM,
     SBProvisionalStagingORM,
+    SBRelationshipLedgerORM,
     SBUnresolvedThreadORM,
 )
 from afterworlds.pipeline.extractor.caller import EXTRACT_TOOL_NAME, ExtractorPayload
@@ -1176,3 +1182,321 @@ class TestErrorHandling:
         )
 
         assert isinstance(result, ExtractorResult)
+
+
+# ---------------------------------------------------------------------------
+# Shared fixture — relationship seeding
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def story_with_relationship(session, story_and_cast):  # type: ignore[no-untyped-def]
+    """Extend story_and_cast with a second cast entry 'Mira' and 'Aldric -> Mira'."""
+    story_id, aldric_cast_id = story_and_cast
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+
+    sbs = StoryBibleService(session)
+    mira_entry = CastEntry(
+        story_id=story_id,
+        name="Mira",
+        role=CastRole.SUPPORTING,
+        created_at=now,
+    )
+    mira_saved = sbs.add_cast_entry(story_id, mira_entry)
+
+    relationship = RelationshipLedger(
+        story_id=story_id,
+        subject_cast_id=aldric_cast_id,
+        object_cast_id=mira_saved.cast_id,
+        relationship_type=RelationshipType.ALLY,
+        current_status_description="Cautious allies",
+        created_at=now,
+        updated_at=now,
+    )
+    sbs.add_relationship(story_id, relationship)
+    session.commit()
+
+    return story_id, aldric_cast_id, mira_saved.cast_id
+
+
+# ---------------------------------------------------------------------------
+# Relationship domain
+# ---------------------------------------------------------------------------
+
+
+class TestRelationshipDomain:
+    def test_relationship_soft_fact_updates_status_description(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """RELATIONSHIP soft_fact updates current_status_description and leaves a
+        RATIFIED audit row."""
+        story_id, aldric_cast_id, mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "Aldric -> Mira",
+                            "target_field": "current_status_description",
+                            "proposed_value": "tense allies",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, aldric_cast_id),
+            "Aldric eyes Mira with suspicion.",
+            story_id,
+            _turn_id(),
+        )
+
+        assert len(result.routed.soft_fact_staged_ids) == 1
+
+        rel_row = (
+            session.query(SBRelationshipLedgerORM)
+            .filter_by(
+                story_id=str(story_id),
+                subject_cast_id=str(aldric_cast_id),
+                object_cast_id=str(mira_cast_id),
+                is_active=True,
+            )
+            .one()
+        )
+        assert rel_row.current_status_description == "tense allies"
+
+        audit_rows = (
+            session.query(SBProvisionalStagingORM)
+            .filter_by(
+                proposal_type=ProposalType.SOFT_FACT.value,
+                status=ProposalStatus.RATIFIED.value,
+            )
+            .all()
+        )
+        assert len(audit_rows) == 1
+
+    def test_relationship_malformed_key_no_delimiter_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Relationship key with no ' -> ' delimiter raises ExtractorPassError."""
+        story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "AldricMira",
+                            "target_field": "current_status_description",
+                            "proposed_value": "allies",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+    def test_relationship_malformed_key_two_delimiters_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Relationship key with two ' -> ' delimiters raises ExtractorPassError."""
+        story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "Aldric -> Mira -> Vex",
+                            "target_field": "current_status_description",
+                            "proposed_value": "allies",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+    def test_relationship_unresolvable_subject_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Unresolvable subject name raises ExtractorPassError with no DB state."""
+        story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "UnknownPerson -> Mira",
+                            "target_field": "current_status_description",
+                            "proposed_value": "allies",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+    def test_relationship_unresolvable_object_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Unresolvable object name raises ExtractorPassError with no DB state."""
+        story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "Aldric -> UnknownPerson",
+                            "target_field": "current_status_description",
+                            "proposed_value": "allies",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+
+# ---------------------------------------------------------------------------
+# World domain
+# ---------------------------------------------------------------------------
+
+
+class TestWorldDomain:
+    def test_world_domain_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """world domain raises ExtractorPassError; no DB state committed."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "world",
+                            "target_natural_key": "some_key",
+                            "target_field": "any_field",
+                            "proposed_value": "whatever",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+
+# ---------------------------------------------------------------------------
+# Transaction boundary (all-or-nothing invariant)
+# ---------------------------------------------------------------------------
+
+
+class TestTransactionBoundary:
+    def test_partial_failure_leaves_no_db_state(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """locked_fact (succeeds flush) + soft_fact with unknown name (fails) →
+        zero rows after rollback; proves the all-or-nothing transaction boundary."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "locked_fact",
+                            "fact_text": "The fortress gates are sealed forever.",
+                        },
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "UnknownName",
+                            "target_field": "current_location",
+                            "proposed_value": "Somewhere",
+                        },
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "The gates seal. UnknownName walks away.",
+                story_id,
+                _turn_id(),
+            )
+
+        # After rollback the locked_fact's flush must not have been committed.
+        session.rollback()
+        staging_rows = session.query(SBProvisionalStagingORM).all()
+        assert (
+            staging_rows == []
+        ), "Partial DB state was committed — transaction boundary violated"
