@@ -779,7 +779,8 @@ class StoryBibleService:
     def find_character_by_name(self, story_id: UUID, name: str) -> UUID:
         """Return the cast_id for a character matching ``name`` (case-insensitive).
 
-        Raises ``EntityNotFoundError`` if no active cast entry matches.
+        Raises ``EntityNotFoundError`` if no active cast entry matches or if
+        multiple active entries match (ambiguous — caller cannot safely pick one).
         """
         rows = (
             self._session.execute(
@@ -795,6 +796,12 @@ class StoryBibleService:
         if not rows:
             raise EntityNotFoundError(
                 f"No active cast entry with name {name!r} found in story {story_id}."
+            )
+        if len(rows) > 1:
+            raise EntityNotFoundError(
+                f"Ambiguous character name {name!r}: {len(rows)} active cast entries "
+                f"match case-insensitively in story {story_id}. "
+                "Natural-key resolution requires a unique match."
             )
         return UUID(rows[0].cast_id)
 
@@ -975,7 +982,7 @@ class StoryBibleService:
         subject_uuid: UUID,
         object_uuid: UUID,
     ) -> SBRelationshipLedgerORM:
-        row = (
+        rows = (
             self._session.execute(
                 select(SBRelationshipLedgerORM).where(
                     SBRelationshipLedgerORM.story_id == str(story_id),
@@ -985,14 +992,20 @@ class StoryBibleService:
                 )
             )
             .scalars()
-            .first()
+            .all()
         )
-        if row is None:
+        if not rows:
             raise EntityNotFoundError(
                 f"No active relationship from '{subject_uuid}' to '{object_uuid}' "
                 f"in story {story_id}."
             )
-        return row
+        if len(rows) > 1:
+            raise EntityNotFoundError(
+                f"Ambiguous relationship: {len(rows)} active rows from "
+                f"'{subject_uuid}' to '{object_uuid}' in story {story_id}. "
+                "Natural-key resolution requires a unique match."
+            )
+        return rows[0]
 
     def _update_relationship_field(
         self,

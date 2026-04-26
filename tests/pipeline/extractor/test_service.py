@@ -876,6 +876,51 @@ class TestUnresolvableCharacter:
         staging_rows = session.query(SBProvisionalStagingORM).all()
         assert staging_rows == []
 
+    def test_ambiguous_character_name_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Ambiguous case-insensitive name match raises ExtractorPassError."""
+        story_id, cast_id = story_and_cast
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        sbs = StoryBibleService(session)
+        # Seed a second "Aldric" entry (schema has no uniqueness constraint).
+        duplicate = CastEntry(
+            story_id=story_id,
+            name="aldric",  # same name, different casing — still matches
+            role=CastRole.MINOR,
+            created_at=now,
+        )
+        sbs.add_cast_entry(story_id, duplicate)
+        session.commit()
+
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": "Somewhere",
+                        }
+                    ]
+                }
+            )
+        )
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
 
 # ---------------------------------------------------------------------------
 # Story-id guard
@@ -1368,6 +1413,54 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+    def test_duplicate_active_relationship_rows_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Two active relationship rows for the same pair raises ExtractorPassError."""
+        story_id, aldric_cast_id, mira_cast_id = story_with_relationship
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        sbs = StoryBibleService(session)
+        # Seed a second active row for the same (subject, object) pair.
+        duplicate_rel = RelationshipLedger(
+            story_id=story_id,
+            subject_cast_id=aldric_cast_id,
+            object_cast_id=mira_cast_id,
+            relationship_type=RelationshipType.ENEMY,
+            current_status_description="Duplicate row",
+            created_at=now,
+            updated_at=now,
+        )
+        sbs.add_relationship(story_id, duplicate_rel)
+        session.commit()
+
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "Aldric -> Mira",
+                            "target_field": "current_status_description",
+                            "proposed_value": "enemies now",
+                        }
+                    ]
+                }
+            )
+        )
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         with pytest.raises(ExtractorPassError):
