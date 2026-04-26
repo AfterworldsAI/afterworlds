@@ -4,36 +4,23 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from afterworlds.models.story_bible import ProvisionalProposal
+from afterworlds.models.extractor import ExtractorProposalSet, ExtractorRoutingSummary
 
 
 class ExtractorResult(BaseModel):
     """Typed return value from ExtractorService.extract().
 
     Attributes:
-        proposals: All proposals staged during this pass (both pending and
-            auto-committed).
-        pending_proposals: Subset of proposals still in PENDING status —
-            locked-fact proposals that require Sojourner confirmation.
-        auto_committed: Proposals that were staged and immediately ratified
-            (soft facts, transient states, events, unresolved threads).
-        pass_forward_content: Text summary of Extractor findings, added to the
-            PassForwardLedger by the pipeline (Issue 12) for downstream passes.
-        model_identifier: Provider and model string, e.g.
-            ``"anthropic:claude-haiku-4-5-20251001"``.
-        latency_ms: Wall-clock latency of the provider call in milliseconds.
+        proposal_set: All proposals extracted from the LLM response.
+        routed: IDs of staged / created entries, grouped by proposal kind.
         input_token_count: Uncached input tokens consumed, when reported.
         output_token_count: Output tokens generated, when reported.
         cache_read_token_count: Cache-hit tokens, when reported.
         cache_creation_token_count: Cache-write tokens, when reported.
     """
 
-    proposals: list[ProvisionalProposal]
-    pending_proposals: list[ProvisionalProposal]
-    auto_committed: list[ProvisionalProposal]
-    pass_forward_content: str
-    model_identifier: str
-    latency_ms: int
+    proposal_set: ExtractorProposalSet
+    routed: ExtractorRoutingSummary
     input_token_count: int | None
     output_token_count: int | None
     cache_read_token_count: int | None
@@ -47,6 +34,8 @@ class ExtractorPassError(Exception):
       - No tool_use block in the provider response.
       - Tool name mismatch or malformed tool input.
       - Underlying provider exception.
+      - Natural-key resolution failure (EntityNotFoundError or ValueError
+        from routing) — the entire turn is aborted with no DB state committed.
 
     The original cause is preserved as ``__cause__`` via standard Python
     exception chaining (``raise ExtractorPassError(...) from original``).

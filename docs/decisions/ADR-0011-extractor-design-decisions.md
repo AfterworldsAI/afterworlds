@@ -3,148 +3,252 @@
 **Status:** Accepted
 **Date:** 2026-04-25
 **Issue:** CRD Issue 10 — Extractor Classification Policy
-**Scope:** Tool-use output schema; EVENT proposal type; cast-name resolution;
-  pass-forward content; cross-pass cache reuse
+**Scope:** Tool-use output schema; proposal model; transaction ownership;
+  natural-key resolution; EventKind taxonomy; writable-field allowlists;
+  events bypass staging; cross-pass cache reuse
 
 ---
 
-## Decision 1 — Anthropic Tool Use for Structured Extraction Output
+## Decision 1 — Anthropic Tool Use with Discriminated Union Schema
 
 ### Context
 
-The Extractor pass must produce structured, typed proposal output (locked facts,
-soft facts, transient states, unresolved threads, events).  Options:
+The Extractor pass must produce structured, typed proposal output.  Options:
 
-1. **Tool use (`tool_choice` forced)** — model always calls the extraction tool;
-   response is a `ToolUseBlock` with a validated JSON input dict.
-2. **Prose JSON** — model returns a JSON blob inside a text response; service
-   parses it.
-3. **Separate classification calls** — one LLM call per category.
+1. **Tool use with discriminated union** — model calls `propose_canon_updates`
+   once with a `proposals` array; each element is tagged by `kind`.
+2. **Tool use with flat parallel arrays** — separate arrays per category
+   (`locked_facts`, `soft_facts`, etc.).
+3. **Prose JSON** — model returns a JSON blob in text; service parses it.
 
 ### Decision
 
-**Option 1: Anthropic tool use with `tool_choice={"type": "tool", "name":
-"propose_story_bible_updates"}` to force a single tool call per Extractor pass.**
+**Option 1: `propose_canon_updates` with a `proposals: [{oneOf discriminated-union}]`
+array, forced via `tool_choice={"type": "tool", "name": "propose_canon_updates"}`.**
 
-The `EXTRACT_TOOL_SPEC` in `pipeline/extractor/caller.py` defines five typed
-array fields: `locked_facts`, `soft_facts`, `transient_states`,
-`unresolved_threads`, `events`.  All are optional (`required: []`) so the model
-can omit categories where nothing was found.
+The `EXTRACT_TOOL_SPEC` in `pipeline/extractor/caller.py` defines a single
+`proposals` array whose items are a `oneOf` discriminated union keyed on `kind`:
+`locked_fact`, `soft_fact`, `transient_state`, `unresolved_thread`, `event`.
 
 ### Rationale
 
+- A single array is easier to extend (add a new `kind` variant without touching
+  the schema shape).
+- The discriminated union makes kind membership explicit at the schema level —
+  no implicit inference from which array a proposal appears in.
 - Tool use eliminates fragile JSON-in-prose parsing.
-- `tool_choice={"type": "tool", "name": ...}` forces the model to always call
-  the tool, producing a deterministic response shape.  No "I found nothing"
-  prose to parse.
-- A single tool call covers all five categories in one pass, minimising latency
-  and token cost.
 - Fail-closed: if the response contains no matching `ToolUseBlock`, the service
-  raises `ExtractorPassError` rather than silently emitting empty proposals.
+  raises `ExtractorPassError`.
 
 ### Consequences
 
-- `parse_tool_input()` in `caller.py` scans content blocks for a `ToolUseBlock`
-  whose `.name` matches `EXTRACT_TOOL_NAME` and returns `.input` as a dict.
-- Responses that contain only `TextBlock` (model ignores tool_choice) raise
-  `ExtractorPassError`.
-- The `ExtractorModelCaller` protocol and `AnthropicExtractorCaller` class
-  mirror the `WriterModelCaller` pattern for injection and testability.
+- `parse_tool_input()` in `caller.py` extracts the tool-use block.
+- `ExtractorProposalSet.model_validate(tool_input)` validates the full proposal
+  list using the Pydantic discriminated union in `models/extractor.py`.
+- The flat-array design (from prior Issue 10 iteration) is retired; any existing
+  data was never committed to production.
 
 ---
 
-## Decision 2 — EVENT Added to ProposalType
+## Decision 2 — EventProposal Bypasses Staging; ProposalType.EVENT Removed
 
 ### Context
 
-The Events Ledger (`sb_events`) is part of the Story Bible.  The Extractor must
-be able to propose new events as part of its extraction pass.  The existing four
-`ProposalType` values (`LOCKED_FACT`, `SOFT_FACT`, `TRANSIENT_STATE`,
-`UNRESOLVED_THREAD`) do not cover append-only ledger entries.
-
-Options:
-
-1. **Add `ProposalType.EVENT`** — a dedicated routing value; `ratify_update()`
-   extended to create the `SBEventORM` row on ratification.
-2. **Reuse `TRANSIENT_STATE`** — events encoded as transient-state proposals with
-   `target_entity_type="event"`.  Service detects and routes accordingly.
+Events are append-only ledger entries.  The prior design staged events as
+`ProposalType.EVENT` rows in `sb_provisional_staging`, then ratified them.
+Issue 10 as posted requires events to go directly to `add_event` without a
+staging row.
 
 ### Decision
 
-**Option 1: `ProposalType.EVENT` added to `models/enums.py`.**
+**Events bypass the provisional staging table entirely.**
 
-`StoryBibleService.ratify_update()` extended with an `EVENT` branch that creates
-an `SBEventORM` row and marks the proposal RATIFIED.  Events auto-commit (no
-`confirmed=True` required).
+`route_extractor_proposals()` calls `add_event()` directly for `EventProposal`
+instances.  No `SBProvisionalStagingORM` row is created.  `ProposalType.EVENT`
+is removed from the `ProposalType` enum.
 
 ### Rationale
 
-- Events are a first-class Story Bible entity type; treating them as a subtype
-  of `TRANSIENT_STATE` creates a leaky abstraction and forces the service to
-  inspect `proposed_value` internals to determine routing.
-- An explicit `ProposalType.EVENT` keeps routing logic in the enum discriminant,
-  not in `proposed_value` interpretation.
-- Events are always auto-committed (the Events Ledger is append-only; even
-  `character_death` events are recorded immediately).  A dedicated enum value
-  makes this policy explicit in code rather than implicit in a convention.
+- Events are always auto-committed (the Events Ledger is append-only).
+- A staging row adds latency and a join without providing a rollback path that
+  matters for append-only data.
+- Removing `ProposalType.EVENT` keeps the enum truthful: the four remaining
+  values all have provisional staging rows; events do not.
 
 ### Consequences
 
-- `ProposalType.EVENT` is a new wire value (`"event"`) in the SQLite
-  `sb_provisional_staging.proposal_type` column.  Rows from Issues 1–9 will
-  not have this value; the column has no CHECK constraint limiting values so
-  existing rows are unaffected.
-- `ratify_update()` handles the new branch before the `else` clause that covers
-  `SOFT_FACT` / `TRANSIENT_STATE`.
-- Tests verify that event ratification creates a row in `sb_events`.
+- `ExtractorRoutingSummary.event_ids` carries the `event_id` UUIDs of the
+  `sb_events` rows, not proposal IDs.
+- Tests verify that no staging row exists after an event proposal (bypass test).
+- `ratify_update()` no longer handles `ProposalType.EVENT`.
 
 ---
 
-## Decision 3 — Cast-Name Resolution via AssembledContext
+## Decision 3 — Fail-Loud Natural-Key Resolution
 
 ### Context
 
-The Extractor LLM returns character names (e.g. `"Aldric"`) not UUIDs.  To
-apply soft-fact and transient-state updates to live dynamic fields, the service
-must resolve names to `cast_id` UUIDs.
-
-Options:
-
-1. **Use `AssembledContext.stable_prefix.story_bible_context.cast`** — the cast
-   tuple is already in memory from the Context Builder pass; no extra DB query.
-2. **Query the DB by name** — add a `find_cast_by_name()` method to
-   `StoryBibleService` and query at extraction time.
+The Extractor LLM returns character names and relationship keys, not UUIDs.
+The prior design silently skipped field updates when a name was unresolvable.
+Issue 10 as posted requires the entire routing transaction to fail on any
+unresolvable natural key.
 
 ### Decision
 
-**Option 1: resolve character names from `AssembledContext` at extraction time.**
+**Resolution failure raises `EntityNotFoundError` and aborts the transaction.**
 
-`_build_cast_name_map()` in `service.py` builds a `dict[str, UUID]` keyed on
-lowercase character name from `built_context.stable_prefix.story_bible_context.cast`.
+`StoryBibleService.find_character_by_name()` raises `EntityNotFoundError` if no
+active cast entry matches the name (case-insensitive).  `_parse_relationship_natural_key()`
+raises `ValueError` on bad delimiter format.  Both propagate through
+`route_extractor_proposals()` and are caught in `ExtractorService.extract()` as
+`ExtractorPassError`, leaving no DB state committed.
 
 ### Rationale
 
-- The `AssembledContext` is already in memory; the cast is the authoritative
-  snapshot used by the Writer.  No extra DB query for what is already available.
-- Case-insensitive matching (`name.lower()`) tolerates LLM capitalisation drift.
-- If the name does not resolve, the proposal is still staged and ratified; only
-  the dynamic-field application is skipped (not raised).  The RATIFIED proposal
-  remains in the staging table for future review.
+- Strict fail-loud matches the posted spec acceptance criteria.
+- Silent skip could leave partial state (some proposals applied, others not)
+  within the same turn — harder to reason about and audit.
+- If strictness proves operationally undesirable, it can be relaxed in a later
+  issue.  Starting strict is safer than starting permissive.
 
 ### Consequences
 
-- `proposed_value` for cast-update proposals stores both `character_name` (for
-  human traceability) and `entity_id` (resolved UUID, or `None` if not found).
-- If a character is added to the Story Bible after context assembly (by a
-  previous Extractor pass in the same session), the name map will not contain
-  the new entry.  This is acceptable in Issue 10 standalone; pipeline
-  orchestration (Issue 12) will manage pass ordering.
-- `target_entity_id` on the proposal is `None` for unresolvable names; the
-  dynamic-field update is skipped without error.
+- The operator-facing error message includes the unresolvable name.
+- `EntityNotFoundError` and `ValueError` are caught in `ExtractorService.extract()`
+  and re-raised as `ExtractorPassError`.
+- No partial DB state is committed when routing fails.
 
 ---
 
-## Decision 4 — Cross-Pass Cache Reuse: Deferred to Issue 12
+## Decision 4 — TargetDomain + Writable-Field Allowlists
+
+### Context
+
+The Extractor may target three domains: CHARACTER, RELATIONSHIP, WORLD.  Each
+domain has a distinct natural-key convention and a distinct set of fields that
+may be updated.
+
+### Decision
+
+**`TargetDomain` enum (CHARACTER, WORLD, RELATIONSHIP) and
+`StoryBibleService.get_writable_fields(target_domain)` are the single sources of truth.**
+
+- CHARACTER: `_CAST_DYNAMIC_FIELDS` = `{current_location, current_status, is_alive, notes}`
+- RELATIONSHIP: `{current_status_description}`
+- WORLD: `frozenset()` — not supported in v1; always fails field validation.
+
+### Rationale
+
+- A method on `StoryBibleService` owns the allowlist so the routing logic
+  (`route_extractor_proposals`) does not duplicate policy knowledge.
+- WORLD is a `frozenset()` (always-fail) rather than a separate code branch,
+  so adding v1 world-state fields later only requires updating the method.
+
+### Consequences
+
+- Any proposal targeting `WORLD` domain raises `ValueError` (no writable fields)
+  and aborts the transaction.
+- The relationship allowlist is narrow (one field) to match what the schema and
+  ORM currently support.
+
+---
+
+## Decision 5 — Relationship Natural-Key Format
+
+### Context
+
+Relationships are directional (subject → object).  The Extractor must identify
+which relationship to update using character names.
+
+### Decision
+
+**Natural key format: `"<Subject> -> <Object>"` — exactly one ` -> ` delimiter
+(space, dash, greater-than, space).**
+
+`_parse_relationship_natural_key()` splits on `" -> "` and requires exactly two
+parts.  Zero or more than one delimiter raises `ValueError`, which aborts the
+transaction via the fail-loud resolution contract.
+
+### Rationale
+
+- A four-character fixed delimiter is unambiguous for any character name that
+  does not itself contain ` -> `.
+- Splitting on a fixed string (not a regex) is simple and readable.
+- The format is documented in `extractor.md` so the LLM prompt mirrors it.
+
+### Consequences
+
+- Character names containing ` -> ` would produce a parse error; this is
+  acceptable since no canon character names include that sequence.
+
+---
+
+## Decision 6 — EventKind Taxonomy Added
+
+### Context
+
+Events in the Events Ledger lacked a functional classification beyond
+`significance`.  Downstream passes (summarisation, retrieval filtering) need a
+machine-readable classification of what *kind* of event occurred.
+
+### Decision
+
+**`EventKind` enum added to `models/enums.py` with eleven values:**
+LOCATION_CHANGE, INVENTORY_GAIN, INVENTORY_LOSS, NPC_INTRODUCTION,
+STATUS_CHANGE, RELATIONSHIP_CHANGE, SCENE_TRANSITION, PLOT_REVEAL,
+OATH_OR_PROMISE, DEATH, ROUTINE.
+
+`event_kind` is a required field on the `Event` Pydantic model and a non-nullable
+column (`server_default="routine"`) on `sb_events` (migration 0008).
+
+### Rationale
+
+- `significance` is a policy-tier field (for the tiered inclusion policy).
+  `event_kind` is a functional-type field (for filtering, summarisation, display).
+  The two are orthogonal; collapsing them into one field would create a
+  mixed-semantics column.
+- Making `event_kind` required on the model ensures new events are always
+  classified; `server_default="routine"` backfills pre-Issue-10 rows safely.
+
+### Consequences
+
+- All callers that construct `Event` must supply `event_kind`.
+- Test fixtures (`make_event`, context-builder tests) updated to include `event_kind`.
+- Migration 0008 must run before the application processes any turn.
+
+---
+
+## Decision 7 — Transaction Ownership: route_extractor_proposals Commits
+
+### Context
+
+The Writer service calls `session.commit()` after persisting the Turn.  The
+Extractor makes multiple staging and direct canon writes per turn.
+
+### Decision
+
+**`StoryBibleService.route_extractor_proposals()` calls `self._session.commit()`
+once at the end of the pass.  `ExtractorService.extract()` does NOT touch the
+session.**
+
+### Rationale
+
+- A single commit at the end is atomic: all proposals stage-and-apply together
+  or none do.
+- Removes session management from `ExtractorService`, which is a pipeline-layer
+  concern, not a service-layer concern.
+- Mirrors the Writer's single-commit pattern for consistency.
+
+### Consequences
+
+- If `route_extractor_proposals()` raises before commit, the session is dirty.
+  The caller (`ExtractorService.extract()`) is responsible for rollback.
+- Issue 12 (pipeline orchestration) must handle session lifecycle across all
+  five passes and decide whether to use a single session or per-pass sessions.
+
+---
+
+## Decision 8 — Cross-Pass Cache Reuse: Deferred to Issue 12
 
 ### Context
 
@@ -166,51 +270,10 @@ block differs, which busts cross-pass sharing under the Anthropic caching model
 ### Rationale
 
 - Issue 12 owns pipeline orchestration and is the correct place to evaluate
-  whether all five passes can share a single system-prompt tier or whether the
-  stable-prefix is cached only within a single pass's lifetime.
-- The Issue 10 Extractor produces stable within-pass caching (second call with
-  the same Story Bible hits the same cache).  The tradeoff is accepted and
-  documented.
-- Full cross-pass system-prompt unification would require either (a) a shared
-  system prompt across all passes (changing the Writer's behaviour) or (b) a
-  provider feature that caches only the user-message tier independently of the
-  system tier.  Neither is decided here.
+  whether all five passes can share a single system-prompt tier.
+- The Issue 10 Extractor produces stable within-pass caching.
 
 ### Consequences
 
-- Pass-forward text from the Extractor adds ~2,000–2,500 uncached tokens per
-  turn to subsequent passes, consistent with the CRD cost-model estimate.
-- Issue 12 must revisit system-prompt sharing and decide whether a unified
-  pass-agnostic system prompt is feasible.  This is noted as a Known Unknown
-  that Issue 12 must address.
-
----
-
-## Decision 5 — Extractor Does Not Commit to DB; Session Managed by Service
-
-### Context
-
-The Writer service calls `session.commit()` after persisting the Turn.  The
-Extractor makes multiple staging and ratification writes.
-
-### Decision
-
-**`ExtractorService.extract()` calls `session.commit()` once at the end of the
-pass, after all staging and ratification writes are complete.**
-
-### Rationale
-
-- A single commit at the end is atomic: either all proposals stage-and-ratify
-  together or none do.  This prevents partial state (ratified proposals without
-  corresponding staging rows) from reaching the DB on error.
-- Mirrors the Writer's single-commit pattern for consistency.
-- The pipeline (Issue 12) may choose to manage session lifecycle across all
-  five passes; Issue 10 commits its own pass following the Issue 9 precedent.
-
-### Consequences
-
-- If `extract()` raises `ExtractorPassError` after some staging writes but
-  before commit, the session is left dirty.  The caller is responsible for
-  rollback.  Issue 12 must handle this in pipeline error recovery.
-- All staging and ratification writes are flushed (but not committed) during the
-  pass; ORM object state is consistent within the session before commit.
+- Issue 12 must revisit system-prompt sharing.  This is a Known Unknown that
+  Issue 12 must address.

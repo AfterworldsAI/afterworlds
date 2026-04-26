@@ -1,27 +1,41 @@
 """Unit tests for ExtractorService — CRD Issue 10.
 
-Coverage targets (from the Issue 10 test requirements):
+Coverage targets:
 
-Classification routing — one test per proposal category:
+Classification routing — one test per proposal kind:
   - test_locked_fact_staged_pending
-  - test_soft_fact_auto_ratified
-  - test_transient_state_auto_ratified
-  - test_unresolved_thread_creates_thread_row
-  - test_event_creates_event_row
+  - test_soft_fact_staged_id_returned
+  - test_transient_state_staged_id_returned
+  - test_unresolved_thread_staged_id_returned
+  - test_event_id_returned
 
-Direct-write prevention (architectural invariant — CRD Item 12):
-  - test_all_proposals_staged_before_canon_is_touched
-
-Auto-commit behaviour:
+Field application:
   - test_soft_fact_applied_to_cast_dynamic_field
   - test_transient_state_applied_to_cast_dynamic_field
-  - test_unresolvable_character_name_still_ratifies_proposal
+
+Audit trail (direct-write prevention):
+  - test_soft_fact_has_ratified_staging_row
+  - test_transient_state_has_ratified_staging_row
+  - test_unresolved_thread_has_ratified_staging_row
+  - test_event_bypasses_staging_table
+
+Database entries:
+  - test_unresolved_thread_creates_thread_row
+  - test_event_creates_event_row_with_event_kind
+
+Fail-loud unresolvable name (strict per Issue 10):
+  - test_unresolvable_character_name_raises_extractor_pass_error
+  - test_unresolvable_name_leaves_no_db_state
+
+Story-id guard:
+  - test_story_id_mismatch_raises_extractor_pass_error
+
+Empty tool response:
   - test_empty_tool_response_produces_empty_result
 
-Pass-forward content:
-  - test_pass_forward_mentions_pending_locked_fact
-  - test_pass_forward_mentions_auto_committed_event
-  - test_pass_forward_empty_when_no_proposals
+list_pending_locked_fact_proposals:
+  - test_list_pending_locked_fact_proposals_returns_locked_facts
+  - test_list_pending_excludes_auto_committed_proposals
 
 Token metrics:
   - test_token_metrics_propagated
@@ -30,13 +44,15 @@ Token metrics:
 Error handling:
   - test_provider_exception_raises_extractor_pass_error
   - test_no_tool_use_block_raises_extractor_pass_error
+  - test_fake_caller_receives_tool_spec_with_new_name
+  - test_result_is_typed_extractor_result
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
@@ -222,7 +238,7 @@ def _fake_tool_response(
                 type="tool_use",
                 id="toolu_fake_01",
                 name=EXTRACT_TOOL_NAME,
-                input=tool_input if tool_input is not None else {},
+                input=tool_input if tool_input is not None else {"proposals": []},
             )
         ],
         model="claude-haiku-4-5-20251001",
@@ -253,6 +269,10 @@ def _make_fake_caller(  # type: ignore[no-untyped-def]
     return caller
 
 
+def _turn_id() -> UUID:
+    return uuid4()
+
+
 # ---------------------------------------------------------------------------
 # Classification routing — locked facts
 # ---------------------------------------------------------------------------
@@ -262,93 +282,15 @@ class TestLockedFactRouting:
     def test_locked_fact_staged_pending(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """A locked-fact proposal is staged with PENDING status."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The king has been assassinated."}]}
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The king falls dead."
-        )
-
-        assert len(result.pending_proposals) == 1
-        proposal = result.pending_proposals[0]
-        assert proposal.proposal_type == ProposalType.LOCKED_FACT
-        assert proposal.status == ProposalStatus.PENDING
-        assert proposal.requires_confirmation is True
-        assert "king" in proposal.proposed_value.get("fact_text", "").lower()
-
-    def test_locked_fact_not_in_auto_committed(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """Locked-fact proposals are NOT in auto_committed."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The keep is destroyed."}]}
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The keep crumbles."
-        )
-
-        assert not any(
-            p.proposal_type == ProposalType.LOCKED_FACT for p in result.auto_committed
-        )
-
-    def test_locked_fact_remains_in_staging_area(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """After extract(), a PENDING proposal row exists in the staging table."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The bridge is destroyed."}]}
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The bridge falls."
-        )
-
-        rows = (
-            session.query(SBProvisionalStagingORM)
-            .filter_by(status=ProposalStatus.PENDING.value)
-            .all()
-        )
-        assert len(rows) == 1
-        assert rows[0].proposal_type == ProposalType.LOCKED_FACT.value
-
-
-# ---------------------------------------------------------------------------
-# Classification routing — soft facts
-# ---------------------------------------------------------------------------
-
-
-class TestSoftFactRouting:
-    def test_soft_fact_auto_ratified(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """A soft-fact proposal is RATIFIED."""
+        """A locked-fact proposal produces a staged_id and a PENDING staging row."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "soft_facts": [
+                    "proposals": [
                         {
-                            "character_name": "Aldric",
-                            "field_name": "current_status",
-                            "new_value": "injured",
+                            "kind": "locked_fact",
+                            "fact_text": "The king is assassinated.",
                         }
                     ]
                 }
@@ -358,12 +300,93 @@ class TestSoftFactRouting:
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "Aldric is cut by a blade."
+            _make_assembled(story_id, cast_id),
+            "The king falls dead.",
+            story_id,
+            _turn_id(),
         )
 
-        assert len(result.auto_committed) == 1
-        assert result.auto_committed[0].status == ProposalStatus.RATIFIED
-        assert result.auto_committed[0].proposal_type == ProposalType.SOFT_FACT
+        assert len(result.routed.locked_fact_staged_ids) == 1
+        assert result.routed.soft_fact_staged_ids == []
+        assert result.routed.event_ids == []
+
+        rows = (
+            session.query(SBProvisionalStagingORM)
+            .filter_by(
+                proposal_type=ProposalType.LOCKED_FACT.value,
+                status=ProposalStatus.PENDING.value,
+            )
+            .all()
+        )
+        assert len(rows) == 1
+        assert rows[0].requires_confirmation is True
+        assert "king" in rows[0].proposed_value.get("fact_text", "").lower()
+
+    def test_locked_fact_staged_id_matches_db_row(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """The staged_id returned matches the DB row's proposal_id."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {"kind": "locked_fact", "fact_text": "The bridge is destroyed."}
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, cast_id),
+            "The bridge falls.",
+            story_id,
+            _turn_id(),
+        )
+
+        staged_id = result.routed.locked_fact_staged_ids[0]
+        row = session.get(SBProvisionalStagingORM, str(staged_id))
+        assert row is not None
+        assert row.status == ProposalStatus.PENDING.value
+
+
+# ---------------------------------------------------------------------------
+# Classification routing — soft facts
+# ---------------------------------------------------------------------------
+
+
+class TestSoftFactRouting:
+    def test_soft_fact_staged_id_returned(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """A soft-fact proposal returns a staged_id."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_status",
+                            "proposed_value": "injured",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, cast_id), "Aldric is cut.", story_id, _turn_id()
+        )
+
+        assert len(result.routed.soft_fact_staged_ids) == 1
+        assert result.routed.locked_fact_staged_ids == []
 
     def test_soft_fact_applied_to_cast_dynamic_field(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
@@ -373,40 +396,13 @@ class TestSoftFactRouting:
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "soft_facts": [
+                    "proposals": [
                         {
-                            "character_name": "Aldric",
-                            "field_name": "current_location",
-                            "new_value": "The Dark Tower",
-                        }
-                    ]
-                }
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        service.extract(
-            _make_assembled(story_id, cast_id), story_id, "Aldric enters the tower."
-        )
-
-        entry = sbs.get_character(story_id, cast_id)
-        assert entry is not None
-        assert entry.current_location == "The Dark Tower"
-
-    def test_soft_fact_staged_before_field_applied(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """Staging row exists for the soft fact (direct-write prevention invariant)."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {
-                    "soft_facts": [
-                        {
-                            "character_name": "Aldric",
-                            "field_name": "current_status",
-                            "new_value": "exhausted",
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": "The Dark Tower",
                         }
                     ]
                 }
@@ -417,8 +413,43 @@ class TestSoftFactRouting:
 
         service.extract(
             _make_assembled(story_id, cast_id),
+            "Aldric enters the tower.",
             story_id,
+            _turn_id(),
+        )
+
+        entry = sbs.get_character(story_id, cast_id)
+        assert entry is not None
+        assert entry.current_location == "The Dark Tower"
+
+    def test_soft_fact_has_ratified_staging_row(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """A RATIFIED audit staging row exists for each soft-fact update."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_status",
+                            "proposed_value": "exhausted",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id),
             "Aldric collapses exhausted.",
+            story_id,
+            _turn_id(),
         )
 
         rows = (
@@ -429,7 +460,7 @@ class TestSoftFactRouting:
             )
             .all()
         )
-        assert len(rows) == 1, "No staging row found — direct-write invariant violated"
+        assert len(rows) == 1, "No audit staging row — direct-write invariant violated"
 
 
 # ---------------------------------------------------------------------------
@@ -438,19 +469,21 @@ class TestSoftFactRouting:
 
 
 class TestTransientStateRouting:
-    def test_transient_state_auto_ratified(  # type: ignore[no-untyped-def]
+    def test_transient_state_staged_id_returned(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """A transient-state proposal is RATIFIED."""
+        """A transient-state proposal returns a staged_id."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "transient_states": [
+                    "proposals": [
                         {
-                            "character_name": "Aldric",
-                            "field_name": "current_location",
-                            "new_value": "Forest Path",
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": "Forest Path",
                         }
                     ]
                 }
@@ -461,13 +494,12 @@ class TestTransientStateRouting:
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
-            story_id,
             "Aldric walks the forest path.",
+            story_id,
+            _turn_id(),
         )
 
-        assert len(result.auto_committed) == 1
-        assert result.auto_committed[0].status == ProposalStatus.RATIFIED
-        assert result.auto_committed[0].proposal_type == ProposalType.TRANSIENT_STATE
+        assert len(result.routed.transient_state_staged_ids) == 1
 
     def test_transient_state_applied_to_cast_dynamic_field(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
@@ -477,11 +509,13 @@ class TestTransientStateRouting:
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "transient_states": [
+                    "proposals": [
                         {
-                            "character_name": "Aldric",
-                            "field_name": "current_location",
-                            "new_value": "The Market Square",
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": "The Market Square",
                         }
                     ]
                 }
@@ -492,56 +526,31 @@ class TestTransientStateRouting:
 
         service.extract(
             _make_assembled(story_id, cast_id),
-            story_id,
             "Aldric reaches the market.",
+            story_id,
+            _turn_id(),
         )
 
         entry = sbs.get_character(story_id, cast_id)
         assert entry is not None
         assert entry.current_location == "The Market Square"
 
-
-# ---------------------------------------------------------------------------
-# Classification routing — unresolved threads
-# ---------------------------------------------------------------------------
-
-
-class TestUnresolvedThreadRouting:
-    def test_unresolved_thread_auto_ratified(  # type: ignore[no-untyped-def]
+    def test_transient_state_has_ratified_staging_row(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """An unresolved-thread proposal is RATIFIED."""
+        """A RATIFIED audit staging row exists for each transient-state update."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "unresolved_threads": [
-                        {"description": "Who left the hooded figure at the inn?"}
-                    ]
-                }
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "A hooded figure watches."
-        )
-
-        assert len(result.auto_committed) == 1
-        assert result.auto_committed[0].status == ProposalStatus.RATIFIED
-        assert result.auto_committed[0].proposal_type == ProposalType.UNRESOLVED_THREAD
-
-    def test_unresolved_thread_creates_thread_row(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """Ratifying an unresolved-thread proposal creates a thread row."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {
-                    "unresolved_threads": [
-                        {"description": "Where is the missing artefact hidden?"}
+                    "proposals": [
+                        {
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": "The Vault",
+                        }
                     ]
                 }
             )
@@ -550,7 +559,83 @@ class TestUnresolvedThreadRouting:
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The artefact is gone."
+            _make_assembled(story_id, cast_id),
+            "Aldric enters the vault.",
+            story_id,
+            _turn_id(),
+        )
+
+        rows = (
+            session.query(SBProvisionalStagingORM)
+            .filter_by(
+                proposal_type=ProposalType.TRANSIENT_STATE.value,
+                status=ProposalStatus.RATIFIED.value,
+            )
+            .all()
+        )
+        assert len(rows) == 1
+
+
+# ---------------------------------------------------------------------------
+# Classification routing — unresolved threads
+# ---------------------------------------------------------------------------
+
+
+class TestUnresolvedThreadRouting:
+    def test_unresolved_thread_staged_id_returned(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """An unresolved-thread proposal returns a staged_id."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "unresolved_thread",
+                            "description": "Who left the hooded figure at the inn?",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, cast_id),
+            "A hooded figure watches.",
+            story_id,
+            _turn_id(),
+        )
+
+        assert len(result.routed.unresolved_thread_staged_ids) == 1
+
+    def test_unresolved_thread_creates_thread_row(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """An unresolved-thread proposal creates a row in sb_unresolved_threads."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "unresolved_thread",
+                            "description": "Where is the missing artefact hidden?",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id),
+            "The artefact is gone.",
+            story_id,
+            _turn_id(),
         )
 
         rows = (
@@ -559,6 +644,43 @@ class TestUnresolvedThreadRouting:
         assert len(rows) == 1
         assert "artefact" in rows[0].description.lower()
 
+    def test_unresolved_thread_has_ratified_staging_row(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """A RATIFIED audit staging row exists for each unresolved-thread proposal."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "unresolved_thread",
+                            "description": "Who opened the gate?",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id),
+            "The gate is open.",
+            story_id,
+            _turn_id(),
+        )
+
+        rows = (
+            session.query(SBProvisionalStagingORM)
+            .filter_by(
+                proposal_type=ProposalType.UNRESOLVED_THREAD.value,
+                status=ProposalStatus.RATIFIED.value,
+            )
+            .all()
+        )
+        assert len(rows) == 1
+
 
 # ---------------------------------------------------------------------------
 # Classification routing — events
@@ -566,16 +688,18 @@ class TestUnresolvedThreadRouting:
 
 
 class TestEventRouting:
-    def test_event_auto_ratified(  # type: ignore[no-untyped-def]
+    def test_event_id_returned(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """An event proposal is RATIFIED."""
+        """An event proposal returns an event_id in routed.event_ids."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "events": [
+                    "proposals": [
                         {
+                            "kind": "event",
+                            "event_kind": "scene_transition",
                             "description": "Aldric crossed the Thornbridge.",
                             "significance": "routine",
                         }
@@ -588,24 +712,25 @@ class TestEventRouting:
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
-            story_id,
             "Aldric crosses the bridge.",
+            story_id,
+            _turn_id(),
         )
 
-        assert len(result.auto_committed) == 1
-        assert result.auto_committed[0].status == ProposalStatus.RATIFIED
-        assert result.auto_committed[0].proposal_type == ProposalType.EVENT
+        assert len(result.routed.event_ids) == 1
 
-    def test_event_creates_event_row(  # type: ignore[no-untyped-def]
+    def test_event_creates_event_row_with_event_kind(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Ratifying an event proposal creates a row in sb_events."""
+        """An event proposal creates a row in sb_events with the correct event_kind."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "events": [
+                    "proposals": [
                         {
+                            "kind": "event",
+                            "event_kind": "death",
                             "description": "Aldric slew the Night Warden.",
                             "significance": "major_plot_turn",
                         }
@@ -618,27 +743,31 @@ class TestEventRouting:
 
         service.extract(
             _make_assembled(story_id, cast_id),
-            story_id,
             "The Night Warden falls.",
+            story_id,
+            _turn_id(),
         )
 
         rows = session.query(SBEventORM).filter_by(story_id=str(story_id)).all()
         assert len(rows) == 1
         assert "night warden" in rows[0].description.lower()
         assert rows[0].significance == "major_plot_turn"
+        assert rows[0].event_kind == "death"
 
-    def test_event_with_character_death_significance(  # type: ignore[no-untyped-def]
+    def test_event_bypasses_staging_table(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """character_death significance is stored correctly."""
+        """Events go directly to sb_events — no staging row is created."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "events": [
+                    "proposals": [
                         {
-                            "description": "Aldric is slain.",
-                            "significance": "character_death",
+                            "kind": "event",
+                            "event_kind": "plot_reveal",
+                            "description": "The prophecy is revealed.",
+                            "significance": "locked_fact_established",
                         }
                     ]
                 }
@@ -647,46 +776,32 @@ class TestEventRouting:
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        service.extract(_make_assembled(story_id, cast_id), story_id, "Aldric falls.")
+        service.extract(
+            _make_assembled(story_id, cast_id),
+            "The prophecy becomes clear.",
+            story_id,
+            _turn_id(),
+        )
 
-        rows = session.query(SBEventORM).filter_by(story_id=str(story_id)).all()
-        assert len(rows) == 1
-        assert rows[0].significance == "character_death"
+        staging_rows = session.query(SBProvisionalStagingORM).all()
+        assert staging_rows == [], "Event created a staging row — should bypass staging"
 
-
-# ---------------------------------------------------------------------------
-# Direct-write prevention — architectural invariant
-# ---------------------------------------------------------------------------
-
-
-class TestDirectWritePrevention:
-    def test_all_auto_committed_proposals_have_staging_row(  # type: ignore[no-untyped-def]
+    def test_event_id_matches_db_row(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Every auto-committed update has a corresponding RATIFIED staging row.
-
-        This is the architectural invariant: the Extractor CANNOT write to canon
-        without first staging a proposal.  We verify it by confirming that for
-        each auto-committed proposal returned in ExtractorResult, a matching row
-        exists in the provisional staging table with RATIFIED status.
-        """
+        """routed.event_ids[0] matches the event_id column in sb_events."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "transient_states": [
+                    "proposals": [
                         {
-                            "character_name": "Aldric",
-                            "field_name": "current_location",
-                            "new_value": "The Vault",
-                        }
-                    ],
-                    "events": [
-                        {
-                            "description": "Aldric found the vault.",
+                            "kind": "event",
+                            "event_kind": "npc_introduction",
+                            "description": "A stranger arrived.",
                             "significance": "routine",
                         }
-                    ],
+                    ]
                 }
             )
         )
@@ -694,63 +809,39 @@ class TestDirectWritePrevention:
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "Aldric enters the vault."
+            _make_assembled(story_id, cast_id),
+            "A stranger appears.",
+            story_id,
+            _turn_id(),
         )
 
-        # For every auto-committed proposal, a RATIFIED staging row must exist.
-        ratified_ids = {
-            str(row.proposal_id)
-            for row in session.query(SBProvisionalStagingORM)
-            .filter_by(status=ProposalStatus.RATIFIED.value)
-            .all()
-        }
-        for p in result.auto_committed:
-            assert str(p.proposal_id) in ratified_ids, (
-                f"Proposal {p.proposal_id} ({p.proposal_type.value}) was "
-                "auto-committed without a staging row — direct-write invariant violated"
-            )
-
-    def test_no_auto_committed_proposals_without_staging_for_locked_facts(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """Locked facts are NOT in auto_committed — they require confirmation."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The throne is vacant forever."}]}
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The throne stands empty."
-        )
-
-        # Locked facts must be PENDING, not auto-committed.
-        assert all(p.status == ProposalStatus.PENDING for p in result.pending_proposals)
-        assert len(result.auto_committed) == 0
+        event_id = result.routed.event_ids[0]
+        row = session.get(SBEventORM, str(event_id))
+        assert row is not None
+        assert "stranger" in row.description.lower()
 
 
 # ---------------------------------------------------------------------------
-# Unresolvable character name
+# Fail-loud unresolvable character name
 # ---------------------------------------------------------------------------
 
 
 class TestUnresolvableCharacter:
-    def test_unresolvable_name_still_ratifies_proposal(  # type: ignore[no-untyped-def]
+    def test_unresolvable_character_name_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Soft-fact for unknown character name is RATIFIED without error."""
+        """Soft-fact for unknown character name raises ExtractorPassError."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "soft_facts": [
+                    "proposals": [
                         {
-                            "character_name": "UnknownHero",
-                            "field_name": "current_location",
-                            "new_value": "Somewhere",
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "UnknownHero",
+                            "target_field": "current_location",
+                            "proposed_value": "Somewhere",
                         }
                     ]
                 }
@@ -759,17 +850,82 @@ class TestUnresolvableCharacter:
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The unknown hero walks."
+        with pytest.raises(ExtractorPassError) as exc_info:
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "The unknown hero walks.",
+                story_id,
+                _turn_id(),
+            )
+
+        assert (
+            "UnknownHero" in str(exc_info.value)
+            or "routing failed" in str(exc_info.value).lower()
         )
 
-        # Proposal is staged and ratified even without a resolvable cast entry.
-        assert len(result.auto_committed) == 1
-        assert result.auto_committed[0].status == ProposalStatus.RATIFIED
-        # The real cast entry is unchanged.
-        entry = sbs.get_character(story_id, cast_id)
-        assert entry is not None
-        assert entry.current_location == "The Crossroads Inn"
+    def test_unresolvable_name_leaves_no_db_state(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """When routing fails, no staging rows or event rows are committed."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "GhostCharacter",
+                            "target_field": "current_location",
+                            "proposed_value": "Nowhere",
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "The ghost walks.",
+                story_id,
+                _turn_id(),
+            )
+
+        # Session is dirty (not committed) — re-open to see committed state.
+        session.rollback()
+        staging_rows = session.query(SBProvisionalStagingORM).all()
+        assert staging_rows == []
+
+
+# ---------------------------------------------------------------------------
+# Story-id guard
+# ---------------------------------------------------------------------------
+
+
+class TestStoryIdGuard:
+    def test_story_id_mismatch_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """built_context.story_id != story_id raises ExtractorPassError immediately."""
+        story_id, cast_id = story_and_cast
+        wrong_story_id = uuid4()
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        # _make_assembled uses story_id, but we pass wrong_story_id as story_id arg
+        with pytest.raises(ExtractorPassError) as exc_info:
+            service.extract(
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                wrong_story_id,
+                _turn_id(),
+            )
+
+        assert "story_id" in str(exc_info.value).lower()
 
 
 # ---------------------------------------------------------------------------
@@ -778,76 +934,87 @@ class TestUnresolvableCharacter:
 
 
 class TestEmptyToolResponse:
-    def test_empty_tool_response_produces_empty_result(  # type: ignore[no-untyped-def]
+    def test_empty_proposals_produces_empty_routed(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """When the model proposes nothing, all lists are empty."""
+        """When the model proposes nothing, all routed ID lists are empty."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response({}))
+        fake = _make_fake_caller(_fake_tool_response({"proposals": []}))
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "Nothing changed."
+            _make_assembled(story_id, cast_id), "Nothing changed.", story_id, _turn_id()
         )
 
-        assert result.proposals == []
-        assert result.pending_proposals == []
-        assert result.auto_committed == []
+        assert result.routed.locked_fact_staged_ids == []
+        assert result.routed.soft_fact_staged_ids == []
+        assert result.routed.transient_state_staged_ids == []
+        assert result.routed.unresolved_thread_staged_ids == []
+        assert result.routed.event_ids == []
 
-    def test_empty_result_pass_forward_says_no_updates(  # type: ignore[no-untyped-def]
+    def test_empty_proposal_set_is_valid(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Pass-forward content says no updates when the model finds nothing."""
+        """An empty proposals array is valid and produces a non-None proposal_set."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response({}))
+        fake = _make_fake_caller(_fake_tool_response({"proposals": []}))
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "Nothing changed."
+            _make_assembled(story_id, cast_id), "Nothing changed.", story_id, _turn_id()
         )
 
-        assert "no narrative updates" in result.pass_forward_content.lower()
+        assert result.proposal_set is not None
+        assert result.proposal_set.proposals == []
 
 
 # ---------------------------------------------------------------------------
-# Pass-forward content
+# list_pending_locked_fact_proposals
 # ---------------------------------------------------------------------------
 
 
-class TestPassForwardContent:
-    def test_pass_forward_mentions_pending_locked_fact(  # type: ignore[no-untyped-def]
+class TestListPendingLockedFactProposals:
+    def test_list_pending_locked_fact_proposals_returns_locked_facts(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Pass-forward content references pending locked-fact proposals."""
+        """list_pending_locked_fact_proposals returns PENDING LOCKED_FACT rows."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The emperor is dead."}]}
+                {
+                    "proposals": [
+                        {"kind": "locked_fact", "fact_text": "The wall has fallen."}
+                    ]
+                }
             )
         )
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "The emperor falls."
+        service.extract(
+            _make_assembled(story_id, cast_id), "The wall falls.", story_id, _turn_id()
         )
 
-        assert "emperor" in result.pass_forward_content.lower()
-        assert "pending" in result.pass_forward_content.lower()
+        pending = sbs.list_pending_locked_fact_proposals(story_id)
+        assert len(pending) == 1
+        assert pending[0].proposal_type == ProposalType.LOCKED_FACT
+        assert pending[0].status == ProposalStatus.PENDING
 
-    def test_pass_forward_mentions_auto_committed_event(  # type: ignore[no-untyped-def]
+    def test_list_pending_excludes_auto_committed_proposals(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Pass-forward content references auto-committed events."""
+        """list_pending_locked_fact_proposals excludes RATIFIED proposals."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
                 {
-                    "events": [
+                    "proposals": [
                         {
-                            "description": "Aldric found the hidden door.",
+                            "kind": "event",
+                            "event_kind": "routine",
+                            "description": "A small skirmish occurred.",
                             "significance": "routine",
                         }
                     ]
@@ -857,11 +1024,15 @@ class TestPassForwardContent:
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(
-            _make_assembled(story_id, cast_id), story_id, "A door appears."
+        service.extract(
+            _make_assembled(story_id, cast_id),
+            "A fight breaks out.",
+            story_id,
+            _turn_id(),
         )
 
-        assert "event" in result.pass_forward_content.lower()
+        pending = sbs.list_pending_locked_fact_proposals(story_id)
+        assert pending == []
 
 
 # ---------------------------------------------------------------------------
@@ -877,7 +1048,7 @@ class TestTokenMetrics:
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
-                {},
+                {"proposals": []},
                 input_tokens=200,
                 output_tokens=80,
                 cache_read_input_tokens=150,
@@ -887,7 +1058,9 @@ class TestTokenMetrics:
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+        result = service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
 
         assert result.input_token_count == 200
         assert result.output_token_count == 80
@@ -901,7 +1074,7 @@ class TestTokenMetrics:
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(
             _fake_tool_response(
-                {},
+                {"proposals": []},
                 input_tokens=100,
                 output_tokens=40,
                 cache_read_input_tokens=None,
@@ -911,24 +1084,12 @@ class TestTokenMetrics:
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+        result = service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
 
         assert result.cache_read_token_count is None
         assert result.cache_creation_token_count is None
-
-    def test_model_identifier_format(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """model_identifier is formatted as 'anthropic:<model_string>'."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        result = service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
-
-        assert result.model_identifier.startswith("anthropic:")
-        assert "haiku" in result.model_identifier
 
 
 # ---------------------------------------------------------------------------
@@ -948,7 +1109,9 @@ class TestErrorHandling:
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         with pytest.raises(ExtractorPassError) as exc_info:
-            service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
 
         assert exc_info.value.__cause__ is original_exc
 
@@ -973,18 +1136,22 @@ class TestErrorHandling:
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         with pytest.raises(ExtractorPassError):
-            service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
 
-    def test_fake_caller_receives_tool_spec(  # type: ignore[no-untyped-def]
+    def test_fake_caller_receives_tool_spec_with_new_name(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """The injected caller receives a payload with the extraction tool spec."""
+        """The injected caller receives a payload with 'propose_canon_updates' tool."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(_fake_tool_response())
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+        service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
 
         assert len(fake.captured) == 1  # type: ignore[attr-defined]
         payload = fake.captured[0]  # type: ignore[attr-defined]
@@ -992,70 +1159,20 @@ class TestErrorHandling:
         tools = payload["tools"]
         assert isinstance(tools, list)
         assert len(tools) == 1
+        assert tools[0]["name"] == "propose_canon_updates"
         assert tools[0]["name"] == EXTRACT_TOOL_NAME
 
     def test_result_is_typed_extractor_result(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """extract() returns a typed ExtractorResult, not a raw dict."""
+        """extract() returns a typed ExtractorResult."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(_fake_tool_response())
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
-        result = service.extract(_make_assembled(story_id, cast_id), story_id, "prose.")
+        result = service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
 
         assert isinstance(result, ExtractorResult)
-
-
-# ---------------------------------------------------------------------------
-# StoryBibleService.get_pending_proposals
-# ---------------------------------------------------------------------------
-
-
-class TestGetPendingProposals:
-    def test_get_pending_proposals_returns_locked_facts(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """get_pending_proposals() returns the staged locked-fact proposals."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {"locked_facts": [{"fact_text": "The wall has fallen."}]}
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        service.extract(_make_assembled(story_id, cast_id), story_id, "The wall falls.")
-
-        pending = sbs.get_pending_proposals(story_id)
-        assert len(pending) == 1
-        assert pending[0].proposal_type == ProposalType.LOCKED_FACT
-
-    def test_get_pending_proposals_empty_after_all_auto_committed(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """get_pending_proposals() is empty when only auto-committed proposals exist."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
-                {
-                    "events": [
-                        {
-                            "description": "A small skirmish occurred.",
-                            "significance": "routine",
-                        }
-                    ]
-                }
-            )
-        )
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        service.extract(
-            _make_assembled(story_id, cast_id), story_id, "A fight breaks out."
-        )
-
-        pending = sbs.get_pending_proposals(story_id)
-        assert pending == []

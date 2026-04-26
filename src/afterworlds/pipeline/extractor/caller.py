@@ -25,144 +25,193 @@ from afterworlds.pipeline.extractor.config import ExtractorConfig
 # Tool specification
 # ---------------------------------------------------------------------------
 
-EXTRACT_TOOL_NAME: str = "propose_story_bible_updates"
+EXTRACT_TOOL_NAME: str = "propose_canon_updates"
+
+_SOFT_TRANSIENT_PROPERTIES: dict[str, Any] = {
+    "target_domain": {
+        "type": "string",
+        "enum": ["character", "world", "relationship"],
+        "description": "Entity domain the update targets.",
+    },
+    "target_natural_key": {
+        "type": "string",
+        "description": (
+            "Character name for the 'character' domain; "
+            "'<Subject> -> <Object>' for the 'relationship' domain."
+        ),
+    },
+    "target_field": {
+        "type": "string",
+        "description": (
+            "Field to update.  "
+            "Character allowlist: current_location, current_status, is_alive, notes.  "
+            "Relationship allowlist: current_status_description."
+        ),
+    },
+    "proposed_value": {
+        "type": "string",
+        "description": "New field value as a string.",
+    },
+    "rationale": {
+        "type": "string",
+        "description": "Why this change is warranted.",
+    },
+}
+
+_SOFT_TRANSIENT_REQUIRED: list[str] = [
+    "kind",
+    "target_domain",
+    "target_natural_key",
+    "target_field",
+    "proposed_value",
+]
 
 #: Tool specification passed to the Anthropic API.
 EXTRACT_TOOL_SPEC: dict[str, Any] = {
     "name": EXTRACT_TOOL_NAME,
     "description": (
-        "Report all narrative canon updates proposed for this turn. "
-        "Call this tool exactly once, reporting every update you identify. "
-        "Use empty arrays for categories where nothing was found."
+        "Report all narrative canon updates proposed for this turn as a single "
+        "discriminated-union array.  Call this tool exactly once.  Use an empty "
+        "proposals array when nothing was extracted."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
-            "locked_facts": {
+            "proposals": {
                 "type": "array",
-                "description": (
-                    "Irreversible facts established in this beat that require "
-                    "Sojourner confirmation before becoming permanent canon."
-                ),
+                "description": "All narrative canon updates proposed for this turn.",
                 "items": {
-                    "type": "object",
-                    "properties": {
-                        "fact_text": {
-                            "type": "string",
-                            "description": "The irreversible fact, stated plainly.",
-                        }
-                    },
-                    "required": ["fact_text"],
-                },
-            },
-            "soft_facts": {
-                "type": "array",
-                "description": (
-                    "Character or world state changes that auto-commit with a "
-                    "low-confidence flag so the Sojourner can review them."
-                ),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "character_name": {
-                            "type": "string",
+                    "oneOf": [
+                        {
+                            "type": "object",
                             "description": (
-                                "Exact character name from the Story Bible cast list."
+                                "An irreversible fact established this beat.  "
+                                "Requires Sojourner confirmation before becoming canon."
                             ),
+                            "properties": {
+                                "kind": {"type": "string", "const": "locked_fact"},
+                                "fact_text": {
+                                    "type": "string",
+                                    "description": (
+                                        "The irreversible fact, stated plainly."
+                                    ),
+                                },
+                                "rationale": {
+                                    "type": "string",
+                                    "description": "Why this fact is irreversible.",
+                                },
+                            },
+                            "required": ["kind", "fact_text"],
                         },
-                        "field_name": {
-                            "type": "string",
-                            "enum": [
-                                "current_location",
-                                "current_status",
-                                "is_alive",
-                                "notes",
-                            ],
-                            "description": "Which dynamic field changed.",
-                        },
-                        "new_value": {
-                            "description": "The new field value.",
-                        },
-                    },
-                    "required": ["character_name", "field_name", "new_value"],
-                },
-            },
-            "transient_states": {
-                "type": "array",
-                "description": (
-                    "Volatile state changes (current location, active quest, etc.) "
-                    "that auto-commit immediately without a review flag."
-                ),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "character_name": {
-                            "type": "string",
+                        {
+                            "type": "object",
                             "description": (
-                                "Exact character name from the Story Bible cast list."
+                                "A character or world state change proposed with a "
+                                "low-confidence flag for Sojourner review."
                             ),
+                            "properties": {
+                                "kind": {"type": "string", "const": "soft_fact"},
+                                **_SOFT_TRANSIENT_PROPERTIES,
+                            },
+                            "required": _SOFT_TRANSIENT_REQUIRED,
                         },
-                        "field_name": {
-                            "type": "string",
-                            "enum": [
-                                "current_location",
-                                "current_status",
-                                "is_alive",
-                                "notes",
+                        {
+                            "type": "object",
+                            "description": (
+                                "A volatile state change that auto-commits immediately "
+                                "without a Sojourner review flag."
+                            ),
+                            "properties": {
+                                "kind": {"type": "string", "const": "transient_state"},
+                                **_SOFT_TRANSIENT_PROPERTIES,
+                            },
+                            "required": _SOFT_TRANSIENT_REQUIRED,
+                        },
+                        {
+                            "type": "object",
+                            "description": (
+                                "A new unresolved plot thread introduced this beat."
+                            ),
+                            "properties": {
+                                "kind": {
+                                    "type": "string",
+                                    "const": "unresolved_thread",
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": (
+                                        "Brief description of the open thread."
+                                    ),
+                                },
+                                "rationale": {"type": "string"},
+                            },
+                            "required": ["kind", "description"],
+                        },
+                        {
+                            "type": "object",
+                            "description": (
+                                "A significant narrative moment for the Events Ledger."
+                            ),
+                            "properties": {
+                                "kind": {"type": "string", "const": "event"},
+                                "event_kind": {
+                                    "type": "string",
+                                    "enum": [
+                                        "location_change",
+                                        "inventory_gain",
+                                        "inventory_loss",
+                                        "npc_introduction",
+                                        "status_change",
+                                        "relationship_change",
+                                        "scene_transition",
+                                        "plot_reveal",
+                                        "oath_or_promise",
+                                        "death",
+                                        "routine",
+                                    ],
+                                    "description": (
+                                        "Functional classification of the event."
+                                    ),
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "What happened, stated plainly.",
+                                },
+                                "significance": {
+                                    "type": "string",
+                                    "enum": [
+                                        "routine",
+                                        "character_death",
+                                        "locked_fact_established",
+                                        "major_plot_turn",
+                                        "relationship_change",
+                                        "world_state_change",
+                                        "forbidden_fact_established",
+                                    ],
+                                    "description": (
+                                        "Significance for tiered inclusion policy."
+                                    ),
+                                },
+                                "related_entity_natural_keys": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": (
+                                        "Character names or 'Subject -> Object' keys "
+                                        "involved in this event."
+                                    ),
+                                },
+                                "rationale": {"type": "string"},
+                            },
+                            "required": [
+                                "kind",
+                                "event_kind",
+                                "description",
+                                "significance",
                             ],
-                            "description": "Which dynamic field changed.",
                         },
-                        "new_value": {
-                            "description": "The new field value.",
-                        },
-                    },
-                    "required": ["character_name", "field_name", "new_value"],
+                    ]
                 },
-            },
-            "unresolved_threads": {
-                "type": "array",
-                "description": (
-                    "New plot threads or open questions introduced in the prose "
-                    "that are not resolved within this beat."
-                ),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "description": {
-                            "type": "string",
-                            "description": "Brief description of the open thread.",
-                        }
-                    },
-                    "required": ["description"],
-                },
-            },
-            "events": {
-                "type": "array",
-                "description": "Significant narrative moments for the Events Ledger.",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "description": {
-                            "type": "string",
-                            "description": "What happened, stated plainly.",
-                        },
-                        "significance": {
-                            "type": "string",
-                            "enum": [
-                                "routine",
-                                "character_death",
-                                "locked_fact_established",
-                                "major_plot_turn",
-                                "relationship_change",
-                                "world_state_change",
-                                "forbidden_fact_established",
-                            ],
-                            "description": "Significance for tiered inclusion policy.",
-                        },
-                    },
-                    "required": ["description", "significance"],
-                },
-            },
+            }
         },
         "required": [],
     },
