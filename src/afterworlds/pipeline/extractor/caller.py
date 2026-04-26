@@ -311,20 +311,26 @@ def parse_tool_input(response: Message) -> dict[str, Any]:
             f"Unexpected response type from provider: {type(response).__name__}"
         )
 
-    for block in response.content:
-        if isinstance(block, ToolUseBlock) and block.name == EXTRACT_TOOL_NAME:
-            raw: Any = block.input
-            if not isinstance(raw, dict):
-                raise ExtractorPassError(
-                    f"Tool input is not a dict; got {type(raw).__name__}"
-                )
-            return raw
-
-    raise ExtractorPassError(
-        f"Provider response contains no '{EXTRACT_TOOL_NAME}' tool-use block. "
-        "stop_reason was: "
-        f"{getattr(response, 'stop_reason', '<unknown>')!r}"
-    )
+    matching = [
+        block
+        for block in response.content
+        if isinstance(block, ToolUseBlock) and block.name == EXTRACT_TOOL_NAME
+    ]
+    if not matching:
+        raise ExtractorPassError(
+            f"Provider response contains no '{EXTRACT_TOOL_NAME}' tool-use block. "
+            "stop_reason was: "
+            f"{getattr(response, 'stop_reason', '<unknown>')!r}"
+        )
+    if len(matching) > 1:
+        raise ExtractorPassError(
+            f"Provider response contains {len(matching)} '{EXTRACT_TOOL_NAME}' "
+            "tool-use blocks; expected exactly one."
+        )
+    raw: Any = matching[0].input
+    if not isinstance(raw, dict):
+        raise ExtractorPassError(f"Tool input is not a dict; got {type(raw).__name__}")
+    return raw
 
 
 __all__ = [

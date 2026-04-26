@@ -1230,6 +1230,44 @@ class TestErrorHandling:
                 _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
             )
 
+    def test_multiple_tool_use_blocks_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Response with >1 matching tool-use blocks raises ExtractorPassError."""
+        story_id, cast_id = story_and_cast
+
+        duplicate_block_response = Message(
+            id="msg_dup_tool",
+            type="message",
+            role="assistant",
+            content=[
+                ToolUseBlock(
+                    type="tool_use",
+                    id="toolu_dup_01",
+                    name=EXTRACT_TOOL_NAME,
+                    input={"proposals": []},
+                ),
+                ToolUseBlock(
+                    type="tool_use",
+                    id="toolu_dup_02",
+                    name=EXTRACT_TOOL_NAME,
+                    input={"proposals": []},
+                ),
+            ],
+            model="claude-haiku-4-5-20251001",
+            stop_reason="tool_use",
+            stop_sequence=None,
+            usage=Usage(input_tokens=10, output_tokens=5),
+        )
+        fake = _make_fake_caller(duplicate_block_response)
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError, match="2"):
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
+
 
 # ---------------------------------------------------------------------------
 # Boolean proposed_value (is_alive)
@@ -1768,3 +1806,59 @@ class TestTransactionBoundary:
         assert (
             staging_rows == []
         ), "Partial DB state was committed — transaction boundary violated"
+
+
+# ---------------------------------------------------------------------------
+# Renderer — volatile suffix intent block
+# ---------------------------------------------------------------------------
+
+
+class TestRendererVolatileSuffix:
+    def test_intent_included_in_volatile_suffix(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """_render() must include classified_intent after current_input.
+
+        The volatile suffix block must contain both 'Player:' and '[Intent:'
+        so the Extractor model sees the same intent annotation as the Writer.
+        """
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
+
+        assert len(fake.captured) == 1  # type: ignore[attr-defined]
+        payload = fake.captured[0]  # type: ignore[attr-defined]
+        messages = payload["messages"]
+        user_content: list[dict[str, Any]] = messages[0]["content"]
+
+        intent_blocks = [b for b in user_content if "[Intent:" in b.get("text", "")]
+        assert len(intent_blocks) == 1, "Expected exactly one block with [Intent:]"
+        intent_block_text: str = intent_blocks[0]["text"]
+        assert "Player: I push open the door." in intent_block_text
+        assert "[Intent: in_character_action]" in intent_block_text
+
+    def test_intent_block_precedes_writer_output(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """The intent block appears before [WRITER OUTPUT] in the payload."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
+
+        user_content: list[dict[str, Any]] = fake.captured[0]["messages"][0][
+            "content"
+        ]  # type: ignore[attr-defined]
+        texts = [b.get("text", "") for b in user_content]
+        intent_idx = next(i for i, t in enumerate(texts) if "[Intent:" in t)
+        writer_idx = next(i for i, t in enumerate(texts) if "[WRITER OUTPUT]" in t)
+        assert intent_idx < writer_idx, "Intent block must precede writer output"

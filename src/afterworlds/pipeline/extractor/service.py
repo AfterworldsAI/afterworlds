@@ -260,7 +260,10 @@ class ExtractorService:
         user_blocks.append(
             TextBlockParam(
                 type="text",
-                text=vs.current_input,
+                text=(
+                    f"Player: {vs.current_input}\n"
+                    f"[Intent: {vs.classified_intent.intent_type.value}]"
+                ),
             )
         )
 
