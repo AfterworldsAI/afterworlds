@@ -1,51 +1,22 @@
 """Unit tests for ExtractorService — CRD Issue 10.
 
-Coverage targets:
-
-Classification routing — one test per proposal kind:
-  - test_locked_fact_staged_pending
-  - test_soft_fact_staged_id_returned
-  - test_transient_state_staged_id_returned
-  - test_unresolved_thread_staged_id_returned
-  - test_event_id_returned
-
-Field application:
-  - test_soft_fact_applied_to_cast_dynamic_field
-  - test_transient_state_applied_to_cast_dynamic_field
-
-Audit trail (direct-write prevention):
-  - test_soft_fact_has_ratified_staging_row
-  - test_transient_state_has_ratified_staging_row
-  - test_unresolved_thread_has_ratified_staging_row
-  - test_event_bypasses_staging_table
-
-Database entries:
-  - test_unresolved_thread_creates_thread_row
-  - test_event_creates_event_row_with_event_kind
-
-Fail-loud unresolvable name (strict per Issue 10):
-  - test_unresolvable_character_name_raises_extractor_pass_error
-  - test_unresolvable_name_leaves_no_db_state
-
-Story-id guard:
-  - test_story_id_mismatch_raises_extractor_pass_error
-
-Empty tool response:
-  - test_empty_tool_response_produces_empty_result
-
-list_pending_locked_fact_proposals:
-  - test_list_pending_locked_fact_proposals_returns_locked_facts
-  - test_list_pending_excludes_auto_committed_proposals
-
-Token metrics:
-  - test_token_metrics_propagated
-  - test_cache_metrics_none_when_not_reported
-
-Error handling:
-  - test_provider_exception_raises_extractor_pass_error
-  - test_no_tool_use_block_raises_extractor_pass_error
-  - test_fake_caller_receives_tool_spec_with_new_name
-  - test_result_is_typed_extractor_result
+Test classes
+------------
+TestLockedFactRouting       — locked_fact staging and DB row
+TestSoftFactRouting         — soft_fact staging, field application, audit row
+TestTransientStateRouting   — transient_state staging, field application, audit row
+TestUnresolvedThreadRouting — thread row, audit row
+TestEventRouting            — event bypass, event_kind column, event_id matching
+TestUnresolvableCharacter   — fail-loud on unknown character name; no DB state
+TestStoryIdGuard            — built_context / story_id mismatch guard
+TestEmptyToolResponse       — empty proposals array handling
+TestListPendingLockedFactProposals — list_pending_locked_fact_proposals contract
+TestTokenMetrics            — all four token counts; None when omitted
+TestErrorHandling           — provider exception, missing tool block, payload shape
+TestRelationshipDomain      — RELATIONSHIP success; malformed-key variants;
+                              unresolvable subject/object; no DB state on failure
+TestWorldDomain             — world domain always raises; no DB state
+TestTransactionBoundary     — all-or-nothing commit: partial failure → zero rows
 """
 
 from __future__ import annotations
