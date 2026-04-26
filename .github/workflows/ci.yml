@@ -39,4 +39,9 @@ jobs:
         # CVE-2026-4539: ReDoS in pygments AdlLexer (pygments/lexers/archetype.py).
         # Affects pygments <=2.19.2. No patched release exists upstream as of 2026-03-27.
         # Remove --ignore-vuln once pygments ships a fix and the dep is updated.
-        run: pip-audit --ignore-vuln CVE-2026-4539
+        # CVE-2026-3219: vulnerability in pip affecting versions through 26.0.1.
+        # No patched pip release exists upstream yet. This CI job upgrades pip before
+        # auditing, so we are temporarily ignoring this CVE to keep the audit gate
+        # usable. Remove this ignore once pip ships a fixed release and CI is pinned
+        # or upgraded to that version.
+        run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
