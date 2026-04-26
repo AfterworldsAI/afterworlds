@@ -692,6 +692,35 @@ class StoryBibleService:
             )
             self._session.add(thread_row)
 
+        elif ptype == ProposalType.EVENT:
+            description = row.proposed_value.get("description", "")
+            significance_str = row.proposed_value.get(
+                "significance", EventSignificance.ROUTINE.value
+            )
+            if not description:
+                raise ValueError(
+                    f"Proposal {proposal_id} is missing required 'description' "
+                    "in proposed_value; cannot write blank event entry."
+                )
+            try:
+                significance = EventSignificance(significance_str)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Proposal {proposal_id} has unrecognised significance "
+                    f"'{significance_str}'."
+                ) from exc
+            row.status = ProposalStatus.RATIFIED.value
+            event_row = SBEventORM(
+                event_id=str(uuid4()),
+                story_id=row.story_id,
+                description=description,
+                significance=significance.value,
+                source_turn_id=row.source_turn_id,
+                is_active=True,
+                created_at=now,
+            )
+            self._session.add(event_row)
+
         else:
             # soft_fact / transient_state: mark RATIFIED only.
             # Applying proposed_value to live canon is the responsibility of
@@ -723,6 +752,29 @@ class StoryBibleService:
         row.status = ProposalStatus.REJECTED.value
         self._session.flush()
         return _proposal_orm_to_model(row)
+
+    def get_pending_proposals(self, story_id: UUID) -> list[ProvisionalProposal]:
+        """Return all active PENDING proposals for a story.
+
+        Surfaces locked-fact proposals that require Sojourner confirmation before
+        they can be ratified.  Also returns any other proposal that arrived in
+        PENDING state (e.g. unresolvable soft-fact or transient-state proposals
+        queued by the Extractor service for manual review).
+        """
+        rows = (
+            self._session.execute(
+                select(SBProvisionalStagingORM)
+                .where(
+                    SBProvisionalStagingORM.story_id == str(story_id),
+                    SBProvisionalStagingORM.status == ProposalStatus.PENDING.value,
+                    SBProvisionalStagingORM.is_active.is_(True),
+                )
+                .order_by(SBProvisionalStagingORM.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
+        return [_proposal_orm_to_model(r) for r in rows]
 
     # ------------------------------------------------------------------
     # Domain-specific creation helpers

@@ -142,13 +142,15 @@ class ThreadStatus(StrEnum):
 class ProposalType(StrEnum):
     """Extractor route classification for a provisional staging entry.
 
-    Mirrors the four routes in the Extractor Update Policy (design.md §4).
+    Mirrors the four routes in the Extractor Update Policy (design.md §4) plus
+    EVENT, added for the Events Ledger auto-commit path (CRD Issue 10).
     """
 
     LOCKED_FACT = "locked_fact"
     SOFT_FACT = "soft_fact"
     TRANSIENT_STATE = "transient_state"
     UNRESOLVED_THREAD = "unresolved_thread"
+    EVENT = "event"
 
 
 class ProposalStatus(StrEnum):
