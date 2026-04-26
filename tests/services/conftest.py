@@ -15,7 +15,7 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
-from afterworlds.models.enums import CastRole, EventSignificance, StoryMode
+from afterworlds.models.enums import CastRole, EventKind, EventSignificance, StoryMode
 from afterworlds.models.story import Story
 from afterworlds.models.story_bible import (
     CastEntry,
@@ -118,11 +118,13 @@ def make_event(
     story_id: UUID,
     desc: str = "The king was slain.",
     significance: EventSignificance = EventSignificance.CHARACTER_DEATH,
+    event_kind: EventKind = EventKind.DEATH,
 ) -> Event:
     return Event(
         story_id=story_id,
         description=desc,
         significance=significance,
+        event_kind=event_kind,
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 

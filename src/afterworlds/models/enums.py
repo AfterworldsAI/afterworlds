@@ -143,6 +143,8 @@ class ProposalType(StrEnum):
     """Extractor route classification for a provisional staging entry.
 
     Mirrors the four routes in the Extractor Update Policy (design.md §4).
+    EVENT proposals bypass staging and go directly to ``add_event``; there is
+    no ``ProposalType.EVENT`` value.
     """
 
     LOCKED_FACT = "locked_fact"
@@ -157,6 +159,39 @@ class ProposalStatus(StrEnum):
     PENDING = "pending"
     RATIFIED = "ratified"
     REJECTED = "rejected"
+
+
+class TargetDomain(StrEnum):
+    """Domain of a proposal's target entity — used by the Extractor routing layer.
+
+    Determines the natural-key format and writable-field allowlist applied by
+    ``StoryBibleService.route_extractor_proposals()``.
+    """
+
+    CHARACTER = "character"
+    WORLD = "world"
+    RELATIONSHIP = "relationship"
+
+
+class EventKind(StrEnum):
+    """Functional classification of an Events Ledger entry.
+
+    Used by the Extractor to classify the type of event being proposed,
+    enabling downstream filtering and summarisation without reparsing prose.
+    The canonical set is defined here; ``extractor.md`` mirrors it.
+    """
+
+    LOCATION_CHANGE = "location_change"
+    INVENTORY_GAIN = "inventory_gain"
+    INVENTORY_LOSS = "inventory_loss"
+    NPC_INTRODUCTION = "npc_introduction"
+    STATUS_CHANGE = "status_change"
+    RELATIONSHIP_CHANGE = "relationship_change"
+    SCENE_TRANSITION = "scene_transition"
+    PLOT_REVEAL = "plot_reveal"
+    OATH_OR_PROMISE = "oath_or_promise"
+    DEATH = "death"
+    ROUTINE = "routine"
 
 
 # ---------------------------------------------------------------------------

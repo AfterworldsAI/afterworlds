@@ -40,6 +40,7 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import (
     CastRole,
+    EventKind,
     EventSignificance,
     IntentType,
     RelationshipType,
@@ -193,6 +194,7 @@ def _moderate_bible() -> StoryBibleContext:
         story_id=_STORY_ID,
         description="The king was slain by an unknown assassin.",
         significance=EventSignificance.CHARACTER_DEATH,
+        event_kind=EventKind.DEATH,
         created_at=_NOW,
     )
     return StoryBibleContext(
@@ -271,12 +273,14 @@ def _complex_bible() -> StoryBibleContext:
         story_id=_STORY_ID,
         description="Emperor Aldus assassinated.",
         significance=EventSignificance.CHARACTER_DEATH,
+        event_kind=EventKind.DEATH,
         created_at=_NOW,
     )
     event2 = Event(
         story_id=_STORY_ID,
         description="Rebel cell at the docks compromised.",
         significance=EventSignificance.MAJOR_PLOT_TURN,
+        event_kind=EventKind.PLOT_REVEAL,
         created_at=_NOW,
     )
     return StoryBibleContext(

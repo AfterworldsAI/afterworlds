@@ -145,6 +145,9 @@ class SBEventORM(Base):
     )
     description: Mapped[str] = mapped_column(sa.Text, nullable=False)
     significance: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    event_kind: Mapped[str] = mapped_column(
+        sa.String(64), nullable=False, server_default="routine"
+    )
     # Provenance — plain string, NOT a FK to turns. Traceability only.
     source_turn_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)

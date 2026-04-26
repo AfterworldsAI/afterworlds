@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.models.enums import (
     CastRole,
+    EventKind,
     EventSignificance,
     ProposalStatus,
     ProposalType,
@@ -129,6 +130,7 @@ class Event(BaseModel):
     story_id: UUID
     description: str
     significance: EventSignificance
+    event_kind: EventKind
     # Provenance: traceability only; not a FK to the turns table.
     source_turn_id: str | None = None
     is_active: bool = True

@@ -21,14 +21,25 @@ import json
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import (
+    EventKind,
     EventSignificance,
     ProposalStatus,
     ProposalType,
+    TargetDomain,
     ThreadStatus,
+)
+from afterworlds.models.extractor import (
+    EventProposal,
+    ExtractorProposalSet,
+    ExtractorRoutingSummary,
+    LockedFactProposal,
+    SoftFactProposal,
+    TransientStateProposal,
+    UnresolvedThreadProposal,
 )
 from afterworlds.models.story_bible import (
     CastEntry,
@@ -90,6 +101,17 @@ _CAST_STATIC_FIELDS: frozenset[str] = frozenset(
 _CAST_DYNAMIC_FIELDS: frozenset[str] = frozenset(
     {"current_location", "current_status", "is_alive", "notes"}
 )
+
+#: Required Python type per (domain-value, field) pair.
+#: Enforced by the routing layer before any canon write.
+#: bool is NOT a subclass of str, so isinstance checks are unambiguous.
+_FIELD_VALUE_TYPES: dict[tuple[str, str], type] = {
+    ("character", "is_alive"): bool,
+    ("character", "current_location"): str,
+    ("character", "current_status"): str,
+    ("character", "notes"): str,
+    ("relationship", "current_status_description"): str,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +205,7 @@ def _event_orm_to_model(row: SBEventORM) -> Event:
         story_id=UUID(row.story_id),
         description=row.description,
         significance=EventSignificance(row.significance),
+        event_kind=EventKind(row.event_kind),
         source_turn_id=row.source_turn_id,
         is_active=row.is_active,
         created_at=datetime.fromisoformat(row.created_at),
@@ -571,6 +594,7 @@ class StoryBibleService:
             story_id=str(story_id),
             description=event.description,
             significance=event.significance.value,
+            event_kind=event.event_kind.value,
             source_turn_id=event.source_turn_id,
             is_active=True,
             created_at=event.created_at.isoformat(),
@@ -623,11 +647,13 @@ class StoryBibleService:
         - ``unresolved_thread``: creates an ``UnresolvedThread`` in
           ``sb_unresolved_threads``.
         - ``soft_fact`` / ``transient_state``: marks the proposal
-          ``RATIFIED`` only.  Applying ``proposed_value`` to live canon is
-          the responsibility of the Extractor service (CRD Issue 10), which
-          reads ``RATIFIED`` proposals and routes them to the appropriate
-          canon update path.  ``StoryBibleService`` does not auto-apply
-          these proposal types.
+          ``RATIFIED`` only.  Dynamic field application is performed by
+          ``route_extractor_proposals``; these proposal types arriving here
+          are treated as already-applied audit rows.
+
+        Events are not ratified through this method; ``EventProposal``
+        instances bypass staging and go directly to ``add_event`` via
+        ``route_extractor_proposals``.
 
         Raises ``EntityNotFoundError`` if the proposal does not exist.
         """
@@ -694,10 +720,8 @@ class StoryBibleService:
 
         else:
             # soft_fact / transient_state: mark RATIFIED only.
-            # Applying proposed_value to live canon is the responsibility of
-            # the Extractor service (CRD Issue 10).  This ratification step
-            # records Sojourner approval; the Extractor reads RATIFIED
-            # proposals and routes them to the appropriate canon update path.
+            # Dynamic field application is handled by route_extractor_proposals;
+            # these proposals arrive here as already-applied audit rows.
             row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()
@@ -723,6 +747,306 @@ class StoryBibleService:
         row.status = ProposalStatus.REJECTED.value
         self._session.flush()
         return _proposal_orm_to_model(row)
+
+    def list_pending_locked_fact_proposals(
+        self, story_id: UUID
+    ) -> list[ProvisionalProposal]:
+        """Return active PENDING LOCKED_FACT proposals for a story.
+
+        These are the proposals that require Sojourner confirmation before the
+        locked fact becomes canon.  Other proposal types are excluded.
+        """
+        rows = (
+            self._session.execute(
+                select(SBProvisionalStagingORM)
+                .where(
+                    SBProvisionalStagingORM.story_id == str(story_id),
+                    SBProvisionalStagingORM.proposal_type
+                    == ProposalType.LOCKED_FACT.value,
+                    SBProvisionalStagingORM.status == ProposalStatus.PENDING.value,
+                    SBProvisionalStagingORM.is_active.is_(True),
+                )
+                .order_by(SBProvisionalStagingORM.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
+        return [_proposal_orm_to_model(r) for r in rows]
+
+    def get_writable_fields(self, target_domain: TargetDomain) -> frozenset[str]:
+        """Return the set of writable field names for a target domain.
+
+        CHARACTER domain exposes the dynamic field allowlist.
+        RELATIONSHIP domain exposes ``current_status_description`` only.
+        WORLD domain is not writable in v1 — returns an empty frozenset.
+        """
+        if target_domain == TargetDomain.CHARACTER:
+            return _CAST_DYNAMIC_FIELDS
+        elif target_domain == TargetDomain.RELATIONSHIP:
+            return frozenset({"current_status_description"})
+        else:
+            return frozenset()
+
+    def find_character_by_name(self, story_id: UUID, name: str) -> UUID:
+        """Return the cast_id for a character matching ``name`` (case-insensitive).
+
+        Raises ``EntityNotFoundError`` if no active cast entry matches or if
+        multiple active entries match (ambiguous — caller cannot safely pick one).
+        """
+        rows = (
+            self._session.execute(
+                select(SBCastEntryORM).where(
+                    SBCastEntryORM.story_id == str(story_id),
+                    func.lower(SBCastEntryORM.static_name) == name.lower(),
+                    SBCastEntryORM.is_active.is_(True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not rows:
+            raise EntityNotFoundError(
+                f"No active cast entry with name {name!r} found in story {story_id}."
+            )
+        if len(rows) > 1:
+            raise EntityNotFoundError(
+                f"Ambiguous character name {name!r}: {len(rows)} active cast entries "
+                f"match case-insensitively in story {story_id}. "
+                "Natural-key resolution requires a unique match."
+            )
+        return UUID(rows[0].cast_id)
+
+    def route_extractor_proposals(
+        self,
+        story_id: UUID,
+        turn_id: UUID,
+        proposal_set: ExtractorProposalSet,
+    ) -> ExtractorRoutingSummary:
+        """Route all Extractor proposals transactionally.
+
+        Owns the DB transaction: commits on success, leaves the session dirty on
+        error (caller is responsible for rollback).  All proposals are processed
+        before commit; any resolution failure raises ``EntityNotFoundError`` or
+        ``ValueError`` and aborts the entire batch with no DB state changes.
+
+        Routing policy:
+        - ``LockedFactProposal``: staged as PENDING — requires Sojourner
+          confirmation via ``ratify_update`` before becoming canon.
+        - ``SoftFactProposal`` / ``TransientStateProposal``: natural key resolved,
+          dynamic field applied, staged as RATIFIED audit row.
+        - ``UnresolvedThreadProposal``: canonical thread created, staged as
+          RATIFIED audit row.
+        - ``EventProposal``: written directly to ``sb_events`` via ``add_event``;
+          no staging row created.
+        """
+        locked_fact_staged_ids: list[UUID] = []
+        soft_fact_staged_ids: list[UUID] = []
+        transient_state_staged_ids: list[UUID] = []
+        unresolved_thread_staged_ids: list[UUID] = []
+        event_ids: list[UUID] = []
+
+        now = _now_iso()
+        turn_id_str = str(turn_id)
+        story_id_str = str(story_id)
+
+        for proposal in proposal_set.proposals:
+            if isinstance(proposal, LockedFactProposal):
+                proposal_id = uuid4()
+                staging_row = SBProvisionalStagingORM(
+                    proposal_id=str(proposal_id),
+                    story_id=story_id_str,
+                    proposal_type=ProposalType.LOCKED_FACT.value,
+                    proposed_value={"fact_text": proposal.fact_text},
+                    source_turn_id=turn_id_str,
+                    status=ProposalStatus.PENDING.value,
+                    requires_confirmation=True,
+                    is_active=True,
+                    created_at=now,
+                )
+                self._session.add(staging_row)
+                self._session.flush()
+                locked_fact_staged_ids.append(proposal_id)
+
+            elif isinstance(proposal, (SoftFactProposal, TransientStateProposal)):
+                is_soft = isinstance(proposal, SoftFactProposal)
+                ptype = (
+                    ProposalType.SOFT_FACT if is_soft else ProposalType.TRANSIENT_STATE
+                )
+
+                writable = self.get_writable_fields(proposal.target_domain)
+                if proposal.target_field not in writable:
+                    raise ValueError(
+                        f"Field '{proposal.target_field}' is not writable for domain "
+                        f"'{proposal.target_domain}'. "
+                        f"Writable fields: {sorted(writable) if writable else '(none)'}"
+                    )
+
+                _check_field_value_type(
+                    proposal.target_domain,
+                    proposal.target_field,
+                    proposal.proposed_value,
+                )
+
+                if proposal.target_domain == TargetDomain.CHARACTER:
+                    entity_uuid = self.find_character_by_name(
+                        story_id, proposal.target_natural_key
+                    )
+                    self.update_dynamic_field(
+                        story_id,
+                        entity_uuid,
+                        proposal.target_field,
+                        proposal.proposed_value,
+                        source_turn_id=turn_id_str,
+                    )
+                    entity_id_str = str(entity_uuid)
+
+                else:
+                    subject_name, object_name = _parse_relationship_natural_key(
+                        proposal.target_natural_key
+                    )
+                    subject_uuid = self.find_character_by_name(story_id, subject_name)
+                    object_uuid = self.find_character_by_name(story_id, object_name)
+                    rel_row = self._find_relationship_row(
+                        story_id, subject_uuid, object_uuid
+                    )
+                    self._update_relationship_field(
+                        rel_row,
+                        proposal.target_field,
+                        proposal.proposed_value,
+                        turn_id_str,
+                    )
+                    entity_id_str = rel_row.relationship_id
+
+                proposal_id = uuid4()
+                audit_row = SBProvisionalStagingORM(
+                    proposal_id=str(proposal_id),
+                    story_id=story_id_str,
+                    proposal_type=ptype.value,
+                    target_entity_id=entity_id_str,
+                    proposed_value={
+                        "target_domain": proposal.target_domain.value,
+                        "target_natural_key": proposal.target_natural_key,
+                        "target_field": proposal.target_field,
+                        "proposed_value": proposal.proposed_value,
+                    },
+                    source_turn_id=turn_id_str,
+                    status=ProposalStatus.RATIFIED.value,
+                    requires_confirmation=False,
+                    is_active=True,
+                    created_at=now,
+                )
+                self._session.add(audit_row)
+                self._session.flush()
+
+                if is_soft:
+                    soft_fact_staged_ids.append(proposal_id)
+                else:
+                    transient_state_staged_ids.append(proposal_id)
+
+            elif isinstance(proposal, UnresolvedThreadProposal):
+                thread_id = uuid4()
+                thread_row = SBUnresolvedThreadORM(
+                    thread_id=str(thread_id),
+                    story_id=story_id_str,
+                    description=proposal.description,
+                    source_turn_id=turn_id_str,
+                    status=ThreadStatus.OPEN.value,
+                    is_active=True,
+                    created_at=now,
+                )
+                self._session.add(thread_row)
+
+                proposal_id = uuid4()
+                audit_row = SBProvisionalStagingORM(
+                    proposal_id=str(proposal_id),
+                    story_id=story_id_str,
+                    proposal_type=ProposalType.UNRESOLVED_THREAD.value,
+                    proposed_value={"description": proposal.description},
+                    source_turn_id=turn_id_str,
+                    status=ProposalStatus.RATIFIED.value,
+                    requires_confirmation=False,
+                    is_active=True,
+                    created_at=now,
+                )
+                self._session.add(audit_row)
+                self._session.flush()
+                unresolved_thread_staged_ids.append(proposal_id)
+
+            elif isinstance(proposal, EventProposal):
+                event = Event(
+                    story_id=story_id,
+                    description=proposal.description,
+                    significance=proposal.significance,
+                    event_kind=proposal.event_kind,
+                    source_turn_id=turn_id_str,
+                    created_at=datetime.now(UTC),
+                )
+                saved = self.add_event(story_id, event)
+                event_ids.append(saved.event_id)
+
+        self._session.commit()
+        return ExtractorRoutingSummary(
+            locked_fact_staged_ids=locked_fact_staged_ids,
+            soft_fact_staged_ids=soft_fact_staged_ids,
+            transient_state_staged_ids=transient_state_staged_ids,
+            unresolved_thread_staged_ids=unresolved_thread_staged_ids,
+            event_ids=event_ids,
+        )
+
+    def _find_relationship_row(
+        self,
+        story_id: UUID,
+        subject_uuid: UUID,
+        object_uuid: UUID,
+    ) -> SBRelationshipLedgerORM:
+        rows = (
+            self._session.execute(
+                select(SBRelationshipLedgerORM).where(
+                    SBRelationshipLedgerORM.story_id == str(story_id),
+                    SBRelationshipLedgerORM.subject_cast_id == str(subject_uuid),
+                    SBRelationshipLedgerORM.object_cast_id == str(object_uuid),
+                    SBRelationshipLedgerORM.is_active.is_(True),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not rows:
+            raise EntityNotFoundError(
+                f"No active relationship from '{subject_uuid}' to '{object_uuid}' "
+                f"in story {story_id}."
+            )
+        if len(rows) > 1:
+            raise EntityNotFoundError(
+                f"Ambiguous relationship: {len(rows)} active rows from "
+                f"'{subject_uuid}' to '{object_uuid}' in story {story_id}. "
+                "Natural-key resolution requires a unique match."
+            )
+        return rows[0]
+
+    def _update_relationship_field(
+        self,
+        row: SBRelationshipLedgerORM,
+        field: str,
+        value: bool | str,
+        source_turn_id: str,
+    ) -> None:
+        if not hasattr(row, field):
+            raise ValueError(f"SBRelationshipLedgerORM has no attribute '{field}'.")
+        old_val = getattr(row, field)
+        history_row = SBDynamicFieldHistoryORM(
+            history_id=str(uuid4()),
+            entity_type="relationship_ledger",
+            entity_id=row.relationship_id,
+            field_name=field,
+            old_value=json.dumps(old_val) if old_val is not None else None,
+            changed_at=_now_iso(),
+            source_turn_id=source_turn_id,
+        )
+        self._session.add(history_row)
+        setattr(row, field, value)
+        row.updated_at = _now_iso()
+        self._session.flush()
 
     # ------------------------------------------------------------------
     # Domain-specific creation helpers
@@ -920,8 +1244,51 @@ class StoryBibleService:
 # ---------------------------------------------------------------------------
 
 
+def _check_field_value_type(
+    target_domain: TargetDomain,
+    target_field: str,
+    proposed_value: bool | str,
+) -> None:
+    """Raise ValueError if proposed_value's Python type is wrong for target_field.
+
+    Called by route_extractor_proposals before any staging or canon write so that
+    a type mismatch aborts the entire transaction rather than reaching the ORM.
+    """
+    expected = _FIELD_VALUE_TYPES.get((target_domain.value, target_field))
+    if expected is None:
+        return  # unknown field — the writable-field check already handles this
+    if not isinstance(proposed_value, expected):
+        raise ValueError(
+            f"Field '{target_field}' in domain '{target_domain.value}' requires "
+            f"a {expected.__name__} value; "
+            f"got {type(proposed_value).__name__!r}."
+        )
+
+
 def _set_cast_column(row: SBCastEntryORM, col_name: str, value: object) -> None:
     """Set an attribute on a SBCastEntryORM row by column name."""
     if not hasattr(row, col_name):
         raise ValueError(f"SBCastEntryORM has no attribute '{col_name}'.")
     setattr(row, col_name, value)
+
+
+def _parse_relationship_natural_key(key: str) -> tuple[str, str]:
+    """Parse a ``'<subject> -> <object>'`` relationship natural key.
+
+    The delimiter is exactly the four-character sequence `` -> `` (space, dash,
+    greater-than, space).  Zero or more than one delimiter raises ``ValueError``,
+    which the caller translates to a transaction failure.
+    """
+    parts = key.split(" -> ")
+    if len(parts) != 2:
+        raise ValueError(
+            f"Relationship natural key must contain exactly one ' -> ' delimiter; "
+            f"got {key!r}."
+        )
+    subject, obj = parts[0].strip(), parts[1].strip()
+    if not subject or not obj:
+        raise ValueError(
+            f"Relationship natural key subject and object must be non-empty; "
+            f"got {key!r}."
+        )
+    return subject, obj
