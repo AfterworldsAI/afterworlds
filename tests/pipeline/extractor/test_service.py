@@ -1307,6 +1307,102 @@ class TestBooleanProposedValue:
         assert entry is not None
         assert entry.is_alive is True
 
+    def test_boolean_for_string_field_raises(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Boolean proposed_value for current_location raises ExtractorPassError."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "current_location",
+                            "proposed_value": False,
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+    def test_boolean_for_notes_raises(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Boolean proposed_value for notes raises ExtractorPassError; no DB state."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "notes",
+                            "proposed_value": False,
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
+    def test_boolean_for_relationship_field_raises(  # type: ignore[no-untyped-def]
+        self, session, story_with_relationship
+    ) -> None:
+        """Boolean for current_status_description raises ExtractorPassError."""
+        story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "relationship",
+                            "target_natural_key": "Aldric -> Mira",
+                            "target_field": "current_status_description",
+                            "proposed_value": False,
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, aldric_cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+            )
+
+        session.rollback()
+        assert session.query(SBProvisionalStagingORM).all() == []
+
 
 # ---------------------------------------------------------------------------
 # Shared fixture — relationship seeding

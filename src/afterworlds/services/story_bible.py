@@ -102,6 +102,17 @@ _CAST_DYNAMIC_FIELDS: frozenset[str] = frozenset(
     {"current_location", "current_status", "is_alive", "notes"}
 )
 
+#: Required Python type per (domain-value, field) pair.
+#: Enforced by the routing layer before any canon write.
+#: bool is NOT a subclass of str, so isinstance checks are unambiguous.
+_FIELD_VALUE_TYPES: dict[tuple[str, str], type] = {
+    ("character", "is_alive"): bool,
+    ("character", "current_location"): str,
+    ("character", "current_status"): str,
+    ("character", "notes"): str,
+    ("relationship", "current_status_description"): str,
+}
+
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -870,6 +881,12 @@ class StoryBibleService:
                         f"Writable fields: {sorted(writable) if writable else '(none)'}"
                     )
 
+                _check_field_value_type(
+                    proposal.target_domain,
+                    proposal.target_field,
+                    proposal.proposed_value,
+                )
+
                 if proposal.target_domain == TargetDomain.CHARACTER:
                     entity_uuid = self.find_character_by_name(
                         story_id, proposal.target_natural_key
@@ -1225,6 +1242,27 @@ class StoryBibleService:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _check_field_value_type(
+    target_domain: TargetDomain,
+    target_field: str,
+    proposed_value: bool | str,
+) -> None:
+    """Raise ValueError if proposed_value's Python type is wrong for target_field.
+
+    Called by route_extractor_proposals before any staging or canon write so that
+    a type mismatch aborts the entire transaction rather than reaching the ORM.
+    """
+    expected = _FIELD_VALUE_TYPES.get((target_domain.value, target_field))
+    if expected is None:
+        return  # unknown field — the writable-field check already handles this
+    if not isinstance(proposed_value, expected):
+        raise ValueError(
+            f"Field '{target_field}' in domain '{target_domain.value}' requires "
+            f"a {expected.__name__} value; "
+            f"got {type(proposed_value).__name__!r}."
+        )
 
 
 def _set_cast_column(row: SBCastEntryORM, col_name: str, value: object) -> None:
