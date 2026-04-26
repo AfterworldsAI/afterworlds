@@ -58,6 +58,10 @@ introduces but does not resolve in this beat. One entry per distinct open questi
 | `relationship` | `"<Subject> -> <Object>"` (e.g. `"Aldric -> Mira"`) | `current_status_description` |
 | `world` | (not supported in v1 — do not use) | (none) |
 
+`proposed_value` is a JSON string for text fields and a JSON boolean (`true`/`false`) for
+`is_alive`. Do not use a string `"true"` or `"false"` for `is_alive` — pass the boolean
+directly.
+
 Use character names exactly as they appear in the Story Bible cast list. The
 service resolves names case-insensitively, but exact-casing from the cast list is
 preferred. For relationships, use exactly one ` -> ` delimiter (space, dash,

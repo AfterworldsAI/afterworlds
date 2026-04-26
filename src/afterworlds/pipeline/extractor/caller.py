@@ -49,8 +49,12 @@ _SOFT_TRANSIENT_PROPERTIES: dict[str, Any] = {
         ),
     },
     "proposed_value": {
-        "type": "string",
-        "description": "New field value as a string.",
+        "oneOf": [{"type": "string"}, {"type": "boolean"}],
+        "description": (
+            "New field value. "
+            "Use a string for text fields (current_location, current_status, notes); "
+            "use a JSON boolean (true/false) for is_alive."
+        ),
     },
     "rationale": {
         "type": "string",
@@ -213,7 +217,7 @@ EXTRACT_TOOL_SPEC: dict[str, Any] = {
                 },
             }
         },
-        "required": [],
+        "required": ["proposals"],
     },
 }
 

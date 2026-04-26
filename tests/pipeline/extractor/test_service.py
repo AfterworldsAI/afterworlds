@@ -1199,6 +1199,114 @@ class TestErrorHandling:
 
         assert isinstance(result, ExtractorResult)
 
+    def test_missing_proposals_key_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Missing 'proposals' key in tool response raises ExtractorPassError."""
+        story_id, cast_id = story_and_cast
+        empty_obj_response = Message(
+            id="msg_missing_proposals",
+            type="message",
+            role="assistant",
+            content=[
+                ToolUseBlock(
+                    type="tool_use",
+                    id="toolu_missing",
+                    name=EXTRACT_TOOL_NAME,
+                    input={},  # missing 'proposals' key entirely
+                )
+            ],
+            model="claude-haiku-4-5-20251001",
+            stop_reason="tool_use",
+            stop_sequence=None,
+            usage=Usage(input_tokens=10, output_tokens=5),
+        )
+        fake = _make_fake_caller(empty_obj_response)
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        with pytest.raises(ExtractorPassError):
+            service.extract(
+                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            )
+
+
+# ---------------------------------------------------------------------------
+# Boolean proposed_value (is_alive)
+# ---------------------------------------------------------------------------
+
+
+class TestBooleanProposedValue:
+    def test_is_alive_false_routes_as_boolean(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """soft_fact with is_alive=False (JSON boolean) writes False to cast row."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "soft_fact",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "is_alive",
+                            "proposed_value": False,
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, cast_id),
+            "Aldric falls dead.",
+            story_id,
+            _turn_id(),
+        )
+
+        assert len(result.routed.soft_fact_staged_ids) == 1
+        entry = sbs.get_character(story_id, cast_id)
+        assert entry is not None
+        assert entry.is_alive is False
+
+    def test_is_alive_true_routes_as_boolean(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """transient_state with is_alive=True (JSON boolean) writes True to cast row."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(
+            _fake_tool_response(
+                {
+                    "proposals": [
+                        {
+                            "kind": "transient_state",
+                            "target_domain": "character",
+                            "target_natural_key": "Aldric",
+                            "target_field": "is_alive",
+                            "proposed_value": True,
+                        }
+                    ]
+                }
+            )
+        )
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        result = service.extract(
+            _make_assembled(story_id, cast_id),
+            "Aldric lives.",
+            story_id,
+            _turn_id(),
+        )
+
+        assert len(result.routed.transient_state_staged_ids) == 1
+        entry = sbs.get_character(story_id, cast_id)
+        assert entry is not None
+        assert entry.is_alive is True
+
 
 # ---------------------------------------------------------------------------
 # Shared fixture — relationship seeding

@@ -1011,7 +1011,7 @@ class StoryBibleService:
         self,
         row: SBRelationshipLedgerORM,
         field: str,
-        value: str,
+        value: bool | str,
         source_turn_id: str,
     ) -> None:
         if not hasattr(row, field):

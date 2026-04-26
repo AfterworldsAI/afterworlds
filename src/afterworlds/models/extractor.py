@@ -21,7 +21,7 @@ class SoftFactProposal(BaseModel):
     target_domain: TargetDomain
     target_natural_key: str
     target_field: str
-    proposed_value: str
+    proposed_value: bool | str
     rationale: str | None = None
 
 
@@ -30,7 +30,7 @@ class TransientStateProposal(BaseModel):
     target_domain: TargetDomain
     target_natural_key: str
     target_field: str
-    proposed_value: str
+    proposed_value: bool | str
     rationale: str | None = None
 
 
@@ -60,7 +60,7 @@ ExtractorProposal = Annotated[
 
 
 class ExtractorProposalSet(BaseModel):
-    proposals: list[ExtractorProposal] = Field(default_factory=list)
+    proposals: list[ExtractorProposal]
 
 
 class ExtractorRoutingSummary(BaseModel):
