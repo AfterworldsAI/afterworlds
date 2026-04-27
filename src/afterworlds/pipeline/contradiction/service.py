@@ -270,12 +270,48 @@ class ContradictionService:
 def _derive_context(
     built_context: AssembledContext, writer_output: str
 ) -> AssembledContext:
-    """Return a new AssembledContext with writer_output added to the ledger.
+    """Return a new AssembledContext with writer_output in the ledger.
 
-    The caller's original context is never mutated.  The Writer output is
-    inserted via PassForwardLedger.add("writer", ...) so it renders as
-    "[WRITER OUTPUT]\\n{content}" before the volatile suffix blocks.
+    Idempotent around Writer output so that Issue 12 can pre-populate the
+    ledger without accidentally duplicating evidence in the Contradiction
+    prompt.  Rules:
+
+    - No existing ``writer`` entry → append ``writer_output``.
+    - Exactly one ``writer`` entry whose content matches ``writer_output``
+      → return derived context as-is (no duplicate appended).
+    - Exactly one ``writer`` entry whose content differs → raise
+      ``ContradictionPassError`` (stale or conflicting ledger).
+    - Multiple ``writer`` entries → raise ``ContradictionPassError``.
+
+    The caller's original context is never mutated.
     """
+    writer_entries = [
+        e for e in built_context.pass_forward_ledger.entries if e.pass_name == "writer"
+    ]
+
+    if len(writer_entries) > 1:
+        raise ContradictionPassError(
+            f"PassForwardLedger contains {len(writer_entries)} 'writer' entries; "
+            "expected at most one."
+        )
+
+    if len(writer_entries) == 1:
+        existing = writer_entries[0].content
+        if existing == writer_output:
+            # Already present and consistent — return a copy without appending.
+            new_ledger = PassForwardLedger(
+                entries=list(built_context.pass_forward_ledger.entries)
+            )
+            return AssembledContext(
+                stable_prefix=built_context.stable_prefix,
+                volatile_suffix=built_context.volatile_suffix,
+                pass_forward_ledger=new_ledger,
+            )
+        raise ContradictionPassError(
+            "PassForwardLedger already contains a 'writer' entry whose content "
+            "differs from the supplied writer_output.  Refusing to overwrite."
+        )
+
     new_ledger = PassForwardLedger(
         entries=list(built_context.pass_forward_ledger.entries)
     )

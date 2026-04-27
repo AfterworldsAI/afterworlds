@@ -798,3 +798,88 @@ class TestCategoryPlumbing:
         result = svc.check(_make_assembled(), "Prose.")
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert result.violations[0].category.value == category
+
+
+# ---------------------------------------------------------------------------
+# TestDeriveContextIdempotency
+# ---------------------------------------------------------------------------
+
+
+class TestDeriveContextIdempotency:
+    """_derive_context is idempotent around Writer output.
+
+    Four cases per the Issue 11 fix spec:
+      1. No existing writer entry → appends writer_output.
+      2. Matching writer entry already present → no duplicate appended.
+      3. Conflicting writer entry → ContradictionPassError.
+      4. Multiple writer entries → ContradictionPassError.
+    """
+
+    def test_no_writer_entry_appends(self) -> None:
+        ctx = _make_assembled()
+        derived = _derive_context(ctx, "Writer prose.")
+
+        writer_entries = [
+            e for e in derived.pass_forward_ledger.entries if e.pass_name == "writer"
+        ]
+        assert len(writer_entries) == 1
+        assert writer_entries[0].content == "Writer prose."
+
+    def test_matching_writer_entry_not_duplicated(self) -> None:
+        ctx = _make_assembled(ledger_entries=[("writer", "Writer prose.")])
+        derived = _derive_context(ctx, "Writer prose.")
+
+        writer_entries = [
+            e for e in derived.pass_forward_ledger.entries if e.pass_name == "writer"
+        ]
+        assert len(writer_entries) == 1
+        assert writer_entries[0].content == "Writer prose."
+
+    def test_conflicting_writer_entry_raises(self) -> None:
+        ctx = _make_assembled(ledger_entries=[("writer", "Original prose.")])
+
+        with pytest.raises(ContradictionPassError, match="differs from"):
+            _derive_context(ctx, "Different prose.")
+
+    def test_multiple_writer_entries_raises(self) -> None:
+        ctx = _make_assembled(
+            ledger_entries=[
+                ("writer", "First prose."),
+                ("writer", "Second prose."),
+            ]
+        )
+
+        with pytest.raises(ContradictionPassError, match="2 'writer' entries"):
+            _derive_context(ctx, "Any prose.")
+
+    def test_idempotent_via_check_service(self) -> None:
+        """check() does not raise when the ledger already has the same writer entry."""
+        ctx = _make_assembled(ledger_entries=[("writer", "Writer prose.")])
+        caller = _make_fake_caller()
+        svc = ContradictionService(config=_make_config(), caller=caller)
+
+        result = svc.check(ctx, "Writer prose.")
+        assert result.verdict == ContradictionVerdict.CLEAR
+
+    def test_conflicting_entry_raises_via_check(self) -> None:
+        ctx = _make_assembled(ledger_entries=[("writer", "Old prose.")])
+        caller = _make_fake_caller()
+        svc = ContradictionService(config=_make_config(), caller=caller)
+
+        with pytest.raises(ContradictionPassError, match="differs from"):
+            svc.check(ctx, "New prose.")
+
+    def test_original_context_not_mutated_on_idempotent_path(self) -> None:
+        ctx = _make_assembled(ledger_entries=[("writer", "Writer prose.")])
+        original_len = len(ctx.pass_forward_ledger.entries)
+        _derive_context(ctx, "Writer prose.")
+        assert len(ctx.pass_forward_ledger.entries) == original_len
+
+    def test_non_writer_entries_preserved_alongside_writer(self) -> None:
+        ctx = _make_assembled(ledger_entries=[("planner", "Plan output.")])
+        derived = _derive_context(ctx, "Writer prose.")
+
+        entries = derived.pass_forward_ledger.entries
+        assert len(entries) == 2
+        assert entries[0].pass_name == "planner"
+        assert entries[1].pass_name == "writer"
