@@ -484,6 +484,121 @@ class TestRendererStructure:
         assert len(payload["system"]) == 1
         assert payload["system"][0]["type"] == "text"
 
+    def test_system_field_contains_contradiction_pass_prompt(self) -> None:
+        """System field must be the Contradiction pass prompt, not the mode contract."""
+        caller = _make_fake_caller()
+        svc = ContradictionService(config=_make_config(), caller=caller)
+        svc.check(_make_assembled(), "Prose.")
+        payload = caller.captured[0]
+        system_text = payload["system"][0]["text"]
+        # The contradiction prompt is loaded from docs/prompts/contradiction.md.
+        # It contains a known heading that must appear here.
+        assert "Contradiction Checker" in system_text
+
+    def test_stable_prefix_user_blocks_contain_mode_contract(self) -> None:
+        """stable_prefix.system_prompt (mode contract) must appear in user blocks."""
+        MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
+        ctx = _make_assembled()
+        from afterworlds.models.context import StablePrefix
+
+        new_sp = StablePrefix(
+            system_prompt=MODE_CONTRACT,
+            story_bible_context=ctx.stable_prefix.story_bible_context,
+            rolling_summary_text=ctx.stable_prefix.rolling_summary_text,
+            rules_package_slice=ctx.stable_prefix.rules_package_slice,
+            retrieval_memory=ctx.stable_prefix.retrieval_memory,
+        )
+        ctx2 = AssembledContext(
+            stable_prefix=new_sp,
+            volatile_suffix=ctx.volatile_suffix,
+            pass_forward_ledger=ctx.pass_forward_ledger,
+        )
+        caller = _make_fake_caller()
+        svc = ContradictionService(config=_make_config(), caller=caller)
+        svc.check(ctx2, "Prose.")
+
+        texts = [b["text"] for b in caller.captured[0]["messages"][0]["content"]]
+        assert any(
+            MODE_CONTRACT in t for t in texts
+        ), "stable_prefix.system_prompt not found in user message blocks"
+
+    def test_mode_contract_appears_before_story_bible(self) -> None:
+        """stable_prefix.system_prompt must be the first stable-prefix user block."""
+        MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
+        STORY_BIBLE_MARKER = (
+            "Aldric"  # appears in the cast entry rendered by the context
+        )
+        ctx = _make_assembled()
+        from afterworlds.models.context import StablePrefix
+
+        new_sp = StablePrefix(
+            system_prompt=MODE_CONTRACT,
+            story_bible_context=ctx.stable_prefix.story_bible_context,
+            rolling_summary_text=None,
+            rules_package_slice=None,
+            retrieval_memory=ctx.stable_prefix.retrieval_memory,
+        )
+        ctx2 = AssembledContext(
+            stable_prefix=new_sp,
+            volatile_suffix=ctx.volatile_suffix,
+            pass_forward_ledger=ctx.pass_forward_ledger,
+        )
+        caller = _make_fake_caller()
+        svc = ContradictionService(config=_make_config(), caller=caller)
+        svc.check(ctx2, "Prose.")
+
+        texts = [b["text"] for b in caller.captured[0]["messages"][0]["content"]]
+        contract_idx = next(
+            (i for i, t in enumerate(texts) if MODE_CONTRACT in t), None
+        )
+        bible_idx = next(
+            (i for i, t in enumerate(texts) if STORY_BIBLE_MARKER in t), None
+        )
+        assert contract_idx is not None, "Mode contract block not found"
+        assert bible_idx is not None, "Story Bible block not found"
+        assert (
+            contract_idx < bible_idx
+        ), "Mode contract must appear before Story Bible content"
+
+    def test_cache_breakpoint_on_last_stable_prefix_block_not_writer(self) -> None:
+        """Cache breakpoint on the final stable-prefix block, before writer/volatile."""
+        caller = _make_fake_caller()
+        svc = ContradictionService(
+            config=_make_config(extended_ttl=True), caller=caller
+        )
+        svc.check(_make_assembled(), "Writer prose here.")
+
+        content = caller.captured[0]["messages"][0]["content"]
+        cache_idx = next(
+            (i for i, b in enumerate(content) if b.get("cache_control") is not None),
+            None,
+        )
+        writer_idx = next(
+            (
+                i
+                for i, b in enumerate(content)
+                if "[WRITER OUTPUT]" in b.get("text", "")
+            ),
+            None,
+        )
+        volatile_idx = next(
+            (
+                i
+                for i, b in enumerate(content)
+                if "I step into the corridor." in b.get("text", "")
+            ),
+            None,
+        )
+        assert cache_idx is not None, "No cache_control block found"
+        assert writer_idx is not None, "No writer output block found"
+        assert volatile_idx is not None, "No volatile suffix block found"
+        assert (
+            cache_idx < writer_idx
+        ), "Cache breakpoint must precede writer output block"
+        assert (
+            cache_idx < volatile_idx
+        ), "Cache breakpoint must precede volatile suffix block"
+
     def test_writer_output_in_ledger_before_volatile_suffix(self) -> None:
         """Writer output must appear before recent turns / current input."""
         caller = _make_fake_caller()
