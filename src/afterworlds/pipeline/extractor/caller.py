@@ -16,9 +16,9 @@ from anthropic.types import (
     Message,
     MessageParam,
     TextBlockParam,
-    ToolUseBlock,
 )
 
+from afterworlds.pipeline._tool_use import parse_tool_use_block
 from afterworlds.pipeline.extractor.config import ExtractorConfig
 
 # ---------------------------------------------------------------------------
@@ -297,8 +297,8 @@ def timed_call(
 def parse_tool_input(response: Message) -> dict[str, Any]:
     """Extract the tool-use input dict from an Anthropic Message.
 
-    Scans the content blocks for a ToolUseBlock whose name matches
-    ``EXTRACT_TOOL_NAME`` and returns its ``input`` dict.
+    Delegates to the shared ``parse_tool_use_block`` utility and wraps any
+    ``ValueError`` as an ``ExtractorPassError``.
 
     Raises:
         ExtractorPassError: if no matching tool-use block is found or the
@@ -306,31 +306,10 @@ def parse_tool_input(response: Message) -> dict[str, Any]:
     """
     from afterworlds.pipeline.extractor.models import ExtractorPassError
 
-    if not isinstance(response, Message):
-        raise ExtractorPassError(
-            f"Unexpected response type from provider: {type(response).__name__}"
-        )
-
-    matching = [
-        block
-        for block in response.content
-        if isinstance(block, ToolUseBlock) and block.name == EXTRACT_TOOL_NAME
-    ]
-    if not matching:
-        raise ExtractorPassError(
-            f"Provider response contains no '{EXTRACT_TOOL_NAME}' tool-use block. "
-            "stop_reason was: "
-            f"{getattr(response, 'stop_reason', '<unknown>')!r}"
-        )
-    if len(matching) > 1:
-        raise ExtractorPassError(
-            f"Provider response contains {len(matching)} '{EXTRACT_TOOL_NAME}' "
-            "tool-use blocks; expected exactly one."
-        )
-    raw: Any = matching[0].input
-    if not isinstance(raw, dict):
-        raise ExtractorPassError(f"Tool input is not a dict; got {type(raw).__name__}")
-    return raw
+    try:
+        return parse_tool_use_block(response, EXTRACT_TOOL_NAME)
+    except ValueError as exc:
+        raise ExtractorPassError(str(exc)) from exc
 
 
 __all__ = [
