@@ -297,10 +297,18 @@ def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
     Mirrors PromptRenderer._collect_stable_prefix_texts() so the Extractor's
     user-message blocks are byte-for-byte identical to the Writer's, maximising
     the chance of cross-pass cache reuse.
+
+    Order:
+      1. Mode contract (system_prompt) — POV/tense/agency/mode-specific rules
+      2. Story Bible active context
+      3. Rolling Summary (omitted if None)
+      4. Rules Package slice (omitted if None)
+      5. Retrieval Memory (omitted when empty)
     """
     texts: list[str] = []
     sp = built_context.stable_prefix
 
+    texts.append(sp.system_prompt)
     texts.append(_render_story_bible_context(sp.story_bible_context))
 
     if sp.rolling_summary_text is not None:

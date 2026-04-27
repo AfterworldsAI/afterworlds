@@ -1862,3 +1862,108 @@ class TestRendererVolatileSuffix:
         intent_idx = next(i for i, t in enumerate(texts) if "[Intent:" in t)
         writer_idx = next(i for i, t in enumerate(texts) if "[WRITER OUTPUT]" in t)
         assert intent_idx < writer_idx, "Intent block must precede writer output"
+
+    def test_system_field_contains_extractor_pass_prompt(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """System field must be the Extractor pass prompt, not the mode contract."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
+
+        payload = fake.captured[0]  # type: ignore[attr-defined]
+        system_text = payload["system"][0]["text"]
+        # The Extractor prompt is loaded from docs/prompts/extractor.md.
+        assert "Extractor" in system_text
+
+    def test_stable_prefix_user_blocks_contain_mode_contract(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """stable_prefix.system_prompt (mode contract) must appear in user blocks."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        ctx = _make_assembled(story_id, cast_id)
+        # The fixture sets system_prompt to "You are the story architect."
+        service.extract(ctx, "prose.", story_id, _turn_id())
+
+        texts = [
+            b.get("text", "")
+            for b in fake.captured[0]["messages"][0]["content"]  # type: ignore[attr-defined]
+        ]
+        assert any(
+            "You are the story architect." in t for t in texts
+        ), "stable_prefix.system_prompt not found in user message blocks"
+
+    def test_mode_contract_appears_before_story_bible(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """stable_prefix.system_prompt must be the first stable-prefix user block."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        ctx = _make_assembled(story_id, cast_id)
+        service.extract(ctx, "prose.", story_id, _turn_id())
+
+        texts = [
+            b.get("text", "")
+            for b in fake.captured[0]["messages"][0]["content"]  # type: ignore[attr-defined]
+        ]
+        # mode contract = "You are the story architect."; "Aldric" appears in the cast.
+        contract_idx = next(
+            (i for i, t in enumerate(texts) if "You are the story architect." in t),
+            None,
+        )
+        bible_idx = next((i for i, t in enumerate(texts) if "Aldric" in t), None)
+        assert contract_idx is not None, "Mode contract block not found"
+        assert bible_idx is not None, "Story Bible block not found"
+        assert (
+            contract_idx < bible_idx
+        ), "Mode contract must appear before Story Bible content"
+
+    def test_cache_breakpoint_precedes_writer_output_and_volatile(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Cache breakpoint on the final stable-prefix block, not writer/volatile."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        service.extract(
+            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+        )
+
+        content: list[dict[str, Any]] = fake.captured[0]["messages"][0][  # type: ignore[attr-defined]
+            "content"
+        ]
+        cache_idx = next(
+            (i for i, b in enumerate(content) if b.get("cache_control") is not None),
+            None,
+        )
+        writer_idx = next(
+            (
+                i
+                for i, b in enumerate(content)
+                if "[WRITER OUTPUT]" in b.get("text", "")
+            ),
+            None,
+        )
+        volatile_idx = next(
+            (i for i, b in enumerate(content) if "[Intent:" in b.get("text", "")),
+            None,
+        )
+        assert cache_idx is not None, "No cache_control block found"
+        assert writer_idx is not None, "No writer output block found"
+        assert volatile_idx is not None, "No volatile suffix block found"
+        assert cache_idx < writer_idx, "Cache breakpoint must precede writer output"
+        assert cache_idx < volatile_idx, "Cache breakpoint must precede volatile suffix"
