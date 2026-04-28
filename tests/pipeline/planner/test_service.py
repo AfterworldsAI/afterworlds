@@ -200,10 +200,10 @@ class TestHappyPath:
         svc = PlannerService(config=_make_config(), caller=caller)
         result = svc.plan(_make_assembled())
 
-        assert result.scene_goal == "Escape the hotel."
-        assert result.next_beat == "Aldric slips through the service exit."
-        assert result.facts_needed == ["Aldric has the Obsidian Key."]
-        assert result.notes == "Keep tension high."
+        assert result.plan.scene_goal == "Escape the hotel."
+        assert result.plan.next_beat == "Aldric slips through the service exit."
+        assert result.plan.facts_needed == ["Aldric has the Obsidian Key."]
+        assert result.plan.notes == "Keep tension high."
 
     def test_notes_none_when_absent(self) -> None:
         tool_input = {
@@ -214,7 +214,7 @@ class TestHappyPath:
         caller = _make_fake_caller(_fake_tool_response(tool_input))
         svc = PlannerService(config=_make_config(), caller=caller)
         result = svc.plan(_make_assembled())
-        assert result.notes is None
+        assert result.plan.notes is None
 
     def test_model_identifier_present(self) -> None:
         caller = _make_fake_caller()
@@ -314,6 +314,38 @@ class TestSchemaValidation:
         )
         assert output.facts_needed == []
 
+    def test_whitespace_only_fact_entry_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            PlannerOutput(
+                scene_goal="Some goal.",
+                next_beat="Some beat.",
+                facts_needed=["   "],
+            )
+
+    def test_empty_string_fact_entry_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            PlannerOutput(
+                scene_goal="Some goal.",
+                next_beat="Some beat.",
+                facts_needed=[""],
+            )
+
+    def test_mixed_valid_and_blank_fact_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            PlannerOutput(
+                scene_goal="Some goal.",
+                next_beat="Some beat.",
+                facts_needed=["Valid fact.", ""],
+            )
+
+    def test_valid_facts_accepted(self) -> None:
+        output = PlannerOutput(
+            scene_goal="Some goal.",
+            next_beat="Some beat.",
+            facts_needed=["Aldric has the key.", "Room 14 is on the east wing."],
+        )
+        assert len(output.facts_needed) == 2
+
 
 # ---------------------------------------------------------------------------
 # TestProviderException
@@ -353,6 +385,38 @@ class TestMissingToolBlock:
         caller = _make_fake_caller(response=no_tool_response)
         svc = PlannerService(config=_make_config(), caller=caller)
         with pytest.raises(PlannerPassError):
+            svc.plan(_make_assembled())
+
+
+# ---------------------------------------------------------------------------
+# TestFactsNeededValidationViaService
+# ---------------------------------------------------------------------------
+
+
+class TestFactsNeededValidationViaService:
+    def test_whitespace_fact_raises_planner_pass_error(self) -> None:
+        """Blank facts_needed items from the model surface as PlannerPassError."""
+        bad_input = {
+            "scene_goal": "Escape.",
+            "next_beat": "Aldric runs.",
+            "facts_needed": ["   "],
+        }
+        caller = _make_fake_caller(_fake_tool_response(bad_input))
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER PROMPT"
+        with pytest.raises(PlannerPassError, match="schema validation"):
+            svc.plan(_make_assembled())
+
+    def test_empty_string_fact_raises_planner_pass_error(self) -> None:
+        bad_input = {
+            "scene_goal": "Escape.",
+            "next_beat": "Aldric runs.",
+            "facts_needed": [""],
+        }
+        caller = _make_fake_caller(_fake_tool_response(bad_input))
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER PROMPT"
+        with pytest.raises(PlannerPassError, match="schema validation"):
             svc.plan(_make_assembled())
 
 
@@ -689,7 +753,7 @@ class TestNotesField:
         svc = PlannerService(config=_make_config(), caller=caller)
         svc._system_prompt = "PLANNER PROMPT"
         result = svc.plan(_make_assembled())
-        assert result.notes is None
+        assert result.plan.notes is None
 
     def test_notes_value_propagates(self) -> None:
         tool_input = {
@@ -702,7 +766,7 @@ class TestNotesField:
         svc = PlannerService(config=_make_config(), caller=caller)
         svc._system_prompt = "PLANNER PROMPT"
         result = svc.plan(_make_assembled())
-        assert result.notes == "Keep it brief."
+        assert result.plan.notes == "Keep it brief."
 
 
 # ---------------------------------------------------------------------------

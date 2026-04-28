@@ -90,9 +90,9 @@ class TestLivePlan:
 
         result = svc.plan(_make_context())
 
-        assert result.scene_goal.strip()
-        assert result.next_beat.strip()
-        assert isinstance(result.facts_needed, list)
+        assert result.plan.scene_goal.strip()
+        assert result.plan.next_beat.strip()
+        assert isinstance(result.plan.facts_needed, list)
         assert result.input_token_count is not None
         assert result.output_token_count is not None
         assert result.latency_ms >= 0
@@ -103,6 +103,6 @@ class TestLivePlan:
 
         result = svc.plan(_make_context())
 
-        assert result.notes is None or (
-            isinstance(result.notes, str) and result.notes.strip()
+        assert result.plan.notes is None or (
+            isinstance(result.plan.notes, str) and result.plan.notes.strip()
         )

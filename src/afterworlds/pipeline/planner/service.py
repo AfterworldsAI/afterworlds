@@ -158,10 +158,7 @@ class PlannerService:
 
         usage = response.usage
         return PlannerResult(
-            scene_goal=output.scene_goal,
-            next_beat=output.next_beat,
-            facts_needed=output.facts_needed,
-            notes=output.notes,
+            plan=output,
             model_identifier=f"anthropic:{self._config.model}",
             latency_ms=latency_ms,
             input_token_count=usage.input_tokens,

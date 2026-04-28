@@ -60,11 +60,11 @@ PRODUCE_PLAN_TOOL_SPEC: dict[str, Any] = {
                 "items": {"type": "string"},
             },
             "notes": {
-                "type": "string",
+                "oneOf": [{"type": "string"}, {"type": "null"}],
                 "description": (
                     "Optional guidance to the Writer: tone, pacing, or"
-                    " constraints not captured elsewhere. Omit the field"
-                    " (or pass null) when there is nothing to add."
+                    " constraints not captured elsewhere. Pass null (or omit)"
+                    " when there is nothing to add. Never pass an empty string."
                 ),
             },
         },

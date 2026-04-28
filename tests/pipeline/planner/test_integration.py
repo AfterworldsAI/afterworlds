@@ -150,21 +150,21 @@ class TestScenarioAWithNotes:
 
     def test_scene_goal_present(self) -> None:
         result = self._make_svc().plan(_make_context("I try to pick the lock."))
-        assert result.scene_goal == "Escape room 14 without being detected."
+        assert result.plan.scene_goal == "Escape room 14 without being detected."
 
     def test_next_beat_present(self) -> None:
         result = self._make_svc().plan(_make_context("I try to pick the lock."))
-        assert "Aldric Crane" in result.next_beat
+        assert "Aldric Crane" in result.plan.next_beat
 
     def test_facts_needed_populated(self) -> None:
         result = self._make_svc().plan(_make_context("I try to pick the lock."))
-        assert len(result.facts_needed) == 2
-        assert any("lockpick" in f for f in result.facts_needed)
+        assert len(result.plan.facts_needed) == 2
+        assert any("lockpick" in f for f in result.plan.facts_needed)
 
     def test_notes_present(self) -> None:
         result = self._make_svc().plan(_make_context("I try to pick the lock."))
-        assert result.notes is not None
-        assert "tense" in result.notes
+        assert result.plan.notes is not None
+        assert "tense" in result.plan.notes
 
     def test_token_metrics_present(self) -> None:
         result = self._make_svc().plan(_make_context("I try to pick the lock."))
@@ -205,11 +205,11 @@ class TestScenarioBNoNotes:
 
     def test_facts_needed_empty(self) -> None:
         result = self._make_svc().plan(_make_context("I look around the room."))
-        assert result.facts_needed == []
+        assert result.plan.facts_needed == []
 
     def test_notes_none(self) -> None:
         result = self._make_svc().plan(_make_context("I look around the room."))
-        assert result.notes is None
+        assert result.plan.notes is None
 
     def test_context_not_mutated(self) -> None:
         ctx = _make_context("I look around the room.")

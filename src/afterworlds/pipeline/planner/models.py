@@ -26,6 +26,17 @@ class PlannerOutput(BaseModel):
             raise ValueError("must be a non-empty string after stripping whitespace")
         return v
 
+    @field_validator("facts_needed")
+    @classmethod
+    def _facts_non_empty(cls, v: list[str]) -> list[str]:
+        for i, fact in enumerate(v):
+            if not fact or not fact.strip():
+                raise ValueError(
+                    f"facts_needed[{i}] must be a non-empty string after stripping"
+                    " whitespace"
+                )
+        return v
+
     @field_validator("notes")
     @classmethod
     def _notes_non_empty_if_present(cls, v: str | None) -> str | None:
@@ -40,10 +51,7 @@ class PlannerOutput(BaseModel):
 class PlannerResult(BaseModel):
     """Complete result returned by PlannerService.plan()."""
 
-    scene_goal: str
-    next_beat: str
-    facts_needed: list[str]
-    notes: str | None
+    plan: PlannerOutput
     model_identifier: str
     latency_ms: int
     input_token_count: int | None
