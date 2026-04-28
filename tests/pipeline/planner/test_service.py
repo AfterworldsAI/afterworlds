@@ -56,6 +56,8 @@ from afterworlds.pipeline.planner.models import (
     PlannerResult,
 )
 from afterworlds.pipeline.planner.service import PlannerService, _collect_stable_texts
+from afterworlds.pipeline.writer.config import WriterConfig
+from afterworlds.pipeline.writer.renderer import PromptRenderer
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -493,18 +495,29 @@ class TestSystemPromptPlacement:
         assert isinstance(system, list)
         assert any("PLANNER SYSTEM PROMPT" in b.get("text", "") for b in system)
 
-    def test_mode_contract_in_first_user_block(self) -> None:
-        """sp.system_prompt (mode contract) is the first user-message block text."""
+    def test_story_bible_is_first_user_block(self) -> None:
+        """Story Bible context is the first user-message stable-prefix block."""
         caller = _make_fake_caller()
         svc = PlannerService(config=_make_config(), caller=caller)
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        ctx = _make_assembled()
-        svc.plan(ctx)
+        svc.plan(_make_assembled())
         payload = caller.captured[0]
         user_content = payload["messages"][0]["content"]
         first_block = user_content[0]
         assert isinstance(first_block, dict)
-        assert "You are the story architect." in first_block.get("text", "")
+        assert "Story Bible" in first_block.get("text", "")
+
+    def test_mode_contract_not_in_user_blocks(self) -> None:
+        """sp.system_prompt must not appear in any user-message content block."""
+        caller = _make_fake_caller()
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER SYSTEM PROMPT"
+        svc.plan(_make_assembled())
+        payload = caller.captured[0]
+        user_content = payload["messages"][0]["content"]
+        for block in user_content:
+            assert isinstance(block, dict)
+            assert "You are the story architect." not in block.get("text", "")
 
     def test_pass_prompt_not_in_user_blocks(self) -> None:
         """Pass prompt must not appear in user-message content blocks."""
@@ -793,15 +806,15 @@ class TestModelIdentifier:
 
 
 class TestCollectStableTexts:
-    def test_system_prompt_is_first(self) -> None:
+    def test_story_bible_is_first(self) -> None:
         ctx = _make_assembled()
         texts = _collect_stable_texts(ctx)
-        assert texts[0] == ctx.stable_prefix.system_prompt
+        assert "Story Bible" in texts[0]
 
-    def test_story_bible_is_second(self) -> None:
+    def test_system_prompt_not_in_stable_texts(self) -> None:
         ctx = _make_assembled()
         texts = _collect_stable_texts(ctx)
-        assert "Story Bible" in texts[1]
+        assert not any(ctx.stable_prefix.system_prompt in t for t in texts)
 
     def test_rolling_summary_included_when_present(self) -> None:
         ctx = _make_assembled(rolling_summary="Session summary here.")
@@ -812,3 +825,45 @@ class TestCollectStableTexts:
         ctx = _make_assembled(rolling_summary=None)
         texts = _collect_stable_texts(ctx)
         assert not any("Session summary" in t for t in texts)
+
+
+# ---------------------------------------------------------------------------
+# TestCacheLayoutMatchesWriter
+# ---------------------------------------------------------------------------
+
+
+class TestCacheLayoutMatchesWriter:
+    """Regression: Planner stable-prefix user blocks match Writer renderer order."""
+
+    def _make_writer_config(self) -> WriterConfig:
+        return WriterConfig(
+            model="claude-sonnet-test",
+            api_key_env="ANTHROPIC_API_KEY",
+            extended_ttl=True,
+        )
+
+    def test_stable_texts_identical_to_writer(self) -> None:
+        ctx = _make_assembled(rolling_summary="Summary for cache test.")
+        planner_texts = _collect_stable_texts(ctx)
+        writer_texts = PromptRenderer(
+            self._make_writer_config()
+        )._collect_stable_prefix_texts(ctx)
+        assert planner_texts == writer_texts
+
+    def test_stable_texts_identical_without_rolling_summary(self) -> None:
+        ctx = _make_assembled(rolling_summary=None)
+        planner_texts = _collect_stable_texts(ctx)
+        writer_texts = PromptRenderer(
+            self._make_writer_config()
+        )._collect_stable_prefix_texts(ctx)
+        assert planner_texts == writer_texts
+
+    def test_stable_texts_story_bible_first_for_both(self) -> None:
+        ctx = _make_assembled()
+        planner_texts = _collect_stable_texts(ctx)
+        writer_texts = PromptRenderer(
+            self._make_writer_config()
+        )._collect_stable_prefix_texts(ctx)
+        assert "Story Bible" in planner_texts[0]
+        assert "Story Bible" in writer_texts[0]
+        assert planner_texts[0] == writer_texts[0]

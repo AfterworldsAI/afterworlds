@@ -1,7 +1,8 @@
 """Planner pass service — CRD Issue 12a.
 
 Planner pass: receives AssembledContext, renders an Anthropic Messages payload
-(Contradiction-style: system_prompt in user blocks as first stable-prefix text),
+(Writer-style: pass prompt in system parameter; user-message stable-prefix
+blocks begin with Story Bible, matching the Writer renderer for cache reuse),
 calls the LLM using Anthropic tool use, validates the PlannerOutput, and returns
 a typed PlannerResult.
 
@@ -10,8 +11,10 @@ Architectural invariants enforced here:
     mutate the caller's AssembledContext.
   - PassForwardLedger is empty when Planner renders (it is the first pass in
     pipeline order); empty ledger produces zero extra user blocks.
-  - system_prompt from StablePrefix is rendered as the FIRST user-block in the
-    stable-prefix region (Contradiction-style renderer, per commit 3751579).
+  - Planner user-message stable-prefix blocks match the Writer renderer order:
+    Story Bible → Rolling Summary → Rules Package slice → Retrieval Memory.
+    This alignment allows Planner to warm the stable-prefix cache for Writer
+    (CRD Item 14 invariant #10; Issue 12c wires the handoff).
   - Cache breakpoint is placed on the last stable-prefix block.
   - Extended TTL caching is enabled by default (CRD Item 14 invariant #9).
   - Fail-closed: PlannerPassError on any provider, parsing, or validation failure.
@@ -94,8 +97,8 @@ class PlannerService:
 
     Responsibilities:
       1. Render the AssembledContext into an Anthropic Messages payload
-         (Contradiction-style: system_prompt as first user-block stable-prefix
-         text; pass prompt in the ``system`` parameter).
+         (Writer-style: pass prompt in ``system`` parameter; user-message
+         stable-prefix blocks start with Story Bible for cache alignment).
       2. Invoke the provider via the injected caller (forced tool use).
       3. Parse the ToolUseBlock response.
       4. Validate the tool input against PlannerOutput.
@@ -176,8 +179,8 @@ class PlannerService:
 
         Cache breakpoint placement:
           - Stable-prefix blocks carry the cache_control marker on the last
-            block, matching the Contradiction renderer so the Anthropic cache
-            can share the stable-prefix region across passes.
+            block, matching the Writer renderer so the Anthropic cache can
+            share the stable-prefix region across passes (Issue 12c).
           - PassForwardLedger is empty for the Planner pass (it is first in
             pipeline order) — produces zero extra blocks.
           - Volatile suffix blocks carry no marker.
@@ -245,23 +248,23 @@ class PlannerService:
 
 
 def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
-    """Return stable-prefix section texts in canonical Issue 8 order.
+    """Return stable-prefix section texts in canonical Issue 8 / Writer order.
 
-    Mirrors the Contradiction renderer so the Planner pass's user-message
-    blocks are byte-for-byte identical to the Contradiction pass's blocks,
-    maximising the chance of cross-pass cache reuse.
+    Mirrors the Writer renderer (_collect_stable_prefix_texts) so the Planner
+    pass's user-message stable-prefix blocks are byte-for-byte identical to the
+    Writer's, allowing Planner to warm the stable-prefix cache for Writer each
+    turn (Issue 12c cross-pass reuse).  The pass prompt stays in the Anthropic
+    ``system`` parameter and is NOT included here.
 
     Order:
-      1. Mode contract (system_prompt) — POV/tense/agency/mode-specific rules
-      2. Story Bible active context
-      3. Rolling Summary (omitted if None)
-      4. Rules Package slice (omitted if None)
-      5. Retrieval Memory (omitted when empty)
+      1. Story Bible active context
+      2. Rolling Summary (omitted if None)
+      3. Rules Package slice (omitted if None)
+      4. Retrieval Memory (omitted when empty)
     """
     texts: list[str] = []
     sp = built_context.stable_prefix
 
-    texts.append(sp.system_prompt)
     texts.append(_render_story_bible_context(sp.story_bible_context))
 
     if sp.rolling_summary_text is not None:
