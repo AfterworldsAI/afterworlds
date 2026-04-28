@@ -1,12 +1,17 @@
 """Planner pass service — CRD Issue 12a.
 
-Planner pass: receives AssembledContext, renders an Anthropic Messages payload
-(Writer-style: pass prompt in system parameter; user-message stable-prefix
-blocks begin with Story Bible, matching the Writer renderer for cache reuse),
+Planner pass: receives AssembledContext, renders an Anthropic Messages payload,
 calls the LLM using Anthropic tool use, validates the PlannerOutput, and returns
 a typed PlannerResult.
 
 Architectural invariants enforced here:
+  - Every pass receives both a pass contract and an active mode contract.  The
+    Planner ``system`` parameter contains two blocks in order:
+      1. Planner pass contract (loaded from docs/prompts/planner.md) — defines
+         the Planner's job.
+      2. Active mode contract (built_context.stable_prefix.system_prompt) —
+         defines RPG / Branching / Writing behavioural constraints so planning
+         is conditioned on the current story mode.
   - The Planner pass does NOT call the Writer, does NOT persist, and does NOT
     mutate the caller's AssembledContext.
   - PassForwardLedger is empty when Planner renders (it is the first pass in
@@ -96,9 +101,10 @@ class PlannerService:
     """Planner pass service.
 
     Responsibilities:
-      1. Render the AssembledContext into an Anthropic Messages payload
-         (Writer-style: pass prompt in ``system`` parameter; user-message
-         stable-prefix blocks start with Story Bible for cache alignment).
+      1. Render the AssembledContext into an Anthropic Messages payload.
+         System parameter: two blocks — Planner pass contract and active mode
+         contract.  User-message stable-prefix blocks start with Story Bible
+         (Writer-aligned for cache reuse).
       2. Invoke the provider via the injected caller (forced tool use).
       3. Parse the ToolUseBlock response.
       4. Validate the tool input against PlannerOutput.
@@ -235,7 +241,13 @@ class PlannerService:
         return {
             "model": self._config.model,
             "max_tokens": PLANNER_MAX_TOKENS,
-            "system": [TextBlockParam(type="text", text=self._system_prompt)],
+            "system": [
+                TextBlockParam(type="text", text=self._system_prompt),
+                TextBlockParam(
+                    type="text",
+                    text=built_context.stable_prefix.system_prompt,
+                ),
+            ],
             "messages": [MessageParam(role="user", content=user_blocks)],
             "tools": [PRODUCE_PLAN_TOOL_SPEC],
             "tool_choice": {"type": "tool", "name": PRODUCE_PLAN_TOOL_NAME},

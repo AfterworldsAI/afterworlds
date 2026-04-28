@@ -483,10 +483,8 @@ class TestRendererStructure:
 
 class TestSystemPromptPlacement:
     def test_pass_prompt_in_system_param(self) -> None:
-        """Planner pass prompt appears in the 'system' parameter."""
+        """Planner pass contract appears in the 'system' parameter."""
         caller = _make_fake_caller()
-        # Use a config that loads from a real file — patch load_planner_prompt instead.
-        # We inject a config and override the internal system prompt attribute.
         svc = PlannerService(config=_make_config(), caller=caller)
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
         svc.plan(_make_assembled())
@@ -494,6 +492,44 @@ class TestSystemPromptPlacement:
         system = payload["system"]
         assert isinstance(system, list)
         assert any("PLANNER SYSTEM PROMPT" in b.get("text", "") for b in system)
+
+    def test_mode_contract_in_system_param(self) -> None:
+        """Active mode contract appears in the 'system' parameter as second block."""
+        caller = _make_fake_caller()
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER SYSTEM PROMPT"
+        svc.plan(_make_assembled())
+        payload = caller.captured[0]
+        system = payload["system"]
+        assert isinstance(system, list)
+        assert any("You are the story architect." in b.get("text", "") for b in system)
+
+    def test_system_has_two_blocks(self) -> None:
+        """System param has exactly two blocks: pass contract + mode contract."""
+        caller = _make_fake_caller()
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER SYSTEM PROMPT"
+        svc.plan(_make_assembled())
+        payload = caller.captured[0]
+        assert len(payload["system"]) == 2
+
+    def test_pass_contract_is_first_system_block(self) -> None:
+        """Planner pass contract is the first system block."""
+        caller = _make_fake_caller()
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER SYSTEM PROMPT"
+        svc.plan(_make_assembled())
+        payload = caller.captured[0]
+        assert "PLANNER SYSTEM PROMPT" in payload["system"][0].get("text", "")
+
+    def test_mode_contract_is_second_system_block(self) -> None:
+        """Active mode contract is the second system block."""
+        caller = _make_fake_caller()
+        svc = PlannerService(config=_make_config(), caller=caller)
+        svc._system_prompt = "PLANNER SYSTEM PROMPT"
+        svc.plan(_make_assembled())
+        payload = caller.captured[0]
+        assert "You are the story architect." in payload["system"][1].get("text", "")
 
     def test_story_bible_is_first_user_block(self) -> None:
         """Story Bible context is the first user-message stable-prefix block."""
@@ -520,7 +556,7 @@ class TestSystemPromptPlacement:
             assert "You are the story architect." not in block.get("text", "")
 
     def test_pass_prompt_not_in_user_blocks(self) -> None:
-        """Pass prompt must not appear in user-message content blocks."""
+        """Pass contract must not appear in user-message content blocks."""
         caller = _make_fake_caller()
         svc = PlannerService(config=_make_config(), caller=caller)
         svc._system_prompt = "UNIQUE_PLANNER_PROMPT_MARKER"
