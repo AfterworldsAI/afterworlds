@@ -89,10 +89,10 @@ violation and must be flagged in the PR, not silently resolved.
 
 ## Review-Loop Boundary Check
 
-If repeated review rounds on the same PR begin focusing on the same file or
-function, or if review feedback shifts from concrete defects to questions of
-ownership, semantics, architectural placement, or which issue should own a
-behavior, treat that as a boundary problem rather than “the next patch.”
+If repeated review rounds on the same PR begin focusing on the same file, function, 
+query path, schema hotspot, or service hotspot, or if feedback shifts from concrete 
+defects to questions of ownership, semantics, architectural placement, or which issue 
+should own a behavior, treat that as a boundary problem rather than “the next patch.”
 
 When this happens:
 
