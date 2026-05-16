@@ -43,6 +43,26 @@ These are genuinely open. Each has a designated resolution window. Do not resolv
 
 ---
 
+### Provider refusal reason opacity (Issue 12c surface)
+
+**Resolve during:** Issue 12c (orchestration) and Issue 14 (provider routing).
+
+Provider refusal reasons are often opaque or too coarse to map reliably onto Afterworlds policy categories. The orchestrator must treat provider refusal as a typed pass failure with advisory provider metadata, not as a Safety BLOCK verdict. When no reliable provider reason is available, user-facing messaging must be transparent that the provider refused without exposing a guessed cause. Issue 14 may improve routing based on observed refusal patterns, but routing must not depend on granular refusal reasons being available.
+
+**What resolution requires:** Issue 12c must define how provider refusal metadata is captured, represented, and surfaced to the orchestration layer without treating it as authoritative policy signal. Issue 14 must specify what refusal pattern data is logged, how it informs routing heuristics, and what guarantees are forbidden (e.g., routing decisions that assume a specific refusal reason is correct). Document decisions in ADRs before implementation begins.
+
+---
+
+### Provider refusal handling in the pipeline (Issue 12b surface)
+
+**Resolve during:** Issue 12c (orchestration) and Issue 14 (provider routing).
+
+Provider refusal handling is not resolved in Issue 12b. `SafetyPassError` and other pass-level provider refusals are typed failures, not Safety BLOCK verdicts. Issue 12c must define orchestration behavior for provider refusals, including whether Writer refusal produces a controlled user-facing response, a bounded retry, or a provider-routing handoff. Issue 14 must account for provider capability/refusal profiles during routing.
+
+**What resolution requires:** Issue 12c must specify the orchestration contract for each pass-level refusal path: does it propagate as an error, trigger a retry, produce a fallback user-facing message, or route to an alternate provider? Issue 14 must record which providers have distinct refusal profiles and how routing logic accounts for them. Document decisions in ADRs before implementation of the affected issues begins.
+
+---
+
 ### React or Svelte for the initial frontend
 
 **Resolve before:** Issue 19
