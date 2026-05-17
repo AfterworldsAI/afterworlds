@@ -35,6 +35,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -336,15 +337,14 @@ class OrchestratorService:
         ctx.pass_forward_ledger.add("planner", _serialize_planner(planner_result))
 
         # Open outer transaction now: Writer is about to persist a Turn.
-        # We manage commit / rollback explicitly based on disposition rather
-        # than relying on the SessionTransaction context manager, because
-        # the result is returned (not raised) and the commit decision is
-        # data-dependent (DELIVERED vs blocked/refused/error).
+        # Commit / rollback policy is centralized in ``_finalize_transaction``
+        # so the narrative and OOC paths cannot drift on the post-pipeline
+        # commit decision.
         session = self._session_factory()
         try:
             session.begin()
             try:
-                result = self._narrative_persist(
+                inner_result = self._narrative_persist(
                     session,
                     ctx,
                     story_id,
@@ -358,16 +358,17 @@ class OrchestratorService:
                 )
             except BaseException:
                 if session.in_transaction():
-                    session.rollback()
+                    with suppress(Exception):
+                        session.rollback()
                 raise
-            if (
-                result.disposition is PipelineDisposition.DELIVERED
-                and session.in_transaction()
-            ):
-                session.commit()
-            elif session.in_transaction():
-                session.rollback()
-            return result
+            return self._finalize_transaction(
+                session,
+                inner_result,
+                intent_result,
+                latency,
+                turn_start,
+                success_disposition=PipelineDisposition.DELIVERED,
+            )
         finally:
             session.close()
 
@@ -562,7 +563,7 @@ class OrchestratorService:
         try:
             session.begin()
             try:
-                result = self._ooc_persist(
+                inner_result = self._ooc_persist(
                     session,
                     ooc_ctx,
                     story_id,
@@ -575,16 +576,17 @@ class OrchestratorService:
                 )
             except BaseException:
                 if session.in_transaction():
-                    session.rollback()
+                    with suppress(Exception):
+                        session.rollback()
                 raise
-            if (
-                result.disposition is PipelineDisposition.OOC_HANDLED
-                and session.in_transaction()
-            ):
-                session.commit()
-            elif session.in_transaction():
-                session.rollback()
-            return result
+            return self._finalize_transaction(
+                session,
+                inner_result,
+                intent_result,
+                latency,
+                turn_start,
+                success_disposition=PipelineDisposition.OOC_HANDLED,
+            )
         finally:
             session.close()
 
@@ -862,6 +864,84 @@ class OrchestratorService:
             output_safety_result=output_safety_result,
             pipeline_error_summary=summary,
         )
+
+    def _finalize_transaction(
+        self,
+        session: Session,
+        inner_result: OrchestrationResult,
+        intent_result: IntentClassificationResult,
+        latency: dict[str, int],
+        turn_start: float,
+        *,
+        success_disposition: PipelineDisposition,
+    ) -> OrchestrationResult:
+        """Apply the post-pipeline commit/rollback decision in one place.
+
+        Centralized so the narrative and OOC wrappers cannot drift on the
+        commit policy or on commit-failure handling.
+
+        Policy:
+          - ``inner_result.disposition`` matches ``success_disposition`` and
+            the session is still in a transaction → try ``session.commit()``.
+
+            - Commit succeeds → return ``inner_result`` unchanged.
+            - Commit raises → best-effort rollback, return a typed
+              ``PIPELINE_ERROR`` result that preserves the already-
+              completed pass results (planner, writer, extractor,
+              contradiction, both Safety results) but explicitly drops
+              ``delivered_output`` and ``turn_id``.  The Turn write and
+              any Extractor SAVEPOINT writes were rolled back, so the
+              candidate result's surviving-row claim is no longer true.
+              The underlying cause text is preserved in
+              ``pipeline_error_summary``.
+
+          - Any other disposition (Safety BLOCK, Contradiction BLOCK,
+            refusal, pipeline error from a pass, …) → best-effort rollback
+            if the session is still in a transaction, then return the
+            inner result unchanged.
+
+        ``session.in_transaction()`` is checked before every operation so
+        this remains idempotent even when a downstream pass already rolled
+        the transaction back.  ``session.rollback()`` is wrapped in
+        ``suppress(Exception)`` because the contract for this method is
+        "return a typed result, never raise" — a rollback that itself
+        fails must not propagate.
+        """
+        if inner_result.disposition is success_disposition and session.in_transaction():
+            try:
+                session.commit()
+            except Exception as commit_exc:  # noqa: BLE001
+                # Commit failed AFTER nominal pipeline success.  The Turn
+                # write and Extractor SAVEPOINT writes did not survive,
+                # so the candidate result's ``delivered_output`` and
+                # ``turn_id`` cannot stand; the post-pipeline diagnostic
+                # is PIPELINE_ERROR with the completed pass results
+                # preserved for observability.
+                if session.in_transaction():
+                    with suppress(Exception):
+                        session.rollback()
+                return self._build_result(
+                    PipelineDisposition.PIPELINE_ERROR,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    input_safety_result=inner_result.input_safety_result,
+                    planner_result=inner_result.planner_result,
+                    writer_result=inner_result.writer_result,
+                    output_safety_result=inner_result.output_safety_result,
+                    extractor_result=inner_result.extractor_result,
+                    contradiction_result=inner_result.contradiction_result,
+                    pipeline_error_summary=(
+                        f"transaction commit failed after "
+                        f"{success_disposition.value}: {commit_exc}"
+                    ),
+                )
+            return inner_result
+
+        if session.in_transaction():
+            with suppress(Exception):
+                session.rollback()
+        return inner_result
 
 
 # ---------------------------------------------------------------------------

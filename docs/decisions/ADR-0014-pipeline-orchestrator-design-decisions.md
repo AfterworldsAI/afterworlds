@@ -123,26 +123,52 @@ available.
 
 ---
 
-## Decision 6: Outer transaction managed explicitly, commit decided by disposition
+## Decision 6: Outer transaction managed explicitly, commit decided by disposition; commit failure routed to PIPELINE_ERROR
 
 **Decision:** The orchestrator opens the outer transaction with
-`session.begin()` and then calls `session.commit()` if and only if the
-inner pipeline returns `DELIVERED` (narrative) or `OOC_HANDLED` (OOC).
-All other dispositions cause `session.rollback()`. Explicit
-`session.rollback()` calls inside `_narrative_persist` /
-`_ooc_persist` are removed — the wrapper is the single source of
+`session.begin()` and centralizes the post-pipeline commit/rollback
+policy in one helper, `_finalize_transaction`, used by both the
+narrative and OOC wrappers. `session.commit()` is called if and only if
+the inner pipeline returned `DELIVERED` (narrative) or `OOC_HANDLED`
+(OOC); all other dispositions cause a best-effort `session.rollback()`.
+Explicit `session.rollback()` calls inside `_narrative_persist` /
+`_ooc_persist` are removed — the helper is the single source of
 commit/rollback truth, guarded by `session.in_transaction()` so it stays
 idempotent if a downstream call already rolled the transaction back.
+
+If `session.commit()` itself raises (flush / constraint / IO / transient
+deadlock / disk-full), the helper catches the exception, runs a
+best-effort `session.rollback()` (wrapped in `suppress(Exception)` so a
+broken rollback cannot escape past the typed result contract), and
+returns a typed `PIPELINE_ERROR` `OrchestrationResult`. The cause text
+is preserved in `pipeline_error_summary` (formatted as `"transaction
+commit failed after <success_disposition>: <exc>"`). The already-
+completed pass results (Planner, Writer, Extractor, Contradiction,
+both Safety results) are preserved for observability, but
+`delivered_output` and `turn_id` are explicitly dropped — the Turn
+write and Extractor SAVEPOINT writes did not survive, so the
+candidate's surviving-row claim is no longer true.
 
 **Rationale:** The result-based commit decision is data-dependent: only
 two of seven dispositions commit. Hiding this inside individual error
 branches risks an unbalanced commit on some path that would survive
 testing because it happens only for one rare combination of failures.
-The wrapper pattern makes the spec invariant — "Only `DELIVERED` and
-`OOC_HANDLED` leave a surviving Turn row; all other dispositions leave
-the database byte-equal to its pre-orchestration snapshot" — visible at
-the orchestration layer rather than scattered through pass-specific
-failure handlers.
+Centralizing it in one helper makes the spec invariant — "Only
+`DELIVERED` and `OOC_HANDLED` leave a surviving Turn row; all other
+dispositions leave the database byte-equal to its pre-orchestration
+snapshot" — visible at the orchestration layer rather than scattered
+through pass-specific failure handlers, AND ensures the narrative and
+OOC paths cannot drift on commit-failure handling.
+
+The commit-failure → `PIPELINE_ERROR` fallback satisfies Issue 12c's
+exhaustive typed-terminal-state contract: a raw SQLAlchemy exception
+escaping `orchestrate_turn` would bypass `PipelineDisposition` entirely
+and crash request handling. This was a Codex P1 finding on PR #87
+(round 2); regression coverage in
+`TestCommitFailureRoutesToPipelineError` proves both narrative and
+OOC paths, asserts the cause-text propagation, asserts rollback is
+attempted, and asserts `delivered_output` / `turn_id` do not falsely
+survive as if commit succeeded.
 
 ---
 

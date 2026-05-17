@@ -1148,6 +1148,179 @@ def _volatile_for(intent):
 
 
 # ---------------------------------------------------------------------------
+# Commit-failure path (Codex P1 #87, round 2)
+# ---------------------------------------------------------------------------
+
+
+class _CommitFailingSessionFactory:
+    """Wraps a real session factory and patches each returned session's
+    ``commit`` to raise a configurable exception.  Tracks how many times
+    each session's ``rollback`` was called so tests can assert the
+    orchestrator attempted a best-effort rollback after commit failure.
+    """
+
+    def __init__(
+        self,
+        real_factory,  # type: ignore[no-untyped-def]
+        commit_exc: Exception,
+    ) -> None:
+        self._real_factory = real_factory
+        self._commit_exc = commit_exc
+        self.rollback_calls: int = 0
+        self.commit_attempts: int = 0
+
+    def __call__(self):  # type: ignore[no-untyped-def]
+        sess = self._real_factory()
+        outer = self  # capture for nested closures
+
+        original_commit = sess.commit
+        original_rollback = sess.rollback
+
+        def failing_commit() -> None:
+            outer.commit_attempts += 1
+            raise outer._commit_exc
+
+        def counted_rollback() -> None:
+            outer.rollback_calls += 1
+            return original_rollback()
+
+        sess.commit = failing_commit  # type: ignore[method-assign,assignment]
+        sess.rollback = counted_rollback  # type: ignore[method-assign,assignment]
+        # Preserve original_commit reference so tests can introspect if needed.
+        sess._original_commit = original_commit  # type: ignore[attr-defined]
+        return sess
+
+
+class TestCommitFailureRoutesToPipelineError:
+    """Codex P1 #87 round 2: ``session.commit()`` at the post-pipeline
+    finalize boundary can raise (flush / constraint / IO / disk-full /
+    transient deadlock).  The orchestrator must convert that into a
+    typed PIPELINE_ERROR result rather than letting a raw SQLAlchemy
+    exception escape past ``orchestrate_turn``'s exhaustive-disposition
+    contract.
+
+    All tests build the orchestrator with a session factory whose
+    sessions raise on commit; everything else (Planner, Writer,
+    Extractor, Contradiction, Safety) runs the happy path so the inner
+    pipeline produces a nominal DELIVERED or OOC_HANDLED before the
+    finalize boundary fails.
+    """
+
+    def test_narrative_commit_failure_returns_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, RuntimeError("simulated disk full")
+        )
+        orch, *_ = _make_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        # Must NOT have raised.  Must produce a typed PIPELINE_ERROR.
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        # Cause text preserved.
+        assert "transaction commit failed" in (result.pipeline_error_summary or "")
+        assert "delivered" in (result.pipeline_error_summary or "")
+        assert "simulated disk full" in (result.pipeline_error_summary or "")
+        # delivered_output / turn_id MUST NOT survive — the spec says only
+        # DELIVERED / OOC_HANDLED leave a surviving Turn row.
+        assert result.delivered_output is None
+        assert result.turn_id is None
+        # Pre-commit pass results are preserved for observability.
+        assert result.planner_result is not None
+        assert result.writer_result is not None
+        assert result.extractor_result is not None
+        assert result.contradiction_result is not None
+        # Rollback was attempted at the finalize boundary.
+        assert failing_factory.rollback_calls >= 1
+        # No Turn row in the database — the candidate Turn was rolled back.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_ooc_commit_failure_returns_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, ConnectionError("simulated DB timeout")
+        )
+        orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "transaction commit failed" in (result.pipeline_error_summary or "")
+        assert "ooc_handled" in (result.pipeline_error_summary or "")
+        assert "simulated DB timeout" in (result.pipeline_error_summary or "")
+        # OOC path: delivered_output and turn_id must not survive either.
+        assert result.delivered_output is None
+        assert result.turn_id is None
+        # Writer ran successfully before the commit boundary; preserved.
+        assert result.writer_result is not None
+        # OOC short-circuit skipped Planner / Extractor / Contradiction;
+        # those remain None as in the original OOC_HANDLED candidate.
+        assert result.planner_result is None
+        assert result.extractor_result is None
+        assert result.contradiction_result is None
+        # Rollback attempted.
+        assert failing_factory.rollback_calls >= 1
+        # No OOC Turn persisted.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_narrative_commit_failure_attempts_rollback(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, RuntimeError("boom")
+        )
+        orch, *_ = _make_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        # The orchestrator tried exactly one commit; the failure path then
+        # ran a best-effort rollback (one or more times depending on
+        # whether SQLAlchemy auto-rollback fires too — at least one
+        # rollback must have been observed by the wrapper).
+        assert failing_factory.commit_attempts == 1
+        assert failing_factory.rollback_calls >= 1
+
+    def test_commit_failure_does_not_leak_delivered_output(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Defense in depth: the OrchestrationResult model invariant
+        already forbids ``delivered_output`` on PIPELINE_ERROR, but assert
+        the orchestrator does not even attempt to smuggle the candidate
+        prose through — relying on the validator alone would silently
+        convert the bug into an OrchestratorError instead of a clean
+        PIPELINE_ERROR.
+        """
+        story_id, node_id = seeded_story
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, RuntimeError("commit gone wrong")
+        )
+        orch, _, _, _, _, writer, *_ = _make_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        # The Writer fake produced a real assistant_output for the
+        # candidate DELIVERED result.  After the commit failure the
+        # post-pipeline diagnostic must not surface it as delivered prose.
+        candidate_prose = writer.assistant_output
+        assert candidate_prose  # sanity: Writer did produce prose
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.delivered_output is None
+        assert result.delivered_output != candidate_prose
+        # The Writer result is preserved for observability — the prose is
+        # still inspectable there, just not promoted to delivered_output.
+        assert result.writer_result is not None
+        assert result.writer_result.assistant_output == candidate_prose
+
+
+# ---------------------------------------------------------------------------
 # Default-CI integration tests: real SQLite SAVEPOINT proof
 # ---------------------------------------------------------------------------
 
