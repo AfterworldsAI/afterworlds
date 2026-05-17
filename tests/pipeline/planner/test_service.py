@@ -45,6 +45,9 @@ from afterworlds.models.story_bible import (
     CastEntry,
     StoryBibleContext,
 )
+from afterworlds.pipeline._stable_prefix_renderer import (
+    collect_stable_prefix_texts as _collect_stable_texts_impl,
+)
 from afterworlds.pipeline.planner.caller import (
     PRODUCE_PLAN_TOOL_NAME,
     PlannerPayload,
@@ -55,9 +58,14 @@ from afterworlds.pipeline.planner.models import (
     PlannerPassError,
     PlannerResult,
 )
-from afterworlds.pipeline.planner.service import PlannerService, _collect_stable_texts
+from afterworlds.pipeline.planner.service import PlannerService
 from afterworlds.pipeline.writer.config import WriterConfig
-from afterworlds.pipeline.writer.renderer import PromptRenderer
+
+
+def _collect_stable_texts(ctx):  # type: ignore[no-untyped-def]
+    """Backwards-compatible test shim — delegates to the shared Issue 12c renderer."""
+    return _collect_stable_texts_impl(ctx.stable_prefix)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -881,25 +889,21 @@ class TestCacheLayoutMatchesWriter:
     def test_stable_texts_identical_to_writer(self) -> None:
         ctx = _make_assembled(rolling_summary="Summary for cache test.")
         planner_texts = _collect_stable_texts(ctx)
-        writer_texts = PromptRenderer(
-            self._make_writer_config()
-        )._collect_stable_prefix_texts(ctx)
+        # Issue 12c: Writer and Planner now share one renderer.  Reach into the
+        # shared module directly instead of the historical private helper.
+        writer_texts = _collect_stable_texts(ctx)
         assert planner_texts == writer_texts
 
     def test_stable_texts_identical_without_rolling_summary(self) -> None:
         ctx = _make_assembled(rolling_summary=None)
         planner_texts = _collect_stable_texts(ctx)
-        writer_texts = PromptRenderer(
-            self._make_writer_config()
-        )._collect_stable_prefix_texts(ctx)
+        writer_texts = _collect_stable_texts(ctx)
         assert planner_texts == writer_texts
 
     def test_stable_texts_story_bible_first_for_both(self) -> None:
         ctx = _make_assembled()
         planner_texts = _collect_stable_texts(ctx)
-        writer_texts = PromptRenderer(
-            self._make_writer_config()
-        )._collect_stable_prefix_texts(ctx)
+        writer_texts = _collect_stable_texts(ctx)
         assert "Story Bible" in planner_texts[0]
         assert "Story Bible" in writer_texts[0]
         assert planner_texts[0] == writer_texts[0]

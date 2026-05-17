@@ -821,13 +821,25 @@ class StoryBibleService:
         story_id: UUID,
         turn_id: UUID,
         proposal_set: ExtractorProposalSet,
+        *,
+        session: Session | None = None,
     ) -> ExtractorRoutingSummary:
         """Route all Extractor proposals transactionally.
 
-        Owns the DB transaction: commits on success, leaves the session dirty on
-        error (caller is responsible for rollback).  All proposals are processed
-        before commit; any resolution failure raises ``EntityNotFoundError`` or
-        ``ValueError`` and aborts the entire batch with no DB state changes.
+        Session and transaction semantics (Issue 12c):
+        - ``session is None`` (default): preserve Issue 10 standalone
+          behavior.  All writes go through ``self._session`` and the method
+          commits at the end on success.  Caller is responsible for rollback
+          on error.
+        - ``session`` supplied: route under ``session.begin_nested()`` so the
+          Extractor's writes become a SQLite SAVEPOINT inside the caller's
+          outer transaction.  All writes are performed against the supplied
+          session (NOT against ``self._session``).  The SAVEPOINT is
+          committed iff routing succeeds; an exception causes the SAVEPOINT
+          to roll back (Extractor side effects undone) without affecting
+          the outer transaction.  The outer transaction's commit / rollback
+          remains the caller's responsibility — typically the Issue 12c
+          orchestrator at the Contradiction gate.
 
         Routing policy:
         - ``LockedFactProposal``: staged as PENDING — requires Sojourner
@@ -838,6 +850,61 @@ class StoryBibleService:
           RATIFIED audit row.
         - ``EventProposal``: written directly to ``sb_events`` via ``add_event``;
           no staging row created.
+        """
+        if session is not None:
+            with session.begin_nested():
+                summary = self._route_extractor_proposals_with_session(
+                    story_id, turn_id, proposal_set, session
+                )
+            return summary
+        return self._route_extractor_proposals_with_session(
+            story_id, turn_id, proposal_set, self._session, commit=True
+        )
+
+    def _route_extractor_proposals_with_session(
+        self,
+        story_id: UUID,
+        turn_id: UUID,
+        proposal_set: ExtractorProposalSet,
+        target_session: Session,
+        *,
+        commit: bool = False,
+    ) -> ExtractorRoutingSummary:
+        """Inner routing implementation parameterized over the target session.
+
+        When ``commit`` is True, the standalone Issue 10 behavior commits the
+        session at the end.  When False, the caller's transaction or
+        SAVEPOINT owns the commit boundary.  All writes — staging rows,
+        dynamic-field updates, event appends, thread creation — execute
+        against ``target_session``.  Service-internal helpers that historically
+        used ``self._session`` are exercised through a temporary swap so they
+        share the same transactional context.
+        """
+        original_session = self._session
+        try:
+            self._session = target_session
+            return self._execute_routing_body(
+                story_id,
+                turn_id,
+                proposal_set,
+                commit=commit,
+            )
+        finally:
+            self._session = original_session
+
+    def _execute_routing_body(
+        self,
+        story_id: UUID,
+        turn_id: UUID,
+        proposal_set: ExtractorProposalSet,
+        *,
+        commit: bool,
+    ) -> ExtractorRoutingSummary:
+        """Routing body — runs against ``self._session`` (possibly swapped).
+
+        Extracted from the historical method body so the SAVEPOINT-aware
+        wrapper can share the same logic for both standalone and
+        orchestrator-driven paths.
         """
         locked_fact_staged_ids: list[UUID] = []
         soft_fact_staged_ids: list[UUID] = []
@@ -984,7 +1051,8 @@ class StoryBibleService:
                 saved = self.add_event(story_id, event)
                 event_ids.append(saved.event_id)
 
-        self._session.commit()
+        if commit:
+            self._session.commit()
         return ExtractorRoutingSummary(
             locked_fact_staged_ids=locked_fact_staged_ids,
             soft_fact_staged_ids=soft_fact_staged_ids,

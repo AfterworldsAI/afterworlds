@@ -23,10 +23,8 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 from anthropic.types import (
-    CacheControlEphemeralParam,
     MessageParam,
     TextBlockParam,
 )
@@ -34,9 +32,12 @@ from anthropic.types import (
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
-    _render_retrieval_memory,
-    _render_rule_slice,
-    _render_story_bible_context,
+)
+from afterworlds.pipeline._refusal import ProviderRefusalError
+from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+    render_stable_prefix_blocks,
 )
 from afterworlds.pipeline.contradiction.caller import (
     REPORT_TOOL_NAME,
@@ -78,14 +79,6 @@ def load_contradiction_prompt() -> str:
         raise UnknownPromptError(
             f"Contradiction prompt file not found at {prompt_path}"
         ) from exc
-
-
-# ---------------------------------------------------------------------------
-# TTL constants
-# ---------------------------------------------------------------------------
-
-_TTL_EXTENDED: Literal["1h"] = "1h"
-_TTL_DEFAULT: Literal["5m"] = "5m"
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +145,8 @@ class ContradictionService:
 
         try:
             response, latency_ms = timed_call(self._caller, payload)
+        except ProviderRefusalError:
+            raise
         except Exception as exc:
             raise ContradictionPassError(
                 f"Contradiction provider call failed: {exc}"
@@ -199,31 +194,23 @@ class ContradictionService:
         """Render the derived AssembledContext into a Contradiction payload.
 
         Cache breakpoint placement:
-          - Stable-prefix blocks carry the cache_control marker on the last
-            block, matching the Writer renderer so the Anthropic cache can
-            share the stable-prefix region across passes.
-          - PassForwardLedger (containing the Writer output) renders after the
-            stable prefix with no cache marker.
+          - Stable-prefix blocks come from the shared Issue 12c renderer
+            with the cache_control marker on the last block.  All six
+            provider-backed passes render the same stable region in the
+            same order so the cache breakpoint is in the same position
+            across passes (CRD Item 14 invariant #10).
+          - The active mode contract (``stable_prefix.system_prompt``) sits
+            in the ``system`` parameter as the second block (matching the
+            Planner / Safety convention).  It is no longer included in the
+            user-message stable region.
+          - PassForwardLedger (containing the Writer output) renders after
+            the stable prefix with no cache marker.
           - Volatile suffix blocks carry no marker.
         """
-        cache_control = CacheControlEphemeralParam(
-            type="ephemeral",
-            ttl=_TTL_EXTENDED if self._config.extended_ttl else _TTL_DEFAULT,
+        ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
+        user_blocks: list[TextBlockParam] = list(
+            render_stable_prefix_blocks(derived_context.stable_prefix, ttl)
         )
-
-        stable_texts = _collect_stable_texts(derived_context)
-        user_blocks: list[TextBlockParam] = []
-
-        if stable_texts:
-            for text in stable_texts[:-1]:
-                user_blocks.append(TextBlockParam(type="text", text=text))
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
-                    text=stable_texts[-1],
-                    cache_control=cache_control,
-                )
-            )
 
         # PassForwardLedger includes the Writer output (added by _derive_context).
         ledger_text = derived_context.pass_forward_ledger.render()
@@ -255,7 +242,13 @@ class ContradictionService:
         return {
             "model": self._config.model,
             "max_tokens": CONTRADICTION_MAX_TOKENS,
-            "system": [TextBlockParam(type="text", text=self._system_prompt)],
+            "system": [
+                TextBlockParam(type="text", text=self._system_prompt),
+                TextBlockParam(
+                    type="text",
+                    text=derived_context.stable_prefix.system_prompt,
+                ),
+            ],
             "messages": [MessageParam(role="user", content=user_blocks)],
             "tools": [REPORT_TOOL_SPEC],
             "tool_choice": {"type": "tool", "name": REPORT_TOOL_NAME},
@@ -321,36 +314,3 @@ def _derive_context(
         volatile_suffix=built_context.volatile_suffix,
         pass_forward_ledger=new_ledger,
     )
-
-
-def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
-    """Return stable-prefix section texts in canonical Issue 8 order.
-
-    Mirrors the Writer and Extractor renderers so the Contradiction pass's
-    user-message blocks are byte-for-byte identical to the prior passes',
-    maximising the chance of cross-pass cache reuse.
-
-    Order:
-      1. Mode contract (system_prompt) — POV/tense/agency/mode-specific rules
-      2. Story Bible active context
-      3. Rolling Summary (omitted if None)
-      4. Rules Package slice (omitted if None)
-      5. Retrieval Memory (omitted when empty)
-    """
-    texts: list[str] = []
-    sp = built_context.stable_prefix
-
-    texts.append(sp.system_prompt)
-    texts.append(_render_story_bible_context(sp.story_bible_context))
-
-    if sp.rolling_summary_text is not None:
-        texts.append(sp.rolling_summary_text)
-
-    if sp.rules_package_slice is not None:
-        texts.append(_render_rule_slice(sp.rules_package_slice))
-
-    retrieval_text = _render_retrieval_memory(sp.retrieval_memory)
-    if retrieval_text:
-        texts.append(retrieval_text)
-
-    return texts

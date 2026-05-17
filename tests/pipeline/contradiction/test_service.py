@@ -476,27 +476,26 @@ class TestRendererStructure:
         payload = caller.captured[0]
         assert payload["tool_choice"] == {"type": "tool", "name": REPORT_TOOL_NAME}
 
-    def test_payload_has_system_block(self) -> None:
+    def test_payload_has_system_blocks(self) -> None:
+        """Issue 12c: ``system`` carries [pass contract, mode contract]."""
         caller = _make_fake_caller()
         svc = ContradictionService(config=_make_config(), caller=caller)
         svc.check(_make_assembled(), "Prose.")
         payload = caller.captured[0]
-        assert len(payload["system"]) == 1
-        assert payload["system"][0]["type"] == "text"
+        assert len(payload["system"]) == 2
+        assert all(b["type"] == "text" for b in payload["system"])
 
     def test_system_field_contains_contradiction_pass_prompt(self) -> None:
-        """System field must be the Contradiction pass prompt, not the mode contract."""
+        """First system block is the Contradiction pass prompt."""
         caller = _make_fake_caller()
         svc = ContradictionService(config=_make_config(), caller=caller)
         svc.check(_make_assembled(), "Prose.")
         payload = caller.captured[0]
         system_text = payload["system"][0]["text"]
-        # The contradiction prompt is loaded from docs/prompts/contradiction.md.
-        # It contains a known heading that must appear here.
         assert "Contradiction Checker" in system_text
 
-    def test_stable_prefix_user_blocks_contain_mode_contract(self) -> None:
-        """stable_prefix.system_prompt (mode contract) must appear in user blocks."""
+    def test_mode_contract_is_second_system_block(self) -> None:
+        """Issue 12c: mode contract moved from user blocks to system[1]."""
         MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
         ctx = _make_assembled()
         from afterworlds.models.context import StablePrefix
@@ -517,17 +516,12 @@ class TestRendererStructure:
         svc = ContradictionService(config=_make_config(), caller=caller)
         svc.check(ctx2, "Prose.")
 
-        texts = [b["text"] for b in caller.captured[0]["messages"][0]["content"]]
-        assert any(
-            MODE_CONTRACT in t for t in texts
-        ), "stable_prefix.system_prompt not found in user message blocks"
+        payload = caller.captured[0]
+        assert payload["system"][1]["text"] == MODE_CONTRACT
 
-    def test_mode_contract_appears_before_story_bible(self) -> None:
-        """stable_prefix.system_prompt must be the first stable-prefix user block."""
+    def test_mode_contract_absent_from_user_blocks(self) -> None:
+        """Issue 12c: mode contract no longer duplicated into user blocks."""
         MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
-        STORY_BIBLE_MARKER = (
-            "Aldric"  # appears in the cast entry rendered by the context
-        )
         ctx = _make_assembled()
         from afterworlds.models.context import StablePrefix
 
@@ -548,17 +542,9 @@ class TestRendererStructure:
         svc.check(ctx2, "Prose.")
 
         texts = [b["text"] for b in caller.captured[0]["messages"][0]["content"]]
-        contract_idx = next(
-            (i for i, t in enumerate(texts) if MODE_CONTRACT in t), None
-        )
-        bible_idx = next(
-            (i for i, t in enumerate(texts) if STORY_BIBLE_MARKER in t), None
-        )
-        assert contract_idx is not None, "Mode contract block not found"
-        assert bible_idx is not None, "Story Bible block not found"
-        assert (
-            contract_idx < bible_idx
-        ), "Mode contract must appear before Story Bible content"
+        assert not any(
+            MODE_CONTRACT in t for t in texts
+        ), "Mode contract must not appear in user-message stable region after 12c"
 
     def test_cache_breakpoint_on_last_stable_prefix_block_not_writer(self) -> None:
         """Cache breakpoint on the final stable-prefix block, before writer/volatile."""

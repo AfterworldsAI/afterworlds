@@ -34,6 +34,7 @@ from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import IntentType
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.node import create_turn, node_belongs_to_story
+from afterworlds.pipeline._refusal import ProviderRefusalError
 from afterworlds.pipeline.writer.caller import (
     AnthropicModelCaller,
     WriterModelCaller,
@@ -78,6 +79,8 @@ class WriterService:
         built_context: AssembledContext,
         story_id: UUID,
         node_id: UUID,
+        *,
+        session: Session | None = None,
     ) -> WriterResult:
         """Execute one Writer pass and return a typed result with a persisted Turn.
 
@@ -91,6 +94,13 @@ class WriterService:
             node_id: UUID of the already-seeded Node to link the Turn to.
                 The Writer does not create Nodes — the caller is responsible for
                 having seeded a valid Arc/Chapter/Node chain.
+            session: optional orchestrator-owned SQLAlchemy session (Issue
+                12c).  When supplied the Turn write joins the caller's outer
+                transaction and the Writer does NOT call ``commit``; the
+                orchestrator commits or rolls back at the gate boundary.
+                When ``None`` the standalone Issue 3 / 9 behavior is
+                preserved: the constructor-injected session is used and the
+                Writer commits at the end of a successful write.
 
         Returns:
             WriterResult with the persisted turn_id, assistant_output, model
@@ -101,8 +111,15 @@ class WriterService:
                 story_id, if node_id does not belong to story_id, the provider
                 call fails, the response is malformed, or the parsed output is
                 empty after trimming.  No Turn is persisted in any error case.
+            ProviderRefusalError: if the provider explicitly refuses the
+                call.  Propagated unchanged so the Issue 12c orchestrator can
+                route the turn to REFUSED_BY_PROVIDER and roll back the
+                outer transaction.  The Writer does NOT downgrade refusals
+                into WriterPassError.
         """
-        if not node_belongs_to_story(self._session, node_id, story_id):
+        target_session: Session = session if session is not None else self._session
+
+        if not node_belongs_to_story(target_session, node_id, story_id):
             raise WriterPassError(
                 f"node {node_id} does not belong to story {story_id}; "
                 "no Turn persisted"
@@ -119,6 +136,8 @@ class WriterService:
 
         try:
             response, latency_ms = timed_call(self._caller, payload)
+        except ProviderRefusalError:
+            raise
         except Exception as exc:
             raise WriterPassError(f"Writer provider call failed: {exc}") from exc
 
@@ -138,8 +157,9 @@ class WriterService:
             node_id=node_id,
             intent_classification_result=icr,
         )
-        create_turn(self._session, turn)
-        self._session.commit()
+        create_turn(target_session, turn)
+        if session is None:
+            target_session.commit()
 
         usage = response.usage
         return WriterResult(

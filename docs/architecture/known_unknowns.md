@@ -2,7 +2,7 @@
 
 *Canonical reference for all open design and implementation decisions.*
 *Maintained throughout construction. Update this file when an unknown is resolved or a new one surfaces.*
-*Last updated: April 2026*
+*Last updated: May 2026 — Issue 12c resolved provider-refusal handling and opacity; added OOC protocol authoring and safety-whitelist resolution as new Open items.*
 
 ---
 
@@ -34,6 +34,8 @@ These were open questions during design. Decisions are recorded here for traceab
 | BYOK commercial structure | Perpetual license + first year of Cloud Services included; optional annual renewal thereafter | License and services must not be collapsed in code or UX language |
 | Writing mode structure | Persona-based — Mentors (Chiron, Merlin, Vidura) and Peers (Odin, Athena, Thoth) | No explicit submode labels; category communicated through persona descriptions |
 | RPG dice handling | Two modes: Player rolls / AI rolls | Hidden rolls are a narrative mechanic in both modes, not a player-facing setting |
+| Provider refusal handling in the pipeline | Typed `ProviderRefusalError` per pass → `REFUSED_BY_PROVIDER`; no retries / fallback / routing in v1 | Resolved during Issue 12c; see ADR-0014. Issue 14 owns refusal-aware routing. |
+| Provider refusal reason opacity | `ProviderRefusal.coarse_reason` is captured for audit but advisory only — orchestrator never routes on it | Resolved during Issue 12c; see ADR-0014. Issue 14 may use observed patterns to inform routing without depending on granular reasons. |
 
 ---
 
@@ -43,23 +45,23 @@ These are genuinely open. Each has a designated resolution window. Do not resolv
 
 ---
 
-### Provider refusal reason opacity (Issue 12c surface)
+### Mode-contract OOC protocol authoring (Issue 12c surface)
 
-**Resolve during:** Issue 12c (orchestration) and Issue 14 (provider routing).
+**Resolve during:** Issues 15 (RPG), 16 (Branching), 17 (Writing).
 
-Provider refusal reasons are often opaque or too coarse to map reliably onto Afterworlds policy categories. The orchestrator must treat provider refusal as a typed pass failure with advisory provider metadata, not as a Safety BLOCK verdict. When no reliable provider reason is available, user-facing messaging must be transparent that the provider refused without exposing a guessed cause. Issue 14 may improve routing based on observed refusal patterns, but routing must not depend on granular refusal reasons being available.
+Issue 12c short-circuits OOC turns away from the narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The placeholder is mode-agnostic, brief, and explicitly marked as v1 only. The final mode-aware OOC protocols — what the GM, Story Architect, and Writing personas should say when the Sojourner steps out of character — belong to each mode's prompt contract.
 
-**What resolution requires:** Issue 12c must define how provider refusal metadata is captured, represented, and surfaced to the orchestration layer without treating it as authoritative policy signal. Issue 14 must specify what refusal pattern data is logged, how it informs routing heuristics, and what guarantees are forbidden (e.g., routing decisions that assume a specific refusal reason is correct). Document decisions in ADRs before implementation begins.
+**What resolution requires:** Issues 15–17 must extend `/docs/prompts/{mode}_mode.md` with an explicit OOC protocol section per mode, then either replace the placeholder or have the orchestrator select the mode-specific OOC instruction. Document the swap in an ADR if the orchestrator's OOC-handler selection logic changes shape.
 
 ---
 
-### Provider refusal handling in the pipeline (Issue 12b surface)
+### Safety-policy provider whitelist resolution (Issue 12c surface)
 
-**Resolve during:** Issue 12c (orchestration) and Issue 14 (provider routing).
+**Resolve during:** Issue 14 (BYOK API key management and provider routing).
 
-Provider refusal handling is not resolved in Issue 12b. `SafetyPassError` and other pass-level provider refusals are typed failures, not Safety BLOCK verdicts. Issue 12c must define orchestration behavior for provider refusals, including whether Writer refusal produces a controlled user-facing response, a bounded retry, or a provider-routing handoff. Issue 14 must account for provider capability/refusal profiles during routing.
+Issue 12c ships with `SafetyPolicy()` defaulting to an empty `whitelisted_providers` frozenset, so Input Preflight and Output Audit run on every Turn. Issue 14 defines provider capability profiles and chooses which providers (if any) are trusted enough to skip the conservative default. Until that decision is made, neither Safety call may silently skip.
 
-**What resolution requires:** Issue 12c must specify the orchestration contract for each pass-level refusal path: does it propagate as an error, trigger a retry, produce a fallback user-facing message, or route to an alternate provider? Issue 14 must record which providers have distinct refusal profiles and how routing logic accounts for them. Document decisions in ADRs before implementation of the affected issues begins.
+**What resolution requires:** Issue 14 must specify which provider identifiers qualify for the whitelist, the criteria (e.g. provider-side safety attestations, observed refusal patterns), and the operator-visible audit trail for whitelist changes. Document the criteria in an ADR before flipping the default.
 
 ---
 

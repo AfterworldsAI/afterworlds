@@ -127,9 +127,22 @@ class RecentTurnsProvider(Protocol):
 
     The concrete SQLite implementation is :class:`SQLiteRecentTurnsProvider`.
     Tests and future implementations may supply any compatible class.
+
+    Issue 12c extension: ``exclude_ooc`` defaults to True so the Context
+    Builder's narrative recent-turn window never contains OOC Turns (those
+    are routed through the OOC short-circuit handler and do not advance the
+    story).  Callers needing the full prose history may pass ``False``.
+    Filtering happens at read time against the existing
+    ``intent_classification`` column; no schema migration is required.
     """
 
-    def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
+    def get_recent_turns(
+        self,
+        story_id: UUID,
+        limit: int,
+        *,
+        exclude_ooc: bool = True,
+    ) -> list[Turn]:
         """Return up to *limit* most-recent turns for *story_id*, oldest-first."""
         ...
 
@@ -221,8 +234,22 @@ class SQLiteRecentTurnsProvider:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
-        """Return up to *limit* most-recent turns for *story_id*, oldest-first."""
+    def get_recent_turns(
+        self,
+        story_id: UUID,
+        limit: int,
+        *,
+        exclude_ooc: bool = True,
+    ) -> list[Turn]:
+        """Return up to *limit* most-recent turns for *story_id*, oldest-first.
+
+        When ``exclude_ooc`` is True (Issue 12c default), OOC Turns are
+        filtered out at read time using the existing
+        ``TurnORM.intent_classification`` column.  OOC Turns remain in the
+        database for audit; they simply do not appear in the narrative
+        recent-turn window the Context Builder feeds to downstream passes.
+        Pass ``False`` for full-history reads.
+        """
         # Fetch a bounded candidate set: SQL ORDER BY on the ISO timestamp string
         # is correct for rows stored as UTC (+00:00 or naive), which covers all
         # application write paths.  The buffer extends the window so any row
@@ -230,15 +257,20 @@ class SQLiteRecentTurnsProvider:
         # the limit boundary is still included as a candidate.  Python datetime
         # sort on this bounded set then selects the correct most-recent limit
         # turns without materializing the full story history.
+        stmt = (
+            select(TurnORM)
+            .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+            .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+            .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+            .where(ArcORM.story_id == str(story_id))
+        )
+        if exclude_ooc:
+            stmt = stmt.where(TurnORM.intent_classification != IntentType.OOC.value)
         rows = (
             self._session.execute(
-                select(TurnORM)
-                .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
-                .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
-                .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
-                .where(ArcORM.story_id == str(story_id))
-                .order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
-                .limit(limit + _TIMESTAMP_SAFETY_BUFFER)
+                stmt.order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc()).limit(
+                    limit + _TIMESTAMP_SAFETY_BUFFER
+                )
             )
             .scalars()
             .all()
