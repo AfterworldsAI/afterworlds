@@ -1,6 +1,8 @@
-# Afterworlds: Synthesized Design Document (v9)
+# Afterworlds: Synthesized Design Document (v10)
 
 *Revised May 2026 to replace the five-pass pipeline framing with the safety envelope model. Safety is no longer modeled as a mandatory fifth narrative pass after Contradiction. The core narrative pipeline is Planner → Writer → Extractor → Contradiction. A safety envelope wraps the generation core: input preflight before Planner/Writer when orchestration policy requires it, and conditional output audit after Writer and before Extractor/Contradiction when provider or risk policy requires it. See Section 4 and the Construction Readiness Document for full architecture detail.*
+
+*Revised May 2026 to make the caching architecture explicit: Afterworlds owns provider-neutral cache intent, deterministic stable/volatile context separation, and stable-context reuse discipline. Provider/platform-specific cache realization — cache-key semantics, breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified hit behavior — belongs to provider adapters defined during Issue 14. Stable internal context identity is necessary for cache efficiency; it is not, by itself, a provider-agnostic guarantee of cache hits.*
 
 -–
 
@@ -45,19 +47,12 @@ Story
 Every persisted story beat is a Node:
 
 | Field | Description |
-
 |—|—|
-
 | Node ID | Unique identifier |
-
 | Content | Generated prose or dialogue |
-
 | State Delta | World mutations caused by this beat (e.g., `gold -50`, `king\_trust: hostile → neutral`) |
-
 | Branching Logic | Pointers to next possible nodes |
-
 | Intent Type | Action / Dialogue / Author instruction / Branch choice / Milestone |
-
 | Metadata | POV, location, mood, tense, timestamp |
 
 ### The Story Bible
@@ -111,19 +106,12 @@ The same ingestion pattern can later support lighter-weight canon packs for Bran
 Six layers, each with a distinct role:
 
 | Layer | Contents | Inclusion |
-
 |—|—|—|
-
 | Immediate | Last ~10 turns verbatim | Always |
-
 | Rolling Summary | Compressed narrative, auto-updated every N turns | Always |
-
 | Story Bible | Structured canon | Always |
-
 | Rules Package | Retrieved mechanical canon or external canon-pack context | On demand by mode |
-
 | Retrieval Memory | Vector DB of past scenes, pulled by semantic relevance | On demand |
-
 | Contradiction Checker | Pre-output scan for continuity violations | Every turn; core checker always on, retrieval depth may expand with entitlement or user-configured cost guardrails |
 
 ### Contradiction Checker — What It Catches
@@ -213,19 +201,12 @@ Stack in priority order:
 ### Step 3 — Core Narrative Pipeline and Safety Envelope
 
 | Pass | Function |
-
 |—|—|
-
 | **[Input Safety Preflight]** | Evaluates Sojourner request against Afterworlds policy before generation starts. Conditional: runs when orchestration policy requires it. |
-
 | **Planner** | Scene goal, next beat, facts needed |
-
 | **Writer** | Polished prose and dialogue |
-
 | **[Output Safety Audit]** | Evaluates Writer-generated prose against Afterworlds policy before downstream passes run. Conditional: runs when provider or risk policy requires it. |
-
 | **Extractor** | Pulls new facts, state deltas, continuity updates — proposes Story Bible updates |
-
 | **Contradiction** | Checks output against Story Bible before it leaves the system |
 
 **Access routing:**
@@ -239,15 +220,10 @@ Commercial routing governs credit consumption, top-up prompts, Cloud Services en
 The Extractor proposes candidate Story Bible updates. It does not write directly to canon. Updates are classified before acceptance:
 
 | Classification | Handling |
-
 |—|—|
-
 | **Locked fact** | Requires explicit Sojourner confirmation before commit |
-
 | **Soft fact** | Auto-committed with low confidence flag, Sojourner can review |
-
 | **Transient state** | Auto-committed (e.g., current location, active quest) |
-
 | **Unresolved thread** | Queued to plot thread tracker, not committed to canon |
 
 An Extractor that auto-canonizes everything will hallucinate trivia into permanent law within a few chapters. This policy prevents that.
@@ -320,7 +296,7 @@ All three modes run on the Sojourn pipeline. They differ in prompt contract, pla
 
 - **Mentors** (Chiron, Merlin, Vidura): developmental guides. Primary orientation is teaching through making — craft goals, generative exercises, targeted feedback aimed at a specific craft objective. Manuscript repair is not their function; bringing existing prose to a Mentor is a diagnostic path only (“what should we work on?”).
 
-\ - **Peers** (Odin, Athena, Thoth): creative collaborators. Primary orientation is making alongside the user — generating prose, proposing directions, pushing the work forward. Teaching available but not default; a Peer speaks up about craft only when something is genuinely holding the work back, or when asked.
+\- **Peers** (Odin, Athena, Thoth): creative collaborators. Primary orientation is making alongside the user — generating prose, proposing directions, pushing the work forward. Teaching available but not default; a Peer speaks up about craft only when something is genuinely holding the work back, or when asked.
 
 - **Beat Control:** Sojourner sets milestone constraints (“By end of this chapter, X must happen”) the AI is bound to honor.
 
@@ -343,15 +319,10 @@ All three modes run on the Sojourn pipeline. They differ in prompt contract, pla
 **LLM options:**
 
 | Option | Trade-off |
-
 |—|—|
-
 | Local (Ollama + Mistral / LLaMA 3) | Full privacy, no API cost, quality ceiling tied to hardware |
-
 | Hybrid BYOK (recommended) | Local app, cloud brain, Sojourner’s own API key — best quality/cost balance |
-
 | OpenRouter | Single integration point, model-agnostic routing, supports open-weight NSFW-capable models |
-
 | VPS-hosted open-weight model | No per-token cost, full content control, fixed GPU compute overhead |
 
 BYOK substantially reduces platform-level content gatekeeping and subscription friction. It does not eliminate all content constraints — upstream providers, app stores, and hosted service APIs retain their own policies — but it removes the ones competitors use as monetization levers.
@@ -376,63 +347,97 @@ BYOK substantially reduces platform-level content gatekeeping and subscription f
 
 ## 7. Prompt Caching Strategy
 
-All three major API providers support prompt/context caching in some form. Afterworlds should be architected to exploit this from the start — not as an afterthought, but as a first-class design constraint. For a system with large persistent Story Bibles and a multi-pass pipeline, the economics are material.
+Prompt/context caching is economically important for Afterworlds, but it is not one universal API contract. Different providers and platform surfaces expose different cache-key semantics, cache-control mechanisms, TTL or retention controls, and usage metrics. Afterworlds therefore adopts:
 
-### Prompt Layout
+> **Generalized cache intent in the core architecture, realized through provider/platform-specific cache adapters.**
 
-Structure every prompt with stable material first, volatile material last:
+The engine owns stable/volatile separation and deterministic context reuse. Provider adapters own how — and whether — that structure becomes an actual cache hit on a given API surface.
+
+### Core Caching Architecture
+
+Afterworlds’ provider-neutral caching architecture has four parts:
+
+1. **Context Builder assembles shared context once per turn.** Stable narrative context is built once, not reconstructed pass-by-pass.
+2. **Pass rendering preserves deterministic stable-region structure.** Passes may have different system instructions, tool schemas, output contracts, and volatile additions, but the shared stable context region should render consistently wherever the active adapter can benefit from it.
+3. **Provider/platform adapters realize cache intent.** An adapter may use explicit cache breakpoints, automatic prefix reuse, named cached-context objects, TTL/retention controls, provider-specific hashing constraints, or no meaningful optimization on that surface.
+4. **Cache-hit behavior is verified per adapter.** Internal stable-context identity is necessary for cacheability, but it is not sufficient to guarantee provider-side reuse. Hit rates, cross-pass reuse, TTL behavior, and cache metrics must be measured and documented per provider/platform integration.
+
+### Canonical Prompt/Context Shape
+
+The prompt stack still follows the product architecture:
 
 ```
-\[System instructions + mode contract]
+\[Pass/system instructions + mode contract]
 
-\[Story Bible + world rules]
+\[Stable shared narrative context]
 
-\[Rolling summary]
+\[Pass-forward additions, when applicable]
 
-\[Retrieved ephemeral facts]
-
-\[Recent turns verbatim]
-
-\[Current Sojourner input + classified intent]
+\[Volatile turn material]
 ```
 
-The stable prefix — everything above the retrieved facts — is the cacheable block. The volatile suffix changes every turn and is never cached. This layout maximizes cache hits across all three providers, which all reward stable shared prefixes.
+The shared context region contains the canonical story/state material Afterworlds wants available consistently across passes: Story Bible context, rolling summary, and any retrieved rule/canon/memory material included for that turn. The volatile region includes recent turns, the current Sojourner input, classified intent, pass-specific evaluated text, and other turn-local material.
+
+This stack is a **core architecture shape**, not a provider payload guarantee. A provider adapter decides which of these elements participate in its cache identity, where a cache breakpoint or equivalent belongs, whether the provider permits partial reuse, and how cache metrics are read back.
 
 ### Caching and the Multi-Pass Pipeline
 
-This is where Afterworlds gains a structural advantage over naive implementations. The Planner, Extractor, Contradiction, and any conditional Safety passes all share the same Story Bible prefix. If the pipeline is architected so all passes reference the same cached prefix in a single session, the effective per-turn cost drops substantially — you pay to write the cache once and read it at a steep discount across subsequent passes within the turn.
+The Planner, Writer, Extractor, Contradiction, and conditional Safety calls consume overlapping story context. Afterworlds should preserve the best possible conditions for cache reuse:
 
-The number of Safety calls per turn is conditional — input preflight may not run on ordinary turns from whitelisted providers, and output audit runs only when provider or risk policy requires it. Cost models should treat Safety as a conditional rather than guaranteed per-turn call.
+- assemble shared context once per turn;
+- render shared stable-context material deterministically;
+- avoid needless provider-payload drift in semantically identical stable regions;
+- expose enough structure that provider adapters can optimize intelligently.
 
-This means prompt assembly should not be re-run independently per pass. The canonical context block should be assembled once per turn, cached, and referenced by each subsequent pass.
+When a provider/platform adapter supports cross-pass reuse, the effective per-turn cost may drop substantially. When it does not — or when pass-specific system/tool differences invalidate reuse — the orchestration layer must still behave correctly. The narrative engine never depends on cache hits for correctness.
+
+Safety calls remain conditional: input preflight may not run on ordinary turns from whitelisted providers, and output audit runs only when provider or risk policy requires it. Cost models must treat Safety as conditional rather than guaranteed per-turn work.
+
+### Provider/Platform Adapter Responsibility
+
+Issue 14 owns the adapter layer that turns Afterworlds’ cache intent into concrete provider behavior. Each adapter must determine and document, as applicable:
+
+- cache-key or cache-identity semantics;
+- explicit breakpoint placement or cached-context-object strategy;
+- automatic prefix-caching constraints;
+- tool/schema/system-message effects on reuse;
+- TTL, retention, or cache-lifetime defaults;
+- cache metric names and how they are normalized for internal accounting;
+- whether cross-pass reuse, cross-turn reuse, both, or neither are realistically available;
+- provider/platform-specific verification tests.
+
+The same model family may require different treatment on different access surfaces. Direct-provider APIs, OpenRouter, Bedrock, Vertex, Azure, or other wrappers are not assumed to share identical caching behavior merely because they expose the same underlying model.
 
 ### Provider Notes
 
-| Provider | Caching Style | Read Discount | TTL |
+| Provider / Surface | Caching Style | Architecture Note |
+|—|—|—|
+| Anthropic direct API | Explicit, breakpoint-based | Adapter must verify how tools, system blocks, message ordering, and TTL markers affect reuse. |
+| OpenAI direct API | Automatic, prefix-based on eligible requests | Adapter must treat cache behavior as provider-managed and inspect reported cached-token metrics where available. |
+| Google Gemini surfaces | Implicit and/or explicit cached context depending on API | Adapter must distinguish API mode and manage cache objects or provider-managed reuse accordingly. |
+| Aggregators / hosted wrappers | Surface-specific | Cache behavior is not inherited automatically from the underlying model vendor; verify per platform. |
 
-|—|—|—|—|
+Exact provider pricing, cache discounts, hit behavior, and retention semantics vary and can change. Cost models must be tied to verified adapter assumptions, not vendor-generalized optimism.
 
-| Anthropic | Explicit, breakpoint-based | ~90% of base input price | 5 min default; 1 hr available |
+### TTL / Retention Consideration
 
-| OpenAI | Automatic, prefix-based | Model-dependent, up to 90% | ~5–10 min, clears within 1 hr |
+Longer-lived cache retention can matter materially for narrative sessions with natural pauses. Where a provider/platform adapter supports a validated longer-lived cache mode or equivalent retention control without unacceptable tradeoffs, the adapter should make that the default and document the rationale.
 
-| Google | Both implicit and explicit | ~90% on supported Gemini models | 1 hr default for explicit; storage cost applies |
-
-Exact pricing varies by model and changes frequently. Verify against current provider pricing pages before building cost models.
-
-### TTL Consideration
-
-Anthropic’s default 5-minute cache window is short for a narrative app where a Sojourner may pause mid-session. Sessions with natural breaks will pay full input price on cache misses more often than a naive cost model assumes. Use extended TTL options where available, and account for miss rate in per-tier cost projections.
+The core architecture does not assume that “1 hour TTL” exists everywhere, that it means the same thing everywhere, or that it is always economically optimal. Issue 14 resolves those adapter-specific decisions.
 
 ### Design Rules
 
-- Keep Story Bible and canon state structurally separate from prose history — this is economically correct, not just architecturally clean
+- Keep Story Bible and canon state structurally separate from prose history — this is economically correct, not just architecturally clean.
 
-- Prefer compact summaries and structured ledgers over resending long raw transcripts
+- Prefer compact summaries and structured ledgers over resending long raw transcripts.
 
-- Never treat caching as a substitute for prompt discipline — a bloated prompt is still expensive; caching just makes repeated bloat less painful
+- Stable internal context identity is a **precondition** for efficient caching, not a provider-agnostic guarantee of cache hits.
 
-- Caching is a coupon with engineering requirements, not a cost elimination
+- Provider-specific cache semantics belong in adapters, not in the Context Builder, orchestrator, or pass-service business logic.
+
+- Never treat caching as a substitute for prompt discipline — a bloated prompt is still expensive; caching just makes repeated bloat less painful.
+
+- Caching is a coupon with engineering requirements, not a cost elimination.
 
 -–
 
@@ -445,17 +450,11 @@ The core product promise is continuity: persistent state, canon maintenance, and
 ### Commercial Structure
 
 | Access Path | What You Get |
-
 |—|—|
-
 | **Hosted Subscription** | Full Sojourn orchestration path (core narrative pipeline + safety envelope), monthly included credits, transparent top-ups, optional limited rollover, hosted storage, sync, pack ingestion, and ongoing platform access |
-
 | **BYOK Perpetual License** | Permanent right to use Afterworlds with the Sojourner’s own API keys; full pipeline parity with hosted users; first year of Cloud Services included |
-
 | **BYOK Cloud Services Renewal** | Optional annual renewal for continued hosted storage, sync, ingestion processing, remote access, and other ongoing platform services after the first included year |
-
 | **Starter Access (optional launch/on-ramp)** | Small paid entry package that uses the same full pipeline and consumes normal hosted credits; exists to reduce first-purchase friction without introducing a degraded free tier |
-
 | **Open-source core** | Community trust and adoption; hosted services, convenience layers, and non-technical onboarding remain monetized |
 
 ### Hosted Subscription Model
@@ -568,7 +567,7 @@ These are construction milestones, not product versions. They describe build ord
 
 - Full pipeline orchestration (Planner, Writer, Extractor, Contradiction, and Safety envelope wired)
 
-- Entitlement routing, hosted credits/top-ups, and BYOK support
+- Entitlement routing, hosted credits/top-ups, BYOK support, provider/platform routing, and cache-capability adapters
 
 - Operations/support minimums as defined in Construction Readiness Issue 22
 
@@ -601,6 +600,8 @@ These are construction milestones, not product versions. They describe build ord
 - Hosted subscription credit/top-up entitlement framework
 
 - BYOK API support with perpetual-license and Cloud Services entitlements
+
+- Provider/platform routing with cache-capability adapters sufficient to realize Afterworlds’ generalized cache intent on supported v1 access paths
 
 - Operations/support minimums as defined in Construction Readiness Issue 22
 
@@ -667,5 +668,7 @@ These are construction milestones, not product versions. They describe build ord
 
 \[Persistence] → Node saved, State Delta applied, Story Bible updated, vector DB pushed
 ```
+
+**Provider-adapter note:** Provider/platform adapters are orthogonal service infrastructure used by provider-backed passes for routing, payload realization, cache-capability handling, and provider-specific metrics. They are not an additional sequential turn-pipeline stage.
 
 **Operational note:** The operations/support minimums defined in Construction Readiness Issue 22 are parallel administrative capabilities, not a sequential stage in the turn pipeline.
