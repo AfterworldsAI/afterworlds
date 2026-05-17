@@ -35,7 +35,6 @@ import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
-from contextlib import nullcontext, suppress
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -48,10 +47,7 @@ from afterworlds.models.context import (
     StablePrefix,
 )
 from afterworlds.models.enums import IntentType
-from afterworlds.models.intent_classification import (
-    IntentClassificationError,
-    IntentClassificationResult,
-)
+from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
     ProviderRefusalError,
@@ -218,14 +214,25 @@ class OrchestratorService:
         latency: dict[str, int] = {}
 
         # 1. Intent classification.
-        intent_result, classify_ms = self._classify_intent(user_input, story_id)
-        latency["intent"] = classify_ms
-        if intent_result is None:
+        #
+        # `IntentClassifierService.classify` may raise the typed
+        # `IntentClassificationError` (parse / validation failure) OR any
+        # untyped runtime failure from the injected model caller (transport
+        # error, provider hiccup, etc.).  Both must produce a typed
+        # PIPELINE_ERROR result rather than escaping `orchestrate_turn` as
+        # a raw exception — the orchestrator's terminal-state contract is
+        # exhaustive (Issue 12c).
+        try:
+            intent_result, classify_ms = _timed(
+                lambda: self._intent_classifier.classify(user_input, story_id)
+            )
+            latency["intent"] = classify_ms
+        except Exception as exc:  # noqa: BLE001
             return self._pipeline_error(
                 _synthesize_intent(user_input),
                 latency,
                 turn_start,
-                "intent classification failed",
+                f"intent classification failed: {exc}",
             )
 
         # 2. Context assembly (once per turn).
@@ -685,14 +692,28 @@ class OrchestratorService:
             is responsible for rolling back.
           - ``_ParallelSyncError`` for any other operational failure or
             timeout.  The caller is responsible for rolling back.
+
+        Executor lifecycle:
+          - When ``self._provided_executor is None`` the orchestrator owns a
+            single-worker ``ThreadPoolExecutor`` for the duration of this
+            call and tears it down with ``shutdown(wait=False,
+            cancel_futures=True)`` in a ``finally`` block.  This is what
+            actually makes ``parallel_pass_timeout_seconds`` bound wall
+            time: the historical ``with ThreadPoolExecutor() as exc:``
+            pattern calls ``shutdown(wait=True)`` on exit which would
+            block on the still-running Contradiction worker for its
+            natural runtime.
+          - When ``self._provided_executor`` was injected the caller owns
+            the executor's lifecycle; the orchestrator never calls
+            ``shutdown`` on it.
         """
-        executor_ctx = (
-            nullcontext(self._provided_executor)
+        is_local_executor = self._provided_executor is None
+        executor: ThreadPoolExecutor = (
+            self._provided_executor
             if self._provided_executor is not None
             else ThreadPoolExecutor(max_workers=1)
         )
-        with executor_ctx as executor:
-            assert executor is not None
+        try:
             contradiction_future: Future[tuple[ContradictionResult, int]] = (
                 executor.submit(
                     _timed_for_thread,
@@ -714,11 +735,15 @@ class OrchestratorService:
                     )
                 )
             except ProviderRefusalError:
-                # Cancel/await contradiction so executor exits cleanly.
-                _drain_future(contradiction_future, self._timeout)
+                # Best-effort cancel; the worker thread may still be running
+                # naturally to completion.  We do NOT wait for it — that
+                # would defeat the parallel-sync timeout bound for any
+                # failure path.  For locally-owned executors the finally
+                # block detaches it via ``shutdown(wait=False)``.
+                contradiction_future.cancel()
                 raise
             except ExtractorPassError as exc:
-                _drain_future(contradiction_future, self._timeout)
+                contradiction_future.cancel()
                 raise _ParallelSyncError(f"extractor: {exc}") from exc
 
             try:
@@ -726,6 +751,12 @@ class OrchestratorService:
                     timeout=self._timeout
                 )
             except FutureTimeout as exc:
+                # Same non-blocking cancel + detach pattern: cancel the
+                # future and let the locally-owned executor's
+                # ``shutdown(wait=False, cancel_futures=True)`` in finally
+                # release this call without waiting on the still-running
+                # Contradiction worker.
+                contradiction_future.cancel()
                 raise _ParallelSyncError(
                     f"contradiction worker exceeded {self._timeout:.1f}s timeout"
                 ) from exc
@@ -735,21 +766,19 @@ class OrchestratorService:
                 raise _ParallelSyncError(f"contradiction: {exc}") from exc
 
             return extractor_result, contradiction_result, ext_ms, contr_ms
+        finally:
+            if is_local_executor:
+                # ``cancel_futures=True`` cancels work that has not yet
+                # started; an already-running Contradiction call cannot be
+                # interrupted and will run to natural completion in the
+                # background.  Contradiction performs no DB I/O so this
+                # leak is bounded and side-effect-free.  This is what
+                # makes the wall-time bound actually hold.
+                executor.shutdown(wait=False, cancel_futures=True)
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-
-    def _classify_intent(
-        self, user_input: str, story_id: UUID
-    ) -> tuple[IntentClassificationResult | None, int]:
-        try:
-            result, ms = _timed(
-                lambda: self._intent_classifier.classify(user_input, story_id)
-            )
-            return result, ms
-        except IntentClassificationError:
-            return None, 0
 
     def _build_context(
         self,
@@ -859,18 +888,6 @@ def _timed[T](fn: Callable[[], T]) -> tuple[T, int]:
 def _timed_for_thread[T](fn: Callable[[], T]) -> tuple[T, int]:
     """Worker-thread variant of ``_timed`` (identical semantics)."""
     return _timed(fn)
-
-
-def _drain_future(future: Future[Any], timeout: float) -> None:
-    """Wait for a worker future to complete, swallowing its result/exception.
-
-    Used after the orchestrator-thread pass has already failed and we just
-    need the worker to finish before the executor context manager exits.
-    The secondary outcome is intentionally suppressed so it cannot mask
-    the original primary failure.
-    """
-    with suppress(Exception):
-        future.result(timeout=timeout)
 
 
 def _serialize_planner(result: PlannerResult) -> str:

@@ -536,6 +536,7 @@ class StoryBibleService:
         value: object,
         *,
         source_turn_id: str | None = None,
+        session: Session | None = None,
     ) -> CastEntry:
         """Update a dynamic-partition field on a CastEntry.
 
@@ -543,15 +544,25 @@ class StoryBibleService:
         ``sb_dynamic_field_history`` before the update is applied.
         See ADR-0006.
 
+        Args:
+            session: optional caller-supplied SQLAlchemy session (Issue 12c).
+                When supplied, all reads and writes go through that session
+                so the operation participates in the caller's outer
+                transaction or SAVEPOINT.  When ``None``, the
+                constructor-injected ``self._session`` is used (Issue 4
+                standalone behavior).  The session is never stored on the
+                service instance.
+
         Raises ``ValueError`` if ``field`` is not a recognised dynamic field.
         Raises ``EntityNotFoundError`` if the cast entry does not exist.
         """
+        target = session if session is not None else self._session
         if field not in _CAST_DYNAMIC_FIELDS:
             raise ValueError(
                 f"'{field}' is not a dynamic field on CastEntry.  "
                 f"Dynamic fields: {sorted(_CAST_DYNAMIC_FIELDS)}"
             )
-        row = self._session.get(SBCastEntryORM, str(entity_id))
+        row = target.get(SBCastEntryORM, str(entity_id))
         if row is None or row.story_id != str(story_id) or not row.is_active:
             raise EntityNotFoundError(
                 f"CastEntry {entity_id} not found for story {story_id}."
@@ -579,16 +590,31 @@ class StoryBibleService:
             changed_at=_now_iso(),
             source_turn_id=source_turn_id,
         )
-        self._session.add(history_row)
-        self._session.flush()
+        target.add(history_row)
+        target.flush()
         return model
 
     # ------------------------------------------------------------------
     # Events Ledger
     # ------------------------------------------------------------------
 
-    def add_event(self, story_id: UUID, event: Event) -> Event:
-        """Append an event to the Events Ledger.  Never overwrites."""
+    def add_event(
+        self,
+        story_id: UUID,
+        event: Event,
+        *,
+        session: Session | None = None,
+    ) -> Event:
+        """Append an event to the Events Ledger.  Never overwrites.
+
+        Args:
+            session: optional caller-supplied SQLAlchemy session (Issue 12c).
+                When supplied, the append goes through that session so it
+                participates in the caller's outer transaction.  When
+                ``None``, ``self._session`` is used.  The session is never
+                stored on the service instance.
+        """
+        target = session if session is not None else self._session
         row = SBEventORM(
             event_id=str(event.event_id),
             story_id=str(story_id),
@@ -599,8 +625,8 @@ class StoryBibleService:
             is_active=True,
             created_at=event.created_at.isoformat(),
         )
-        self._session.add(row)
-        self._session.flush()
+        target.add(row)
+        target.flush()
         return _event_orm_to_model(row)
 
     # ------------------------------------------------------------------
@@ -787,14 +813,27 @@ class StoryBibleService:
         else:
             return frozenset()
 
-    def find_character_by_name(self, story_id: UUID, name: str) -> UUID:
+    def find_character_by_name(
+        self,
+        story_id: UUID,
+        name: str,
+        *,
+        session: Session | None = None,
+    ) -> UUID:
         """Return the cast_id for a character matching ``name`` (case-insensitive).
+
+        Args:
+            session: optional caller-supplied SQLAlchemy session (Issue 12c).
+                When supplied, the read goes through that session so it
+                sees in-flight writes from the caller's outer transaction.
+                When ``None``, ``self._session`` is used.
 
         Raises ``EntityNotFoundError`` if no active cast entry matches or if
         multiple active entries match (ambiguous — caller cannot safely pick one).
         """
+        target = session if session is not None else self._session
         rows = (
-            self._session.execute(
+            target.execute(
                 select(SBCastEntryORM).where(
                     SBCastEntryORM.story_id == str(story_id),
                     func.lower(SBCastEntryORM.static_name) == name.lower(),
@@ -852,59 +891,38 @@ class StoryBibleService:
           no staging row created.
         """
         if session is not None:
+            # Caller-supplied session: route under a SAVEPOINT inside the
+            # caller's outer transaction.  Thread the session explicitly
+            # through every read/write — never mutate ``self._session``.
+            # Doing so would race with concurrent turns sharing the same
+            # service instance (Codex P1 from PR #87 first round).
             with session.begin_nested():
-                summary = self._route_extractor_proposals_with_session(
-                    story_id, turn_id, proposal_set, session
+                return self._execute_routing_body(
+                    story_id, turn_id, proposal_set, session, commit=False
                 )
-            return summary
-        return self._route_extractor_proposals_with_session(
+        # Standalone path (Issue 10): use ``self._session`` and commit at end.
+        return self._execute_routing_body(
             story_id, turn_id, proposal_set, self._session, commit=True
         )
-
-    def _route_extractor_proposals_with_session(
-        self,
-        story_id: UUID,
-        turn_id: UUID,
-        proposal_set: ExtractorProposalSet,
-        target_session: Session,
-        *,
-        commit: bool = False,
-    ) -> ExtractorRoutingSummary:
-        """Inner routing implementation parameterized over the target session.
-
-        When ``commit`` is True, the standalone Issue 10 behavior commits the
-        session at the end.  When False, the caller's transaction or
-        SAVEPOINT owns the commit boundary.  All writes — staging rows,
-        dynamic-field updates, event appends, thread creation — execute
-        against ``target_session``.  Service-internal helpers that historically
-        used ``self._session`` are exercised through a temporary swap so they
-        share the same transactional context.
-        """
-        original_session = self._session
-        try:
-            self._session = target_session
-            return self._execute_routing_body(
-                story_id,
-                turn_id,
-                proposal_set,
-                commit=commit,
-            )
-        finally:
-            self._session = original_session
 
     def _execute_routing_body(
         self,
         story_id: UUID,
         turn_id: UUID,
         proposal_set: ExtractorProposalSet,
+        target_session: Session,
         *,
         commit: bool,
     ) -> ExtractorRoutingSummary:
-        """Routing body — runs against ``self._session`` (possibly swapped).
+        """Routing body parameterized over the target session.
 
-        Extracted from the historical method body so the SAVEPOINT-aware
-        wrapper can share the same logic for both standalone and
-        orchestrator-driven paths.
+        All reads, writes, and helper-method calls thread ``target_session``
+        through explicitly.  ``self._session`` is NEVER mutated during
+        routing — that pattern would create a thread-safety race if the
+        same service instance handled concurrent turns under FastAPI or
+        any other concurrent caller.  When ``commit`` is True the standalone
+        Issue 10 behavior commits the session at the end; when False the
+        caller's transaction or SAVEPOINT owns the commit boundary.
         """
         locked_fact_staged_ids: list[UUID] = []
         soft_fact_staged_ids: list[UUID] = []
@@ -930,8 +948,8 @@ class StoryBibleService:
                     is_active=True,
                     created_at=now,
                 )
-                self._session.add(staging_row)
-                self._session.flush()
+                target_session.add(staging_row)
+                target_session.flush()
                 locked_fact_staged_ids.append(proposal_id)
 
             elif isinstance(proposal, (SoftFactProposal, TransientStateProposal)):
@@ -956,7 +974,9 @@ class StoryBibleService:
 
                 if proposal.target_domain == TargetDomain.CHARACTER:
                     entity_uuid = self.find_character_by_name(
-                        story_id, proposal.target_natural_key
+                        story_id,
+                        proposal.target_natural_key,
+                        session=target_session,
                     )
                     self.update_dynamic_field(
                         story_id,
@@ -964,6 +984,7 @@ class StoryBibleService:
                         proposal.target_field,
                         proposal.proposed_value,
                         source_turn_id=turn_id_str,
+                        session=target_session,
                     )
                     entity_id_str = str(entity_uuid)
 
@@ -971,16 +992,24 @@ class StoryBibleService:
                     subject_name, object_name = _parse_relationship_natural_key(
                         proposal.target_natural_key
                     )
-                    subject_uuid = self.find_character_by_name(story_id, subject_name)
-                    object_uuid = self.find_character_by_name(story_id, object_name)
+                    subject_uuid = self.find_character_by_name(
+                        story_id, subject_name, session=target_session
+                    )
+                    object_uuid = self.find_character_by_name(
+                        story_id, object_name, session=target_session
+                    )
                     rel_row = self._find_relationship_row(
-                        story_id, subject_uuid, object_uuid
+                        story_id,
+                        subject_uuid,
+                        object_uuid,
+                        session=target_session,
                     )
                     self._update_relationship_field(
                         rel_row,
                         proposal.target_field,
                         proposal.proposed_value,
                         turn_id_str,
+                        session=target_session,
                     )
                     entity_id_str = rel_row.relationship_id
 
@@ -1002,8 +1031,8 @@ class StoryBibleService:
                     is_active=True,
                     created_at=now,
                 )
-                self._session.add(audit_row)
-                self._session.flush()
+                target_session.add(audit_row)
+                target_session.flush()
 
                 if is_soft:
                     soft_fact_staged_ids.append(proposal_id)
@@ -1021,7 +1050,7 @@ class StoryBibleService:
                     is_active=True,
                     created_at=now,
                 )
-                self._session.add(thread_row)
+                target_session.add(thread_row)
 
                 proposal_id = uuid4()
                 audit_row = SBProvisionalStagingORM(
@@ -1035,8 +1064,8 @@ class StoryBibleService:
                     is_active=True,
                     created_at=now,
                 )
-                self._session.add(audit_row)
-                self._session.flush()
+                target_session.add(audit_row)
+                target_session.flush()
                 unresolved_thread_staged_ids.append(proposal_id)
 
             elif isinstance(proposal, EventProposal):
@@ -1048,11 +1077,11 @@ class StoryBibleService:
                     source_turn_id=turn_id_str,
                     created_at=datetime.now(UTC),
                 )
-                saved = self.add_event(story_id, event)
+                saved = self.add_event(story_id, event, session=target_session)
                 event_ids.append(saved.event_id)
 
         if commit:
-            self._session.commit()
+            target_session.commit()
         return ExtractorRoutingSummary(
             locked_fact_staged_ids=locked_fact_staged_ids,
             soft_fact_staged_ids=soft_fact_staged_ids,
@@ -1066,9 +1095,20 @@ class StoryBibleService:
         story_id: UUID,
         subject_uuid: UUID,
         object_uuid: UUID,
+        *,
+        session: Session | None = None,
     ) -> SBRelationshipLedgerORM:
+        """Find the active relationship row.
+
+        Args:
+            session: optional caller-supplied SQLAlchemy session (Issue 12c).
+                When supplied, the read goes through that session so it
+                sees in-flight writes from the caller's outer transaction.
+                When ``None``, ``self._session`` is used.
+        """
+        target = session if session is not None else self._session
         rows = (
-            self._session.execute(
+            target.execute(
                 select(SBRelationshipLedgerORM).where(
                     SBRelationshipLedgerORM.story_id == str(story_id),
                     SBRelationshipLedgerORM.subject_cast_id == str(subject_uuid),
@@ -1098,7 +1138,18 @@ class StoryBibleService:
         field: str,
         value: bool | str,
         source_turn_id: str,
+        *,
+        session: Session | None = None,
     ) -> None:
+        """Apply a relationship-ledger field update with history.
+
+        Args:
+            session: optional caller-supplied SQLAlchemy session (Issue 12c).
+                When supplied, the history row and flush go through that
+                session so the write joins the caller's outer transaction.
+                When ``None``, ``self._session`` is used.
+        """
+        target = session if session is not None else self._session
         if not hasattr(row, field):
             raise ValueError(f"SBRelationshipLedgerORM has no attribute '{field}'.")
         old_val = getattr(row, field)
@@ -1111,10 +1162,10 @@ class StoryBibleService:
             changed_at=_now_iso(),
             source_turn_id=source_turn_id,
         )
-        self._session.add(history_row)
+        target.add(history_row)
         setattr(row, field, value)
         row.updated_at = _now_iso()
-        self._session.flush()
+        target.flush()
 
     # ------------------------------------------------------------------
     # Domain-specific creation helpers

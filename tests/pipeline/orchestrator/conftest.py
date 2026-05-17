@@ -198,12 +198,15 @@ def make_assembled(
 class FakeIntentClassifier:
     intent: IntentClassificationResult
     raise_error: bool = False
+    raise_exc: Exception | None = None
     calls: list[tuple[str, UUID]] = field(default_factory=list)
 
     def classify(
         self, raw_input: str, story_id: UUID, hints: Any = None
     ) -> IntentClassificationResult:
         self.calls.append((raw_input, story_id))
+        if self.raise_exc is not None:
+            raise self.raise_exc
         if self.raise_error:
             raise IntentClassificationError("synthetic failure")
         # Override raw_input to match the actual submitted input.

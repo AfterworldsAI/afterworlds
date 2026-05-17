@@ -116,6 +116,7 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
     *,
     intent: IntentType = IntentType.IN_CHARACTER_ACTION,
     intent_error: bool = False,
+    intent_exc: Exception | None = None,
     safety_input: SafetyResult | Exception | None = None,
     safety_output: SafetyResult | Exception | None = None,
     safety_policy: SafetyPolicy | None = None,
@@ -131,7 +132,9 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
     parallel_timeout: float = 30.0,
     executor: ThreadPoolExecutor | None = None,
 ):
-    classifier = FakeIntentClassifier(make_intent(intent), raise_error=intent_error)
+    classifier = FakeIntentClassifier(
+        make_intent(intent), raise_error=intent_error, raise_exc=intent_exc
+    )
     ctx_builder = FakeContextBuilder()
     safety = FakeSafetyService(input_verdict=safety_input, output_verdict=safety_output)
     planner = FakePlannerService(raise_exc=planner_exc)
@@ -391,6 +394,43 @@ class TestDispositionPipelineError:
         result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "intent classification failed" in (result.pipeline_error_summary or "")
+        # P1 fix follow-up: the typed-error summary must preserve the
+        # underlying cause text, not just say "intent classification failed".
+        assert "synthetic failure" in (result.pipeline_error_summary or "")
+
+    def test_intent_generic_runtime_exception_routes_to_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Codex P1 #87: any (not just IntentClassificationError) exception
+        from IntentClassifierService.classify() must convert to a typed
+        PIPELINE_ERROR rather than escape the orchestrator as a raw
+        exception.  Covers transport/runtime/provider failures from the
+        injected model caller.
+        """
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent_exc=RuntimeError("upstream provider 503"),
+        )
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "intent classification failed" in (result.pipeline_error_summary or "")
+        assert "upstream provider 503" in (result.pipeline_error_summary or "")
+
+    def test_intent_connection_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Regression: ConnectionError from a stub transport must not crash
+        the turn — must produce a typed PIPELINE_ERROR result.
+        """
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent_exc=ConnectionError("DNS lookup failed"),
+        )
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "DNS lookup failed" in (result.pipeline_error_summary or "")
 
 
 # ---------------------------------------------------------------------------
@@ -719,16 +759,45 @@ class TestParallelSync:
     def test_timeout_routes_to_pipeline_error(
         self, session_factory, seeded_story
     ) -> None:
+        """Codex P1 #87: a parallel_pass_timeout_seconds breach must
+        actually bound wall time, not just produce the correct disposition.
+        Historical ``with ThreadPoolExecutor() as exc:`` pattern called
+        ``shutdown(wait=True)`` on exit, blocking on the still-running
+        Contradiction worker for its natural runtime (~2s here against a
+        0.1s configured timeout).
+
+        After the fix the orchestrator's locally-owned executor is torn
+        down with ``shutdown(wait=False, cancel_futures=True)`` in a
+        ``finally`` block, so the call returns shortly after the timeout
+        fires.  The leaked worker thread continues in the background — it
+        has no DB I/O so the leak is bounded and side-effect-free — but
+        the orchestrator does not wait for it.
+        """
+        import time
+
         story_id, node_id = seeded_story
-        # Force contradiction to block past timeout.
+        # Contradiction sleeps far past the 0.1s timeout.  Before the fix
+        # the call took ~the contradiction_delay; after the fix it should
+        # return ~immediately after the timeout fires.
         orch, *_ = _make_orchestrator(
             session_factory,
             contradiction_delay=2.0,
             parallel_timeout=0.1,
         )
+        start = time.perf_counter()
         result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        elapsed = time.perf_counter() - start
+
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "timeout" in (result.pipeline_error_summary or "").lower()
+        # Tolerant bound — must complete well before the 2s
+        # contradiction_delay; CI jitter friendly but well under the
+        # historical blocking behavior's ~2s.
+        assert elapsed < 0.8, (
+            f"orchestrator did not respect parallel-sync timeout: "
+            f"elapsed {elapsed:.3f}s ≈ contradiction_delay; "
+            f"shutdown(wait=False) regression?"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -921,6 +990,151 @@ def _stable_prefix_for(story_id):
     from tests.pipeline.orchestrator.conftest import make_stable_prefix
 
     return make_stable_prefix(story_id)
+
+
+# ---------------------------------------------------------------------------
+# StoryBibleService session-threading regression (Codex P1 #87)
+# ---------------------------------------------------------------------------
+
+
+class TestStoryBibleSessionThreading:
+    """Codex P1 #87 third finding: ``route_extractor_proposals`` must thread
+    the caller-supplied session through helpers without mutating
+    ``self._session``.  Mutating instance state introduces a thread-safety
+    race when a single service handles concurrent turns.
+    """
+
+    def test_self_session_not_mutated_when_session_supplied(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        from afterworlds.models.extractor import (
+            EventProposal,
+            ExtractorProposalSet,
+            LockedFactProposal,
+            SoftFactProposal,
+            UnresolvedThreadProposal,
+        )
+
+        story_id, _ = seeded_story
+        # Service uses one session; the orchestrator passes a different
+        # session.  After routing, the service's session attribute must
+        # still be the original — not the caller's.
+        service_session = session_factory()
+        sbs = StoryBibleService(service_session)
+        # Seed a named cast entry so soft-fact routing can resolve it.
+        sbs.add_cast_entry(
+            story_id,
+            CastEntry(
+                story_id=story_id,
+                name="Mira",
+                role=CastRole_ANTAGONIST(),
+                current_location="village",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        service_session.commit()
+        original_session_id = id(sbs._session)
+        assert sbs._session is service_session
+
+        # Build a non-trivial proposal set covering every routing branch
+        # so each helper is actually exercised with the caller's session.
+        proposal_set = ExtractorProposalSet(
+            proposals=[
+                LockedFactProposal(fact_text="The vault is sealed."),
+                SoftFactProposal(
+                    target_domain=TargetDomain.CHARACTER,
+                    target_natural_key="Mira",
+                    target_field="current_location",
+                    proposed_value="forest",
+                ),
+                UnresolvedThreadProposal(description="What did Mira hide?"),
+                EventProposal(
+                    description="Mira fled to the forest.",
+                    significance=EventSignificance.MAJOR_PLOT_TURN,
+                    event_kind=EventKind.LOCATION_CHANGE,
+                ),
+            ]
+        )
+
+        caller_session = session_factory()
+        caller_session.begin()
+        try:
+            from uuid import uuid4
+
+            sbs.route_extractor_proposals(
+                story_id, uuid4(), proposal_set, session=caller_session
+            )
+        finally:
+            if caller_session.in_transaction():
+                caller_session.rollback()
+            caller_session.close()
+
+        # The service's session identity must be the SAME object as before.
+        # Any deviation would mean ``self._session`` was overwritten — the
+        # thread-safety regression Codex flagged.
+        assert sbs._session is service_session
+        assert id(sbs._session) == original_session_id
+
+        service_session.close()
+
+    def test_concurrent_calls_do_not_corrupt_self_session(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Stress regression: many concurrent route_extractor_proposals calls
+        through one service instance, each with its own session, must not
+        cross-contaminate writes.  This would have failed under the previous
+        self._session swap pattern under enough contention.
+        """
+        import threading
+
+        from afterworlds.models.extractor import (
+            EventProposal,
+            ExtractorProposalSet,
+        )
+
+        story_id, _ = seeded_story
+        service_session = session_factory()
+        sbs = StoryBibleService(service_session)
+
+        seen_session_ids: list[int] = []
+        seen_session_ids_lock = threading.Lock()
+
+        def worker() -> None:
+            caller_session = session_factory()
+            caller_session.begin()
+            try:
+                from uuid import uuid4
+
+                proposal_set = ExtractorProposalSet(
+                    proposals=[
+                        EventProposal(
+                            description="thread-event",
+                            significance=EventSignificance.ROUTINE,
+                            event_kind=EventKind.ROUTINE,
+                        )
+                    ]
+                )
+                sbs.route_extractor_proposals(
+                    story_id, uuid4(), proposal_set, session=caller_session
+                )
+                with seen_session_ids_lock:
+                    seen_session_ids.append(id(sbs._session))
+            finally:
+                if caller_session.in_transaction():
+                    caller_session.rollback()
+                caller_session.close()
+
+        threads = [threading.Thread(target=worker) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        # Every observation must show the original service session — never
+        # any of the caller sessions opened by the workers.
+        assert all(sid == id(service_session) for sid in seen_session_ids)
+        assert sbs._session is service_session
+        service_session.close()
 
 
 def _volatile_for(intent):

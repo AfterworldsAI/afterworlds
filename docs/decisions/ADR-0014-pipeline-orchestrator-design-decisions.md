@@ -146,28 +146,43 @@ failure handlers.
 
 ---
 
-## Decision 7: Extractor SAVEPOINT via temporary session swap
+## Decision 7: Extractor SAVEPOINT via explicit session threading
 
 **Decision:** `StoryBibleService.route_extractor_proposals(..., session=
 caller_session)` opens `session.begin_nested()` on the caller's session
-and temporarily swaps `self._session` for the caller's session for the
-duration of routing. The existing routing body (which writes through
-`self._session`) is extracted to `_execute_routing_body` and shared by
-both the standalone and orchestrator-driven paths. The standalone path
-(`session=None`) preserves the historical commit-at-end behavior; the
-orchestrator-driven path lets the caller's outer transaction own the
-commit boundary.
+and threads the caller-supplied `Session` explicitly through every read,
+write, and helper-method call in `_execute_routing_body`. The
+service-internal helpers used during routing
+(`update_dynamic_field`, `add_event`, `find_character_by_name`,
+`_find_relationship_row`, `_update_relationship_field`) each gained a
+backward-compatible optional `*, session: Session | None = None` keyword
+parameter; each resolves the working session locally as `target = session
+if session is not None else self._session` and uses `target` for all DB
+I/O. The standalone path (`session=None`) preserves the historical
+commit-at-end behavior using `self._session`; the orchestrator-driven
+path lets the caller's outer transaction own the commit boundary.
 
-**Rationale:** Issue 12c requires the SAVEPOINT semantics without
-reopening the Issue 10 service contract. The temporary swap keeps every
-internal helper (`update_dynamic_field`, `add_event`,
-`find_character_by_name`, etc.) working unchanged while routing executes
-against the orchestrator's session, so the SAVEPOINT really wraps every
-Extractor side-effect category (staging rows, dynamic-field updates,
-events ledger appends, unresolved-thread rows). The "no shared session
-across threads" invariant is preserved because the orchestrator runs
-Extractor synchronously on its own thread — the swap is single-threaded
-by construction.
+`self._session` is NEVER overwritten during routing.
+
+**Rationale:** The first round of this PR implemented the SAVEPOINT
+extension with a temporary `self._session` swap inside
+`route_extractor_proposals`. Codex review of PR #87 flagged that pattern
+as a thread-safety race: a single `StoryBibleService` instance handles
+concurrent turns under any normal multi-request deployment (and an
+explicit future state once FastAPI is wired), and storing the
+caller-supplied session on the instance lets one turn's session become
+visible to another mid-routing, corrupting Story Bible writes across
+transaction boundaries.
+
+Threading the session explicitly through every helper eliminates the
+shared mutable state. Concurrent calls into one service instance each
+carry their own session through the routing body; `self._session`
+remains the immutable per-instance default for the standalone path. A
+multi-threaded stress regression
+(`TestStoryBibleSessionThreading.test_concurrent_calls_do_not_corrupt_self_session`)
+proves the property under contention; the SAVEPOINT rollback proof
+(`TestContradictionBlockSAVEPOINTProof`) continues to pass against real
+SQLite. ADR-0014 Decision 7 (original) is superseded by this revision.
 
 ---
 
