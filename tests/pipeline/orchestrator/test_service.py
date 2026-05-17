@@ -67,9 +67,11 @@ from afterworlds.persistence.orm.story_bible import (
 )
 from afterworlds.pipeline._refusal import (
     PassIdentifier,
+    ProviderRefusal,
 )
 from afterworlds.pipeline.contradiction.models import (
     ContradictionCategory,
+    ContradictionResult,
     ContradictionVerdict,
     ContradictionViolation,
 )
@@ -885,6 +887,317 @@ class TestResultInvariants:
                 turn_id=None,
                 intent_classification=intent,
                 pipeline_error_summary=None,  # missing
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+
+# ---------------------------------------------------------------------------
+# Single canonical terminal-cause channel (Codex P2 #87)
+#
+# Audit the invariant family: every disposition must populate at most one
+# of provider_refusal / pipeline_error_summary so downstream analytics,
+# support reconstruction, and entitlement routing can resolve "why did
+# this turn end?" from a single field without ambiguity.
+# ---------------------------------------------------------------------------
+
+
+def _stub_writer_result(prose: str = "Narrator: the door swings open."):
+    return WriterResult(
+        turn_id=uuid4(),
+        assistant_output=prose,
+        model_identifier="anthropic:fake-sonnet",
+        latency_ms=1,
+        input_token_count=1,
+        output_token_count=1,
+        cache_read_token_count=0,
+        cache_creation_token_count=0,
+    )
+
+
+def _stub_extractor_result():
+    from afterworlds.models.extractor import (
+        ExtractorProposalSet,
+        ExtractorRoutingSummary,
+    )
+    from afterworlds.pipeline.extractor.models import ExtractorResult
+
+    return ExtractorResult(
+        proposal_set=ExtractorProposalSet(proposals=[]),
+        routed=ExtractorRoutingSummary(
+            locked_fact_staged_ids=[],
+            soft_fact_staged_ids=[],
+            transient_state_staged_ids=[],
+            unresolved_thread_staged_ids=[],
+            event_ids=[],
+        ),
+        input_token_count=1,
+        output_token_count=1,
+        cache_read_token_count=0,
+        cache_creation_token_count=0,
+    )
+
+
+def _stub_contradiction_result(
+    verdict: ContradictionVerdict = ContradictionVerdict.CLEAR,
+    violations: list[ContradictionViolation] | None = None,
+):
+    return ContradictionResult(
+        verdict=verdict,
+        violations=violations or [],
+        model_identifier="anthropic:fake-haiku",
+        latency_ms=1,
+        input_token_count=1,
+        output_token_count=1,
+        cache_read_token_count=0,
+        cache_creation_token_count=0,
+    )
+
+
+def _stub_refusal(pass_id: PassIdentifier = PassIdentifier.WRITER) -> ProviderRefusal:
+    return ProviderRefusal(
+        provider="anthropic",
+        model="fake",
+        pass_identifier=pass_id,
+        coarse_reason="content policy",
+        raw_response_excerpt="declined",
+    )
+
+
+class TestSingleTerminalCauseChannel:
+    """Every disposition must populate at most one of provider_refusal /
+    pipeline_error_summary.  This audit covers the whole family, not just
+    the disposition Codex flagged, so the rule cannot drift later when a
+    new disposition is added.
+    """
+
+    # -- DELIVERED ------------------------------------------------------
+
+    def test_delivered_forbids_provider_refusal(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.DELIVERED,
+                delivered_output="prose",
+                turn_id=uuid4(),
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                extractor_result=_stub_extractor_result(),
+                contradiction_result=_stub_contradiction_result(),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_delivered_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.DELIVERED,
+                delivered_output="prose",
+                turn_id=uuid4(),
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                extractor_result=_stub_extractor_result(),
+                contradiction_result=_stub_contradiction_result(),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- OOC_HANDLED ----------------------------------------------------
+
+    def test_ooc_handled_forbids_provider_refusal(self) -> None:
+        intent = make_intent(IntentType.OOC, "[OOC] ?")
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.OOC_HANDLED,
+                delivered_output="OOC reply",
+                turn_id=uuid4(),
+                intent_classification=intent,
+                writer_result=_stub_writer_result("OOC reply"),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_ooc_handled_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent(IntentType.OOC, "[OOC] ?")
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.OOC_HANDLED,
+                delivered_output="OOC reply",
+                turn_id=uuid4(),
+                intent_classification=intent,
+                writer_result=_stub_writer_result("OOC reply"),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- BLOCKED_INPUT_SAFETY ------------------------------------------
+
+    def test_blocked_input_safety_forbids_provider_refusal(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_INPUT_SAFETY,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                input_safety_result=_block_safety(SafetyTarget.INPUT),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_input_safety_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_INPUT_SAFETY,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                input_safety_result=_block_safety(SafetyTarget.INPUT),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- BLOCKED_OUTPUT_SAFETY -----------------------------------------
+
+    def test_blocked_output_safety_forbids_provider_refusal_narrative(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_OUTPUT_SAFETY,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                output_safety_result=_block_safety(SafetyTarget.OUTPUT),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_output_safety_forbids_pipeline_error_summary_narrative(
+        self,
+    ) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_OUTPUT_SAFETY,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                output_safety_result=_block_safety(SafetyTarget.OUTPUT),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_output_safety_forbids_provider_refusal_ooc(self) -> None:
+        intent = make_intent(IntentType.OOC, "[OOC] ?")
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_OUTPUT_SAFETY,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                writer_result=_stub_writer_result(),
+                output_safety_result=_block_safety(SafetyTarget.OUTPUT),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- BLOCKED_CONTRADICTION -----------------------------------------
+
+    def test_blocked_contradiction_forbids_provider_refusal(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_CONTRADICTION,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                contradiction_result=_stub_contradiction_result(
+                    verdict=ContradictionVerdict.BLOCKED,
+                    violations=[
+                        ContradictionViolation(
+                            category=ContradictionCategory.OTHER,
+                            description="x",
+                            canon_reference="ref",
+                        )
+                    ],
+                ),
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_contradiction_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_CONTRADICTION,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                planner_result=_stub_planner_result(),
+                writer_result=_stub_writer_result(),
+                contradiction_result=_stub_contradiction_result(
+                    verdict=ContradictionVerdict.BLOCKED,
+                    violations=[
+                        ContradictionViolation(
+                            category=ContradictionCategory.OTHER,
+                            description="x",
+                            canon_reference="ref",
+                        )
+                    ],
+                ),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- REFUSED_BY_PROVIDER -------------------------------------------
+
+    def test_refused_by_provider_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.REFUSED_BY_PROVIDER,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                provider_refusal=_stub_refusal(),
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=10,
+                pass_latency_breakdown={},
+            )
+
+    # -- PIPELINE_ERROR ------------------------------------------------
+
+    def test_pipeline_error_forbids_provider_refusal(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.PIPELINE_ERROR,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                pipeline_error_summary="real cause",
+                provider_refusal=_stub_refusal(),  # forbidden
                 total_latency_ms=10,
                 pass_latency_breakdown={},
             )

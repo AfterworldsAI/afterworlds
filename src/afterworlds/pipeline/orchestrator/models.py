@@ -177,6 +177,23 @@ class OrchestrationResult(BaseModel):
         forbidden field combinations.  Failures raise OrchestratorError so
         the orchestrator (or a buggy test) cannot smuggle an inconsistent
         result past the type boundary.
+
+        **Single canonical terminal-cause channel (Codex P2 #87):** every
+        disposition must populate at most one of ``provider_refusal`` /
+        ``pipeline_error_summary``.  That one-channel rule is enforced
+        family-wide here so downstream analytics, support reconstruction,
+        and entitlement routing (Issue 13) can always resolve "why did this
+        turn end?" from a single field without ambiguity:
+
+        | Disposition              | provider_refusal | pipeline_error_summary |
+        |--------------------------|------------------|------------------------|
+        | DELIVERED                | forbid           | forbid                 |
+        | OOC_HANDLED              | forbid           | forbid                 |
+        | BLOCKED_INPUT_SAFETY     | forbid           | forbid                 |
+        | BLOCKED_OUTPUT_SAFETY    | forbid           | forbid                 |
+        | BLOCKED_CONTRADICTION    | forbid           | forbid                 |
+        | REFUSED_BY_PROVIDER      | require          | forbid                 |
+        | PIPELINE_ERROR           | forbid           | require                |
         """
         # Import deferred to avoid circulars: IntentType lives next to enums
         # that may transitively import models that import this module.
@@ -255,6 +272,14 @@ class OrchestrationResult(BaseModel):
                 "contradiction_result absent",
                 self.contradiction_result is not None,
             )
+            self._forbid(
+                "provider_refusal absent on input-safety block",
+                self.provider_refusal is not None,
+            )
+            self._forbid(
+                "pipeline_error_summary absent on input-safety block",
+                self.pipeline_error_summary is not None,
+            )
 
         elif d is PipelineDisposition.BLOCKED_OUTPUT_SAFETY:
             self._require("delivered_output is None", self.delivered_output is None)
@@ -287,6 +312,14 @@ class OrchestrationResult(BaseModel):
                 "contradiction_result absent on output block",
                 self.contradiction_result is not None,
             )
+            self._forbid(
+                "provider_refusal absent on output-safety block",
+                self.provider_refusal is not None,
+            )
+            self._forbid(
+                "pipeline_error_summary absent on output-safety block",
+                self.pipeline_error_summary is not None,
+            )
 
         elif d is PipelineDisposition.BLOCKED_CONTRADICTION:
             self._require("delivered_output is None", self.delivered_output is None)
@@ -305,6 +338,14 @@ class OrchestrationResult(BaseModel):
             # extractor_result may be present (extraction completed under
             # SAVEPOINT) — the SAVEPOINT plus outer transaction rolls back
             # those writes when Contradiction blocks.
+            self._forbid(
+                "provider_refusal absent on contradiction block",
+                self.provider_refusal is not None,
+            )
+            self._forbid(
+                "pipeline_error_summary absent on contradiction block",
+                self.pipeline_error_summary is not None,
+            )
 
         elif d is PipelineDisposition.REFUSED_BY_PROVIDER:
             self._require("delivered_output is None", self.delivered_output is None)
@@ -330,6 +371,12 @@ class OrchestrationResult(BaseModel):
                 "failing pass result must be None on REFUSED_BY_PROVIDER",
                 failing_value is not None,
             )
+            # Single canonical terminal-cause channel: refusal carries the
+            # cause, pipeline_error_summary must NOT also be populated.
+            self._forbid(
+                "pipeline_error_summary absent on REFUSED_BY_PROVIDER",
+                self.pipeline_error_summary is not None,
+            )
 
         elif d is PipelineDisposition.PIPELINE_ERROR:
             self._require("delivered_output is None", self.delivered_output is None)
@@ -337,6 +384,13 @@ class OrchestrationResult(BaseModel):
             self._require(
                 "pipeline_error_summary present",
                 self.pipeline_error_summary is not None,
+            )
+            # Single canonical terminal-cause channel: pipeline_error_summary
+            # carries the cause, provider_refusal must NOT also be populated
+            # (refusal is its own disposition).
+            self._forbid(
+                "provider_refusal absent on PIPELINE_ERROR",
+                self.provider_refusal is not None,
             )
 
         return self
