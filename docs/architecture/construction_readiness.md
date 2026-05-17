@@ -1,8 +1,10 @@
-# Afterworlds Construction Readiness Document (v7)
+# Afterworlds Construction Readiness Document (v8)
 
 *Items 1–17 of the Construction Handoff Checklist — completed March 2026*
 *Revised April 2026 to incorporate structural cleanup after review and keep Issue 22 explicit, scoped, and maintainable.*
 *Revised May 2026 to replace the five-pass pipeline framing with the safety envelope model. Safety is no longer a mandatory fifth narrative pass. The core narrative pipeline is Planner → Writer → Extractor → Contradiction. A safety envelope provides input preflight (before Planner/Writer, when required) and conditional output audit (after Writer, before Extractor/Contradiction, when required). Provider refusals are typed pass failures, not Safety verdicts. No retroactive amendment to Issues 9–12a is required; those specs were written under the prior framing and remain valid construction context.*
+*Revised May 2026 to make the caching architecture explicit: Afterworlds owns provider-neutral cache intent, deterministic stable/volatile context separation, and stable-context reuse discipline. Provider/platform-specific cache realization — cache-key semantics, breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified cache-hit behavior — belongs to Issue 14 provider adapters. Stable internal context identity is required for efficient caching, but it is not itself a provider-agnostic guarantee of cache hits.*
+*Revised May 2026 to formalize Issues 12a–12c after Issue 11 completion and to record the construction pause: once Issue 12c is complete, Issues 13–21 must be formally drafted before further implementation proceeds.*
 
 -----
 
@@ -88,7 +90,7 @@ These principles must not be casually reinvented during coding. Any code that vi
 1. **Intent is classified before context is assembled**
 1. **The pipeline is staged:** core narrative pipeline — Planner → Writer → Extractor → Contradiction — protected by a safety envelope: input preflight before Planner/Writer when required; conditional output audit after Writer and before Extractor/Contradiction when required. Provider refusals are typed pass failures, not Safety verdicts.
 1. **Extractor proposes canon updates; it does not write canon directly**
-1. **Stable prompt prefix is assembled once per turn and shared across all passes for caching efficiency**
+1. **Stable context is assembled once per turn and shared across all passes.** Stable/volatile separation is a core Afterworlds architecture rule. Provider/platform-specific cache realization — cache-key semantics, explicit breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified cache-hit behavior — belongs to provider adapters, not to Context Builder or orchestration.
 1. **Operational state transitions that affect money, access, or user data must be reconstructable by humans** through explicit event logging rather than inferred from opaque current-state fields
 
 -----
@@ -276,7 +278,7 @@ Safety costs are **conditional**, not guaranteed per turn:
 - Provider refusals halt the pipeline before downstream passes run.
 - On ordinary turns using whitelisted providers with no elevated risk signal, neither Safety call may execute.
 
-Context still splits into a **stable prefix** (cacheable) and a **volatile suffix** (paid every turn), and caching remains economically decisive.
+Context still splits into a **stable context region** and a **volatile suffix**. That separation remains economically important. Whether a provider discounts the stable region across passes, across turns, both, or neither is adapter-specific and must be verified in Issue 14 rather than assumed universally.
 
 #### Story Bible Size at Steady State
 
@@ -290,7 +292,7 @@ The Story Bible is split into static (written at creation, requires Sojourner co
 
 The Events Ledger is the primary growth driver. Without the tiered inclusion policy it would dominate the Bible’s footprint within a few chapters. The policy bounds the active context while preserving the full record for retrieval and deep contradiction checking.
 
-#### Stable Prefix
+#### Stable Context Budget
 
 |Component                     |Tokens             |
 |------------------------------|-------------------|
@@ -307,7 +309,7 @@ The Events Ledger is the primary growth driver. Without the tiered inclusion pol
 |Current input + classified intent|~150  |
 |**Total**                        |~5,150|
 
-**Pass-forward additions (not cached):** ~2,000–2,500 tokens total across pipeline.
+**Pass-forward additions:** ~2,000–2,500 tokens total across pipeline. Their cache treatment is provider/payload dependent; do not assume universal caching behavior for them.
 
 #### Gross Input Tokens Per Turn — Full Pipeline, Before Caching
 
@@ -315,34 +317,36 @@ The Events Ledger is the primary growth driver. Without the tiered inclusion pol
 |------------------------------------------------|-------|--------|--------|
 |**Core pipeline (4 passes, Safety conditional)**|~47,000|~76,000 |~118,000|
 
-These numbers are materially reduced by caching. The stable prefix is paid at full price once per session and at a steep discount on cache reads across subsequent passes and turns when TTL permits.
+These numbers may be materially reduced by provider/platform caching where the active adapter supports and verifies such savings. They are not universally reduced merely because Afterworlds assembles stable context once per turn.
 
-### Cache Economics
+### Cache Economics — Adapter-Calibrated, Not Universal
 
-**Within a single turn:** ~100% hit rate assumption across passes.
+**Within a single turn:** there is **no universal cross-pass cache-hit-rate assumption**. Shared stable context and deterministic rendering create the opportunity for reuse; the active provider/platform adapter determines whether that opportunity becomes an actual cache hit. Issue 14 must document verified assumptions for supported adapters, including whether cross-pass reuse exists and whether pass-specific system/tool differences affect it.
 
-**Between turns within a session:**
+**Between turns within a session:** cache behavior is likewise adapter-specific. The table below is an **illustrative Anthropic-style TTL sensitivity scenario**, not a cross-provider pricing promise:
 
-|User behavior          |Anthropic default (5 min TTL)|Extended TTL (1 hr)|
-|-----------------------|-----------------------------|-------------------|
-|Focused (1–3 min gaps) |~90%                         |~99%               |
-|Normal (5–10 min gaps) |~40%                         |~95%               |
-|Casual (15–30 min gaps)|~5%                          |~80%               |
-|Long pause (1+ hr)     |0%                           |~10%               |
+|User behavior          |Illustrative short retention (5 min)|Illustrative extended retention (1 hr)|
+|-----------------------|------------------------------------|--------------------------------------|
+|Focused (1–3 min gaps) |~90%                                |~99%                                  |
+|Normal (5–10 min gaps) |~40%                                |~95%                                  |
+|Casual (15–30 min gaps)|~5%                                 |~80%                                  |
+|Long pause (1+ hr)     |0%                                  |~10%                                  |
 
-**Blended hit rate, 20-turn session:**
+**Illustrative blended hit rate, 20-turn session:**
 
-|TTL setting              |Blended hit rate|Effective stable prefix cost as % of gross|
-|-------------------------|----------------|------------------------------------------|
-|Default (5 min)          |~45%            |~55%                                      |
-|Extended (1 hr)          |~88%            |~18%                                      |
-|Cold start (session open)|0%              |100%                                      |
+|Retention setting        |Blended hit rate|Effective stable-context cost as % of gross|
+|-------------------------|----------------|-------------------------------------------|
+|Short retention          |~45%            |~55%                                       |
+|Extended retention       |~88%            |~18%                                       |
+|Cold start (session open)|0%              |100%                                       |
 
-**Extended TTL must be a default architectural choice wherever the provider supports it.** On a moderate story, default TTL roughly doubles per-turn cost compared to extended TTL. The difference is not marginal.
+These figures are useful for understanding why retention controls matter, but Issue 14 must replace generalized assumptions with provider/platform-adapter calibration before these numbers drive production pricing decisions.
 
-**Session resumption:** Cold start on every new session is unavoidable regardless of provider. First turn always pays full input price on the stable prefix. Design this as the expected baseline, not an exception.
+**Retention default:** Where a provider/platform adapter supports a validated longer-lived cache mode or equivalent retention control without unacceptable tradeoffs, the adapter should enable that default and document the rationale. The core architecture does not assume that “1 hour TTL” exists everywhere, means the same thing everywhere, or is always economically optimal.
 
-**Architectural requirement:** extended TTL must be enabled by default wherever supported. This remains a major pricing lever. The product must be designed around stable-prefix reuse from day one.
+**Session resumption:** Cold start on a new session or a cache miss is an expected baseline. The architecture must tolerate it cleanly. The UX question of whether to surface that warm-up to the Sojourner remains a Known Unknown resolved during Issue 14.
+
+**Architectural requirement:** Afterworlds must preserve stable/volatile separation and deterministic stable-context rendering from day one. Provider-specific adapters then convert that cache intent into concrete payload behavior where supported.
 
 ### Representative Model Cost Assumptions
 
@@ -353,15 +357,15 @@ These numbers are materially reduced by caching. The stable prefix is paid at fu
 |Large/quality|Writer pass                                               |$3/MTok   |$0.30/MTok|$15/MTok|
 |Small/fast   |Planner / Extractor / Contradiction / Safety (conditional)|$0.60/MTok|$0.06/MTok|$2/MTok |
 
-**Hosted tier uses OpenRouter or direct-provider routing as configured.** If OpenRouter is used, pricing assumptions must include its credit-purchase fee overhead.
+**Hosted tier uses OpenRouter or direct-provider routing as configured.** If OpenRouter is used, pricing assumptions must include its credit-purchase fee overhead. Any cache-read estimate used in pricing must be tied to a verified provider/platform adapter, not borrowed across surfaces by analogy.
 
-#### Estimated Hosted Model Cost Per Turn (extended TTL, moderate scenario)
+#### Illustrative Hosted Model Cost Per Turn
 
 |Scenario                |Minimal|Moderate|Complex|
 |------------------------|-------|--------|-------|
 |**Hosted full pipeline**|~$0.05 |~$0.07  |~$0.09 |
 
-These are model-cost estimates only. Infra and service overhead are additional, though secondary relative to inference cost.
+These are illustrative model-cost estimates derived from cache-mitigated assumptions, not universal guarantees. Issue 14 adapter calibration may materially change them. Infra and service overhead are additional, though secondary relative to inference cost.
 
 ### Hosted Subscription Pricing Logic
 
@@ -442,6 +446,7 @@ Planned later-stage monetization layers remain compatible with this structure:
 - exact annual Cloud Services renewal price
 - institutional pricing structure
 - marketplace fee structure
+- provider/platform-specific cache adapter calibration used by production cost models
 
 These can be tuned later. The commercial architecture itself should now be treated as stable.
 
@@ -451,7 +456,7 @@ These can be tuned later. The commercial architecture itself should now be treat
 
 The following issues define the pre-v1 internal construction sequence.
 
-**Issues 1–11 (foundation and core services) — fully defined, construction-ready:**
+**Issues 1–11 (foundation and core services) — fully defined before construction and now completed as the foundation for the pipeline tranche:**
 
 1. Repo skeleton, config, linting, test harness, CI scaffold
 1. Core models: Story / Arc / Chapter / Node / Turn — including World/Character State schema and mode-specific session state (RPG: HP, dice state, active quests; Branching: pacing stage, plot thread tracker; Writing: beat constraints, version history pointers)
@@ -461,28 +466,34 @@ The following issues define the pre-v1 internal construction sequence.
    5b. Rules Package ingestion pipeline — ingestion tooling from approved source materials, package publication flow, d20 v1 ingestion path; delivers one ingested, published, and queryable curated d20 Rules Package in the development environment
 1. Rolling summary service — compression trigger, update policy
 1. Intent classification — lightweight model call; classifies input before context assembly
-1. Context builder — assembles stable prefix once per turn; volatile suffix separately; pass-forward additions tracked; retrieves rule slices on demand by mode
+1. Context builder — assembles stable context once per turn; volatile suffix separately; pass-forward additions tracked; retrieves rule slices on demand by mode
 1. Minimal Writer path — single-pass, no orchestration, no pipeline yet; proves the Writer call works end to end
 1. Extractor classification policy — proposes canon updates, does not write directly; routes to locked / soft / transient / unresolved
 1. Lightweight contradiction checker — parallel sync, small/fast model, release-minimum scope
 
-**Issues 12–22 (pipeline, modes, release integration, and operational minimums) — directionally correct until Issues 1–11 near completion. Issue 22 is the explicit exception: it is already fully specified here because the operational gap has been resolved pre-construction and v1 release readiness depends on it:**
+**Issues 12a–12c (pipeline completion tranche) — formally specified after Issue 11 completion:**
 
-12a. Planner pass — callable service, typed PlannerResult, prompt contract, tests (complete; see Issue 12a spec)
-12b. Safety Service: Input Preflight and Conditional Output Audit — callable SafetyService with INPUT/OUTPUT target, typed SafetyResult, prompt contract, taxonomy, tests; no orchestration policy
-12c. Full pipeline orchestration — safety envelope integration; OOC short-circuit; input preflight gating; output audit gating; provider-refusal handling; PassForwardLedger composition across passes; transaction boundaries; output gated on safety envelope and Contradiction clearing
-13. Entitlement routing logic — hosted subscription credits/top-ups, BYOK license state, Cloud Services active/lapsed status, and storage/ingestion entitlement enforcement; tested as architectural invariant
-14. BYOK API key management — key storage, provider routing, OR integration
-15. RPG mode integration — prompt contract loaded as versioned artifact, d20 adjudication against ingested Rules Package, dice handling modes wired (Player rolls / AI rolls), GM cheating toggle, pre-play sequence enforced, character sheet as first-class persistent object
-16. Branching mode integration — prompt contract loaded, pacing stage tracking calibrated to length preference, branch generation call, freeform input as first-class option
-17. Writing mode integration — prompt contract loaded, persona-based model (three Mentor personas: Chiron, Merlin, Vidura; three Peer personas: Odin, Athena, Thoth), persona behavioral briefs and prompt injections wired, beat constraints
-18. ChromaDB integration — vector retrieval service, collection schema per story and rules corpus, semantic query wired into context builder
-19. Frontend skeleton — story creation, mode selection, turn submission, output display; React vs. Svelte resolved before this issue
-20. User-facing billing and BYOK configuration — API key entry, provider selection, hosted credit balance/top-up visibility, Cloud Services status, and burn-rate communication
+12a. Planner pass — callable service, typed `PlannerResult` / `PlannerOutput`, focused prompt contract, structured-output parsing, tests; no orchestration policy  
+12b. Safety Service: Input Preflight and Conditional Output Audit — callable `SafetyService` with `INPUT` / `OUTPUT` target, typed `SafetyResult`, prompt contract, safety taxonomy, typed `SafetyPassError`, tests; no orchestration policy  
+12c. Full pipeline orchestration — safety envelope integration; OOC short-circuit; input preflight gating; output audit gating; provider-refusal handling; PassForwardLedger composition across passes; transaction boundaries; shared stable-context rendering consolidation across provider-backed passes; output gated on safety envelope and Contradiction clearing
+
+**Issues 13–21 (entitlements, routing, modes, release integration) — directionally sequenced, but not yet formally specified. After Issue 12c is complete, construction pauses until Issues 13–21 are drafted with boundaries, deliverables, acceptance criteria, and test requirements before implementation proceeds:**
+
+13. Entitlement routing logic — hosted subscription credits/top-ups, BYOK license state, Cloud Services active/lapsed status, and storage/ingestion entitlement enforcement; tested as architectural invariant  
+14. BYOK API key management, provider/platform routing, OpenRouter integration, provider capability profiles, and cache-capability adapters that realize Afterworlds’ generalized cache intent through provider-specific payload strategy, retention defaults, and cache-metric interpretation  
+15. RPG mode integration — prompt contract loaded as versioned artifact, d20 adjudication against ingested Rules Package, dice handling modes wired (Player rolls / AI rolls), GM cheating toggle, pre-play sequence enforced, character sheet as first-class persistent object  
+16. Branching mode integration — prompt contract loaded, pacing stage tracking calibrated to length preference, branch generation call, freeform input as first-class option  
+17. Writing mode integration — prompt contract loaded, persona-based model (three Mentor personas: Chiron, Merlin, Vidura; three Peer personas: Odin, Athena, Thoth), persona behavioral briefs and prompt injections wired, beat constraints  
+18. ChromaDB integration — vector retrieval service, collection schema per story and rules corpus, semantic query wired into context builder  
+19. Frontend skeleton — story creation, mode selection, turn submission, output display; React vs. Svelte resolved before this issue  
+20. User-facing billing and BYOK configuration — API key entry, provider selection, hosted credit balance/top-up visibility, Cloud Services status, and burn-rate communication  
 21. Full end-to-end integration test — all three modes, hosted and BYOK access paths, first release-capable MVP spine demo confirmed working
+
+**Issue 22** remains the explicit pre-specified exception because the operational gap was resolved pre-construction and v1 release readiness depends on it:
+
 22. Operations, support, and compliance minimums — support lookup, entitlement event log, controlled manual remediation path, delete/export workflow, and basic anomaly visibility sufficient for responsible v1 launch
 
-Issues 12–21 will be formally written with acceptance criteria as Issues 1–11 near completion. Construction order beyond Issue 11 is directionally correct but detail-level definitions should wait until the foundation is stable. Issue 22 is already fully specified in this document.
+This document now reflects the actual phase boundary: Issues 12a–12c have been formally pulled into the construction plan after Issue 11 completion; Issues 13–21 are not to be implemented from roadmap shorthand. Their formal issue definitions are the next specification task after Issue 12c closes.
 
 -----
 
@@ -622,6 +633,39 @@ Issues 12–21 will be formally written with acceptance criteria as Issues 1–1
 
 -----
 
+**Issue 12a — Planner Pass**
+
+- *Goal:* Implement the standalone Planner pass that consumes `BuiltContext`, makes one focused small/fast-model call, and returns a typed `PlannerResult` containing a validated `PlannerOutput` (`scene_goal`, `next_beat`, `facts_needed`, optional `notes`) for later orchestration handoff to the Writer.
+- *In scope:* `PlannerService.plan(built_context)`; typed Planner schema and typed `PlannerPassError`; versioned Planner prompt contract; structured-output/tool-use parsing; injectable model dependency; pass-level usage/cache metrics; validation that the Planner reads the provided `BuiltContext` without mutating it; default-CI and opt-in real-provider coverage.
+- *Out of scope:* Pipeline orchestration; Writer invocation; PassForwardLedger composition at runtime; Safety behavior; OOC short-circuit routing; persistence or Story Bible writes; structured retrieval-query design beyond v1 natural-language `facts_needed` references.
+- *Deliverables:* Planner service; `PlannerOutput`, `PlannerResult`, `PlannerPassError`; Planner prompt artifact; tests covering schema validation, parser failure modes, immutable input context, structured-output handling, and integration against a representative Branching-mode context.
+- *Acceptance criteria:* Valid Planner calls return well-formed typed results; required text fields are non-empty after trimming; `facts_needed` remains list-typed and may be empty; malformed or missing structured output raises `PlannerPassError`; provider exceptions are wrapped cleanly; the caller’s `BuiltContext` remains unchanged; the service performs no orchestration or persistence.
+- *Test requirements:* Unit tests for output validation, parser error paths, provider exception wrapping, dependency injection, and non-mutation of `BuiltContext`; default-CI integration test using a high-fidelity fake provider; opt-in real-provider integration test behind the explicit credential gate.
+
+-----
+
+**Issue 12b — Safety Service: Input Preflight and Conditional Output Audit**
+
+- *Goal:* Implement the callable Safety service that evaluates either Sojourner input or Writer-generated output through one typed safety taxonomy and returns a typed `SafetyResult` for later orchestration by Issue 12c.
+- *In scope:* `SafetyService.check(built_context, text, target)` with `SafetyTarget.INPUT` / `SafetyTarget.OUTPUT`; typed `SafetyResult`, `SafetyReport`, `SafetyConcern`, category and verdict model; Safety prompt contract; tool-use parsing; evidence-summary validation; typed `SafetyPassError`; usage metrics exposed through `SafetyResult.usage`; default-CI and opt-in real-provider coverage.
+- *Out of scope:* Deciding when Safety runs; provider whitelist or capability policy; pipeline gating; UI/block messaging; provider-routing fallback; treating narrative-pass provider refusals as Safety verdicts; persistence or mutation of the caller’s `BuiltContext`.
+- *Deliverables:* Safety service; versioned Safety prompt artifact; Safety schema/result types; typed `SafetyPassError`; tests for INPUT and OUTPUT target behavior, ALLOW/BLOCK derivation, concern validation, provider/parse failure handling, and integration against representative built contexts.
+- *Acceptance criteria:* INPUT and OUTPUT checks both return the same typed result family; `verdict` derives from concerns (`ALLOW` when none, `BLOCK` when any concern exists); evidence summaries obey validation requirements; Safety operational failures, including provider failures from the Safety call, raise `SafetyPassError`; provider refusals from other narrative/state passes are not recast as Safety verdicts; the service performs no orchestration, persistence, delivery decision, or context mutation.
+- *Test requirements:* Unit tests for target handling, verdict derivation, taxonomy/schema validation, evidence-summary constraints, malformed response handling, provider exception wrapping, and context immutability; default-CI fake-provider integration coverage; opt-in real-provider integration test behind the explicit credential gate.
+
+-----
+
+**Issue 12c — Full Pipeline Orchestration**
+
+- *Goal:* Implement the `OrchestratorService` that turns the standalone callable services from Issues 7–12b into a working end-to-end Turn: intent classification, context assembly, safety envelope, Planner → Writer → Extractor || Contradiction orchestration, delivery gating, rollback-safe side-effect coordination, and typed terminal outcomes.
+- *In scope:* `OrchestratorService.orchestrate_turn(...)`; exhaustive `PipelineDisposition` and `OrchestrationResult`; conditional Input Safety Preflight and Output Safety Audit through an injected `SafetyPolicy`; OOC short-circuit and placeholder OOC handler routing; PassForwardLedger composition; typed provider-refusal handling for narrative/state passes; `SafetyPassError → PIPELINE_ERROR` handling; outer transaction bracketing provisional Writer Turn persistence and Extractor writes; thread-safe parallel sync with Contradiction on a worker and Extractor on the orchestrator thread; SAVEPOINT-based nested extractor routing; OOC recent-turn exclusion; stable-context rendering consolidation across provider-backed passes so they share one rendering path for the stable context region; required known-unknowns and architecture-note updates.
+- *Out of scope:* Entitlement gating; provider/platform routing or cache-capability adapters; refusal-aware fallback; mode-specific orchestration overrides; full OOC protocol authoring for RPG/Branching/Writing modes; ChromaDB retrieval integration; UI-facing block/refusal messaging; streaming; retry/regenerate/rewind semantics beyond the documented v1 posture.
+- *Deliverables:* Orchestrator service and typed result/disposition/error models; `SafetyPolicy`; OOC handler prompt artifact; backward-compatible session participation extensions needed for rollback-safe Turn and Extractor writes; `RecentTurnReader` OOC filtering extension; shared stable-context rendering utility replacing pass-local drift-prone stable-region helpers; unit, integration, SAVEPOINT-proof, and opt-in real-provider tests; PR Architecture Notes and known-unknowns updates.
+- *Acceptance criteria:* Non-OOC turns follow the canonical safety-envelope + core-pipeline ordering; OOC turns short-circuit Planner/Extractor/Contradiction while still obeying SafetyPolicy; only delivered/OOC-handled Turns survive persistence; blocked, refused, or errored prose leaves no surviving Turn or canon writes; Contradiction BLOCK rolls back provisional Turn + Extractor side effects atomically; dispositions obey explicit population invariants; provider refusals and Safety operational failures map to their correct terminal states; the shared stable-context renderer eliminates pass-local duplicate collection/order/omission/breakpoint-placement logic without becoming a provider cache adapter.
+- *Test requirements:* Disposition-matrix and taxonomy tests; OOC routing tests; safety-policy gating tests; transaction rollback tests for Output Safety BLOCK, Contradiction BLOCK, refusal, and operational error paths; SAVEPOINT-proof integration against real SQLite; thread-safe parallel-sync tests; OOC recent-turn exclusion tests; stable-context rendering identity and TTL-plumbing tests; default-CI end-to-end orchestration tests with high-fidelity fakes; opt-in real-provider integration test behind the explicit credential gate.
+
+-----
+
 **Issue 22 — Operations, Support, and Compliance Minimums**
 
 - *Goal:* Provide the minimum human-operable tooling and workflows needed to run Afterworlds responsibly at v1 launch
@@ -692,17 +736,18 @@ Any PR touching entitlements, credits, Cloud Services state, support remediation
 
 **Architectural invariant tests (added progressively as each component lands):**
 
-|Invariant                                                                                             |Added at issue|
-|------------------------------------------------------------------------------------------------------|--------------|
-|Minimum 80% coverage on new code — pytest –cov-fail-under=80                                          |Issue 2       |
-|Story Bible and prose history stored in separate tables, never commingled                             |Issue 4       |
-|Prompt assembly follows stable-prefix-first order; assembled once per turn, never per pass            |Issue 8       |
-|App starts without error — uvicorn startup smoke test                                                 |Issue 9       |
-|Extractor cannot write directly to canon without classification step                                  |Issue 10      |
-|Output never delivered until contradiction checker clears                                             |Issue 11      |
-|Entitlement routing never removes the core narrative pipeline or safety envelope                      |Issue 12c     |
-|Hosted credit/top-up enforcement and BYOK Cloud Services entitlements behave correctly                |Issue 13      |
-|Operational event history reconstructs entitlement/support state transitions and delete/export actions|Issue 22      |
+|Invariant                                                                                                                     |Added at issue|
+|------------------------------------------------------------------------------------------------------------------------------|--------------|
+|Minimum 80% coverage on new code — pytest –cov-fail-under=80                                                                  |Issue 2       |
+|Story Bible and prose history stored in separate tables, never commingled                                                     |Issue 4       |
+|Prompt assembly follows stable-prefix-first order; assembled once per turn, never per pass                                    |Issue 8       |
+|App starts without error — uvicorn startup smoke test                                                                         |Issue 9       |
+|Extractor cannot write directly to canon without classification step                                                          |Issue 10      |
+|Output never delivered until contradiction checker clears                                                                     |Issue 11      |
+|Entitlement routing never removes the core narrative pipeline or safety envelope                                              |Issue 12c     |
+|Hosted credit/top-up enforcement and BYOK Cloud Services entitlements behave correctly                                        |Issue 13      |
+|Provider/platform cache adapters realize generalized cache intent without moving provider-specific cache semantics into orchestration or Context Builder |Issue 14|
+|Operational event history reconstructs entitlement/support state transitions and delete/export actions                        |Issue 22      |
 
 Codex receives only PRs that have already passed all active CI gates. Review effort is spent on design, logic, and security — not formatting failures or type errors.
 
@@ -756,18 +801,20 @@ The following are architectural invariants, not conventions. Codex reviews again
    Renewal-sensitive entitlements must map to actual ongoing platform costs such as storage, sync, backup, remote access, ingestion processing, marketplace participation infrastructure, and similar hosted services. “Maintenance fee” is not a sufficient internal product concept.
 1. **BYOK non-renewal must fail gracefully.**
    If a BYOK user does not renew Cloud Services, the system must preserve read/export/download access to owned work where practical and suspend only the genuinely recurring-cost hosted services. User-created content must never be held hostage as leverage.
-1. **Extended TTL caching must be enabled by default wherever supported.**
-   This remains an economic requirement, not a preference.
-1. **Stable prompt prefix assembly rule remains invariant.**
-   The stable prefix is assembled once per turn and shared across all passes. Any implementation that rebuilds the stable prefix per pass is an architectural violation.
+1. **Cache intent is provider-neutral; cache realization is adapter-specific.**
+   Afterworlds’ core architecture preserves deterministic stable/volatile context separation and stable-context reuse discipline. Provider/platform adapters own cache-key semantics, explicit breakpoint or cached-context-object strategy, tool/system/payload effects on reuse, TTL/retention controls, cache metrics, and verified cache-hit behavior. Orchestration, Context Builder, and pass-service business logic must not assume one provider’s caching model as universal.
+1. **Stable context assembly remains invariant.**
+   Stable context is assembled once per turn and shared across all passes. Any implementation that rebuilds the typed stable context independently per pass is an architectural violation.
+1. **Cache-lifetime defaults are adapter-calibrated.**
+   Where a provider/platform adapter supports a materially beneficial longer-lived cache mode or equivalent retention control without unacceptable tradeoffs, the adapter should make that the default and document the rationale. Cost-model claims must cite adapter calibration rather than universal TTL assumptions.
 1. **Entitlement routing logic must be tested as an architectural invariant.**
    Dedicated tests must confirm correct enforcement of:
-- hosted subscription credit balances
-- top-up behavior
-- BYOK license entitlements
-- Cloud Services active vs. lapsed status
-- storage / ingestion / sync entitlement boundaries
-- full-pipeline parity across hosted and BYOK paths
+   - hosted subscription credit balances
+   - top-up behavior
+   - BYOK license entitlements
+   - Cloud Services active vs. lapsed status
+   - storage / ingestion / sync entitlement boundaries
+   - full-pipeline parity across hosted and BYOK paths
 1. **Marketplace and institutional features must layer onto this model, not rewrite it.**
    Future marketplace fees, seller tools, institutional budget controls, or pooled-credit models must remain compatible with the core architecture above: one engine, transparent usage, clear ownership boundaries, and no degraded-continuity tier tricks.
 1. **Operational support actions must be explicit, bounded, and logged.**
@@ -821,4 +868,4 @@ Construction begins when:
 
 -----
 
-*Construction Handoff Checklist — all 17 items complete. March 2026. Revised to v7 in April 2026 to keep operations/support minimums and Issue 22 explicit, scoped, and structurally clean. Revised to v7 in May 2026 to replace five-pass pipeline framing with safety envelope model.*
+*Construction Handoff Checklist — all 17 items complete. March 2026. Revised to v7 in May 2026 to replace five-pass pipeline framing with the safety-envelope model. Revised to v8 in May 2026 to make provider-neutral cache intent and provider/platform-specific cache adapter ownership explicit, formalize Issues 12a–12c after Issue 11 completion, and record the specification pause before Issues 13–21 implementation.*
