@@ -974,6 +974,278 @@ class TestParallelSyncContradictionWorkerExceptions:
 
 
 # ---------------------------------------------------------------------------
+# Systematic exception-mapping family (Codex P1 #87 round 7)
+#
+# Owner direction (Issue 12c): ``orchestrate_turn`` is an exhaustive typed
+# boundary for ordinary operational failures.  Every ``Exception`` raised
+# by an injected orchestration dependency or orchestration-owned runtime
+# step maps to a typed terminal disposition; the specific dispositions
+# (Safety BLOCK verdicts, Contradiction BLOCK, ``ProviderRefusalError`` →
+# REFUSED_BY_PROVIDER, pass-specific typed errors, contradiction-refusal-
+# with-extractor preservation) remain authoritative for their categories;
+# any other ``Exception`` becomes PIPELINE_ERROR with cause text.
+#
+# ``BaseException`` (``KeyboardInterrupt``, ``SystemExit``) propagates.
+#
+# This class proves the family rule holds at every per-site fallback, not
+# just the two cases Codex flagged.  Each site:
+#   - narrative Input Safety, narrative Output Safety
+#   - OOC Input Safety, OOC Output Safety
+#   - Planner
+#   - narrative Writer, OOC Writer
+#   - Extractor (inside _run_parallel_sync)
+# has its own test asserting:
+#   - no raw exception escapes,
+#   - disposition is PIPELINE_ERROR,
+#   - cause text uses the per-site "unexpected error" disambiguator,
+#   - no rogue provider_refusal,
+#   - upstream pass results preserved as the result model allows,
+#   - outer transaction rolled back (no Turn persisted) when applicable.
+# Plus a final ``KeyboardInterrupt`` propagation test per pass to prove
+# the catch-all was not widened to ``except BaseException``.
+# ---------------------------------------------------------------------------
+
+
+class TestUnexpectedExceptionFamily:
+    # -- Planner --------------------------------------------------------
+
+    def test_planner_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            planner_exc=RuntimeError("planner blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "planner unexpected error" in summary, summary
+        assert "planner blew up" in summary, summary
+        assert result.provider_refusal is None
+        # Planner ran before Writer, so no Turn was ever persisted.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_planner_keyboard_interrupt_propagates(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            planner_exc=KeyboardInterrupt("ctrl-c during planner"),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+    # -- Narrative Writer ----------------------------------------------
+
+    def test_narrative_writer_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            writer_exc=RuntimeError("writer blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "writer unexpected error" in summary, summary
+        assert "writer blew up" in summary, summary
+        assert result.provider_refusal is None
+        # Upstream pass results preserved.
+        assert result.planner_result is not None
+        # Provisional Turn rolled back.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_narrative_writer_keyboard_interrupt_propagates(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            writer_exc=KeyboardInterrupt("ctrl-c during writer"),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+    # -- OOC Writer ----------------------------------------------------
+
+    def test_ooc_writer_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent=IntentType.OOC,
+            writer_exc=RuntimeError("ooc writer blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "ooc writer unexpected error" in summary, summary
+        assert "ooc writer blew up" in summary, summary
+        assert result.provider_refusal is None
+        # OOC short-circuit skipped Planner; planner_result remains None.
+        assert result.planner_result is None
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_ooc_writer_keyboard_interrupt_propagates(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent=IntentType.OOC,
+            writer_exc=KeyboardInterrupt("ctrl-c during ooc writer"),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            orch.orchestrate_turn(story_id, node_id, "[OOC] anything")
+
+    # -- Narrative Input Safety ----------------------------------------
+
+    def test_narrative_input_safety_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            safety_input=RuntimeError("input safety blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "input safety unexpected error" in summary, summary
+        assert "input safety blew up" in summary, summary
+        assert result.provider_refusal is None
+        # Failure before Writer → no Turn.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    # -- Narrative Output Safety ---------------------------------------
+
+    def test_narrative_output_safety_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            safety_output=RuntimeError("output safety blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "output safety unexpected error" in summary, summary
+        assert "output safety blew up" in summary, summary
+        assert result.provider_refusal is None
+        # Upstream preserved through Writer; provisional Turn rolled back.
+        assert result.planner_result is not None
+        assert result.writer_result is not None
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    # -- OOC Input Safety ----------------------------------------------
+
+    def test_ooc_input_safety_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent=IntentType.OOC,
+            safety_input=RuntimeError("ooc input safety blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] foo")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "input safety unexpected error" in summary, summary
+        assert "ooc input safety blew up" in summary, summary
+        assert result.provider_refusal is None
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    # -- OOC Output Safety ---------------------------------------------
+
+    def test_ooc_output_safety_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            intent=IntentType.OOC,
+            safety_output=RuntimeError("ooc output safety blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] foo")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "output safety unexpected error" in summary, summary
+        assert "ooc output safety blew up" in summary, summary
+        assert result.provider_refusal is None
+        # OOC writer ran before output-safety failed; preserved for
+        # observability.
+        assert result.writer_result is not None
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    # -- Extractor (inside _run_parallel_sync) -------------------------
+
+    def test_extractor_unexpected_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            extractor_exc=RuntimeError("extractor blew up"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        # Path: Extractor catch-all → _ParallelSyncError → narrative
+        # caller's parallel-sync mapping → PIPELINE_ERROR.  Both prefixes
+        # must appear in the cause chain text.
+        assert "parallel sync failed" in summary, summary
+        assert "extractor unexpected error" in summary, summary
+        assert "extractor blew up" in summary, summary
+        assert result.provider_refusal is None
+        # Upstream Writer result preserved by the parallel-sync caller.
+        assert result.writer_result is not None
+        # Provisional Turn rolled back; Extractor SAVEPOINT writes (if any)
+        # rolled back with it.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_extractor_keyboard_interrupt_propagates(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            extractor_exc=KeyboardInterrupt("ctrl-c during extractor"),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+
+# ---------------------------------------------------------------------------
 # Preserve extractor_result on contradiction refusal (Codex P2 #87)
 #
 # Refusal contract: "upstream pass results are preserved; only the failing

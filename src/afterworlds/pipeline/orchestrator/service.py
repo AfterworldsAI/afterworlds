@@ -134,6 +134,34 @@ class OrchestratorService:
     Extractor with Contradiction in parallel sync against the Writer's
     output.
 
+    **Exception-mapping boundary** (Issue 12c family invariant):
+
+    ``orchestrate_turn`` is an exhaustive typed boundary for ordinary
+    operational failures.  Every ``Exception`` raised by an injected
+    orchestration dependency or orchestration-owned runtime step maps to
+    a typed terminal disposition on the returned ``OrchestrationResult``.
+    The specific dispositions remain authoritative for their categories
+    (Safety BLOCK verdicts, Contradiction BLOCK, ``ProviderRefusalError``
+    → REFUSED_BY_PROVIDER, pass-specific typed errors and the
+    contradiction-refusal-with-extractor preservation behavior); for any
+    other ``Exception`` the mapping is PIPELINE_ERROR with useful cause
+    text in ``pipeline_error_summary``, upstream pass results preserved
+    where the result model allows it, and rollback semantics preserved.
+
+    ``BaseException`` (``KeyboardInterrupt``, ``SystemExit``,
+    ``concurrent.futures.CancelledError`` raised in the host) is
+    explicitly outside this contract and is allowed to propagate so the
+    host process can shut down cleanly.  The single ``CancelledError``
+    site inside ``_run_parallel_sync`` only normalises future-surfaced
+    cancellations from the contradiction worker — caller-side
+    ``CancelledError`` still propagates.
+
+    Per-site ``except Exception`` fallbacks therefore appear at every
+    injected-service call site in this module; their cause-text prefix
+    (e.g. ``"writer unexpected error: ..."``) disambiguates them from
+    the typed-error prefixes (e.g. ``"writer pass failed: ..."``) in
+    observability and tests.
+
     Args:
         intent_classifier: callable Intent Classifier (Issue 7).
         context_builder: ContextBuilder (Issue 8).  Builds one
@@ -302,6 +330,13 @@ class OrchestratorService:
                     turn_start,
                     f"input safety failed: {exc}",
                 )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"input safety unexpected error: {exc}",
+                )
             assert input_safety is not None  # noqa: S101 — mypy narrowing
             if input_safety.verdict is SafetyVerdict.BLOCK:
                 return self._build_result(
@@ -331,6 +366,14 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 f"planner pass failed: {exc}",
+                input_safety_result=input_safety,
+            )
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"planner unexpected error: {exc}",
                 input_safety_result=input_safety,
             )
 
@@ -401,6 +444,15 @@ class OrchestratorService:
                 input_safety_result=input_safety,
                 planner_result=planner_result,
             )
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"writer unexpected error: {exc}",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+            )
 
         # 6. Output Safety Audit, conditional.
         output_safety: SafetyResult | None = None
@@ -418,6 +470,16 @@ class OrchestratorService:
                     latency,
                     turn_start,
                     f"output safety failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"output safety unexpected error: {exc}",
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     writer_result=writer_result,
@@ -481,6 +543,21 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 f"parallel sync failed: {exc}",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+                writer_result=writer_result,
+                output_safety_result=output_safety,
+            )
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            # Defense-in-depth: ``_run_parallel_sync`` already maps every
+            # known typed failure inside its body, but any unexpected
+            # exception from helpers around it (e.g. an executor shutdown
+            # in the finally) still must not escape the orchestrator raw.
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"parallel sync unexpected error: {exc}",
                 input_safety_result=input_safety,
                 planner_result=planner_result,
                 writer_result=writer_result,
@@ -553,6 +630,13 @@ class OrchestratorService:
                     turn_start,
                     f"input safety failed: {exc}",
                 )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"input safety unexpected error: {exc}",
+                )
             assert input_safety is not None  # noqa: S101 — mypy narrowing
             if input_safety.verdict is SafetyVerdict.BLOCK:
                 return self._build_result(
@@ -623,6 +707,14 @@ class OrchestratorService:
                 f"ooc handler failed: {exc}",
                 input_safety_result=input_safety,
             )
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"ooc writer unexpected error: {exc}",
+                input_safety_result=input_safety,
+            )
 
         output_safety: SafetyResult | None = None
         if self._safety_policy.should_run_output_audit(writer_provider, writer_result):
@@ -639,6 +731,15 @@ class OrchestratorService:
                     latency,
                     turn_start,
                     f"output safety failed: {exc}",
+                    input_safety_result=input_safety,
+                    writer_result=writer_result,
+                )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"output safety unexpected error: {exc}",
                     input_safety_result=input_safety,
                     writer_result=writer_result,
                 )
@@ -770,6 +871,15 @@ class OrchestratorService:
             except ExtractorPassError as exc:
                 contradiction_future.cancel()
                 raise _ParallelSyncError(f"extractor: {exc}") from exc
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                # Unexpected non-typed exception from Extractor (e.g. a
+                # transport error, a serialization bug, a SQLAlchemy
+                # write surface).  Convert to ``_ParallelSyncError`` so
+                # the narrative caller already maps it to PIPELINE_ERROR
+                # with the cause text and rolls back the outer
+                # transaction.  ``BaseException`` is NOT caught.
+                contradiction_future.cancel()
+                raise _ParallelSyncError(f"extractor unexpected error: {exc}") from exc
 
             try:
                 contradiction_result, contr_ms = contradiction_future.result(
