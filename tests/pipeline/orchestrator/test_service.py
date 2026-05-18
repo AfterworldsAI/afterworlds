@@ -1833,6 +1833,240 @@ class TestCommitFailureRoutesToPipelineError:
 
 
 # ---------------------------------------------------------------------------
+# Session-lifecycle failure routing (Codex P1 #87 round 5)
+#
+# Every raw exception in the session lifecycle (factory call, ``begin()``,
+# ``close()``) must be funnelled through the orchestrator's typed
+# terminal-state contract.  ``session_factory()`` and ``session.begin()``
+# failures map to PIPELINE_ERROR with cause text; ``session.close()``
+# failures are suppressed so they cannot silently replace an already-
+# constructed typed ``OrchestrationResult`` with a raw cleanup exception.
+# ---------------------------------------------------------------------------
+
+
+def _factory_that_explodes(exc: Exception):  # type: ignore[no-untyped-def]
+    """Session factory whose ``__call__`` raises before any session exists."""
+
+    def _factory():  # type: ignore[no-untyped-def]
+        raise exc
+
+    return _factory
+
+
+class _BeginFailingSessionFactory:
+    """Session factory whose sessions raise on ``begin()``.
+
+    Wraps a real factory so the orchestrator gets a working session shell;
+    ``close()`` calls are counted to prove cleanup is still attempted even
+    though no transaction was opened, and ``rollback()`` calls are counted
+    to prove the orchestrator does NOT attempt rollback when ``begin()``
+    failed (no transaction exists to roll back).
+    """
+
+    def __init__(
+        self,
+        real_factory,  # type: ignore[no-untyped-def]
+        begin_exc: Exception,
+    ) -> None:
+        self._real_factory = real_factory
+        self._begin_exc = begin_exc
+        self.close_calls: int = 0
+        self.rollback_calls: int = 0
+        self.begin_attempts: int = 0
+
+    def __call__(self):  # type: ignore[no-untyped-def]
+        sess = self._real_factory()
+        outer = self
+
+        original_close = sess.close
+        original_rollback = sess.rollback
+
+        def failing_begin(*args, **kwargs):  # type: ignore[no-untyped-def]
+            outer.begin_attempts += 1
+            raise outer._begin_exc
+
+        def tracking_close() -> None:
+            outer.close_calls += 1
+            return original_close()
+
+        def counted_rollback() -> None:
+            outer.rollback_calls += 1
+            return original_rollback()
+
+        sess.begin = failing_begin  # type: ignore[method-assign,assignment]
+        sess.close = tracking_close  # type: ignore[method-assign,assignment]
+        sess.rollback = counted_rollback  # type: ignore[method-assign,assignment]
+        return sess
+
+
+class _CloseFailingSessionFactory:
+    """Session factory whose sessions raise on ``close()`` AFTER cleanup.
+
+    Used to prove the orchestrator's outer ``finally`` suppresses
+    ``session.close()`` failures so they cannot replace a typed
+    DELIVERED / OOC_HANDLED result with a raw exception.  The wrapper
+    calls the real close first so SQLite resources are still released.
+    """
+
+    def __init__(
+        self,
+        real_factory,  # type: ignore[no-untyped-def]
+        close_exc: Exception,
+    ) -> None:
+        self._real_factory = real_factory
+        self._close_exc = close_exc
+        self.close_attempts: int = 0
+
+    def __call__(self):  # type: ignore[no-untyped-def]
+        sess = self._real_factory()
+        outer = self
+
+        original_close = sess.close
+
+        def raising_close() -> None:
+            outer.close_attempts += 1
+            original_close()
+            raise outer._close_exc
+
+        sess.close = raising_close  # type: ignore[method-assign,assignment]
+        return sess
+
+
+class TestSessionLifecycleFailureRouting:
+    # -- session_factory() raises ---------------------------------------
+
+    def test_narrative_session_factory_failure_routes_to_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            _factory_that_explodes(RuntimeError("synthetic factory failure"))
+        )
+
+        # Must not raise.
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "session factory failed" in summary, summary
+        assert "synthetic factory failure" in summary, summary
+        # Single canonical terminal-cause channel held: no rogue refusal.
+        assert result.provider_refusal is None
+        # No Turn / Writer / Extractor results because the factory failed
+        # before any pass could touch the session.
+        assert result.writer_result is None
+        assert result.extractor_result is None
+        assert result.contradiction_result is None
+
+    def test_ooc_session_factory_failure_routes_to_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            _factory_that_explodes(ConnectionError("DB unreachable")),
+            intent=IntentType.OOC,
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "session factory failed" in summary, summary
+        assert "DB unreachable" in summary, summary
+        assert result.provider_refusal is None
+
+    # -- session.begin() raises -----------------------------------------
+
+    def test_narrative_session_begin_failure_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _BeginFailingSessionFactory(
+            session_factory, RuntimeError("synthetic begin failure")
+        )
+        orch, *_ = _make_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "session begin failed" in summary, summary
+        assert "synthetic begin failure" in summary, summary
+        # Cleanup attempted safely: ``close()`` ran exactly once even though
+        # no transaction was opened, and ``rollback()`` was NOT called
+        # because there was no transaction to roll back.
+        assert failing_factory.begin_attempts == 1
+        assert failing_factory.close_calls == 1
+        assert failing_factory.rollback_calls == 0
+        # No Turn persisted.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_ooc_session_begin_failure_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _BeginFailingSessionFactory(
+            session_factory, RuntimeError("OOC begin exploded")
+        )
+        orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "session begin failed" in summary, summary
+        assert "OOC begin exploded" in summary, summary
+        assert failing_factory.begin_attempts == 1
+        assert failing_factory.close_calls == 1
+        assert failing_factory.rollback_calls == 0
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    # -- session.close() raises (happy-path cleanup) --------------------
+
+    def test_close_failure_does_not_replace_delivered_result(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Regression: a typed DELIVERED result must survive a ``close()``
+        exception in the outer ``finally``.  The cleanup-suppress
+        contract: the typed ``OrchestrationResult`` is the boundary, raw
+        cleanup exceptions are suppressed.
+        """
+        story_id, node_id = seeded_story
+        failing_factory = _CloseFailingSessionFactory(
+            session_factory, RuntimeError("synthetic close failure")
+        )
+        orch, *_ = _make_orchestrator(failing_factory)
+
+        # Must not raise — typed result must survive cleanup failure.
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.delivered_output is not None
+        assert result.turn_id is not None
+        # close() was actually attempted; the original resource was freed
+        # before the synthetic raise.
+        assert failing_factory.close_attempts == 1
+
+    def test_close_failure_does_not_replace_ooc_handled_result(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        failing_factory = _CloseFailingSessionFactory(
+            session_factory, RuntimeError("ooc close failure")
+        )
+        orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
+
+        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        assert result.delivered_output is not None
+        assert result.turn_id is not None
+        assert failing_factory.close_attempts == 1
+
+
+# ---------------------------------------------------------------------------
 # Default-CI integration tests: real SQLite SAVEPOINT proof
 # ---------------------------------------------------------------------------
 

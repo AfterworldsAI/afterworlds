@@ -337,40 +337,29 @@ class OrchestratorService:
         ctx.pass_forward_ledger.add("planner", _serialize_planner(planner_result))
 
         # Open outer transaction now: Writer is about to persist a Turn.
-        # Commit / rollback policy is centralized in ``_finalize_transaction``
-        # so the narrative and OOC paths cannot drift on the post-pipeline
-        # commit decision.
-        session = self._session_factory()
-        try:
-            session.begin()
-            try:
-                inner_result = self._narrative_persist(
-                    session,
-                    ctx,
-                    story_id,
-                    node_id,
-                    intent_result,
-                    planner_result,
-                    input_safety,
-                    writer_provider,
-                    latency,
-                    turn_start,
-                )
-            except BaseException:
-                if session.in_transaction():
-                    with suppress(Exception):
-                        session.rollback()
-                raise
-            return self._finalize_transaction(
+        # Session lifecycle (factory, begin, finalize, close) is centralized
+        # in ``_run_with_transaction`` so the narrative and OOC paths cannot
+        # drift, and so every raw exception in that lifecycle is mapped to a
+        # typed terminal state per the orchestrator's exhaustive
+        # terminal-state contract (Issue 12c).
+        return self._run_with_transaction(
+            lambda session: self._narrative_persist(
                 session,
-                inner_result,
+                ctx,
+                story_id,
+                node_id,
                 intent_result,
+                planner_result,
+                input_safety,
+                writer_provider,
                 latency,
                 turn_start,
-                success_disposition=PipelineDisposition.DELIVERED,
-            )
-        finally:
-            session.close()
+            ),
+            intent_result,
+            latency,
+            turn_start,
+            success_disposition=PipelineDisposition.DELIVERED,
+        )
 
     def _narrative_persist(
         self,
@@ -580,36 +569,23 @@ class OrchestratorService:
         # the model to ignore them.  Issues 15–17 may revisit this.
         ooc_ctx = _swap_system_prompt(ctx, self._ooc_handler_prompt)
 
-        session = self._session_factory()
-        try:
-            session.begin()
-            try:
-                inner_result = self._ooc_persist(
-                    session,
-                    ooc_ctx,
-                    story_id,
-                    node_id,
-                    intent_result,
-                    input_safety,
-                    writer_provider,
-                    latency,
-                    turn_start,
-                )
-            except BaseException:
-                if session.in_transaction():
-                    with suppress(Exception):
-                        session.rollback()
-                raise
-            return self._finalize_transaction(
+        return self._run_with_transaction(
+            lambda session: self._ooc_persist(
                 session,
-                inner_result,
+                ooc_ctx,
+                story_id,
+                node_id,
                 intent_result,
+                input_safety,
+                writer_provider,
                 latency,
                 turn_start,
-                success_disposition=PipelineDisposition.OOC_HANDLED,
-            )
-        finally:
-            session.close()
+            ),
+            intent_result,
+            latency,
+            turn_start,
+            success_disposition=PipelineDisposition.OOC_HANDLED,
+        )
 
     def _ooc_persist(
         self,
@@ -920,6 +896,84 @@ class OrchestratorService:
             output_safety_result=output_safety_result,
             pipeline_error_summary=summary,
         )
+
+    def _run_with_transaction(
+        self,
+        inner: Callable[[Session], OrchestrationResult],
+        intent_result: IntentClassificationResult,
+        latency: dict[str, int],
+        turn_start: float,
+        *,
+        success_disposition: PipelineDisposition,
+    ) -> OrchestrationResult:
+        """Run ``inner`` under a fresh session + outer transaction.
+
+        Centralizes every session-lifecycle operation so the narrative and
+        OOC wrappers cannot drift and so the orchestrator's exhaustive
+        typed-terminal-state contract holds across the entire lifecycle.
+        Each lifecycle hook is mapped explicitly:
+
+        - ``self._session_factory()`` raises → PIPELINE_ERROR with the
+          underlying cause text preserved.  No session was created, so no
+          cleanup is attempted.
+        - ``session.begin()`` raises → PIPELINE_ERROR with the underlying
+          cause text preserved.  A session exists but no transaction was
+          opened, so cleanup only calls ``close()`` (never ``rollback()``).
+        - ``inner(session)`` returns a typed result → ``_finalize_transaction``
+          decides commit vs rollback per the success disposition; commit
+          failure is mapped to PIPELINE_ERROR there.
+        - ``inner(session)`` raises ``BaseException`` → best-effort
+          rollback then reraise.  This preserves the historical contract
+          for genuinely unexpected escapes (including ``KeyboardInterrupt``
+          and ``SystemExit``) while keeping the typed-result path for
+          everything the inner explicitly catches.
+        - ``session.close()`` raises during cleanup → suppressed.  Close
+          is a cleanup operation; the typed ``OrchestrationResult`` is the
+          boundary contract and must not be silently replaced by a raw
+          cleanup exception.  Same rationale applies to the rollback in
+          the BaseException branch and inside ``_finalize_transaction``.
+        """
+        try:
+            session = self._session_factory()
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"session factory failed: {exc}",
+            )
+        try:
+            try:
+                session.begin()
+            except Exception as exc:  # noqa: BLE001
+                # No transaction was opened; only ``close()`` runs in the
+                # outer finally.  rollback() must NOT be attempted because
+                # ``session.in_transaction()`` would be False and calling
+                # rollback() on a non-transactional session can itself fail.
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"session begin failed: {exc}",
+                )
+            try:
+                inner_result = inner(session)
+            except BaseException:
+                if session.in_transaction():
+                    with suppress(Exception):
+                        session.rollback()
+                raise
+            return self._finalize_transaction(
+                session,
+                inner_result,
+                intent_result,
+                latency,
+                turn_start,
+                success_disposition=success_disposition,
+            )
+        finally:
+            with suppress(Exception):
+                session.close()
 
     def _finalize_transaction(
         self,
