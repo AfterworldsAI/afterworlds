@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from contextlib import suppress
 from pathlib import Path
@@ -798,6 +798,31 @@ class OrchestratorService:
                 ) from exc
             except ContradictionPassError as exc:
                 raise _ParallelSyncError(f"contradiction: {exc}") from exc
+            except CancelledError as exc:
+                # ``concurrent.futures.CancelledError`` subclasses
+                # ``BaseException`` (Python 3.8+) so it would slip past
+                # ``except Exception`` below.  Handle it explicitly so a
+                # cancelled contradiction future still maps to a typed
+                # PIPELINE_ERROR rather than escaping raw.
+                contradiction_future.cancel()
+                raise _ParallelSyncError(
+                    f"contradiction worker cancelled: {exc}"
+                ) from exc
+            except Exception as exc:  # noqa: BLE001
+                # Catch-all for anything else the contradiction worker may
+                # surface through the future: a generic ``RuntimeError``
+                # from the injected model caller, a transport error, an
+                # unexpected ``ValueError`` from downstream serialization,
+                # etc.  These must be mapped to PIPELINE_ERROR per the
+                # orchestrator's exhaustive terminal-state contract; the
+                # specific typed branches above remain authoritative for
+                # their categories.
+                #
+                # ``BaseException`` is deliberately NOT caught:
+                # ``KeyboardInterrupt`` / ``SystemExit`` must propagate so
+                # the host process can shut down cleanly.
+                contradiction_future.cancel()
+                raise _ParallelSyncError(f"contradiction worker failed: {exc}") from exc
 
             return extractor_result, contradiction_result, ext_ms, contr_ms
         finally:

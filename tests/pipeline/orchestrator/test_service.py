@@ -38,6 +38,7 @@ pattern and is gated by ``AFTERWORLDS_LIVE_TESTS=1``.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -873,6 +874,106 @@ class TestParallelSyncSubmitFailure:
 
 
 # ---------------------------------------------------------------------------
+# Generic contradiction-worker exception routing (Codex P1 #87 round 6)
+#
+# ``contradiction_future.result(timeout=...)`` historically only caught
+# ``FutureTimeout``, ``ProviderRefusalError``, and ``ContradictionPassError``.
+# Any other worker exception (generic ``RuntimeError``, ``CancelledError``,
+# transport error, etc.) escaped raw — violating the orchestrator's
+# exhaustive typed-terminal-state contract.  The final ``except Exception``
+# branch must map those to PIPELINE_ERROR + outer-transaction rollback.
+# ``BaseException`` is deliberately NOT caught so ``KeyboardInterrupt`` /
+# ``SystemExit`` still propagate.
+# ---------------------------------------------------------------------------
+
+
+class TestParallelSyncContradictionWorkerExceptions:
+    def test_runtime_error_from_worker_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_exc=RuntimeError("synthetic worker failure"),
+        )
+
+        # Must not raise — generic worker exceptions must become typed.
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "contradiction worker failed" in summary, summary
+        assert "synthetic worker failure" in summary, summary
+        # Single canonical terminal-cause channel held.
+        assert result.provider_refusal is None
+        # Provisional Turn rolled back at the outer transaction boundary.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_value_error_from_worker_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Distinct exception type to prove the catch-all is type-agnostic."""
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_exc=ValueError("bad payload"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "contradiction worker failed" in summary, summary
+        assert "bad payload" in summary, summary
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_cancelled_error_from_worker_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """``concurrent.futures.CancelledError`` from the worker — surfaced
+        when the future is cancelled before completion — must also map to
+        PIPELINE_ERROR.  It subclasses ``BaseException`` (Python 3.8+) so
+        it would slip past a plain ``except Exception``; the orchestrator
+        handles it via an explicit ``except CancelledError`` branch.
+        """
+        from concurrent.futures import CancelledError
+
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_exc=CancelledError("worker cancelled"),
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "contradiction worker cancelled" in summary, summary
+        # Single canonical terminal-cause channel held.
+        assert result.provider_refusal is None
+        # Outer transaction rolled back: no provisional Turn persisted.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_baseexception_subclass_still_propagates(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Defense in depth: ``KeyboardInterrupt`` / ``SystemExit`` must
+        propagate past the orchestrator so the host process can shut down.
+        The new catch-all is ``except Exception``, not ``except BaseException``.
+        """
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_exc=KeyboardInterrupt("user hit Ctrl-C"),
+        )
+        with pytest.raises(KeyboardInterrupt):
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+
+# ---------------------------------------------------------------------------
 # Preserve extractor_result on contradiction refusal (Codex P2 #87)
 #
 # Refusal contract: "upstream pass results are preserved; only the failing
@@ -1594,59 +1695,185 @@ class TestStoryBibleSessionThreading:
     ) -> None:
         """Stress regression: many concurrent route_extractor_proposals calls
         through one service instance, each with its own session, must not
-        cross-contaminate writes.  This would have failed under the previous
-        self._session swap pattern under enough contention.
+        cross-contaminate writes.  This would have failed under the
+        previous ``self._session`` swap pattern under enough contention.
+
+        Codex P2 #87 round 6: the previous version was vacuously passing
+        whenever workers raised before appending to ``seen_session_ids``
+        (``all(...)`` over an empty list is True).  In practice the
+        conftest's default in-memory SQLite engine uses
+        ``SingletonThreadPool``, so workers raised
+        ``sqlite3.ProgrammingError`` on cross-thread connection use —
+        every observation was lost and the test passed for the wrong
+        reason.
+
+        The fix is twofold:
+
+        1. Build a temp-file SQLite engine inline so each worker thread
+           gets its own connection from the pool (WAL mode set by the
+           project's ``create_engine`` hook allows concurrent readers
+           plus a single serialised writer).  Per-connection SAVEPOINTs
+           do not collide.
+        2. Capture worker exceptions in a lock-guarded list and assert
+           both ``worker_errors == []`` AND
+           ``len(seen_session_ids) == WORKER_COUNT`` so silent failure
+           cannot hide.
         """
+        import os
+        import tempfile
         import threading
+        from uuid import uuid4
 
         from afterworlds.models.extractor import (
             EventProposal,
             ExtractorProposalSet,
         )
+        from afterworlds.models.node import (
+            BranchingNodeMetadata,
+            Node,
+            NodeMetadata,
+            StateDelta,
+        )
+        from afterworlds.models.story import Arc, Chapter, Story
+        from afterworlds.persistence.crud.node import create_node
+        from afterworlds.persistence.crud.story import (
+            create_arc,
+            create_chapter,
+            create_story,
+        )
+        from afterworlds.persistence.database import (
+            create_engine,
+            create_session_factory,
+        )
+        from afterworlds.persistence.orm.base import Base
 
-        story_id, _ = seeded_story
-        service_session = session_factory()
-        sbs = StoryBibleService(service_session)
+        WORKER_COUNT = 8
 
-        seen_session_ids: list[int] = []
-        seen_session_ids_lock = threading.Lock()
+        # Default conftest engine uses SingletonThreadPool against an
+        # in-memory SQLite — workers would hit
+        # ``sqlite3.ProgrammingError`` on cross-thread connection access.
+        # Use a temp-file SQLite database so each thread gets its own
+        # connection from the pool and SAVEPOINTs do not collide; WAL
+        # journal mode (set by the project's connect-hook) lets readers
+        # run concurrently with a single serialised writer.
+        fd, db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        thread_safe_engine = create_engine(f"sqlite:///{db_path}")
+        Base.metadata.create_all(thread_safe_engine)
+        try:
+            sf = create_session_factory(thread_safe_engine)
 
-        def worker() -> None:
-            caller_session = session_factory()
-            caller_session.begin()
-            try:
-                from uuid import uuid4
+            # Seed a minimal Story / Arc / Chapter / Node chain so
+            # route_extractor_proposals has a valid story to operate on.
+            seed_session = sf()
+            now = datetime(2026, 1, 1, tzinfo=UTC)
+            story = Story(
+                title="Threading Test Story",
+                mode=StoryMode_BRANCHING(),
+                created_at=now,
+                updated_at=now,
+            )
+            create_story(seed_session, story)
+            arc = Arc(story_id=story.story_id, title="Arc 1", order=0)
+            create_arc(seed_session, arc)
+            chapter = Chapter(arc_id=arc.arc_id, title="Chapter 1", order=0)
+            create_chapter(seed_session, chapter)
+            node = Node(
+                chapter_id=chapter.chapter_id,
+                content="",
+                state_delta=StateDelta(),
+                branching_logic=[],
+                intent_type=IntentType.IN_CHARACTER_ACTION,
+                metadata=NodeMetadata(timestamp=now),
+                mode_metadata=BranchingNodeMetadata(),
+            )
+            create_node(seed_session, node)
+            seed_session.commit()
+            story_id = story.story_id
+            seed_session.close()
 
-                proposal_set = ExtractorProposalSet(
-                    proposals=[
-                        EventProposal(
-                            description="thread-event",
-                            significance=EventSignificance.ROUTINE,
-                            event_kind=EventKind.ROUTINE,
+            service_session = sf()
+            sbs = StoryBibleService(service_session)
+            original_session_id = id(service_session)
+
+            seen_session_ids: list[int] = []
+            seen_session_ids_lock = threading.Lock()
+            worker_errors: list[BaseException] = []
+            worker_errors_lock = threading.Lock()
+
+            def worker() -> None:
+                try:
+                    caller_session = sf()
+                    caller_session.begin()
+                    try:
+                        proposal_set = ExtractorProposalSet(
+                            proposals=[
+                                EventProposal(
+                                    description="thread-event",
+                                    significance=EventSignificance.ROUTINE,
+                                    event_kind=EventKind.ROUTINE,
+                                )
+                            ]
                         )
-                    ]
-                )
-                sbs.route_extractor_proposals(
-                    story_id, uuid4(), proposal_set, session=caller_session
-                )
-                with seen_session_ids_lock:
-                    seen_session_ids.append(id(sbs._session))
-            finally:
-                if caller_session.in_transaction():
-                    caller_session.rollback()
-                caller_session.close()
+                        sbs.route_extractor_proposals(
+                            story_id,
+                            uuid4(),
+                            proposal_set,
+                            session=caller_session,
+                        )
+                        with seen_session_ids_lock:
+                            seen_session_ids.append(id(sbs._session))
+                    finally:
+                        if caller_session.in_transaction():
+                            caller_session.rollback()
+                        caller_session.close()
+                except BaseException as exc:  # noqa: BLE001 — test surface
+                    # Capture worker failures so the main thread can
+                    # assert on them.  Without this, a worker that raises
+                    # before the append would leave ``seen_session_ids``
+                    # short or empty and let ``all(...)`` vacuously pass.
+                    with worker_errors_lock:
+                        worker_errors.append(exc)
 
-        threads = [threading.Thread(target=worker) for _ in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=worker) for _ in range(WORKER_COUNT)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        # Every observation must show the original service session — never
-        # any of the caller sessions opened by the workers.
-        assert all(sid == id(service_session) for sid in seen_session_ids)
-        assert sbs._session is service_session
-        service_session.close()
+            # No worker may have raised — covers the case where session
+            # threading itself blew up before any observation could be made.
+            assert worker_errors == [], (
+                f"{len(worker_errors)} worker(s) raised: "
+                f"{[type(e).__name__ + ': ' + str(e) for e in worker_errors]}"
+            )
+            # Exactly the configured number of observations were recorded —
+            # guards against vacuous ``all(...)`` over an empty list AND
+            # against a partial-completion regression.
+            assert len(seen_session_ids) == WORKER_COUNT, (
+                f"expected {WORKER_COUNT} observations, " f"got {len(seen_session_ids)}"
+            )
+            # Every observation must show the original service session —
+            # never any of the caller sessions opened by the workers.
+            assert all(sid == original_session_id for sid in seen_session_ids)
+            # And the service's ``_session`` attribute must still be the
+            # original — no caller-supplied session leaked into it.
+            assert sbs._session is service_session
+            service_session.close()
+        finally:
+            Base.metadata.drop_all(thread_safe_engine)
+            thread_safe_engine.dispose()
+            # Best-effort temp-file cleanup; ignore Windows file-lock
+            # races that occasionally surface after the engine is
+            # disposed.  The OS removes the file at reboot anyway.
+            with suppress(OSError):
+                os.unlink(db_path)
+
+
+def StoryMode_BRANCHING():
+    from afterworlds.models.enums import StoryMode
+
+    return StoryMode.BRANCHING
 
 
 def _volatile_for(intent):
