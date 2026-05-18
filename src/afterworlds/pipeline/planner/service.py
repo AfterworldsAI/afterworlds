@@ -29,19 +29,18 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 from anthropic.types import (
-    CacheControlEphemeralParam,
     MessageParam,
     TextBlockParam,
 )
 
-from afterworlds.models.context import (
-    AssembledContext,
-    _render_retrieval_memory,
-    _render_rule_slice,
-    _render_story_bible_context,
+from afterworlds.models.context import AssembledContext
+from afterworlds.pipeline._refusal import ProviderRefusalError
+from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+    render_stable_prefix_blocks,
 )
 from afterworlds.pipeline.planner.caller import (
     PRODUCE_PLAN_TOOL_NAME,
@@ -82,14 +81,6 @@ def load_planner_prompt() -> str:
         raise UnknownPromptError(
             f"Planner prompt file not found at {prompt_path}"
         ) from exc
-
-
-# ---------------------------------------------------------------------------
-# TTL constants
-# ---------------------------------------------------------------------------
-
-_TTL_EXTENDED: Literal["1h"] = "1h"
-_TTL_DEFAULT: Literal["5m"] = "5m"
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +139,8 @@ class PlannerService:
 
         try:
             response, latency_ms = timed_call(self._caller, payload)
+        except ProviderRefusalError:
+            raise
         except Exception as exc:
             raise PlannerPassError(f"Planner provider call failed: {exc}") from exc
 
@@ -185,30 +178,17 @@ class PlannerService:
 
         Cache breakpoint placement:
           - Stable-prefix blocks carry the cache_control marker on the last
-            block, matching the Writer renderer so the Anthropic cache can
-            share the stable-prefix region across passes (Issue 12c).
+            block via the shared renderer (CRD Item 14 invariant #10).  All
+            provider-backed passes go through the same utility so the cache
+            region is structurally identical across passes (Issue 12c).
           - PassForwardLedger is empty for the Planner pass (it is first in
             pipeline order) — produces zero extra blocks.
           - Volatile suffix blocks carry no marker.
         """
-        cache_control = CacheControlEphemeralParam(
-            type="ephemeral",
-            ttl=_TTL_EXTENDED if self._config.extended_ttl else _TTL_DEFAULT,
+        ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
+        user_blocks: list[TextBlockParam] = list(
+            render_stable_prefix_blocks(built_context.stable_prefix, ttl)
         )
-
-        stable_texts = _collect_stable_texts(built_context)
-        user_blocks: list[TextBlockParam] = []
-
-        if stable_texts:
-            for text in stable_texts[:-1]:
-                user_blocks.append(TextBlockParam(type="text", text=text))
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
-                    text=stable_texts[-1],
-                    cache_control=cache_control,
-                )
-            )
 
         # PassForwardLedger: renders any content from earlier passes.
         # Empty when Planner is first in pipeline — produces no block.
@@ -252,41 +232,3 @@ class PlannerService:
             "tools": [PRODUCE_PLAN_TOOL_SPEC],
             "tool_choice": {"type": "tool", "name": PRODUCE_PLAN_TOOL_NAME},
         }
-
-
-# ---------------------------------------------------------------------------
-# Module-level helpers
-# ---------------------------------------------------------------------------
-
-
-def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
-    """Return stable-prefix section texts in canonical Issue 8 / Writer order.
-
-    Mirrors the Writer renderer (_collect_stable_prefix_texts) so the Planner
-    pass's user-message stable-prefix blocks are byte-for-byte identical to the
-    Writer's, allowing Planner to warm the stable-prefix cache for Writer each
-    turn (Issue 12c cross-pass reuse).  The pass prompt stays in the Anthropic
-    ``system`` parameter and is NOT included here.
-
-    Order:
-      1. Story Bible active context
-      2. Rolling Summary (omitted if None)
-      3. Rules Package slice (omitted if None)
-      4. Retrieval Memory (omitted when empty)
-    """
-    texts: list[str] = []
-    sp = built_context.stable_prefix
-
-    texts.append(_render_story_bible_context(sp.story_bible_context))
-
-    if sp.rolling_summary_text is not None:
-        texts.append(sp.rolling_summary_text)
-
-    if sp.rules_package_slice is not None:
-        texts.append(_render_rule_slice(sp.rules_package_slice))
-
-    retrieval_text = _render_retrieval_memory(sp.retrieval_memory)
-    if retrieval_text:
-        texts.append(retrieval_text)
-
-    return texts

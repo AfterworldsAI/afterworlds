@@ -127,9 +127,22 @@ class RecentTurnsProvider(Protocol):
 
     The concrete SQLite implementation is :class:`SQLiteRecentTurnsProvider`.
     Tests and future implementations may supply any compatible class.
+
+    Issue 12c extension: ``exclude_ooc`` defaults to True so the Context
+    Builder's narrative recent-turn window never contains OOC Turns (those
+    are routed through the OOC short-circuit handler and do not advance the
+    story).  Callers needing the full prose history may pass ``False``.
+    Filtering happens at read time against the existing
+    ``intent_classification`` column; no schema migration is required.
     """
 
-    def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
+    def get_recent_turns(
+        self,
+        story_id: UUID,
+        limit: int,
+        *,
+        exclude_ooc: bool = True,
+    ) -> list[Turn]:
         """Return up to *limit* most-recent turns for *story_id*, oldest-first."""
         ...
 
@@ -221,8 +234,22 @@ class SQLiteRecentTurnsProvider:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
-        """Return up to *limit* most-recent turns for *story_id*, oldest-first."""
+    def get_recent_turns(
+        self,
+        story_id: UUID,
+        limit: int,
+        *,
+        exclude_ooc: bool = True,
+    ) -> list[Turn]:
+        """Return up to *limit* most-recent turns for *story_id*, oldest-first.
+
+        When ``exclude_ooc`` is True (Issue 12c default), OOC Turns are
+        filtered out at read time using the existing
+        ``TurnORM.intent_classification`` column.  OOC Turns remain in the
+        database for audit; they simply do not appear in the narrative
+        recent-turn window the Context Builder feeds to downstream passes.
+        Pass ``False`` for full-history reads.
+        """
         # Fetch a bounded candidate set: SQL ORDER BY on the ISO timestamp string
         # is correct for rows stored as UTC (+00:00 or naive), which covers all
         # application write paths.  The buffer extends the window so any row
@@ -230,15 +257,20 @@ class SQLiteRecentTurnsProvider:
         # the limit boundary is still included as a candidate.  Python datetime
         # sort on this bounded set then selects the correct most-recent limit
         # turns without materializing the full story history.
+        stmt = (
+            select(TurnORM)
+            .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+            .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+            .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+            .where(ArcORM.story_id == str(story_id))
+        )
+        if exclude_ooc:
+            stmt = stmt.where(TurnORM.intent_classification != IntentType.OOC.value)
         rows = (
             self._session.execute(
-                select(TurnORM)
-                .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
-                .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
-                .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
-                .where(ArcORM.story_id == str(story_id))
-                .order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
-                .limit(limit + _TIMESTAMP_SAFETY_BUFFER)
+                stmt.order_by(TurnORM.timestamp.desc(), TurnORM.turn_id.desc()).limit(
+                    limit + _TIMESTAMP_SAFETY_BUFFER
+                )
             )
             .scalars()
             .all()
@@ -380,6 +412,23 @@ class ContextBuilderService:
     ) -> VolatileSuffix:
         """Assemble the volatile suffix for one pipeline turn.
 
+        OOC-window policy (Codex P2 #87 round 8): the Context Builder
+        chooses ``exclude_ooc`` explicitly based on the classified intent,
+        so the policy is unambiguous and does not depend on the provider's
+        default.
+
+        - Narrative intents → ``exclude_ooc=True``: OOC Turns must not
+          pollute the story's narrative recent-turn window.
+        - OOC intent → ``exclude_ooc=False``: the OOC handler needs the
+          prior OOC exchanges as context so multi-turn OOC flows stay
+          coherent (e.g. "what does HP mean?" → "remind me which spells
+          I can still cast" should still see the earlier exchange).
+
+        ``RecentTurnsProvider`` retains ``exclude_ooc=True`` as its
+        provider default so other (non-orchestrator) callers continue to
+        get OOC-free narrative windows by default; the Context Builder
+        overrides explicitly per intent.
+
         Args:
             story_id: UUID of the story this turn belongs to.
             raw_input: raw player input string for this turn.
@@ -389,8 +438,9 @@ class ContextBuilderService:
             Frozen VolatileSuffix containing recent turns (oldest-first),
             current input, and classified intent.
         """
+        exclude_ooc = intent_classification.intent_type is not IntentType.OOC
         recent_turns = self._recent_turns_provider.get_recent_turns(
-            story_id, limit=RECENT_TURNS_LIMIT
+            story_id, limit=RECENT_TURNS_LIMIT, exclude_ooc=exclude_ooc
         )
         return VolatileSuffix(
             recent_turns=recent_turns,

@@ -22,23 +22,22 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 from uuid import UUID
 
 from anthropic.types import (
-    CacheControlEphemeralParam,
     MessageParam,
     TextBlockParam,
 )
 from sqlalchemy.orm import Session
 
-from afterworlds.models.context import (
-    AssembledContext,
-    _render_retrieval_memory,
-    _render_rule_slice,
-    _render_story_bible_context,
-)
+from afterworlds.models.context import AssembledContext
 from afterworlds.models.extractor import ExtractorProposalSet
+from afterworlds.pipeline._refusal import ProviderRefusalError
+from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+    render_stable_prefix_blocks,
+)
 from afterworlds.pipeline.extractor.caller import (
     EXTRACT_TOOL_NAME,
     EXTRACT_TOOL_SPEC,
@@ -75,14 +74,6 @@ def load_extractor_prompt() -> str:
         raise UnknownPromptError(
             f"Extractor prompt file not found at {prompt_path}"
         ) from exc
-
-
-# ---------------------------------------------------------------------------
-# TTL constants (mirrors WriterConfig)
-# ---------------------------------------------------------------------------
-
-_TTL_EXTENDED: Literal["1h"] = "1h"
-_TTL_DEFAULT: Literal["5m"] = "5m"
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +123,8 @@ class ExtractorService:
         writer_output: str,
         story_id: UUID,
         turn_id: UUID,
+        *,
+        session: Session | None = None,
     ) -> ExtractorResult:
         """Execute one Extractor pass and return a typed result.
 
@@ -143,6 +136,11 @@ class ExtractorService:
             story_id: UUID of the story this turn belongs to.
             turn_id: UUID of the persisted Turn, used as provenance on all
                 proposals and canon writes created this pass.
+            session: optional orchestrator-owned SQLAlchemy session (Issue
+                12c).  Forwarded to ``StoryBibleService.route_extractor_proposals``
+                so the Extractor's writes nest as a SAVEPOINT inside the
+                outer transaction.  When ``None`` the standalone Issue 10
+                behavior is preserved.
 
         Returns:
             ExtractorResult with the validated proposal set, routing summary,
@@ -153,6 +151,10 @@ class ExtractorService:
                 contains no tool-use block, the tool input fails schema
                 validation, or natural-key resolution fails during routing
                 (no DB state is committed in the latter case).
+            ProviderRefusalError: if the provider explicitly refuses the
+                Extractor call.  Propagated unchanged so the Issue 12c
+                orchestrator can route the turn to REFUSED_BY_PROVIDER and
+                roll back the outer transaction.
         """
         ctx_story_id = built_context.stable_prefix.story_bible_context.story_id
         if ctx_story_id != story_id:
@@ -165,6 +167,8 @@ class ExtractorService:
 
         try:
             response, _latency_ms = timed_call(self._caller, payload)
+        except ProviderRefusalError:
+            raise
         except Exception as exc:
             raise ExtractorPassError(f"Extractor provider call failed: {exc}") from exc
 
@@ -186,7 +190,7 @@ class ExtractorService:
 
         try:
             routed = self._sbs.route_extractor_proposals(
-                story_id, turn_id, proposal_set
+                story_id, turn_id, proposal_set, session=session
             )
         except (EntityNotFoundError, ValueError) as exc:
             raise ExtractorPassError(
@@ -215,30 +219,22 @@ class ExtractorService:
         """Render the AssembledContext + writer_output into an Extractor payload.
 
         Cache breakpoint placement:
-          - The stable-prefix content blocks are rendered in the canonical
-            Issue 8 order with the cache_control marker on the last block.
-          - The writer output block and volatile suffix blocks carry no marker.
-          - This mirrors the Writer renderer so the Anthropic cache can
-            potentially share the stable-prefix region across passes.
+          - The stable-prefix content blocks come from the shared Issue 12c
+            renderer with the cache_control marker on the last block.  This
+            is byte-for-byte identical across all six provider-backed passes
+            so the cache breakpoint is in the same position regardless of
+            which pass renders first.
+          - The active mode contract (``stable_prefix.system_prompt``) sits
+            in the ``system`` parameter as the second block (matching the
+            Planner / Safety convention).  It is no longer included in the
+            user-message stable region.
+          - The writer-output block and volatile-suffix blocks carry no
+            cache marker.
         """
-        cache_control = CacheControlEphemeralParam(
-            type="ephemeral",
-            ttl=_TTL_EXTENDED if self._config.extended_ttl else _TTL_DEFAULT,
+        ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
+        user_blocks: list[TextBlockParam] = list(
+            render_stable_prefix_blocks(built_context.stable_prefix, ttl)
         )
-
-        stable_texts = _collect_stable_texts(built_context)
-        user_blocks: list[TextBlockParam] = []
-
-        if stable_texts:
-            for text in stable_texts[:-1]:
-                user_blocks.append(TextBlockParam(type="text", text=text))
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
-                    text=stable_texts[-1],
-                    cache_control=cache_control,
-                )
-            )
 
         # Pass-forward ledger from prior passes (empty in Issue 10 standalone).
         ledger_text = built_context.pass_forward_ledger.render()
@@ -279,46 +275,14 @@ class ExtractorService:
         return {
             "model": self._config.model,
             "max_tokens": EXTRACTOR_MAX_TOKENS,
-            "system": [TextBlockParam(type="text", text=self._system_prompt)],
+            "system": [
+                TextBlockParam(type="text", text=self._system_prompt),
+                TextBlockParam(
+                    type="text",
+                    text=built_context.stable_prefix.system_prompt,
+                ),
+            ],
             "messages": [MessageParam(role="user", content=user_blocks)],
             "tools": [EXTRACT_TOOL_SPEC],
             "tool_choice": {"type": "tool", "name": EXTRACT_TOOL_NAME},
         }
-
-
-# ---------------------------------------------------------------------------
-# Module-level helpers
-# ---------------------------------------------------------------------------
-
-
-def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
-    """Return stable-prefix section texts in canonical Issue 8 order.
-
-    Mirrors PromptRenderer._collect_stable_prefix_texts() so the Extractor's
-    user-message blocks are byte-for-byte identical to the Writer's, maximising
-    the chance of cross-pass cache reuse.
-
-    Order:
-      1. Mode contract (system_prompt) — POV/tense/agency/mode-specific rules
-      2. Story Bible active context
-      3. Rolling Summary (omitted if None)
-      4. Rules Package slice (omitted if None)
-      5. Retrieval Memory (omitted when empty)
-    """
-    texts: list[str] = []
-    sp = built_context.stable_prefix
-
-    texts.append(sp.system_prompt)
-    texts.append(_render_story_bible_context(sp.story_bible_context))
-
-    if sp.rolling_summary_text is not None:
-        texts.append(sp.rolling_summary_text)
-
-    if sp.rules_package_slice is not None:
-        texts.append(_render_rule_slice(sp.rules_package_slice))
-
-    retrieval_text = _render_retrieval_memory(sp.retrieval_memory)
-    if retrieval_text:
-        texts.append(retrieval_text)
-
-    return texts

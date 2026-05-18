@@ -33,19 +33,17 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
 
 from anthropic.types import (
-    CacheControlEphemeralParam,
     MessageParam,
     TextBlockParam,
 )
 
-from afterworlds.models.context import (
-    AssembledContext,
-    _render_retrieval_memory,
-    _render_rule_slice,
-    _render_story_bible_context,
+from afterworlds.models.context import AssembledContext
+from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+    render_stable_prefix_blocks,
 )
 from afterworlds.pipeline.safety.caller import (
     REPORT_SAFETY_TOOL_NAME,
@@ -96,14 +94,6 @@ def load_safety_prompt() -> str:
 
 _LABEL_INPUT: str = "[SOJOURNER INPUT FOR SAFETY EVALUATION]"
 _LABEL_OUTPUT: str = "[WRITER OUTPUT FOR SAFETY EVALUATION]"
-
-# ---------------------------------------------------------------------------
-# TTL constants
-# ---------------------------------------------------------------------------
-
-_TTL_EXTENDED: Literal["1h"] = "1h"
-_TTL_DEFAULT: Literal["5m"] = "5m"
-
 
 # ---------------------------------------------------------------------------
 # SafetyService
@@ -212,24 +202,10 @@ class SafetyService:
         target: SafetyTarget,
     ) -> SafetyPayload:
         """Render the AssembledContext + text into a Safety payload."""
-        cache_control = CacheControlEphemeralParam(
-            type="ephemeral",
-            ttl=_TTL_EXTENDED if self._config.extended_ttl else _TTL_DEFAULT,
+        ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
+        user_blocks: list[TextBlockParam] = list(
+            render_stable_prefix_blocks(built_context.stable_prefix, ttl)
         )
-
-        stable_texts = _collect_stable_texts(built_context)
-        user_blocks: list[TextBlockParam] = []
-
-        if stable_texts:
-            for t in stable_texts[:-1]:
-                user_blocks.append(TextBlockParam(type="text", text=t))
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
-                    text=stable_texts[-1],
-                    cache_control=cache_control,
-                )
-            )
 
         # Volatile suffix: recent turns + evaluated text with target label.
         vs = built_context.volatile_suffix
@@ -272,42 +248,3 @@ class SafetyService:
                 "name": REPORT_SAFETY_TOOL_NAME,
             },
         }
-
-
-# ---------------------------------------------------------------------------
-# Module-level helpers
-# ---------------------------------------------------------------------------
-
-
-def _collect_stable_texts(built_context: AssembledContext) -> list[str]:
-    """Return stable-prefix section texts in canonical Writer order.
-
-    Mirrors the Writer renderer so the Safety pass stable-prefix blocks are
-    byte-for-byte identical to the Writer's, enabling cache reuse across
-    passes (CRD Item 14 invariant #10).
-
-    The mode contract (system_prompt) is placed in the ``system`` parameter
-    as the second block; it is NOT included here.
-
-    Order:
-      1. Story Bible active context
-      2. Rolling Summary (omitted if None)
-      3. Rules Package slice (omitted if None)
-      4. Retrieval Memory (omitted when empty)
-    """
-    texts: list[str] = []
-    sp = built_context.stable_prefix
-
-    texts.append(_render_story_bible_context(sp.story_bible_context))
-
-    if sp.rolling_summary_text is not None:
-        texts.append(sp.rolling_summary_text)
-
-    if sp.rules_package_slice is not None:
-        texts.append(_render_rule_slice(sp.rules_package_slice))
-
-    retrieval_text = _render_retrieval_memory(sp.retrieval_memory)
-    if retrieval_text:
-        texts.append(retrieval_text)
-
-    return texts

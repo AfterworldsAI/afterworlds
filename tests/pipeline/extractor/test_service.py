@@ -1881,54 +1881,41 @@ class TestRendererVolatileSuffix:
         # The Extractor prompt is loaded from docs/prompts/extractor.md.
         assert "Extractor" in system_text
 
-    def test_stable_prefix_user_blocks_contain_mode_contract(  # type: ignore[no-untyped-def]
+    def test_mode_contract_is_second_system_block(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """stable_prefix.system_prompt (mode contract) must appear in user blocks."""
+        """Issue 12c: mode contract moved from user blocks to system[1]."""
         story_id, cast_id = story_and_cast
         fake = _make_fake_caller(_fake_tool_response())
         sbs = StoryBibleService(session)
         service = ExtractorService(session, sbs, _make_config(), fake)
 
         ctx = _make_assembled(story_id, cast_id)
-        # The fixture sets system_prompt to "You are the story architect."
+        service.extract(ctx, "prose.", story_id, _turn_id())
+
+        payload = fake.captured[0]  # type: ignore[attr-defined]
+        assert len(payload["system"]) == 2
+        assert payload["system"][1]["text"] == "You are the story architect."
+
+    def test_mode_contract_absent_from_user_blocks(  # type: ignore[no-untyped-def]
+        self, session, story_and_cast
+    ) -> None:
+        """Issue 12c: mode contract no longer duplicated into user blocks."""
+        story_id, cast_id = story_and_cast
+        fake = _make_fake_caller(_fake_tool_response())
+        sbs = StoryBibleService(session)
+        service = ExtractorService(session, sbs, _make_config(), fake)
+
+        ctx = _make_assembled(story_id, cast_id)
         service.extract(ctx, "prose.", story_id, _turn_id())
 
         texts = [
             b.get("text", "")
             for b in fake.captured[0]["messages"][0]["content"]  # type: ignore[attr-defined]
         ]
-        assert any(
+        assert not any(
             "You are the story architect." in t for t in texts
-        ), "stable_prefix.system_prompt not found in user message blocks"
-
-    def test_mode_contract_appears_before_story_bible(  # type: ignore[no-untyped-def]
-        self, session, story_and_cast
-    ) -> None:
-        """stable_prefix.system_prompt must be the first stable-prefix user block."""
-        story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
-        sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
-
-        ctx = _make_assembled(story_id, cast_id)
-        service.extract(ctx, "prose.", story_id, _turn_id())
-
-        texts = [
-            b.get("text", "")
-            for b in fake.captured[0]["messages"][0]["content"]  # type: ignore[attr-defined]
-        ]
-        # mode contract = "You are the story architect."; "Aldric" appears in the cast.
-        contract_idx = next(
-            (i for i, t in enumerate(texts) if "You are the story architect." in t),
-            None,
-        )
-        bible_idx = next((i for i, t in enumerate(texts) if "Aldric" in t), None)
-        assert contract_idx is not None, "Mode contract block not found"
-        assert bible_idx is not None, "Story Bible block not found"
-        assert (
-            contract_idx < bible_idx
-        ), "Mode contract must appear before Story Bible content"
+        ), "Mode contract must not appear in user-message stable region after 12c"
 
     def test_cache_breakpoint_precedes_writer_output_and_volatile(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
