@@ -804,6 +804,191 @@ class TestParallelSync:
 
 
 # ---------------------------------------------------------------------------
+# Bounded orchestrator-owned executor lifecycle (Codex P1 #87 round 8)
+#
+# The orchestrator-owned executor is created once in ``__init__`` with
+# ``max_workers=parallel_pass_max_workers`` and reused across every turn.
+# Repeated timeouts cannot create unbounded worker threads — total live
+# workers are capped by ``max_workers``.  Queued-but-not-started work is
+# cancellable on timeout.  Injected executors remain caller-owned and the
+# orchestrator never shuts them down.
+# ---------------------------------------------------------------------------
+
+
+class TestBoundedOwnedExecutorLifecycle:
+    def test_owned_executor_is_reused_across_turns(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(session_factory)
+        try:
+            executor_before = orch._owned_executor
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            assert orch._owned_executor is executor_before
+            orch.orchestrate_turn(story_id, node_id, "I close the door.")
+            assert orch._owned_executor is executor_before
+        finally:
+            orch.close()
+
+    def test_repeated_timeouts_do_not_accumulate_worker_threads(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Run many turns whose contradiction worker hangs past the
+        timeout.  Worker threads must be bounded by ``max_workers``.
+
+        Prior design (per-turn local executor + ``shutdown(wait=False,
+        cancel_futures=True)``) would have created one fresh hung worker
+        per turn — unbounded.  After the bounded-owned-executor fix the
+        executor's own ``_threads`` set is capped at ``max_workers``
+        regardless of how many turns we run.
+        """
+        story_id, node_id = seeded_story
+        max_workers = 2
+        # Long contradiction delay so workers stay stuck past the timeout;
+        # tiny timeout so each turn returns fast.
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_delay=5.0,
+            parallel_timeout=0.05,
+        )
+        # Replace the owned executor with one whose size we control for
+        # this test.  Introspect via the executor's own ``_threads`` set
+        # so the assertion measures only THIS orchestrator's workers and
+        # cannot be polluted by hung worker threads leaked from other
+        # tests in the suite (a global ``threading.enumerate()`` view
+        # would include any contradiction-named thread leaked elsewhere).
+        from concurrent.futures import ThreadPoolExecutor
+
+        orch.close()
+        orch._owned_executor = ThreadPoolExecutor(
+            max_workers=max_workers,
+            thread_name_prefix=f"orchestrator-contradiction-{id(orch)}",
+        )
+
+        try:
+            for _ in range(8):
+                result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+                assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+                assert "timeout" in (result.pipeline_error_summary or "").lower()
+
+            owned_threads = orch._owned_executor._threads  # type: ignore[attr-defined]
+            assert len(owned_threads) <= max_workers, (
+                f"expected <= {max_workers} threads in the orchestrator-"
+                f"owned executor, found {len(owned_threads)}: "
+                f"{[t.name for t in owned_threads]}"
+            )
+        finally:
+            orch.close()
+
+    def test_repeated_timeouts_return_promptly(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Every turn returns within a small bound of the configured
+        timeout, even when prior turns left workers hung.  Queued futures
+        are cancelled on timeout so they do not wait on the upstream
+        running worker."""
+        import time
+
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_delay=5.0,
+            parallel_timeout=0.05,
+        )
+        try:
+            elapsed_per_turn: list[float] = []
+            for _ in range(6):
+                start = time.perf_counter()
+                result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+                elapsed_per_turn.append(time.perf_counter() - start)
+                assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+            # No turn took more than ~0.8s — well under the 5s
+            # contradiction_delay.  This proves that even queued futures
+            # behind hung workers are cancelled promptly on timeout.
+            assert (
+                max(elapsed_per_turn) < 0.8
+            ), f"per-turn elapsed seconds: {elapsed_per_turn}"
+        finally:
+            orch.close()
+
+    def test_queued_contradiction_future_is_cancellable_on_timeout(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Inject a single-worker executor pre-loaded with a blocker so the
+        orchestrator's contradiction future has to queue.  When the
+        orchestrator times out it calls ``future.cancel()`` — for a queued-
+        but-not-started future that succeeds and the contradiction service
+        is never actually called.
+        """
+        import threading
+        from concurrent.futures import ThreadPoolExecutor
+
+        story_id, node_id = seeded_story
+        executor = ThreadPoolExecutor(max_workers=1)
+        blocker_release = threading.Event()
+        # Fill the only worker slot with a blocker so the next submit
+        # queues without starting.
+        blocker_future = executor.submit(blocker_release.wait)
+
+        orch, *_, _, contradiction = _make_orchestrator(
+            session_factory,
+            executor=executor,
+            parallel_timeout=0.1,
+        )
+        try:
+            result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+            assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+            assert "timeout" in (result.pipeline_error_summary or "").lower()
+            # The contradiction service was never called — its queued
+            # future was cancelled before the executor could promote it
+            # onto a worker.
+            assert len(contradiction.calls) == 0, (
+                "contradiction worker should not have run — queued "
+                "future was cancelled on timeout"
+            )
+        finally:
+            # Release the blocker, drain, shut down the injected executor.
+            blocker_release.set()
+            blocker_future.result(timeout=2.0)
+            executor.shutdown(wait=True)
+            orch.close()
+
+    def test_injected_executor_lifecycle_is_caller_owned(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Orchestrator MUST NOT call ``shutdown`` on a caller-injected
+        executor — neither per-turn nor on ``close()``.  The injected
+        executor must still accept submissions afterward.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+
+        story_id, node_id = seeded_story
+        executor = ThreadPoolExecutor(max_workers=2)
+        # With an injected executor, ``_owned_executor`` must be None so
+        # ``close()`` has nothing of its own to release.
+        orch, *_ = _make_orchestrator(session_factory, executor=executor)
+        try:
+            assert orch._owned_executor is None
+            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            # close() should be a no-op for the injected executor.
+            orch.close()
+            # Still alive — can submit and the future completes.
+            fut = executor.submit(lambda: "still-alive")
+            assert fut.result(timeout=2.0) == "still-alive"
+            # And another orchestrate_turn after close still works
+            # against the same injected executor.
+            orch2, *_ = _make_orchestrator(session_factory, executor=executor)
+            try:
+                result = orch2.orchestrate_turn(story_id, node_id, "another input.")
+                assert result.disposition is PipelineDisposition.DELIVERED
+            finally:
+                orch2.close()
+        finally:
+            executor.shutdown(wait=True)
+
+
+# ---------------------------------------------------------------------------
 # Parallel-sync submission failure routing (Codex P1 #87)
 #
 # ``executor.submit(...)`` itself can raise — most commonly

@@ -236,20 +236,47 @@ because the filter uses the existing `intent_classification` column.
 
 ---
 
-## Decision 9: ThreadPoolExecutor lifecycle — per-call when not injected
+## Decision 9: ThreadPoolExecutor lifecycle — bounded orchestrator-owned executor
 
-**Decision:** If the orchestrator constructor receives `executor=None`,
-a fresh single-worker `ThreadPoolExecutor` is created per
-`orchestrate_turn` call inside a `with` block. If an executor is
-injected, the orchestrator uses it under `nullcontext` so the caller
-retains lifecycle ownership and the orchestrator never calls `shutdown`.
+**Decision (round 8, supersedes the original per-call design):** When the
+constructor receives `executor=None`, the orchestrator owns one bounded
+`ThreadPoolExecutor` created in `__init__` with
+`max_workers=parallel_pass_max_workers` (default
+`DEFAULT_PARALLEL_PASS_MAX_WORKERS = 4`, named
+`"orchestrator-contradiction"`). It is reused across every `orchestrate_turn`
+call and lives until `close()` (the service is also a context manager).
+Per-turn `submit()` queues a fresh future; on timeout the orchestrator
+calls `future.cancel()` (cancels queued-but-not-started work, cannot
+interrupt a running provider call). When `executor` is injected the
+caller owns its lifecycle and the orchestrator never calls `shutdown`
+on it (`close()` is a no-op for an injected executor).
 
-**Rationale:** v1 does not need long-lived worker threads; a one-shot
-executor per turn avoids unbounded resource ownership in the
-orchestrator. Production callers that want pooled workers (e.g. a
-FastAPI process serving many concurrent turns) can inject a shared
-executor and manage its lifetime independently. The injectable seam
-keeps the orchestrator pure of process-lifecycle concerns.
+**Rationale (round 8):** The prior per-call local executor +
+`shutdown(wait=False, cancel_futures=True)` design bounded request wall
+time correctly but did not cap worker accumulation — every timed-out
+turn could leave a fresh contradiction worker running until natural
+completion, accumulating without bound under repeated provider timeouts.
+A single long-lived orchestrator-owned executor with
+`max_workers=N` caps total live contradiction worker threads at N
+regardless of how many turns time out. The wall-time bound is preserved
+because the per-turn timeout fires on the new turn's own future, not on
+a hung worker, and queued-but-not-started futures are cancelled on
+timeout so a queue full of stuck workers does not block subsequent
+turns indefinitely.
+
+Contradiction performs no DB I/O, so a hung worker is side-effect-free
+for canon and only consumes one queue slot until natural completion.
+Provider-level cooperative cancellation (the only way to interrupt a
+running provider call) is deferred to Issue 14 provider-adapter work.
+
+**Why a long-lived owned executor and not just process-pooled workers
+per FastAPI request?** The orchestrator is the seam between the request
+boundary and the model-call boundary. Pushing executor lifecycle to the
+process owner would still require either bounded resource ownership in
+the orchestrator (this decision) or trust that callers always inject;
+the orchestrator-owned bound is the safe default. Callers that want
+their own pool can still inject one and the orchestrator will use it
+without modification.
 
 ---
 

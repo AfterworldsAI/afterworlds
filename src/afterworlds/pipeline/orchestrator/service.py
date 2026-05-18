@@ -89,6 +89,17 @@ from afterworlds.services.intent_classifier import IntentClassifierService
 #: Default timeout for the Contradiction worker future join (seconds).
 DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS: float = 30.0
 
+#: Default ``max_workers`` for the orchestrator-owned ContradictionService
+#: executor (used when no executor is injected).  Bounds the total number of
+#: live contradiction worker threads so repeated timeouts cannot accumulate
+#: workers without bound — see Codex P1 round 8 / the owner-decision thread
+#: on worker buildup.  A small bounded value is the right cap because
+#: Contradiction performs no DB I/O, so a single hung worker only blocks
+#: one queue slot; the orchestrator still returns PIPELINE_ERROR promptly
+#: for the requesting turn because the timeout fires on its own future,
+#: not on the worker.
+DEFAULT_PARALLEL_PASS_MAX_WORKERS: int = 4
+
 #: Provider identifier reported in ``WriterResult.model_identifier`` is of the
 #: form ``"<provider>:<model>"``.  The orchestrator extracts the provider
 #: portion for ``SafetyPolicy`` consultation.  Defaults to ``"anthropic"`` if
@@ -181,13 +192,32 @@ class OrchestratorService:
         mode_resolver: resolves a story_id to a StoryMode for the Context
             Builder.  Defaults to a SQLite-backed lookup against the
             stories table.
-        executor: optional ThreadPoolExecutor reused across calls.  When
-            None (default), a single-worker executor is created and shut
-            down per call — the orchestrator does not hold long-lived
-            threads.  When supplied, the caller owns lifecycle; the
-            orchestrator never calls ``shutdown``.
+        executor: optional ThreadPoolExecutor for the Contradiction worker.
+            When None (default), the orchestrator creates one bounded
+            executor of size ``parallel_pass_max_workers`` and reuses it
+            for the lifetime of this ``OrchestratorService`` instance.
+            ``close()`` releases it; tests should call ``close()`` (or use
+            the orchestrator as a context manager) to release the pool.
+            When supplied, the caller owns lifecycle and the orchestrator
+            NEVER calls ``shutdown`` on it.
         parallel_pass_timeout_seconds: bound on the Contradiction worker
             future join.  Timeout produces PIPELINE_ERROR + rollback.
+        parallel_pass_max_workers: ``max_workers`` for the orchestrator-
+            owned executor (ignored when ``executor`` is provided).  Caps
+            the total number of live contradiction worker threads so
+            repeated timeouts cannot accumulate workers without bound;
+            see ``DEFAULT_PARALLEL_PASS_MAX_WORKERS`` for the rationale.
+
+    Executor-lifecycle contract (Codex P1 round 8 / owner direction):
+        Orchestrator-owned executor is created once in ``__init__`` and
+        lives until ``close()``.  Per-turn ``submit()`` queues a fresh
+        future; on timeout the orchestrator calls ``future.cancel()``
+        (which cancels queued-not-started work but cannot interrupt a
+        running provider call).  Already-running contradiction workers
+        run to natural completion — they hold one executor slot apiece
+        until done.  Total live workers are bounded by ``max_workers``.
+        Contradiction has no DB I/O, so a hung worker is side-effect-
+        free for canon and only blocks one queue slot.
     """
 
     def __init__(
@@ -204,6 +234,7 @@ class OrchestratorService:
         mode_resolver: ModeResolver | None = None,
         executor: ThreadPoolExecutor | None = None,
         parallel_pass_timeout_seconds: float = DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS,
+        parallel_pass_max_workers: int = DEFAULT_PARALLEL_PASS_MAX_WORKERS,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -218,8 +249,38 @@ class OrchestratorService:
             session_factory
         )
         self._provided_executor = executor
+        # Owned executor is created once and reused for the lifetime of
+        # this instance — see the Executor-lifecycle contract above.
+        self._owned_executor: ThreadPoolExecutor | None = (
+            ThreadPoolExecutor(
+                max_workers=parallel_pass_max_workers,
+                thread_name_prefix="orchestrator-contradiction",
+            )
+            if executor is None
+            else None
+        )
         self._timeout = parallel_pass_timeout_seconds
         self._ooc_handler_prompt: str = load_ooc_handler_prompt()
+
+    def close(self) -> None:
+        """Release the orchestrator-owned executor.
+
+        No-op when an executor was injected via the constructor — that
+        executor's lifecycle is caller-owned.  Safe to call multiple
+        times.  Uses ``shutdown(wait=False, cancel_futures=True)`` so
+        queued-not-started workers are cancelled and the call does not
+        block on still-running workers (Contradiction has no DB I/O, so
+        the leak is bounded and side-effect-free).
+        """
+        if self._owned_executor is not None:
+            self._owned_executor.shutdown(wait=False, cancel_futures=True)
+            self._owned_executor = None
+
+    def __enter__(self) -> OrchestratorService:
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+        self.close()
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -801,149 +862,141 @@ class OrchestratorService:
           - In every case the caller is responsible for rolling back the
             outer transaction.
 
-        Executor lifecycle:
-          - When ``self._provided_executor is None`` the orchestrator owns a
-            single-worker ``ThreadPoolExecutor`` for the duration of this
-            call and tears it down with ``shutdown(wait=False,
-            cancel_futures=True)`` in a ``finally`` block.  This is what
-            actually makes ``parallel_pass_timeout_seconds`` bound wall
-            time: the historical ``with ThreadPoolExecutor() as exc:``
-            pattern calls ``shutdown(wait=True)`` on exit which would
-            block on the still-running Contradiction worker for its
-            natural runtime.
-          - When ``self._provided_executor`` was injected the caller owns
-            the executor's lifecycle; the orchestrator never calls
+        Executor lifecycle (Codex P1 round 8):
+          - The orchestrator-owned executor (``self._owned_executor``) is
+            a single bounded ``ThreadPoolExecutor`` created in
+            ``__init__`` with ``max_workers=parallel_pass_max_workers``.
+            It is reused across every turn and lives until ``close()``.
+            Per-turn ``submit()`` queues a fresh future; on timeout the
+            orchestrator calls ``future.cancel()`` (which cancels
+            queued-not-started work but cannot interrupt a running
+            provider call).  Total live contradiction workers are
+            therefore bounded by ``max_workers`` — repeated timeouts
+            against a slow provider cannot accumulate workers without
+            bound (the prior per-turn local executor + ``shutdown(wait=
+            False, cancel_futures=True)`` design bounded request wall
+            time correctly but did not cap worker accumulation).
+          - When ``self._provided_executor`` was injected the caller
+            owns the executor's lifecycle; the orchestrator never calls
             ``shutdown`` on it.
         """
-        is_local_executor = self._provided_executor is None
         executor: ThreadPoolExecutor = (
             self._provided_executor
             if self._provided_executor is not None
-            else ThreadPoolExecutor(max_workers=1)
+            else self._owned_executor  # type: ignore[assignment]
         )
+        # ``executor.submit`` itself can raise — most commonly
+        # ``RuntimeError("cannot schedule new futures after shutdown")``
+        # when an injected executor was already shut down by the caller,
+        # or when ``close()`` was called on this orchestrator and a turn
+        # is still in flight.  That must NOT escape the orchestrator: the
+        # terminal-state contract requires a typed PIPELINE_ERROR, so we
+        # wrap any submission failure into ``_ParallelSyncError`` which
+        # the caller already maps to PIPELINE_ERROR + outer-txn rollback.
+        contradiction_future: Future[tuple[ContradictionResult, int]]
         try:
-            # ``executor.submit`` itself can raise — most commonly
-            # ``RuntimeError("cannot schedule new futures after shutdown")``
-            # when an injected executor was already shut down by the caller.
-            # That must NOT escape the orchestrator: the terminal-state
-            # contract requires a typed PIPELINE_ERROR, so we wrap any
-            # submission failure into ``_ParallelSyncError`` which the
-            # caller already maps to PIPELINE_ERROR + outer-txn rollback.
-            contradiction_future: Future[tuple[ContradictionResult, int]]
-            try:
-                contradiction_future = executor.submit(
-                    _timed_for_thread,
-                    lambda: self._contradiction_service.check(
-                        ctx, writer_result.assistant_output
-                    ),
-                )
-            except Exception as exc:  # noqa: BLE001
-                raise _ParallelSyncError(
-                    f"contradiction worker submission failed: {exc}"
-                ) from exc
+            contradiction_future = executor.submit(
+                _timed_for_thread,
+                lambda: self._contradiction_service.check(
+                    ctx, writer_result.assistant_output
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _ParallelSyncError(
+                f"contradiction worker submission failed: {exc}"
+            ) from exc
 
-            # Extractor on this thread, under SAVEPOINT inside the outer txn.
-            try:
-                extractor_result, ext_ms = _timed(
-                    lambda: self._extractor_service.extract(
-                        ctx,
-                        writer_result.assistant_output,
-                        story_id,
-                        writer_result.turn_id,
-                        session=session,
-                    )
+        # Extractor on this thread, under SAVEPOINT inside the outer txn.
+        try:
+            extractor_result, ext_ms = _timed(
+                lambda: self._extractor_service.extract(
+                    ctx,
+                    writer_result.assistant_output,
+                    story_id,
+                    writer_result.turn_id,
+                    session=session,
                 )
-            except ProviderRefusalError:
-                # Best-effort cancel; the worker thread may still be running
-                # naturally to completion.  We do NOT wait for it — that
-                # would defeat the parallel-sync timeout bound for any
-                # failure path.  For locally-owned executors the finally
-                # block detaches it via ``shutdown(wait=False)``.
-                #
-                # Extractor refusal must NOT propagate any partial Extractor
-                # state: the refusal contract's "failing pass result absent"
-                # invariant applies here, so we re-raise the plain
-                # ``ProviderRefusalError`` rather than the
-                # ``_ContradictionRefusalWithExtractor`` wrapper used for
-                # the contradiction-refusal-after-extractor-success case.
-                contradiction_future.cancel()
-                raise
-            except ExtractorPassError as exc:
-                contradiction_future.cancel()
-                raise _ParallelSyncError(f"extractor: {exc}") from exc
-            except Exception as exc:  # noqa: BLE001 — see boundary docstring
-                # Unexpected non-typed exception from Extractor (e.g. a
-                # transport error, a serialization bug, a SQLAlchemy
-                # write surface).  Convert to ``_ParallelSyncError`` so
-                # the narrative caller already maps it to PIPELINE_ERROR
-                # with the cause text and rolls back the outer
-                # transaction.  ``BaseException`` is NOT caught.
-                contradiction_future.cancel()
-                raise _ParallelSyncError(f"extractor unexpected error: {exc}") from exc
+            )
+        except ProviderRefusalError:
+            # Best-effort cancel of the contradiction future: succeeds only
+            # if the future has not started yet (the bounded executor may
+            # have already promoted it onto a worker thread).  Running
+            # work continues until natural completion — it cannot be
+            # interrupted — but holds at most one of the executor's
+            # ``max_workers`` slots and performs no DB I/O.
+            #
+            # Extractor refusal must NOT propagate any partial Extractor
+            # state: the refusal contract's "failing pass result absent"
+            # invariant applies here, so we re-raise the plain
+            # ``ProviderRefusalError`` rather than the
+            # ``_ContradictionRefusalWithExtractor`` wrapper used for
+            # the contradiction-refusal-after-extractor-success case.
+            contradiction_future.cancel()
+            raise
+        except ExtractorPassError as exc:
+            contradiction_future.cancel()
+            raise _ParallelSyncError(f"extractor: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            # Unexpected non-typed exception from Extractor (e.g. a
+            # transport error, a serialization bug, a SQLAlchemy write
+            # surface).  Convert to ``_ParallelSyncError`` so the
+            # narrative caller already maps it to PIPELINE_ERROR with
+            # the cause text and rolls back the outer transaction.
+            # ``BaseException`` is NOT caught.
+            contradiction_future.cancel()
+            raise _ParallelSyncError(f"extractor unexpected error: {exc}") from exc
 
-            try:
-                contradiction_result, contr_ms = contradiction_future.result(
-                    timeout=self._timeout
-                )
-            except FutureTimeout as exc:
-                # Same non-blocking cancel + detach pattern: cancel the
-                # future and let the locally-owned executor's
-                # ``shutdown(wait=False, cancel_futures=True)`` in finally
-                # release this call without waiting on the still-running
-                # Contradiction worker.
-                contradiction_future.cancel()
-                raise _ParallelSyncError(
-                    f"contradiction worker exceeded {self._timeout:.1f}s timeout"
-                ) from exc
-            except ProviderRefusalError as exc:
-                # Contradiction refused AFTER Extractor completed
-                # successfully.  The refusal contract says upstream pass
-                # results are preserved on REFUSED_BY_PROVIDER; only the
-                # failing pass result is absent.  Carry the completed
-                # ``extractor_result`` through the refusal path via a
-                # private wrapper so the narrative caller can populate it
-                # on the resulting OrchestrationResult.
-                raise _ContradictionRefusalWithExtractor(
-                    exc.refusal, extractor_result
-                ) from exc
-            except ContradictionPassError as exc:
-                raise _ParallelSyncError(f"contradiction: {exc}") from exc
-            except CancelledError as exc:
-                # ``concurrent.futures.CancelledError`` subclasses
-                # ``BaseException`` (Python 3.8+) so it would slip past
-                # ``except Exception`` below.  Handle it explicitly so a
-                # cancelled contradiction future still maps to a typed
-                # PIPELINE_ERROR rather than escaping raw.
-                contradiction_future.cancel()
-                raise _ParallelSyncError(
-                    f"contradiction worker cancelled: {exc}"
-                ) from exc
-            except Exception as exc:  # noqa: BLE001
-                # Catch-all for anything else the contradiction worker may
-                # surface through the future: a generic ``RuntimeError``
-                # from the injected model caller, a transport error, an
-                # unexpected ``ValueError`` from downstream serialization,
-                # etc.  These must be mapped to PIPELINE_ERROR per the
-                # orchestrator's exhaustive terminal-state contract; the
-                # specific typed branches above remain authoritative for
-                # their categories.
-                #
-                # ``BaseException`` is deliberately NOT caught:
-                # ``KeyboardInterrupt`` / ``SystemExit`` must propagate so
-                # the host process can shut down cleanly.
-                contradiction_future.cancel()
-                raise _ParallelSyncError(f"contradiction worker failed: {exc}") from exc
+        try:
+            contradiction_result, contr_ms = contradiction_future.result(
+                timeout=self._timeout
+            )
+        except FutureTimeout as exc:
+            # Cancel the future so a queued-but-not-started worker is
+            # released back to the executor pool (already-running work
+            # cannot be interrupted and will run to natural completion).
+            # The orchestrator returns PIPELINE_ERROR promptly here; the
+            # bounded executor caps total live workers at ``max_workers``
+            # so repeated timeouts against a slow provider cannot
+            # accumulate workers without bound.
+            contradiction_future.cancel()
+            raise _ParallelSyncError(
+                f"contradiction worker exceeded {self._timeout:.1f}s timeout"
+            ) from exc
+        except ProviderRefusalError as exc:
+            # Contradiction refused AFTER Extractor completed
+            # successfully.  The refusal contract says upstream pass
+            # results are preserved on REFUSED_BY_PROVIDER; only the
+            # failing pass result is absent.  Carry the completed
+            # ``extractor_result`` through the refusal path via a
+            # private wrapper so the narrative caller can populate it
+            # on the resulting OrchestrationResult.
+            raise _ContradictionRefusalWithExtractor(
+                exc.refusal, extractor_result
+            ) from exc
+        except ContradictionPassError as exc:
+            raise _ParallelSyncError(f"contradiction: {exc}") from exc
+        except CancelledError as exc:
+            # ``concurrent.futures.CancelledError`` subclasses
+            # ``BaseException`` (Python 3.8+) so it would slip past
+            # ``except Exception`` below.  Handle it explicitly so a
+            # cancelled contradiction future still maps to a typed
+            # PIPELINE_ERROR rather than escaping raw.
+            contradiction_future.cancel()
+            raise _ParallelSyncError(f"contradiction worker cancelled: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 — see boundary docstring
+            # Catch-all for anything else the contradiction worker may
+            # surface through the future: a generic ``RuntimeError`` from
+            # the injected model caller, a transport error, an unexpected
+            # ``ValueError`` from downstream serialization, etc.  Mapped
+            # to PIPELINE_ERROR per the orchestrator's exhaustive
+            # terminal-state contract; specific typed branches above
+            # remain authoritative for their categories.  ``BaseException``
+            # is NOT caught so ``KeyboardInterrupt`` / ``SystemExit``
+            # propagate and the host process can shut down cleanly.
+            contradiction_future.cancel()
+            raise _ParallelSyncError(f"contradiction worker failed: {exc}") from exc
 
-            return extractor_result, contradiction_result, ext_ms, contr_ms
-        finally:
-            if is_local_executor:
-                # ``cancel_futures=True`` cancels work that has not yet
-                # started; an already-running Contradiction call cannot be
-                # interrupted and will run to natural completion in the
-                # background.  Contradiction performs no DB I/O so this
-                # leak is bounded and side-effect-free.  This is what
-                # makes the wall-time bound actually hold.
-                executor.shutdown(wait=False, cancel_futures=True)
+        return extractor_result, contradiction_result, ext_ms, contr_ms
 
     # ------------------------------------------------------------------
     # Helpers

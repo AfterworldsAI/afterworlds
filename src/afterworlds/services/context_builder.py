@@ -412,6 +412,23 @@ class ContextBuilderService:
     ) -> VolatileSuffix:
         """Assemble the volatile suffix for one pipeline turn.
 
+        OOC-window policy (Codex P2 #87 round 8): the Context Builder
+        chooses ``exclude_ooc`` explicitly based on the classified intent,
+        so the policy is unambiguous and does not depend on the provider's
+        default.
+
+        - Narrative intents → ``exclude_ooc=True``: OOC Turns must not
+          pollute the story's narrative recent-turn window.
+        - OOC intent → ``exclude_ooc=False``: the OOC handler needs the
+          prior OOC exchanges as context so multi-turn OOC flows stay
+          coherent (e.g. "what does HP mean?" → "remind me which spells
+          I can still cast" should still see the earlier exchange).
+
+        ``RecentTurnsProvider`` retains ``exclude_ooc=True`` as its
+        provider default so other (non-orchestrator) callers continue to
+        get OOC-free narrative windows by default; the Context Builder
+        overrides explicitly per intent.
+
         Args:
             story_id: UUID of the story this turn belongs to.
             raw_input: raw player input string for this turn.
@@ -421,8 +438,9 @@ class ContextBuilderService:
             Frozen VolatileSuffix containing recent turns (oldest-first),
             current input, and classified intent.
         """
+        exclude_ooc = intent_classification.intent_type is not IntentType.OOC
         recent_turns = self._recent_turns_provider.get_recent_turns(
-            story_id, limit=RECENT_TURNS_LIMIT
+            story_id, limit=RECENT_TURNS_LIMIT, exclude_ooc=exclude_ooc
         )
         return VolatileSuffix(
             recent_turns=recent_turns,

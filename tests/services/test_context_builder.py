@@ -70,6 +70,7 @@ from afterworlds.services.context_builder import (
     _TIMESTAMP_SAFETY_BUFFER,
     ContextBuilderService,
     NullRetrievalMemoryProvider,
+    RecentTurnsProvider,
     SQLiteRecentTurnsProvider,
     UnknownModeError,
     load_mode_contract,
@@ -101,19 +102,40 @@ class _FixedRollingSummaryService:
 
 
 class _CountingRecentTurnsProvider:
-    """Stub that counts calls and returns a fixed list of Turns oldest-first."""
+    """Stub that counts calls and returns a fixed list of Turns oldest-first.
+
+    Mirrors the ``RecentTurnsProvider`` protocol; ``exclude_ooc`` defaults
+    to True to match the protocol default and is recorded on
+    ``last_exclude_ooc`` so tests can assert which value the Context
+    Builder forwarded for a given intent (Codex P2 #87 round 8).
+    """
 
     def __init__(self, turns: list[Turn] | None = None) -> None:
         self._turns: list[Turn] = turns or []
         self.call_count: int = 0
         self.last_story_id: UUID | None = None
         self.last_limit: int | None = None
+        self.last_exclude_ooc: bool | None = None
 
-    def get_recent_turns(self, story_id: UUID, limit: int) -> list[Turn]:
+    def get_recent_turns(
+        self,
+        story_id: UUID,
+        limit: int,
+        *,
+        exclude_ooc: bool = True,
+    ) -> list[Turn]:
         self.call_count += 1
         self.last_story_id = story_id
         self.last_limit = limit
-        return self._turns[:limit]
+        self.last_exclude_ooc = exclude_ooc
+        # Honour the filter so tests can rely on the provider behaving
+        # like SQLiteRecentTurnsProvider for OOC turns.
+        candidates = self._turns
+        if exclude_ooc:
+            candidates = [
+                t for t in candidates if t.intent_classification is not IntentType.OOC
+            ]
+        return candidates[:limit]
 
 
 class _CountingRetrievalMemoryProvider:
@@ -1697,3 +1719,165 @@ def test_stable_prefix_render_is_stable() -> None:
     first = assembled.stable_prefix.render()
     second = assembled.stable_prefix.render()
     assert first == second
+
+
+# ===========================================================================
+# OOC recent-turn window policy (Codex P2 #87 round 8)
+#
+# build_volatile_suffix chooses exclude_ooc based on classified intent:
+# narrative intents → True (OOC turns must not pollute narrative context);
+# OOC intent → False (the OOC handler needs prior OOC exchanges as context
+# so multi-turn OOC flows stay coherent).
+# ===========================================================================
+
+
+def _make_ooc_turn(
+    user_input: str = "[OOC] question", out: str = "[OOC] answer"
+) -> Turn:
+    return Turn(
+        user_input=user_input,
+        assistant_output=out,
+        timestamp=_NOW,
+        intent_classification=IntentType.OOC,
+    )
+
+
+def _make_narrative_turn(
+    user_input: str = "narrative input", out: str = "narrative output"
+) -> Turn:
+    return Turn(
+        user_input=user_input,
+        assistant_output=out,
+        timestamp=_NOW,
+        intent_classification=IntentType.IN_CHARACTER_ACTION,
+    )
+
+
+def test_narrative_volatile_suffix_excludes_prior_ooc_turns() -> None:
+    """Narrative intent → ``exclude_ooc=True`` is forwarded to the
+    provider AND the resulting recent_turns list contains no OOC turns.
+    """
+    ooc1 = _make_ooc_turn("[OOC] hp?")
+    nar1 = _make_narrative_turn("I draw my sword")
+    ooc2 = _make_ooc_turn("[OOC] save?")
+    nar2 = _make_narrative_turn("I strike")
+    provider = _CountingRecentTurnsProvider(turns=[ooc1, nar1, ooc2, nar2])
+    service = _make_service(turns_provider=provider)
+
+    suffix = service.build_volatile_suffix(
+        story_id=_STORY_ID,
+        raw_input="I parry",
+        intent_classification=_make_classified_intent(IntentType.IN_CHARACTER_ACTION),
+    )
+
+    assert provider.last_exclude_ooc is True
+    # The filter dropped the two OOC turns; only narrative survives.
+    assert all(
+        t.intent_classification is not IntentType.OOC for t in suffix.recent_turns
+    )
+    assert {t.user_input for t in suffix.recent_turns} == {
+        "I draw my sword",
+        "I strike",
+    }
+
+
+def test_ooc_volatile_suffix_includes_prior_ooc_turns() -> None:
+    """OOC intent → ``exclude_ooc=False`` is forwarded so the OOC handler
+    sees prior OOC exchanges as context for multi-turn OOC flows.
+    """
+    ooc1 = _make_ooc_turn("[OOC] what is HP?", "HP is hit points.")
+    nar1 = _make_narrative_turn("I attack")
+    ooc2 = _make_ooc_turn("[OOC] remind me spells", "fireball, ice shard")
+    provider = _CountingRecentTurnsProvider(turns=[ooc1, nar1, ooc2])
+    service = _make_service(turns_provider=provider)
+
+    suffix = service.build_volatile_suffix(
+        story_id=_STORY_ID,
+        raw_input="[OOC] what about cantrips?",
+        intent_classification=_make_classified_intent(
+            IntentType.OOC, "[OOC] what about cantrips?"
+        ),
+    )
+
+    assert provider.last_exclude_ooc is False
+    # All three turns survive; OOC exchanges are preserved.
+    assert len(suffix.recent_turns) == 3
+    inputs = [t.user_input for t in suffix.recent_turns]
+    assert "[OOC] what is HP?" in inputs
+    assert "[OOC] remind me spells" in inputs
+    # And the narrative one too — OOC follow-ups still see the full
+    # interleaved history.
+    assert "I attack" in inputs
+
+
+@pytest.mark.parametrize(
+    "intent,expected_exclude_ooc,expected_remaining",
+    [
+        (
+            IntentType.IN_CHARACTER_ACTION,
+            True,
+            {"narrative-1", "narrative-2"},
+        ),
+        (
+            IntentType.DIALOGUE,
+            True,
+            {"narrative-1", "narrative-2"},
+        ),
+        (
+            IntentType.LORE_QUESTION,
+            True,
+            {"narrative-1", "narrative-2"},
+        ),
+        (
+            IntentType.AUTHOR_INSTRUCTION,
+            True,
+            {"narrative-1", "narrative-2"},
+        ),
+        (
+            IntentType.OOC,
+            False,
+            {"narrative-1", "ooc-1", "narrative-2", "ooc-2"},
+        ),
+    ],
+)
+def test_mixed_history_window_under_both_intent_types(
+    intent: IntentType,
+    expected_exclude_ooc: bool,
+    expected_remaining: set[str],
+) -> None:
+    """Mixed recent history produces the intended window under both intent
+    types: every non-OOC intent gets the OOC-filtered window; OOC gets the
+    full interleaved history.
+    """
+    turns = [
+        _make_narrative_turn("narrative-1"),
+        _make_ooc_turn("ooc-1"),
+        _make_narrative_turn("narrative-2"),
+        _make_ooc_turn("ooc-2"),
+    ]
+    provider = _CountingRecentTurnsProvider(turns=turns)
+    service = _make_service(turns_provider=provider)
+
+    suffix = service.build_volatile_suffix(
+        story_id=_STORY_ID,
+        raw_input="next input",
+        intent_classification=_make_classified_intent(intent, "next input"),
+    )
+
+    assert provider.last_exclude_ooc is expected_exclude_ooc
+    assert {t.user_input for t in suffix.recent_turns} == expected_remaining
+
+
+def test_recent_turns_provider_default_remains_exclude_ooc_true() -> None:
+    """Provider-level default ``exclude_ooc=True`` is preserved for
+    non-orchestrator callers; the Context Builder overrides it explicitly
+    per intent, but external callers that omit the kwarg still get the
+    OOC-free window by default (Codex P2 #87 round 8 — keep provider
+    default if useful).
+    """
+    from inspect import signature
+
+    sig = signature(RecentTurnsProvider.get_recent_turns)  # type: ignore[arg-type]
+    exclude_ooc_param = sig.parameters.get("exclude_ooc")
+    assert exclude_ooc_param is not None
+    assert exclude_ooc_param.default is True
