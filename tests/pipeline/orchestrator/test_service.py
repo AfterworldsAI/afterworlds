@@ -803,6 +803,205 @@ class TestParallelSync:
 
 
 # ---------------------------------------------------------------------------
+# Parallel-sync submission failure routing (Codex P1 #87)
+#
+# ``executor.submit(...)`` itself can raise — most commonly
+# ``RuntimeError("cannot schedule new futures after shutdown")`` when an
+# injected executor has already been shut down by the caller.  That must
+# not escape ``orchestrate_turn`` as a raw exception; the orchestrator's
+# exhaustive typed-terminal-state contract requires PIPELINE_ERROR + outer
+# transaction rollback for any operational failure inside the parallel-sync
+# stage, submission failure included.
+# ---------------------------------------------------------------------------
+
+
+class TestParallelSyncSubmitFailure:
+    def test_shutdown_executor_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        story_id, node_id = seeded_story
+        # Pre-shut-down injected executor: the orchestrator's next
+        # ``executor.submit(...)`` call inside ``_run_parallel_sync`` will
+        # raise ``RuntimeError("cannot schedule new futures after shutdown")``
+        # before any contradiction future is assigned.  Without the fix
+        # that exception escapes ``orchestrate_turn`` raw.
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.shutdown(wait=False)
+
+        orch, *_ = _make_orchestrator(session_factory, executor=executor)
+
+        # Must not raise.
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "submission failed" in summary, summary
+        assert "parallel sync failed" in summary, summary
+        # Single canonical terminal-cause channel held: no rogue refusal.
+        assert result.provider_refusal is None
+        # Outer transaction rolled back: provisional Turn did not survive.
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+    def test_submit_raising_runtime_error_routes_to_pipeline_error(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Focused unit-style coverage: any ``submit()`` exception, not just
+        the shutdown ``RuntimeError``, must map to PIPELINE_ERROR.  Uses a
+        ThreadPoolExecutor subclass whose ``submit`` always raises so the
+        path is exercised without relying on shutdown-specific message text.
+        """
+
+        class _ExplodingExecutor(ThreadPoolExecutor):
+            def submit(self, fn, /, *args, **kwargs):  # type: ignore[override]
+                raise RuntimeError("synthetic submit failure")
+
+        story_id, node_id = seeded_story
+        executor = _ExplodingExecutor(max_workers=1)
+        try:
+            orch, *_ = _make_orchestrator(session_factory, executor=executor)
+            result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        finally:
+            executor.shutdown(wait=False)
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "synthetic submit failure" in summary, summary
+        assert result.provider_refusal is None
+        verify = session.execute(select(TurnORM)).scalars().all()
+        assert verify == []
+
+
+# ---------------------------------------------------------------------------
+# Preserve extractor_result on contradiction refusal (Codex P2 #87)
+#
+# Refusal contract: "upstream pass results are preserved; only the failing
+# pass result is absent."  When Extractor completes successfully and
+# Contradiction refuses, the resulting REFUSED_BY_PROVIDER must carry the
+# completed ``extractor_result``.  Extractor-side refusal continues to
+# leave ``extractor_result`` absent because Extractor IS the failing pass
+# in that case.
+# ---------------------------------------------------------------------------
+
+
+class TestExtractorPreservationOnContradictionRefusal:
+    def test_contradiction_refusal_preserves_extractor_result(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_, extractor, contradiction = _make_orchestrator(
+            session_factory,
+            contradiction_exc=make_refusal(PassIdentifier.CONTRADICTION),
+        )
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.CONTRADICTION
+        # Upstream pass results preserved.
+        assert result.planner_result is not None
+        assert result.writer_result is not None
+        # Extractor completed before Contradiction refused — must be preserved.
+        assert result.extractor_result is not None
+        # Failing pass (Contradiction) result must be absent.
+        assert result.contradiction_result is None
+        # Sanity: Extractor was actually invoked on the orchestrator thread.
+        assert len(extractor.calls) == 1
+
+    def test_extractor_refusal_leaves_extractor_result_none(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
+        )
+        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.EXTRACTOR
+        # The failing pass result must remain absent — this is what the
+        # OrchestrationResult invariant enforces, and the refusal contract
+        # requires.
+        assert result.extractor_result is None
+        # Upstream Writer result still preserved.
+        assert result.writer_result is not None
+
+    def test_contradiction_refusal_rolls_back_provisional_turn_and_writes(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Real-SQLite proof: even though ``extractor_result`` is preserved
+        on the OrchestrationResult, the outer transaction (and the
+        Extractor SAVEPOINT inside it) still rolls back.  The provisional
+        Turn and every Story Bible write category must not survive.
+        """
+        story_id, node_id = seeded_story
+        # Seed a named character so SoftFactProposal has a target.
+        sbs_seed = StoryBibleService(session)
+        sbs_seed.add_cast_entry(
+            story_id,
+            CastEntry(
+                story_id=story_id,
+                name="Mira",
+                role=CastRole_ANTAGONIST(),
+                current_location="village",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            ),
+        )
+        session.commit()
+
+        pre_turn = session.execute(select(TurnORM)).scalars().all()
+        pre_event = session.execute(select(SBEventORM)).scalars().all()
+        pre_thread = session.execute(select(SBUnresolvedThreadORM)).scalars().all()
+        pre_stage = session.execute(select(SBProvisionalStagingORM)).scalars().all()
+
+        def proposal_factory():
+            return ExtractorProposalSet(
+                proposals=[
+                    LockedFactProposal(fact_text="The vault is sealed."),
+                    SoftFactProposal(
+                        target_domain=TargetDomain.CHARACTER,
+                        target_natural_key="Mira",
+                        target_field="current_location",
+                        proposed_value="forest",
+                    ),
+                    UnresolvedThreadProposal(
+                        description="What did Mira hide in the forest?"
+                    ),
+                    EventProposal(
+                        description="Mira fled to the forest.",
+                        significance=EventSignificance.MAJOR_PLOT_TURN,
+                        event_kind=EventKind.LOCATION_CHANGE,
+                    ),
+                ]
+            )
+
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            contradiction_exc=make_refusal(PassIdentifier.CONTRADICTION),
+            extractor_real_sbs=StoryBibleService(session_factory()),
+            extractor_proposal_factory=proposal_factory,
+        )
+
+        result = orch.orchestrate_turn(story_id, node_id, "Mira moves.")
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        # Per the refusal contract, the completed extractor_result is
+        # surfaced on the OrchestrationResult …
+        assert result.extractor_result is not None
+
+        # … yet none of those writes persisted: outer transaction rolled back.
+        post_turn = session.execute(select(TurnORM)).scalars().all()
+        post_event = session.execute(select(SBEventORM)).scalars().all()
+        post_thread = session.execute(select(SBUnresolvedThreadORM)).scalars().all()
+        post_stage = session.execute(select(SBProvisionalStagingORM)).scalars().all()
+        assert [t.turn_id for t in post_turn] == [t.turn_id for t in pre_turn]
+        assert [e.event_id for e in post_event] == [e.event_id for e in pre_event]
+        assert [t.thread_id for t in post_thread] == [t.thread_id for t in pre_thread]
+        assert [p.proposal_id for p in post_stage] == [p.proposal_id for p in pre_stage]
+
+
+# ---------------------------------------------------------------------------
 # Invariant enforcement on OrchestrationResult
 # ---------------------------------------------------------------------------
 

@@ -453,7 +453,28 @@ class OrchestratorService:
             )
             latency["extractor"] = ext_ms
             latency["contradiction"] = contr_ms
+        except _ContradictionRefusalWithExtractor as exc:
+            # Contradiction refused after Extractor succeeded — preserve the
+            # already-completed extractor_result per the refusal contract
+            # ("upstream results preserved; only the failing pass result is
+            # absent").  The outer transaction still rolls back because the
+            # disposition is REFUSED_BY_PROVIDER, not the success disposition.
+            return self._build_result(
+                PipelineDisposition.REFUSED_BY_PROVIDER,
+                intent_result,
+                latency,
+                turn_start,
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+                writer_result=writer_result,
+                output_safety_result=output_safety,
+                extractor_result=exc.extractor_result,
+                provider_refusal=exc.refusal,
+            )
         except ProviderRefusalError as exc:
+            # Extractor-side refusal: the failing pass result must remain
+            # absent so the OrchestrationResult invariant
+            # ("failing pass result must be None on REFUSED_BY_PROVIDER") holds.
             return self._build_result(
                 PipelineDisposition.REFUSED_BY_PROVIDER,
                 intent_result,
@@ -690,10 +711,18 @@ class OrchestratorService:
 
         Returns Extractor and Contradiction results plus their individual
         latencies in milliseconds.  Raises:
-          - ``ProviderRefusalError`` if either pass refuses.  The caller
-            is responsible for rolling back.
-          - ``_ParallelSyncError`` for any other operational failure or
-            timeout.  The caller is responsible for rolling back.
+          - ``ProviderRefusalError`` if Extractor refuses (the failing pass
+            result must stay absent on the resulting REFUSED_BY_PROVIDER).
+          - ``_ContradictionRefusalWithExtractor`` if Contradiction refuses
+            AFTER Extractor completed successfully, so the caller can
+            preserve the upstream ``extractor_result`` on the resulting
+            REFUSED_BY_PROVIDER per the refusal contract.
+          - ``_ParallelSyncError`` for any other operational failure: an
+            extractor pass error, a contradiction pass error, a worker
+            timeout, or a contradiction worker submission failure (e.g.
+            an injected executor that has already been shut down).
+          - In every case the caller is responsible for rolling back the
+            outer transaction.
 
         Executor lifecycle:
           - When ``self._provided_executor is None`` the orchestrator owns a
@@ -716,14 +745,25 @@ class OrchestratorService:
             else ThreadPoolExecutor(max_workers=1)
         )
         try:
-            contradiction_future: Future[tuple[ContradictionResult, int]] = (
-                executor.submit(
+            # ``executor.submit`` itself can raise — most commonly
+            # ``RuntimeError("cannot schedule new futures after shutdown")``
+            # when an injected executor was already shut down by the caller.
+            # That must NOT escape the orchestrator: the terminal-state
+            # contract requires a typed PIPELINE_ERROR, so we wrap any
+            # submission failure into ``_ParallelSyncError`` which the
+            # caller already maps to PIPELINE_ERROR + outer-txn rollback.
+            contradiction_future: Future[tuple[ContradictionResult, int]]
+            try:
+                contradiction_future = executor.submit(
                     _timed_for_thread,
                     lambda: self._contradiction_service.check(
                         ctx, writer_result.assistant_output
                     ),
                 )
-            )
+            except Exception as exc:  # noqa: BLE001
+                raise _ParallelSyncError(
+                    f"contradiction worker submission failed: {exc}"
+                ) from exc
 
             # Extractor on this thread, under SAVEPOINT inside the outer txn.
             try:
@@ -742,6 +782,13 @@ class OrchestratorService:
                 # would defeat the parallel-sync timeout bound for any
                 # failure path.  For locally-owned executors the finally
                 # block detaches it via ``shutdown(wait=False)``.
+                #
+                # Extractor refusal must NOT propagate any partial Extractor
+                # state: the refusal contract's "failing pass result absent"
+                # invariant applies here, so we re-raise the plain
+                # ``ProviderRefusalError`` rather than the
+                # ``_ContradictionRefusalWithExtractor`` wrapper used for
+                # the contradiction-refusal-after-extractor-success case.
                 contradiction_future.cancel()
                 raise
             except ExtractorPassError as exc:
@@ -762,8 +809,17 @@ class OrchestratorService:
                 raise _ParallelSyncError(
                     f"contradiction worker exceeded {self._timeout:.1f}s timeout"
                 ) from exc
-            except ProviderRefusalError:
-                raise
+            except ProviderRefusalError as exc:
+                # Contradiction refused AFTER Extractor completed
+                # successfully.  The refusal contract says upstream pass
+                # results are preserved on REFUSED_BY_PROVIDER; only the
+                # failing pass result is absent.  Carry the completed
+                # ``extractor_result`` through the refusal path via a
+                # private wrapper so the narrative caller can populate it
+                # on the resulting OrchestrationResult.
+                raise _ContradictionRefusalWithExtractor(
+                    exc.refusal, extractor_result
+                ) from exc
             except ContradictionPassError as exc:
                 raise _ParallelSyncError(f"contradiction: {exc}") from exc
 
@@ -953,9 +1009,31 @@ class _ParallelSyncError(Exception):
     """Operational failure during the Extractor || Contradiction stage.
 
     Raised by ``_run_parallel_sync`` for non-refusal failures: extractor
-    operational error, contradiction operational error, or contradiction
-    worker timeout.  The caller maps this to ``PIPELINE_ERROR``.
+    operational error, contradiction operational error, contradiction
+    worker timeout, or contradiction worker submission failure.  The caller
+    maps this to ``PIPELINE_ERROR``.
     """
+
+
+class _ContradictionRefusalWithExtractor(Exception):
+    """Contradiction refused AFTER Extractor completed successfully.
+
+    Internal-only carrier raised by ``_run_parallel_sync`` so the narrative
+    caller can populate the already-completed ``extractor_result`` on the
+    resulting REFUSED_BY_PROVIDER.  The refusal contract preserves upstream
+    pass results; only the failing pass result is absent.  Extractor-side
+    refusal continues to raise plain ``ProviderRefusalError`` because the
+    failing pass there IS Extractor.
+    """
+
+    def __init__(
+        self, refusal: ProviderRefusal, extractor_result: ExtractorResult
+    ) -> None:
+        super().__init__(
+            f"contradiction refused after extractor success: {refusal.coarse_reason}"
+        )
+        self.refusal = refusal
+        self.extractor_result = extractor_result
 
 
 def _timed[T](fn: Callable[[], T]) -> tuple[T, int]:
