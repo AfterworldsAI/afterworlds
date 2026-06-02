@@ -1,10 +1,12 @@
-# Afterworlds: Synthesized Design Document (v10)
+# Afterworlds: Design Document (v11)
 
-*Revised May 2026 to replace the five-pass pipeline framing with the safety envelope model. Safety is no longer modeled as a mandatory fifth narrative pass after Contradiction. The core narrative pipeline is Planner → Writer → Extractor → Contradiction. A safety envelope wraps the generation core: input preflight before Planner/Writer when orchestration policy requires it, and conditional output audit after Writer and before Extractor/Contradiction when provider or risk policy requires it. See Section 4 and the Construction Readiness Document for full architecture detail.*
+*Revised May 2026 to integrate Owner Decisions #1–#14 from the CRD issue-drafting sequence. This revision preserves the v10 safety-envelope model and cache architecture while updating entitlement ownership, hosted-credit semantics, BYOK/Cloud Services behavior, provider targets, RPG adjudication boundaries, Branching interaction styles and cadence controls, Writing-mode Mentor/Peer terminology, retrieval-memory ownership, frontend stack, Starter Access retention, and the v1 launch sequence.*
 
-*Revised May 2026 to make the caching architecture explicit: Afterworlds owns provider-neutral cache intent, deterministic stable/volatile context separation, and stable-context reuse discipline. Provider/platform-specific cache realization — cache-key semantics, breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified hit behavior — belongs to provider adapters defined during Issue 14. Stable internal context identity is necessary for cache efficiency; it is not, by itself, a provider-agnostic guarantee of cache hits.*
+*Safety remains an envelope around the generation core, not a mandatory fifth narrative pass. The core narrative pipeline is Planner → Writer → Extractor → Contradiction. Input Safety Preflight runs before Planner/Writer when orchestration policy requires it. Conditional Output Safety Audit runs after Writer and before Extractor/Contradiction when provider or risk policy requires it. Provider refusals during provider-backed passes are typed pass failures, not Safety verdicts.*
 
--–
+*Afterworlds owns provider-neutral cache intent, deterministic stable/volatile context separation, and stable-context reuse discipline. Provider/platform-specific cache realization — cache-key semantics, breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified hit behavior — belongs to provider adapters defined during Issue 14. Stable internal context identity is necessary for cache efficiency; it is not, by itself, a provider-agnostic guarantee of cache hits.*
+
+---
 
 ## Core Philosophy
 
@@ -12,143 +14,215 @@ One shared narrative engine. Three UX contracts on top of it.
 
 The platform is the **Sojourn Story State Machine** — not a chatbot wearing a cape.
 
--–
+The product promise is excellent continuity-aware storytelling. Commercial access paths, provider choices, and interface modes may differ, but no supported access path removes the core continuity pipeline or the safety envelope.
+
+---
 
 ## 1. Terminology
 
-Two concepts that must stay distinct:
+Two concepts must stay distinct:
 
-- **Turn** — one interaction unit (one user input + one AI response)
+- **Turn** — one interaction unit: one Sojourner input plus one AI response.
+- **Node** — one persisted story beat or state transition in the story graph.
 
-- **Node** — one persisted story beat / state transition in the story graph
+These often correspond 1:1, but not always. In branching scenarios, a Node may encompass multiple Turns or represent an alternative path never actually traversed. Collapsing them is conceptual debt. Keep them separate throughout the codebase and data model.
 
-These often correspond 1:1, but not always. In branching scenarios, a node may encompass multiple turns, or represent an alternative path never actually traversed. Collapsing them is conceptual debt. Keep them separate throughout the codebase and data model.
+Additional core terms:
 
--–
+- **Sojourner** — the user inhabiting, playing, or authoring inside an Afterworlds story.
+- **Story Bible** — structured narrative canon. It is not prose history.
+- **Rules Package** — ingested mechanical canon and source authority for RPG adjudication.
+- **Rules System Adapter** — hand-authored executable helpers for deterministic rails in a supported RPG rules system.
+- **Character Sheet Model** — persistent, ruleset-specific character state.
+- **RPG Adjudication Loop** — the orchestration layer that uses the Rules Package, Rules System Adapter, Character Sheet Model, dice services, and the narrative pipeline.
+- **Canon pack** — future external narrative/lore reference corpus for Branching or Writing modes. Canon packs are not Rules Packages.
+- **Cloud Services** — Afterworlds-hosted persistence, sync, backup, remote access, hosted ingestion, and any hosted runtime dependent on Afterworlds server resources.
+- **BYOK** — Bring Your Own Key/provider credentials. BYOK is a first-class product path, not a fallback.
+- **Hosted credit** — a provider-neutral, usage-backed entitlement unit computed from structured turn/pass usage metrics through a configurable conversion policy.
+
+---
 
 ## 2. Data Architecture
 
 ### Story Object Hierarchy
 
-```
+```text
 Story
-
-&#x20;└── Arc
-
-&#x20;     └── Chapter
-
-&#x20;          └── Node (story beat / state transition)
-
-&#x20;               └── Turn (interaction unit)
+└── Arc
+    └── Chapter
+        └── Node (story beat / state transition)
+            └── Turn (interaction unit)
 ```
 
 ### Node Schema
 
-Every persisted story beat is a Node:
+Every persisted story beat is a Node.
 
 | Field | Description |
-|—|—|
-| Node ID | Unique identifier |
-| Content | Generated prose or dialogue |
-| State Delta | World mutations caused by this beat (e.g., `gold -50`, `king\_trust: hostile → neutral`) |
-| Branching Logic | Pointers to next possible nodes |
-| Intent Type | Action / Dialogue / Author instruction / Branch choice / Milestone |
-| Metadata | POV, location, mood, tense, timestamp |
+|---|---|
+| `node_id` | Unique identifier. |
+| `content` | Generated prose or dialogue. |
+| `state_delta` | World mutations caused by this beat, such as inventory changes or relationship-state transitions. |
+| `branching_logic` | Base Node field containing canonical graph pointers to next possible nodes. Branching-mode metadata may add presentation/configuration/selection detail, but canonical branch pointers do not migrate out of the base schema. |
+| `intent_type` | Node-level representation: Action / Dialogue / AuthorInstruction / BranchChoice / Milestone. This is narrower than the full Turn intent taxonomy; the full Turn intent value `beat_milestone` maps to the Node-level `Milestone` representation when a story-graph milestone is persisted. |
+| `metadata` | POV, location, mood, tense, timestamp, and similar mode-neutral metadata. |
+| `mode_metadata` | Typed mode-specific metadata for RPG, Branching, or Writing. |
+
+### Turn Schema
+
+A Turn records one interaction unit.
+
+| Field | Description |
+|---|---|
+| `turn_id` | Unique identifier. |
+| `user_input` | One Sojourner input. |
+| `assistant_output` | One AI response. |
+| `timestamp` | Time of the interaction. |
+| `intent_classification` | Full `IntentClassificationResult` produced before context assembly. |
+| `node_id` | Link to the associated Node when applicable. |
+
+A Turn is not a Node. A Node is not a Turn. This distinction survives persistence, service contracts, tests, and UI assumptions.
 
 ### The Story Bible
 
-Structured canon — not prose. A *contract* the AI is bound to honor.
+The Story Bible is structured canon — not prose and not a chat transcript. It is the contract the AI must honor.
 
-- Setting summary and world rules
+It contains, at minimum:
 
-- Cast list: traits, goals, secrets, relationship links
+- setting summary and world rules
+- cast entries with static/dynamic field separation
+- locked facts that cannot be undone
+- forbidden facts that cannot happen
+- relationship ledger entries
+- timeline and Events Ledger entries
+- unresolved plot threads
+- provisional Extractor proposals awaiting ratification
 
-- Timeline of locked events
+The Story Bible has three partitions:
 
-- Unresolved plot threads
+| Partition | Contents | Mutation policy |
+|---|---|---|
+| Static | Setting summary, world rules, cast profiles, locked facts, forbidden facts | Written at setup or explicit confirmation. Requires Sojourner confirmation to change. |
+| Dynamic | Current relationship states, active world conditions, ongoing plot threads, transient character/world state not owned by the character sheet | Extractor-maintained and append-safe. Prior values remain reconstructable. |
+| Provisional | Extractor-proposed updates pending ratification | Staged separately. Not visible as canon until ratified. |
 
-- Forbidden facts (cannot happen)
+The Extractor proposes Story Bible updates. It does not write canon directly.
 
-- Locked facts (cannot be undone)
+### The Rules Package
 
-The Story Bible is read before every generation call and updated — carefully — after, via the Extractor. See Section 4 for update policy.
-
-### The Rules Package *(RPG-first, reusable as Canon Package for Branched and Writing modes)*
-
-Rules do **not** live inside the Story Bible. The Story Bible governs fictional canon; the Rules Package governs mechanical canon. They must remain separate.
-
-A canon pack is an external, queryable lore corpus for non-RPG continuity needs (for example: franchise canon, adaptation references, or fan-fiction setting material). Unlike a Rules Package, it contains narrative reference material rather than mechanical adjudication rules.
+Rules do **not** live inside the Story Bible. The Story Bible governs fictional canon; the Rules Package governs mechanical canon. They must remain structurally separate.
 
 A Rules Package is a versioned, modular, externally stored corpus containing:
 
-- Core rule text and subsystem chunks
+- core rule text and subsystem chunks
+- structured mechanical entities: conditions, actions, spells, items, stat blocks, and similar records
+- rule metadata covering system, source, precedence, enabled/disabled status, and publication state
+- source provenance and source authority ordering
+- house-rule and package-patch overrides
+- retrieval and indexing support for play-time lookup
 
-- Structured mechanical entities (conditions, actions, spells, items, stat blocks, etc.)
+**Ingestion model:** rulebooks, licensed/open materials, or approved user-supplied documents are processed through an offline/admin ingestion pipeline into SQL and vector indexes. The live GM model does not build the Rules Package during play and does not receive whole rulebooks in context.
 
-- Rule metadata (system, module, source, precedence, enabled/disabled status)
+**Play-time model:** the Context Builder and RPG integration retrieve only the rules relevant to the current turn. Deterministic calculations should move to code/services where practical. The model narrates and adjudicates from retrieved rule slices rather than “remembering” a system wholesale.
 
-- House-rule and setting-specific overrides
+**v1 assumption:** d20 is the first curated Rules Package, based on the approved SRD ingestion path. A bounded d20 Rules System Adapter is the first supported deterministic rail.
 
-- Retrieval indexes for play-time lookup
+A Rules Package may exist without a compatible Rules System Adapter. Such a package can be ingested and queried, but it cannot be offered as a fully supported adjudicated RPG system until a compatible adapter exists.
 
-**Ingestion model:** rulebooks, licensed/open materials, or user-supplied documents are processed through an offline/admin ingestion pipeline into a dedicated Rules Corpus (SQL + vector index). The live GM model does **not** build this corpus during play and does **not** receive whole rulebooks in prompt context.
+### Rules System Adapter
 
-**Play-time model:** the Context Builder retrieves only the rules relevant to the current turn (for example: attack resolution, a spell entry, an active condition, a monster trait). Deterministic calculations should move to code/services where practical; the model narrates and adjudicates from the retrieved packet rather than “remembering” the system wholesale.
+The Rules System Adapter is executable, hand-authored, system-specific code. It owns deterministic helpers that cannot safely be left to prose generation:
 
-**v1 assumption:** d20 is the first curated Rules Package. Future systems (GURPS, Shadowrun, etc.) slot in as additional Rules Packages using the same ingestion and retrieval path.
+- dice generation and result preservation
+- roll visibility rules
+- simple modifier aggregation when code has the required data
+- enforcement of `gm_cheating = off`
+- audit records for trust-relevant rolls and adjudication inputs
+- other bounded deterministic helpers approved for the system
 
-The same ingestion pattern can later support lighter-weight canon packs for Branching and Writing modes (for example: franchise lore packs, fan-fiction canon packets, or setting bibles larger than the normal Story Bible should carry).
+Rules ingestion does not generate executable mechanics. Each supported RPG system with deterministic rails needs a hand-authored adapter.
 
--–
+### Character Sheet Model
+
+The RPG character sheet is a first-class persistent object and is ruleset-specific. It is not a blob, not a freeform field, and not mode session state.
+
+The concrete v1 sheet is d20/D&D-derived and includes typed mutable resources such as current and maximum HP, spell slots, inventory, class, stats, skills, and equipment. The character sheet binds to the active Rules Package by identifier. Rules meaning and legality are interpreted by the Rules Package plus adjudication layer; the base persistence layer must not encode universal RPG rule assumptions.
+
+### Canon Packs
+
+Canon packs are future external narrative/lore corpora for Branching and Writing modes. They reuse the ingestion/retrieval pattern where appropriate but do not carry mechanical adjudication authority. They are deferred beyond the current v1 construction plan unless a later issue explicitly scopes them.
+
+---
 
 ## 3. Memory Architecture
 
-Six layers, each with a distinct role:
+Six memory layers remain distinct.
 
 | Layer | Contents | Inclusion |
-|—|—|—|
-| Immediate | Last ~10 turns verbatim | Always |
-| Rolling Summary | Compressed narrative, auto-updated every N turns | Always |
-| Story Bible | Structured canon | Always |
-| Rules Package | Retrieved mechanical canon or external canon-pack context | On demand by mode |
-| Retrieval Memory | Vector DB of past scenes, pulled by semantic relevance | On demand |
-| Contradiction Checker | Pre-output scan for continuity violations | Every turn; core checker always on, retrieval depth may expand with entitlement or user-configured cost guardrails |
+|---|---|---|
+| Immediate | Last ~10 recent narrative turns verbatim | Always for ordinary narrative windows; OOC turns remain persisted for audit/history but are excluded from later narrative recent-turn windows by `RecentTurnReader` unless a later issue explicitly defines a different retrieval surface. |
+| Rolling Summary | Compressed narrative history, auto-updated every N turns | Always when present. |
+| Story Bible | Structured canon and active context window | Always. |
+| Rules Package | Retrieved mechanical canon or future canon-pack slices | On demand by mode and intent. |
+| Retrieval Memory | Vector DB of past scenes/events and other approved retrieval records | On demand. |
+| Contradiction Checker | Synchronous check of Writer output against provided canon and context | Every ordinary narrative turn; retrieval depth may expand later, but the checker itself is core. |
 
-### Contradiction Checker — What It Catches
+### Retrieval Memory
 
-- Dead characters speaking or acting
+ChromaDB remains in v1 scope.
 
-- Items in inventory never acquired
+Issue 18 owns ChromaDB retrieval-memory design and implementation. It begins with a mandatory ADR / owner checkpoint before implementation proceeds. The ADR must resolve, at minimum:
 
-- Location or name drift
+- collection schema for story retrieval memory and rules/corpus vector use without violating the Rules Package authority model
+- metadata shape, including story/node/turn provenance, mode, timestamps, source type, chunk kind, and fields needed for filtering/debugging
+- scene/document chunking policy
+- embedding strategy and configuration surface
+- retrieval defaults: top-k, score threshold behavior, filtering rules, and empty-result behavior
+- write triggers and timing
+- update/delete/reindex semantics
+- retrieval query construction
+- how results enter the existing `RetrievalMemoryProvider` / `StablePrefix.retrieval_memory` seam
+- test obligations for retrieval relevance, metadata filtering, non-cross-story leakage, and Context Builder integration
 
+Only delivery-cleared material becomes ordinary retrieval memory. Prose blocked by Safety, Contradiction, provider refusal, or pipeline error must not be written as ordinary retrieval memory.
+
+The ADR is accepted only through explicit owner approval in the issue thread or PR before implementation code proceeds. If the ADR surfaces a larger unresolved question, split the work into Issue 18a design and Issue 18b implementation. Otherwise keep it as one gated Issue 18.
+
+### Contradiction Checker
+
+The Contradiction Checker catches clear, attributable continuity violations before the Sojourner sees the output.
+
+Representative categories include:
+
+- dead characters speaking or acting
+- items in inventory that were never acquired
+- location or name drift
 - POV or tense shift mid-scene
+- violated locked facts
 
-- Violated locked facts
+The checker runs on Writer output, not merely on input context. A contradiction the Sojourner reads and then gets corrected on the next turn has already damaged the experience. Continuity checking is part of the product, not a premium ornament.
 
-This is what separates “better memory” as a marketing claim from “better memory” as a product reality.
+---
 
-Continuity checking is part of the product, not a premium ornament. Afterworlds does not ship a degraded access path that removes canon maintenance or contradiction prevention in order to manufacture an upsell. All real product access paths — hosted subscription, starter access if offered, and BYOK — run the same Sojourn orchestration path, including the core narrative pipeline and the safety envelope.
+## 4. Narrative Orchestration Pipeline
 
-Commercial differences may later affect usage entitlements, retrieval budgets, or service allowances, but not whether the core continuity machinery or responsible guardrails exist.
+Every ordinary narrative turn passes through the Sojourn orchestration path. Mode, access path, and task complexity may influence model class, retrieval depth, and billing behavior. They do not determine whether the core narrative pipeline or safety envelope exists.
 
--–
+The core narrative pipeline is:
 
-## 4. The Narrative Orchestration Pipeline
-
-Every input passes through the Sojourn orchestration path. Mode, access path, and task complexity may influence model class, retrieval depth, and billing behavior, but not whether the core narrative pipeline and safety envelope are present.
-
-The core narrative pipeline is: **Planner → Writer → Extractor → Contradiction**
-
-The safety envelope wraps the generation core:
-
-- **Input Safety Preflight** — runs before Planner/Writer when orchestration policy requires it (e.g., provider not on the safety whitelist, or explicit risk signal)
-- **Provider Refusal Handling** — during any provider-backed pass; treated as a typed pass failure, not a Safety verdict
-- **Conditional Output Safety Audit** — runs after Writer and before Extractor/Contradiction when provider or risk policy requires it
-
-The practical orchestration shape is:
-
+```text
+Planner → Writer → Extractor → Contradiction
 ```
+
+The safety envelope wraps that core:
+
+- **Input Safety Preflight** — runs before Planner/Writer when orchestration policy requires it.
+- **Provider Refusal Handling** — happens during any provider-backed pass; refusal is a typed pass failure, not a Safety verdict.
+- **Conditional Output Safety Audit** — runs after Writer and before Extractor/Contradiction when provider or risk policy requires it.
+
+Practical shape:
+
+```text
 [Input Safety Preflight, when required]
 Planner
 Writer
@@ -158,517 +232,615 @@ Contradiction
 Deliver / Persist
 ```
 
-Safety is a guardrail envelope, not a mandatory terminal narrative pass. If a Sojourner request violates policy, the system stops before generation starts. If Writer output violates policy, the system stops before Extractor and Contradiction — the Extractor must not extract canon from prose that will never be delivered.
+If input violates Afterworlds policy, the system stops before generation starts. If Writer output violates policy, the system stops before Extractor and Contradiction. The Extractor must not extract canon from prose that will never be delivered.
 
 ### Step 1 — Intent Classification
 
-Classify *before* building context:
+Intent is classified before context assembly.
 
-- In-character action
+The v1 intent taxonomy includes:
 
-- Dialogue
+- in-character action
+- dialogue
+- author instruction
+- branch choice
+- beat milestone
+- rewind / retry / regenerate
+- lore question
+- OOC
 
-- Author instruction
-
-- Branch choice
-
-- Beat milestone set
-
-- Rewind / retry / regenerate
-
-- Lore question
+The classifier produces a typed result. No downstream component should infer intent from raw input after the classifier has run. `beat_milestone` is the full Turn-level intent name; `Milestone` is the narrower Node-level `intent_type` representation when that intent becomes a persisted story-graph milestone.
 
 ### Step 2 — Context Assembly
 
-Stack in priority order:
+The Context Builder assembles a stable prefix once per turn and a volatile suffix once per turn. The stable prefix is shared across provider-backed passes for cache efficiency and context consistency.
 
-```
-\[System prompt + mode contract]
+Canonical order:
 
-\[Story Bible (includes cast ledger, world state)]
-
-\[Rolling summary]
-
-\[Retrieved relevant Rules Package or canon-pack slices as needed by mode]
-
-\[Retrieved relevant memories]
-
-\[Recent turns verbatim]
-
-\[Current input + classified intent]
+```text
+[System prompt + mode contract]
+[Story Bible active context]
+[Rolling summary]
+[Retrieved relevant Rules Package or canon-pack slices as needed by mode]
+[Retrieved relevant memories]
+[Recent turns verbatim]
+[Current input + classified intent]
 ```
 
-### Step 3 — Core Narrative Pipeline and Safety Envelope
+The structured internal envelope remains provider-neutral. Provider-specific rendering belongs downstream to pass renderers and provider adapters.
+
+### Step 3 — Core Pass Responsibilities
 
 | Pass | Function |
-|—|—|
-| **[Input Safety Preflight]** | Evaluates Sojourner request against Afterworlds policy before generation starts. Conditional: runs when orchestration policy requires it. |
-| **Planner** | Scene goal, next beat, facts needed |
-| **Writer** | Polished prose and dialogue |
-| **[Output Safety Audit]** | Evaluates Writer-generated prose against Afterworlds policy before downstream passes run. Conditional: runs when provider or risk policy requires it. |
-| **Extractor** | Pulls new facts, state deltas, continuity updates — proposes Story Bible updates |
-| **Contradiction** | Checks output against Story Bible before it leaves the system |
-
-**Access routing:**
-
-Hosted subscription, starter access if offered, and BYOK all run the full Sojourn orchestration path, including both the core narrative pipeline and the safety envelope.
-
-Commercial routing governs credit consumption, top-up prompts, Cloud Services entitlements, and provider billing path — not whether core continuity passes or responsible guardrails are present.
+|---|---|
+| `[Input Safety Preflight]` | Evaluates Sojourner request against Afterworlds policy before generation starts. Conditional. |
+| Planner | Produces scene goal, next beat, facts needed, and optional structural notes. |
+| Writer | Produces polished prose/dialogue or OOC handler text where applicable. |
+| `[Output Safety Audit]` | Evaluates Writer output against Afterworlds policy before downstream state changes. Conditional. |
+| Extractor | Pulls new facts, state deltas, continuity updates, unresolved threads, and events from Writer output; proposes Story Bible updates. |
+| Contradiction | Checks Writer output against Story Bible and assembled context before delivery. |
 
 ### Step 4 — Extractor Update Policy
 
-The Extractor proposes candidate Story Bible updates. It does not write directly to canon. Updates are classified before acceptance:
+The Extractor emits typed proposals. It never bypasses the Story Bible service.
 
 | Classification | Handling |
-|—|—|
-| **Locked fact** | Requires explicit Sojourner confirmation before commit |
-| **Soft fact** | Auto-committed with low confidence flag, Sojourner can review |
-| **Transient state** | Auto-committed (e.g., current location, active quest) |
-| **Unresolved thread** | Queued to plot thread tracker, not committed to canon |
+|---|---|
+| Locked fact | Stage and require explicit Sojourner confirmation before canon commit. |
+| Soft fact | Stage and auto-ratify with low-confidence semantics encoded by proposal type. |
+| Transient state | Stage and auto-ratify as current dynamic canon. |
+| Unresolved thread | Queue to unresolved-thread tracking; do not treat as locked canon. |
+| Event | Append through the Events Ledger `add_event` path with event kind and retention significance. |
 
 An Extractor that auto-canonizes everything will hallucinate trivia into permanent law within a few chapters. This policy prevents that.
 
-### Step 5 — State Persistence
+### Step 5 — Persistence
 
-- Save Turn; create or update Node
+A delivered ordinary narrative turn persists:
 
-- Apply State Delta to World State
+- the Turn
+- the associated Node or Node update
+- approved state deltas
+- Extractor-routed Story Bible updates
+- rolling summary updates when threshold conditions are met
+- retrieval-memory writes for delivery-cleared material
 
-- Trigger rolling summary update if threshold hit
-
-- Commit Extractor-approved updates to Story Bible
-
-- Push scene to vector DB
+Blocked, refused, or errored outputs do not survive as ordinary delivered narrative state.
 
 ### Step 6 — Optional Multimodal
 
-- Scene image generated from Node metadata (character appearance pulled from Story Bible for visual consistency across chapters)
+Deferred beyond v1:
 
+- scene image generation from Node metadata
 - TTS narration
+- ambient audio triggers
 
-- Ambient audio trigger
+These are downstream presentation layers. They must not become a substitute for the text pipeline’s canon discipline.
 
--–
+---
 
 ## 5. The Three Modes
 
-All three modes run on the Sojourn pipeline. They differ in prompt contract, planning emphasis, and UI affordances.
+All three modes run on the same Sojourn orchestration path. They differ in prompt contract, setup flow, mode-specific state, UI affordances, and orchestration details.
 
 ### RPG Mode
 
-- **System prompt:** AI is Game Master running a d20-based tabletop RPG. Consequence-first narration; preserve Sojourner agency. Never tell players what they feel. Dice rolls govern all conflict including NPCs. GM cheating is calibrated to tone (gritty through danger-free) and can be disabled entirely by player configuration. Rule set consistency is maintained throughout — rule sets are modular, with d20 as the first and only v1 exemplar.
+RPG mode presents the AI as a Game Master running a d20-based tabletop RPG.
 
-- **Pre-play sequence:** World setup first (player describes setting in free text; GM confirms and asks clarifying questions); then character creation within that world context (GM-led conversational creation or player-supplied sheet; play does not begin until sheet is complete enough to adjudicate against). *v1 supports original and custom settings only; player-supplied Setting Canon Packs for licensed settings deferred to v2/v3.*
+Core commitments:
 
-- **Character sheet:** First-class persistent object. Persists across all sessions for that story. Mutable during play — HP damage, level-ups, temporary buffs, spell effects, permanent modifications. Not a conversation artifact or a blob on session state.
+- Consequence-first narration.
+- Preserve Sojourner agency.
+- Never tell the player what their character feels except under clear in-world influence such as magic, telepathy, or madness.
+- Use dice for trust-relevant conflict.
+- Maintain rule-set consistency.
+- Keep hidden information hidden from the Sojourner while preserving backend auditability.
 
-- **World State sidebar:** HP, inventory, relationship meters, location (visible or hidden per Sojourner preference)
+#### Setup
 
-- **Rules access:** RPG mode binds to one active Rules Package. The GM receives only turn-relevant rule slices and house-rule overrides, never the entire rule library in prompt context.
+Pre-play is mandatory:
 
-- **Mechanical adjudication:** Two dice modes configured by player — Player rolls (GM announces check type and all applicable modifiers, waits for player to report result, never narrates outcome before the roll; stops and requests the roll if player acts without reporting one) or AI rolls (GM rolls and always shows the result for player character actions. Exception: hidden rolls for checks the player has no in-world awareness of are resolved privately in both modes — the outcome is narrated without showing the roll). Modifiers from character sheet, situation, retrieved rule text, and house rules; tone calibrates consequence severity.
+1. **World setup** — the Sojourner describes the original/custom setting. The GM confirms understanding and asks critical clarifying questions.
+2. **Character creation** — the GM leads conversational creation or accepts a completed sheet. Play does not begin until the sheet is complete enough to adjudicate.
 
-- **Primary intent types:** Action, dialogue, lore question
+v1 supports original and custom settings only. Player-supplied Setting Canon Packs for licensed settings are deferred.
+
+#### Configuration and UI Notes
+
+RPG setup keeps the older player-configuration intent while respecting the newer deterministic-rails architecture.
+
+- **Session type** is a configuration parameter: Short Adventure / Campaign / Open-ended. It shapes pacing expectations and may drive gentle usage guidance for long-running campaigns.
+- **Tone** is a frontend dropdown, not free text: Gritty / Balanced / Forgiving / Danger-free. It calibrates consequence severity and GM posture without overriding roll-result preservation when `gm_cheating = off`.
+- **GM cheating** remains player-configurable prompt behavior except for the code-enforced `gm_cheating = off` invariant. The UI should warn plainly that disabling GM cheating means all trust-relevant roll results are honored absolutely.
+- **World-state presentation** may include a compact sidebar for visible state such as HP, inventory, relationship meters, and location. Hidden information remains hidden from the Sojourner while staying backend-visible for auditability.
+
+#### Dice and Adjudication
+
+Code owns deterministic RPG rails and auditability. The model performs rules interpretation and narrative adjudication from retrieved Rules Package slices.
+
+The LLM may request or propose rolls. It may not author numeric results for trust-relevant rolls.
+
+Dice handling has two player-visible modes:
+
+- **Player rolls** — the GM announces the check and applicable modifiers, waits for the Sojourner to report the result, and does not narrate the outcome before the roll exists.
+- **AI rolls** — code generates the result and the GM shows the result for player-character actions.
+
+Hidden rolls are hidden from the Sojourner, not from the backend. Hidden rolls are generated by code, recorded internally, and passed to the model only as resolved adjudication facts with player-facing visibility constraints.
+
+#### GM Cheating
+
+GM cheating is prompt/configuration behavior in v1, not a code-side roll-alteration system, with one exception:
+
+- `gm_cheating = off` is enforced by code as a strict roll-result preservation invariant.
+
+When `gm_cheating = off`, all trust-relevant roll results are honored absolutely, including climactic moments. No narrative convenience gets to mug arithmetic in an alley.
+
+#### Rules Architecture
+
+RPG mode uses four separate parts:
+
+| Component | Role |
+|---|---|
+| Rules Package | Ingested mechanical canon and source authority. |
+| Rules System Adapter | Hand-authored executable helpers and deterministic rails for a supported rules system. |
+| Character Sheet Model | Persistent ruleset-specific state. |
+| RPG Adjudication Loop | Orchestration layer using all three plus dice services and the narrative pipeline. |
+
+For v1, the supported adapter is a bounded d20 adapter.
 
 ### Branching Mode
 
-- **System prompt:** AI is story architect, maintaining dramatic shape.
+Branching mode is a story architect contract. It preserves literary prose while making interaction affordances structured.
 
-- **Optional canon packs (future-lightweight extension):** Branching mode may attach an external canon/lore pack for franchise or fan-fiction continuity without inflating the Story Bible.
+Generated narrative prose remains natural language. Branch options and interaction state are not left embedded loosely in Writer prose. They must be structured, validated, persisted, and available to the UI.
 
-- **Invisible plot graph:** Tracks current node, pacing stage (setup / escalation / reversal / climax / aftermath), locked outcomes. Pacing stage progression calibrated to player’s configured length preference (short story / novella / novel).
+Structured Branching output includes:
 
-- **Branch generation:** After each narrative beat, a secondary generation call produces 3–5 contextually relevant branch options. Sojourner may select one or type freeform. Both are first-class options presented with equal prominence — branch cards exist to inspire and indicate what’s possible, not to confine.
+- branch options
+- freeform availability
+- branch-count range
+- branch presentation state
+- branch-selection metadata
 
-- **Freeform handling:** Freeform input is mapped against current dramatic validity bands — not forced onto a preset rail. If Sojourner input meaningfully exceeds the current branch set, a new branch spawns rather than coercing the input. The story visibly adapts; it does not pretend it always knew where you were going.
+#### Interaction Styles
 
-- **Non-destructive branching** *(v2):* “What If?” paths are explored without touching the canonical timeline. Both exist in parallel. Deferred to v2.
+At setup, the Sojourner chooses one interaction style and one Branching cadence/verbosity setting. These are separate axes.
 
-- **Visual story map** *(v2):* Branch tree rendered in real time so Sojourners can see the shape of their story, not just inhabit it linearly. Deferred to v2.
+Interaction style controls the input mechanism.
+
+| Style | Behavior | Allowed branch-count ranges |
+|---|---|---|
+| Freeform only | The Sojourner inputs their own text. No branch cards are generated or displayed during ordinary play. | None. |
+| Hybrid freeform + branch cards | The Sojourner may type freeform input or choose from generated branch options. | 1–2, 2–3, or 3–4 branch options. |
+| True CYOA / choices-only | The Sojourner chooses only from generated branch options during ordinary play. Freeform narrative input is not available during ordinary play. | 2–3, 2–4, or 2–5 branch options. |
+
+Hybrid is the only mode where branch cards and freeform input are presented together with equal prominence. Freeform-only and True CYOA are distinct interaction contracts.
+
+Branching cadence/verbosity controls the storyteller’s output density and decision-point pacing. It is preserved for all Branching interaction styles, including Freeform-only, because even a Sojourner who writes their own action every turn still needs a dial for how expansive the story architect’s response should be. The Sojourner controls their own input verbosity turn-by-turn by how much they write before submitting; the cadence setting controls the system’s response style.
+
+| Cadence | Behavior |
+|---|---|
+| Interactive | Shorter storyteller beats, faster return to the Sojourner, and more frequent explicit decision points where branch cards are enabled. |
+| Balanced | Moderate storyteller beats, ordinary scene development, and branch-card presentation at natural beat boundaries where branch cards are enabled. |
+| Immersive | Longer, more literary storyteller beats, slower scene development, and less frequent explicit decision points where branch cards are enabled. |
+
+In True CYOA, ordinary play remains choices-only. The cadence setting controls how much narration the story architect produces before presenting the next required choice; it does not make ordinary freeform action available. In Freeform-only, cadence controls storyteller verbosity and pacing only; it does not create branch cards.
+
+The interaction style and cadence may later change through an OOC request. That change updates persisted Branching-mode configuration. It is not a vague prompt instruction.
+
+If ordinary freeform narrative text reaches the backend while the story is configured as True CYOA, and it is not explicitly classified as OOC, the system treats it as an invalid interaction for that style and asks the Sojourner to choose an available branch or use OOC to change configuration. It must not silently convert the text into story action, ignore it, or treat it as OOC without classification support.
+
+#### Setup and Story-Architecture Controls
+
+Branching setup preserves the older story-architect intent while translating it into the typed interaction contract.
+
+- **Tone** is not a rigid separate dropdown. It lives in the world/story summary alongside genre, setting, and narrative register.
+- **Setup** uses the hybrid model: structured fields followed by a lightweight story-architect confirmation pass.
+- **Length preference** is a configuration parameter: Short Story / Novella / Novel. It shapes pacing-stage progression through setup, escalation, reversal, climax, and aftermath.
+- **Story seeds and supporting cast** are optional setup fields. Sojourners may provide dramatic hooks, premises, allies, rivals, and antagonists.
+- **Branching cadence/verbosity** is a persisted configuration parameter with Interactive / Balanced / Immersive values. It applies to all Branching interaction styles; for branch-card styles it shapes both storyteller verbosity and branch presentation cadence, while for Freeform-only it shapes storyteller verbosity and pacing only.
+- **Freeform handling** in Freeform-only and Hybrid should map Sojourner input against dramatic validity without forcing it onto a preset rail. If the Sojourner meaningfully exceeds the current branch set, the story should adapt rather than pretending the branch card was always the only legal road.
+
+#### Future Branching Extensions
+
+Optional canon/lore packs, visual story map, non-destructive What If? branches, richer branch-timing controls, and more elaborate branch-tree visualization remain deferred beyond v1 unless separately scoped. The v1 typed output contract should not make those features artificially hard later.
 
 ### Writing Mode
 
-- **System prompt:** AI is collaborative writing partner — not GM, not architect. Role and orientation determined by persona selection. The user is the author of record in all cases.
+Writing mode is a collaborative writing contract. The user is the author of record.
 
-- **Optional canon packs (future-lightweight extension):** Writing mode may attach an external canon/lore pack when the Sojourner is writing in an existing setting or franchise.
+Persona selection determines relationship orientation. The UI presents a gallery divided into **Mentors** and **Peers**.
 
-- **Persona-based relationship model:** No explicit submode labels. The player selects a persona from a gallery divided into two categories — Mentors and Peers — which determines the AI’s fundamental relationship orientation.
+#### Mentors
 
-- **Mentors** (Chiron, Merlin, Vidura): developmental guides. Primary orientation is teaching through making — craft goals, generative exercises, targeted feedback aimed at a specific craft objective. Manuscript repair is not their function; bringing existing prose to a Mentor is a diagnostic path only (“what should we work on?”).
+Mentors are developmental teachers. Their primary orientation is teaching through making: craft goals, generative exercises, targeted feedback, and structured practice.
 
-\- **Peers** (Odin, Athena, Thoth): creative collaborators. Primary orientation is making alongside the user — generating prose, proposing directions, pushing the work forward. Teaching available but not default; a Peer speaks up about craft only when something is genuinely holding the work back, or when asked.
+- **Chiron** — patient, methodical, systematic.
+- **Merlin** — wise, metaphorical, pattern-oriented.
+- **Vidura** — direct, ethically grounded, no-nonsense.
 
-- **Beat Control:** Sojourner sets milestone constraints (“By end of this chapter, X must happen”) the AI is bound to honor.
+Bringing existing prose to a Mentor is a diagnostic path: “what should we work on?” It is not a manuscript-repair service.
 
-- **Exposed controls:** Tense, POV, length, style density, dialogue/narration ratio, genre conventions.
+#### Peers
 
-- **Version history and draft branching** — compare outputs, restore previous versions.
+Peers are creative collaborators. Their primary orientation is making alongside the Sojourner: generating prose, proposing directions, maintaining continuity, challenging weak logic, and pushing the work forward.
 
-- All writing is rewriting.
+- **Odin** — relentless, unsparing, drawn to the harder path.
+- **Athena** — strategic, structural, precise.
+- **Thoth** — meticulous, language-obsessed, sentence-level attentive.
 
-- Strongest style conditioning of the three modes.
+Peers prefer generative work but can work on existing manuscript material when the project calls for it.
 
-- Mentor focus: craft development through making. Peer focus: project-forward collaboration with the user as author of record throughout.
+#### Setup and Authoring Controls
 
--–
+Writing setup preserves the older hybrid setup intent while keeping Issue 17’s scope boundary intact.
+
+- The roster is intentionally small in v1: three Mentors and three Peers. It gives meaningful choice without creating excessive prompt, UI, and test burden.
+- Setup uses structured fields followed by the selected persona opening with a brief confirmation and one or two clarifying questions specific to that orientation.
+- Work does not begin until the relationship orientation and immediate writing goal are clear.
+- Beat control allows the Sojourner to set milestone constraints such as “By the end of this chapter, X must happen.”
+- Exposed controls may include tense, POV, length, style density, dialogue/narration ratio, genre conventions, and similar writing-surface controls.
+- Writing mode has the strongest style-conditioning needs of the three modes.
+
+#### Issue 17 Scope
+
+Issue 17 owns:
+
+- Writing-mode setup
+- persona selection and behavior
+- Mentor/Peer relationship orientation
+- prompt-contract injection
+- beat constraints
+- mode-specific orchestration behavior
+- minimal future-compatible version-history pointers
+
+Issue 17 does not own full version history, draft branching, restore/rollback workflows, compare views, or broader manuscript evolution tooling in v1 unless a later dedicated issue explicitly scopes them. Deferred manuscript-evolution tooling remains a future design target, not a feature to accidentally block.
+
+Minimal future-compatible version-history pointers may include lightweight identifiers, provenance references, or links to prior draft artifacts/turns sufficient for later tooling to understand where generated or revised material came from. They must not imply full snapshot trees, restore workflows, compare views, branch management, or a manuscript-versioning UI in v1.
+
+Persona expansion across RPG and Branching is a future consideration. v1 should not couple persona behavior so tightly to Writing mode that future cross-mode personas become unnecessarily difficult.
+
+---
 
 ## 6. Tech Stack
 
-**Backend:** Python + FastAPI
+| Component | Decision |
+|---|---|
+| Backend | Python 3.12 + FastAPI. |
+| Persistence | SQLite first. |
+| Retrieval memory | ChromaDB included in v1. |
+| Frontend | React + Vite + TypeScript. |
+| Deployment | Local web server accessed through a browser. |
+| Model access | Hosted provider routing and BYOK provider credentials. |
+| Package management | pip + virtualenv. |
+| Testing / quality | pytest, mypy strict, Ruff, Black, pip-audit, detect-secrets. |
 
-**LLM options:**
+Issue 19 implements the frontend shell and the minimal FastAPI API surface required by that shell. It must not introduce Next.js, SSR, a separate Node application server, or Electron. Electron or another desktop wrapper remains optional later, but not in Issue 19.
 
-| Option | Trade-off |
-|—|—|
-| Local (Ollama + Mistral / LLaMA 3) | Full privacy, no API cost, quality ceiling tied to hardware |
-| Hybrid BYOK (recommended) | Local app, cloud brain, Sojourner’s own API key — best quality/cost balance |
-| OpenRouter | Single integration point, model-agnostic routing, supports open-weight NSFW-capable models |
-| VPS-hosted open-weight model | No per-token cost, full content control, fixed GPU compute overhead |
+Route handlers stay thin. They expose existing service contracts rather than smuggling orchestration, entitlement, provider, or business policy into HTTP code.
 
-BYOK substantially reduces platform-level content gatekeeping and subscription friction. It does not eliminate all content constraints — upstream providers, app stores, and hosted service APIs retain their own policies — but it removes the ones competitors use as monetization levers.
+### Future Model and Deployment Surfaces
 
-**Storage:**
+The v1 build target is local-first browser deployment with hosted provider routing and BYOK provider credentials. That does not eliminate the older extensibility intent around local/open-weight models, VPS-hosted open-weight models, or broader hybrid BYOK surfaces.
 
-- SQLite — story state, sessions, nodes, character sheets, world state
+Future issues may add those surfaces if quality, cost, privacy, hardware, and policy constraints justify them. The v1 adapter interfaces should therefore avoid assumptions that only direct hosted APIs can ever satisfy a provider-backed pass.
 
-- ChromaDB — vector/semantic retrieval memory (self-hosted from day one)
+---
 
-**Frontend:**
+## 7. Provider Architecture and Prompt Caching
 
-- React or Svelte web app
+### v1 Provider Surfaces
 
-- Canvas/Konva for the visual branching story map *(v2)*
+Issue 14 implements two provider/platform surfaces in v1:
 
-- Electron wrapper for desktop deployment (optional)
+1. **Anthropic direct** — canonical quality-first direct-provider path and immediate continuation of the pipeline already built in Issues 9–12c.
+2. **OpenRouter** — v1 aggregator/routing surface used to exercise provider selection, fallback policy, capability profiling, and surface-specific cache normalization.
 
-- Simplest path: local web server, accessed via browser
+OpenAI direct and Google/Gemini direct are explicitly deferred beyond v1. Issue 14’s adapter interfaces must not architect against adding them later.
 
--–
+Local/open-weight and VPS-hosted open-weight model surfaces are also deferred beyond v1 as supported provider paths. They remain part of the long-term extensibility posture, especially for privacy, cost-control, and content-policy flexibility, but they are not Issue 14 launch requirements.
 
-## 7. Prompt Caching Strategy
+### Provider Adapter Responsibilities
 
-Prompt/context caching is economically important for Afterworlds, but it is not one universal API contract. Different providers and platform surfaces expose different cache-key semantics, cache-control mechanisms, TTL or retention controls, and usage metrics. Afterworlds therefore adopts:
+Issue 14 owns:
 
-> **Generalized cache intent in the core architecture, realized through provider/platform-specific cache adapters.**
+- provider routing
+- provider/platform capability profiles
+- pass-to-provider/model selection
+- cache-capability adapters
+- cache-key and breakpoint/context-object strategy
+- TTL/retention behavior where applicable
+- cache metric interpretation
+- provider refusal taxonomy and typed refusal events
+- constrained provider-refusal fallback
+- BYOK credential storage and validation
+- provider-specific usage normalization and calibration inputs for Issue 13 credit accounting
 
-The engine owns stable/volatile separation and deterministic context reuse. Provider adapters own how — and whether — that structure becomes an actual cache hit on a given API surface.
+Context Builder does not own provider-specific cache realization. Orchestration does not own provider-specific cache realization. They preserve the stable/volatile boundary and deterministic rendering preconditions; adapters convert that intent into concrete API behavior.
 
-### Core Caching Architecture
+Caching design rules:
 
-Afterworlds’ provider-neutral caching architecture has four parts:
+- Afterworlds owns provider-neutral cache intent: stable context is assembled once per turn and volatile/pass-forward material stays outside the stable-cache region.
+- Provider adapters own concrete cache realization: cache-key semantics, breakpoint or context-object strategy, TTL/retention behavior, cache metrics, and verified hit behavior.
+- Correctness must never depend on cache hits. A missed cache may be expensive; it must not change narrative, canon, entitlement, or safety behavior.
+- Cache-hit behavior must be adapter-verified. No provider-independent assumption about cache reuse, TTL, billing semantics, or metric names is binding until an adapter proves it.
+- Context Builder and orchestration may preserve stable identity and rendering determinism, but they must not smuggle provider-specific cache semantics into the architecture core.
 
-1. **Context Builder assembles shared context once per turn.** Stable narrative context is built once, not reconstructed pass-by-pass.
-2. **Pass rendering preserves deterministic stable-region structure.** Passes may have different system instructions, tool schemas, output contracts, and volatile additions, but the shared stable context region should render consistently wherever the active adapter can benefit from it.
-3. **Provider/platform adapters realize cache intent.** An adapter may use explicit cache breakpoints, automatic prefix reuse, named cached-context objects, TTL/retention controls, provider-specific hashing constraints, or no meaningful optimization on that surface.
-4. **Cache-hit behavior is verified per adapter.** Internal stable-context identity is necessary for cacheability, but it is not sufficient to guarantee provider-side reuse. Hit rates, cross-pass reuse, TTL behavior, and cache metrics must be measured and documented per provider/platform integration.
+### Provider Refusal Fallback
+
+When Afterworlds policy allows the content but the selected narrative/state provider refuses, the router may attempt one fallback to an explicitly configured eligible provider/platform surface within the same access path and fallback pool.
+
+In v1, eligible surfaces are Anthropic direct and OpenRouter as permitted by the active access path. For BYOK users, the eligible fallback pool is bounded by the provider credentials and surfaces the Sojourner has configured. If a BYOK user has configured only one provider/surface, no fallback exists unless the Sojourner explicitly configures another eligible BYOK surface.
+
+Fallback must never:
+
+- run after an Afterworlds Safety `BLOCK`
+- silently cross hosted/BYOK boundaries
+- depend on granular refusal reasons being available
+
+Every provider refusal is recorded as a typed refusal event with pass, provider, model/surface, coarse metadata when available, fallback attempted/not attempted, fallback target, and final outcome.
+
+If no eligible fallback exists or fallback also refuses/fails, the system stops and surfaces a typed provider refusal for UI handling.
+
+### BYOK Credential Storage
+
+Issue 14 implements local-first BYOK credential management.
+
+User-supplied provider API keys are stored via the local platform credential store / OS keychain where available. Environment/config credentials remain only for development, CI, and opt-in integration testing.
+
+SQLite stores only non-secret credential metadata and credential references.
+
+Raw API keys must never be persisted in:
+
+- SQLite
+- logs
+- telemetry
+- exports
+- backups
+- support/admin views
+- Story/Turn data
+
+Cloud Services may sync non-secret provider preferences/metadata in v1. Cloud-hosted storage or sync of BYOK API keys is deferred unless a later issue defines a dedicated security model, threat model, audit trail, and deletion/export semantics.
 
 ### Canonical Prompt/Context Shape
 
-The prompt stack still follows the product architecture:
+Stable prefix:
 
-```
-\[Pass/system instructions + mode contract]
-
-\[Stable shared narrative context]
-
-\[Pass-forward additions, when applicable]
-
-\[Volatile turn material]
+```text
+System prompt + mode/pass contract
+Story Bible active context
+Rolling Summary
+Rules Package / canon-pack slice when present
+Retrieval Memory when present
 ```
 
-The shared context region contains the canonical story/state material Afterworlds wants available consistently across passes: Story Bible context, rolling summary, and any retrieved rule/canon/memory material included for that turn. The volatile region includes recent turns, the current Sojourner input, classified intent, pass-specific evaluated text, and other turn-local material.
+Volatile suffix:
 
-This stack is a **core architecture shape**, not a provider payload guarantee. A provider adapter decides which of these elements participate in its cache identity, where a cache breakpoint or equivalent belongs, whether the provider permits partial reuse, and how cache metrics are read back.
+```text
+Recent turns
+Current Sojourner input
+IntentClassificationResult
+Pass-forward additions outside stable prefix
+```
 
-### Caching and the Multi-Pass Pipeline
+Provider adapters and pass renderers may differ in API payload shape, but they must preserve the architectural boundary. PassForwardLedger and VolatileSuffix are outside the stable-cache region.
 
-The Planner, Writer, Extractor, Contradiction, and conditional Safety calls consume overlapping story context. Afterworlds should preserve the best possible conditions for cache reuse:
-
-- assemble shared context once per turn;
-- render shared stable-context material deterministically;
-- avoid needless provider-payload drift in semantically identical stable regions;
-- expose enough structure that provider adapters can optimize intelligently.
-
-When a provider/platform adapter supports cross-pass reuse, the effective per-turn cost may drop substantially. When it does not — or when pass-specific system/tool differences invalidate reuse — the orchestration layer must still behave correctly. The narrative engine never depends on cache hits for correctness.
-
-Safety calls remain conditional: input preflight may not run on ordinary turns from whitelisted providers, and output audit runs only when provider or risk policy requires it. Cost models must treat Safety as conditional rather than guaranteed per-turn work.
-
-### Provider/Platform Adapter Responsibility
-
-Issue 14 owns the adapter layer that turns Afterworlds’ cache intent into concrete provider behavior. Each adapter must determine and document, as applicable:
-
-- cache-key or cache-identity semantics;
-- explicit breakpoint placement or cached-context-object strategy;
-- automatic prefix-caching constraints;
-- tool/schema/system-message effects on reuse;
-- TTL, retention, or cache-lifetime defaults;
-- cache metric names and how they are normalized for internal accounting;
-- whether cross-pass reuse, cross-turn reuse, both, or neither are realistically available;
-- provider/platform-specific verification tests.
-
-The same model family may require different treatment on different access surfaces. Direct-provider APIs, OpenRouter, Bedrock, Vertex, Azure, or other wrappers are not assumed to share identical caching behavior merely because they expose the same underlying model.
-
-### Provider Notes
-
-| Provider / Surface | Caching Style | Architecture Note |
-|—|—|—|
-| Anthropic direct API | Explicit, breakpoint-based | Adapter must verify how tools, system blocks, message ordering, and TTL markers affect reuse. |
-| OpenAI direct API | Automatic, prefix-based on eligible requests | Adapter must treat cache behavior as provider-managed and inspect reported cached-token metrics where available. |
-| Google Gemini surfaces | Implicit and/or explicit cached context depending on API | Adapter must distinguish API mode and manage cache objects or provider-managed reuse accordingly. |
-| Aggregators / hosted wrappers | Surface-specific | Cache behavior is not inherited automatically from the underlying model vendor; verify per platform. |
-
-Exact provider pricing, cache discounts, hit behavior, and retention semantics vary and can change. Cost models must be tied to verified adapter assumptions, not vendor-generalized optimism.
-
-### TTL / Retention Consideration
-
-Longer-lived cache retention can matter materially for narrative sessions with natural pauses. Where a provider/platform adapter supports a validated longer-lived cache mode or equivalent retention control without unacceptable tradeoffs, the adapter should make that the default and document the rationale.
-
-The core architecture does not assume that “1 hour TTL” exists everywhere, that it means the same thing everywhere, or that it is always economically optimal. Issue 14 resolves those adapter-specific decisions.
-
-### Design Rules
-
-- Keep Story Bible and canon state structurally separate from prose history — this is economically correct, not just architecturally clean.
-
-- Prefer compact summaries and structured ledgers over resending long raw transcripts.
-
-- Stable internal context identity is a **precondition** for efficient caching, not a provider-agnostic guarantee of cache hits.
-
-- Provider-specific cache semantics belong in adapters, not in the Context Builder, orchestrator, or pass-service business logic.
-
-- Never treat caching as a substitute for prompt discipline — a bloated prompt is still expensive; caching just makes repeated bloat less painful.
-
-- Caching is a coupon with engineering requirements, not a cost elimination.
-
--–
+---
 
 ## 8. Business Model
 
-Afterworlds is designed around an ethical, AI-native fee structure that aligns user value with real platform cost **without degrading the core narrative engine by tier**.
-
-The core product promise is continuity: persistent state, canon maintenance, and coherent story progression across turns and sessions. Those are not premium embellishments. They are the product. For that reason, Afterworlds does **not** operate on a crippled free-tier model that removes core pipeline functions. All paying access paths use the same Sojourn orchestration path. Access classes differ in billing path, credit allowance, and hosted-service entitlements — not in continuity quality or the presence of responsible guardrails.
-
 ### Commercial Structure
 
-| Access Path | What You Get |
-|—|—|
-| **Hosted Subscription** | Full Sojourn orchestration path (core narrative pipeline + safety envelope), monthly included credits, transparent top-ups, optional limited rollover, hosted storage, sync, pack ingestion, and ongoing platform access |
-| **BYOK Perpetual License** | Permanent right to use Afterworlds with the Sojourner’s own API keys; full pipeline parity with hosted users; first year of Cloud Services included |
-| **BYOK Cloud Services Renewal** | Optional annual renewal for continued hosted storage, sync, ingestion processing, remote access, and other ongoing platform services after the first included year |
-| **Starter Access (optional launch/on-ramp)** | Small paid entry package that uses the same full pipeline and consumes normal hosted credits; exists to reduce first-purchase friction without introducing a degraded free tier |
-| **Open-source core** | Community trust and adoption; hosted services, convenience layers, and non-technical onboarding remain monetized |
+Afterworlds uses one canonical Sojourn orchestration path across real product access paths. Commercial differentiation is handled through entitlements, usage allowances, provider billing path, and hosted services — not by removing continuity machinery.
 
-### Hosted Subscription Model
+| Access path | Revenue shape | Cost driver |
+|---|---|---|
+| Hosted Subscription | Monthly subscription with included hosted credits | Model usage, storage, hosted services, support, payment overhead. |
+| Hosted Top-Ups | One-off credit purchases | Incremental model usage and payment overhead. |
+| Starter Access (optional) | Small paid entry package / trial subscription using normal hosted credits | Model usage, storage, hosted services, support, payment overhead. |
+| BYOK Perpetual License | One-time purchase | Product access, onboarding, first-year Cloud Services bundle. |
+| BYOK Cloud Services Renewal | Optional annual renewal after year one | Hosted storage, sync, backup, remote access, ingestion processing, service maintenance. |
+| Institutional (future) | Per-seat / pooled credits / capped usage | Aggregate hosted usage and admin/service overhead. |
+| Marketplace (future) | Transaction fee / seller services / discovery | Payment rails, moderation, hosting, payout operations. |
 
-The hosted subscription is a **metered subscription with credits**, not an “all you can eat” promise detached from model cost.
+### Hosted Credits
 
-- A monthly subscription includes a defined credit allotment
+Hosted credits are provider-neutral, usage-backed entitlement units. They are computed from structured turn/pass usage metrics through a configurable conversion policy.
 
-- Credits are consumed by actual use of the hosted system
+A flat/coarse per-turn decrement is not a legitimate product direction because it divorces credits from hosted usage and undermines burn-rate transparency.
 
-- Transparent top-ups are always available
+Provider-specific dollar-equivalent accounting inside the entitlement core is rejected as brittle. Provider pricing, cache semantics, billing units, aggregator fees, and fee structures change. Issue 13 owns the durable accounting architecture and enforcement path. Issue 14 supplies provider/platform-specific normalization and calibration inputs without reopening the credit model.
 
-- Limited rollover may be offered, but must be capped and legible
+### Entitlement Ownership
 
-- When credits are exhausted, the system stops or prompts for top-up — it does not silently degrade story quality
+Issue 13 owns authoritative runtime entitlement state and enforcement:
 
-This structure matches the economics of AI-native products while remaining understandable to users. Afterworlds should never hide usage reality behind fake abundance and then recover margin through degraded output, surprise caps, or manipulative gating.
+- hosted credit availability
+- top-up balances/state as relevant to runtime enforcement
+- BYOK license state
+- Cloud Services active/lapsed state, including hosted storage, sync, backup, remote access, hosted ingestion, and hosted runtime dependent on Afterworlds server resources
+- access-path and entitlement routing/enforcement decisions based on those states
+- configurable credit conversion policy
 
-### Operational Reality Addendum
+Issue 22 owns the operational/support/compliance layer:
 
-A real product that charges real people also needs a human-operable support surface. Earlier versions of the design left that layer implicit, as though entitlement logic plus a payment-processor dashboard would somehow add up to an operational plan. That gap is now resolved explicitly.
+- append-safe entitlement/support event history
+- support-facing reconstructability
+- manual remediation actions with reason capture
+- export/deletion request state
+- admin investigation hooks and anomaly visibility
 
-For v1, Afterworlds requires the **operations/support minimums defined in Construction Readiness Issue 22**. This is not a separate commercial product and not an excuse to bloat v1 into a full back-office platform. It is a modest internal/operator layer sufficient to run the business responsibly at launch.
+Runtime enforcement and human-operable reconstructability are related but not the same owner. Keep the boundary clean. Issue 13 routing means access-path and entitlement enforcement; Issue 14 routing means provider/platform selection, fallback, capability profiles, and adapter behavior.
 
-These capabilities are **parallel administrative infrastructure**, not part of the per-turn Sojourn pipeline. They exist to inspect, reconstruct, and repair commercial/user-data state when necessary.
+### BYOK and Cloud Services
 
-### BYOK Structure
+BYOK perpetual rights guarantee continued full-fidelity Afterworlds use through a local/self-hosted product path:
 
-BYOK is a first-class path, not a fallback.
+- local orchestration
+- local SQLite persistence
+- local ChromaDB retrieval memory
+- user-supplied provider credentials
 
-The BYOK offer is intentionally split into two distinct components:
+“Self-hosted” retrieval memory means locally operable by the Sojourner’s Afterworlds installation, not necessarily hosted by AfterworldsAI.
 
-1. **Perpetual BYOK License**
+Cloud Services fund ongoing hosted convenience and service costs:
 
-   - one-time purchase
+- cloud storage
+- sync
+- backups
+- remote access
+- hosted ingestion
+- any hosted runtime dependent on Afterworlds server resources
 
-   - grants permanent rights to use Afterworlds with the Sojourner’s own model/provider credentials
+If Cloud Services lapse, hosted active-use services suspend. Existing hosted user content remains available for read/export/download and later reactivation, but ongoing turn generation continues through the local BYOK path rather than through uncompensated server-hosted storage/retrieval.
 
-   - includes all core product functionality and future bug fixes / core improvements covered by the license terms
+### Billing Platform Ownership
 
-2. **Cloud Services**
+Hosted top-ups, Starter Access, and paid hosted access are product concepts in v1 architecture. The full payment platform is Issue 23, a dedicated launch-blocker issue after Issue 21 and before public launch.
 
-   - first year included with the BYOK purchase
+That billing-platform/payment-integration issue owns:
 
-   - optional annual renewal thereafter
+- payment-provider integration
+- subscription/top-up checkout flows
+- webhook ingestion
+- payment-event idempotency
+- failed-payment, refund, and chargeback representation
+- reconciliation hooks
+- translation of successful commercial events into Issue 13 entitlement mutations
+- operational/support events consumable by Issue 22
+- user-facing state that Issue 20 can display
 
-   - covers ongoing hosted services such as cloud storage, sync, backups, remote access, pack ingestion processing, and similar platform costs
-
-This distinction is critical. The perpetual license is the software/product right. Cloud Services are the ongoing hosted-service layer. Afterworlds should never describe BYOK as a pure one-time purchase if continued hosted service depends on recurring platform expense.
-
-### Non-Renewal Behavior for BYOK Cloud Services
-
-If a BYOK user does not renew Cloud Services, the product should fail gracefully and ethically:
-
-- retain read/export/download access to owned stories and content where practical
-
-- suspend or reduce only the genuinely ongoing-cost hosted services
-
-- allow later reactivation without penalty
-
-- never hold user-created story data hostage as leverage for renewal
-
-The user loses hosted convenience and ongoing platform services — not ownership of their work.
-
-### Future Revenue Layers
-
-These are not required for v1, but the business model should remain compatible with them from the start:
-
-- **Creator marketplace / shareable story templates (v3)** with user-trust-oriented payout logic
-
-- **Institutional licensing** for schools, libraries, workshops, and studios using per-seat, pooled-credit, or capped-usage models
-
-- **Optional expansion packs / major feature expansions** for BYOK users, provided these are genuinely new capabilities rather than backfilled bug fixes or withheld essentials
+It does not own runtime entitlement enforcement, settings UI, or support remediation workflows.
 
 ### Ethical Principles
 
-- Do not degrade continuity by tier
-
-- Do not hide usage economics behind misleading “unlimited” language
-
-- Do not trap users with dark-pattern upgrade or renewal flows
-
-- Do not conflate perpetual software rights with recurring hosted-service costs
-
-- Do not gate core dignity behind premium currency mechanics
+- Do not degrade continuity by tier.
+- Do not hide usage economics behind misleading “unlimited” language.
+- Do not trap users with dark-pattern upgrade or renewal flows.
+- Do not conflate perpetual software rights with recurring hosted-service costs.
+- Do not gate core dignity behind premium currency mechanics.
 
 Afterworlds’ commercial model should feel like a clear exchange, not a carnival game: the Sojourner either pays for hosted usage directly, or brings their own model costs and pays only for the continuing platform services they actually consume.
 
--–
+---
 
 ## 9. MVP Sequence
 
-### Pre-v1 internal milestones
+Pre-v1 internal milestones are construction milestones, not product versions.
 
-These are construction milestones, not product versions. They describe build order and dependency sequencing before the first release-capable MVP.
+### Foundation and Pipeline
 
-- Core data model and SQLite persistence
+1. Repo skeleton, tooling, and CI scaffold.
+2. Core models.
+2a. Character sheet architecture correction.
+3. SQLite persistence and CRUD.
+4. Story Bible schema and service.
+5a. Rules Package schema and data model.
+5b. Rules Package ingestion pipeline.
+6. Rolling Summary service.
+7. Intent Classification.
+8. Context Builder.
+9. Minimal Writer Path.
+10. Extractor Classification Policy.
+11. Lightweight Contradiction Checker.
+12a. Planner Pass.
+12b. Safety Service: Input Preflight and Conditional Output Audit.
+12c. Full Pipeline Orchestration.
 
-- Story Bible and rolling summary
+### Entitlements, Providers, Modes, UI, and Spine
 
-- Rules Package schema and ingestion pipeline
+13. Runtime entitlement state and enforcement.
+14. Provider routing, capability profiles, cache adapters, refusal fallback, and BYOK credential management.
+15. RPG mode integration with bounded d20 Rules System Adapter.
+16. Branching mode integration with typed output contract, typed interaction configuration, and Branching cadence/verbosity setup.
+17. Writing mode integration with persona behavior, Mentor/Peer orientation, prompt injection, beat constraints, and minimal version-history pointers.
+18. ChromaDB retrieval-memory design and implementation, gated by ADR / owner checkpoint.
+19. React + Vite + TypeScript frontend shell and minimal FastAPI API surface.
+20. User-facing billing/BYOK visibility and configuration.
+21. Final release-capable narrative spine demo.
 
-- Intent classification and context builder
+Issue 21 is the narrative spine gate, not the commercial launch gate. It verifies all three modes end-to-end, hosted and BYOK access paths, and coherent cooperation among major v1 systems. It is verification-first and may include only narrow integration fixes where contracts are already clear.
 
-- Minimal Writer path
+### Launch Blockers After the Spine Demo
 
-- Extractor classification policy
+- Issue 23 — Billing Platform / Payment Integration after Issue 21 and before public launch.
+- Issue 22 operations/support/compliance minimums.
+- Any remaining security/compliance gates required by repository governance.
 
-- Lightweight contradiction checker
+### v1 — First Release-Capable Text Product
 
-- Full pipeline orchestration (Planner, Writer, Extractor, Contradiction, and Safety envelope wired)
+v1 includes:
 
-- Entitlement routing, hosted credits/top-ups, BYOK support, provider/platform routing, and cache-capability adapters
-
-- Operations/support minimums as defined in Construction Readiness Issue 22
-
-### v1 — First release-capable text product
-
-- Full Sojourn orchestration path: core narrative pipeline (Planner → Writer → Extractor → Contradiction) with safety envelope (input preflight and conditional output audit)
-
-- RPG + Branching + Writing modes
-
-- RPG mode includes: modular Rules Package support with d20 as the first curated and ingested exemplar; two dice handling modes (Player rolls / AI rolls); GM cheating toggle; mandatory pre-play sequence (world setup → character creation → play); character sheet as first-class persistent object
-
-- Branching mode includes: plot graph, pacing stage tracking calibrated to length preference, 3–5 branch options per beat with freeform input as equal first-class option
-
-- Branching mode excludes: visual story map, non-destructive What If? branching (both deferred to v2)
-
-- Writing mode includes: persona-based relationship model — three Mentor personas (Chiron, Merlin, Vidura) and three Peer personas (Odin, Athena, Thoth)
-
-- Full story hierarchy (Story / Arc / Chapter / Node / Turn)
-
-- Rolling summary + Story Bible
-
-- Extractor with update classification policy
-
-- Contradiction checker
-
+- full Sojourn orchestration path: Planner → Writer → Extractor → Contradiction with safety envelope
+- RPG, Branching, and Writing modes
+- full Story / Arc / Chapter / Node / Turn hierarchy
+- Rolling Summary + Story Bible
+- Extractor update classification policy
+- Contradiction Checker
 - SQLite persistence
+- ChromaDB retrieval memory
+- one ingested, published, queryable d20 Rules Package
+- bounded d20 Rules System Adapter
+- BYOK API support through local credential storage
+- hosted subscription credit/top-up entitlement framework, including optional Starter Access as a paid entry package using the same full pipeline
+- user-facing billing/BYOK visibility/configuration
+- React + Vite + TypeScript frontend shell
+- minimal FastAPI API surface
+- operations/support/compliance minimums
+- payment integration if hosted paid access or top-ups are offered publicly
+- all CI and governance gates passing
 
-- Vector retrieval memory (ChromaDB)
+### Deferred Beyond v1
 
-- Hosted subscription credit/top-up entitlement framework
+- image generation from Node metadata
+- visual story map
+- non-destructive What If? branching
+- voice input/output
+- player-supplied Setting Canon Packs for licensed settings
+- marketplace or collaborative multi-Sojourner stories
+- mobile clients
+- advanced admin console / BI / CRM-style support platform
+- full Writing-mode version history, draft branching, restore/rollback, compare tooling, and broader manuscript evolution tooling unless separately scoped
+- richer Writing-mode authoring UX beyond the v1 controls needed for setup, beat constraints, and prompt injection
+- richer Branching UX including branch-tree visualization, visual story map, non-destructive What If? paths, and branch-timing controls beyond the v1 Branching cadence/verbosity setting
+- persona expansion across RPG and Branching modes
+- direct OpenAI and Google/Gemini provider surfaces unless a later issue adds them
+- supported local/open-weight or VPS-hosted open-weight provider surfaces unless a later issue adds them
 
-- BYOK API support with perpetual-license and Cloud Services entitlements
-
-- Provider/platform routing with cache-capability adapters sufficient to realize Afterworlds’ generalized cache intent on supported v1 access paths
-
-- Operations/support minimums as defined in Construction Readiness Issue 22
-
-- Issue 22 completed as the explicit home for the human-operable support/compliance layer
-
-- All CI gates passing; no failing checks at release
-
-### v2 — Advanced branching + multimodal
-
-- Image generation from Node metadata
-
-- Visual story map (branch tree rendered in real time)
-
-- Non-destructive What If? branching (parallel timelines, no canonical timeline impact)
-
-- Voice input/output
-
-- Player-supplied Setting Canon Packs for licensed RPG settings (Forgotten Realms, Greyhawk, etc.)
-
-- Player-supplied Setting Canon Packs for copywritten settings (Potterverse, Middle-Earth, Dune, The Seven Kingdoms, etc.)
-
-### v3 — Polish and ecosystem
-
-- Creator marketplace / shareable story templates
-
-- Collaborative multi-Sojourner stories
-
-- Export: PDF, ebook formatting
-
-- Mobile clients
-
--–
+---
 
 ## Summary Architecture
 
-```
-\[Sojourner Input]
-
-↓
-
-\[Intent Classifier]
-
-↓
-
-\[Context Builder] → System + Story Bible + Summary + Retrieved Rules Package / canon-pack slices + Retrieved Memory + Recent Turns
-
-↓
-
-\[Mode Handler] → RPG / Branching / Writing (prompt contract + planning logic)
-
-↓
-
-\[Sojourn Pipeline] → [Safety Preflight?] → Planner → Writer → [Safety Output Audit?] → Extractor → Contradiction
-
-↓
-
-\[Extractor Update Policy] → Classify → Confirm high-impact changes → Commit
-
-↓
-
-\[Output to UI] → Prose display + input field or branch cards
-
-↓
-
-\[Persistence] → Node saved, State Delta applied, Story Bible updated, vector DB pushed
+```text
+[Sojourner Input]
+        ↓
+[Intent Classifier]
+        ↓
+[Context Builder]
+        ├─ Stable Prefix: System/Contract + Story Bible + Summary + Rules Slice + Retrieval Memory
+        └─ Volatile Suffix: Recent Turns + Current Input + Intent
+        ↓
+[Safety Preflight?]
+        ↓
+[Planner]
+        ↓
+[Writer]
+        ↓
+[Safety Output Audit?]
+        ↓
+[Extractor] ─────┐
+        ↓         │
+[Contradiction] ←─┘
+        ↓
+[Delivery Gate]
+        ↓
+[Persistence]
+        ├─ Turn / Node
+        ├─ Story Bible updates through Extractor policy
+        ├─ Rolling Summary as triggered
+        └─ Retrieval Memory write only for delivery-cleared material
 ```
 
-**Provider-adapter note:** Provider/platform adapters are orthogonal service infrastructure used by provider-backed passes for routing, payload realization, cache-capability handling, and provider-specific metrics. They are not an additional sequential turn-pipeline stage.
+Provider adapters are orthogonal service infrastructure used by provider-backed passes for routing, payload realization, cache-capability handling, refusal fallback, BYOK credential access, and provider-specific metrics. They are not an additional sequential turn-pipeline stage.
 
-**Operational note:** The operations/support minimums defined in Construction Readiness Issue 22 are parallel administrative capabilities, not a sequential stage in the turn pipeline.
+Operations/support minimums are parallel administrative capabilities, not a turn-pipeline stage.
