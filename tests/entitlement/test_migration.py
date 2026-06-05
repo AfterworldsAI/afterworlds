@@ -147,6 +147,142 @@ def test_last_entitlement_event_id_updated_after_event(
     assert state.last_entitlement_event_id == last_event.event_id
 
 
+def test_idempotency_key_partial_unique_rejects_duplicate(session: Session) -> None:
+    """Partial unique index: duplicate non-null idempotency_key raises."""
+    from datetime import datetime
+    from uuid import uuid4
+
+    from afterworlds.entitlement.enums import EntitlementEventType
+
+    now = datetime(2026, 6, 5)
+    key = f"ik-test-{uuid4().hex}"
+    e1 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=uuid4(),
+        event_type=EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+        idempotency_key=key,
+        payload_json='{"schema_version": 1, "hosted_credit_delta": "10"}',
+        created_at=now,
+    )
+    session.add(e1)
+    session.commit()
+
+    e2 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=uuid4(),
+        event_type=EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+        idempotency_key=key,
+        payload_json='{"schema_version": 1, "hosted_credit_delta": "20"}',
+        created_at=now,
+    )
+    session.add(e2)
+    with pytest.raises(IntegrityError):
+        session.commit()
+
+
+def test_idempotency_key_null_allows_multiple_rows(session: Session) -> None:
+    """Partial unique index: NULL idempotency_key allows multiple rows."""
+    from datetime import datetime
+    from uuid import uuid4
+
+    from afterworlds.entitlement.enums import EntitlementEventType
+
+    now = datetime(2026, 6, 5)
+    e1 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=uuid4(),
+        event_type=EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+        idempotency_key=None,
+        payload_json='{"schema_version": 1, "hosted_credit_delta": "10"}',
+        created_at=now,
+    )
+    e2 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=uuid4(),
+        event_type=EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+        idempotency_key=None,
+        payload_json='{"schema_version": 1, "hosted_credit_delta": "20"}',
+        created_at=now,
+    )
+    session.add_all([e1, e2])
+    session.commit()  # must not raise
+
+
+def test_credit_deduction_partial_unique_rejects_duplicate_turn(
+    session: Session,
+) -> None:
+    """Partial unique: duplicate (sojourner_id, turn_id) for credit_deduction raises."""
+    from datetime import datetime
+    from uuid import uuid4
+
+    from afterworlds.entitlement.enums import EntitlementEventType
+
+    sid = uuid4()
+    turn = uuid4()
+    now = datetime(2026, 6, 5)
+    payload = (
+        '{"schema_version": 1, "hosted_credit_delta": "-1", "top_up_credit_delta": "0"}'
+    )
+
+    e1 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=sid,
+        event_type=EntitlementEventType.CREDIT_DEDUCTION,
+        turn_id=turn,
+        payload_json=payload,
+        created_at=now,
+    )
+    session.add(e1)
+    session.commit()
+
+    e2 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=sid,
+        event_type=EntitlementEventType.CREDIT_DEDUCTION,
+        turn_id=turn,
+        payload_json=payload,
+        created_at=now,
+    )
+    session.add(e2)
+    with pytest.raises(IntegrityError):
+        session.commit()
+
+
+def test_credit_deduction_partial_unique_allows_different_turns(
+    session: Session,
+) -> None:
+    """Partial unique index: different turn_ids for same sojourner are allowed."""
+    from datetime import datetime
+    from uuid import uuid4
+
+    from afterworlds.entitlement.enums import EntitlementEventType
+
+    sid = uuid4()
+    now = datetime(2026, 6, 5)
+    payload = (
+        '{"schema_version": 1, "hosted_credit_delta": "-1", "top_up_credit_delta": "0"}'
+    )
+
+    e1 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=sid,
+        event_type=EntitlementEventType.CREDIT_DEDUCTION,
+        turn_id=uuid4(),
+        payload_json=payload,
+        created_at=now,
+    )
+    e2 = EntitlementEvent(
+        event_id=uuid4(),
+        sojourner_id=sid,
+        event_type=EntitlementEventType.CREDIT_DEDUCTION,
+        turn_id=uuid4(),
+        payload_json=payload,
+        created_at=now,
+    )
+    session.add_all([e1, e2])
+    session.commit()  # must not raise
+
+
 # Avoid "undefined name" in type hints in test functions above
 from uuid import UUID  # noqa: E402
 

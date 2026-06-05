@@ -383,6 +383,36 @@ def test_manual_adjustment_positive_and_negative(
 
 
 # ---------------------------------------------------------------------------
+# P1 regression: CREDIT_DEDUCTION with turn_id=None must be rejected before
+# any DB mutation — a NULL turn_id bypasses the partial-unique index that
+# enforces one settlement per turn, opening a silent duplicate-settle path.
+# ---------------------------------------------------------------------------
+
+
+def test_credit_deduction_requires_turn_id(
+    service: EntitlementService,
+    sojourner_id: UUID,
+) -> None:
+    """P1: receive_entitlement_event(CREDIT_DEDUCTION, turn_id=None) raises."""
+    from afterworlds.entitlement.payloads import CreditDeductionPayload
+
+    activate_hosted(service, sojourner_id)
+    grant_subscription_credits(service, sojourner_id, "100")
+
+    payload = CreditDeductionPayload(
+        hosted_credit_delta=Decimal("-5"),
+        top_up_credit_delta=Decimal("0"),
+    )
+    with pytest.raises(EntitlementSettlementError, match="turn_id"):
+        service.receive_entitlement_event(
+            sojourner_id,
+            EntitlementEventType.CREDIT_DEDUCTION,
+            payload,
+            turn_id=None,
+        )
+
+
+# ---------------------------------------------------------------------------
 # AC 58: ROUND_HALF_UP to four decimal places
 # ---------------------------------------------------------------------------
 

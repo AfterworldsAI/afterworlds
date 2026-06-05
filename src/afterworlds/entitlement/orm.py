@@ -108,6 +108,22 @@ class EntitlementEvent(Base):
     __tablename__ = "entitlement_event"
     __table_args__ = (
         sa.Index("ix_entitlement_event_event_id", "event_id", unique=True),
+        # Partial unique index: idempotency_key is unique when not NULL.
+        sa.Index(
+            "ix_entitlement_event_idempotency_key",
+            "idempotency_key",
+            unique=True,
+            sqlite_where=sa.text("idempotency_key IS NOT NULL"),
+        ),
+        # Partial unique index: one credit_deduction per (sojourner, turn).
+        sa.Index(
+            "ix_entitlement_event_credit_deduction",
+            "sojourner_id",
+            "turn_id",
+            "event_type",
+            unique=True,
+            sqlite_where=sa.text("event_type = 'credit_deduction'"),
+        ),
     )
 
     global_sequence: Mapped[int] = mapped_column(Integer, primary_key=True)

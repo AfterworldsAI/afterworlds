@@ -231,11 +231,14 @@ class EntitlementService:
 
         THE ONLY APPROVED MUTATION PATH for ``RuntimeEntitlementState``.
 
-        Precondition check:
+        Precondition checks:
           Credit mutation events (SUBSCRIPTION_CREDIT_GRANT, TOP_UP_CREDIT_GRANT,
           CREDIT_DEDUCTION, MANUAL_CREDIT_ADJUSTMENT) raise
           ``EntitlementSettlementError`` if ``hosted_access_plan is None`` (hosted
           access has never been activated for this Sojourner).
+          CREDIT_DEDUCTION additionally raises ``EntitlementSettlementError`` if
+          ``turn_id is None`` — a NULL turn_id bypasses the DB partial-unique
+          constraint that enforces one settlement per turn.
 
         Payload type check:
           payload class must match event_type via ENTITLEMENT_PAYLOAD_CLASS_MAP;
@@ -278,6 +281,14 @@ class EntitlementService:
                 f"event_type={event_type!r} requires hosted_access_plan to be "
                 "set (hosted access must have been activated at least once); "
                 f"sojourner_id={sojourner_id}"
+            )
+
+        # 3b. Precondition: CREDIT_DEDUCTION must carry a turn_id.  A NULL
+        #     turn_id means the DB partial-unique index cannot enforce
+        #     per-turn deduplication, creating a silent duplicate-settle risk.
+        if event_type == EntitlementEventType.CREDIT_DEDUCTION and turn_id is None:
+            raise EntitlementSettlementError(
+                "CREDIT_DEDUCTION requires turn_id; turn_id=None is not permitted"
             )
 
         # 4. Idempotency pre-check.
