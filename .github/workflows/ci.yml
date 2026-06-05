@@ -44,4 +44,10 @@ jobs:
         # auditing, so we are temporarily ignoring this CVE to keep the audit gate
         # usable. Remove this ignore once pip ships a fixed release and CI is pinned
         # or upgraded to that version.
-        run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219
+        # CVE-2026-45829: vulnerability in chromadb 1.5.9. pip-audit currently reports
+        # no fix version — no patched ChromaDB release exists upstream as of 2026-06-05.
+        # ChromaDB is a v1 retrieval-memory dependency; CRD Issue 18 owns ChromaDB
+        # retrieval-memory implementation. This PR is not exercising or modifying
+        # ChromaDB behavior. Remove this ignore once a patched ChromaDB release exists
+        # and the dependency can be upgraded.
+        run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-45829
