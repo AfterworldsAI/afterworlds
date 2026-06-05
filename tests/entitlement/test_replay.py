@@ -16,6 +16,7 @@ from afterworlds.entitlement.errors import (
     EntitlementSettlementError,
 )
 from afterworlds.entitlement.orm import EntitlementEvent, RuntimeEntitlementState
+from afterworlds.entitlement.payloads import SubscriptionCreditGrantPayload
 from afterworlds.entitlement.replay import rebuild_entitlement_state
 from afterworlds.entitlement.service import EntitlementService
 from tests.entitlement.conftest import (
@@ -223,6 +224,30 @@ def test_rebuild_deactivated_preserves_plan(
 
     assert snapshot.hosted_access_active is True
     assert snapshot.hosted_access_plan == HostedAccessPlan.STARTER_ACCESS
+
+
+def test_projection_matches_replay_after_over_precise_grant(
+    service: EntitlementService,
+    sojourner_id: UUID,
+    session: Session,
+) -> None:
+    """Quantization regression: over-precise delta stored and replayed as 4dp value."""
+    activate_hosted(service, sojourner_id)
+    service.receive_entitlement_event(
+        sojourner_id,
+        EntitlementEventType.SUBSCRIPTION_CREDIT_GRANT,
+        SubscriptionCreditGrantPayload(hosted_credit_delta=Decimal("0.00005")),
+    )
+
+    events = _collect_events(session, sojourner_id)
+    snapshot = rebuild_entitlement_state(sojourner_id, events)
+
+    session.expire_all()
+    state = session.get(RuntimeEntitlementState, sojourner_id)
+    assert state is not None
+
+    assert snapshot.hosted_credit_balance == state.hosted_credit_balance
+    assert snapshot.hosted_credit_balance == Decimal("0.0001")
 
 
 def test_rebuild_filters_other_sojourner_events(sojourner_id: UUID) -> None:

@@ -20,7 +20,7 @@ raise ``EntitlementPayloadVersionError`` directly.
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
@@ -31,6 +31,12 @@ from afterworlds.entitlement.enums import (
     HostedAccessDeactivationReason,
     HostedAccessPlan,
 )
+
+_CREDIT_QUANTUM = Decimal("0.0001")
+
+
+def _quantize_credit_delta(value: Decimal) -> Decimal:
+    return value.quantize(_CREDIT_QUANTUM, rounding=ROUND_HALF_UP)
 
 
 class HostedAccessActivatedPayload(BaseModel):
@@ -61,6 +67,7 @@ class SubscriptionCreditGrantPayload(BaseModel):
     @field_validator("hosted_credit_delta")
     @classmethod
     def must_be_positive(cls, v: Decimal) -> Decimal:
+        v = _quantize_credit_delta(v)
         if v <= 0:
             raise ValueError("hosted_credit_delta must be > 0 for a credit grant")
         return v
@@ -76,6 +83,7 @@ class TopUpCreditGrantPayload(BaseModel):
     @field_validator("top_up_credit_delta")
     @classmethod
     def must_be_positive(cls, v: Decimal) -> Decimal:
+        v = _quantize_credit_delta(v)
         if v <= 0:
             raise ValueError("top_up_credit_delta must be > 0 for a credit grant")
         return v
@@ -90,6 +98,7 @@ class CreditDeductionPayload(BaseModel):
     @field_validator("hosted_credit_delta", "top_up_credit_delta")
     @classmethod
     def must_be_non_positive(cls, v: Decimal) -> Decimal:
+        v = _quantize_credit_delta(v)
         if v > 0:
             raise ValueError("credit deltas must be <= 0 for a deduction")
         return v
@@ -132,6 +141,13 @@ class ManualCreditAdjustmentPayload(BaseModel):
     top_up_credit_delta: Decimal | None = None
     reason: str
     adjusted_by: str
+
+    @field_validator("hosted_credit_delta", "top_up_credit_delta")
+    @classmethod
+    def quantize_optional_delta(cls, v: Decimal | None) -> Decimal | None:
+        if v is None:
+            return None
+        return _quantize_credit_delta(v)
 
     @model_validator(mode="after")
     def at_least_one_non_zero_delta(self) -> ManualCreditAdjustmentPayload:
