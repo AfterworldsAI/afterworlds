@@ -84,6 +84,7 @@ def test_absent_sojourner_returns_no_access_status(
     assert status.hosted_turn_available is False
     assert status.byok_turn_available is False
     assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is False  # never activated
     assert status.hosted_credit_balance is None
     assert status.top_up_credit_balance is None
     assert status.total_hosted_credit_balance is None
@@ -116,6 +117,7 @@ def test_cloud_services_active_with_none_expires_at_is_inactive(
 
     status = service.get_access_path_status(sojourner_id)
     assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is True  # active=True + None expires_at
 
 
 def test_cloud_services_active_with_expired_expires_at_is_inactive(
@@ -128,6 +130,25 @@ def test_cloud_services_active_with_expired_expires_at_is_inactive(
 
     status = service.get_access_path_status(sojourner_id)
     assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is True  # active=True + expired expires_at
+
+
+def test_cloud_services_lapsed_after_explicit_lapse_event(
+    service: EntitlementService,
+    sojourner_id: UUID,
+) -> None:
+    """P2 regression: CLOUD_SERVICES_LAPSED event → lapsed=True, active=False.
+
+    CLOUD_SERVICES_LAPSED clears cloud_services_active but preserves expires_at.
+    _build_access_path_status must report lapsed=True even though active=False,
+    so the active-vs-lapsed distinction is not lost after an explicit lapse event.
+    """
+    activate_cloud_services(service, sojourner_id, expires_at=_FIXED_FUTURE)
+    lapse_cloud_services(service, sojourner_id)
+
+    status = service.get_access_path_status(sojourner_id)
+    assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is True
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +279,7 @@ def test_active_byok_active_cloud_both_true(
     status = service.get_access_path_status(sojourner_id)
     assert status.byok_turn_available is True
     assert status.cloud_services_active is True
+    assert status.cloud_services_lapsed is False  # active with future expiry
 
 
 def test_active_byok_lapsed_cloud_services(
@@ -271,6 +293,7 @@ def test_active_byok_lapsed_cloud_services(
     status = service.get_access_path_status(sojourner_id)
     assert status.byok_turn_available is True
     assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is True  # active=True + expired expires_at
 
 
 def test_active_hosted_and_byok_both_true(
@@ -358,8 +381,10 @@ def test_reactivation_cloud_services(
 
     status_lapsed = service.get_access_path_status(sojourner_id)
     assert status_lapsed.cloud_services_active is False
+    assert status_lapsed.cloud_services_lapsed is True
 
     activate_cloud_services(service, sojourner_id, expires_at=_FIXED_FUTURE)
 
     status_active = service.get_access_path_status(sojourner_id)
     assert status_active.cloud_services_active is True
+    assert status_active.cloud_services_lapsed is False

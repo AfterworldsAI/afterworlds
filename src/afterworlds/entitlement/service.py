@@ -445,8 +445,14 @@ def _build_access_path_status(
         and state.cloud_services_expires_at is not None
         and state.cloud_services_expires_at > now
     )
-    if state.cloud_services_active and not cloud_effective:
-        cloud_services_lapsed = True
+    cloud_services_lapsed = (
+        (state.cloud_services_active and not cloud_effective)
+        # Explicit CLOUD_SERVICES_LAPSED event clears active but preserves expires_at.
+        or (
+            not state.cloud_services_active
+            and state.cloud_services_expires_at is not None
+        )
+    )
 
     # BYOK availability: independent of Cloud Services.
     byok_available = state.byok_license_active

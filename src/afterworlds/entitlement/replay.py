@@ -62,7 +62,10 @@ def rebuild_entitlement_state(
     """
     snapshot = EntitlementStateSnapshot(sojourner_id=sojourner_id)
 
-    sorted_events = sorted(events, key=lambda e: e.global_sequence)
+    sorted_events = sorted(
+        (e for e in events if e.sojourner_id == sojourner_id),
+        key=lambda e: e.global_sequence,
+    )
 
     for event in sorted_events:
         _apply_event_to_snapshot(snapshot, event)
