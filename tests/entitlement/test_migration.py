@@ -283,6 +283,21 @@ def test_credit_deduction_partial_unique_allows_different_turns(
     session.commit()  # must not raise
 
 
+def test_entitlement_tables_in_base_metadata() -> None:
+    """entitlement ORM import registers both tables in Base.metadata.
+
+    Regression for the alembic/env.py bootstrap gap: autogenerate/create_all
+    omits entitlement tables if afterworlds.entitlement.orm is never imported.
+    The conftest already imports it, but this test makes the registration
+    requirement explicit and survives conftest refactors.
+    """
+    import afterworlds.entitlement.orm  # noqa: F401 — ensure registration
+    from afterworlds.persistence.orm.base import Base
+
+    assert "runtime_entitlement_state" in Base.metadata.tables
+    assert "entitlement_event" in Base.metadata.tables
+
+
 # Avoid "undefined name" in type hints in test functions above
 from uuid import UUID  # noqa: E402
 

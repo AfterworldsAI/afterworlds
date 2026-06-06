@@ -42,7 +42,6 @@ from afterworlds.entitlement.errors import (
     EntitlementSettlementConflictError,
     EntitlementSettlementError,
 )
-from afterworlds.entitlement.gate import _to_utc_naive
 from afterworlds.entitlement.models import AccessPathStatus
 from afterworlds.entitlement.orm import EntitlementEvent, RuntimeEntitlementState
 from afterworlds.entitlement.payloads import (
@@ -59,6 +58,7 @@ from afterworlds.entitlement.payloads import (
     TopUpCreditGrantPayload,
 )
 from afterworlds.entitlement.policy import TurnCostPolicy
+from afterworlds.entitlement.time_utils import to_utc_naive
 
 # Event types that require hosted_access_plan to be set (i.e. hosted access
 # must have been activated at least once before these events are accepted).
@@ -549,7 +549,7 @@ def _build_access_path_status(
     cloud_effective = (
         state.cloud_services_active
         and state.cloud_services_expires_at is not None
-        and _to_utc_naive(state.cloud_services_expires_at) > _to_utc_naive(now)
+        and to_utc_naive(state.cloud_services_expires_at) > to_utc_naive(now)
     )
     cloud_services_lapsed = (
         (state.cloud_services_active and not cloud_effective)

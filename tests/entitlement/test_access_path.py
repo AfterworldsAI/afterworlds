@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -16,6 +17,7 @@ from afterworlds.entitlement.errors import EntitlementSettlementError
 from afterworlds.entitlement.service import EntitlementService
 from tests.entitlement.conftest import (
     _FIXED_FUTURE,
+    _FIXED_NOW,
     _FIXED_PAST,
     activate_byok,
     activate_cloud_services,
@@ -388,3 +390,42 @@ def test_reactivation_cloud_services(
     status_active = service.get_access_path_status(sojourner_id)
     assert status_active.cloud_services_active is True
     assert status_active.cloud_services_lapsed is False
+
+
+# ---------------------------------------------------------------------------
+# Datetime normalization regression — P2 fix
+# ---------------------------------------------------------------------------
+
+
+def test_service_aware_clock_naive_stored_expiry_active(
+    session: Session,
+    sojourner_id: UUID,
+) -> None:
+    """Aware injected clock vs naive stored expiry: no TypeError; reports active."""
+
+    def aware_clock() -> datetime:
+        return _FIXED_NOW.replace(tzinfo=UTC)
+
+    svc = EntitlementService(session=session, clock=aware_clock)
+    activate_cloud_services(svc, sojourner_id, expires_at=_FIXED_FUTURE)
+
+    status = svc.get_access_path_status(sojourner_id)
+    assert status.cloud_services_active is True
+    assert status.cloud_services_lapsed is False
+
+
+def test_service_aware_clock_naive_stored_expiry_expired(
+    session: Session,
+    sojourner_id: UUID,
+) -> None:
+    """Aware injected clock vs naive expired stored expiry: reports inactive."""
+
+    def aware_clock() -> datetime:
+        return _FIXED_NOW.replace(tzinfo=UTC)
+
+    svc = EntitlementService(session=session, clock=aware_clock)
+    activate_cloud_services(svc, sojourner_id, expires_at=_FIXED_PAST)
+
+    status = svc.get_access_path_status(sojourner_id)
+    assert status.cloud_services_active is False
+    assert status.cloud_services_lapsed is True

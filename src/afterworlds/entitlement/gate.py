@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 from afterworlds.entitlement.enums import CloudServiceOperation
 from afterworlds.entitlement.errors import CloudServicesLapsedError
 from afterworlds.entitlement.orm import RuntimeEntitlementState
+from afterworlds.entitlement.time_utils import to_utc_naive
 
 
 class CloudServicesGate:
@@ -78,4 +79,4 @@ class CloudServicesGate:
             return False
         if state.cloud_services_expires_at is None:
             return False
-        return state.cloud_services_expires_at > now
+        return to_utc_naive(state.cloud_services_expires_at) > to_utc_naive(now)

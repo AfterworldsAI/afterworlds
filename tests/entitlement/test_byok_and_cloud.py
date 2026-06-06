@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -154,3 +155,59 @@ def test_cloud_services_gate_independent_of_hosted_subscription(
     gate = CloudServicesGate(session=session, clock=lambda: _FIXED_NOW)
     with pytest.raises(CloudServicesLapsedError):
         gate.require_cloud_services(sojourner_id, CloudServiceOperation.SYNC)
+
+
+# ---------------------------------------------------------------------------
+# Datetime normalization regression — P2 fix
+# ---------------------------------------------------------------------------
+
+
+def test_gate_aware_clock_naive_stored_expiry_active(
+    service: EntitlementService,
+    session: Session,
+    sojourner_id: UUID,
+) -> None:
+    """Aware injected clock vs naive stored expiry: no TypeError; gate passes."""
+    activate_cloud_services(service, sojourner_id, expires_at=_FIXED_FUTURE)
+
+    aware_now = _FIXED_NOW.replace(tzinfo=UTC)
+    gate = CloudServicesGate(session=session, clock=lambda: aware_now)
+    gate.require_cloud_services(sojourner_id, CloudServiceOperation.SYNC)
+
+
+def test_gate_aware_clock_naive_stored_expiry_expired_raises(
+    service: EntitlementService,
+    session: Session,
+    sojourner_id: UUID,
+) -> None:
+    """Aware injected clock vs naive expired stored expiry: gate raises."""
+    activate_cloud_services(service, sojourner_id, expires_at=_FIXED_PAST)
+
+    aware_now = _FIXED_NOW.replace(tzinfo=UTC)
+    gate = CloudServicesGate(session=session, clock=lambda: aware_now)
+    with pytest.raises(CloudServicesLapsedError):
+        gate.require_cloud_services(sojourner_id, CloudServiceOperation.SYNC)
+
+
+def test_gate_effective_aware_expiry_aware_clock_active() -> None:
+    """_cloud_services_effective: aware expiry + aware clock → True (no TypeError)."""
+    from types import SimpleNamespace
+
+    state = SimpleNamespace(
+        cloud_services_active=True,
+        cloud_services_expires_at=datetime(2027, 1, 1, tzinfo=UTC),
+    )
+    aware_now = datetime(2026, 6, 5, 12, 0, 0, tzinfo=UTC)
+    assert CloudServicesGate._cloud_services_effective(state, aware_now) is True  # type: ignore[arg-type]
+
+
+def test_gate_effective_aware_expiry_expired() -> None:
+    """_cloud_services_effective: aware expired expiry + aware clock → False."""
+    from types import SimpleNamespace
+
+    state = SimpleNamespace(
+        cloud_services_active=True,
+        cloud_services_expires_at=datetime(2025, 1, 1, tzinfo=UTC),
+    )
+    aware_now = datetime(2026, 6, 5, 12, 0, 0, tzinfo=UTC)
+    assert CloudServicesGate._cloud_services_effective(state, aware_now) is False  # type: ignore[arg-type]
