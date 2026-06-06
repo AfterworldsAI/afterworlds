@@ -1,6 +1,6 @@
 """Optimistic-concurrency regression tests — CRD Issue 13.
 
-Three tests covering the P1 concurrency fix on ``receive_entitlement_event``:
+Four tests covering the P1 concurrency fix on ``receive_entitlement_event``:
 
 1. Both concurrent top-up grants apply, both are in the event log, the
    projection reflects both, and replay matches the projection.
@@ -8,24 +8,44 @@ Three tests covering the P1 concurrency fix on ``receive_entitlement_event``:
    silently committed.
 3. Retries exhausted → ``EntitlementConcurrencyError`` is raised, not a silent
    divergence.
+4. First-row INSERT race: a competing session commits first; our service's INSERT
+   gets IntegrityError on the PK, rolls back, retries via the UPDATE path, and
+   succeeds.  Both events end up in the append-only log; replay matches the
+   live projection.
+
+How the concurrency guard works (for PR #95 Codex P1 response):
+``receive_entitlement_event`` captures ``last_entitlement_event_id`` from the
+current state row at the top of each attempt.  The conditional UPDATE is guarded
+by ``WHERE sojourner_id == sojourner_id AND last_entitlement_event_id == <token>``.
+If a concurrent writer committed between the read and this UPDATE, the version
+token no longer matches → rowcount==0 → rollback → retry from a fresh DB read.
+Stale-projection silent overwrite is structurally impossible: the UPDATE will not
+commit unless the version token matches the live row.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Update as _SqlUpdate
 
-from afterworlds.entitlement.enums import EntitlementEventType
+from afterworlds.entitlement.enums import EntitlementEventType, HostedAccessPlan
 from afterworlds.entitlement.errors import EntitlementConcurrencyError
 from afterworlds.entitlement.orm import EntitlementEvent, RuntimeEntitlementState
-from afterworlds.entitlement.payloads import TopUpCreditGrantPayload
+from afterworlds.entitlement.payloads import (
+    HostedAccessActivatedPayload,
+    TopUpCreditGrantPayload,
+)
 from afterworlds.entitlement.replay import rebuild_entitlement_state
 from afterworlds.entitlement.service import _MAX_CONCURRENCY_RETRIES, EntitlementService
+from afterworlds.persistence.database import create_session_factory
 from tests.entitlement.conftest import (
     activate_hosted,
     grant_subscription_credits,
@@ -212,3 +232,94 @@ def test_concurrency_error_raised_when_retries_exhausted(
     assert "top_up_credit_grant" in str(exc_info.value).lower()
     # Verify retry count: the error message names _MAX_CONCURRENCY_RETRIES.
     assert str(_MAX_CONCURRENCY_RETRIES) in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# Test 4: First-row creation race — IntegrityError → retry → UPDATE path.
+# ---------------------------------------------------------------------------
+
+
+def test_first_row_creation_race_retries_and_succeeds(
+    session: object,
+    engine: object,
+    sojourner_id: UUID,
+) -> None:
+    """First-row INSERT race: competing session wins; service retries via UPDATE path.
+
+    Simulates two services racing to create the very first entitlement event for a new
+    Sojourner.  The "competing" service (separate session, same in-memory DB) wins the
+    race and commits HOSTED_ACCESS_ACTIVATED + state row first.  Our service's first-row
+    INSERT then collides on the PK, catches IntegrityError, rolls back, retries, and
+    finds the competing row — taking the UPDATE path successfully.
+
+    No threads.  Deterministic interleaving:
+    - A competing session pre-commits the state row before our service call.
+    - session.get is patched to return None on the first call, mimicking a stale
+      in-memory snapshot that pre-dates the competing commit.
+    - The subsequent INSERT collision produces IntegrityError; the retry succeeds via
+      the existing-row UPDATE path.
+
+    Assertions:
+    - Both events (competing + retry) appear in the append-only log.
+    - Live projection: hosted_access_active=True, correct plan.
+    - Replay of ordered event log matches the live projection field-for-field.
+    """
+    assert isinstance(session, Session)
+    assert isinstance(engine, sa.Engine)
+
+    _FIXED = datetime(2026, 6, 5, 12, 0, 0)
+    fixed_clock = lambda: _FIXED  # noqa: E731
+
+    # Competing session: wins the race, commits HOSTED_ACCESS_ACTIVATED + state row.
+    competing_sess = create_session_factory(engine)()
+    competing_svc = EntitlementService(session=competing_sess, clock=fixed_clock)
+    activate_hosted(competing_svc, sojourner_id)
+    competing_sess.close()
+
+    # Our service — same session as the fixture, shares the same in-memory DB.
+    svc = EntitlementService(session=session, clock=fixed_clock)
+
+    # Patch session.get to return None on the FIRST call only (simulates our
+    # in-memory snapshot pre-dating the competing commit, causing the first-row
+    # INSERT path rather than the UPDATE path).
+    first_get_done = [False]
+    original_get = session.get  # type: ignore[union-attr]
+
+    def _stale_get_once(entity, ident, **kwargs):  # type: ignore[no-untyped-def]
+        if entity is RuntimeEntitlementState and not first_get_done[0]:
+            first_get_done[0] = True
+            return None
+        return original_get(entity, ident, **kwargs)
+
+    with patch.object(session, "get", side_effect=_stale_get_once):
+        svc.receive_entitlement_event(
+            sojourner_id,
+            EntitlementEventType.HOSTED_ACCESS_ACTIVATED,
+            HostedAccessActivatedPayload(
+                plan=HostedAccessPlan.SUBSCRIPTION,
+                effective_at=_FIXED,
+            ),
+        )
+
+    session.expire_all()  # type: ignore[union-attr]
+
+    # Both the competing event and our retry's event are in the append-only log.
+    all_events = session.scalars(  # type: ignore[union-attr]
+        select(EntitlementEvent)
+        .where(EntitlementEvent.sojourner_id == sojourner_id)
+        .order_by(EntitlementEvent.global_sequence)
+    ).all()
+    assert (
+        len(all_events) == 2
+    ), f"Expected 2 events (competing + retry); found {len(all_events)}"
+
+    # Live projection reflects both events applied in sequence.
+    state = session.get(RuntimeEntitlementState, sojourner_id)  # type: ignore[union-attr]
+    assert state is not None
+    assert state.hosted_access_active is True
+    assert state.hosted_access_plan == HostedAccessPlan.SUBSCRIPTION
+
+    # Replay of the ordered event log must match the live projection field-for-field.
+    snapshot = rebuild_entitlement_state(sojourner_id, all_events)
+    assert snapshot.hosted_access_active == state.hosted_access_active
+    assert snapshot.hosted_access_plan == state.hosted_access_plan
