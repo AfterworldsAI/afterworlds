@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
 import pytest
@@ -211,3 +211,86 @@ def test_gate_effective_aware_expiry_expired() -> None:
     )
     aware_now = datetime(2026, 6, 5, 12, 0, 0, tzinfo=UTC)
     assert CloudServicesGate._cloud_services_effective(state, aware_now) is False  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# P2: normalize expires_at to UTC-naive at payload construction time
+# ---------------------------------------------------------------------------
+
+
+def test_payload_normalizes_offset_aware_expires_at_to_utc_naive() -> None:
+    """Regression 1: offset-aware expires_at is converted to UTC-naive."""
+    from afterworlds.entitlement.payloads import CloudServicesActivatedPayload
+
+    tz_minus5 = timezone(timedelta(hours=-5))
+    payload = CloudServicesActivatedPayload(
+        expires_at=datetime(2027, 1, 1, 0, 0, 0, tzinfo=tz_minus5)
+    )
+    assert payload.expires_at.tzinfo is None
+    assert payload.expires_at == datetime(2027, 1, 1, 5, 0, 0)
+
+
+def test_payload_preserve_naive_expires_at_unchanged() -> None:
+    """Regression 1b: naive expires_at is already UTC-naive and must not shift."""
+    from afterworlds.entitlement.payloads import CloudServicesActivatedPayload
+
+    naive_dt = datetime(2027, 1, 1, 0, 0, 0)
+    payload = CloudServicesActivatedPayload(expires_at=naive_dt)
+    assert payload.expires_at.tzinfo is None
+    assert payload.expires_at == naive_dt
+
+
+def test_persist_reload_cloud_services_expiry_is_utc_naive(
+    service: EntitlementService,
+    sojourner_id: UUID,
+    session: Session,
+) -> None:
+    """Regression 2: after commit/reload, cloud_services_expires_at is UTC-naive."""
+    tz_minus5 = timezone(timedelta(hours=-5))
+    activate_cloud_services(
+        service,
+        sojourner_id,
+        expires_at=datetime(2027, 1, 1, 0, 0, 0, tzinfo=tz_minus5),
+    )
+
+    session.expire_all()
+    state = session.get(RuntimeEntitlementState, sojourner_id)
+    assert state is not None
+    assert state.cloud_services_expires_at == datetime(2027, 1, 1, 5, 0, 0)
+    assert state.cloud_services_expires_at is not None
+    assert state.cloud_services_expires_at.tzinfo is None
+
+
+def test_replay_cloud_services_expiry_matches_live_projection(
+    service: EntitlementService,
+    sojourner_id: UUID,
+    session: Session,
+) -> None:
+    """Regression 3: replay produces same UTC-naive expiry as live projection."""
+    from sqlalchemy import select
+
+    from afterworlds.entitlement.orm import EntitlementEvent
+    from afterworlds.entitlement.replay import rebuild_entitlement_state
+
+    tz_minus5 = timezone(timedelta(hours=-5))
+    activate_cloud_services(
+        service,
+        sojourner_id,
+        expires_at=datetime(2027, 1, 1, 0, 0, 0, tzinfo=tz_minus5),
+    )
+
+    session.expire_all()
+    live_state = session.get(RuntimeEntitlementState, sojourner_id)
+    assert live_state is not None
+    live_expiry = live_state.cloud_services_expires_at
+
+    events = list(
+        session.scalars(
+            select(EntitlementEvent).where(
+                EntitlementEvent.sojourner_id == sojourner_id
+            )
+        ).all()
+    )
+    snapshot = rebuild_entitlement_state(sojourner_id, events)
+    assert snapshot.cloud_services_expires_at == live_expiry
+    assert snapshot.cloud_services_expires_at == datetime(2027, 1, 1, 5, 0, 0)

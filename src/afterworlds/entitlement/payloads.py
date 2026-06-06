@@ -31,6 +31,7 @@ from afterworlds.entitlement.enums import (
     HostedAccessDeactivationReason,
     HostedAccessPlan,
 )
+from afterworlds.entitlement.time_utils import to_utc_naive
 
 _CREDIT_QUANTUM = Decimal("0.0001")
 
@@ -124,6 +125,11 @@ class CloudServicesActivatedPayload(BaseModel):
     expires_at: datetime
     external_source: str | None = None
     external_reference_id: str | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def normalize_expires_at(cls, v: datetime) -> datetime:
+        return to_utc_naive(v)
 
 
 class CloudServicesLapsedPayload(BaseModel):
