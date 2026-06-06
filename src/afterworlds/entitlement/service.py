@@ -25,8 +25,10 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from afterworlds.entitlement.enums import (
     EntitlementEventType,
@@ -34,11 +36,13 @@ from afterworlds.entitlement.enums import (
     RuntimeAccessPath,
 )
 from afterworlds.entitlement.errors import (
+    EntitlementConcurrencyError,
     EntitlementIdempotencyConflictError,
     EntitlementPayloadVersionError,
     EntitlementSettlementConflictError,
     EntitlementSettlementError,
 )
+from afterworlds.entitlement.gate import _to_utc_naive
 from afterworlds.entitlement.models import AccessPathStatus
 from afterworlds.entitlement.orm import EntitlementEvent, RuntimeEntitlementState
 from afterworlds.entitlement.payloads import (
@@ -66,6 +70,11 @@ _CREDIT_MUTATION_EVENT_TYPES: frozenset[EntitlementEventType] = frozenset(
         EntitlementEventType.MANUAL_CREDIT_ADJUSTMENT,
     }
 )
+
+# Max retry attempts after a stale-projection detection (rowcount==0) or a
+# first-row INSERT race.  Process-local only — does not guarantee safety across
+# multiple processes or machines; a distributed lock would be needed there.
+_MAX_CONCURRENCY_RETRIES: int = 3
 
 
 class EntitlementService:
@@ -251,14 +260,30 @@ class EntitlementService:
           Existing row, any mismatch → raise
             ``EntitlementIdempotencyConflictError``.
 
+        Optimistic concurrency on last_entitlement_event_id:
+          For existing projection rows the UPDATE is guarded by a WHERE clause
+          that checks last_entitlement_event_id equals the value read at the
+          start of the attempt.  rowcount==0 means a concurrent writer committed
+          between the read and the UPDATE; the attempt is rolled back and retried
+          up to _MAX_CONCURRENCY_RETRIES times.  For first-row INSERT races an
+          IntegrityError on the state-row PK is caught and retried the same way.
+          If all retries fail, raises ``EntitlementConcurrencyError`` — the
+          projection is never silently overwritten.
+
+          NOTE: this is process-local optimistic locking.  It is safe for all
+          single-process deployments.  A distributed environment with multiple
+          writer processes would need a distributed lock or compare-and-swap at
+          the DB level.
+
         Race-safe duplicate handling:
-          On IntegrityError: rollback, refetch, compare, return or raise.
+          On IntegrityError from event uniqueness constraints: rollback, refetch,
+          compare, return or raise.
 
         Happy path:
           1. Creates RuntimeEntitlementState row if absent (transactionally).
           2. Appends EntitlementEvent; global_sequence assigned by SQLite.
           3. Applies event application rules to RuntimeEntitlementState.
-          4. Updates last_entitlement_event_id and updated_at.
+          4. Updates last_entitlement_event_id and updated_at via conditional UPDATE.
           5. All in one transaction.
         """
         # 1. Payload type check (early, before any DB work).
@@ -269,95 +294,176 @@ class EntitlementService:
                 f"event_type {event_type!r}"
             )
 
-        # 2. Read existing state for precondition check.
-        current_state = self._session.get(RuntimeEntitlementState, sojourner_id)
+        # 2. Retry loop — optimistic concurrency on last_entitlement_event_id.
+        for _attempt in range(_MAX_CONCURRENCY_RETRIES + 1):
+            # Re-read state on each attempt (identity map is expired after rollback).
+            current_state = self._session.get(RuntimeEntitlementState, sojourner_id)
 
-        # 3. Precondition: credit mutation events require hosted access to have
-        #    been activated at least once.
-        if event_type in _CREDIT_MUTATION_EVENT_TYPES and (
-            current_state is None or current_state.hosted_access_plan is None
-        ):
-            raise EntitlementSettlementError(
-                f"event_type={event_type!r} requires hosted_access_plan to be "
-                "set (hosted access must have been activated at least once); "
-                f"sojourner_id={sojourner_id}"
-            )
-
-        # 3b. Precondition: CREDIT_DEDUCTION must carry a turn_id.  A NULL
-        #     turn_id means the DB partial-unique index cannot enforce
-        #     per-turn deduplication, creating a silent duplicate-settle risk.
-        if event_type == EntitlementEventType.CREDIT_DEDUCTION and turn_id is None:
-            raise EntitlementSettlementError(
-                "CREDIT_DEDUCTION requires turn_id; turn_id=None is not permitted"
-            )
-
-        # 4. Idempotency pre-check.
-        if idempotency_key is not None:
-            existing_by_key = self._find_by_idempotency_key(idempotency_key)
-            if existing_by_key is not None:
-                _check_idempotency_match(
-                    existing_by_key,
-                    sojourner_id,
-                    event_type,
-                    turn_id,
-                    payload,
+            # 3. Precondition: credit mutation events require hosted access to have
+            #    been activated at least once.
+            if event_type in _CREDIT_MUTATION_EVENT_TYPES and (
+                current_state is None or current_state.hosted_access_plan is None
+            ):
+                raise EntitlementSettlementError(
+                    f"event_type={event_type!r} requires hosted_access_plan to be "
+                    "set (hosted access must have been activated at least once); "
+                    f"sojourner_id={sojourner_id}"
                 )
-                return existing_by_key
 
-        # 5. Insert attempt with race-safe IntegrityError handling.
-        now = self._clock()
-        try:
-            if current_state is None:
-                current_state = RuntimeEntitlementState(
-                    sojourner_id=sojourner_id,
-                    created_at=now,
-                    updated_at=now,
+            # 3b. Precondition: CREDIT_DEDUCTION must carry a turn_id.  A NULL
+            #     turn_id means the DB partial-unique index cannot enforce
+            #     per-turn deduplication, creating a silent duplicate-settle risk.
+            if event_type == EntitlementEventType.CREDIT_DEDUCTION and turn_id is None:
+                raise EntitlementSettlementError(
+                    "CREDIT_DEDUCTION requires turn_id; turn_id=None is not permitted"
                 )
-                self._session.add(current_state)
 
-            new_event = EntitlementEvent(
-                event_id=uuid4(),
-                sojourner_id=sojourner_id,
-                event_type=event_type,
-                turn_id=turn_id,
-                idempotency_key=idempotency_key,
-                payload_json=payload.model_dump_json(),
-                created_at=now,
-            )
-            self._session.add(new_event)
-
-            _apply_event_application_rules(current_state, event_type, payload)
-            current_state.last_entitlement_event_id = new_event.event_id
-            current_state.updated_at = now
-
-            self._session.commit()
-            return new_event
-
-        except IntegrityError:
-            # IMPORTANT: rollback before any further queries — SQLAlchemy leaves
-            # the session in an invalid state after an unhandled IntegrityError.
-            self._session.rollback()
-
-            # Refetch to determine idempotency or conflict.
+            # 4. Idempotency pre-check (re-checked on each retry; a concurrent
+            #    writer may have committed the same key between attempts).
             if idempotency_key is not None:
-                refetched = self._find_by_idempotency_key(idempotency_key)
-                if refetched is not None:
+                existing_by_key = self._find_by_idempotency_key(idempotency_key)
+                if existing_by_key is not None:
                     _check_idempotency_match(
-                        refetched, sojourner_id, event_type, turn_id, payload
+                        existing_by_key,
+                        sojourner_id,
+                        event_type,
+                        turn_id,
+                        payload,
                     )
-                    return refetched
+                    return existing_by_key
 
-            if turn_id is not None:
-                refetched_by_turn = self._find_by_turn_event_type(
-                    sojourner_id, turn_id, event_type
+            # 5. Capture the version token before any mutation.
+            previous_last_event_id = (
+                current_state.last_entitlement_event_id
+                if current_state is not None
+                else None
+            )
+
+            now = self._clock()
+            try:
+                new_event = EntitlementEvent(
+                    event_id=uuid4(),
+                    sojourner_id=sojourner_id,
+                    event_type=event_type,
+                    turn_id=turn_id,
+                    idempotency_key=idempotency_key,
+                    payload_json=payload.model_dump_json(),
+                    created_at=now,
                 )
-                if refetched_by_turn is not None:
-                    _check_idempotency_match(
-                        refetched_by_turn, sojourner_id, event_type, turn_id, payload
-                    )
-                    return refetched_by_turn
+                self._session.add(new_event)
 
-            raise
+                if current_state is None:
+                    # First-row INSERT path: create projection row and commit both.
+                    current_state = RuntimeEntitlementState(
+                        sojourner_id=sojourner_id,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    self._session.add(current_state)
+                    _apply_event_application_rules(current_state, event_type, payload)
+                    current_state.last_entitlement_event_id = new_event.event_id
+                    self._session.commit()
+                    return new_event
+
+                # Existing-row UPDATE path with optimistic concurrency guard.
+                _apply_event_application_rules(current_state, event_type, payload)
+                current_state.last_entitlement_event_id = new_event.event_id
+                current_state.updated_at = now
+
+                # Version guard: UPDATE only if last_entitlement_event_id has not
+                # changed since we read it.  This detects any concurrent write that
+                # committed between our read and this statement.
+                version_cond: ColumnElement[bool]
+                if previous_last_event_id is None:
+                    version_cond = (
+                        RuntimeEntitlementState.last_entitlement_event_id.is_(None)
+                    )
+                else:
+                    version_cond = (
+                        RuntimeEntitlementState.last_entitlement_event_id
+                        == previous_last_event_id
+                    )
+
+                # Expunge prevents SQLAlchemy from emitting a second unconditional
+                # auto-UPDATE for current_state on flush/commit.
+                self._session.expunge(current_state)
+
+                # Flush the event INSERT first so the FK constraint is satisfied
+                # before the conditional UPDATE references new_event.event_id.
+                self._session.flush()
+
+                update_stmt = (
+                    sa_update(RuntimeEntitlementState)
+                    .where(
+                        RuntimeEntitlementState.sojourner_id == sojourner_id,
+                        version_cond,
+                    )
+                    .values(
+                        hosted_access_active=current_state.hosted_access_active,
+                        hosted_access_plan=current_state.hosted_access_plan,
+                        hosted_credit_balance=current_state.hosted_credit_balance,
+                        top_up_credit_balance=current_state.top_up_credit_balance,
+                        byok_license_active=current_state.byok_license_active,
+                        byok_license_purchased_at=current_state.byok_license_purchased_at,
+                        cloud_services_active=current_state.cloud_services_active,
+                        cloud_services_expires_at=current_state.cloud_services_expires_at,
+                        last_entitlement_event_id=current_state.last_entitlement_event_id,
+                        updated_at=current_state.updated_at,
+                    )
+                    .execution_options(synchronize_session=False)
+                )
+                result = self._session.execute(update_stmt)
+
+                if result.rowcount == 0:  # type: ignore[attr-defined]
+                    # A concurrent writer committed between our read and this UPDATE.
+                    # Roll back (undoes the pending event INSERT too) and retry.
+                    self._session.rollback()
+                    continue
+
+                self._session.commit()
+                return new_event
+
+            except IntegrityError:
+                # IMPORTANT: rollback before any further queries — SQLAlchemy
+                # leaves the session in an invalid state after an unhandled
+                # IntegrityError.
+                self._session.rollback()
+
+                # Refetch to determine idempotency or conflict.
+                if idempotency_key is not None:
+                    refetched = self._find_by_idempotency_key(idempotency_key)
+                    if refetched is not None:
+                        _check_idempotency_match(
+                            refetched, sojourner_id, event_type, turn_id, payload
+                        )
+                        return refetched
+
+                if turn_id is not None:
+                    refetched_by_turn = self._find_by_turn_event_type(
+                        sojourner_id, turn_id, event_type
+                    )
+                    if refetched_by_turn is not None:
+                        _check_idempotency_match(
+                            refetched_by_turn,
+                            sojourner_id,
+                            event_type,
+                            turn_id,
+                            payload,
+                        )
+                        return refetched_by_turn
+
+                # Neither check matched: the IntegrityError came from a concurrent
+                # first-row INSERT on runtime_entitlement_state (PK conflict).
+                # Retry to pick up the row the concurrent writer created.
+                if previous_last_event_id is None:
+                    continue
+
+                raise  # Unexpected IntegrityError — propagate.
+
+        raise EntitlementConcurrencyError(
+            f"sojourner_id={sojourner_id} concurrency conflict unresolved after "
+            f"{_MAX_CONCURRENCY_RETRIES} retries; event_type={event_type!r}"
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -443,7 +549,7 @@ def _build_access_path_status(
     cloud_effective = (
         state.cloud_services_active
         and state.cloud_services_expires_at is not None
-        and state.cloud_services_expires_at > now
+        and _to_utc_naive(state.cloud_services_expires_at) > _to_utc_naive(now)
     )
     cloud_services_lapsed = (
         (state.cloud_services_active and not cloud_effective)

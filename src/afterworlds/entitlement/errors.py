@@ -38,6 +38,16 @@ class EntitlementReplayError(AfterworldsError):
     """
 
 
+class EntitlementConcurrencyError(AfterworldsError):
+    """Optimistic concurrency check failed after all retry attempts.
+
+    The ``last_entitlement_event_id`` version guard detected a concurrent write
+    on every attempt (conditional UPDATE rowcount==0 each time, or repeated
+    first-row INSERT races).  The projection was never silently overwritten;
+    the caller must retry at a higher level or surface the error.
+    """
+
+
 class CloudServicesLapsedError(AfterworldsError):
     """CloudServicesGate blocked a cloud operation for a lapsed, expired, or
     expires_at=None Sojourner.
