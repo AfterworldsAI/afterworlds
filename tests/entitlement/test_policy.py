@@ -182,6 +182,113 @@ def test_manual_adjustment_none_delta_arithmetic(
     assert state.top_up_credit_balance == Decimal("10")
 
 
+# ---------------------------------------------------------------------------
+# P2 regression: negative token counts rejected at billing input boundary
+# ---------------------------------------------------------------------------
+
+
+def test_pass_snapshot_rejects_negative_input_tokens() -> None:
+    """P2: PassUsageSnapshot rejects negative input_tokens."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        PassUsageSnapshot(
+            pass_id=PipelinePassId.WRITER,
+            model_tier=ModelTier.SONNET,
+            input_tokens=-1,
+            output_tokens=500,
+        )
+
+
+def test_pass_snapshot_rejects_negative_output_tokens() -> None:
+    """P2: PassUsageSnapshot rejects negative output_tokens."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        PassUsageSnapshot(
+            pass_id=PipelinePassId.WRITER,
+            model_tier=ModelTier.SONNET,
+            input_tokens=1000,
+            output_tokens=-1,
+        )
+
+
+def test_pass_snapshot_rejects_negative_cache_read_tokens() -> None:
+    """P2: PassUsageSnapshot rejects negative cache_read_tokens."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        PassUsageSnapshot(
+            pass_id=PipelinePassId.WRITER,
+            model_tier=ModelTier.SONNET,
+            input_tokens=1000,
+            output_tokens=500,
+            cache_read_tokens=-1,
+        )
+
+
+def test_pass_snapshot_rejects_negative_cache_creation_tokens() -> None:
+    """P2: PassUsageSnapshot rejects negative cache_creation_tokens."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        PassUsageSnapshot(
+            pass_id=PipelinePassId.WRITER,
+            model_tier=ModelTier.SONNET,
+            input_tokens=1000,
+            output_tokens=500,
+            cache_creation_tokens=-1,
+        )
+
+
+def test_pass_snapshot_accepts_zero_token_counts() -> None:
+    """P2: Zero token counts are valid (not rejected)."""
+    snap = PassUsageSnapshot(
+        pass_id=PipelinePassId.WRITER,
+        model_tier=ModelTier.SONNET,
+        input_tokens=0,
+        output_tokens=0,
+        cache_read_tokens=0,
+        cache_creation_tokens=0,
+    )
+    assert snap.input_tokens == 0
+    assert snap.cache_read_tokens == 0
+
+
+def test_extract_snapshots_rejects_negative_input_tokens() -> None:
+    """P2: extract_snapshots raises for negative input_token_count."""
+    from uuid import uuid4
+
+    from pydantic import ValidationError
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    result = _make_delivered_result(uuid4(), input_tokens=-1, output_tokens=500)
+    with pytest.raises(ValidationError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
+def test_extract_snapshots_rejects_negative_output_tokens() -> None:
+    """P2: extract_snapshots raises for negative output_token_count."""
+    from uuid import uuid4
+
+    from pydantic import ValidationError
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    result = _make_delivered_result(uuid4(), input_tokens=1000, output_tokens=-1)
+    with pytest.raises(ValidationError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
+def test_compute_deduction_unchanged_for_valid_positive_snapshots() -> None:
+    """P2: compute_deduction behavior is unchanged for valid positive snapshots."""
+    policy = make_policy("1000")
+    snap = make_pass_snapshot(input_tokens=1000, output_tokens=500)
+    deduction = policy.compute_deduction([snap])
+    assert deduction == Decimal("1.5")
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

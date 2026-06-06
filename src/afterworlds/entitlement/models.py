@@ -14,7 +14,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.entitlement.enums import (
     HostedAccessPlan,
@@ -87,10 +87,10 @@ class PassUsageSnapshot(BaseModel):
     model_tier: ModelTier
     provider: str | None = None
     model_identifier: str | None = None
-    input_tokens: int
-    output_tokens: int
-    cache_read_tokens: int = 0
-    cache_creation_tokens: int = 0
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    cache_read_tokens: int = Field(default=0, ge=0)
+    cache_creation_tokens: int = Field(default=0, ge=0)
 
 
 @dataclass
