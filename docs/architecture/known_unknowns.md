@@ -52,6 +52,8 @@ These were open questions during design or early construction. Decisions are rec
 | Billing-platform issue placement | Issue 23 — Billing Platform / Payment Integration | Created after Issue 21 and before public launch. It is a commercial launch blocker, not a spine-demo prerequisite. |
 | Retrieval-memory ownership and gate | Issue 18 owns ChromaDB retrieval-memory design and implementation, beginning with a mandatory ADR / owner checkpoint before implementation code proceeds | Exact collection schema and retrieval parameters remain open until the Issue 18 ADR is accepted. |
 | OOC narrative effect | OOC does not advance story or canon unless a later mode-specific contract defines a safe typed configuration update | The UI provides explicit OOC affordance; manual `[OOC]` remains valid. Branching interaction-style/cadence changes are examples of safe typed config updates. |
+| Credit deduction timing | Hosted credits deducted only for `DELIVERED` and `OOC_HANDLED` turns. Safety blocks, contradiction blocks, provider refusals, and pipeline errors do not deduct. | Resolved during Issue 13; see ADR-013. Owner Decision #1. |
+| React or Svelte for the initial frontend | Deferred to before Issue 19 per CRD Item 4. All Issues 1–18 are backend/pipeline and are unblocked. | CRD Item 4 establishes this must be resolved before frontend skeleton work (Issue 19). No decision required before Issue 18. |
 
 ---
 
@@ -88,6 +90,16 @@ Issue 12c ships with `SafetyPolicy()` defaulting to an empty `whitelisted_provid
 The ownership boundary is resolved: Issue 14 owns provider/platform selection, capability profiles, cache realization, and refusal-aware fallback. The exact provider capability schema and fallback-pool configuration remain open.
 
 **What resolution requires:** Define provider/platform capability records covering at minimum: provider identifier, access path eligibility, supported model tiers, safety/profile flags, cache strategy, refusal/failure handling behavior, fallback-pool membership, BYOK credential requirements, and metric normalization fields supplied to Issue 13. Document in an ADR.
+
+---
+
+### Rollover/cap policy for hosted credits
+
+**Resolve before:** Pricing lock (before public launch).
+
+**Why it's open:** Issue 13 preserves separate hosted and top-up credit balances. Whether hosted credits roll over between billing periods, and whether any cap applies to total accumulated credits, is an open product decision. No enforcement logic or schema fields exist for rollover/cap in v1.
+
+**What resolution requires:** Owner decision on rollover period (monthly reset vs. carry-forward), top-up cap (if any), and whether rolled-over included credits are treated differently from top-up credits. Implement enforcement logic and any new schema fields in a follow-on issue after the pricing decision is locked. Document in an ADR.
 
 ---
 
