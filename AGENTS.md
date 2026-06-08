@@ -30,8 +30,7 @@ Current local code-only Graphify workflow:
 
 ```powershell
 cd D:\AI\Claude\afterworlds\src
-graphify query "Summarize the files, services, models, tests, and ownership seams relevant to this PR."
-```
+graphify query "Summarize the files, services, models, tests, and ownership seams relevant to this PR."```
 
 ## Boundary-over-patch rule
 
