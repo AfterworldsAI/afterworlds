@@ -1,0 +1,39 @@
+name: Graphify Code Graph
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  graphify-code-graph:
+    name: Build Graphify code graph
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Graphify
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install graphifyy
+
+      - name: Build code-only graph
+        run: |
+          graphify src
+          graphify cluster-only src
+
+      - name: Upload Graphify artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphify-code-graph
+          path: src/graphify-out/
+          if-no-files-found: error
+          retention-days: 14
