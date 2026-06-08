@@ -28,7 +28,7 @@ jobs:
       - name: Build code-only graph
         run: |
           graphify src
-          graphify cluster-only src
+          graphify src --cluster-only --no-label
 
       - name: Upload Graphify artifact
         uses: actions/upload-artifact@v4
