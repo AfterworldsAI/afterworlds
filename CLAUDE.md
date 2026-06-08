@@ -107,8 +107,7 @@ Current local code-only Graphify workflow:
 cd D:\AI\Claude\afterworlds\src
 graphify .
 graphify cluster-only D:\AI\Claude\afterworlds\src
-graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."
-```
+graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."```
 
 ## Review-Loop Boundary Check
 
