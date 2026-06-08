@@ -12,6 +12,27 @@
 - Prefer high-signal comments over nitpicks.
 - Call out missing tests when acceptance criteria mention tests.
 
+## Graphify Review Preflight
+
+Before reviewing a non-trivial PR, consult Graphify for codebase orientation when it is available in the local environment.
+
+Graphify is a construction/review aid only. It is not an Afterworlds runtime dependency, not an architectural authority, and not a replacement for the PR diff, issue spec, ADRs, `AGENTS.md`, `CLAUDE.md`, or architecture docs.
+
+Required review preflight:
+
+1. Read `AGENTS.md` and the PR diff first.
+2. Query Graphify before broad manual spelunking.
+3. Use narrow, review-specific queries to identify changed-file impact, ownership boundaries, downstream callers, related tests, and architecture seams.
+4. Verify all Graphify output against source, tests, issue specs, and architecture docs before writing review findings.
+5. 5. If Graphify is blocked by the sandbox, request approval/escalation to run the Graphify preflight once. If Graphify is still unavailable, stale, or failing after that, state it explicitly and continue with normal source inspection.
+
+Current local code-only Graphify workflow:
+
+```powershell
+cd D:\AI\Claude\afterworlds\src
+graphify query "Summarize the files, services, models, tests, and ownership seams relevant to this PR."
+```
+
 ## Boundary-over-patch rule
 
 Agents must distinguish between:
