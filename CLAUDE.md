@@ -87,6 +87,29 @@ violation and must be flagged in the PR, not silently resolved.
   any deviation and rationale
 - Scope creep is a review failure — stay within issue boundaries
 
+## Graphify Preflight
+
+Before starting non-trivial implementation work, use Graphify for codebase orientation when it is available in the local environment.
+
+Graphify is a construction aid only. It is not an Afterworlds runtime dependency, not an architectural authority, and not a replacement for the issue spec, ADRs, `CLAUDE.md`, `AGENTS.md`, or architecture docs.
+
+Required preflight for non-trivial implementation work:
+
+1. Read the governing instructions and issue spec first.
+2. Refresh or query the Graphify code graph before broad file inspection.
+3. Use narrow, task-specific Graphify queries to identify likely files, services, models, tests, and ownership seams.
+4. Verify all Graphify output against source files and authoritative docs before making changes.
+5. If Graphify is blocked by the sandbox, request approval/escalation to run the Graphify preflight once. If Graphify is still unavailable, stale, or failing after that, state it explicitly and continue with normal source inspection.
+
+Current local code-only Graphify workflow:
+
+```powershell
+cd D:\AI\Claude\afterworlds\src
+graphify .
+graphify cluster-only D:\AI\Claude\afterworlds\src
+graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."
+```
+
 ## Review-Loop Boundary Check
 
 If repeated review rounds on the same PR begin focusing on the same file, function, 
