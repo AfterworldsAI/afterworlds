@@ -183,12 +183,14 @@ class TurnCostPolicy:
         def _safety_snapshot(
             pass_id: PipelinePassId, sr: SafetyResult
         ) -> PassUsageSnapshot:
-            usage = sr.usage
-            in_t = usage.input_tokens if usage else None
-            out_t = usage.output_tokens if usage else None
-            cr = usage.cache_read_input_tokens if usage else None
-            cc = usage.cache_creation_input_tokens if usage else None
-            return _require_tokens(pass_id, in_t, out_t, cr, cc, None)
+            return _require_tokens(
+                pass_id,
+                sr.input_token_count,
+                sr.output_token_count,
+                sr.cache_read_token_count,
+                sr.cache_creation_token_count,
+                None,
+            )
 
         if result.input_safety_result is not None:
             snapshots.append(

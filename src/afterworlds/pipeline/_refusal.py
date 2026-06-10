@@ -1,4 +1,4 @@
-"""Cross-pass provider-refusal contract — CRD Issue 12c.
+"""Cross-pass provider-refusal contract — CRD Issue 12c / 14a.
 
 A provider refusal from one of the narrative or state passes (Planner,
 Writer, Extractor, Contradiction) is a typed failure, not a Safety verdict.
@@ -9,15 +9,8 @@ Safety pass provider refusals remain ``SafetyPassError`` (Issue 12b) and
 route to ``PIPELINE_ERROR`` per the 12c failure taxonomy.  They are NOT
 ``ProviderRefusalError``.
 
-v1 scope notes (Issue 12c):
-  - Pass services do not synthesize ``ProviderRefusalError`` from coarse
-    provider exceptions in v1.  Automatic refusal-classification heuristics
-    belong to Issue 14 (provider routing).
-  - Test callers raise ``ProviderRefusalError`` directly to exercise the
-    refusal path; pass services let it propagate unchanged from their
-    except branches.
-  - The carried ``ProviderRefusal`` is advisory — orchestration does not
-    route on it; Issue 14 may use it later for refusal-aware fallback.
+Issue 14a adds ``RefusalCategory`` enum and ``ProviderRefusal.refusal_category``
+field (additive, optional).  Adapters set this when raising ``ProviderRefusalError``.
 """
 
 from __future__ import annotations
@@ -36,14 +29,32 @@ class PassIdentifier(StrEnum):
     CONTRADICTION = "contradiction"
 
 
+class RefusalCategory(StrEnum):
+    """Classification of why a provider refused a request (Issue 14a).
+
+    Used by adapters when raising ``ProviderRefusalError`` and stored in
+    ``provider_refusal_log``.
+
+    CONTENT_POLICY: explicit content-policy refusal message from the provider.
+    UNKNOWN: policy-style refusal without a granular reason — still
+        fallback-eligible per Design v11 (fallback must not depend on
+        granular reasons).
+
+    Operational failures (context length, auth, rate limit, network, empty
+    response, timeout) are ``ProviderCallError``, never a ``RefusalCategory``.
+    """
+
+    CONTENT_POLICY = "content_policy"
+    UNKNOWN = "unknown"
+
+
 class ProviderRefusal(BaseModel):
     """Advisory metadata about a typed provider refusal.
 
-    Fields are advisory.  Per Known Unknown "Provider refusal reason
-    opacity" (resolved in Issue 12c), the orchestrator must never treat
-    ``coarse_reason`` as authoritative policy signal.  Issue 14 may improve
-    routing based on observed refusal patterns but routing must not depend
-    on granular refusal reasons being available.
+    Fields are advisory.  The orchestrator must never treat ``coarse_reason``
+    or ``refusal_category`` as authoritative policy signal.  Issue 14a adapters
+    populate ``refusal_category``; fallback routing uses it but never depends
+    on granular reasons.
 
     Attributes:
         provider: provider identifier reported by the pass that refused
@@ -51,11 +62,12 @@ class ProviderRefusal(BaseModel):
         model: model identifier reported by the pass (e.g. ``"claude-haiku-..."``).
         pass_identifier: which pass produced the refusal.
         coarse_reason: any short refusal phrase the provider supplied; may
-            be ``None`` when the provider did not surface a reason.  Treated
-            as advisory only — the v1 orchestrator does not route on it.
-        raw_response_excerpt: short excerpt of the underlying provider
-            response sufficient for audit (truncated by the caller; the
-            orchestrator does not re-truncate).
+            be ``None`` when the provider did not surface a reason.
+        raw_response_excerpt: short in-memory-only excerpt (max 1024 chars)
+            for audit context.  NEVER persisted, NEVER emitted to logs by
+            default — DEBUG behind explicit opt-in, sanitized before any
+            emission.
+        refusal_category: Issue 14a additive field; ``None`` on 12c-era refusals.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -65,6 +77,7 @@ class ProviderRefusal(BaseModel):
     pass_identifier: PassIdentifier
     coarse_reason: str | None = None
     raw_response_excerpt: str | None = Field(default=None, max_length=1024)
+    refusal_category: RefusalCategory | None = None
 
 
 class ProviderRefusalError(Exception):
@@ -92,6 +105,7 @@ class ProviderRefusalError(Exception):
 
 __all__ = [
     "PassIdentifier",
+    "RefusalCategory",
     "ProviderRefusal",
     "ProviderRefusalError",
 ]

@@ -53,6 +53,8 @@ These were open questions during design or early construction. Decisions are rec
 | Retrieval-memory ownership and gate | Issue 18 owns ChromaDB retrieval-memory design and implementation, beginning with a mandatory ADR / owner checkpoint before implementation code proceeds | Exact collection schema and retrieval parameters remain open until the Issue 18 ADR is accepted. |
 | OOC narrative effect | OOC does not advance story or canon unless a later mode-specific contract defines a safe typed configuration update | The UI provides explicit OOC affordance; manual `[OOC]` remains valid. Branching interaction-style/cadence changes are examples of safe typed config updates. |
 | Credit deduction timing | Hosted credits deducted only for `DELIVERED` and `OOC_HANDLED` turns. Safety blocks, contradiction blocks, provider refusals, and pipeline errors do not deduct. | Resolved during Issue 13; see ADR-013. Owner Decision #1. |
+| Safety-policy provider whitelist | Anthropic direct (`trusted_for_safety_skip=True`); OpenRouter (`trusted_for_safety_skip=False`). Implemented in `CapabilityProfileAwareSafetyPolicy` via `TurnProviderBinding.primary_writer_route`. | Resolved during Issue 14a; see adr-014a. |
+| Provider capability profiles and fallback eligibility | `AnthropicCapabilityProfile` owns pass→model mapping. `EligibleWriterRoute` carries `trusted_for_safety_skip`. `RefusalFallbackRouter` owns at-most-one-fallback semantics. BYOK pool bounded by configured credentials; no hosted/BYOK boundary crossing. | Resolved during Issue 14a; see adr-014a. OpenRouter cache adapter verification deferred to Issue 14b. |
 | React or Svelte for the initial frontend | Deferred to before Issue 19 per CRD Item 4. All Issues 1–18 are backend/pipeline and are unblocked. | CRD Item 4 establishes this must be resolved before frontend skeleton work (Issue 19). No decision required before Issue 18. |
 
 ---
@@ -70,26 +72,6 @@ These are genuinely open. Each has a designated resolution window. Do not resolv
 Issue 12c short-circuits OOC turns away from the ordinary narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The v2 mode prompt contracts now contain OOC sections, but the implementation question remains: how the orchestrator selects or injects the final mode-specific OOC instruction, and whether the placeholder is replaced outright or retained as a generic fallback.
 
 **What resolution requires:** Issues 15–17 must finalize the mode-specific OOC protocol sections and specify how they are selected at runtime. Document the swap in an ADR if the orchestrator’s OOC-handler selection logic changes shape.
-
----
-
-### Safety-policy provider whitelist resolution
-
-**Resolve during:** Issue 14 (provider routing and BYOK credential management).
-
-Issue 12c ships with `SafetyPolicy()` defaulting to an empty `whitelisted_providers` frozenset, so Input Preflight and Output Audit run on every Turn. Issue 14 defines provider capability profiles and chooses which providers, if any, are trusted enough to skip the conservative default. Until that decision is made, neither Safety call may silently skip.
-
-**What resolution requires:** Issue 14 must specify which provider identifiers qualify for the whitelist, the criteria for whitelist eligibility, and the operator-visible audit trail for whitelist changes. Document the criteria in an ADR before flipping the default.
-
----
-
-### Provider capability profiles and fallback eligibility
-
-**Resolve during:** Issue 14.
-
-The ownership boundary is resolved: Issue 14 owns provider/platform selection, capability profiles, cache realization, and refusal-aware fallback. The exact provider capability schema and fallback-pool configuration remain open.
-
-**What resolution requires:** Define provider/platform capability records covering at minimum: provider identifier, access path eligibility, supported model tiers, safety/profile flags, cache strategy, refusal/failure handling behavior, fallback-pool membership, BYOK credential requirements, and metric normalization fields supplied to Issue 13. Document in an ADR.
 
 ---
 
@@ -127,11 +109,11 @@ Issue 19 owns the minimal FastAPI API surface needed by the React + Vite + TypeS
 
 ### Session resumption UX on cache miss
 
-**Resolve during:** Issue 14.
+**Resolve during:** Issue 19 (frontend) or earlier if UX copy must be written before then.
 
-When a Sojourner resumes a session after a long pause, provider-side cache may be cold and the first turn pays full stable-prefix cost. The technical architecture handles cold starts correctly. The product question is whether to surface this to the Sojourner with a visible “resuming story” / “warming context” cue, silently absorb it, or expose it only in advanced usage/billing views.
+Issue 14a completed the provider/cache technical work. Extended-TTL (1h) cache markers are emitted by default. The product question remains: whether to surface a cold-start resumption to the Sojourner with a visible cue, silently absorb it, or expose it only in usage/billing views.
 
-**What resolution requires:** Decide the UX pattern and document it before Issue 14 finishes provider/cache work. This is a product decision, not a cache-correctness decision.
+**What resolution requires:** Decide the UX pattern and document it before Issue 19 implements session-resume flows. This is a product decision, not a cache-correctness decision.
 
 ---
 

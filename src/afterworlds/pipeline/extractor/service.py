@@ -1,7 +1,8 @@
-"""Extractor service — CRD Issue 10.
+"""Extractor service — CRD Issue 10 / 14a.
 
-Extractor pass: receives AssembledContext + writer_output, calls the LLM using
-Anthropic tool use to extract structured narrative proposals, and routes all
+Extractor pass: receives AssembledContext + writer_output, builds a
+ProviderCallRequest, calls the LLM via the injected ProviderAdapter using
+forced tool use, extracts structured narrative proposals, and routes all
 proposals through StoryBibleService.route_extractor_proposals() in a single
 transactional call.
 
@@ -24,34 +25,33 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
 
-from anthropic.types import (
-    MessageParam,
-    TextBlockParam,
-)
 from sqlalchemy.orm import Session
 
+from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.extractor import ExtractorProposalSet
 from afterworlds.pipeline._refusal import ProviderRefusalError
 from afterworlds.pipeline._stable_prefix_renderer import (
     TTL_DEFAULT,
     TTL_EXTENDED,
+    RenderedBlock,
     render_stable_prefix_blocks,
 )
 from afterworlds.pipeline.extractor.caller import (
     EXTRACT_TOOL_NAME,
     EXTRACT_TOOL_SPEC,
-    AnthropicExtractorCaller,
-    ExtractorModelCaller,
-    ExtractorPayload,
-    parse_tool_input,
-    timed_call,
 )
 from afterworlds.pipeline.extractor.config import (
     EXTRACTOR_MAX_TOKENS,
     ExtractorConfig,
 )
 from afterworlds.pipeline.extractor.models import ExtractorPassError, ExtractorResult
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderToolCallPart,
+    ProviderToolDefinition,
+)
+from afterworlds.pipeline.provider._protocol import ProviderAdapter
 from afterworlds.services.story_bible import EntityNotFoundError, StoryBibleService
 
 # ---------------------------------------------------------------------------
@@ -77,6 +77,17 @@ def load_extractor_prompt() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Module-level tool definition (built once)
+# ---------------------------------------------------------------------------
+
+_EXTRACTOR_TOOL_DEF = ProviderToolDefinition(
+    name=EXTRACT_TOOL_NAME,
+    description=EXTRACT_TOOL_SPEC["description"],
+    input_schema=EXTRACT_TOOL_SPEC["input_schema"],
+)
+
+
+# ---------------------------------------------------------------------------
 # ExtractorService
 # ---------------------------------------------------------------------------
 
@@ -85,9 +96,9 @@ class ExtractorService:
     """Extractor pass service.
 
     Responsibilities:
-      1. Render an Anthropic Messages payload from AssembledContext + writer_output.
-      2. Invoke the provider via the injected caller (forced tool use).
-      3. Parse the ToolUseBlock response.
+      1. Render a ProviderCallRequest from AssembledContext + writer_output.
+      2. Invoke the provider via the injected ProviderAdapter (forced tool use).
+      3. Parse the ProviderToolCallPart response.
       4. Validate the tool input against ExtractorProposalSet.
       5. Delegate all routing and DB writes to
          StoryBibleService.route_extractor_proposals() — single transactional call.
@@ -99,7 +110,6 @@ class ExtractorService:
         story_bible_service: StoryBibleService instance for all Story Bible
             writes.  Injected so tests can pass a real or spy instance.
         config: Extractor configuration.  Defaults to ExtractorConfig.from_env().
-        caller: Injectable model caller.  Defaults to AnthropicExtractorCaller.
     """
 
     def __init__(
@@ -107,14 +117,10 @@ class ExtractorService:
         session: Session,
         story_bible_service: StoryBibleService,
         config: ExtractorConfig | None = None,
-        caller: ExtractorModelCaller | None = None,
     ) -> None:
         self._session = session
         self._sbs = story_bible_service
         self._config = config or ExtractorConfig.from_env()
-        self._caller: ExtractorModelCaller = caller or AnthropicExtractorCaller(
-            self._config
-        )
         self._system_prompt: str = load_extractor_prompt()
 
     def extract(
@@ -124,6 +130,7 @@ class ExtractorService:
         story_id: UUID,
         turn_id: UUID,
         *,
+        provider: ProviderAdapter,
         session: Session | None = None,
     ) -> ExtractorResult:
         """Execute one Extractor pass and return a typed result.
@@ -136,6 +143,7 @@ class ExtractorService:
             story_id: UUID of the story this turn belongs to.
             turn_id: UUID of the persisted Turn, used as provenance on all
                 proposals and canon writes created this pass.
+            provider: ProviderAdapter for this turn.
             session: optional orchestrator-owned SQLAlchemy session (Issue
                 12c).  Forwarded to ``StoryBibleService.route_extractor_proposals``
                 so the Extractor's writes nest as a SAVEPOINT inside the
@@ -163,26 +171,28 @@ class ExtractorService:
                 f"story_id {story_id}."
             )
 
-        payload = self._render(built_context, writer_output)
+        request = self._render(built_context, writer_output)
 
         try:
-            response, _latency_ms = timed_call(self._caller, payload)
+            result = provider.call(request)
         except ProviderRefusalError:
             raise
         except Exception as exc:
             raise ExtractorPassError(f"Extractor provider call failed: {exc}") from exc
 
-        try:
-            tool_input = parse_tool_input(response)
-        except ExtractorPassError:
-            raise
-        except Exception as exc:
+        tool_parts = [
+            p for p in result.content_parts if isinstance(p, ProviderToolCallPart)
+        ]
+        if not tool_parts:
+            raise ExtractorPassError("Extractor response missing tool-use block")
+        if tool_parts[0].tool_name != EXTRACT_TOOL_NAME:
             raise ExtractorPassError(
-                f"Extractor response parsing failed: {exc}"
-            ) from exc
+                f"Extractor unexpected tool name: {tool_parts[0].tool_name!r}; "
+                f"expected {EXTRACT_TOOL_NAME!r}"
+            )
 
         try:
-            proposal_set = ExtractorProposalSet.model_validate(tool_input)
+            proposal_set = ExtractorProposalSet.model_validate(tool_parts[0].tool_input)
         except Exception as exc:
             raise ExtractorPassError(
                 f"Extractor tool input failed schema validation: {exc}"
@@ -197,14 +207,16 @@ class ExtractorService:
                 f"Extractor routing failed — no DB state committed: {exc}"
             ) from exc
 
-        usage = response.usage
         return ExtractorResult(
             proposal_set=proposal_set,
             routed=routed,
-            input_token_count=usage.input_tokens,
-            output_token_count=usage.output_tokens,
-            cache_read_token_count=usage.cache_read_input_tokens,
-            cache_creation_token_count=usage.cache_creation_input_tokens,
+            input_token_count=result.input_token_count,
+            output_token_count=result.output_token_count,
+            cache_read_token_count=result.cache_read_token_count,
+            cache_creation_token_count=result.cache_creation_token_count,
+            provider=result.provider_name,
+            model_identifier=result.model_identifier,
+            model_tier=result.model_tier.value,
         )
 
     # -----------------------------------------------------------------------
@@ -215,8 +227,8 @@ class ExtractorService:
         self,
         built_context: AssembledContext,
         writer_output: str,
-    ) -> ExtractorPayload:
-        """Render the AssembledContext + writer_output into an Extractor payload.
+    ) -> ProviderCallRequest:
+        """Render the AssembledContext + writer_output into a ProviderCallRequest.
 
         Cache breakpoint placement:
           - The stable-prefix content blocks come from the shared Issue 12c
@@ -232,57 +244,45 @@ class ExtractorService:
             cache marker.
         """
         ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
-        user_blocks: list[TextBlockParam] = list(
+        rendered_blocks: list[RenderedBlock] = list(
             render_stable_prefix_blocks(built_context.stable_prefix, ttl)
         )
 
-        # Pass-forward ledger from prior passes (empty in Issue 10 standalone).
         ledger_text = built_context.pass_forward_ledger.render()
         if ledger_text:
-            user_blocks.append(TextBlockParam(type="text", text=ledger_text))
+            rendered_blocks.append(RenderedBlock(text=ledger_text))
 
-        # Volatile suffix: recent turns + current input + intent.
         vs = built_context.volatile_suffix
         for turn in vs.recent_turns:
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
+            rendered_blocks.append(
+                RenderedBlock(
                     text=(
                         f"Player: {turn.user_input}\n"
                         f"Narrator: {turn.assistant_output}"
-                    ),
+                    )
                 )
             )
-        user_blocks.append(
-            TextBlockParam(
-                type="text",
+        rendered_blocks.append(
+            RenderedBlock(
                 text=(
                     f"Player: {vs.current_input}\n"
                     f"[Intent: {vs.classified_intent.intent_type.value}]"
-                ),
+                )
             )
         )
 
         # Writer output — appended after the volatile suffix so the stable
         # prefix cache breakpoint is not perturbed.
-        user_blocks.append(
-            TextBlockParam(
-                type="text",
-                text=f"[WRITER OUTPUT]\n{writer_output}",
-            )
-        )
+        rendered_blocks.append(RenderedBlock(text=f"[WRITER OUTPUT]\n{writer_output}"))
 
-        return {
-            "model": self._config.model,
-            "max_tokens": EXTRACTOR_MAX_TOKENS,
-            "system": [
-                TextBlockParam(type="text", text=self._system_prompt),
-                TextBlockParam(
-                    type="text",
-                    text=built_context.stable_prefix.system_prompt,
-                ),
+        return ProviderCallRequest(
+            pass_id=PipelinePassId.EXTRACTOR,
+            system_blocks=[
+                RenderedBlock(text=self._system_prompt),
+                RenderedBlock(text=built_context.stable_prefix.system_prompt),
             ],
-            "messages": [MessageParam(role="user", content=user_blocks)],
-            "tools": [EXTRACT_TOOL_SPEC],
-            "tool_choice": {"type": "tool", "name": EXTRACT_TOOL_NAME},
-        }
+            rendered_blocks=rendered_blocks,
+            max_output_tokens=EXTRACTOR_MAX_TOKENS,
+            tool_definitions=[_EXTRACTOR_TOOL_DEF],
+            forced_tool_name=EXTRACT_TOOL_NAME,
+        )

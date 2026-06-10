@@ -1,4 +1,4 @@
-"""Unit tests for ExtractorService — CRD Issue 10.
+"""Unit tests for ExtractorService — CRD Issue 10 / 14a.
 
 Test classes
 ------------
@@ -17,6 +17,7 @@ TestRelationshipDomain      — RELATIONSHIP success; malformed-key variants;
                               unresolvable subject/object; no DB state on failure
 TestWorldDomain             — world domain always raises; no DB state
 TestTransactionBoundary     — all-or-nothing commit: partial failure → zero rows
+TestRendererVolatileSuffix  — ProviderCallRequest structure checks
 """
 
 from __future__ import annotations
@@ -26,7 +27,6 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
@@ -35,6 +35,7 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -67,10 +68,16 @@ from afterworlds.persistence.orm.story_bible import (
     SBRelationshipLedgerORM,
     SBUnresolvedThreadORM,
 )
-from afterworlds.pipeline.extractor.caller import EXTRACT_TOOL_NAME, ExtractorPayload
+from afterworlds.pipeline.extractor.caller import EXTRACT_TOOL_NAME
 from afterworlds.pipeline.extractor.config import ExtractorConfig
 from afterworlds.pipeline.extractor.models import ExtractorPassError, ExtractorResult
 from afterworlds.pipeline.extractor.service import ExtractorService
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderTextPart,
+    ProviderToolCallPart,
+)
 from afterworlds.services.story_bible import StoryBibleService
 
 # ---------------------------------------------------------------------------
@@ -199,51 +206,58 @@ def _make_assembled(story_id: UUID, cast_id: UUID | None = None) -> AssembledCon
     )
 
 
-def _fake_tool_response(
+def _fake_tool_result(
     tool_input: dict[str, Any] | None = None,
-    input_tokens: int = 100,
-    output_tokens: int = 50,
-    cache_read_input_tokens: int | None = None,
-    cache_creation_input_tokens: int | None = None,
-) -> Message:
-    return Message(
-        id="msg_fake_extractor",
-        type="message",
-        role="assistant",
-        content=[
-            ToolUseBlock(
-                type="tool_use",
-                id="toolu_fake_01",
-                name=EXTRACT_TOOL_NAME,
-                input=tool_input if tool_input is not None else {"proposals": []},
+    input_token_count: int = 100,
+    output_token_count: int = 50,
+    cache_read_token_count: int | None = None,
+    cache_creation_token_count: int | None = None,
+) -> ProviderCallResult:
+    return ProviderCallResult(
+        pass_id=PipelinePassId.EXTRACTOR,
+        provider_name="anthropic",
+        model_identifier="anthropic:claude-haiku-test",
+        model_tier=ModelTier.HAIKU,
+        content_parts=[
+            ProviderToolCallPart(
+                tool_name=EXTRACT_TOOL_NAME,
+                tool_input=tool_input if tool_input is not None else {"proposals": []},
             )
         ],
-        model="claude-haiku-4-5-20251001",
-        stop_reason="tool_use",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cache_read_input_tokens=cache_read_input_tokens,
-            cache_creation_input_tokens=cache_creation_input_tokens,
-        ),
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+        cache_read_token_count=cache_read_token_count,
+        cache_creation_token_count=cache_creation_token_count,
+        cache_warmed=bool(cache_read_token_count),
+        latency_ms=1,
     )
 
 
-def _make_fake_caller(  # type: ignore[no-untyped-def]
-    response: Message | None = None,
+class _FakeProviderAdapter:
+    """Capturing fake ProviderAdapter for ExtractorService tests."""
+
+    def __init__(
+        self,
+        result: ProviderCallResult | None = None,
+        raise_exc: Exception | None = None,
+    ) -> None:
+        self._result = result
+        self._raise_exc = raise_exc
+        self.captured_requests: list[ProviderCallRequest] = []
+        self.provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.captured_requests.append(request)
+        if self._raise_exc is not None:
+            raise self._raise_exc
+        return self._result or _fake_tool_result()
+
+
+def _make_fake_adapter(
+    result: ProviderCallResult | None = None,
     raise_exc: Exception | None = None,
-):
-    captured: list[ExtractorPayload] = []
-
-    def caller(payload: ExtractorPayload) -> Message:
-        captured.append(payload)
-        if raise_exc is not None:
-            raise raise_exc
-        return response or _fake_tool_response()
-
-    caller.captured = captured  # type: ignore[attr-defined]
-    return caller
+) -> _FakeProviderAdapter:
+    return _FakeProviderAdapter(result=result, raise_exc=raise_exc)
 
 
 def _turn_id() -> UUID:
@@ -261,8 +275,8 @@ class TestLockedFactRouting:
     ) -> None:
         """A locked-fact proposal produces a staged_id and a PENDING staging row."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -274,13 +288,14 @@ class TestLockedFactRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "The king falls dead.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.locked_fact_staged_ids) == 1
@@ -304,8 +319,8 @@ class TestLockedFactRouting:
     ) -> None:
         """The staged_id returned matches the DB row's proposal_id."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {"kind": "locked_fact", "fact_text": "The bridge is destroyed."}
@@ -314,13 +329,14 @@ class TestLockedFactRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "The bridge falls.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         staged_id = result.routed.locked_fact_staged_ids[0]
@@ -340,8 +356,8 @@ class TestSoftFactRouting:
     ) -> None:
         """A soft-fact proposal returns a staged_id."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -356,10 +372,14 @@ class TestSoftFactRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "Aldric is cut.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "Aldric is cut.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.soft_fact_staged_ids) == 1
@@ -370,8 +390,8 @@ class TestSoftFactRouting:
     ) -> None:
         """A soft-fact update is applied to the cast entry's dynamic field."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -386,13 +406,14 @@ class TestSoftFactRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric enters the tower.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         entry = sbs.get_character(story_id, cast_id)
@@ -404,8 +425,8 @@ class TestSoftFactRouting:
     ) -> None:
         """A RATIFIED audit staging row exists for each soft-fact update."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -420,13 +441,14 @@ class TestSoftFactRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric collapses exhausted.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         rows = (
@@ -451,8 +473,8 @@ class TestTransientStateRouting:
     ) -> None:
         """A transient-state proposal returns a staged_id."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -467,13 +489,14 @@ class TestTransientStateRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric walks the forest path.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.transient_state_staged_ids) == 1
@@ -483,8 +506,8 @@ class TestTransientStateRouting:
     ) -> None:
         """A transient-state update is applied to the cast entry's dynamic field."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -499,13 +522,14 @@ class TestTransientStateRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric reaches the market.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         entry = sbs.get_character(story_id, cast_id)
@@ -517,8 +541,8 @@ class TestTransientStateRouting:
     ) -> None:
         """A RATIFIED audit staging row exists for each transient-state update."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -533,13 +557,14 @@ class TestTransientStateRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric enters the vault.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         rows = (
@@ -564,8 +589,8 @@ class TestUnresolvedThreadRouting:
     ) -> None:
         """An unresolved-thread proposal returns a staged_id."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -577,13 +602,14 @@ class TestUnresolvedThreadRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "A hooded figure watches.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.unresolved_thread_staged_ids) == 1
@@ -593,8 +619,8 @@ class TestUnresolvedThreadRouting:
     ) -> None:
         """An unresolved-thread proposal creates a row in sb_unresolved_threads."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -606,13 +632,14 @@ class TestUnresolvedThreadRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "The artefact is gone.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         rows = (
@@ -626,8 +653,8 @@ class TestUnresolvedThreadRouting:
     ) -> None:
         """A RATIFIED audit staging row exists for each unresolved-thread proposal."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -639,13 +666,14 @@ class TestUnresolvedThreadRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "The gate is open.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         rows = (
@@ -670,8 +698,8 @@ class TestEventRouting:
     ) -> None:
         """An event proposal returns an event_id in routed.event_ids."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -685,13 +713,14 @@ class TestEventRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric crosses the bridge.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.event_ids) == 1
@@ -701,8 +730,8 @@ class TestEventRouting:
     ) -> None:
         """An event proposal creates a row in sb_events with the correct event_kind."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -716,13 +745,14 @@ class TestEventRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "The Night Warden falls.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         rows = session.query(SBEventORM).filter_by(story_id=str(story_id)).all()
@@ -736,8 +766,8 @@ class TestEventRouting:
     ) -> None:
         """Events go directly to sb_events — no staging row is created."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -751,13 +781,14 @@ class TestEventRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "The prophecy becomes clear.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         staging_rows = session.query(SBProvisionalStagingORM).all()
@@ -768,8 +799,8 @@ class TestEventRouting:
     ) -> None:
         """routed.event_ids[0] matches the event_id column in sb_events."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -783,13 +814,14 @@ class TestEventRouting:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "A stranger appears.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         event_id = result.routed.event_ids[0]
@@ -809,8 +841,8 @@ class TestUnresolvableCharacter:
     ) -> None:
         """Soft-fact for unknown character name raises ExtractorPassError."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -825,7 +857,7 @@ class TestUnresolvableCharacter:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError) as exc_info:
             service.extract(
@@ -833,6 +865,7 @@ class TestUnresolvableCharacter:
                 "The unknown hero walks.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         assert (
@@ -845,8 +878,8 @@ class TestUnresolvableCharacter:
     ) -> None:
         """When routing fails, no staging rows or event rows are committed."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -861,7 +894,7 @@ class TestUnresolvableCharacter:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -869,9 +902,9 @@ class TestUnresolvableCharacter:
                 "The ghost walks.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
-        # Session is dirty (not committed) — re-open to see committed state.
         session.rollback()
         staging_rows = session.query(SBProvisionalStagingORM).all()
         assert staging_rows == []
@@ -883,18 +916,17 @@ class TestUnresolvableCharacter:
         story_id, cast_id = story_and_cast
         now = datetime(2026, 1, 1, tzinfo=UTC)
         sbs = StoryBibleService(session)
-        # Seed a second "Aldric" entry (schema has no uniqueness constraint).
         duplicate = CastEntry(
             story_id=story_id,
-            name="aldric",  # same name, different casing — still matches
+            name="aldric",
             role=CastRole.MINOR,
             created_at=now,
         )
         sbs.add_cast_entry(story_id, duplicate)
         session.commit()
 
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -908,7 +940,7 @@ class TestUnresolvableCharacter:
                 }
             )
         )
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -916,6 +948,7 @@ class TestUnresolvableCharacter:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -934,17 +967,17 @@ class TestStoryIdGuard:
         """built_context.story_id != story_id raises ExtractorPassError immediately."""
         story_id, cast_id = story_and_cast
         wrong_story_id = uuid4()
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
-        # _make_assembled uses story_id, but we pass wrong_story_id as story_id arg
         with pytest.raises(ExtractorPassError) as exc_info:
             service.extract(
                 _make_assembled(story_id, cast_id),
                 "prose.",
                 wrong_story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         assert "story_id" in str(exc_info.value).lower()
@@ -961,12 +994,16 @@ class TestEmptyToolResponse:
     ) -> None:
         """When the model proposes nothing, all routed ID lists are empty."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response({"proposals": []}))
+        adapter = _make_fake_adapter(_fake_tool_result({"proposals": []}))
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "Nothing changed.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "Nothing changed.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert result.routed.locked_fact_staged_ids == []
@@ -980,12 +1017,16 @@ class TestEmptyToolResponse:
     ) -> None:
         """An empty proposals array is valid and produces a non-None proposal_set."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response({"proposals": []}))
+        adapter = _make_fake_adapter(_fake_tool_result({"proposals": []}))
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "Nothing changed.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "Nothing changed.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert result.proposal_set is not None
@@ -1003,8 +1044,8 @@ class TestListPendingLockedFactProposals:
     ) -> None:
         """list_pending_locked_fact_proposals returns PENDING LOCKED_FACT rows."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {"kind": "locked_fact", "fact_text": "The wall has fallen."}
@@ -1013,10 +1054,14 @@ class TestListPendingLockedFactProposals:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "The wall falls.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "The wall falls.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         pending = sbs.list_pending_locked_fact_proposals(story_id)
@@ -1029,8 +1074,8 @@ class TestListPendingLockedFactProposals:
     ) -> None:
         """list_pending_locked_fact_proposals excludes RATIFIED proposals."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1044,13 +1089,14 @@ class TestListPendingLockedFactProposals:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
             _make_assembled(story_id, cast_id),
             "A fight breaks out.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         pending = sbs.list_pending_locked_fact_proposals(story_id)
@@ -1068,20 +1114,24 @@ class TestTokenMetrics:
     ) -> None:
         """ExtractorResult surfaces all four token counts when reported."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {"proposals": []},
-                input_tokens=200,
-                output_tokens=80,
-                cache_read_input_tokens=150,
-                cache_creation_input_tokens=50,
+                input_token_count=200,
+                output_token_count=80,
+                cache_read_token_count=150,
+                cache_creation_token_count=50,
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert result.input_token_count == 200
@@ -1094,20 +1144,24 @@ class TestTokenMetrics:
     ) -> None:
         """Cache token fields are None when the provider omits them."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {"proposals": []},
-                input_tokens=100,
-                output_tokens=40,
-                cache_read_input_tokens=None,
-                cache_creation_input_tokens=None,
+                input_token_count=100,
+                output_token_count=40,
+                cache_read_token_count=None,
+                cache_creation_token_count=None,
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert result.cache_read_token_count is None
@@ -1126,13 +1180,17 @@ class TestErrorHandling:
         """A provider exception is wrapped in ExtractorPassError."""
         story_id, cast_id = story_and_cast
         original_exc = ConnectionError("network failure")
-        fake = _make_fake_caller(raise_exc=original_exc)
+        adapter = _make_fake_adapter(raise_exc=original_exc)
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError) as exc_info:
             service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         assert exc_info.value.__cause__ is original_exc
@@ -1143,58 +1201,71 @@ class TestErrorHandling:
         """Response with no tool-use block raises ExtractorPassError."""
         story_id, cast_id = story_and_cast
 
-        text_only_response = Message(
-            id="msg_text",
-            type="message",
-            role="assistant",
-            content=[TextBlock(type="text", text="I extracted nothing.")],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="end_turn",
-            stop_sequence=None,
-            usage=Usage(input_tokens=10, output_tokens=5),
+        text_only_result = ProviderCallResult(
+            pass_id=PipelinePassId.EXTRACTOR,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[ProviderTextPart(text="I extracted nothing.")],
+            input_token_count=10,
+            output_token_count=5,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        fake = _make_fake_caller(text_only_response)
+        adapter = _make_fake_adapter(text_only_result)
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
-    def test_fake_caller_receives_tool_spec_with_new_name(  # type: ignore[no-untyped-def]
+    def test_fake_adapter_receives_tool_spec(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """The injected caller receives a payload with 'propose_canon_updates' tool."""
+        """The injected adapter receives a ProviderCallRequest with the extractor
+        tool."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        assert len(fake.captured) == 1  # type: ignore[attr-defined]
-        payload = fake.captured[0]  # type: ignore[attr-defined]
-        assert "tools" in payload
-        tools = payload["tools"]
-        assert isinstance(tools, list)
-        assert len(tools) == 1
-        assert tools[0]["name"] == "propose_canon_updates"
-        assert tools[0]["name"] == EXTRACT_TOOL_NAME
+        assert len(adapter.captured_requests) == 1
+        request = adapter.captured_requests[0]
+        assert len(request.tool_definitions) == 1
+        assert request.tool_definitions[0].name == EXTRACT_TOOL_NAME
+        assert request.tool_definitions[0].name == "propose_canon_updates"
 
     def test_result_is_typed_extractor_result(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
         """extract() returns a typed ExtractorResult."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert isinstance(result, ExtractorResult)
@@ -1204,69 +1275,77 @@ class TestErrorHandling:
     ) -> None:
         """Missing 'proposals' key in tool response raises ExtractorPassError."""
         story_id, cast_id = story_and_cast
-        empty_obj_response = Message(
-            id="msg_missing_proposals",
-            type="message",
-            role="assistant",
-            content=[
-                ToolUseBlock(
-                    type="tool_use",
-                    id="toolu_missing",
-                    name=EXTRACT_TOOL_NAME,
-                    input={},  # missing 'proposals' key entirely
+        missing_proposals_result = ProviderCallResult(
+            pass_id=PipelinePassId.EXTRACTOR,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[
+                ProviderToolCallPart(
+                    tool_name=EXTRACT_TOOL_NAME,
+                    tool_input={},
                 )
             ],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="tool_use",
-            stop_sequence=None,
-            usage=Usage(input_tokens=10, output_tokens=5),
+            input_token_count=10,
+            output_token_count=5,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        fake = _make_fake_caller(empty_obj_response)
+        adapter = _make_fake_adapter(missing_proposals_result)
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
-    def test_multiple_tool_use_blocks_raises_extractor_pass_error(  # type: ignore[no-untyped-def]
+    def test_first_tool_part_used_when_multiple_present(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Response with >1 matching tool-use blocks raises ExtractorPassError."""
+        """When multiple tool-call parts are present, the first is used (no error)."""
         story_id, cast_id = story_and_cast
-
-        duplicate_block_response = Message(
-            id="msg_dup_tool",
-            type="message",
-            role="assistant",
-            content=[
-                ToolUseBlock(
-                    type="tool_use",
-                    id="toolu_dup_01",
-                    name=EXTRACT_TOOL_NAME,
-                    input={"proposals": []},
+        two_part_result = ProviderCallResult(
+            pass_id=PipelinePassId.EXTRACTOR,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[
+                ProviderToolCallPart(
+                    tool_name=EXTRACT_TOOL_NAME,
+                    tool_input={"proposals": []},
                 ),
-                ToolUseBlock(
-                    type="tool_use",
-                    id="toolu_dup_02",
-                    name=EXTRACT_TOOL_NAME,
-                    input={"proposals": []},
+                ProviderToolCallPart(
+                    tool_name=EXTRACT_TOOL_NAME,
+                    tool_input={"proposals": []},
                 ),
             ],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="tool_use",
-            stop_sequence=None,
-            usage=Usage(input_tokens=10, output_tokens=5),
+            input_token_count=10,
+            output_token_count=5,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        fake = _make_fake_caller(duplicate_block_response)
+        adapter = _make_fake_adapter(two_part_result)
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
-        with pytest.raises(ExtractorPassError, match="2"):
-            service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
-            )
+        result = service.extract(
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
+        )
+
+        assert isinstance(result, ExtractorResult)
 
 
 # ---------------------------------------------------------------------------
@@ -1280,8 +1359,8 @@ class TestBooleanProposedValue:
     ) -> None:
         """soft_fact with is_alive=False (JSON boolean) writes False to cast row."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1296,13 +1375,14 @@ class TestBooleanProposedValue:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric falls dead.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.soft_fact_staged_ids) == 1
@@ -1315,8 +1395,8 @@ class TestBooleanProposedValue:
     ) -> None:
         """transient_state with is_alive=True (JSON boolean) writes True to cast row."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1331,13 +1411,14 @@ class TestBooleanProposedValue:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, cast_id),
             "Aldric lives.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.transient_state_staged_ids) == 1
@@ -1350,8 +1431,8 @@ class TestBooleanProposedValue:
     ) -> None:
         """Boolean proposed_value for current_location raises ExtractorPassError."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1366,11 +1447,15 @@ class TestBooleanProposedValue:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1381,8 +1466,8 @@ class TestBooleanProposedValue:
     ) -> None:
         """Boolean proposed_value for notes raises ExtractorPassError; no DB state."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1397,11 +1482,15 @@ class TestBooleanProposedValue:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
-                _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+                _make_assembled(story_id, cast_id),
+                "prose.",
+                story_id,
+                _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1412,8 +1501,8 @@ class TestBooleanProposedValue:
     ) -> None:
         """Boolean for current_status_description raises ExtractorPassError."""
         story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1428,7 +1517,7 @@ class TestBooleanProposedValue:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1436,6 +1525,7 @@ class TestBooleanProposedValue:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1489,8 +1579,8 @@ class TestRelationshipDomain:
         """RELATIONSHIP soft_fact updates current_status_description and leaves a
         RATIFIED audit row."""
         story_id, aldric_cast_id, mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1505,13 +1595,14 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         result = service.extract(
             _make_assembled(story_id, aldric_cast_id),
             "Aldric eyes Mira with suspicion.",
             story_id,
             _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
         assert len(result.routed.soft_fact_staged_ids) == 1
@@ -1543,8 +1634,8 @@ class TestRelationshipDomain:
     ) -> None:
         """Relationship key with no ' -> ' delimiter raises ExtractorPassError."""
         story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1559,7 +1650,7 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1567,6 +1658,7 @@ class TestRelationshipDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
     def test_relationship_malformed_key_two_delimiters_raises(  # type: ignore[no-untyped-def]
@@ -1574,8 +1666,8 @@ class TestRelationshipDomain:
     ) -> None:
         """Relationship key with two ' -> ' delimiters raises ExtractorPassError."""
         story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1590,7 +1682,7 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1598,6 +1690,7 @@ class TestRelationshipDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
     def test_relationship_unresolvable_subject_raises(  # type: ignore[no-untyped-def]
@@ -1605,8 +1698,8 @@ class TestRelationshipDomain:
     ) -> None:
         """Unresolvable subject name raises ExtractorPassError with no DB state."""
         story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1621,7 +1714,7 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1629,6 +1722,7 @@ class TestRelationshipDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1639,8 +1733,8 @@ class TestRelationshipDomain:
     ) -> None:
         """Unresolvable object name raises ExtractorPassError with no DB state."""
         story_id, aldric_cast_id, _mira_cast_id = story_with_relationship
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1655,7 +1749,7 @@ class TestRelationshipDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1663,6 +1757,7 @@ class TestRelationshipDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1675,7 +1770,6 @@ class TestRelationshipDomain:
         story_id, aldric_cast_id, mira_cast_id = story_with_relationship
         now = datetime(2026, 1, 1, tzinfo=UTC)
         sbs = StoryBibleService(session)
-        # Seed a second active row for the same (subject, object) pair.
         duplicate_rel = RelationshipLedger(
             story_id=story_id,
             subject_cast_id=aldric_cast_id,
@@ -1688,8 +1782,8 @@ class TestRelationshipDomain:
         sbs.add_relationship(story_id, duplicate_rel)
         session.commit()
 
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1703,7 +1797,7 @@ class TestRelationshipDomain:
                 }
             )
         )
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1711,6 +1805,7 @@ class TestRelationshipDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1728,8 +1823,8 @@ class TestWorldDomain:
     ) -> None:
         """world domain raises ExtractorPassError; no DB state committed."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1744,7 +1839,7 @@ class TestWorldDomain:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1752,6 +1847,7 @@ class TestWorldDomain:
                 "prose.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
         session.rollback()
@@ -1770,8 +1866,8 @@ class TestTransactionBoundary:
         """locked_fact (succeeds flush) + soft_fact with unknown name (fails) →
         zero rows after rollback; proves the all-or-nothing transaction boundary."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(
-            _fake_tool_response(
+        adapter = _make_fake_adapter(
+            _fake_tool_result(
                 {
                     "proposals": [
                         {
@@ -1790,7 +1886,7 @@ class TestTransactionBoundary:
             )
         )
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         with pytest.raises(ExtractorPassError):
             service.extract(
@@ -1798,9 +1894,9 @@ class TestTransactionBoundary:
                 "The gates seal. UnknownName walks away.",
                 story_id,
                 _turn_id(),
+                provider=adapter,  # type: ignore[arg-type]
             )
 
-        # After rollback the locked_fact's flush must not have been committed.
         session.rollback()
         staging_rows = session.query(SBProvisionalStagingORM).all()
         assert (
@@ -1809,12 +1905,12 @@ class TestTransactionBoundary:
 
 
 # ---------------------------------------------------------------------------
-# Renderer — volatile suffix intent block
+# Renderer — volatile suffix intent block (ProviderCallRequest checks)
 # ---------------------------------------------------------------------------
 
 
 class TestRendererVolatileSuffix:
-    def test_intent_included_in_volatile_suffix(  # type: ignore[no-untyped-def]
+    def test_intent_included_in_rendered_blocks(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
         """_render() must include classified_intent after current_input.
@@ -1823,133 +1919,146 @@ class TestRendererVolatileSuffix:
         so the Extractor model sees the same intent annotation as the Writer.
         """
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        assert len(fake.captured) == 1  # type: ignore[attr-defined]
-        payload = fake.captured[0]  # type: ignore[attr-defined]
-        messages = payload["messages"]
-        user_content: list[dict[str, Any]] = messages[0]["content"]
-
-        intent_blocks = [b for b in user_content if "[Intent:" in b.get("text", "")]
+        assert len(adapter.captured_requests) == 1
+        request = adapter.captured_requests[0]
+        intent_blocks = [b for b in request.rendered_blocks if "[Intent:" in b.text]
         assert len(intent_blocks) == 1, "Expected exactly one block with [Intent:]"
-        intent_block_text: str = intent_blocks[0]["text"]
+        intent_block_text = intent_blocks[0].text
         assert "Player: I push open the door." in intent_block_text
         assert "[Intent: in_character_action]" in intent_block_text
 
     def test_intent_block_precedes_writer_output(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """The intent block appears before [WRITER OUTPUT] in the payload."""
+        """The intent block appears before [WRITER OUTPUT] in the rendered blocks."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        user_content: list[dict[str, Any]] = fake.captured[0]["messages"][0][
-            "content"
-        ]  # type: ignore[attr-defined]
-        texts = [b.get("text", "") for b in user_content]
+        request = adapter.captured_requests[0]
+        texts = [b.text for b in request.rendered_blocks]
         intent_idx = next(i for i, t in enumerate(texts) if "[Intent:" in t)
         writer_idx = next(i for i, t in enumerate(texts) if "[WRITER OUTPUT]" in t)
         assert intent_idx < writer_idx, "Intent block must precede writer output"
 
-    def test_system_field_contains_extractor_pass_prompt(  # type: ignore[no-untyped-def]
+    def test_system_blocks_contain_extractor_pass_prompt(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """System field must be the Extractor pass prompt, not the mode contract."""
+        """system_blocks[0] must be the Extractor pass prompt, not the mode contract."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        payload = fake.captured[0]  # type: ignore[attr-defined]
-        system_text = payload["system"][0]["text"]
-        # The Extractor prompt is loaded from docs/prompts/extractor.md.
-        assert "Extractor" in system_text
+        request = adapter.captured_requests[0]
+        assert "Extractor" in request.system_blocks[0].text
 
     def test_mode_contract_is_second_system_block(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Issue 12c: mode contract moved from user blocks to system[1]."""
+        """Issue 12c: mode contract in system_blocks[1]."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         ctx = _make_assembled(story_id, cast_id)
-        service.extract(ctx, "prose.", story_id, _turn_id())
+        service.extract(
+            ctx,
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
+        )
 
-        payload = fake.captured[0]  # type: ignore[attr-defined]
-        assert len(payload["system"]) == 2
-        assert payload["system"][1]["text"] == "You are the story architect."
+        request = adapter.captured_requests[0]
+        assert len(request.system_blocks) == 2
+        assert request.system_blocks[1].text == "You are the story architect."
 
-    def test_mode_contract_absent_from_user_blocks(  # type: ignore[no-untyped-def]
+    def test_mode_contract_absent_from_rendered_blocks(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
-        """Issue 12c: mode contract no longer duplicated into user blocks."""
+        """Issue 12c: mode contract no longer duplicated into rendered_blocks."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         ctx = _make_assembled(story_id, cast_id)
-        service.extract(ctx, "prose.", story_id, _turn_id())
+        service.extract(
+            ctx,
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
+        )
 
-        texts = [
-            b.get("text", "")
-            for b in fake.captured[0]["messages"][0]["content"]  # type: ignore[attr-defined]
-        ]
+        request = adapter.captured_requests[0]
         assert not any(
-            "You are the story architect." in t for t in texts
-        ), "Mode contract must not appear in user-message stable region after 12c"
+            "You are the story architect." in b.text for b in request.rendered_blocks
+        ), "Mode contract must not appear in rendered_blocks after 12c"
 
     def test_cache_breakpoint_precedes_writer_output_and_volatile(  # type: ignore[no-untyped-def]
         self, session, story_and_cast
     ) -> None:
         """Cache breakpoint on the final stable-prefix block, not writer/volatile."""
         story_id, cast_id = story_and_cast
-        fake = _make_fake_caller(_fake_tool_response())
+        adapter = _make_fake_adapter(_fake_tool_result())
         sbs = StoryBibleService(session)
-        service = ExtractorService(session, sbs, _make_config(), fake)
+        service = ExtractorService(session, sbs, _make_config())
 
         service.extract(
-            _make_assembled(story_id, cast_id), "prose.", story_id, _turn_id()
+            _make_assembled(story_id, cast_id),
+            "prose.",
+            story_id,
+            _turn_id(),
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        content: list[dict[str, Any]] = fake.captured[0]["messages"][0][  # type: ignore[attr-defined]
-            "content"
-        ]
+        request = adapter.captured_requests[0]
+        blocks = request.rendered_blocks
         cache_idx = next(
-            (i for i, b in enumerate(content) if b.get("cache_control") is not None),
+            (i for i, b in enumerate(blocks) if b.has_cache_breakpoint),
             None,
         )
         writer_idx = next(
-            (
-                i
-                for i, b in enumerate(content)
-                if "[WRITER OUTPUT]" in b.get("text", "")
-            ),
+            (i for i, b in enumerate(blocks) if "[WRITER OUTPUT]" in b.text),
             None,
         )
         volatile_idx = next(
-            (i for i, b in enumerate(content) if "[Intent:" in b.get("text", "")),
+            (i for i, b in enumerate(blocks) if "[Intent:" in b.text),
             None,
         )
-        assert cache_idx is not None, "No cache_control block found"
+        assert cache_idx is not None, "No cache breakpoint block found"
         assert writer_idx is not None, "No writer output block found"
         assert volatile_idx is not None, "No volatile suffix block found"
         assert cache_idx < writer_idx, "Cache breakpoint must precede writer output"

@@ -1,7 +1,7 @@
-"""Default-CI integration test for the Writer pass — CRD Issue 9.
+"""Default-CI integration test for the Writer pass — CRD Issue 9 / 14a.
 
-Uses a high-fidelity Anthropic response fake (real SDK types) to exercise the
-full round-trip without a network call:
+Uses a high-fidelity fake ProviderAdapter to exercise the full round-trip
+without a network call:
 
   1. Seed a Story + minimal Arc/Chapter/Node chain in SQLite.
   2. Seed a minimal Story Bible for Branching mode.
@@ -9,7 +9,7 @@ full round-trip without a network call:
   4. Call ContextBuilderService.build_stable_prefix and build_volatile_suffix
      to produce an AssembledContext.
   5. Hand the AssembledContext, story_id, and node_id to WriterService,
-     configured with a high-fidelity fake provider.
+     configured with a high-fidelity fake ProviderAdapter.
   6. Assert: Turn row persisted in SQLite linked to the seeded Node, with
      non-empty assistant_output, correct user_input, round-tripping ICR,
      and WriterResult surfacing usage metrics from the fake.
@@ -20,7 +20,6 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from anthropic.types import Message, TextBlock, Usage
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
@@ -30,6 +29,7 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.enums import CastRole, IntentType, StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.node import Node
@@ -42,7 +42,11 @@ from afterworlds.persistence.crud.node import create_node, get_turn
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
-from afterworlds.pipeline.writer.caller import AnthropicMessagesPayload
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderTextPart,
+)
 from afterworlds.pipeline.writer.config import WriterConfig
 from afterworlds.pipeline.writer.models import WriterResult
 from afterworlds.pipeline.writer.service import WriterService
@@ -54,14 +58,9 @@ from afterworlds.services.context_builder import (
 from afterworlds.services.rolling_summary import RollingSummaryService
 from afterworlds.services.story_bible import StoryBibleService
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
 
 @pytest.fixture()
 def engine():  # type: ignore[no-untyped-def]
-    """In-memory SQLite engine with all tables created."""
     eng = create_engine("sqlite://")
     Base.metadata.create_all(eng)
     yield eng
@@ -71,7 +70,6 @@ def engine():  # type: ignore[no-untyped-def]
 
 @pytest.fixture()
 def session(engine):  # type: ignore[no-untyped-def]
-    """SQLAlchemy session."""
     factory = create_session_factory(engine)
     sess = factory()
     try:
@@ -82,7 +80,6 @@ def session(engine):  # type: ignore[no-untyped-def]
 
 @pytest.fixture()
 def seeded_story(session):  # type: ignore[no-untyped-def]
-    """Seed a Branching-mode Story → Arc → Chapter → Node chain."""
     now = datetime(2026, 1, 1, tzinfo=UTC)
     story = Story(
         title="The Obsidian Vale",
@@ -91,13 +88,10 @@ def seeded_story(session):  # type: ignore[no-untyped-def]
         updated_at=now,
     )
     create_story(session, story)
-
     arc = Arc(story_id=story.story_id, title="Arc One", order=1)
     create_arc(session, arc)
-
     chapter = Chapter(arc_id=arc.arc_id, title="Chapter One", order=1)
     create_chapter(session, chapter)
-
     node = Node(
         chapter_id=chapter.chapter_id,
         content="",
@@ -110,10 +104,8 @@ def seeded_story(session):  # type: ignore[no-untyped-def]
 
 @pytest.fixture()
 def seeded_bible(session, seeded_story):  # type: ignore[no-untyped-def]
-    """Seed a minimal Story Bible for the seeded story."""
     story, _ = seeded_story
     bible_service = StoryBibleService(session)
-
     setting = StoryBibleSetting(
         story_id=story.story_id,
         summary="A shadowed valley ruled by an ancient curse.",
@@ -121,7 +113,6 @@ def seeded_bible(session, seeded_story):  # type: ignore[no-untyped-def]
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
     bible_service.create_setting(story.story_id, setting)
-
     cast_entry = CastEntry(
         story_id=story.story_id,
         name="Eryndor",
@@ -136,7 +127,6 @@ def seeded_bible(session, seeded_story):  # type: ignore[no-untyped-def]
 
 @pytest.fixture()
 def context_builder(session):  # type: ignore[no-untyped-def]
-    """ContextBuilderService with real Issue 4/6 service dependencies."""
     bible_service = StoryBibleService(session)
     rolling_service = RollingSummaryService(session, lambda _existing, _turns: "")
     recent_turns_provider = SQLiteRecentTurnsProvider(session)
@@ -165,39 +155,29 @@ _DEFAULT_PROSE = (
 )
 
 
-def _high_fidelity_fake_message(prose: str = _DEFAULT_PROSE) -> Message:
-    """Return a high-fidelity fake Anthropic Message including cache metrics."""
-    return Message(
-        id="msg_integration_fake",
-        type="message",
-        role="assistant",
-        content=[TextBlock(type="text", text=prose)],
-        model="claude-sonnet-4-5-20251001",
-        stop_reason="end_turn",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=350,
-            output_tokens=42,
-            cache_read_input_tokens=280,
-            cache_creation_input_tokens=70,
-        ),
-    )
+class _FakeAdapter:
+    """High-fidelity fake ProviderAdapter capturing ProviderCallRequest."""
 
+    def __init__(self, prose: str = _DEFAULT_PROSE) -> None:
+        self._prose = prose
+        self.captured: list[ProviderCallRequest] = []
+        self.provider_name = "anthropic"
 
-def _make_fake_caller(message: Message):  # type: ignore[no-untyped-def]
-    captured: list[AnthropicMessagesPayload] = []
-
-    def caller(payload: AnthropicMessagesPayload) -> Message:
-        captured.append(payload)
-        return message
-
-    caller.captured = captured  # type: ignore[attr-defined]
-    return caller
-
-
-# ---------------------------------------------------------------------------
-# Integration round-trip test
-# ---------------------------------------------------------------------------
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.captured.append(request)
+        return ProviderCallResult(
+            pass_id=PipelinePassId.WRITER,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-sonnet-4-5",
+            model_tier=ModelTier.SONNET,
+            content_parts=[ProviderTextPart(text=self._prose)],
+            input_token_count=350,
+            output_token_count=42,
+            cache_read_token_count=280,
+            cache_creation_token_count=70,
+            cache_warmed=True,
+            latency_ms=10,
+        )
 
 
 class TestWriterIntegration:
@@ -213,7 +193,6 @@ class TestWriterIntegration:
         raw_input = "I follow the path into the vale."
         icr = _make_branching_icr(raw_input)
 
-        # Build the full assembled context from real Issue 4/6/7/8 services
         stable_prefix = context_builder.build_stable_prefix(
             story_id=story.story_id,
             mode=StoryMode.BRANCHING,
@@ -233,38 +212,33 @@ class TestWriterIntegration:
             pass_forward_ledger=PassForwardLedger(),
         )
 
-        # Inject high-fidelity fake provider
         fake_prose = "The path winds deeper into the Obsidian Vale."
-        fake_msg = _high_fidelity_fake_message(prose=fake_prose)
-        fake = _make_fake_caller(fake_msg)
-
+        adapter = _FakeAdapter(prose=fake_prose)
         config = WriterConfig(
             model="claude-sonnet-4-5",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        service = WriterService(session, config, fake)
+        service = WriterService(session, config)
 
         result = service.write(
             built_context=assembled,
             story_id=story.story_id,
             node_id=node.node_id,
+            provider=adapter,  # type: ignore[arg-type]
         )
 
-        # Assert WriterResult
         assert isinstance(result, WriterResult)
         assert result.assistant_output == fake_prose
         assert result.turn_id is not None
         assert result.model_identifier.startswith("anthropic:")
         assert result.latency_ms >= 0
 
-        # Assert usage metrics
         assert result.input_token_count == 350
         assert result.output_token_count == 42
         assert result.cache_read_token_count == 280
         assert result.cache_creation_token_count == 70
 
-        # Assert Turn persisted in SQLite
         fetched = get_turn(session, result.turn_id)
         assert fetched is not None
         assert fetched.node_id == node.node_id
@@ -273,7 +247,6 @@ class TestWriterIntegration:
         assert fetched.intent_classification == IntentType.IN_CHARACTER_ACTION
         assert fetched.timestamp is not None
 
-        # Assert ICR round-trips as typed IntentClassificationResult
         assert fetched.intent_classification_result is not None
         assert isinstance(
             fetched.intent_classification_result, IntentClassificationResult
@@ -292,7 +265,7 @@ class TestWriterIntegration:
         seeded_bible,
         context_builder,
     ) -> None:
-        """The fake caller receives a properly structured Anthropic payload."""
+        """The fake adapter receives a properly structured ProviderCallRequest."""
         story, node = seeded_story
         raw_input = "Look around."
         icr = _make_branching_icr(raw_input)
@@ -316,35 +289,21 @@ class TestWriterIntegration:
             pass_forward_ledger=PassForwardLedger(),
         )
 
-        fake = _make_fake_caller(_high_fidelity_fake_message())
+        adapter = _FakeAdapter()
         config = WriterConfig(
             model="claude-sonnet-4-5",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        service = WriterService(session, config, fake)
+        service = WriterService(session, config)
+        service.write(assembled, story.story_id, node.node_id, provider=adapter)  # type: ignore[arg-type]
 
-        service.write(assembled, story.story_id, node.node_id)
+        assert len(adapter.captured) == 1
+        request = adapter.captured[0]
 
-        assert len(fake.captured) == 1  # type: ignore[attr-defined]
-        payload = fake.captured[0]  # type: ignore[attr-defined]
+        assert request.pass_id == PipelinePassId.WRITER
+        assert len(request.system_blocks) >= 1
 
-        # System field must be a list of blocks containing the branching mode contract
-        assert isinstance(payload["system"], list)
-        assert len(payload["system"]) >= 1
-
-        # Messages must have exactly one user message
-        messages = payload["messages"]
-        assert isinstance(messages, list)
-        assert len(messages) == 1
-        assert messages[0]["role"] == "user"
-
-        # User message content must have a block with cache_control
-        content = messages[0]["content"]
-        cached_blocks = [
-            b for b in content if isinstance(b, dict) and "cache_control" in b
-        ]
+        cached_blocks = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
         assert len(cached_blocks) == 1
-        cc = cached_blocks[0]["cache_control"]
-        assert cc["type"] == "ephemeral"
-        assert cc["ttl"] == "1h"
+        assert cached_blocks[0].ttl == "1h"

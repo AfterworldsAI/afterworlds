@@ -1,4 +1,4 @@
-"""OrchestratorService — CRD Issue 12c.
+"""OrchestratorService — CRD Issue 12c / 14a.
 
 Wires existing per-pass callables (Issues 7–12b) into one end-to-end Sojourn
 Turn.  Owns the outer transaction, OOC short-circuit, Safety envelope
@@ -6,7 +6,7 @@ gating, provider-refusal routing, the parallel-sync Extractor/Contradiction
 join, and the disposition-population invariants enforced by the typed
 ``OrchestrationResult``.
 
-Architectural invariants this module enforces (Issue 12c):
+Architectural invariants this module enforces (Issue 12c / 14a):
 
 1. The orchestrator makes no direct model calls.  All model calls remain
    inside ``IntentClassifierService``, ``PlannerService``, ``WriterService``,
@@ -24,9 +24,13 @@ Architectural invariants this module enforces (Issue 12c):
 5. ``SafetyResult`` is never appended to ``PassForwardLedger``.
 6. ``RecentTurnReader`` (``RecentTurnsProvider``) is consulted only via the
    Context Builder; the orchestrator does not call it directly.
+7. (Issue 14a) A single ``TurnProviderBinding`` is resolved once per turn by
+   ``ProviderResolver`` and threaded through every pass.  The orchestrator
+   never makes direct model calls or selects models.
 
-The orchestrator's typed result, disposition enum, and SafetyPolicy live in
-``models`` so test code can import them without dragging the service in.
+The orchestrator's typed result, disposition enum, and
+``CapabilityProfileAwareSafetyPolicy`` live in ``models`` so test code can
+import them without dragging the service in.
 """
 
 from __future__ import annotations
@@ -42,6 +46,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -61,15 +66,19 @@ from afterworlds.pipeline.contradiction.service import ContradictionService
 from afterworlds.pipeline.extractor.models import ExtractorPassError, ExtractorResult
 from afterworlds.pipeline.extractor.service import ExtractorService
 from afterworlds.pipeline.orchestrator.models import (
+    CapabilityProfileAwareSafetyPolicy,
     OrchestrationResult,
     PipelineDisposition,
-    SafetyPolicy,
+    SafetyPolicyContext,
 )
 from afterworlds.pipeline.planner.models import (
     PlannerPassError,
     PlannerResult,
 )
 from afterworlds.pipeline.planner.service import PlannerService
+from afterworlds.pipeline.provider._protocol import ProviderAdapter
+from afterworlds.pipeline.provider._resolver import ProviderResolver
+from afterworlds.pipeline.provider._routing import TurnProviderBinding
 from afterworlds.pipeline.safety.models import (
     SafetyPassError,
     SafetyResult,
@@ -99,12 +108,6 @@ DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS: float = 30.0
 #: for the requesting turn because the timeout fires on its own future,
 #: not on the worker.
 DEFAULT_PARALLEL_PASS_MAX_WORKERS: int = 4
-
-#: Provider identifier reported in ``WriterResult.model_identifier`` is of the
-#: form ``"<provider>:<model>"``.  The orchestrator extracts the provider
-#: portion for ``SafetyPolicy`` consultation.  Defaults to ``"anthropic"`` if
-#: the Writer config or result does not surface a provider segment.
-_DEFAULT_PROVIDER: str = "anthropic"
 
 
 # ---------------------------------------------------------------------------
@@ -136,14 +139,14 @@ ModeResolver = Callable[[UUID], "Any"]
 
 
 class OrchestratorService:
-    """End-to-end Sojourn Turn orchestrator (Issue 12c).
+    """End-to-end Sojourn Turn orchestrator (Issue 12c / 14a).
 
     The orchestrator's job is policy, not generation.  It schedules existing
     pass services, opens / commits / rolls back the outer transaction,
     short-circuits OOC turns through ``WriterService`` with the v1 OOC
-    instruction, runs Safety calls when ``SafetyPolicy`` says so, and joins
-    Extractor with Contradiction in parallel sync against the Writer's
-    output.
+    instruction, runs Safety calls when ``CapabilityProfileAwareSafetyPolicy``
+    says so, and joins Extractor with Contradiction in parallel sync against
+    the Writer's output.
 
     **Exception-mapping boundary** (Issue 12c family invariant):
 
@@ -186,9 +189,11 @@ class OrchestratorService:
             turn.  The orchestrator opens one outer transaction on the
             session and forwards it into Writer / Extractor for SAVEPOINT
             nesting.
-        safety_policy: SafetyPolicy controlling whether Input Preflight
-            and Output Audit run.  Conservative v1 default: empty
-            whitelist — both run on every turn.
+        safety_policy: CapabilityProfileAwareSafetyPolicy controlling
+            whether Input Preflight and Output Audit run.
+        provider_resolver: ProviderResolver that resolves a
+            TurnProviderBinding for each turn.  The binding is used to
+            call all pass services with the correct adapter.
         mode_resolver: resolves a story_id to a StoryMode for the Context
             Builder.  Defaults to a SQLite-backed lookup against the
             stories table.
@@ -230,7 +235,8 @@ class OrchestratorService:
         extractor_service: ExtractorService,
         contradiction_service: ContradictionService,
         session_factory: Callable[[], Session],
-        safety_policy: SafetyPolicy,
+        safety_policy: CapabilityProfileAwareSafetyPolicy,
+        provider_resolver: ProviderResolver,
         mode_resolver: ModeResolver | None = None,
         executor: ThreadPoolExecutor | None = None,
         parallel_pass_timeout_seconds: float = DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS,
@@ -245,6 +251,7 @@ class OrchestratorService:
         self._contradiction_service = contradiction_service
         self._session_factory = session_factory
         self._safety_policy = safety_policy
+        self._provider_resolver = provider_resolver
         self._mode_resolver: ModeResolver = mode_resolver or _default_mode_resolver(
             session_factory
         )
@@ -291,6 +298,8 @@ class OrchestratorService:
         story_id: UUID,
         node_id: UUID,
         user_input: str,
+        sojourner_id: UUID,
+        access_path: RuntimeAccessPath,
         *,
         request_risk_signal: bool = False,
     ) -> OrchestrationResult:
@@ -302,6 +311,23 @@ class OrchestratorService:
         """
         turn_start = time.perf_counter()
         latency: dict[str, int] = {}
+
+        # 0. Resolve provider binding for this turn.
+        #
+        # Fail-fast before any model call.  ProviderConfigError and any other
+        # exception from the resolver map to PIPELINE_ERROR per the
+        # orchestrator's exhaustive terminal-state contract.
+        try:
+            binding = self._provider_resolver.resolve_for_turn(
+                access_path, sojourner_id
+            )
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                _synthesize_intent(user_input),
+                latency,
+                turn_start,
+                f"provider resolution failed: {exc}",
+            )
 
         # 1. Intent classification.
         #
@@ -341,6 +367,7 @@ class OrchestratorService:
                 story_id,
                 node_id,
                 intent_result,
+                binding,
                 latency,
                 turn_start,
                 request_risk_signal,
@@ -351,6 +378,7 @@ class OrchestratorService:
             story_id,
             node_id,
             intent_result,
+            binding,
             latency,
             turn_start,
             request_risk_signal,
@@ -366,21 +394,26 @@ class OrchestratorService:
         story_id: UUID,
         node_id: UUID,
         intent_result: IntentClassificationResult,
+        binding: TurnProviderBinding,
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
     ) -> OrchestrationResult:
-        writer_provider = self._derive_writer_provider()
-
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
-        if self._safety_policy.should_run_input_preflight(
-            writer_provider, request_risk_signal
-        ):
+        preflight_ctx = SafetyPolicyContext(
+            eligible_writer_routes=binding.eligible_writer_routes,
+            request_risk_signal=request_risk_signal,
+            access_path=binding.access_path,
+        )
+        if self._safety_policy.should_run_input_preflight(preflight_ctx):
             try:
                 input_safety, ms = _timed(
                     lambda: self._safety_service.check(
-                        ctx, ctx.volatile_suffix.current_input, SafetyTarget.INPUT
+                        ctx,
+                        ctx.volatile_suffix.current_input,
+                        SafetyTarget.INPUT,
+                        provider=binding.adapter,  # type: ignore[arg-type]
                     )
                 )
                 latency["input_safety"] = ms
@@ -410,7 +443,11 @@ class OrchestratorService:
 
         # 4. Planner.
         try:
-            planner_result, ms = _timed(lambda: self._planner_service.plan(ctx))
+            planner_result, ms = _timed(
+                lambda: self._planner_service.plan(
+                    ctx, provider=binding.adapter  # type: ignore[arg-type]
+                )
+            )
             latency["planner"] = ms
         except ProviderRefusalError as exc:
             return self._build_result(
@@ -455,7 +492,8 @@ class OrchestratorService:
                 intent_result,
                 planner_result,
                 input_safety,
-                writer_provider,
+                binding,
+                request_risk_signal,
                 latency,
                 turn_start,
             ),
@@ -474,7 +512,8 @@ class OrchestratorService:
         intent_result: IntentClassificationResult,
         planner_result: PlannerResult,
         input_safety: SafetyResult | None,
-        writer_provider: str,
+        binding: TurnProviderBinding,
+        request_risk_signal: bool,
         latency: dict[str, int],
         turn_start: float,
     ) -> OrchestrationResult:
@@ -482,7 +521,11 @@ class OrchestratorService:
         try:
             writer_result, ms = _timed(
                 lambda: self._writer_service.write(
-                    ctx, story_id, node_id, session=session
+                    ctx,
+                    story_id,
+                    node_id,
+                    provider=binding.adapter,  # type: ignore[arg-type]
+                    session=session,
                 )
             )
             latency["writer"] = ms
@@ -517,11 +560,20 @@ class OrchestratorService:
 
         # 6. Output Safety Audit, conditional.
         output_safety: SafetyResult | None = None
-        if self._safety_policy.should_run_output_audit(writer_provider, writer_result):
+        audit_ctx = SafetyPolicyContext(
+            eligible_writer_routes=binding.eligible_writer_routes,
+            request_risk_signal=request_risk_signal,
+            access_path=binding.access_path,
+            writer_result=writer_result,
+        )
+        if self._safety_policy.should_run_output_audit(audit_ctx):
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
-                        ctx, writer_result.assistant_output, SafetyTarget.OUTPUT
+                        ctx,
+                        writer_result.assistant_output,
+                        SafetyTarget.OUTPUT,
+                        provider=binding.adapter,  # type: ignore[arg-type]
                     )
                 )
                 latency["output_safety"] = ms
@@ -560,8 +612,13 @@ class OrchestratorService:
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
         try:
-            extractor_result, contradiction_result, ext_ms, contr_ms = (
-                self._run_parallel_sync(ctx, writer_result, story_id, session)
+            (
+                extractor_result,
+                contradiction_result,
+                ext_ms,
+                contr_ms,
+            ) = self._run_parallel_sync(
+                ctx, writer_result, story_id, session, binding.adapter  # type: ignore[arg-type]
             )
             latency["extractor"] = ext_ms
             latency["contradiction"] = contr_ms
@@ -667,20 +724,25 @@ class OrchestratorService:
         story_id: UUID,
         node_id: UUID,
         intent_result: IntentClassificationResult,
+        binding: TurnProviderBinding,
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
     ) -> OrchestrationResult:
-        writer_provider = self._derive_writer_provider()
-
         input_safety: SafetyResult | None = None
-        if self._safety_policy.should_run_input_preflight(
-            writer_provider, request_risk_signal
-        ):
+        preflight_ctx = SafetyPolicyContext(
+            eligible_writer_routes=binding.eligible_writer_routes,
+            request_risk_signal=request_risk_signal,
+            access_path=binding.access_path,
+        )
+        if self._safety_policy.should_run_input_preflight(preflight_ctx):
             try:
                 input_safety, ms = _timed(
                     lambda: self._safety_service.check(
-                        ctx, ctx.volatile_suffix.current_input, SafetyTarget.INPUT
+                        ctx,
+                        ctx.volatile_suffix.current_input,
+                        SafetyTarget.INPUT,
+                        provider=binding.adapter,  # type: ignore[arg-type]
                     )
                 )
                 latency["input_safety"] = ms
@@ -722,7 +784,8 @@ class OrchestratorService:
                 node_id,
                 intent_result,
                 input_safety,
-                writer_provider,
+                binding,
+                request_risk_signal,
                 latency,
                 turn_start,
             ),
@@ -740,14 +803,19 @@ class OrchestratorService:
         node_id: UUID,
         intent_result: IntentClassificationResult,
         input_safety: SafetyResult | None,
-        writer_provider: str,
+        binding: TurnProviderBinding,
+        request_risk_signal: bool,
         latency: dict[str, int],
         turn_start: float,
     ) -> OrchestrationResult:
         try:
             writer_result, ms = _timed(
                 lambda: self._writer_service.write(
-                    ooc_ctx, story_id, node_id, session=session
+                    ooc_ctx,
+                    story_id,
+                    node_id,
+                    provider=binding.adapter,  # type: ignore[arg-type]
+                    session=session,
                 )
             )
             latency["writer"] = ms
@@ -778,11 +846,20 @@ class OrchestratorService:
             )
 
         output_safety: SafetyResult | None = None
-        if self._safety_policy.should_run_output_audit(writer_provider, writer_result):
+        audit_ctx = SafetyPolicyContext(
+            eligible_writer_routes=binding.eligible_writer_routes,
+            request_risk_signal=request_risk_signal,
+            access_path=binding.access_path,
+            writer_result=writer_result,
+        )
+        if self._safety_policy.should_run_output_audit(audit_ctx):
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
-                        ooc_ctx, writer_result.assistant_output, SafetyTarget.OUTPUT
+                        ooc_ctx,
+                        writer_result.assistant_output,
+                        SafetyTarget.OUTPUT,
+                        provider=binding.adapter,  # type: ignore[arg-type]
                     )
                 )
                 latency["output_safety"] = ms
@@ -838,6 +915,7 @@ class OrchestratorService:
         writer_result: WriterResult,
         story_id: UUID,
         session: Session,
+        provider: ProviderAdapter,
     ) -> tuple[ExtractorResult, ContradictionResult, int, int]:
         """Run Extractor synchronously and Contradiction on a worker thread.
 
@@ -898,7 +976,7 @@ class OrchestratorService:
             contradiction_future = executor.submit(
                 _timed_for_thread,
                 lambda: self._contradiction_service.check(
-                    ctx, writer_result.assistant_output
+                    ctx, writer_result.assistant_output, provider=provider
                 ),
             )
         except Exception as exc:  # noqa: BLE001
@@ -914,6 +992,7 @@ class OrchestratorService:
                     writer_result.assistant_output,
                     story_id,
                     writer_result.turn_id,
+                    provider=provider,
                     session=session,
                 )
             )
@@ -1018,13 +1097,6 @@ class OrchestratorService:
             )
         )
 
-    def _derive_writer_provider(self) -> str:
-        config = getattr(self._writer_service, "_config", None)
-        provider = getattr(config, "provider", None)
-        if isinstance(provider, str) and provider:
-            return provider
-        return _DEFAULT_PROVIDER
-
     def _build_result(
         self,
         disposition: PipelineDisposition,
@@ -1044,6 +1116,14 @@ class OrchestratorService:
         pipeline_error_summary: str | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
+        cache_warmed = _any_cache_read(
+            input_safety_result,
+            planner_result,
+            writer_result,
+            output_safety_result,
+            extractor_result,
+            contradiction_result,
+        )
         return OrchestrationResult(
             disposition=disposition,
             delivered_output=delivered_output,
@@ -1059,6 +1139,7 @@ class OrchestratorService:
             pipeline_error_summary=pipeline_error_summary,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
+            stable_prefix_cache_warmed=cache_warmed,
         )
 
     def _pipeline_error(
@@ -1276,6 +1357,19 @@ class _ContradictionRefusalWithExtractor(Exception):
         )
         self.refusal = refusal
         self.extractor_result = extractor_result
+
+
+def _any_cache_read(
+    *results: object,
+) -> bool:
+    """Return True if any result reports a non-zero cache_read_token_count."""
+    for r in results:
+        if r is None:
+            continue
+        count = getattr(r, "cache_read_token_count", None)
+        if isinstance(count, int) and count > 0:
+            return True
+    return False
 
 
 def _timed[T](fn: Callable[[], T]) -> tuple[T, int]:

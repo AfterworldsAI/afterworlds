@@ -257,6 +257,8 @@ class FakeSafetyService:
         built_context: AssembledContext,
         text: str,
         target: SafetyTarget,
+        *,
+        provider: Any = None,
     ) -> SafetyResult:
         self.calls.append((target, text))
         cfg = (
@@ -266,7 +268,6 @@ class FakeSafetyService:
             return SafetyResult(
                 report=SafetyReport(concerns=[]),
                 target=target,
-                usage=None,
             )
         if isinstance(cfg, Exception):
             raise cfg
@@ -281,7 +282,9 @@ class FakePlannerService:
     raise_exc: Exception | None = None
     calls: list[AssembledContext] = field(default_factory=list)
 
-    def plan(self, built_context: AssembledContext) -> PlannerResult:
+    def plan(
+        self, built_context: AssembledContext, *, provider: Any = None
+    ) -> PlannerResult:
         self.calls.append(built_context)
         if self.raise_exc is not None:
             raise self.raise_exc
@@ -320,6 +323,7 @@ class FakeWriterService:
         story_id: UUID,
         node_id: UUID,
         *,
+        provider: Any = None,
         session: Any = None,
     ) -> WriterResult:
         self.calls.append((built_context, story_id, node_id, session))
@@ -381,6 +385,7 @@ class FakeExtractorService:
         story_id: UUID,
         turn_id: UUID,
         *,
+        provider: Any = None,
         session: Any = None,
     ) -> ExtractorResult:
         self.calls.append((built_context, writer_output, story_id, turn_id, session))
@@ -440,6 +445,8 @@ class FakeContradictionService:
         self,
         built_context: AssembledContext,
         writer_output: str,
+        *,
+        provider: Any = None,
     ) -> ContradictionResult:
         self.calls.append((built_context, writer_output))
         self.thread_observation["contradiction"] = threading.get_ident()

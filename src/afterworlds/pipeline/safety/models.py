@@ -1,4 +1,18 @@
-"""Safety pass data models — CRD Issue 12b."""
+"""Safety pass data models — CRD Issue 12b / 14a.
+
+Issue 14a changes:
+  - ``SafetyResult`` token fields normalized to flat ``*_token_count: int | None``
+    (aligning with PlannerResult, WriterResult, ExtractorResult,
+    ContradictionResult — all five pass results now use the same shape).
+  - ``SafetyResult`` gains additive provider/model_identifier/model_tier fields.
+  - ``TokenUsage`` is kept as an exported symbol for import compatibility
+    but is no longer used by ``SafetyResult``.
+
+Architecture Note: the spec states all five pass results "already carry"
+flat token_count fields.  ``SafetyResult`` used ``TokenUsage`` (12b) with
+differently-named fields.  Normalized here to unify the settlement path in
+``entitlement/policy.py``'s ``_safety_snapshot``.
+"""
 
 from __future__ import annotations
 
@@ -58,7 +72,10 @@ class SafetyReport(BaseModel):
 
 
 class TokenUsage(BaseModel):
-    """Token usage metrics from the safety provider call."""
+    """Deprecated: use flat token_count fields on SafetyResult instead.
+
+    Kept for import compatibility.  No longer used by SafetyResult (Issue 14a).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -69,13 +86,28 @@ class TokenUsage(BaseModel):
 
 
 class SafetyResult(BaseModel):
-    """Typed result returned by SafetyService.check()."""
+    """Typed result returned by SafetyService.check().
+
+    Token counts use the same flat ``*_token_count: int | None`` shape as the
+    other four pass results (Issue 14a normalization; see module docstring).
+    Provider/model/tier fields are additive (default None).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     report: SafetyReport
     target: SafetyTarget
-    usage: TokenUsage | None = None
+
+    # Flat token count fields (aligned with Issue 9-12 pass result shape)
+    input_token_count: int | None = None
+    output_token_count: int | None = None
+    cache_read_token_count: int | None = None
+    cache_creation_token_count: int | None = None
+
+    # Additive Issue 14a fields
+    provider: str | None = None
+    model_identifier: str | None = None
+    model_tier: str | None = None  # ModelTier value as str to avoid circular import
 
     @computed_field  # type: ignore[prop-decorator]
     @property

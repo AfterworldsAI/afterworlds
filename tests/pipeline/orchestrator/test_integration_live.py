@@ -47,9 +47,9 @@ from afterworlds.persistence.orm.base import Base
 from afterworlds.pipeline.contradiction.service import ContradictionService
 from afterworlds.pipeline.extractor.service import ExtractorService
 from afterworlds.pipeline.orchestrator import (
+    CapabilityProfileAwareSafetyPolicy,
     OrchestratorService,
     PipelineDisposition,
-    SafetyPolicy,
 )
 from afterworlds.pipeline.planner.service import PlannerService
 from afterworlds.pipeline.safety.service import SafetyService
@@ -143,7 +143,7 @@ def test_live_branching_orchestration_returns_delivered() -> None:
         extractor_service=ExtractorService(extractor_session, extractor_sbs),
         contradiction_service=ContradictionService(),
         session_factory=session_factory,
-        safety_policy=SafetyPolicy(),
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
     )
 
     result = orch.orchestrate_turn(
