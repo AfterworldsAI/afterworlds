@@ -37,7 +37,11 @@ from afterworlds.pipeline.provider._routing import (
     EligibleWriterRoute,
     SafetyPolicyContext,
 )
+from afterworlds.pipeline.provider.adapters._anthropic import (
+    _classify_stop_reason_and_text,
+)
 from afterworlds.pipeline.provider.adapters._fallback import RefusalFallbackRouter
+from afterworlds.pipeline.provider.adapters._openrouter import _detect_refusal
 from afterworlds.pipeline.provider.normalization import (
     AnthropicNormalizationFactorProvider,
     OpenRouterNormalizationFactorProvider,
@@ -421,3 +425,83 @@ def test_router_suppresses_log_fn_exception() -> None:
     )
     with pytest.raises(ProviderRefusalError):
         router.call(request)  # must not raise RuntimeError
+
+
+# ---------------------------------------------------------------------------
+# Refusal classification — short valid output must NOT be classified as refusal
+# ---------------------------------------------------------------------------
+
+
+def test_anthropic_short_end_turn_not_refusal() -> None:
+    """'She nods.' with end_turn is valid output, not a refusal."""
+    assert _classify_stop_reason_and_text("end_turn", "She nods.") is None
+
+
+def test_anthropic_short_yes_not_refusal() -> None:
+    """'Yes.' is valid terse output, not a refusal."""
+    assert _classify_stop_reason_and_text("end_turn", "Yes.") is None
+
+
+def test_anthropic_rpg_factual_short_not_refusal() -> None:
+    """RPG factual answer under 80 chars is valid output, not a refusal."""
+    assert (
+        _classify_stop_reason_and_text("end_turn", "No, they are holding shovels.")
+        is None
+    )
+
+
+def test_anthropic_refusal_phrase_classified_as_content_policy() -> None:
+    """A response containing a known refusal phrase is classified CONTENT_POLICY."""
+    result = _classify_stop_reason_and_text(
+        "end_turn", "I cannot assist with that request."
+    )
+    assert result == RefusalCategory.CONTENT_POLICY
+
+
+def test_anthropic_normal_stop_reason_no_phrase_not_refusal() -> None:
+    """'stop_sequence' stop with ordinary prose is not a refusal."""
+    assert (
+        _classify_stop_reason_and_text("stop_sequence", "The door creaks open.") is None
+    )
+
+
+def test_openrouter_short_text_not_refusal() -> None:
+    """OpenRouter short text 'She nods.' is valid output, not a refusal."""
+    assert _detect_refusal("She nods.") is None
+
+
+def test_openrouter_refusal_phrase_classified_as_content_policy() -> None:
+    """OpenRouter response with refusal phrase is classified CONTENT_POLICY."""
+    assert (
+        _detect_refusal("I'm unable to help with that.")
+        == RefusalCategory.CONTENT_POLICY
+    )
+
+
+def test_router_fallback_not_triggered_on_short_valid_output() -> None:
+    """Fallback is NOT triggered when primary returns a short but valid result."""
+    request = _make_request()
+    short_result = ProviderCallResult(
+        pass_id=PipelinePassId.WRITER,
+        provider_name="anthropic",
+        model_identifier="claude-sonnet-4-6",
+        model_tier=ModelTier.SONNET,
+        content_parts=[ProviderTextPart(text="She nods.")],
+        input_token_count=100,
+        output_token_count=3,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        cache_warmed=False,
+        latency_ms=150,
+    )
+    primary = MagicMock()
+    primary.provider_name = "anthropic"
+    primary.call.return_value = short_result
+    fallback = MagicMock()
+    fallback.provider_name = "openrouter"
+
+    router = RefusalFallbackRouter(primary=primary, fallback=fallback)
+    result = router.call(request)
+
+    assert result is short_result
+    fallback.call.assert_not_called()

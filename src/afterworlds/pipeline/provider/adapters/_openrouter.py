@@ -105,8 +105,6 @@ def _detect_refusal(text: str) -> RefusalCategory | None:
     for phrase in _REFUSAL_PHRASES:
         if phrase in lower:
             return RefusalCategory.CONTENT_POLICY
-    if len(text.strip()) < 80 and text.strip():
-        return RefusalCategory.UNKNOWN
     return None
 
 

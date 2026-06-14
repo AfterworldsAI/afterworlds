@@ -135,7 +135,15 @@ class ProviderResolver:
             trusted_for_safety_skip=True,
         )
 
-        if cfg.openrouter_api_key and cfg.openrouter_fallback_model:
+        if cfg.openrouter_api_key:
+            if (
+                not cfg.openrouter_fallback_model
+                or not cfg.openrouter_fallback_model.strip()
+            ):
+                raise ProviderConfigError(
+                    "HostedRoutingConfig: openrouter_api_key is set but "
+                    "openrouter_fallback_model is missing or blank — fail closed"
+                )
             fallback_adapter = OpenRouterAdapter(
                 model_identifier=cfg.openrouter_fallback_model,
                 api_key=cfg.openrouter_api_key,

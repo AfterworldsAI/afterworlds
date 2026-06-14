@@ -137,10 +137,6 @@ def _classify_stop_reason_and_text(
         for phrase in _REFUSAL_PHRASES:
             if phrase in lower:
                 return RefusalCategory.CONTENT_POLICY
-        # Policy-style refusal without a clear phrase → UNKNOWN if text is short
-        # and doesn't look like narrative output.  This is intentionally conservative.
-        if len(text_content.strip()) < 80 and text_content.strip():
-            return RefusalCategory.UNKNOWN
     return None
 
 
