@@ -178,7 +178,7 @@ class OpenRouterAdapter:
                 }
 
         try:
-            import openai  # type: ignore[import-not-found]
+            import openai
         except ImportError as exc:
             raise ProviderCallError(
                 "openai package is required for OpenRouterAdapter; install it with pip"

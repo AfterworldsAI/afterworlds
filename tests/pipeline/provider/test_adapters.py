@@ -497,6 +497,77 @@ def test_openrouter_refusal_phrase_classified_as_content_policy() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# RefusalFallbackRouter — Safety pass exclusion from fallback (Fix 1)
+# ---------------------------------------------------------------------------
+
+
+def _make_safety_request(pass_id: PipelinePassId) -> ProviderCallRequest:
+    return ProviderCallRequest(
+        pass_id=pass_id,
+        rendered_blocks=[RenderedBlock(text="Evaluate this.")],
+        max_output_tokens=256,
+    )
+
+
+def test_input_safety_refusal_not_forwarded_to_fallback() -> None:
+    """INPUT_SAFETY refusal: fallback NOT tried, no log row, error re-raised."""
+    request = _make_safety_request(PipelinePassId.INPUT_SAFETY)
+    primary = MagicMock()
+    primary.provider_name = "anthropic"
+    primary.call.side_effect = _make_refusal()
+    fallback = MagicMock()
+    fallback.provider_name = "openrouter"
+    log_fn = MagicMock()
+
+    router = RefusalFallbackRouter(
+        primary=primary, fallback=fallback, refusal_log_fn=log_fn
+    )
+    with pytest.raises(ProviderRefusalError):
+        router.call(request)
+
+    fallback.call.assert_not_called()
+    log_fn.assert_not_called()
+
+
+def test_output_safety_refusal_not_forwarded_to_fallback() -> None:
+    """OUTPUT_SAFETY refusal: fallback NOT tried, no log row, error re-raised."""
+    request = _make_safety_request(PipelinePassId.OUTPUT_SAFETY)
+    primary = MagicMock()
+    primary.provider_name = "anthropic"
+    primary.call.side_effect = _make_refusal()
+    fallback = MagicMock()
+    fallback.provider_name = "openrouter"
+    log_fn = MagicMock()
+
+    router = RefusalFallbackRouter(
+        primary=primary, fallback=fallback, refusal_log_fn=log_fn
+    )
+    with pytest.raises(ProviderRefusalError):
+        router.call(request)
+
+    fallback.call.assert_not_called()
+    log_fn.assert_not_called()
+
+
+def test_narrative_pass_refusal_still_uses_fallback() -> None:
+    """WRITER refusal: fallback IS invoked (existing behavior preserved)."""
+    request = _make_request()  # pass_id=WRITER
+    fallback_result = _make_result(provider="openrouter")
+    primary = MagicMock()
+    primary.provider_name = "anthropic"
+    primary.call.side_effect = _make_refusal()
+    fallback = MagicMock()
+    fallback.provider_name = "openrouter"
+    fallback.call.return_value = fallback_result
+
+    router = RefusalFallbackRouter(primary=primary, fallback=fallback)
+    result = router.call(request)
+
+    assert result is fallback_result
+    fallback.call.assert_called_once()
+
+
 def test_router_fallback_not_triggered_on_short_valid_output() -> None:
     """Fallback is NOT triggered when primary returns a short but valid result."""
     request = _make_request()

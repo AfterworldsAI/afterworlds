@@ -1,7 +1,8 @@
-"""Tests for _build_refusal_log_fn — refusal-event DB writer — CRD Issue 14a.
+"""Tests for _build_refusal_log_fn and ScopedProviderAdapter — CRD Issue 14a.
 
-Covers all four RefusalFallbackRouter outcome codes and two no-row cases:
-ProviderCallError from primary (no log row), and sensitive-data exclusion.
+Covers all four RefusalFallbackRouter outcome codes, two no-row cases
+(ProviderCallError from primary, Safety pass refusal), and scope population
+via ScopedProviderAdapter (sojourner_id and turn_id in log rows).
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from afterworlds.pipeline.provider._models import (
 from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
 from afterworlds.pipeline.provider._resolver import _build_refusal_log_fn
 from afterworlds.pipeline.provider.adapters._fallback import RefusalFallbackRouter
+from afterworlds.pipeline.provider.adapters._scoped import ScopedProviderAdapter
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -269,3 +271,106 @@ def test_log_row_excludes_prompt_text_and_raw_excerpt(sf) -> None:  # type: igno
         )
         assert sentinel not in stored
         assert not hasattr(ProviderRefusalEvent, "raw_response_excerpt")
+
+
+# ---------------------------------------------------------------------------
+# ScopedProviderAdapter: refusal log rows carry correct scope (Fix 3)
+# ---------------------------------------------------------------------------
+
+
+def test_scoped_planner_refusal_has_sojourner_id_no_turn_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """Planner refusal via ScopedProviderAdapter: sojourner_id set, turn_id=None."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=log_fn
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=None)
+
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.PLANNER,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.sojourner_id == str(sojourner_id)
+        assert row.turn_id is None
+
+
+def test_scoped_extractor_refusal_has_sojourner_id_and_turn_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """Extractor refusal via ScopedProviderAdapter: sojourner_id and turn_id set."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    turn_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=log_fn
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=turn_id)
+
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.EXTRACTOR,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.sojourner_id == str(sojourner_id)
+        assert row.turn_id == str(turn_id)
+
+
+def test_scoped_refusal_log_row_contains_no_key_material(sf) -> None:  # type: ignore[no-untyped-def]
+    """Scoped adapter refusal log row contains no key material or prompt text."""
+    from uuid import uuid4
+
+    from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
+
+    sojourner_id = uuid4()
+    turn_id = uuid4()
+    fake_key = "sk-ant-SECRETKEY99999"
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=log_fn
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=turn_id)
+
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.EXTRACTOR,
+        system_blocks=[RenderedBlock(text=f"key: {fake_key}")],
+        rendered_blocks=[RenderedBlock(text=f"user: {fake_key}")],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        stored = " ".join(
+            str(v)
+            for v in [
+                row.pass_id,
+                row.primary_provider_name,
+                row.primary_model_identifier,
+                row.refusal_category,
+                row.fallback_outcome,
+                row.sojourner_id or "",
+                row.turn_id or "",
+                row.coarse_metadata_json or "",
+            ]
+        )
+        assert fake_key not in stored

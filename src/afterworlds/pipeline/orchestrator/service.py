@@ -79,6 +79,7 @@ from afterworlds.pipeline.planner.service import PlannerService
 from afterworlds.pipeline.provider._protocol import ProviderAdapter
 from afterworlds.pipeline.provider._resolver import ProviderResolver
 from afterworlds.pipeline.provider._routing import TurnProviderBinding
+from afterworlds.pipeline.provider.adapters._scoped import ScopedProviderAdapter
 from afterworlds.pipeline.safety.models import (
     SafetyPassError,
     SafetyResult,
@@ -366,6 +367,7 @@ class OrchestratorService:
                 ctx,
                 story_id,
                 node_id,
+                sojourner_id,
                 intent_result,
                 binding,
                 latency,
@@ -377,6 +379,7 @@ class OrchestratorService:
             ctx,
             story_id,
             node_id,
+            sojourner_id,
             intent_result,
             binding,
             latency,
@@ -393,6 +396,7 @@ class OrchestratorService:
         ctx: AssembledContext,
         story_id: UUID,
         node_id: UUID,
+        sojourner_id: UUID,
         intent_result: IntentClassificationResult,
         binding: TurnProviderBinding,
         latency: dict[str, int],
@@ -413,7 +417,7 @@ class OrchestratorService:
                         ctx,
                         ctx.volatile_suffix.current_input,
                         SafetyTarget.INPUT,
-                        provider=binding.adapter,  # type: ignore[arg-type]
+                        provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                     )
                 )
                 latency["input_safety"] = ms
@@ -445,7 +449,8 @@ class OrchestratorService:
         try:
             planner_result, ms = _timed(
                 lambda: self._planner_service.plan(
-                    ctx, provider=binding.adapter  # type: ignore[arg-type]
+                    ctx,
+                    provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                 )
             )
             latency["planner"] = ms
@@ -489,6 +494,7 @@ class OrchestratorService:
                 ctx,
                 story_id,
                 node_id,
+                sojourner_id,
                 intent_result,
                 planner_result,
                 input_safety,
@@ -509,6 +515,7 @@ class OrchestratorService:
         ctx: AssembledContext,
         story_id: UUID,
         node_id: UUID,
+        sojourner_id: UUID,
         intent_result: IntentClassificationResult,
         planner_result: PlannerResult,
         input_safety: SafetyResult | None,
@@ -524,7 +531,7 @@ class OrchestratorService:
                     ctx,
                     story_id,
                     node_id,
-                    provider=binding.adapter,  # type: ignore[arg-type]
+                    provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                     session=session,
                 )
             )
@@ -567,13 +574,18 @@ class OrchestratorService:
             writer_result=writer_result,
         )
         if self._safety_policy.should_run_output_audit(audit_ctx):
+            _post_writer_turn_id = writer_result.turn_id
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
                         ctx,
                         writer_result.assistant_output,
                         SafetyTarget.OUTPUT,
-                        provider=binding.adapter,  # type: ignore[arg-type]
+                        provider=ScopedProviderAdapter(
+                            binding.adapter,  # type: ignore[arg-type]
+                            sojourner_id,
+                            turn_id=_post_writer_turn_id,
+                        ),
                     )
                 )
                 latency["output_safety"] = ms
@@ -611,6 +623,11 @@ class OrchestratorService:
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
+        _scoped_post_writer = ScopedProviderAdapter(
+            binding.adapter,  # type: ignore[arg-type]
+            sojourner_id,
+            turn_id=writer_result.turn_id,
+        )
         try:
             (
                 extractor_result,
@@ -618,7 +635,7 @@ class OrchestratorService:
                 ext_ms,
                 contr_ms,
             ) = self._run_parallel_sync(
-                ctx, writer_result, story_id, session, binding.adapter  # type: ignore[arg-type]
+                ctx, writer_result, story_id, session, _scoped_post_writer
             )
             latency["extractor"] = ext_ms
             latency["contradiction"] = contr_ms
@@ -723,6 +740,7 @@ class OrchestratorService:
         ctx: AssembledContext,
         story_id: UUID,
         node_id: UUID,
+        sojourner_id: UUID,
         intent_result: IntentClassificationResult,
         binding: TurnProviderBinding,
         latency: dict[str, int],
@@ -742,7 +760,7 @@ class OrchestratorService:
                         ctx,
                         ctx.volatile_suffix.current_input,
                         SafetyTarget.INPUT,
-                        provider=binding.adapter,  # type: ignore[arg-type]
+                        provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                     )
                 )
                 latency["input_safety"] = ms
@@ -782,6 +800,7 @@ class OrchestratorService:
                 ooc_ctx,
                 story_id,
                 node_id,
+                sojourner_id,
                 intent_result,
                 input_safety,
                 binding,
@@ -801,6 +820,7 @@ class OrchestratorService:
         ooc_ctx: AssembledContext,
         story_id: UUID,
         node_id: UUID,
+        sojourner_id: UUID,
         intent_result: IntentClassificationResult,
         input_safety: SafetyResult | None,
         binding: TurnProviderBinding,
@@ -814,7 +834,7 @@ class OrchestratorService:
                     ooc_ctx,
                     story_id,
                     node_id,
-                    provider=binding.adapter,  # type: ignore[arg-type]
+                    provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                     session=session,
                 )
             )
@@ -853,13 +873,18 @@ class OrchestratorService:
             writer_result=writer_result,
         )
         if self._safety_policy.should_run_output_audit(audit_ctx):
+            _ooc_post_writer_turn_id = writer_result.turn_id
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
                         ooc_ctx,
                         writer_result.assistant_output,
                         SafetyTarget.OUTPUT,
-                        provider=binding.adapter,  # type: ignore[arg-type]
+                        provider=ScopedProviderAdapter(
+                            binding.adapter,  # type: ignore[arg-type]
+                            sojourner_id,
+                            turn_id=_ooc_post_writer_turn_id,
+                        ),
                     )
                 )
                 latency["output_safety"] = ms

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 
+from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.pipeline._refusal import ProviderRefusalError
 from afterworlds.pipeline.provider._errors import ProviderCallError, ProviderConfigError
 from afterworlds.pipeline.provider._models import (
@@ -72,10 +73,21 @@ class RefusalFallbackRouter:
         return self._primary.provider_name
 
     def call(self, request: ProviderCallRequest) -> ProviderCallResult:
-        """Execute the primary adapter; fall back on content-policy refusals only."""
+        """Execute the primary adapter; fall back on content-policy refusals only.
+
+        Safety passes (INPUT_SAFETY, OUTPUT_SAFETY) are excluded from fallback:
+        a Safety provider refusal propagates immediately so SafetyService.check()
+        can wrap it as SafetyPassError (fail-closed contract).  No log row is
+        written for Safety-pass refusals.
+        """
         try:
             return self._primary.call(request)
         except ProviderRefusalError as primary_refusal:
+            if request.pass_id in (
+                PipelinePassId.INPUT_SAFETY,
+                PipelinePassId.OUTPUT_SAFETY,
+            ):
+                raise
             return self._handle_refusal(request, primary_refusal)
         # ProviderCallError from primary: re-raise, no fallback, no log entry.
 

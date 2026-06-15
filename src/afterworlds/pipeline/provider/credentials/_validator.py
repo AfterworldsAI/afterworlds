@@ -132,7 +132,7 @@ class CredentialValidator:
     @staticmethod
     def _check_openrouter(raw_key: str) -> tuple[ValidationStatus, str | None]:
         try:
-            import openai  # type: ignore[import-not-found]
+            import openai
 
             client = openai.OpenAI(
                 api_key=raw_key,

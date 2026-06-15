@@ -66,7 +66,7 @@ class OSKeychainCredentialStore:
     """
 
     def get(self, sojourner_id: UUID, provider_name: str) -> str | None:
-        import keyring  # type: ignore[import-not-found]
+        import keyring
 
         value = keyring.get_password(
             _keychain_service(provider_name), str(sojourner_id)
@@ -86,7 +86,7 @@ class OSKeychainCredentialStore:
         import contextlib
 
         import keyring
-        import keyring.errors  # type: ignore[import-not-found]
+        import keyring.errors
 
         with contextlib.suppress(keyring.errors.PasswordDeleteError):
             keyring.delete_password(_keychain_service(provider_name), str(sojourner_id))

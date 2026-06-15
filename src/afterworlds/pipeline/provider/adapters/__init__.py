@@ -9,6 +9,7 @@ from afterworlds.pipeline.provider.adapters._openrouter import (
     OpenRouterAdapter,
     OpenRouterAdapterConfig,
 )
+from afterworlds.pipeline.provider.adapters._scoped import ScopedProviderAdapter
 
 __all__ = [
     "AnthropicCapabilityProfile",
@@ -16,4 +17,5 @@ __all__ = [
     "OpenRouterAdapter",
     "OpenRouterAdapterConfig",
     "RefusalFallbackRouter",
+    "ScopedProviderAdapter",
 ]
