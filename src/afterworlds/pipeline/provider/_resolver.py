@@ -26,7 +26,6 @@ construction (``ProviderConfigError``).
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from uuid import UUID
 
@@ -72,10 +71,101 @@ class HostedRoutingConfig:
 # ---------------------------------------------------------------------------
 
 
-def _build_refusal_log_fn(session_factory: object) -> Callable[..., None]:
-    """Build a refusal-event logging callback for ``RefusalFallbackRouter``."""
+def _write_refusal_event(
+    session_factory: object,
+    *,
+    outcome: str,
+    request: object,
+    primary_refusal: object,
+    fallback_provider: str | None,
+    fallback_model: str | None,
+) -> None:
+    """Write one ProviderRefusalEvent row using a fresh session.
 
-    def _log_fn(
+    Called either directly (DIRECT mode) or by RefusalLogProxy.flush() after
+    the outer narrative session has closed and its write lock released.
+    """
+    from datetime import UTC, datetime
+
+    from sqlalchemy.orm import Session
+
+    from afterworlds.pipeline._refusal import ProviderRefusalError
+    from afterworlds.pipeline.provider._models import ProviderCallRequest
+    from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
+
+    if not isinstance(request, ProviderCallRequest):
+        return
+    if not isinstance(primary_refusal, ProviderRefusalError):
+        return
+    refusal = primary_refusal.refusal
+    event = ProviderRefusalEvent(
+        turn_id=str(request.turn_id) if request.turn_id is not None else None,
+        sojourner_id=(
+            str(request.sojourner_id) if request.sojourner_id is not None else None
+        ),
+        pass_id=request.pass_id.value,
+        primary_provider_name=refusal.provider,
+        primary_model_identifier=refusal.model or "",
+        refusal_category=(
+            refusal.refusal_category.value
+            if refusal.refusal_category is not None
+            else "unknown"
+        ),
+        fallback_outcome=outcome,
+        fallback_provider_name=fallback_provider,
+        fallback_model_identifier=fallback_model,
+        created_at=datetime.now(UTC),
+    )
+    _factory = session_factory
+    assert callable(_factory)
+    session_obj = _factory()
+    assert isinstance(session_obj, Session)
+    with session_obj as session:
+        session.add(event)
+        session.commit()
+
+
+class RefusalLogProxy:
+    """Per-turn refusal-event callback with defer-and-flush support.
+
+    Starts in DIRECT mode: ``__call__`` writes immediately via a fresh
+    session.  The orchestrator calls ``start_buffering()`` before opening
+    the outer narrative transaction so that any refusal during post-Writer
+    passes (Output Safety, Extractor, Contradiction) is queued in memory
+    instead of opening a competing SQLite write session.  ``flush()`` is
+    called after the outer session closes — the write lock is released before
+    any new write is attempted, so lock contention is structurally impossible.
+
+    Audit rows survive narrative rollback: the outer transaction is rolled
+    back for story-state failures; the refusal IS the event that caused the
+    rollback, so the audit record must outlive it.  Rows are committed in a
+    separate session after the boundary.
+
+    ``raw_response_excerpt``, prompt text, system block content, and key
+    material are never passed to this callback; see ``RefusalFallbackRouter``
+    and the security invariants in CLAUDE.md.
+    """
+
+    def __init__(self, session_factory: object) -> None:
+        self._session_factory = session_factory
+        self._buffer: list[dict[str, object]] | None = None
+
+    def start_buffering(self) -> None:
+        """Switch to buffered mode; called before session.begin()."""
+        self._buffer = []
+
+    def flush(self) -> None:
+        """Write buffered rows and return to direct mode.
+
+        Called by the orchestrator after session.close() so no write lock
+        is held when the fresh session opens.
+        """
+        pending, self._buffer = self._buffer or [], None
+        for kwargs in pending:
+            _write_refusal_event(self._session_factory, **kwargs)  # type: ignore[arg-type]
+
+    def __call__(
+        self,
         *,
         outcome: str,
         request: object,
@@ -83,46 +173,30 @@ def _build_refusal_log_fn(session_factory: object) -> Callable[..., None]:
         fallback_provider: str | None,
         fallback_model: str | None,
     ) -> None:
-        from datetime import UTC, datetime
+        if self._buffer is not None:
+            self._buffer.append(
+                {
+                    "outcome": outcome,
+                    "request": request,
+                    "primary_refusal": primary_refusal,
+                    "fallback_provider": fallback_provider,
+                    "fallback_model": fallback_model,
+                }
+            )
+        else:
+            _write_refusal_event(
+                self._session_factory,
+                outcome=outcome,
+                request=request,
+                primary_refusal=primary_refusal,
+                fallback_provider=fallback_provider,
+                fallback_model=fallback_model,
+            )
 
-        from sqlalchemy.orm import Session
 
-        from afterworlds.pipeline._refusal import ProviderRefusalError
-        from afterworlds.pipeline.provider._models import ProviderCallRequest
-        from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
-
-        if not isinstance(request, ProviderCallRequest):
-            return
-        if not isinstance(primary_refusal, ProviderRefusalError):
-            return
-        refusal = primary_refusal.refusal
-        event = ProviderRefusalEvent(
-            turn_id=str(request.turn_id) if request.turn_id is not None else None,
-            sojourner_id=(
-                str(request.sojourner_id) if request.sojourner_id is not None else None
-            ),
-            pass_id=request.pass_id.value,
-            primary_provider_name=refusal.provider,
-            primary_model_identifier=refusal.model or "",
-            refusal_category=(
-                refusal.refusal_category.value
-                if refusal.refusal_category is not None
-                else "unknown"
-            ),
-            fallback_outcome=outcome,
-            fallback_provider_name=fallback_provider,
-            fallback_model_identifier=fallback_model,
-            created_at=datetime.now(UTC),
-        )
-        _factory = session_factory
-        assert callable(_factory)
-        session_obj = _factory()
-        assert isinstance(session_obj, Session)
-        with session_obj as session:
-            session.add(event)
-            session.commit()
-
-    return _log_fn
+def _build_refusal_log_fn(session_factory: object) -> RefusalLogProxy:
+    """Build a per-turn refusal-event logging proxy for ``RefusalFallbackRouter``."""
+    return RefusalLogProxy(session_factory)
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +255,7 @@ class ProviderResolver:
             raise ProviderConfigError(
                 "ProviderResolver: session_factory is required for refusal logging"
             )
-        log_fn = _build_refusal_log_fn(self._session_factory)
+        proxy = _build_refusal_log_fn(self._session_factory)
         cfg = self._hosted_config
 
         primary_adapter = AnthropicDirectAdapter(
@@ -221,24 +295,28 @@ class ProviderResolver:
             wrapped_adapter = RefusalFallbackRouter(
                 primary=primary_adapter,
                 fallback=fallback_adapter,
-                refusal_log_fn=log_fn,
+                refusal_log_fn=proxy,
             )
             return TurnProviderBinding(
                 adapter=wrapped_adapter,
                 primary_writer_route=primary_route,
                 eligible_writer_routes=(primary_route, fallback_route),
                 access_path=RuntimeAccessPath.HOSTED,
+                pre_transaction_fn=proxy.start_buffering,
+                post_transaction_fn=proxy.flush,
             )
 
         return TurnProviderBinding(
             adapter=RefusalFallbackRouter(
                 primary=primary_adapter,
                 fallback=None,
-                refusal_log_fn=log_fn,
+                refusal_log_fn=proxy,
             ),
             primary_writer_route=primary_route,
             eligible_writer_routes=(primary_route,),
             access_path=RuntimeAccessPath.HOSTED,
+            pre_transaction_fn=proxy.start_buffering,
+            post_transaction_fn=proxy.flush,
         )
 
     # -----------------------------------------------------------------------
@@ -252,7 +330,7 @@ class ProviderResolver:
             raise ProviderConfigError(
                 "ProviderResolver: session_factory is required for refusal logging"
             )
-        log_fn = _build_refusal_log_fn(self._session_factory)
+        proxy = _build_refusal_log_fn(self._session_factory)
 
         # Find which providers have credentials for this Sojourner
         anthropic_key = self._credential_store.get(sojourner_id, "anthropic")
@@ -331,11 +409,13 @@ class ProviderResolver:
                 adapter, route = _make_anthropic(anthropic_key)
                 return TurnProviderBinding(
                     adapter=RefusalFallbackRouter(
-                        primary=adapter, fallback=None, refusal_log_fn=log_fn
+                        primary=adapter, fallback=None, refusal_log_fn=proxy
                     ),
                     primary_writer_route=route,
                     eligible_writer_routes=(route,),
                     access_path=RuntimeAccessPath.BYOK,
+                    pre_transaction_fn=proxy.start_buffering,
+                    post_transaction_fn=proxy.flush,
                 )
             # openrouter only
             assert openrouter_key is not None
@@ -343,11 +423,13 @@ class ProviderResolver:
             or_adapter, or_route = _make_openrouter(openrouter_key, model_id)
             return TurnProviderBinding(
                 adapter=RefusalFallbackRouter(
-                    primary=or_adapter, fallback=None, refusal_log_fn=log_fn
+                    primary=or_adapter, fallback=None, refusal_log_fn=proxy
                 ),
                 primary_writer_route=or_route,
                 eligible_writer_routes=(or_route,),
                 access_path=RuntimeAccessPath.BYOK,
+                pre_transaction_fn=proxy.start_buffering,
+                post_transaction_fn=proxy.flush,
             )
 
         # Two providers available: use Anthropic as primary, OpenRouter as fallback
@@ -359,17 +441,20 @@ class ProviderResolver:
         wrapped = RefusalFallbackRouter(
             primary=primary_adapter,
             fallback=fallback_adapter,
-            refusal_log_fn=log_fn,
+            refusal_log_fn=proxy,
         )
         return TurnProviderBinding(
             adapter=wrapped,
             primary_writer_route=primary_route,
             eligible_writer_routes=(primary_route, fallback_route),
             access_path=RuntimeAccessPath.BYOK,
+            pre_transaction_fn=proxy.start_buffering,
+            post_transaction_fn=proxy.flush,
         )
 
 
 __all__ = [
     "HostedRoutingConfig",
     "ProviderResolver",
+    "RefusalLogProxy",
 ]

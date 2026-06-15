@@ -134,6 +134,10 @@ def load_ooc_handler_prompt() -> str:
 ModeResolver = Callable[[UUID], "Any"]
 
 
+def _noop_fn() -> None:
+    pass
+
+
 # ---------------------------------------------------------------------------
 # OrchestratorService
 # ---------------------------------------------------------------------------
@@ -507,6 +511,8 @@ class OrchestratorService:
             latency,
             turn_start,
             success_disposition=PipelineDisposition.DELIVERED,
+            pre_transaction_fn=binding.pre_transaction_fn,
+            post_transaction_fn=binding.post_transaction_fn,
         )
 
     def _narrative_persist(
@@ -812,6 +818,8 @@ class OrchestratorService:
             latency,
             turn_start,
             success_disposition=PipelineDisposition.OOC_HANDLED,
+            pre_transaction_fn=binding.pre_transaction_fn,
+            post_transaction_fn=binding.post_transaction_fn,
         )
 
     def _ooc_persist(
@@ -1199,6 +1207,8 @@ class OrchestratorService:
         turn_start: float,
         *,
         success_disposition: PipelineDisposition,
+        pre_transaction_fn: Callable[[], None] = _noop_fn,
+        post_transaction_fn: Callable[[], None] = _noop_fn,
     ) -> OrchestrationResult:
         """Run ``inner`` under a fresh session + outer transaction.
 
@@ -1237,6 +1247,7 @@ class OrchestratorService:
                 f"session factory failed: {exc}",
             )
         try:
+            pre_transaction_fn()
             try:
                 session.begin()
             except Exception as exc:  # noqa: BLE001
@@ -1268,6 +1279,8 @@ class OrchestratorService:
         finally:
             with suppress(Exception):
                 session.close()
+            with suppress(Exception):
+                post_transaction_fn()
 
     def _finalize_transaction(
         self,

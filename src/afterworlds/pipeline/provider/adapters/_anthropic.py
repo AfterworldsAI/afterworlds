@@ -44,7 +44,7 @@ from afterworlds.pipeline._refusal import (
     RefusalCategory,
 )
 from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
-from afterworlds.pipeline.provider._errors import ProviderCallError
+from afterworlds.pipeline.provider._errors import ProviderCallError, ProviderConfigError
 from afterworlds.pipeline.provider._models import (
     ProviderCallRequest,
     ProviderCallResult,
@@ -88,6 +88,19 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
 }
 
 
+def _classify_model_tier(model_id: str) -> ModelTier:
+    """Classify a model identifier to a ModelTier. Fails closed on unknown tiers."""
+    lower = model_id.lower()
+    if "haiku" in lower:
+        return ModelTier.HAIKU
+    if "sonnet" in lower:
+        return ModelTier.SONNET
+    raise ProviderConfigError(
+        f"Cannot classify model tier for override {model_id!r}; "
+        "model identifier must contain 'haiku' or 'sonnet'"
+    )
+
+
 @dataclass
 class AnthropicCapabilityProfile:
     """Configurable pass→model mapping.  Model strings live in config, not code."""
@@ -101,6 +114,8 @@ class AnthropicCapabilityProfile:
         return model
 
     def tier_for(self, pass_id: PipelinePassId) -> ModelTier:
+        if pass_id in self.pass_model_overrides:
+            return _classify_model_tier(self.pass_model_overrides[pass_id])
         _, tier = _PASS_PROFILE[pass_id]
         return tier
 

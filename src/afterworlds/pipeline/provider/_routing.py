@@ -6,10 +6,16 @@ given turn and whether the Safety envelope may be skipped.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.pipeline.writer.models import WriterResult
+
+
+def _noop() -> None:
+    pass
+
 
 # ---------------------------------------------------------------------------
 # Eligible Writer route
@@ -49,6 +55,8 @@ class TurnProviderBinding:
     primary_writer_route: EligibleWriterRoute
     eligible_writer_routes: tuple[EligibleWriterRoute, ...]
     access_path: RuntimeAccessPath
+    pre_transaction_fn: Callable[[], None] = field(default=_noop)
+    post_transaction_fn: Callable[[], None] = field(default=_noop)
 
 
 # ---------------------------------------------------------------------------

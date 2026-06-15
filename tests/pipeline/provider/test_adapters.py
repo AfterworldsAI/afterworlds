@@ -38,6 +38,7 @@ from afterworlds.pipeline.provider._routing import (
     SafetyPolicyContext,
 )
 from afterworlds.pipeline.provider.adapters._anthropic import (
+    AnthropicCapabilityProfile,
     _classify_stop_reason_and_text,
 )
 from afterworlds.pipeline.provider.adapters._fallback import RefusalFallbackRouter
@@ -566,6 +567,61 @@ def test_narrative_pass_refusal_still_uses_fallback() -> None:
 
     assert result is fallback_result
     fallback.call.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# AnthropicCapabilityProfile.tier_for — Finding 2 (CRD Issue 14a)
+# ---------------------------------------------------------------------------
+
+
+def test_tier_for_default_planner_returns_haiku() -> None:
+    """No overrides: Planner pass returns HAIKU (default profile)."""
+    profile = AnthropicCapabilityProfile()
+    assert profile.tier_for(PipelinePassId.PLANNER) is ModelTier.HAIKU
+
+
+def test_tier_for_default_writer_returns_sonnet() -> None:
+    """No overrides: Writer pass returns SONNET (default profile)."""
+    profile = AnthropicCapabilityProfile()
+    assert profile.tier_for(PipelinePassId.WRITER) is ModelTier.SONNET
+
+
+def test_tier_for_override_writer_to_haiku_returns_haiku() -> None:
+    """Writer overridden to a haiku model → tier_for returns HAIKU."""
+    profile = AnthropicCapabilityProfile(
+        pass_model_overrides={PipelinePassId.WRITER: "claude-haiku-4-5-20251001"}
+    )
+    assert profile.tier_for(PipelinePassId.WRITER) is ModelTier.HAIKU
+    assert profile.model_for(PipelinePassId.WRITER) == "claude-haiku-4-5-20251001"
+
+
+def test_tier_for_override_planner_to_sonnet_returns_sonnet() -> None:
+    """Planner overridden to a sonnet model → tier_for returns SONNET."""
+    profile = AnthropicCapabilityProfile(
+        pass_model_overrides={PipelinePassId.PLANNER: "claude-sonnet-4-5"}
+    )
+    assert profile.tier_for(PipelinePassId.PLANNER) is ModelTier.SONNET
+    assert profile.model_for(PipelinePassId.PLANNER) == "claude-sonnet-4-5"
+
+
+def test_tier_for_unknown_override_raises_provider_config_error() -> None:
+    """Override with an unclassifiable model id → ProviderConfigError (fail closed)."""
+    profile = AnthropicCapabilityProfile(
+        pass_model_overrides={PipelinePassId.WRITER: "gpt-4o"}
+    )
+    with pytest.raises(ProviderConfigError, match="Cannot classify model tier"):
+        profile.tier_for(PipelinePassId.WRITER)
+
+
+def test_model_for_and_tier_for_agree_for_overridden_pass() -> None:
+    """model_for and tier_for are consistent when an override is set."""
+    profile = AnthropicCapabilityProfile(
+        pass_model_overrides={PipelinePassId.EXTRACTOR: "claude-haiku-4-5-20251001"}
+    )
+    model = profile.model_for(PipelinePassId.EXTRACTOR)
+    tier = profile.tier_for(PipelinePassId.EXTRACTOR)
+    assert "haiku" in model.lower()
+    assert tier is ModelTier.HAIKU
 
 
 def test_router_fallback_not_triggered_on_short_valid_output() -> None:

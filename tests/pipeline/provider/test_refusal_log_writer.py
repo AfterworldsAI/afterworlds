@@ -25,7 +25,10 @@ from afterworlds.pipeline.provider._models import (
     ProviderTextPart,
 )
 from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
-from afterworlds.pipeline.provider._resolver import _build_refusal_log_fn
+from afterworlds.pipeline.provider._resolver import (
+    RefusalLogProxy,
+    _build_refusal_log_fn,
+)
 from afterworlds.pipeline.provider.adapters._fallback import RefusalFallbackRouter
 from afterworlds.pipeline.provider.adapters._scoped import ScopedProviderAdapter
 
@@ -374,3 +377,109 @@ def test_scoped_refusal_log_row_contains_no_key_material(sf) -> None:  # type: i
             ]
         )
         assert fake_key not in stored
+
+
+# ---------------------------------------------------------------------------
+# RefusalLogProxy — buffering, flush, and file-backed regression (Finding 1)
+# ---------------------------------------------------------------------------
+
+
+def test_proxy_direct_mode_writes_immediately(sf) -> None:  # type: ignore[no-untyped-def]
+    """In direct mode (default), __call__ writes the row immediately."""
+    proxy = RefusalLogProxy(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=proxy
+    )
+    with pytest.raises(ProviderRefusalError):
+        router.call(_make_request())
+
+    assert _count_rows(sf) == 1
+
+
+def test_proxy_buffered_mode_defers_write_until_flush(sf) -> None:  # type: ignore[no-untyped-def]
+    """Buffered mode: row NOT written during buffer phase; written on flush()."""
+    proxy = RefusalLogProxy(sf)
+    proxy.start_buffering()
+
+    proxy(
+        outcome="NO_FALLBACK_CONFIGURED",
+        request=_make_request(),
+        primary_refusal=_primary_refusal_err(),
+        fallback_provider=None,
+        fallback_model=None,
+    )
+
+    assert _count_rows(sf) == 0, "row must not be written while proxy is buffering"
+
+    proxy.flush()
+
+    assert _count_rows(sf) == 1
+
+
+def test_proxy_flush_empty_buffer_is_noop(sf) -> None:  # type: ignore[no-untyped-def]
+    """flush() with no buffered events is a no-op; direct mode still works after."""
+    proxy = RefusalLogProxy(sf)
+    proxy.start_buffering()
+    proxy.flush()  # nothing buffered
+
+    assert _count_rows(sf) == 0
+
+    # Direct mode restored: next write goes immediately
+    proxy(
+        outcome="NO_FALLBACK_CONFIGURED",
+        request=_make_request(),
+        primary_refusal=_primary_refusal_err(),
+        fallback_provider=None,
+        fallback_model=None,
+    )
+    assert _count_rows(sf) == 1
+
+
+def test_proxy_file_backed_no_lock_contention(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Regression (file-backed): flush after close() avoids SQLite lock contention.
+
+    Pre-fix: _write_refusal_event opened a fresh session inside the narrative
+    transaction, hitting "database is locked" on SQLite.
+    Post-fix: proxy buffers in memory; flushes after session.close() releases the lock.
+    """
+    from sqlalchemy import text
+
+    import afterworlds.pipeline.provider._refusal_log  # noqa: F401
+    from afterworlds.persistence.database import create_engine, create_session_factory
+    from afterworlds.persistence.orm.base import Base
+
+    db_path = tmp_path / "refusal_lock_test.db"
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        connect_args={"timeout": 0},  # fail immediately on lock, not after 5s
+    )
+    Base.metadata.create_all(engine)
+    sf = create_session_factory(engine)
+
+    proxy = RefusalLogProxy(sf)
+    proxy.start_buffering()
+
+    # Simulate a Writer-pass refusal event during the outer narrative transaction
+    proxy(
+        outcome="NO_FALLBACK_CONFIGURED",
+        request=_make_request(),
+        primary_refusal=_primary_refusal_err(),
+        fallback_provider=None,
+        fallback_model=None,
+    )
+
+    # Row must NOT be written yet (the narrative transaction has not committed)
+    assert _count_rows(sf) == 0
+
+    # Hold an exclusive write lock (simulates the outer session holding the lock)
+    with engine.connect() as locked_conn:
+        locked_conn.execute(text("BEGIN EXCLUSIVE"))
+        # Under the old design, flush() here would open a competing session and
+        # raise "database is locked".  The proxy must NOT flush here.
+        assert _count_rows(sf) == 0
+        locked_conn.execute(text("ROLLBACK"))
+
+    # Lock released: flush now writes without contention (timeout=0 surfaces any lock)
+    proxy.flush()
+
+    assert _count_rows(sf) == 1
