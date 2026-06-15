@@ -168,11 +168,16 @@ requiring adapter verification before enabling (documented in Decision 4 and
 in `_openrouter.py` module docstring); this defers to CRD Issue 14b.
 
 **`refusal_log_fn` serialization invariant:** `RefusalFallbackRouter._log`
-passes the full `ProviderCallRequest` object to `refusal_log_fn`. Any future
-implementation of `refusal_log_fn` (the DB-write path for `provider_refusal_log`)
-MUST NOT serialize prompt text from `system_blocks`/`rendered_blocks` or any
-key-containing field into `coarse_metadata_json` or any other column. The column
-header and migration docstring both enforce this constraint; enforcement is by
-policy in the calling code, not by the router itself. Issue 14b or the first
-concrete DB-write implementation must add a test that the serializer only emits
-coarse metadata (pass_id, provider, model, outcome) — no prompt fragments.
+passes the full `ProviderCallRequest` object to `refusal_log_fn`. The concrete
+DB-write implementation (`_build_refusal_log_fn` in `_resolver.py`) MUST NOT
+serialize prompt text from `system_blocks`/`rendered_blocks` or any key-containing
+field into `coarse_metadata_json` or any other column. Enforcement is by policy in
+the calling code, not by the router itself. This constraint is verified by
+`tests/pipeline/provider/test_refusal_log_writer.py::test_log_row_excludes_prompt_text_and_raw_excerpt`.
+
+**Decision 10: `session_factory` is required for `ProviderResolver.resolve_for_turn`.**
+`_resolve_hosted` and `_resolve_byok` raise `ProviderConfigError` when
+`session_factory is None`. All resolver-produced routes are wrapped in
+`RefusalFallbackRouter` with a `refusal_log_fn` backed by the session factory.
+Single-provider routes use `fallback=None` so that `NO_FALLBACK_CONFIGURED` is
+logged before re-raising the original `ProviderRefusalError`.

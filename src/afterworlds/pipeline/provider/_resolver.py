@@ -26,6 +26,7 @@ construction (``ProviderConfigError``).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from uuid import UUID
 
@@ -64,6 +65,64 @@ class HostedRoutingConfig:
     anthropic_profile: AnthropicCapabilityProfile = field(
         default_factory=AnthropicCapabilityProfile
     )
+
+
+# ---------------------------------------------------------------------------
+# Refusal logging
+# ---------------------------------------------------------------------------
+
+
+def _build_refusal_log_fn(session_factory: object) -> Callable[..., None]:
+    """Build a refusal-event logging callback for ``RefusalFallbackRouter``."""
+
+    def _log_fn(
+        *,
+        outcome: str,
+        request: object,
+        primary_refusal: object,
+        fallback_provider: str | None,
+        fallback_model: str | None,
+    ) -> None:
+        from datetime import UTC, datetime
+
+        from sqlalchemy.orm import Session
+
+        from afterworlds.pipeline._refusal import ProviderRefusalError
+        from afterworlds.pipeline.provider._models import ProviderCallRequest
+        from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
+
+        if not isinstance(request, ProviderCallRequest):
+            return
+        if not isinstance(primary_refusal, ProviderRefusalError):
+            return
+        refusal = primary_refusal.refusal
+        event = ProviderRefusalEvent(
+            turn_id=str(request.turn_id) if request.turn_id is not None else None,
+            sojourner_id=(
+                str(request.sojourner_id) if request.sojourner_id is not None else None
+            ),
+            pass_id=request.pass_id.value,
+            primary_provider_name=refusal.provider,
+            primary_model_identifier=refusal.model or "",
+            refusal_category=(
+                refusal.refusal_category.value
+                if refusal.refusal_category is not None
+                else "unknown"
+            ),
+            fallback_outcome=outcome,
+            fallback_provider_name=fallback_provider,
+            fallback_model_identifier=fallback_model,
+            created_at=datetime.now(UTC),
+        )
+        _factory = session_factory
+        assert callable(_factory)
+        session_obj = _factory()
+        assert isinstance(session_obj, Session)
+        with session_obj as session:
+            session.add(event)
+            session.commit()
+
+    return _log_fn
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +177,11 @@ class ProviderResolver:
             raise ProviderConfigError(
                 "ProviderResolver: hosted_config is required for HOSTED access path"
             )
+        if self._session_factory is None:
+            raise ProviderConfigError(
+                "ProviderResolver: session_factory is required for refusal logging"
+            )
+        log_fn = _build_refusal_log_fn(self._session_factory)
         cfg = self._hosted_config
 
         primary_adapter = AnthropicDirectAdapter(
@@ -157,6 +221,7 @@ class ProviderResolver:
             wrapped_adapter = RefusalFallbackRouter(
                 primary=primary_adapter,
                 fallback=fallback_adapter,
+                refusal_log_fn=log_fn,
             )
             return TurnProviderBinding(
                 adapter=wrapped_adapter,
@@ -166,7 +231,11 @@ class ProviderResolver:
             )
 
         return TurnProviderBinding(
-            adapter=primary_adapter,
+            adapter=RefusalFallbackRouter(
+                primary=primary_adapter,
+                fallback=None,
+                refusal_log_fn=log_fn,
+            ),
             primary_writer_route=primary_route,
             eligible_writer_routes=(primary_route,),
             access_path=RuntimeAccessPath.HOSTED,
@@ -178,6 +247,12 @@ class ProviderResolver:
 
     def _resolve_byok(self, sojourner_id: UUID) -> TurnProviderBinding:
         from afterworlds.pipeline.provider._route_config import ProviderRouteConfigORM
+
+        if self._session_factory is None:
+            raise ProviderConfigError(
+                "ProviderResolver: session_factory is required for refusal logging"
+            )
+        log_fn = _build_refusal_log_fn(self._session_factory)
 
         # Find which providers have credentials for this Sojourner
         anthropic_key = self._credential_store.get(sojourner_id, "anthropic")
@@ -255,7 +330,9 @@ class ProviderResolver:
                 assert anthropic_key is not None
                 adapter, route = _make_anthropic(anthropic_key)
                 return TurnProviderBinding(
-                    adapter=adapter,
+                    adapter=RefusalFallbackRouter(
+                        primary=adapter, fallback=None, refusal_log_fn=log_fn
+                    ),
                     primary_writer_route=route,
                     eligible_writer_routes=(route,),
                     access_path=RuntimeAccessPath.BYOK,
@@ -265,7 +342,9 @@ class ProviderResolver:
             model_id = _get_openrouter_model(sojourner_id)
             or_adapter, or_route = _make_openrouter(openrouter_key, model_id)
             return TurnProviderBinding(
-                adapter=or_adapter,
+                adapter=RefusalFallbackRouter(
+                    primary=or_adapter, fallback=None, refusal_log_fn=log_fn
+                ),
                 primary_writer_route=or_route,
                 eligible_writer_routes=(or_route,),
                 access_path=RuntimeAccessPath.BYOK,
@@ -278,7 +357,9 @@ class ProviderResolver:
         or_model_id = _get_openrouter_model(sojourner_id)
         fallback_adapter, fallback_route = _make_openrouter(openrouter_key, or_model_id)
         wrapped = RefusalFallbackRouter(
-            primary=primary_adapter, fallback=fallback_adapter
+            primary=primary_adapter,
+            fallback=fallback_adapter,
+            refusal_log_fn=log_fn,
         )
         return TurnProviderBinding(
             adapter=wrapped,

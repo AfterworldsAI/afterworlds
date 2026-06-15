@@ -11,15 +11,17 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from afterworlds.entitlement.enums import ModelTier
+
 
 class AnthropicNormalizationFactorProvider:
     """Normalization factor for Anthropic direct usage."""
 
-    def get_factor(self, provider_name: str) -> Decimal:
-        if provider_name != "anthropic":
+    def get_factor(self, provider: str, model_tier: ModelTier) -> Decimal:
+        if provider != "anthropic":
             raise ValueError(
                 "AnthropicNormalizationFactorProvider: unexpected provider"
-                f" {provider_name!r}"
+                f" {provider!r}"
             )
         return Decimal("1.0")
 
@@ -27,11 +29,11 @@ class AnthropicNormalizationFactorProvider:
 class OpenRouterNormalizationFactorProvider:
     """Normalization factor for OpenRouter usage."""
 
-    def get_factor(self, provider_name: str) -> Decimal:
-        if provider_name != "openrouter":
+    def get_factor(self, provider: str, model_tier: ModelTier) -> Decimal:
+        if provider != "openrouter":
             raise ValueError(
                 "OpenRouterNormalizationFactorProvider: unexpected provider"
-                f" {provider_name!r}"
+                f" {provider!r}"
             )
         return Decimal("1.0")
 

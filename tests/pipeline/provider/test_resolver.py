@@ -23,7 +23,11 @@ from afterworlds.pipeline.provider._resolver import (
 
 def _resolver(cfg: HostedRoutingConfig) -> ProviderResolver:
     store = MagicMock()
-    return ProviderResolver(credential_store=store, hosted_config=cfg)
+    return ProviderResolver(
+        credential_store=store,
+        hosted_config=cfg,
+        session_factory=MagicMock(),
+    )
 
 
 # ---------------------------------------------------------------------------

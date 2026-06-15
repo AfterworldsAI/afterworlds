@@ -141,24 +141,43 @@ def test_credential_validation_error() -> None:
 
 def test_anthropic_normalization_factor_happy() -> None:
     p = AnthropicNormalizationFactorProvider()
-    assert p.get_factor("anthropic") == Decimal("1.0")
+    assert p.get_factor("anthropic", ModelTier.SONNET) == Decimal("1.0")
 
 
 def test_anthropic_normalization_factor_wrong_provider() -> None:
     p = AnthropicNormalizationFactorProvider()
     with pytest.raises(ValueError, match="unexpected provider"):
-        p.get_factor("openrouter")
+        p.get_factor("openrouter", ModelTier.SONNET)
 
 
 def test_openrouter_normalization_factor_happy() -> None:
     p = OpenRouterNormalizationFactorProvider()
-    assert p.get_factor("openrouter") == Decimal("1.0")
+    assert p.get_factor("openrouter", ModelTier.SONNET) == Decimal("1.0")
 
 
 def test_openrouter_normalization_factor_wrong_provider() -> None:
     p = OpenRouterNormalizationFactorProvider()
     with pytest.raises(ValueError, match="unexpected provider"):
-        p.get_factor("anthropic")
+        p.get_factor("anthropic", ModelTier.SONNET)
+
+
+def test_compute_deduction_with_anthropic_normalization_provider() -> None:
+    """AnthropicNormalizationFactorProvider satisfies protocol — no TypeError."""
+    from afterworlds.entitlement.models import PassUsageSnapshot, TurnCostPolicyConfig
+    from afterworlds.entitlement.policy import TurnCostPolicy
+
+    snap = PassUsageSnapshot(
+        pass_id=PipelinePassId.WRITER,
+        model_tier=ModelTier.SONNET,
+        provider="anthropic",
+        input_tokens=1000,
+        output_tokens=500,
+    )
+    policy = TurnCostPolicy(config=TurnCostPolicyConfig())
+    result = policy.compute_deduction(
+        [snap], normalization=AnthropicNormalizationFactorProvider()
+    )
+    assert result > 0
 
 
 # ---------------------------------------------------------------------------

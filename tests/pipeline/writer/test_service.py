@@ -738,3 +738,18 @@ class TestCacheMetrics:
 
         assert result.model_identifier.startswith("anthropic:")
         assert "claude" in result.model_identifier
+
+    def test_provider_and_model_tier_propagated(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """provider and model_tier from ProviderCallResult copied to WriterResult."""
+        story_id, node_id = seeded_ids
+        adapter = _make_fake_adapter(_fake_text_result())
+        service = WriterService(session, _make_config())
+
+        result = service.write(
+            _make_assembled(story_id=story_id), story_id, node_id, provider=adapter  # type: ignore[arg-type]
+        )
+
+        assert result.provider == "anthropic"
+        assert result.model_tier == "sonnet"

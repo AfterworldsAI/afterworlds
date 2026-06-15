@@ -196,6 +196,8 @@ class WriterService:
             output_token_count=result.output_token_count,
             cache_read_token_count=result.cache_read_token_count,
             cache_creation_token_count=result.cache_creation_token_count,
+            provider=result.provider_name,
+            model_tier=result.model_tier.value,
         )
 
     # ---------------------------------------------------------------------------
