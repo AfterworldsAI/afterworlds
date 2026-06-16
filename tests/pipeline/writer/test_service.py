@@ -752,4 +752,33 @@ class TestCacheMetrics:
         )
 
         assert result.provider == "anthropic"
+
+
+# ---------------------------------------------------------------------------
+# Turn-id preallocation
+# ---------------------------------------------------------------------------
+
+
+class TestTurnIdPreallocation:
+    def test_preallocated_turn_id_propagates_to_result_and_persisted_turn(  # type: ignore[no-untyped-def]
+        self, session, seeded_ids
+    ) -> None:
+        """write(turn_id=X): result.turn_id == X and persisted Turn carries that id."""
+        story_id, node_id = seeded_ids
+        fixed_turn_id = uuid4()
+        adapter = _make_fake_adapter(_fake_text_result("The mist rolls in."))
+        service = WriterService(session, _make_config())
+
+        result = service.write(
+            _make_assembled(story_id=story_id),
+            story_id,
+            node_id,
+            provider=adapter,  # type: ignore[arg-type]
+            turn_id=fixed_turn_id,
+        )
+
+        assert result.turn_id == fixed_turn_id
+        fetched = get_turn(session, fixed_turn_id)
+        assert fetched is not None
+        assert fetched.turn_id == fixed_turn_id
         assert result.model_tier == "sonnet"
