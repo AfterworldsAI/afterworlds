@@ -20,7 +20,7 @@ from __future__ import annotations
 import os
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -32,6 +32,10 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
+import afterworlds.pipeline.provider._refusal_log  # noqa: F401
+import afterworlds.pipeline.provider._route_config  # noqa: F401
+import afterworlds.pipeline.provider.credentials._metadata  # noqa: F401
+from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.models.enums import IntentType, StoryMode
 from afterworlds.models.node import (
     BranchingNodeMetadata,
@@ -52,6 +56,11 @@ from afterworlds.pipeline.orchestrator import (
     PipelineDisposition,
 )
 from afterworlds.pipeline.planner.service import PlannerService
+from afterworlds.pipeline.provider._resolver import (
+    HostedRoutingConfig,
+    ProviderResolver,
+)
+from afterworlds.pipeline.provider.credentials._store import FallbackEnvCredentialStore
 from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.service import WriterService
 from afterworlds.services.context_builder import (
@@ -118,6 +127,15 @@ def test_live_branching_orchestration_returns_delivered() -> None:
     Base.metadata.create_all(engine)
     session_factory = create_session_factory(engine)
 
+    sojourner_id = uuid4()
+    provider_resolver = ProviderResolver(
+        credential_store=FallbackEnvCredentialStore(),
+        hosted_config=HostedRoutingConfig(
+            anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
+        ),
+        session_factory=session_factory,
+    )
+
     story_id, node_id, seed_session = _seed(session_factory)
 
     sbs_session = session_factory()
@@ -144,12 +162,15 @@ def test_live_branching_orchestration_returns_delivered() -> None:
         contradiction_service=ContradictionService(),
         session_factory=session_factory,
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=provider_resolver,
     )
 
     result = orch.orchestrate_turn(
         story_id,
         node_id,
         "I push the heavy oak door open and step into the courtyard.",
+        sojourner_id=sojourner_id,
+        access_path=RuntimeAccessPath.HOSTED,
     )
 
     # Acceptance criterion #21: opt-in live-provider test passes on its

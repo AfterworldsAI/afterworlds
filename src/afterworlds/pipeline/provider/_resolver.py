@@ -395,12 +395,18 @@ class ProviderResolver:
                     ProviderRouteConfigORM.is_active.is_(True),
                 )
                 row = session.execute(stmt).scalar_one_or_none()
-            if row is None or not row.preferred_model_identifier:
+            if row is None:
                 raise ProviderConfigError(
                     f"BYOK OpenRouter: no preferred_model_identifier configured "
                     f"for Sojourner {sojourner_id} — fail closed"
                 )
-            return row.preferred_model_identifier
+            model = (row.preferred_model_identifier or "").strip()
+            if not model:
+                raise ProviderConfigError(
+                    f"BYOK OpenRouter: no preferred_model_identifier configured "
+                    f"for Sojourner {sojourner_id} — fail closed"
+                )
+            return model
 
         if len(available) == 1:
             provider = available[0]

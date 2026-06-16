@@ -14,11 +14,13 @@ from uuid import uuid4
 import pytest
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.persistence.database import create_session_factory
 from afterworlds.pipeline.provider._errors import ProviderConfigError
 from afterworlds.pipeline.provider._resolver import (
     HostedRoutingConfig,
     ProviderResolver,
 )
+from afterworlds.pipeline.provider._route_config import ProviderRouteConfigORM
 
 
 def _resolver(cfg: HostedRoutingConfig) -> ProviderResolver:
@@ -127,3 +129,110 @@ def test_hosted_openrouter_route_is_not_trusted_for_safety_skip() -> None:
     )
     or_route = next(r for r in binding.eligible_writer_routes if r.is_openrouter)
     assert or_route.trusted_for_safety_skip is False
+
+
+# ---------------------------------------------------------------------------
+# BYOK OpenRouter model-id validation (blank/whitespace → fail closed)
+# ---------------------------------------------------------------------------
+
+
+def _byok_resolver(session_factory: object) -> ProviderResolver:
+    """BYOK resolver with OpenRouter-only credentials (no Anthropic key)."""
+    store = MagicMock()
+    store.get.side_effect = lambda _sid, provider: (
+        "sk-or-test" if provider == "openrouter" else None
+    )
+    return ProviderResolver(
+        credential_store=store,
+        hosted_config=None,
+        session_factory=session_factory,
+    )
+
+
+def test_byok_openrouter_no_row_raises(engine) -> None:  # type: ignore[no-untyped-def]
+    """No ProviderRouteConfig row for Sojourner → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="preferred_model_identifier"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, uuid4())
+
+
+def test_byok_openrouter_none_model_id_raises(engine) -> None:  # type: ignore[no-untyped-def]
+    """Row exists but preferred_model_identifier is NULL → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier=None,
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="preferred_model_identifier"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_openrouter_empty_model_id_raises(engine) -> None:  # type: ignore[no-untyped-def]
+    """preferred_model_identifier='' → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="preferred_model_identifier"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_openrouter_whitespace_model_id_raises(engine) -> None:  # type: ignore[no-untyped-def]
+    """preferred_model_identifier='   ' → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="   ",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="preferred_model_identifier"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_openrouter_padded_model_id_returns_stripped(engine) -> None:  # type: ignore[no-untyped-def]
+    """Whitespace-padded valid id → stripped model_identifier in binding."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="  anthropic/claude-haiku-4-5  ",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    binding = resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+    or_route = next(r for r in binding.eligible_writer_routes if r.is_openrouter)
+    assert or_route.model_identifier == "anthropic/claude-haiku-4-5"
