@@ -523,6 +523,69 @@ def test_stop_reason_refusal_none_stop_details_returns_unknown() -> None:
     assert result == RefusalCategory.UNKNOWN
 
 
+# ---------------------------------------------------------------------------
+# P2 — Phrase heuristic narrowing: in-story dialogue must not classify
+# ---------------------------------------------------------------------------
+
+
+def test_dialogue_refusal_phrase_not_classified() -> None:
+    """Dialogue attribution with leading quote is not a standalone refusal."""
+    result = _classify_stop_reason_and_text(
+        "end_turn", '"I can\'t help," the old woman whispered.'
+    )
+    assert result is None
+
+
+def test_narrative_quoted_refusal_not_classified() -> None:
+    """Narrative lead-in before quoted phrase is not a standalone refusal."""
+    result = _classify_stop_reason_and_text(
+        "end_turn", 'The guard says, "I\'m unable to open the gate."'
+    )
+    assert result is None
+
+
+def test_mid_sentence_refusal_phrase_not_classified() -> None:
+    """Refusal phrase mid-sentence is not a standalone refusal."""
+    result = _classify_stop_reason_and_text(
+        "end_turn", "She thinks, I cannot help him now, and turns away."
+    )
+    assert result is None
+
+
+def test_short_standalone_refusal_still_classified() -> None:
+    """Provider-style refusal at the start still classifies as CONTENT_POLICY."""
+    result = _classify_stop_reason_and_text("end_turn", "I can't assist with that.")
+    assert result == RefusalCategory.CONTENT_POLICY
+
+
+def test_stop_reason_refusal_with_arbitrary_text_still_classifies() -> None:
+    """stop_reason='refusal' with arbitrary text still classifies (unchanged path)."""
+    result = _classify_stop_reason_and_text(
+        "refusal", '"I can\'t help," the guard said.'
+    )
+    assert result == RefusalCategory.UNKNOWN
+
+
+# ---------------------------------------------------------------------------
+# P2 — SafetyPolicy compatibility alias
+# ---------------------------------------------------------------------------
+
+
+def test_safety_policy_alias_importable() -> None:
+    """SafetyPolicy can be imported from orchestrator.models without ImportError."""
+    from afterworlds.pipeline.orchestrator.models import SafetyPolicy  # noqa: F401
+
+
+def test_safety_policy_alias_is_same_class() -> None:
+    """SafetyPolicy is the CapabilityProfileAwareSafetyPolicy alias."""
+    from afterworlds.pipeline.orchestrator.models import (
+        CapabilityProfileAwareSafetyPolicy,
+        SafetyPolicy,
+    )
+
+    assert SafetyPolicy is CapabilityProfileAwareSafetyPolicy
+
+
 def test_end_turn_no_phrase_still_not_refusal() -> None:
     """Preserve: end_turn + ordinary prose is still not a refusal."""
     result = _classify_stop_reason_and_text("end_turn", "She nods.")

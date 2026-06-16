@@ -371,10 +371,14 @@ class OrchestrationResult(BaseModel):
             )
 
 
+# 12c compatibility alias — new code should import CapabilityProfileAwareSafetyPolicy.
+SafetyPolicy = CapabilityProfileAwareSafetyPolicy
+
 __all__ = [
     "CapabilityProfileAwareSafetyPolicy",
     "OrchestrationResult",
     "OrchestratorError",
     "PipelineDisposition",
+    "SafetyPolicy",
     "SafetyPolicyContext",
 ]

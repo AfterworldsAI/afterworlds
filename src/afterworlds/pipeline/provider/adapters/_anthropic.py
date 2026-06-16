@@ -163,9 +163,13 @@ def _classify_stop_reason_and_text(
             return RefusalCategory.CONTENT_POLICY
         return RefusalCategory.UNKNOWN
     if stop_reason in ("end_turn", "stop_sequence"):
-        lower = text_content.lower()
+        # Start-anchored check: a phrase must begin the response (after
+        # stripping whitespace only) to count as a refusal.  Embedded
+        # phrases inside narrative prose or dialogue (e.g. `"I can't help,"
+        # the guard said.`) are not classified.
+        lower = text_content.strip().lower()
         for phrase in _REFUSAL_PHRASES:
-            if phrase in lower:
+            if lower.startswith(phrase):
                 return RefusalCategory.CONTENT_POLICY
     return None
 
