@@ -31,6 +31,7 @@ from afterworlds.pipeline.contradiction.models import (
     ContradictionVerdict,
 )
 from afterworlds.pipeline.contradiction.service import ContradictionService
+from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("AFTERWORLDS_LIVE_TESTS") != "1",
@@ -84,10 +85,13 @@ def _make_context() -> AssembledContext:
     )
 
 
+def _make_adapter() -> AnthropicDirectAdapter:
+    return AnthropicDirectAdapter(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
 class TestLiveClear:
     def test_clean_prose_returns_clear(self) -> None:
-        config = ContradictionConfig.from_env()
-        svc = ContradictionService(config=config)
+        svc = ContradictionService(config=ContradictionConfig.from_env())
 
         writer_output = (
             "You pocket the Obsidian Key and step into the corridor. "
@@ -96,7 +100,7 @@ class TestLiveClear:
             " thirteen, fourteen. You pause at your own door, Room 14."
         )
 
-        result = svc.check(_make_context(), writer_output)
+        result = svc.check(_make_context(), writer_output, provider=_make_adapter())
 
         assert result.verdict == ContradictionVerdict.CLEAR
         assert result.input_token_count is not None
@@ -106,8 +110,7 @@ class TestLiveClear:
 
 class TestLiveBlocked:
     def test_location_drift_returns_blocked(self) -> None:
-        config = ContradictionConfig.from_env()
-        svc = ContradictionService(config=config)
+        svc = ContradictionService(config=ContradictionConfig.from_env())
 
         writer_output = (
             "The rain hammers the cobblestones outside the police precinct as you "
@@ -115,7 +118,7 @@ class TestLiveBlocked:
             "Sergeant Vance leans against the doorframe, watching."
         )
 
-        result = svc.check(_make_context(), writer_output)
+        result = svc.check(_make_context(), writer_output, provider=_make_adapter())
 
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert len(result.violations) >= 1

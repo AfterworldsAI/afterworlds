@@ -485,6 +485,133 @@ def test_anthropic_normal_stop_reason_no_phrase_not_refusal() -> None:
     )
 
 
+def test_stop_reason_refusal_no_stop_details_returns_unknown() -> None:
+    """stop_reason='refusal' with no stop_details → UNKNOWN (no phrase match needed)."""
+    result = _classify_stop_reason_and_text("refusal", "")
+    assert result == RefusalCategory.UNKNOWN
+
+
+def test_stop_reason_refusal_unfamiliar_text_returns_unknown() -> None:
+    """stop_reason='refusal' with non-matching text → UNKNOWN, not None."""
+    result = _classify_stop_reason_and_text("refusal", "The door is closed.")
+    assert result == RefusalCategory.UNKNOWN
+
+
+def test_stop_reason_refusal_cyber_category_returns_content_policy() -> None:
+    """stop_details.category='cyber' with stop_reason='refusal' → CONTENT_POLICY."""
+    from unittest.mock import MagicMock as _MagicMock
+
+    details = _MagicMock()
+    details.category = "cyber"
+    result = _classify_stop_reason_and_text("refusal", "", stop_details=details)
+    assert result == RefusalCategory.CONTENT_POLICY
+
+
+def test_stop_reason_refusal_bio_category_returns_content_policy() -> None:
+    """stop_details.category='bio' with stop_reason='refusal' → CONTENT_POLICY."""
+    from unittest.mock import MagicMock as _MagicMock
+
+    details = _MagicMock()
+    details.category = "bio"
+    result = _classify_stop_reason_and_text("refusal", "", stop_details=details)
+    assert result == RefusalCategory.CONTENT_POLICY
+
+
+def test_stop_reason_refusal_none_stop_details_returns_unknown() -> None:
+    """Explicit stop_details=None with stop_reason='refusal' → UNKNOWN."""
+    result = _classify_stop_reason_and_text("refusal", "", stop_details=None)
+    assert result == RefusalCategory.UNKNOWN
+
+
+def test_end_turn_no_phrase_still_not_refusal() -> None:
+    """Preserve: end_turn + ordinary prose is still not a refusal."""
+    result = _classify_stop_reason_and_text("end_turn", "She nods.")
+    assert result is None
+
+
+def test_parse_response_refusal_stop_reason_no_content_raises_refusal_error() -> None:
+    """stop_reason='refusal' with empty content → ProviderRefusalError not CallError."""
+    from anthropic.types import Message, Usage
+
+    from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
+
+    msg = Message(
+        id="msg_refusal_empty",
+        content=[],
+        model="claude-haiku-4-5-20251001",
+        role="assistant",
+        stop_reason="refusal",
+        stop_details=None,
+        type="message",
+        usage=Usage(input_tokens=10, output_tokens=0),
+    )
+    parts, cat, coarse = AnthropicDirectAdapter._parse_response(msg)
+    assert cat == RefusalCategory.UNKNOWN
+    assert parts == []
+
+
+def test_parse_response_refusal_stop_reason_with_text_returns_refusal() -> None:
+    """stop_reason='refusal' with text that does not match phrases → still UNKNOWN."""
+    from anthropic.types import Message, TextBlock, Usage
+
+    from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
+
+    msg = Message(
+        id="msg_refusal_text",
+        content=[TextBlock(type="text", text="The door is closed.")],
+        model="claude-haiku-4-5-20251001",
+        role="assistant",
+        stop_reason="refusal",
+        stop_details=None,
+        type="message",
+        usage=Usage(input_tokens=10, output_tokens=5),
+    )
+    parts, cat, coarse = AnthropicDirectAdapter._parse_response(msg)
+    assert cat == RefusalCategory.UNKNOWN
+    assert coarse == "The door is closed."
+
+
+def test_parse_response_refusal_stop_reason_cyber_category_content_policy() -> None:
+    """stop_reason='refusal' + stop_details.category='cyber' → CONTENT_POLICY."""
+    from anthropic.types import Message, RefusalStopDetails, Usage
+
+    from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
+
+    msg = Message(
+        id="msg_refusal_cyber",
+        content=[],
+        model="claude-haiku-4-5-20251001",
+        role="assistant",
+        stop_reason="refusal",
+        stop_details=RefusalStopDetails(type="refusal", category="cyber"),
+        type="message",
+        usage=Usage(input_tokens=10, output_tokens=0),
+    )
+    parts, cat, coarse = AnthropicDirectAdapter._parse_response(msg)
+    assert cat == RefusalCategory.CONTENT_POLICY
+
+
+def test_parse_response_end_turn_normal_prose_not_refusal() -> None:
+    """end_turn + normal prose is not classified as a refusal."""
+    from anthropic.types import Message, TextBlock, Usage
+
+    from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
+
+    msg = Message(
+        id="msg_normal",
+        content=[TextBlock(type="text", text="She nods and steps forward.")],
+        model="claude-haiku-4-5-20251001",
+        role="assistant",
+        stop_reason="end_turn",
+        stop_details=None,
+        type="message",
+        usage=Usage(input_tokens=20, output_tokens=8),
+    )
+    parts, cat, coarse = AnthropicDirectAdapter._parse_response(msg)
+    assert cat is None
+    assert len(parts) == 1
+
+
 def test_openrouter_short_text_not_refusal() -> None:
     """OpenRouter short text 'She nods.' is valid output, not a refusal."""
     assert _detect_refusal("She nods.") is None

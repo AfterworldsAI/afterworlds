@@ -142,11 +142,26 @@ _REFUSAL_PHRASES: tuple[str, ...] = (
 def _classify_stop_reason_and_text(
     stop_reason: str | None,
     text_content: str,
+    *,
+    stop_details: object = None,
 ) -> RefusalCategory | None:
     """Return a RefusalCategory if the response looks like a content-policy refusal.
 
     Returns None for normal stop reasons that are not refusals.
+
+    ``stop_reason="refusal"`` is an explicit SDK signal — no phrase match required.
+    ``stop_details.category`` (``"cyber"`` / ``"bio"``) maps to CONTENT_POLICY;
+    absent or unmapped categories produce UNKNOWN.
     """
+    if stop_reason == "refusal":
+        sd_category = (
+            getattr(stop_details, "category", None)
+            if stop_details is not None
+            else None
+        )
+        if sd_category in ("cyber", "bio"):
+            return RefusalCategory.CONTENT_POLICY
+        return RefusalCategory.UNKNOWN
     if stop_reason in ("end_turn", "stop_sequence"):
         lower = text_content.lower()
         for phrase in _REFUSAL_PHRASES:
@@ -332,7 +347,6 @@ class AnthropicDirectAdapter:
 
         parts: list[ProviderContentPart] = []
         text_content = ""
-        coarse_reason: str | None = None
 
         for block in response.content:
             if isinstance(block, TextBlock):
@@ -346,20 +360,33 @@ class AnthropicDirectAdapter:
                     )
                 )
 
+        # Explicit SDK refusal signal — must run before the empty-content guard
+        # because stop_reason="refusal" may arrive with no content blocks at all.
+        stop_details = getattr(response, "stop_details", None)
+        if response.stop_reason == "refusal":
+            refusal_cat = _classify_stop_reason_and_text(
+                response.stop_reason, text_content, stop_details=stop_details
+            )
+            coarse_reason: str | None = (
+                text_content[:200] if text_content else "provider refusal"
+            )
+            return parts, refusal_cat, coarse_reason
+
         if not parts:
             raise ProviderCallError("Anthropic returned empty content")
 
-        # Detect content-policy refusal on text-only responses
+        # Phrase heuristic for end_turn/stop_sequence text-only responses
         has_tool = any(isinstance(p, ProviderToolCallPart) for p in parts)
-        refusal_cat: RefusalCategory | None = None
+        refusal_cat_ph: RefusalCategory | None = None
+        coarse_reason_ph: str | None = None
         if not has_tool and text_content:
-            refusal_cat = _classify_stop_reason_and_text(
-                response.stop_reason, text_content
+            refusal_cat_ph = _classify_stop_reason_and_text(
+                response.stop_reason, text_content, stop_details=stop_details
             )
-            if refusal_cat is not None:
-                coarse_reason = text_content[:200]
+            if refusal_cat_ph is not None:
+                coarse_reason_ph = text_content[:200]
 
-        return parts, refusal_cat, coarse_reason
+        return parts, refusal_cat_ph, coarse_reason_ph
 
 
 def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
