@@ -42,7 +42,7 @@ from concurrent.futures import TimeoutError as FutureTimeout
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
@@ -531,14 +531,26 @@ class OrchestratorService:
         turn_start: float,
     ) -> OrchestrationResult:
         # 5. Writer persists provisional Turn inside the outer transaction.
+        #
+        # Preallocate the Turn id before the provider call so refusal-log rows
+        # written by RefusalFallbackRouter carry the same id that will be used
+        # for the Turn if the call (or its fallback) succeeds.  On failure no
+        # Turn is persisted; the log row still carries the candidate id, which
+        # is the only consistent rule without post-insert row mutation.
+        writer_turn_id = uuid4()
         try:
             writer_result, ms = _timed(
                 lambda: self._writer_service.write(
                     ctx,
                     story_id,
                     node_id,
-                    provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
+                    provider=ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=writer_turn_id,
+                    ),
                     session=session,
+                    turn_id=writer_turn_id,
                 )
             )
             latency["writer"] = ms
@@ -836,14 +848,20 @@ class OrchestratorService:
         latency: dict[str, int],
         turn_start: float,
     ) -> OrchestrationResult:
+        ooc_turn_id = uuid4()
         try:
             writer_result, ms = _timed(
                 lambda: self._writer_service.write(
                     ooc_ctx,
                     story_id,
                     node_id,
-                    provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
+                    provider=ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=ooc_turn_id,
+                    ),
                     session=session,
+                    turn_id=ooc_turn_id,
                 )
             )
             latency["writer"] = ms

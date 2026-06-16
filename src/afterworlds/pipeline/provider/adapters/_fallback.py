@@ -77,8 +77,9 @@ class RefusalFallbackRouter:
 
         Safety passes (INPUT_SAFETY, OUTPUT_SAFETY) are excluded from fallback:
         a Safety provider refusal propagates immediately so SafetyService.check()
-        can wrap it as SafetyPassError (fail-closed contract).  No log row is
-        written for Safety-pass refusals.
+        can wrap it as SafetyPassError (fail-closed contract).  A refusal-log row
+        with NO_FALLBACK_CONFIGURED is written before re-raising so the audit
+        record is preserved; fallback is still structurally disabled.
         """
         try:
             return self._primary.call(request)
@@ -87,6 +88,13 @@ class RefusalFallbackRouter:
                 PipelinePassId.INPUT_SAFETY,
                 PipelinePassId.OUTPUT_SAFETY,
             ):
+                self._log(
+                    _NO_FALLBACK_CONFIGURED,
+                    request,
+                    primary_refusal,
+                    fallback_provider=None,
+                    fallback_model=None,
+                )
                 raise
             return self._handle_refusal(request, primary_refusal)
         # ProviderCallError from primary: re-raise, no fallback, no log entry.

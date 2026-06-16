@@ -325,6 +325,7 @@ class FakeWriterService:
         *,
         provider: Any = None,
         session: Any = None,
+        turn_id: UUID | None = None,
     ) -> WriterResult:
         self.calls.append((built_context, story_id, node_id, session))
         if self.raise_exc is not None:
@@ -333,8 +334,12 @@ class FakeWriterService:
             raise AssertionError(
                 "Orchestrator must forward its outer session to Writer"
             )
+        from uuid import uuid4
+
         icr = built_context.volatile_suffix.classified_intent
+        effective_turn_id = turn_id if turn_id is not None else uuid4()
         turn = Turn(
+            turn_id=effective_turn_id,
             user_input=built_context.volatile_suffix.current_input,
             assistant_output=self.assistant_output,
             timestamp=datetime.now(UTC),

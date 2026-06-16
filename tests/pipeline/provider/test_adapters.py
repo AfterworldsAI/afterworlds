@@ -512,7 +512,7 @@ def _make_safety_request(pass_id: PipelinePassId) -> ProviderCallRequest:
 
 
 def test_input_safety_refusal_not_forwarded_to_fallback() -> None:
-    """INPUT_SAFETY refusal: fallback NOT tried, no log row, error re-raised."""
+    """INPUT_SAFETY refusal: fallback NOT tried, log row written, error re-raised."""
     request = _make_safety_request(PipelinePassId.INPUT_SAFETY)
     primary = MagicMock()
     primary.provider_name = "anthropic"
@@ -528,11 +528,14 @@ def test_input_safety_refusal_not_forwarded_to_fallback() -> None:
         router.call(request)
 
     fallback.call.assert_not_called()
-    log_fn.assert_not_called()
+    log_fn.assert_called_once()
+    _, kwargs = log_fn.call_args
+    assert kwargs["outcome"] == "NO_FALLBACK_CONFIGURED"
+    assert kwargs["fallback_provider"] is None
 
 
 def test_output_safety_refusal_not_forwarded_to_fallback() -> None:
-    """OUTPUT_SAFETY refusal: fallback NOT tried, no log row, error re-raised."""
+    """OUTPUT_SAFETY refusal: fallback NOT tried, log row written, error re-raised."""
     request = _make_safety_request(PipelinePassId.OUTPUT_SAFETY)
     primary = MagicMock()
     primary.provider_name = "anthropic"
@@ -548,7 +551,10 @@ def test_output_safety_refusal_not_forwarded_to_fallback() -> None:
         router.call(request)
 
     fallback.call.assert_not_called()
-    log_fn.assert_not_called()
+    log_fn.assert_called_once()
+    _, kwargs = log_fn.call_args
+    assert kwargs["outcome"] == "NO_FALLBACK_CONFIGURED"
+    assert kwargs["fallback_provider"] is None
 
 
 def test_narrative_pass_refusal_still_uses_fallback() -> None:

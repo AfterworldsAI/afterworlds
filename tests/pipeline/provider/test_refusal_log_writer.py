@@ -483,3 +483,136 @@ def test_proxy_file_backed_no_lock_contention(tmp_path) -> None:  # type: ignore
     proxy.flush()
 
     assert _count_rows(sf) == 1
+
+
+# ---------------------------------------------------------------------------
+# Finding 1: Writer fallback log row carries preallocated turn_id (P2 fix)
+# ---------------------------------------------------------------------------
+
+
+def test_writer_fallback_succeeded_log_row_has_preallocated_turn_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """FALLBACK_SUCCEEDED for Writer: log row turn_id equals preallocated id."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    writer_turn_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(),
+        fallback=_SucceedingFallback(),
+        refusal_log_fn=log_fn,
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=writer_turn_id)
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.WRITER,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    result = scoped.call(request)
+
+    assert result.provider_name == "openrouter"
+    assert _count_rows(sf) == 1
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.fallback_outcome == "FALLBACK_SUCCEEDED"
+        assert row.turn_id == str(writer_turn_id)
+        assert row.sojourner_id == str(sojourner_id)
+
+
+def test_writer_no_fallback_log_row_has_preallocated_turn_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """NO_FALLBACK_CONFIGURED for Writer: log row turn_id equals preallocated id."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    writer_turn_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=log_fn
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=writer_turn_id)
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.WRITER,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert _count_rows(sf) == 1
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.fallback_outcome == "NO_FALLBACK_CONFIGURED"
+        assert row.turn_id == str(writer_turn_id)
+
+
+# ---------------------------------------------------------------------------
+# Finding 2: Safety provider refusals are logged before re-raising (P2 fix)
+# ---------------------------------------------------------------------------
+
+
+def test_input_safety_refusal_writes_one_row_no_fallback_called(sf) -> None:  # type: ignore[no-untyped-def]
+    """INPUT_SAFETY refusal: one log row, NO_FALLBACK_CONFIGURED, no fallback called."""
+    from unittest.mock import MagicMock
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    fallback_spy = MagicMock()
+    fallback_spy.provider_name = "openrouter"
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(),
+        fallback=fallback_spy,
+        refusal_log_fn=log_fn,
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=None)
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.INPUT_SAFETY,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    fallback_spy.call.assert_not_called()
+    assert _count_rows(sf) == 1
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.fallback_outcome == "NO_FALLBACK_CONFIGURED"
+        assert row.pass_id == "input_safety"
+        assert row.turn_id is None
+        assert row.fallback_provider_name is None
+
+
+def test_output_safety_refusal_log_row_has_writer_turn_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """OUTPUT_SAFETY refusal: log row turn_id equals the preallocated writer turn_id."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    writer_turn_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingPrimary(), fallback=None, refusal_log_fn=log_fn
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=writer_turn_id)
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.OUTPUT_SAFETY,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert _count_rows(sf) == 1
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.fallback_outcome == "NO_FALLBACK_CONFIGURED"
+        assert row.pass_id == "output_safety"
+        assert row.turn_id == str(writer_turn_id)

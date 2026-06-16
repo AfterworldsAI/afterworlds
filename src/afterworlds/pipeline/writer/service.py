@@ -26,7 +26,7 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
@@ -106,6 +106,7 @@ class WriterService:
         *,
         provider: ProviderAdapter,
         session: Session | None = None,
+        turn_id: UUID | None = None,
     ) -> WriterResult:
         """Execute one Writer pass and return a typed result with a persisted Turn.
 
@@ -175,7 +176,9 @@ class WriterService:
             raise WriterPassError(f"Writer response parsing failed: {exc}") from exc
 
         icr = built_context.volatile_suffix.classified_intent
+        effective_turn_id = turn_id if turn_id is not None else uuid4()
         turn = Turn(
+            turn_id=effective_turn_id,
             user_input=built_context.volatile_suffix.current_input,
             assistant_output=prose,
             timestamp=datetime.now(UTC),
