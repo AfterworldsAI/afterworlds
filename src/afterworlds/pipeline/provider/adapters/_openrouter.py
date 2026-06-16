@@ -41,6 +41,7 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
 )
 from afterworlds.pipeline.provider.adapters._anthropic import (
+    _is_standalone_refusal,
     _pass_id_to_pass_identifier,
     _sanitize_sdk_error,
 )
@@ -87,24 +88,10 @@ def _infer_tier(model_id: str, pass_id: PipelinePassId) -> ModelTier:
 # Refusal detection for OpenAI-compatible responses
 # ---------------------------------------------------------------------------
 
-_REFUSAL_PHRASES: tuple[str, ...] = (
-    "i cannot assist",
-    "i can't assist",
-    "i'm unable to",
-    "i cannot help",
-    "i can't help",
-    "i'm not able to",
-    "i must decline",
-    "i cannot comply",
-    "against my guidelines",
-)
-
 
 def _detect_refusal(text: str) -> RefusalCategory | None:
-    lower = text.lower()
-    for phrase in _REFUSAL_PHRASES:
-        if phrase in lower:
-            return RefusalCategory.CONTENT_POLICY
+    if _is_standalone_refusal(text):
+        return RefusalCategory.CONTENT_POLICY
     return None
 
 

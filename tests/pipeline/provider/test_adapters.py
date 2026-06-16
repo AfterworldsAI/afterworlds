@@ -688,6 +688,16 @@ def test_openrouter_refusal_phrase_classified_as_content_policy() -> None:
     )
 
 
+def test_openrouter_dialogue_embedded_unable_not_refusal() -> None:
+    """Writer prose with 'I'm unable to' inside dialogue is not a refusal."""
+    assert _detect_refusal('The guard says, "I\'m unable to open the gate."') is None
+
+
+def test_openrouter_dialogue_embedded_cant_help_not_refusal() -> None:
+    """Writer prose with \"I can't help\" inside in-story dialogue is not a refusal."""
+    assert _detect_refusal('She smiled. "I can\'t help," she said.') is None
+
+
 # ---------------------------------------------------------------------------
 # RefusalFallbackRouter — Safety pass exclusion from fallback (Fix 1)
 # ---------------------------------------------------------------------------

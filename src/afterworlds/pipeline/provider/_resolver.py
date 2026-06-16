@@ -199,6 +199,34 @@ def _build_refusal_log_fn(session_factory: object) -> RefusalLogProxy:
     return RefusalLogProxy(session_factory)
 
 
+def _is_credential_active(
+    session_factory: object, sojourner_id: UUID, provider_name: str
+) -> bool:
+    """Return True iff an active ProviderCredentialMetadata row exists.
+
+    Absent row or is_active=False both return False.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from afterworlds.pipeline.provider.credentials._metadata import (
+        ProviderCredentialMetadata,
+    )
+
+    _factory = session_factory
+    assert callable(_factory)
+    session_obj = _factory()
+    assert isinstance(session_obj, Session)
+    with session_obj as session:
+        stmt = select(ProviderCredentialMetadata).where(
+            ProviderCredentialMetadata.sojourner_id == str(sojourner_id),
+            ProviderCredentialMetadata.provider_name == provider_name,
+            ProviderCredentialMetadata.is_active.is_(True),
+        )
+        row = session.execute(stmt).scalar_one_or_none()
+    return row is not None
+
+
 # ---------------------------------------------------------------------------
 # ProviderResolver
 # ---------------------------------------------------------------------------
@@ -332,15 +360,18 @@ class ProviderResolver:
             )
         proxy = _build_refusal_log_fn(self._session_factory)
 
-        # Find which providers have credentials for this Sojourner
-        anthropic_key = self._credential_store.get(sojourner_id, "anthropic")
-        openrouter_key = self._credential_store.get(sojourner_id, "openrouter")
+        # Build available pool: requires both active credential metadata row
+        # AND retrievable key.  Keys for inactive providers are not fetched.
+        available_keys: dict[str, str] = {}
+        for _pname in ("anthropic", "openrouter"):
+            if _is_credential_active(self._session_factory, sojourner_id, _pname):
+                _key = self._credential_store.get(sojourner_id, _pname)
+                if _key:
+                    available_keys[_pname] = _key
 
-        available: list[str] = []
-        if anthropic_key:
-            available.append("anthropic")
-        if openrouter_key:
-            available.append("openrouter")
+        anthropic_key: str | None = available_keys.get("anthropic")
+        openrouter_key: str | None = available_keys.get("openrouter")
+        available: list[str] = list(available_keys)
 
         if not available:
             raise ProviderConfigError(

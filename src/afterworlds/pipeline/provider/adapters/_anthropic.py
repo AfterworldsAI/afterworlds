@@ -139,6 +139,16 @@ _REFUSAL_PHRASES: tuple[str, ...] = (
 )
 
 
+def _is_standalone_refusal(text: str) -> bool:
+    """True iff text begins with a provider-refusal phrase (start-anchored).
+
+    Embedded refusal phrases inside narrative prose or in-story dialogue are
+    not matched.  Shared by both the Anthropic and OpenRouter adapters.
+    """
+    lower = text.strip().lower()
+    return any(lower.startswith(phrase) for phrase in _REFUSAL_PHRASES)
+
+
 def _classify_stop_reason_and_text(
     stop_reason: str | None,
     text_content: str,
@@ -162,15 +172,10 @@ def _classify_stop_reason_and_text(
         if sd_category in ("cyber", "bio"):
             return RefusalCategory.CONTENT_POLICY
         return RefusalCategory.UNKNOWN
-    if stop_reason in ("end_turn", "stop_sequence"):
-        # Start-anchored check: a phrase must begin the response (after
-        # stripping whitespace only) to count as a refusal.  Embedded
-        # phrases inside narrative prose or dialogue (e.g. `"I can't help,"
-        # the guard said.`) are not classified.
-        lower = text_content.strip().lower()
-        for phrase in _REFUSAL_PHRASES:
-            if lower.startswith(phrase):
-                return RefusalCategory.CONTENT_POLICY
+    if stop_reason in ("end_turn", "stop_sequence") and _is_standalone_refusal(
+        text_content
+    ):
+        return RefusalCategory.CONTENT_POLICY
     return None
 
 
