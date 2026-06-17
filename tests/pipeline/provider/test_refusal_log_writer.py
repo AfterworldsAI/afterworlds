@@ -211,7 +211,7 @@ def test_fallback_error_writes_one_row(sf) -> None:  # type: ignore[no-untyped-d
         fallback=_ErrorFallback(),
         refusal_log_fn=log_fn,
     )
-    with pytest.raises(ProviderCallError):
+    with pytest.raises(ProviderRefusalError):
         router.call(_make_request())
 
     assert _count_rows(sf) == 1

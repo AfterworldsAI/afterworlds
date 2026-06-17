@@ -199,11 +199,13 @@ def _build_refusal_log_fn(session_factory: object) -> RefusalLogProxy:
     return RefusalLogProxy(session_factory)
 
 
-def _is_credential_active(
+def _is_credential_eligible(
     session_factory: object, sojourner_id: UUID, provider_name: str
 ) -> bool:
-    """Return True iff an active ProviderCredentialMetadata row exists.
+    """Return True iff the credential row exists, is active, and is not INVALID/ERROR.
 
+    VALID and UNTESTED are eligible (permissive default for unchecked keys).
+    INVALID and ERROR are excluded to prevent routing to known-bad credentials.
     Absent row or is_active=False both return False.
     """
     from sqlalchemy import select
@@ -211,6 +213,7 @@ def _is_credential_active(
 
     from afterworlds.pipeline.provider.credentials._metadata import (
         ProviderCredentialMetadata,
+        ValidationStatus,
     )
 
     _factory = session_factory
@@ -224,7 +227,12 @@ def _is_credential_active(
             ProviderCredentialMetadata.is_active.is_(True),
         )
         row = session.execute(stmt).scalar_one_or_none()
-    return row is not None
+    if row is None:
+        return False
+    return row.validation_status not in (
+        ValidationStatus.INVALID,
+        ValidationStatus.ERROR,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -364,7 +372,7 @@ class ProviderResolver:
         # AND retrievable key.  Keys for inactive providers are not fetched.
         available_keys: dict[str, str] = {}
         for _pname in ("anthropic", "openrouter"):
-            if _is_credential_active(self._session_factory, sojourner_id, _pname):
+            if _is_credential_eligible(self._session_factory, sojourner_id, _pname):
                 _key = self._credential_store.get(sojourner_id, _pname)
                 if _key:
                     available_keys[_pname] = _key

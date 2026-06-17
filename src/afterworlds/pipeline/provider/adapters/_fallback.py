@@ -137,7 +137,7 @@ class RefusalFallbackRouter:
                 fallback_model=fallback_refusal.refusal.model,
             )
             raise fallback_refusal
-        except ProviderCallError as fallback_err:
+        except ProviderCallError:
             self._log(
                 _FALLBACK_ERROR,
                 request,
@@ -145,7 +145,7 @@ class RefusalFallbackRouter:
                 fallback_provider=self._fallback.provider_name,
                 fallback_model=None,
             )
-            raise fallback_err
+            raise primary_refusal from None
 
     def _log(
         self,

@@ -564,6 +564,28 @@ class TestDispositionTaxonomyGuard:
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
 
+    def test_fallback_call_error_becomes_refused_not_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """P2 #1 taxonomy guard: fallback ProviderCallError → REFUSED_BY_PROVIDER.
+
+        After the P2 #1 fix, RefusalFallbackRouter._handle_refusal re-raises
+        primary_refusal (ProviderRefusalError) instead of the fallback's
+        ProviderCallError when the fallback has an operational failure.  The
+        router-level proof is in test_adapters.py; this test verifies the
+        orchestrator maps that ProviderRefusalError to REFUSED_BY_PROVIDER.
+        """
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            writer_exc=make_refusal(PassIdentifier.WRITER),
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
+
     def test_safety_pass_error_never_becomes_refused(
         self, session_factory, seeded_story
     ) -> None:

@@ -24,6 +24,7 @@ from afterworlds.pipeline.provider._resolver import (
 from afterworlds.pipeline.provider._route_config import ProviderRouteConfigORM
 from afterworlds.pipeline.provider.credentials._metadata import (
     ProviderCredentialMetadata,
+    ValidationStatus,
 )
 
 
@@ -162,6 +163,7 @@ def _add_metadata(
     provider: str,
     *,
     is_active: bool = True,
+    validation_status: str = ValidationStatus.UNTESTED,
 ) -> None:
     """Insert a ProviderCredentialMetadata row for test setup."""
     assert callable(sf)
@@ -171,6 +173,7 @@ def _add_metadata(
             sojourner_id=str(sid),
             provider_name=provider,
             is_active=is_active,
+            validation_status=validation_status,
             created_at=_NOW,
             updated_at=_NOW,
         )
@@ -412,6 +415,164 @@ def test_byok_error_message_contains_no_key_material(
     sf = create_session_factory(engine)
     sid = uuid4()
     _add_metadata(sf, sid, "anthropic", is_active=False)
+    resolver = _byok_resolver_anthropic_only(sf)
+    with pytest.raises(ProviderConfigError) as exc_info:
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+    error_text = str(exc_info.value)
+    assert "sk-ant" not in error_text
+    assert "sk-or" not in error_text
+
+
+# ---------------------------------------------------------------------------
+# BYOK validation_status eligibility gate (P2 #2)
+# ---------------------------------------------------------------------------
+
+
+def test_byok_anthropic_valid_status_eligible(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active Anthropic metadata with VALID status → eligible route."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.VALID)
+    resolver = _byok_resolver_anthropic_only(sf)
+    binding = resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+    provider_names = {r.provider_name for r in binding.eligible_writer_routes}
+    assert "anthropic" in provider_names
+
+
+def test_byok_anthropic_untested_status_eligible(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active Anthropic UNTESTED status → eligible (permissive default)."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.UNTESTED)
+    resolver = _byok_resolver_anthropic_only(sf)
+    binding = resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+    provider_names = {r.provider_name for r in binding.eligible_writer_routes}
+    assert "anthropic" in provider_names
+
+
+def test_byok_anthropic_invalid_status_raises(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active Anthropic metadata with INVALID status → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.INVALID)
+    resolver = _byok_resolver_anthropic_only(sf)
+    with pytest.raises(ProviderConfigError, match="no configured credentials"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_anthropic_error_status_raises(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active Anthropic metadata with ERROR status → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.ERROR)
+    resolver = _byok_resolver_anthropic_only(sf)
+    with pytest.raises(ProviderConfigError, match="no configured credentials"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_openrouter_invalid_status_raises(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active OpenRouter metadata with INVALID status → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "openrouter", validation_status=ValidationStatus.INVALID)
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="anthropic/claude-haiku-4-5",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="no configured credentials"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_openrouter_error_status_raises(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active OpenRouter metadata with ERROR status → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "openrouter", validation_status=ValidationStatus.ERROR)
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="anthropic/claude-haiku-4-5",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver(sf)
+    with pytest.raises(ProviderConfigError, match="no configured credentials"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_one_invalid_one_valid_only_valid_participates(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """Active Anthropic INVALID + OpenRouter VALID → only OpenRouter eligible.
+
+    (Uses the two-key resolver; OpenRouter has a valid route config.)
+    """
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.INVALID)
+    _add_metadata(sf, sid, "openrouter", validation_status=ValidationStatus.VALID)
+    sess = sf()
+    sess.add(
+        ProviderRouteConfigORM(
+            sojourner_id=str(sid),
+            provider_name="openrouter",
+            preferred_model_identifier="anthropic/claude-haiku-4-5",
+            is_active=True,
+        )
+    )
+    sess.commit()
+    sess.close()
+    resolver = _byok_resolver_two_keys(sf)
+    binding = resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+    provider_names = {r.provider_name for r in binding.eligible_writer_routes}
+    assert provider_names == {"openrouter"}
+    assert "anthropic" not in provider_names
+
+
+def test_byok_all_credentials_invalid_raises(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """All credentials INVALID → ProviderConfigError."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.INVALID)
+    _add_metadata(sf, sid, "openrouter", validation_status=ValidationStatus.INVALID)
+    resolver = _byok_resolver_two_keys(sf)
+    with pytest.raises(ProviderConfigError, match="no configured credentials"):
+        resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
+
+
+def test_byok_invalid_status_error_contains_no_key_material(
+    engine,  # type: ignore[no-untyped-def]
+) -> None:
+    """ProviderConfigError on INVALID credential contains no key material."""
+    sf = create_session_factory(engine)
+    sid = uuid4()
+    _add_metadata(sf, sid, "anthropic", validation_status=ValidationStatus.INVALID)
     resolver = _byok_resolver_anthropic_only(sf)
     with pytest.raises(ProviderConfigError) as exc_info:
         resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)

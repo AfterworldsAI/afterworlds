@@ -396,18 +396,21 @@ def test_router_logs_fallback_also_refused() -> None:
     assert call_kwargs["fallback_provider"] == "openrouter"
 
 
-def test_router_raises_call_error_when_fallback_errors() -> None:
+def test_router_raises_refusal_when_fallback_errors() -> None:
+    """Primary refusal + fallback ProviderCallError → ProviderRefusalError (primary)."""
     request = _make_request()
+    primary_refusal = _make_refusal()
     primary = MagicMock()
     primary.provider_name = "anthropic"
-    primary.call.side_effect = _make_refusal()
+    primary.call.side_effect = primary_refusal
     fallback = MagicMock()
     fallback.provider_name = "openrouter"
     fallback.call.side_effect = ProviderCallError("timeout")
 
     router = RefusalFallbackRouter(primary=primary, fallback=fallback)
-    with pytest.raises(ProviderCallError, match="timeout"):
+    with pytest.raises(ProviderRefusalError) as exc_info:
         router.call(request)
+    assert exc_info.value is primary_refusal
 
 
 def test_router_logs_fallback_error() -> None:
@@ -423,13 +426,40 @@ def test_router_logs_fallback_error() -> None:
     router = RefusalFallbackRouter(
         primary=primary, fallback=fallback, refusal_log_fn=log_fn
     )
-    with pytest.raises(ProviderCallError):
+    with pytest.raises(ProviderRefusalError):
         router.call(request)
 
     call_kwargs = log_fn.call_args.kwargs
     assert call_kwargs["outcome"] == "FALLBACK_ERROR"
     assert call_kwargs["fallback_provider"] == "openrouter"
     assert call_kwargs["fallback_model"] is None
+
+
+def test_router_fallback_error_text_not_surfaced_as_call_error() -> None:
+    """Fallback ProviderCallError detail must not propagate as a ProviderCallError.
+
+    The terminal exception must be the primary ProviderRefusalError; the
+    fallback's operational error text must not appear in the raised exception.
+    """
+    request = _make_request()
+    primary_refusal = _make_refusal()
+    primary = MagicMock()
+    primary.provider_name = "anthropic"
+    primary.call.side_effect = primary_refusal
+    fallback = MagicMock()
+    fallback.provider_name = "openrouter"
+    fallback.call.side_effect = ProviderCallError("rate_limit_detail_should_not_leak")
+    log_fn = MagicMock()
+
+    router = RefusalFallbackRouter(
+        primary=primary, fallback=fallback, refusal_log_fn=log_fn
+    )
+    with pytest.raises(ProviderRefusalError) as exc_info:
+        router.call(request)
+
+    assert exc_info.value is primary_refusal
+    assert not isinstance(exc_info.value, ProviderCallError)
+    assert log_fn.call_args.kwargs["outcome"] == "FALLBACK_ERROR"
 
 
 def test_router_suppresses_log_fn_exception() -> None:
