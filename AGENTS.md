@@ -60,6 +60,8 @@ Repeated review churn on one hotspot is a coordination signal, not just a coding
 
 ## Hotspot audit rule
 
+Parallel-Structure Sweep: Every concrete finding must be generalized into a defect class, then checked against sibling adapters, pass services, routing paths, tests, and metadata flows before review is complete.
+
 If a PR has already gone through two or more review rounds on the same hotspot, do not keep issuing isolated patch comments indefinitely.
 
 Instead:
