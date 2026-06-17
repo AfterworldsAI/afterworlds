@@ -110,6 +110,9 @@ graphify cluster-only D:\AI\Claude\afterworlds\src
 graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."
 ```
 
+## Review-Loop Parallel Structure Check
+When fixing a Codex comment, classify the defect class and check sibling structures before patching. If the same class exists elsewhere, fix the class in one bundled pass or explain why the sibling is intentionally different.
+
 ## Review-Loop Boundary Check
 
 If repeated review rounds on the same PR begin focusing on the same file, function, 
