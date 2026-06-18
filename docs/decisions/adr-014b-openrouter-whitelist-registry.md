@@ -58,54 +58,67 @@ Safety, since the whitelist gate is the operational approval mechanism.
 ## Decision 3: Fail-safe rule — reject only on positive evidence of incapability
 
 **Decision:** The registry (`resolve_route`) raises `ProviderConfigError` only
-when the catalog affirmatively reports the model is incapable:
-`supports_text_output is False` (explicit `False`, not `None`).  A catalog miss,
-`None` capability flags, or `context_length=None` all collapse to
-`supports_required_capabilities=False` without rejecting the route — Safety runs,
-the route is live.
+when the catalog affirmatively reports a capability deficiency:
+
+- `supports_text_output is False` (explicit `False`, not `None`) — Writer pass.
+- `supports_tool_use is False AND supports_structured_output is False` (both
+  explicit `False`, not `None`) — structured passes (Planner, Extractor).
+- `context_length is not None AND context_length < writer_context_length_floor`
+  — known inadequate context for Writer.
+
+A catalog miss, `None` capability flags, or `context_length=None` all collapse
+to `supports_required_capabilities=False` without rejecting the route — Safety
+runs, the route is live.
 
 **Rationale:** Over-rejecting a route on absent evidence is worse than running
 Safety on it.  A model the catalog does not know about might be valid; a model
-with no reported context length might still work.  Rejection is reserved for
+with no reported capability flags might still work.  Rejection is reserved for
 positive evidence of incapability, not absence of positive evidence of
-capability.
+capability.  The context-length floor is an exception: a known below-floor
+window is positive evidence the Writer pass will fail at call time.
 
 ---
 
-## Decision 4: Context-length floor is a capability gate, not a rejection gate
+## Decision 4: Context-length floor rejects; floor value is operator-configured
 
-**Decision:** `_WRITER_CONTEXT_LENGTH_FLOOR = 8192` is used only in the
-capability evaluation (step 6 of `resolve_route`): a model with
-`context_length < floor` gets `supports_required_capabilities=False` and Safety
-runs, but the route is not rejected with `ProviderConfigError`.  The constant
-is marked provisional.
+**Decision:** `resolve_route` raises `ProviderConfigError` when
+`entry.context_length is not None AND entry.context_length <
+writer_context_length_floor`.  The floor is a constructor parameter on
+`OpenRouterCapabilityRegistry` (default `_WRITER_CONTEXT_LENGTH_FLOOR = 8192`).
+`context_length=None` does not reject — it collapses to
+`supports_required_capabilities=False` (Safety runs, route live).
 
-**Rationale:** The floor value is an owner decision, not a value derivable from
-provider documentation.  At any specific floor, legitimate models with shorter
-context windows would be silently rejected.  The safer approach is: confirmed
-capable = both `supports_text_output is True` AND `context_length >= floor`.
-Below floor: Safety runs.  A future owner decision can raise the floor or
-introduce explicit route rejection at a spec-mandated threshold.
+**Rationale:** A known below-floor context length is positive evidence of
+incapability for the Writer pass (14b spec, Design section).  The floor value
+is an operator configuration decision, not a hardcoded constant — operators can
+lower or raise it at construction.  The default of 8192 is provisional;
+production deployments should configure an appropriate floor.
 
-**Known Unknown carried forward:** The exact context-length floor and whether a
-below-floor model should be rejected outright (vs. Safety always running) remain
-owner decisions.  See `known_unknowns.md`.
+**Known Unknown carried forward:** The correct production floor value and
+whether multiple per-pass floors are needed remain owner decisions.  See
+`known_unknowns.md`.
 
 ---
 
-## Decision 5: STALE vs. UNKNOWN semantics
+## Decision 5: STALE vs. UNKNOWN semantics and time-based staleness
 
 **Decision:**
 - `UNKNOWN` — model id is not in the whitelist and not in the catalog.
   Safety always runs.  Route not rejected.
-- `STALE` — model id IS in the whitelist but is NOT found in the catalog.
-  The model was previously approved but is no longer visible.  Safety always
-  runs.  Route not rejected.
+- `STALE` — model id IS in the whitelist but:
+  - not found in the catalog (delisted/renamed), OR
+  - found in the catalog but `WhitelistEntry.verified_at` is older than
+    `max_evidence_age` (whitelist evidence expired).
+  Safety always runs.  Route not rejected.
+
+`max_evidence_age` is a constructor parameter on `OpenRouterCapabilityRegistry`
+(`timedelta | None`; `None` means entries never expire by age).
 
 **Rationale:** The distinction matters for operational observability.  `STALE`
-signals a whitelist entry that may need review (model delisted or renamed).
-`UNKNOWN` signals a model the system has never assessed.  Both force Safety;
-neither rejects the route, consistent with the fail-safe rule.
+signals a whitelist entry that may need review.  `UNKNOWN` signals a model the
+system has never assessed.  Both force Safety; neither rejects the route,
+consistent with the fail-safe rule.  Time-based staleness allows operators to
+require periodic re-verification of whitelist entries.
 
 ---
 
@@ -154,10 +167,9 @@ behavioral change.  UNKNOWN/False is the strictly more conservative fallback.
 ## Decision 9: Incapable fallback fails the whole turn
 
 **Decision:** When the registry is configured and an OpenRouter fallback model
-raises `ProviderConfigError` (positive incapability — `supports_text_output is
-False`), the exception propagates through `_resolve_openrouter_route` and the
-entire `resolve_for_turn` call fails.  The primary Anthropic pass does not
-proceed.
+raises `ProviderConfigError` (positive incapability), the exception propagates
+through `_resolve_openrouter_route` and the entire `resolve_for_turn` call
+fails.  The primary Anthropic pass does not proceed.
 
 **Rationale:** Consistent with 14a fail-closed behavior for blank-model routes.
 The condition fires only on positive incapability evidence, not a catalog miss.
@@ -182,21 +194,23 @@ implementation issue.
 
 ---
 
-## Decision 11: AC 11 (structured-pass incapability) is handled at call time, not at route resolution
+## Decision 11: AC 11 — structured-pass incapability rejected at route resolution
 
-**Decision:** `resolve_route` evaluates Writer pass capability only.  A model
-that is confirmed Writer-capable (`supports_text_output=True`, adequate context)
-but both `supports_tool_use=False` and `supports_structured_output=False` is
-not rejected at route resolution time.  Structured passes (Planner, Extractor)
-that require tool use or structured output will raise `ProviderCallError` at
-call time through the existing 14a adapter behavior.
+**Decision:** `resolve_route` rejects any route where both
+`supports_tool_use is False AND supports_structured_output is False` with
+`ProviderConfigError`.  This is step 5 of the resolution ladder, symmetric to
+the AC 12 text-output rejection.
 
-**Rationale:** `supports_required_capabilities` on `EligibleModelRoute` drives
-the Safety-skip decision for the Writer pass.  Planner/Extractor fail-closed at
-call time (14a behavior) is the correct gate for structured-pass capability.
-Pre-catalog rejection of routes with confirmed structured-pass incapability was
-considered; it would require a separate resolution axis in `resolve_route` and
-is deferred as an owner decision.  See Architecture Notes.
+Only explicit `False` triggers rejection — `None` (unverified) fails safe:
+Safety runs, route is live.  If only one of the two structured-pass fields is
+`False`, the other may still permit structured calls via that mechanism.
+
+**Rationale:** AC 11 explicitly requires rejection "for structured passes at
+resolution" — this is the 14b upgrade over 14a's call-time failure.  Planner
+and Extractor require structured output; a route confirmed incapable for both
+`tool_use` and `structured_output` cannot serve those passes and must be
+rejected before the turn begins.  The fail-safe rule (reject only on positive
+evidence) applies: `None` fields are not positive evidence of incapability.
 
 ---
 
@@ -206,20 +220,22 @@ is deferred as an owner decision.  See Architecture Notes.
 Input Preflight and Output Audit) is preserved.  The stable-prefix is assembled
 once per turn.  Entitlement routing is unaffected.
 
-**Scope question — AC 11 (structured-pass incapability at route resolution):**
-The current implementation does not pre-reject OpenRouter routes where both
-`supports_tool_use` and `supports_structured_output` are explicitly `False`.
-Such routes are live (Safety runs), but will fail at call time when the Planner
-or Extractor pass attempts a structured call.  Whether this is acceptable or
-whether the registry should pre-reject these routes is an owner decision.  It is
-not resolved in 14b.
+**EligibleWriterRoute → EligibleModelRoute:** Clean replacement, no compat
+alias.  Callers updated in the same PR.
 
-**Known Unknown carried forward — context-length floor:**
-`_WRITER_CONTEXT_LENGTH_FLOOR = 8192` is provisional.  The value and rejection
-semantics (floor below → `ProviderConfigError` vs. Safety runs) are owner
-decisions documented in `known_unknowns.md`.
+**Fail-safe defaults:** Catalog miss → UNKNOWN → Safety.  None fields → Safety.
+Rejection only on explicit `False`.
 
-**14b does not carry forward the 14a cache-verification work:**
-The cache adapter verification for OpenRouter routes (deferred in ADR-014a,
-Decision 4) remains open.  14b is the whitelist/registry layer; OpenRouter
-cache verification belongs to a follow-on task within Issue 14's scope.
+**Dynamic-alias rule:** Static deny-set (O(1)) + catalog defense-in-depth.
+
+**14b ships machinery:** The registry and whitelist infrastructure are complete.
+Populating the production catalog/whitelist is a configuration-management concern
+outside 14b scope.
+
+**Context-length floor:** Default 8192 is provisional.  Operators configure via
+`writer_context_length_floor` constructor parameter.
+
+**OpenRouter cache adapter verification:** The cache adapter verification for
+OpenRouter routes (deferred in ADR-014a, Decision 4) remains open.  14b is the
+whitelist/registry layer; cache verification belongs to a follow-on task within
+Issue 14's scope.

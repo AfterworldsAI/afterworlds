@@ -2,16 +2,18 @@
 
 Coverage targets:
   - Resolution ladder: static deny-set, catalog miss, dynamic alias entry,
-    positive-evidence rejection, capability evaluation, whitelist lookup.
+    positive-evidence rejection (AC 11/12 + context floor), capability evaluation,
+    whitelist lookup.
   - UNKNOWN / STALE / WHITELISTED / NOT_WHITELISTED / DISABLED paths.
-  - Fail-safe cases: text_output=None, context_length=None, below-floor.
+  - Fail-safe cases: text_output=None, context_length=None.
+  - Time-based STALE (max_evidence_age).
   - _can_skip interaction: DISABLED + capable must NOT skip Safety.
   - Catalog caching: fetch_catalog called only once per registry instance.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -40,6 +42,7 @@ from afterworlds.pipeline.provider._routing import (
 # ---------------------------------------------------------------------------
 
 _NOW = datetime(2026, 6, 1, tzinfo=UTC)
+_OLD = datetime(2025, 1, 1, tzinfo=UTC)
 _MODEL = "anthropic/claude-opus-4"
 _MODEL_2 = "mistralai/mistral-7b-instruct"
 
@@ -65,11 +68,11 @@ def _catalog_entry(
     )
 
 
-def _whitelist(*model_ids: str) -> WhitelistConfig:
+def _whitelist(*model_ids: str, verified_at: datetime = _NOW) -> WhitelistConfig:
     return WhitelistConfig(
         enabled=True,
         entries={
-            mid: WhitelistEntry(model_identifier=mid, approved_at=_NOW)
+            mid: WhitelistEntry(model_identifier=mid, verified_at=verified_at)
             for mid in model_ids
         },
     )
@@ -78,11 +81,15 @@ def _whitelist(*model_ids: str) -> WhitelistConfig:
 def _make_registry(
     entries: list[OpenRouterCatalogModel] | None = None,
     whitelist: WhitelistConfig | None = None,
+    max_evidence_age: timedelta | None = None,
+    clock: None = None,
 ) -> OpenRouterCapabilityRegistry:
     provider = FixtureOpenRouterCatalogProvider(entries or [])
     return OpenRouterCapabilityRegistry(
         whitelist_config=whitelist,
         catalog_provider=provider,
+        max_evidence_age=max_evidence_age,
+        clock=clock,
     )
 
 
@@ -116,7 +123,6 @@ _policy = CapabilityProfileAwareSafetyPolicy()
 
 def test_dynamic_alias_rejected_before_catalog_lookup() -> None:
     """Dynamic alias raises ProviderConfigError without hitting the catalog."""
-    # "openrouter/auto" is the canonical dynamic alias
     registry = _make_registry(
         entries=[_catalog_entry("openrouter/auto")],
     )
@@ -184,20 +190,65 @@ def test_text_output_none_does_not_raise() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Step 5 (context_length): below-floor is NOT a rejection
+# Step 5: AC 11 — structured-pass incapability rejection
 # ---------------------------------------------------------------------------
 
 
-def test_context_length_below_floor_does_not_raise() -> None:
-    """context_length below floor sets capable=False but does not reject route."""
+def test_tool_use_false_and_structured_false_raises() -> None:
+    """tool_use=False AND structured_output=False → ProviderConfigError."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=False, supports_structured_output=False
+    )
+    registry = _make_registry(entries=[entry])
+    with pytest.raises(ProviderConfigError, match="structured"):
+        registry.resolve_route(_MODEL)
+
+
+def test_tool_use_false_structured_output_none_does_not_raise() -> None:
+    """tool_use=False but structured_output=None: unverified → no reject."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=False, supports_structured_output=None
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert profile is not None
+    assert status is SafetyWhitelistStatus.WHITELISTED
+
+
+def test_tool_use_none_structured_output_false_does_not_raise() -> None:
+    """structured_output=False but tool_use=None: unverified → no reject."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=None, supports_structured_output=False
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert profile is not None
+    assert status is SafetyWhitelistStatus.WHITELISTED
+
+
+def test_both_structured_fields_none_does_not_raise() -> None:
+    """tool_use=None + structured_output=None: both unverified → no reject."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=None, supports_structured_output=None
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert profile is not None
+    assert capable is True  # text_output=True + context_length=200000 >= floor
+
+
+# ---------------------------------------------------------------------------
+# Step 5: context_length floor — rejection for known below-floor length
+# ---------------------------------------------------------------------------
+
+
+def test_context_length_below_floor_raises() -> None:
+    """context_length below floor raises ProviderConfigError (Writer context floor)."""
     below_floor = _WRITER_CONTEXT_LENGTH_FLOOR - 1
     entry = _catalog_entry(_MODEL, context_length=below_floor)
     registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
-    status, profile, capable = registry.resolve_route(_MODEL)
-    assert capable is False
-    assert status is SafetyWhitelistStatus.WHITELISTED
-    assert profile is not None
-    assert profile.context_length == below_floor
+    with pytest.raises(ProviderConfigError, match="context length"):
+        registry.resolve_route(_MODEL)
 
 
 def test_context_length_none_does_not_raise() -> None:
@@ -208,6 +259,21 @@ def test_context_length_none_does_not_raise() -> None:
     assert capable is False
     assert profile is not None
     assert profile.context_length is None
+
+
+def test_custom_floor_applies() -> None:
+    """writer_context_length_floor constructor param overrides default."""
+    low_floor = 1000
+    entry = _catalog_entry(_MODEL, context_length=2000)
+    # With a custom floor of 1000, context_length=2000 should NOT raise.
+    registry = OpenRouterCapabilityRegistry(
+        whitelist_config=_whitelist(_MODEL),
+        catalog_provider=FixtureOpenRouterCatalogProvider([entry]),
+        writer_context_length_floor=low_floor,
+    )
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert capable is True
+    assert status is SafetyWhitelistStatus.WHITELISTED
 
 
 # ---------------------------------------------------------------------------
@@ -237,7 +303,7 @@ def test_capable_not_whitelisted_route() -> None:
 
 
 def test_capability_floor_boundary_exactly_at_floor() -> None:
-    """context_length exactly == floor → capable=True."""
+    """context_length exactly == floor → capable=True (not rejected)."""
     entry = _catalog_entry(_MODEL, context_length=_WRITER_CONTEXT_LENGTH_FLOOR)
     registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
     _, _, capable = registry.resolve_route(_MODEL)
@@ -272,6 +338,63 @@ def test_disabled_whitelist_capable_route_cannot_skip_safety() -> None:
     """DISABLED + capable → _can_skip returns False (DISABLED ≠ WHITELISTED)."""
     route = _eligible_route(SafetyWhitelistStatus.DISABLED, capable=True)
     assert _policy._can_skip(_ctx(route)) is False
+
+
+# ---------------------------------------------------------------------------
+# Step 7: time-based STALE (max_evidence_age)
+# ---------------------------------------------------------------------------
+
+
+def test_stale_by_age_returns_stale_with_profile() -> None:
+    """Whitelist entry with verified_at older than max_evidence_age → STALE."""
+    entry = _catalog_entry(_MODEL)
+    old_wl = WhitelistConfig(
+        enabled=True,
+        entries={_MODEL: WhitelistEntry(model_identifier=_MODEL, verified_at=_OLD)},
+    )
+    # max_evidence_age=1 day; _OLD is 2025-01-01, _NOW is 2026-06-01 → stale
+    registry = OpenRouterCapabilityRegistry(
+        whitelist_config=old_wl,
+        catalog_provider=FixtureOpenRouterCatalogProvider([entry]),
+        max_evidence_age=timedelta(days=1),
+        clock=lambda: _NOW,
+    )
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert status is SafetyWhitelistStatus.STALE
+    assert profile is not None
+    assert capable is True  # model IS capable; only the whitelist evidence is stale
+
+
+def test_fresh_whitelist_entry_not_stale() -> None:
+    """Whitelist entry with verified_at within max_evidence_age → WHITELISTED."""
+    entry = _catalog_entry(_MODEL)
+    # verified_at = _NOW; clock = _NOW + 12h; age = 1 day → NOT stale
+    clock_time = datetime(2026, 6, 1, 12, tzinfo=UTC)
+    registry = OpenRouterCapabilityRegistry(
+        whitelist_config=_whitelist(_MODEL, verified_at=_NOW),
+        catalog_provider=FixtureOpenRouterCatalogProvider([entry]),
+        max_evidence_age=timedelta(days=1),
+        clock=lambda: clock_time,
+    )
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert status is SafetyWhitelistStatus.WHITELISTED
+    assert capable is True
+
+
+def test_no_max_evidence_age_never_stale_by_age() -> None:
+    """max_evidence_age=None → old verified_at does not trigger STALE."""
+    entry = _catalog_entry(_MODEL)
+    old_wl = WhitelistConfig(
+        enabled=True,
+        entries={_MODEL: WhitelistEntry(model_identifier=_MODEL, verified_at=_OLD)},
+    )
+    registry = OpenRouterCapabilityRegistry(
+        whitelist_config=old_wl,
+        catalog_provider=FixtureOpenRouterCatalogProvider([entry]),
+        max_evidence_age=None,
+    )
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert status is SafetyWhitelistStatus.WHITELISTED
 
 
 # ---------------------------------------------------------------------------
