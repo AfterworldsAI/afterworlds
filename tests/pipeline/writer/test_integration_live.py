@@ -46,6 +46,7 @@ from afterworlds.persistence.crud.node import create_node, get_turn
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
+from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
 from afterworlds.pipeline.writer.config import WriterConfig
 from afterworlds.pipeline.writer.models import WriterResult
 from afterworlds.pipeline.writer.service import WriterService
@@ -170,11 +171,13 @@ class TestLiveProviderIntegration:
 
         config = WriterConfig.from_env()
         service = WriterService(session, config)
+        adapter = AnthropicDirectAdapter(api_key=os.environ["ANTHROPIC_API_KEY"])
 
         result = service.write(
             built_context=assembled,
             story_id=story.story_id,
             node_id=node.node_id,
+            provider=adapter,
         )
 
         assert isinstance(result, WriterResult)

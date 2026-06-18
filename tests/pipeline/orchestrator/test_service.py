@@ -45,6 +45,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
+from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import (
     EventKind,
@@ -77,13 +78,17 @@ from afterworlds.pipeline.contradiction.models import (
     ContradictionViolation,
 )
 from afterworlds.pipeline.orchestrator import (
+    CapabilityProfileAwareSafetyPolicy,
     OrchestrationResult,
     OrchestratorError,
     OrchestratorService,
     PipelineDisposition,
-    SafetyPolicy,
 )
 from afterworlds.pipeline.planner.models import PlannerOutput
+from afterworlds.pipeline.provider._routing import (
+    EligibleWriterRoute,
+    TurnProviderBinding,
+)
 from afterworlds.pipeline.safety.models import (
     SafetyCategory,
     SafetyConcern,
@@ -92,7 +97,6 @@ from afterworlds.pipeline.safety.models import (
     SafetyResult,
     SafetyTarget,
     SafetyVerdict,
-    TokenUsage,
 )
 from afterworlds.pipeline.writer.models import WriterResult
 from afterworlds.services.story_bible import StoryBibleService
@@ -110,6 +114,50 @@ from tests.pipeline.orchestrator.conftest import (
 )
 
 # ---------------------------------------------------------------------------
+# Test-scoped sojourner + fake resolver
+# ---------------------------------------------------------------------------
+
+_SOJOURNER = uuid4()
+
+
+class _FakeProviderAdapter:
+    """Minimal adapter placeholder; fake pass services ignore the provider kwarg."""
+
+    provider_name = "fake-anthropic"
+
+    def call(self, request: object) -> object:  # type: ignore[override]
+        raise NotImplementedError("_FakeProviderAdapter.call should not be reached")
+
+
+def _make_fake_resolver(trusted: bool = False) -> object:
+    """Return a duck-typed ProviderResolver that yields a fixed TurnProviderBinding.
+
+    ``trusted=True`` → all eligible routes have ``trusted_for_safety_skip=True``
+    (safety may be skipped by ``CapabilityProfileAwareSafetyPolicy``).
+    ``trusted=False`` (default) → routes are not trusted; safety always runs.
+    """
+    route = EligibleWriterRoute(
+        provider_name="fake-anthropic",
+        model_identifier="fake-anthropic:claude-test",
+        is_openrouter=False,
+        trusted_for_safety_skip=trusted,
+    )
+    adapter = _FakeProviderAdapter()
+    binding = TurnProviderBinding(
+        adapter=adapter,
+        primary_writer_route=route,
+        eligible_writer_routes=(route,),
+        access_path=RuntimeAccessPath.HOSTED,
+    )
+
+    class _Resolver:
+        def resolve_for_turn(self, access_path: object, sojourner_id: object) -> object:
+            return binding
+
+    return _Resolver()
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator factory
 # ---------------------------------------------------------------------------
 
@@ -122,7 +170,8 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
     intent_exc: Exception | None = None,
     safety_input: SafetyResult | Exception | None = None,
     safety_output: SafetyResult | Exception | None = None,
-    safety_policy: SafetyPolicy | None = None,
+    safety_policy: CapabilityProfileAwareSafetyPolicy | None = None,
+    trusted_routes: bool = False,
     planner_exc: Exception | None = None,
     writer_exc: Exception | None = None,
     extractor_exc: Exception | None = None,
@@ -153,6 +202,7 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
         raise_exc=contradiction_exc,
         delay_seconds=contradiction_delay,
     )
+    resolver = _make_fake_resolver(trusted=trusted_routes)
     orch = OrchestratorService(
         intent_classifier=classifier,
         context_builder=ctx_builder,
@@ -162,7 +212,8 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
         extractor_service=extractor,
         contradiction_service=contradiction,
         session_factory=session_factory,
-        safety_policy=safety_policy or SafetyPolicy(),
+        safety_policy=safety_policy or CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=resolver,  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(),
         executor=executor,
         parallel_pass_timeout_seconds=parallel_timeout,
@@ -191,14 +242,11 @@ def _block_safety(target: SafetyTarget) -> SafetyResult:
             ]
         ),
         target=target,
-        usage=TokenUsage(),
     )
 
 
 def _allow_safety(target: SafetyTarget) -> SafetyResult:
-    return SafetyResult(
-        report=SafetyReport(concerns=[]), target=target, usage=TokenUsage()
-    )
+    return SafetyResult(report=SafetyReport(concerns=[]), target=target)
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +258,9 @@ class TestDispositionDelivered:
     def test_happy_path_returns_delivered(self, session_factory, seeded_story) -> None:
         story_id, node_id = seeded_story
         orch, *_ = _make_orchestrator(session_factory)
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.DELIVERED
         assert result.delivered_output
         assert result.turn_id is not None
@@ -227,7 +277,9 @@ class TestDispositionOOCHandled:
         orch, _, _, _, planner, writer, extractor, contradiction = _make_orchestrator(
             session_factory, intent=IntentType.OOC
         )
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] Help?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] Help?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.OOC_HANDLED
         assert result.delivered_output
         assert result.turn_id is not None
@@ -246,7 +298,9 @@ class TestDispositionBlockedInputSafety:
             session_factory,
             safety_input=_block_safety(SafetyTarget.INPUT),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "harmful?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "harmful?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_INPUT_SAFETY
         assert result.turn_id is None
         assert result.delivered_output is None
@@ -267,7 +321,9 @@ class TestDispositionBlockedOutputSafety:
             session_factory,
             safety_output=_block_safety(SafetyTarget.OUTPUT),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
         assert result.turn_id is None
         assert result.planner_result is not None
@@ -287,7 +343,13 @@ class TestDispositionBlockedOutputSafety:
             intent=IntentType.OOC,
             safety_output=_block_safety(SafetyTarget.OUTPUT),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] Tell me a joke.")
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Tell me a joke.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
         assert result.turn_id is None
         assert result.planner_result is None
@@ -311,7 +373,9 @@ class TestDispositionBlockedContradiction:
         orch, *_ = _make_orchestrator(
             session_factory, contradiction_violations=violations
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_CONTRADICTION
         assert result.turn_id is None
         assert result.contradiction_result is not None
@@ -350,7 +414,9 @@ class TestDispositionRefusedByProvider:
     ) -> None:
         story_id, node_id = seeded_story
         orch, *_ = _make_orchestrator(session_factory, **maker())
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         assert result.provider_refusal is not None
         assert result.provider_refusal.pass_identifier is pass_id
@@ -369,7 +435,9 @@ class TestDispositionPipelineError:
             session_factory,
             safety_input=SafetyPassError("input safety borked"),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary
         assert "input safety" in result.pipeline_error_summary
@@ -382,7 +450,9 @@ class TestDispositionPipelineError:
             session_factory,
             safety_output=SafetyPassError("output safety borked"),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "output safety" in (result.pipeline_error_summary or "")
         # Provisional Turn rolled back.
@@ -394,7 +464,9 @@ class TestDispositionPipelineError:
     ) -> None:
         story_id, node_id = seeded_story
         orch, *_ = _make_orchestrator(session_factory, intent_error=True)
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "intent classification failed" in (result.pipeline_error_summary or "")
         # P1 fix follow-up: the typed-error summary must preserve the
@@ -415,7 +487,9 @@ class TestDispositionPipelineError:
             session_factory,
             intent_exc=RuntimeError("upstream provider 503"),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "intent classification failed" in (result.pipeline_error_summary or "")
         assert "upstream provider 503" in (result.pipeline_error_summary or "")
@@ -431,7 +505,9 @@ class TestDispositionPipelineError:
             session_factory,
             intent_exc=ConnectionError("DNS lookup failed"),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "DNS lookup failed" in (result.pipeline_error_summary or "")
 
@@ -449,7 +525,9 @@ class TestDispositionTaxonomyGuard:
         orch, *_ = _make_orchestrator(
             session_factory, safety_input=_block_safety(SafetyTarget.INPUT)
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_INPUT_SAFETY
         assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
 
@@ -467,7 +545,9 @@ class TestDispositionTaxonomyGuard:
         orch, *_ = _make_orchestrator(
             session_factory, contradiction_violations=violations
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_CONTRADICTION
         assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
 
@@ -478,7 +558,31 @@ class TestDispositionTaxonomyGuard:
         orch, *_ = _make_orchestrator(
             session_factory, writer_exc=make_refusal(PassIdentifier.WRITER)
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
+
+    def test_fallback_call_error_becomes_refused_not_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """P2 #1 taxonomy guard: fallback ProviderCallError → REFUSED_BY_PROVIDER.
+
+        After the P2 #1 fix, RefusalFallbackRouter._handle_refusal re-raises
+        primary_refusal (ProviderRefusalError) instead of the fallback's
+        ProviderCallError when the fallback has an operational failure.  The
+        router-level proof is in test_adapters.py; this test verifies the
+        orchestrator maps that ProviderRefusalError to REFUSED_BY_PROVIDER.
+        """
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            writer_exc=make_refusal(PassIdentifier.WRITER),
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
 
@@ -489,7 +593,9 @@ class TestDispositionTaxonomyGuard:
         orch, *_ = _make_orchestrator(
             session_factory, safety_input=SafetyPassError("nope")
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.disposition is not PipelineDisposition.REFUSED_BY_PROVIDER
 
@@ -529,9 +635,9 @@ class TestNonOOCOrder:
         # Wrap fake pass services to record their call order.
         original_plan = planner.plan
 
-        def plan_recorded(ctx: AssembledContext):
+        def plan_recorded(ctx: AssembledContext, **kwargs):
             events.append("planner")
-            return original_plan(ctx)
+            return original_plan(ctx, **kwargs)
 
         planner.plan = plan_recorded  # type: ignore[method-assign]
 
@@ -559,7 +665,9 @@ class TestNonOOCOrder:
 
         contradiction.check = check_recorded  # type: ignore[method-assign]
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.DELIVERED
 
         # Intent and Context are orchestrator-internal but we can infer order
@@ -590,7 +698,9 @@ class TestOOCShortCircuit:
         orch, *_, writer, _, _ = _make_orchestrator(
             session_factory, intent=IntentType.OOC
         )
-        orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
         assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
@@ -600,7 +710,9 @@ class TestOOCShortCircuit:
     ) -> None:
         story_id, node_id = seeded_story
         orch, *_ = _make_orchestrator(session_factory, intent=IntentType.OOC)
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] Hello?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] Hello?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.OOC_HANDLED
         row = (
             session.execute(
@@ -618,7 +730,9 @@ class TestOOCShortCircuit:
         orch, _, _, _, planner, _, extractor, contradiction = _make_orchestrator(
             session_factory, intent=IntentType.OOC
         )
-        orch.orchestrate_turn(story_id, node_id, "[OOC] ?")
+        orch.orchestrate_turn(
+            story_id, node_id, "[OOC] ?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert planner.calls == []
         assert extractor.calls == []
         assert contradiction.calls == []
@@ -630,7 +744,9 @@ class TestOOCShortCircuit:
         orch, _, _, safety, *_ = _make_orchestrator(
             session_factory, intent=IntentType.OOC
         )
-        orch.orchestrate_turn(story_id, node_id, "[OOC] ?")
+        orch.orchestrate_turn(
+            story_id, node_id, "[OOC] ?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         # Conservative default: both Input and Output Safety run.
         targets = {t for t, _ in safety.calls}
         assert SafetyTarget.INPUT in targets
@@ -645,7 +761,9 @@ class TestOOCShortCircuit:
             intent=IntentType.OOC,
             safety_input=_block_safety(SafetyTarget.INPUT),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] ?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] ?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_INPUT_SAFETY
         assert writer.calls == []
 
@@ -656,17 +774,18 @@ class TestOOCShortCircuit:
 
 
 class TestSafetyPolicyInvocation:
-    def test_whitelisted_provider_skips_both_safety_calls(
+    def test_trusted_routes_skip_both_safety_calls(
         self, session_factory, seeded_story
     ) -> None:
         story_id, node_id = seeded_story
-        policy = SafetyPolicy(whitelisted_providers=frozenset({"anthropic"}))
+        # trusted_routes=True → all eligible routes are Anthropic-direct →
+        # CapabilityProfileAwareSafetyPolicy._can_skip returns True.
         orch, _, _, safety, *_ = _make_orchestrator(
-            session_factory, safety_policy=policy
+            session_factory, trusted_routes=True
         )
-        # Need the Writer fake to report provider "anthropic" — by default
-        # _derive_writer_provider falls through to "anthropic", so this works.
-        result = orch.orchestrate_turn(story_id, node_id, "I act.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I act.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.DELIVERED
         assert safety.calls == []
         assert result.input_safety_result is None
@@ -676,12 +795,17 @@ class TestSafetyPolicyInvocation:
         self, session_factory, seeded_story
     ) -> None:
         story_id, node_id = seeded_story
-        policy = SafetyPolicy(whitelisted_providers=frozenset({"anthropic"}))
+        # trusted_routes=True but request_risk_signal overrides the skip.
         orch, _, _, safety, *_ = _make_orchestrator(
-            session_factory, safety_policy=policy
+            session_factory, trusted_routes=True
         )
         result = orch.orchestrate_turn(
-            story_id, node_id, "I act.", request_risk_signal=True
+            story_id,
+            node_id,
+            "I act.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            request_risk_signal=True,
         )
         assert result.disposition is PipelineDisposition.DELIVERED
         assert any(t is SafetyTarget.INPUT for t, _ in safety.calls)
@@ -698,7 +822,9 @@ class TestLedgerComposition:
     ) -> None:
         story_id, node_id = seeded_story
         orch, _, _, _, _, writer, *_ = _make_orchestrator(session_factory)
-        orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         derived = writer.calls[0][0]
         assert len(derived.pass_forward_ledger.entries) == 1
         assert derived.pass_forward_ledger.entries[0].pass_name == "planner"
@@ -712,7 +838,9 @@ class TestLedgerComposition:
         orch, _, _, _, _, writer, extractor, contradiction = _make_orchestrator(
             session_factory
         )
-        orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         for ctx in [
             writer.calls[0][0],
             extractor.calls[0][0],
@@ -736,7 +864,9 @@ class TestParallelSync:
 
         story_id, node_id = seeded_story
         orch, *_, extractor, contradiction = _make_orchestrator(session_factory)
-        orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         main_tid = threading.get_ident()
         assert extractor.thread_observation["extractor"] == main_tid
@@ -754,7 +884,9 @@ class TestParallelSync:
             contradiction_delay=0.3,
         )
         start = time.perf_counter()
-        orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         elapsed = time.perf_counter() - start
         # Tolerant bound to keep test non-flaky on slow CI.
         assert elapsed < 0.55, f"parallel-sync wall time {elapsed:.3f}s ≈ sum"
@@ -788,7 +920,9 @@ class TestParallelSync:
             parallel_timeout=0.1,
         )
         start = time.perf_counter()
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         elapsed = time.perf_counter() - start
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
@@ -823,9 +957,21 @@ class TestBoundedOwnedExecutorLifecycle:
         orch, *_ = _make_orchestrator(session_factory)
         try:
             executor_before = orch._owned_executor
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
             assert orch._owned_executor is executor_before
-            orch.orchestrate_turn(story_id, node_id, "I close the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I close the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
             assert orch._owned_executor is executor_before
         finally:
             orch.close()
@@ -867,7 +1013,13 @@ class TestBoundedOwnedExecutorLifecycle:
 
         try:
             for _ in range(8):
-                result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+                result = orch.orchestrate_turn(
+                    story_id,
+                    node_id,
+                    "I open the door.",
+                    _SOJOURNER,
+                    RuntimeAccessPath.HOSTED,
+                )
                 assert result.disposition is PipelineDisposition.PIPELINE_ERROR
                 assert "timeout" in (result.pipeline_error_summary or "").lower()
 
@@ -899,7 +1051,13 @@ class TestBoundedOwnedExecutorLifecycle:
             elapsed_per_turn: list[float] = []
             for _ in range(6):
                 start = time.perf_counter()
-                result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+                result = orch.orchestrate_turn(
+                    story_id,
+                    node_id,
+                    "I open the door.",
+                    _SOJOURNER,
+                    RuntimeAccessPath.HOSTED,
+                )
                 elapsed_per_turn.append(time.perf_counter() - start)
                 assert result.disposition is PipelineDisposition.PIPELINE_ERROR
             # No turn took more than ~0.8s — well under the 5s
@@ -936,7 +1094,13 @@ class TestBoundedOwnedExecutorLifecycle:
             parallel_timeout=0.1,
         )
         try:
-            result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            result = orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
             assert result.disposition is PipelineDisposition.PIPELINE_ERROR
             assert "timeout" in (result.pipeline_error_summary or "").lower()
@@ -970,7 +1134,13 @@ class TestBoundedOwnedExecutorLifecycle:
         orch, *_ = _make_orchestrator(session_factory, executor=executor)
         try:
             assert orch._owned_executor is None
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
             # close() should be a no-op for the injected executor.
             orch.close()
             # Still alive — can submit and the future completes.
@@ -980,7 +1150,13 @@ class TestBoundedOwnedExecutorLifecycle:
             # against the same injected executor.
             orch2, *_ = _make_orchestrator(session_factory, executor=executor)
             try:
-                result = orch2.orchestrate_turn(story_id, node_id, "another input.")
+                result = orch2.orchestrate_turn(
+                    story_id,
+                    node_id,
+                    "another input.",
+                    _SOJOURNER,
+                    RuntimeAccessPath.HOSTED,
+                )
                 assert result.disposition is PipelineDisposition.DELIVERED
             finally:
                 orch2.close()
@@ -1017,7 +1193,9 @@ class TestParallelSyncSubmitFailure:
         orch, *_ = _make_orchestrator(session_factory, executor=executor)
 
         # Must not raise.
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1046,7 +1224,13 @@ class TestParallelSyncSubmitFailure:
         executor = _ExplodingExecutor(max_workers=1)
         try:
             orch, *_ = _make_orchestrator(session_factory, executor=executor)
-            result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            result = orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
         finally:
             executor.shutdown(wait=False)
 
@@ -1083,7 +1267,9 @@ class TestParallelSyncContradictionWorkerExceptions:
         )
 
         # Must not raise — generic worker exceptions must become typed.
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1105,7 +1291,9 @@ class TestParallelSyncContradictionWorkerExceptions:
             contradiction_exc=ValueError("bad payload"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1131,7 +1319,9 @@ class TestParallelSyncContradictionWorkerExceptions:
             contradiction_exc=CancelledError("worker cancelled"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1155,7 +1345,13 @@ class TestParallelSyncContradictionWorkerExceptions:
             contradiction_exc=KeyboardInterrupt("user hit Ctrl-C"),
         )
         with pytest.raises(KeyboardInterrupt):
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1203,7 +1399,9 @@ class TestUnexpectedExceptionFamily:
             planner_exc=RuntimeError("planner blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1223,7 +1421,13 @@ class TestUnexpectedExceptionFamily:
             planner_exc=KeyboardInterrupt("ctrl-c during planner"),
         )
         with pytest.raises(KeyboardInterrupt):
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
     # -- Narrative Writer ----------------------------------------------
 
@@ -1236,7 +1440,9 @@ class TestUnexpectedExceptionFamily:
             writer_exc=RuntimeError("writer blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1258,7 +1464,13 @@ class TestUnexpectedExceptionFamily:
             writer_exc=KeyboardInterrupt("ctrl-c during writer"),
         )
         with pytest.raises(KeyboardInterrupt):
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
     # -- OOC Writer ----------------------------------------------------
 
@@ -1272,7 +1484,9 @@ class TestUnexpectedExceptionFamily:
             writer_exc=RuntimeError("ooc writer blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1294,7 +1508,13 @@ class TestUnexpectedExceptionFamily:
             writer_exc=KeyboardInterrupt("ctrl-c during ooc writer"),
         )
         with pytest.raises(KeyboardInterrupt):
-            orch.orchestrate_turn(story_id, node_id, "[OOC] anything")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "[OOC] anything",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
     # -- Narrative Input Safety ----------------------------------------
 
@@ -1307,7 +1527,9 @@ class TestUnexpectedExceptionFamily:
             safety_input=RuntimeError("input safety blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1329,7 +1551,9 @@ class TestUnexpectedExceptionFamily:
             safety_output=RuntimeError("output safety blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1354,7 +1578,9 @@ class TestUnexpectedExceptionFamily:
             safety_input=RuntimeError("ooc input safety blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] foo")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] foo", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1376,7 +1602,9 @@ class TestUnexpectedExceptionFamily:
             safety_output=RuntimeError("ooc output safety blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] foo")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] foo", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1400,7 +1628,9 @@ class TestUnexpectedExceptionFamily:
             extractor_exc=RuntimeError("extractor blew up"),
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -1427,7 +1657,13 @@ class TestUnexpectedExceptionFamily:
             extractor_exc=KeyboardInterrupt("ctrl-c during extractor"),
         )
         with pytest.raises(KeyboardInterrupt):
-            orch.orchestrate_turn(story_id, node_id, "I open the door.")
+            orch.orchestrate_turn(
+                story_id,
+                node_id,
+                "I open the door.",
+                _SOJOURNER,
+                RuntimeAccessPath.HOSTED,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -1451,7 +1687,9 @@ class TestExtractorPreservationOnContradictionRefusal:
             session_factory,
             contradiction_exc=make_refusal(PassIdentifier.CONTRADICTION),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         assert result.provider_refusal is not None
@@ -1474,7 +1712,9 @@ class TestExtractorPreservationOnContradictionRefusal:
             session_factory,
             extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
         )
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         assert result.provider_refusal is not None
@@ -1542,7 +1782,9 @@ class TestExtractorPreservationOnContradictionRefusal:
             extractor_proposal_factory=proposal_factory,
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "Mira moves.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "Mira moves.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         # Per the refusal contract, the completed extractor_result is
         # surfaced on the OrchestrationResult …
@@ -1994,9 +2236,13 @@ class TestOOCExclusion:
 
         story_id, node_id = seeded_story
         orch_ooc, *_ = _make_orchestrator(session_factory, intent=IntentType.OOC)
-        orch_ooc.orchestrate_turn(story_id, node_id, "[OOC] First.")
+        orch_ooc.orchestrate_turn(
+            story_id, node_id, "[OOC] First.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         orch, *_ = _make_orchestrator(session_factory)
-        orch.orchestrate_turn(story_id, node_id, "I act.")
+        orch.orchestrate_turn(
+            story_id, node_id, "I act.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         provider = SQLiteRecentTurnsProvider(session)
         excluded = provider.get_recent_turns(story_id, limit=10)
@@ -2015,43 +2261,47 @@ class TestWriterBackwardCompat:
         self, session, seeded_story
     ) -> None:
         """WriterService.write(session=None) still commits — preserves Issue 9."""
-        from anthropic.types import Message, TextBlock, Usage
-
+        from afterworlds.entitlement.enums import ModelTier, PipelinePassId
         from afterworlds.models.context import PassForwardLedger
+        from afterworlds.pipeline.provider._models import (
+            ProviderCallResult,
+            ProviderTextPart,
+        )
         from afterworlds.pipeline.writer.config import WriterConfig
         from afterworlds.pipeline.writer.service import WriterService
 
         story_id, node_id = seeded_story
 
-        msg = Message(
-            id="msg_fake",
-            type="message",
-            role="assistant",
-            content=[TextBlock(type="text", text="hello")],
-            model="claude-fake",
-            stop_reason="end_turn",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=10,
-                output_tokens=2,
-                cache_read_input_tokens=0,
-                cache_creation_input_tokens=0,
-            ),
+        fake_result = ProviderCallResult(
+            pass_id=PipelinePassId.WRITER,
+            content_parts=[ProviderTextPart(text="hello")],
+            input_token_count=10,
+            output_token_count=2,
+            cache_read_token_count=0,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            provider_name="fake-anthropic",
+            model_identifier="fake-anthropic:claude-test",
+            model_tier=ModelTier.HAIKU,
+            latency_ms=1,
         )
 
-        def fake_caller(payload):  # type: ignore[no-untyped-def]
-            return msg
+        class _FakeAdapter:
+            provider_name = "fake-anthropic"
+
+            def call(self, request: object) -> object:
+                return fake_result
 
         config = WriterConfig(
             model="claude-fake", api_key_env="ANTHROPIC_API_KEY", extended_ttl=True
         )
-        writer = WriterService(session=session, config=config, caller=fake_caller)
+        writer = WriterService(session=session, config=config)
         ctx = AssembledContext(
             stable_prefix=_stable_prefix_for(story_id),
             volatile_suffix=_volatile_for(make_intent()),
             pass_forward_ledger=PassForwardLedger(),
         )
-        result = writer.write(ctx, story_id, node_id)
+        result = writer.write(ctx, story_id, node_id, provider=_FakeAdapter())  # type: ignore[arg-type]
         # Default behavior committed the Turn — readable in a fresh session.
         assert session.get(TurnORM, str(result.turn_id)) is not None
 
@@ -2411,7 +2661,9 @@ class TestCommitFailureRoutesToPipelineError:
         )
         orch, *_ = _make_orchestrator(failing_factory)
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         # Must NOT have raised.  Must produce a typed PIPELINE_ERROR.
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
@@ -2443,7 +2695,9 @@ class TestCommitFailureRoutesToPipelineError:
         )
         orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "transaction commit failed" in (result.pipeline_error_summary or "")
@@ -2474,7 +2728,9 @@ class TestCommitFailureRoutesToPipelineError:
         )
         orch, *_ = _make_orchestrator(failing_factory)
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         # The orchestrator tried exactly one commit; the failure path then
@@ -2500,7 +2756,9 @@ class TestCommitFailureRoutesToPipelineError:
         )
         orch, _, _, _, _, writer, *_ = _make_orchestrator(failing_factory)
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         # The Writer fake produced a real assistant_output for the
         # candidate DELIVERED result.  After the commit failure the
@@ -2628,7 +2886,9 @@ class TestSessionLifecycleFailureRouting:
         )
 
         # Must not raise.
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -2651,7 +2911,9 @@ class TestSessionLifecycleFailureRouting:
             intent=IntentType.OOC,
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -2670,7 +2932,9 @@ class TestSessionLifecycleFailureRouting:
         )
         orch, *_ = _make_orchestrator(failing_factory)
 
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -2695,7 +2959,9 @@ class TestSessionLifecycleFailureRouting:
         )
         orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         summary = result.pipeline_error_summary or ""
@@ -2724,7 +2990,9 @@ class TestSessionLifecycleFailureRouting:
         orch, *_ = _make_orchestrator(failing_factory)
 
         # Must not raise — typed result must survive cleanup failure.
-        result = orch.orchestrate_turn(story_id, node_id, "I open the door.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.DELIVERED
         assert result.delivered_output is not None
@@ -2742,7 +3010,9 @@ class TestSessionLifecycleFailureRouting:
         )
         orch, *_ = _make_orchestrator(failing_factory, intent=IntentType.OOC)
 
-        result = orch.orchestrate_turn(story_id, node_id, "[OOC] What is HP?")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
 
         assert result.disposition is PipelineDisposition.OOC_HANDLED
         assert result.delivered_output is not None
@@ -2835,7 +3105,9 @@ class TestContradictionBlockSAVEPOINTProof:
             extractor_proposal_factory=proposal_factory,
         )
 
-        result = orch.orchestrate_turn(story_id, node_id, "Mira moves.")
+        result = orch.orchestrate_turn(
+            story_id, node_id, "Mira moves.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.BLOCKED_CONTRADICTION
 
         # Post-state: every category must equal the pre-snapshot.  No Turn,
@@ -2878,17 +3150,15 @@ class TestStablePrefixStructuralIdentity:
         from afterworlds.pipeline.safety.config import SafetyConfig
         from afterworlds.pipeline.safety.service import SafetyService
         from afterworlds.pipeline.writer.config import WriterConfig
-        from afterworlds.pipeline.writer.renderer import PromptRenderer
+        from afterworlds.pipeline.writer.service import WriterService
         from tests.pipeline.orchestrator.conftest import make_assembled
 
         story_id = uuid4()
         ctx = make_assembled(story_id)
         expected = collect_stable_prefix_texts(ctx.stable_prefix)
 
-        # Each renderer's _render builds a payload; extract the stable region
-        # (blocks BEFORE any pass-specific tail like the writer-output block
-        # or volatile suffix).  We compare those slices to the canonical
-        # expected list.
+        # All six services produce ProviderCallRequest; stable region is in
+        # request.rendered_blocks up to and including the cache-breakpoint block.
         cfg_planner = PlannerConfig(
             model="claude-fake-haiku",
             api_key_env="ANTHROPIC_API_KEY",
@@ -2915,42 +3185,35 @@ class TestStablePrefixStructuralIdentity:
             extended_ttl=True,
         )
 
-        # PlannerService._render and equivalents are private; reach through
-        # name-mangled access for the test.
-        planner_payload = PlannerService(
-            config=cfg_planner, caller=_DummyCaller()
-        )._render(ctx)
-        writer_payload = PromptRenderer(cfg_writer).render(ctx)
-        safety_input_payload = SafetyService(
-            config=cfg_safety, caller=_DummyCaller()
-        )._render(ctx, "raw input", SafetyTarget.INPUT)
-        safety_output_payload = SafetyService(
-            config=cfg_safety, caller=_DummyCaller()
-        )._render(ctx, "writer output", SafetyTarget.OUTPUT)
-        extractor_payload = ExtractorService(
+        # _render() on each service returns ProviderCallRequest.
+        planner_req = PlannerService(config=cfg_planner)._render(ctx)
+        writer_req = WriterService(session=None, config=cfg_writer)._render(ctx)  # type: ignore[arg-type]
+        safety_input_req = SafetyService(config=cfg_safety)._render(
+            ctx, "raw input", SafetyTarget.INPUT
+        )
+        safety_output_req = SafetyService(config=cfg_safety)._render(
+            ctx, "writer output", SafetyTarget.OUTPUT
+        )
+        extractor_req = ExtractorService(
             session=None,  # type: ignore[arg-type]
             story_bible_service=None,  # type: ignore[arg-type]
             config=cfg_extractor,
-            caller=_DummyCaller(),
         )._render(ctx, "writer prose")
-        contr_payload = ContradictionService(
-            config=cfg_contr, caller=_DummyCaller()
-        )._render(_derive_context(ctx, "writer prose"))
+        contr_req = ContradictionService(config=cfg_contr)._render(
+            _derive_context(ctx, "writer prose")
+        )
 
-        # For each payload, the stable region is the leading block(s) whose
-        # last block carries the cache_control marker.  Slice up to and
-        # including that block.
-        payloads = {
-            "planner": planner_payload,
-            "writer": writer_payload,
-            "safety_input": safety_input_payload,
-            "safety_output": safety_output_payload,
-            "extractor": extractor_payload,
-            "contradiction": contr_payload,
+        requests = {
+            "planner": planner_req,
+            "writer": writer_req,
+            "safety_input": safety_input_req,
+            "safety_output": safety_output_req,
+            "extractor": extractor_req,
+            "contradiction": contr_req,
         }
         slices = {
-            name: _stable_slice(p["messages"][0]["content"])  # type: ignore[index]
-            for name, p in payloads.items()
+            name: _stable_slice_blocks(req.rendered_blocks)
+            for name, req in requests.items()
         }
 
         # All six slices must be byte-identical to the canonical text list.
@@ -2959,32 +3222,25 @@ class TestStablePrefixStructuralIdentity:
 
         # Cache breakpoint position is identical across all six.
         breakpoints = {
-            name: _cache_breakpoint_index(p["messages"][0]["content"])
-            for name, p in payloads.items()
+            name: _cache_breakpoint_idx(req.rendered_blocks)
+            for name, req in requests.items()
         }
         assert len(set(breakpoints.values())) == 1, breakpoints
 
 
-class _DummyCaller:
-    def call(self, payload):  # type: ignore[no-untyped-def]
-        raise AssertionError(
-            "_DummyCaller should not be invoked — test only inspects rendered payload"
-        )
-
-
-def _stable_slice(content_blocks):  # type: ignore[no-untyped-def]
+def _stable_slice_blocks(rendered_blocks: list) -> list[str]:
     """Return leading stable-region texts up to and including the breakpoint block."""
     out: list[str] = []
-    for b in content_blocks:
-        out.append(b["text"])
-        if b.get("cache_control") is not None:
+    for b in rendered_blocks:
+        out.append(b.text)
+        if b.has_cache_breakpoint:
             return out
     return out
 
 
-def _cache_breakpoint_index(content_blocks):  # type: ignore[no-untyped-def]
-    for i, b in enumerate(content_blocks):
-        if b.get("cache_control") is not None:
+def _cache_breakpoint_idx(rendered_blocks: list) -> int | None:
+    for i, b in enumerate(rendered_blocks):
+        if b.has_cache_breakpoint:
             return i
     return None
 
@@ -3006,7 +3262,7 @@ class TestSharedRendererTTLPlumbing:
         texts = collect_stable_prefix_texts(sp)
         blocks_1h = render_stable_prefix_blocks(sp, "1h")
         blocks_5m = render_stable_prefix_blocks(sp, "5m")
-        assert [b["text"] for b in blocks_1h] == texts
-        assert [b["text"] for b in blocks_5m] == texts
-        assert blocks_1h[-1]["cache_control"]["ttl"] == "1h"
-        assert blocks_5m[-1]["cache_control"]["ttl"] == "5m"
+        assert [b.text for b in blocks_1h] == texts
+        assert [b.text for b in blocks_5m] == texts
+        assert blocks_1h[-1].ttl == "1h"
+        assert blocks_5m[-1].ttl == "5m"

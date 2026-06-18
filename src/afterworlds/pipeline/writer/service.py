@@ -1,11 +1,11 @@
-"""Writer service — CRD Issue 9.
+"""Writer service — CRD Issue 9 / 14a.
 
-Single Writer pass: accepts a BuiltContext (AssembledContext), renders it to
-an Anthropic Messages API payload, invokes the provider, parses the response,
-persists a Turn via Issue 3's CRUD layer, and returns a typed WriterResult.
+Single Writer pass: accepts a BuiltContext (AssembledContext), builds a
+ProviderCallRequest, invokes the provider via the injected ProviderAdapter,
+parses the response, persists a Turn via Issue 3's CRUD layer, and returns
+a typed WriterResult.
 
 No Planner.  No Extractor.  No Contradiction.  No Safety.  No orchestration.
-This is proof-of-life for the first real provider call in the system.
 
 Architectural invariants enforced here:
   - The Writer does not call StoryBibleService, RollingSummaryService,
@@ -26,31 +26,60 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
+from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import IntentType
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.node import create_turn, node_belongs_to_story
 from afterworlds.pipeline._refusal import ProviderRefusalError
-from afterworlds.pipeline.writer.caller import (
-    AnthropicModelCaller,
-    WriterModelCaller,
-    timed_call,
+from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+    RenderedBlock,
+    render_stable_prefix_blocks,
 )
-from afterworlds.pipeline.writer.config import WriterConfig
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderTextPart,
+)
+from afterworlds.pipeline.provider._protocol import ProviderAdapter
+from afterworlds.pipeline.writer.config import WRITER_MAX_TOKENS, WriterConfig
 from afterworlds.pipeline.writer.models import WriterPassError, WriterResult
-from afterworlds.pipeline.writer.renderer import PromptRenderer
+
+# ---------------------------------------------------------------------------
+# Module-level helpers
+# ---------------------------------------------------------------------------
+
+
+def _render_intent_block(assembled: AssembledContext) -> str:
+    """Render the intent classification as a compact structured block."""
+    icr = assembled.volatile_suffix.classified_intent
+    lines = [
+        "[INTENT CLASSIFICATION]",
+        f"intent_type: {icr.intent_type.value}",
+        f"confidence: {icr.confidence:.3f}",
+        f"ambiguous: {icr.ambiguous}",
+    ]
+    if icr.secondary_intent is not None:
+        lines.append(f"secondary_intent: {icr.secondary_intent.value}")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# WriterService
+# ---------------------------------------------------------------------------
 
 
 class WriterService:
     """Single-pass Writer service.
 
     Responsibilities:
-      1. Render the AssembledContext into an Anthropic Messages payload.
-      2. Invoke the provider via the injected caller.
+      1. Render the AssembledContext into a ProviderCallRequest.
+      2. Invoke the provider via the injected ProviderAdapter.
       3. Parse the response (plain text concatenation; fail-closed on empty or
          malformed output).
       4. Persist the resulting Turn via Issue 3 CRUD services.
@@ -59,20 +88,15 @@ class WriterService:
     Args:
         session: SQLAlchemy session used for Turn persistence.
         config: Writer configuration (model, API key source, TTL mode).
-        caller: Injectable model caller.  Defaults to AnthropicModelCaller.
-            Tests substitute a fake; no real network call occurs in unit tests.
     """
 
     def __init__(
         self,
         session: Session,
         config: WriterConfig | None = None,
-        caller: WriterModelCaller | None = None,
     ) -> None:
         self._session = session
         self._config = config or WriterConfig.from_env()
-        self._renderer = PromptRenderer(self._config)
-        self._caller: WriterModelCaller = caller or AnthropicModelCaller(self._config)
 
     def write(
         self,
@@ -80,7 +104,9 @@ class WriterService:
         story_id: UUID,
         node_id: UUID,
         *,
+        provider: ProviderAdapter,
         session: Session | None = None,
+        turn_id: UUID | None = None,
     ) -> WriterResult:
         """Execute one Writer pass and return a typed result with a persisted Turn.
 
@@ -94,6 +120,7 @@ class WriterService:
             node_id: UUID of the already-seeded Node to link the Turn to.
                 The Writer does not create Nodes — the caller is responsible for
                 having seeded a valid Arc/Chapter/Node chain.
+            provider: ProviderAdapter for this turn.
             session: optional orchestrator-owned SQLAlchemy session (Issue
                 12c).  When supplied the Turn write joins the caller's outer
                 transaction and the Writer does NOT call ``commit``; the
@@ -132,24 +159,26 @@ class WriterService:
                 f"not story {story_id}; no Turn persisted"
             )
 
-        payload = self._renderer.render(built_context)
+        request = self._render(built_context)
 
         try:
-            response, latency_ms = timed_call(self._caller, payload)
+            result = provider.call(request)
         except ProviderRefusalError:
             raise
         except Exception as exc:
             raise WriterPassError(f"Writer provider call failed: {exc}") from exc
 
         try:
-            prose = self._parse_response(response)
+            prose = self._parse_result(result)
         except WriterPassError:
             raise
         except Exception as exc:
             raise WriterPassError(f"Writer response parsing failed: {exc}") from exc
 
         icr = built_context.volatile_suffix.classified_intent
+        effective_turn_id = turn_id if turn_id is not None else uuid4()
         turn = Turn(
+            turn_id=effective_turn_id,
             user_input=built_context.volatile_suffix.current_input,
             assistant_output=prose,
             timestamp=datetime.now(UTC),
@@ -161,53 +190,99 @@ class WriterService:
         if session is None:
             target_session.commit()
 
-        usage = response.usage
         return WriterResult(
             turn_id=turn.turn_id,
             assistant_output=prose,
-            model_identifier=f"anthropic:{response.model}",
-            latency_ms=latency_ms,
-            input_token_count=usage.input_tokens,
-            output_token_count=usage.output_tokens,
-            cache_read_token_count=usage.cache_read_input_tokens,
-            cache_creation_token_count=usage.cache_creation_input_tokens,
+            model_identifier=result.model_identifier,
+            latency_ms=result.latency_ms,
+            input_token_count=result.input_token_count,
+            output_token_count=result.output_token_count,
+            cache_read_token_count=result.cache_read_token_count,
+            cache_creation_token_count=result.cache_creation_token_count,
+            provider=result.provider_name,
+            model_tier=result.model_tier.value,
         )
 
     # ---------------------------------------------------------------------------
-    # Response parsing
+    # Private: rendering
     # ---------------------------------------------------------------------------
 
-    def _parse_response(self, response: object) -> str:
-        """Parse the Anthropic Messages response and return trimmed prose.
+    def _render(self, assembled: AssembledContext) -> ProviderCallRequest:
+        """Render an AssembledContext into a ProviderCallRequest.
+
+        Cache breakpoint sits on the final stable-prefix content block.
+        PassForwardLedger blocks (when non-empty) appear after the breakpoint.
+        VolatileSuffix blocks appear last with no cache marker.
+
+        System parameter: one block — the active mode contract.  The Writer
+        has no separate pass-contract file; the mode contract is the full
+        system instruction.
+        """
+        ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
+        rendered_blocks: list[RenderedBlock] = list(
+            render_stable_prefix_blocks(assembled.stable_prefix, ttl)
+        )
+
+        ledger_text = assembled.pass_forward_ledger.render()
+        if ledger_text:
+            rendered_blocks.append(RenderedBlock(text=ledger_text))
+
+        for turn in assembled.volatile_suffix.recent_turns:
+            rendered_blocks.append(
+                RenderedBlock(
+                    text=(
+                        f"Player: {turn.user_input}\n"
+                        f"Narrator: {turn.assistant_output}"
+                    )
+                )
+            )
+        rendered_blocks.append(
+            RenderedBlock(text=assembled.volatile_suffix.current_input)
+        )
+        rendered_blocks.append(RenderedBlock(text=_render_intent_block(assembled)))
+
+        return ProviderCallRequest(
+            pass_id=PipelinePassId.WRITER,
+            system_blocks=[RenderedBlock(text=assembled.stable_prefix.system_prompt)],
+            rendered_blocks=rendered_blocks,
+            max_output_tokens=WRITER_MAX_TOKENS,
+        )
+
+    # ---------------------------------------------------------------------------
+    # Private: response parsing
+    # ---------------------------------------------------------------------------
+
+    def _parse_result(self, result: object) -> str:
+        """Parse a ProviderCallResult and return trimmed prose.
 
         Parsing rules (explicit, no silent fallback):
-          1. Iterate the content array in order.
-          2. Concatenate the text field of every block whose type == "text".
+          1. Iterate content_parts in order.
+          2. Concatenate the text field of every ProviderTextPart.
           3. Trim leading and trailing whitespace.
           4. If the result is empty, raise WriterPassError.
           5. If the envelope is malformed (missing required fields), raise
              WriterPassError with the underlying AttributeError preserved.
 
         Args:
-            response: The raw response from the model caller.
+            result: The ProviderCallResult from the adapter.
 
         Returns:
             Trimmed prose string (non-empty).
 
         Raises:
-            WriterPassError: on empty output or malformed response envelope.
+            WriterPassError: on empty output or malformed result envelope.
         """
-        from anthropic.types import Message, TextBlock
+        from afterworlds.pipeline.provider._models import ProviderCallResult
 
-        if not isinstance(response, Message):
+        if not isinstance(result, ProviderCallResult):
             raise WriterPassError(
-                f"Unexpected response type from provider: {type(response).__name__}"
+                f"Unexpected result type from provider: {type(result).__name__}"
             )
 
         parts: list[str] = []
-        for block in response.content:
-            if isinstance(block, TextBlock):
-                parts.append(block.text)
+        for part in result.content_parts:
+            if isinstance(part, ProviderTextPart):
+                parts.append(part.text)
 
         prose = "".join(parts).strip()
         if not prose:

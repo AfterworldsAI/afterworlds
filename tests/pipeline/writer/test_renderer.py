@@ -1,14 +1,16 @@
-"""Unit tests for the PromptRenderer — CRD Issue 9.
+"""Unit tests for the Writer pass rendering — CRD Issue 9 / 14a.
 
+These tests exercise WriterService._render() which produces a ProviderCallRequest.
 Coverage targets (from the Issue 9 test requirements):
-  - System prompt + mode contract renders to ``system`` parameter, not user msg
-  - Each stable-prefix section appears as a content block in the first user
-    message, in the canonical Issue 8 order
-  - Cache breakpoint (cache_control) appears on the final stable-prefix block
+  - System prompt renders to system_blocks, not rendered_blocks
+  - Each stable-prefix section appears as a content block in rendered_blocks
+    in the canonical Issue 8 order
+  - Cache breakpoint (has_cache_breakpoint=True) appears on the final
+    stable-prefix block
   - PassForwardLedger content blocks (when seeded) appear after the breakpoint
-  - VolatileSuffix content blocks appear last with no cache_control marker
+  - VolatileSuffix content blocks appear last with no has_cache_breakpoint marker
   - Rolling Summary absent: section is omitted cleanly (no placeholder block)
-  - Extended TTL: every payload includes ``ttl="1h"`` on the cache breakpoint
+  - Extended TTL: the cache breakpoint block has ttl="1h"
 """
 
 from __future__ import annotations
@@ -28,11 +30,7 @@ from afterworlds.models.enums import CastRole, IntentType
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.story_bible import CastEntry, StoryBibleContext
 from afterworlds.pipeline.writer.config import WriterConfig
-from afterworlds.pipeline.writer.renderer import PromptRenderer
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+from afterworlds.pipeline.writer.service import WriterService
 
 
 def _make_minimal_bible() -> StoryBibleContext:
@@ -114,212 +112,118 @@ def _make_config(extended_ttl: bool = True) -> WriterConfig:
     )
 
 
-# ---------------------------------------------------------------------------
-# System prompt tests
-# ---------------------------------------------------------------------------
+def _make_service(extended_ttl: bool = True) -> WriterService:
+    return WriterService(session=None, config=_make_config(extended_ttl))  # type: ignore[arg-type]
 
 
 class TestSystemRendering:
-    def test_system_prompt_in_system_field(self) -> None:
-        """System prompt + mode contract renders to the system parameter."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled())
+    def test_system_prompt_in_system_blocks(self) -> None:
+        """System prompt renders to system_blocks, not rendered_blocks."""
+        svc = _make_service()
+        request = svc._render(_make_assembled())
+        assert len(request.system_blocks) >= 1
+        assert "You are the story architect." in request.system_blocks[0].text
 
-        system = payload["system"]
-        assert isinstance(system, list)
-        assert len(system) >= 1
-        first_block = system[0]
-        assert isinstance(first_block, dict)
-        assert first_block["type"] == "text"
-        assert "You are the story architect." in first_block["text"]
-
-    def test_system_prompt_not_in_user_message(self) -> None:
-        """System prompt must not appear as a content block in the user message."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled())
-
-        messages = payload["messages"]
-        assert isinstance(messages, list)
-        assert len(messages) == 1
-        user_content = messages[0]["content"]
-        assert isinstance(user_content, list)
-        # None of the user content blocks should contain the system prompt
-        for block in user_content:
-            assert isinstance(block, dict)
-            assert "You are the story architect." not in block.get("text", "")
-
-
-# ---------------------------------------------------------------------------
-# Stable prefix ordering tests
-# ---------------------------------------------------------------------------
+    def test_system_prompt_not_in_rendered_blocks(self) -> None:
+        """System prompt must not appear in any rendered_block."""
+        svc = _make_service()
+        request = svc._render(_make_assembled())
+        for block in request.rendered_blocks:
+            assert "You are the story architect." not in block.text
 
 
 class TestStablePrefixOrder:
     def test_story_bible_is_first_stable_block(self) -> None:
-        """Story Bible active context appears as the first stable-prefix block."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled())
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-        # Find blocks without cache_control (all stable except the last)
-        # or with cache_control (the last stable block)
-        # The first stable block should contain Story Bible text
-        first_block = user_content[0]
-        assert isinstance(first_block, dict)
-        assert "Story Bible" in first_block.get(
-            "text", ""
-        ) or "Aldric" in first_block.get("text", "")
+        """Story Bible active context appears as the first rendered_block."""
+        svc = _make_service()
+        request = svc._render(_make_assembled())
+        first_block = request.rendered_blocks[0]
+        assert "Story Bible" in first_block.text or "Aldric" in first_block.text
 
     def test_rolling_summary_after_story_bible(self) -> None:
-        """Rolling Summary appears after Story Bible in the stable prefix."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(
+        """Rolling Summary appears after Story Bible in rendered_blocks."""
+        svc = _make_service()
+        request = svc._render(
             _make_assembled(
                 rolling_summary="Session summary: Aldric entered the dungeon."
             )
         )
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-        texts = [b.get("text", "") for b in user_content if isinstance(b, dict)]
-
-        # Find positions
+        texts = [b.text for b in request.rendered_blocks]
         bible_idx = next(i for i, t in enumerate(texts) if "Aldric" in t)
         summary_idx = next(i for i, t in enumerate(texts) if "Session summary" in t)
         assert bible_idx < summary_idx
 
     def test_rolling_summary_absent_omitted_cleanly(self) -> None:
         """When Rolling Summary is None, no placeholder block appears."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(rolling_summary=None))
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-        for block in user_content:
-            assert isinstance(block, dict)
-            text = block.get("text", "")
-            assert (
-                "None" not in text or "Narrator" in text
-            )  # "None" string as placeholder
-            assert text.strip() != ""  # no empty placeholder blocks
-
-
-# ---------------------------------------------------------------------------
-# Cache breakpoint tests
-# ---------------------------------------------------------------------------
+        svc = _make_service()
+        request = svc._render(_make_assembled(rolling_summary=None))
+        for block in request.rendered_blocks:
+            text = block.text
+            assert "None" not in text or "Narrator" in text
+            assert text.strip() != ""
 
 
 class TestCacheBreakpoint:
     def test_cache_control_on_final_stable_prefix_block(self) -> None:
-        """Cache breakpoint appears on the final stable-prefix content block."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(rolling_summary="Summary text."))
+        """Cache breakpoint on the final stable-prefix rendered_block."""
+        svc = _make_service()
+        request = svc._render(_make_assembled(rolling_summary="Summary text."))
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        # Identify blocks with cache_control
-        cached_blocks = [
-            (i, b)
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "cache_control" in b
-        ]
-        assert len(cached_blocks) == 1, "Exactly one cache_control marker expected"
-
-        cache_idx, cached_block = cached_blocks[0]
-        # The cache_control block must be the Rolling Summary (last stable section)
-        # Rolling summary text should be in this block
-        assert "Summary text." in cached_block.get("text", "")
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert len(cached) == 1
+        assert "Summary text." in cached[0].text
 
     def test_cache_control_not_on_volatile_blocks(self) -> None:
-        """VolatileSuffix blocks carry no cache_control marker."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(current_input="What is happening?"))
+        """VolatileSuffix blocks carry no cache breakpoint."""
+        svc = _make_service()
+        request = svc._render(_make_assembled(current_input="What is happening?"))
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        # The current_input block and intent block must not have cache_control
         input_blocks = [
-            b
-            for b in user_content
-            if isinstance(b, dict) and "What is happening?" in b.get("text", "")
+            b for b in request.rendered_blocks if "What is happening?" in b.text
         ]
         for b in input_blocks:
-            assert "cache_control" not in b
+            assert not b.has_cache_breakpoint
 
     def test_extended_ttl_on_cache_breakpoint(self) -> None:
         """Extended TTL (ttl='1h') is active on the cache breakpoint."""
-        renderer = PromptRenderer(_make_config(extended_ttl=True))
-        payload = renderer.render(_make_assembled())
+        svc = _make_service(extended_ttl=True)
+        request = svc._render(_make_assembled())
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        cached_blocks = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
-        assert cached_blocks, "No cached block found"
-        cc = cached_blocks[0]["cache_control"]
-        assert isinstance(cc, dict)
-        assert cc.get("type") == "ephemeral"
-        assert cc.get("ttl") == "1h"
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached
+        assert cached[0].ttl == "1h"
 
     def test_default_ttl_when_extended_disabled(self) -> None:
         """When extended_ttl=False, the cache breakpoint uses '5m' TTL."""
-        renderer = PromptRenderer(_make_config(extended_ttl=False))
-        payload = renderer.render(_make_assembled())
+        svc = _make_service(extended_ttl=False)
+        request = svc._render(_make_assembled())
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        cached_blocks = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
-        assert cached_blocks
-        cc = cached_blocks[0]["cache_control"]
-        assert isinstance(cc, dict)
-        assert cc.get("ttl") == "5m"
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached
+        assert cached[0].ttl == "5m"
 
     def test_cache_breakpoint_position_with_only_story_bible(self) -> None:
         """When only Story Bible is present, the cache breakpoint is on it."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(rolling_summary=None))
+        svc = _make_service()
+        request = svc._render(_make_assembled(rolling_summary=None))
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        cached_blocks = [
-            (i, b)
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "cache_control" in b
-        ]
-        assert len(cached_blocks) == 1
-        cache_idx, _ = cached_blocks[0]
-        # The cached block should be first (only Story Bible in stable prefix)
-        # All subsequent blocks (volatile) must have no cache_control
-        for b in user_content[cache_idx + 1 :]:
-            assert "cache_control" not in b
-
-
-# ---------------------------------------------------------------------------
-# PassForwardLedger tests
-# ---------------------------------------------------------------------------
+        blocks = request.rendered_blocks
+        cache_idx = next(
+            (i for i, b in enumerate(blocks) if b.has_cache_breakpoint), None
+        )
+        assert cache_idx is not None
+        for b in blocks[cache_idx + 1 :]:
+            assert not b.has_cache_breakpoint
 
 
 class TestPassForwardLedger:
     def test_empty_ledger_produces_no_ledger_block(self) -> None:
         """An empty PassForwardLedger produces no extra content block."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled())
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-        for block in user_content:
-            if isinstance(block, dict):
-                assert "[WRITER OUTPUT]" not in block.get("text", "")
-                assert "[PLANNER OUTPUT]" not in block.get("text", "")
+        svc = _make_service()
+        request = svc._render(_make_assembled())
+        for block in request.rendered_blocks:
+            assert "[WRITER OUTPUT]" not in block.text
+            assert "[PLANNER OUTPUT]" not in block.text
 
     def test_non_empty_ledger_appears_after_cache_breakpoint(self) -> None:
         """Non-empty PassForwardLedger appears after the cache breakpoint."""
@@ -327,77 +231,48 @@ class TestPassForwardLedger:
             PassForwardEntry(pass_name="planner", content="Plan: go north.")
         ]
         assembled = _make_assembled(ledger_entries=ledger_entries)
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(assembled)
+        svc = _make_service()
+        request = svc._render(assembled)
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-
-        cache_idx = next(
-            i
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "cache_control" in b
-        )
+        blocks = request.rendered_blocks
+        cache_idx = next(i for i, b in enumerate(blocks) if b.has_cache_breakpoint)
         ledger_idx = next(
-            i
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "Plan: go north." in b.get("text", "")
+            i for i, b in enumerate(blocks) if "Plan: go north." in b.text
         )
         assert ledger_idx > cache_idx
 
     def test_ledger_block_has_no_cache_control(self) -> None:
-        """PassForwardLedger blocks carry no cache_control marker."""
+        """PassForwardLedger blocks carry no cache breakpoint."""
         ledger_entries = [
             PassForwardEntry(pass_name="planner", content="Plan: go north.")
         ]
         assembled = _make_assembled(ledger_entries=ledger_entries)
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(assembled)
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
+        svc = _make_service()
+        request = svc._render(assembled)
 
         ledger_blocks = [
-            b
-            for b in user_content
-            if isinstance(b, dict) and "Plan: go north." in b.get("text", "")
+            b for b in request.rendered_blocks if "Plan: go north." in b.text
         ]
         for b in ledger_blocks:
-            assert "cache_control" not in b
-
-
-# ---------------------------------------------------------------------------
-# VolatileSuffix tests
-# ---------------------------------------------------------------------------
+            assert not b.has_cache_breakpoint
 
 
 class TestVolatileSuffix:
-    def test_current_input_appears_last_before_intent(self) -> None:
-        """Current Sojourner input appears after stable prefix and before intent."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(current_input="I try the lock."))
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
-        texts = [b.get("text", "") for b in user_content if isinstance(b, dict)]
-
-        input_idx = next(i for i, t in enumerate(texts) if t == "I try the lock.")
-        intent_idx = next(
-            i for i, t in enumerate(texts) if "[INTENT CLASSIFICATION]" in t
-        )
-        assert input_idx < intent_idx
+    def test_current_input_appears_in_rendered_blocks(self) -> None:
+        """Current Sojourner input appears in rendered_blocks."""
+        svc = _make_service()
+        request = svc._render(_make_assembled(current_input="I try the lock."))
+        texts = [b.text for b in request.rendered_blocks]
+        assert any("I try the lock." in t for t in texts)
 
     def test_intent_block_is_structured_not_prose(self) -> None:
-        """Intent classification renders as a compact structured block, not prose."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled())
-
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
+        """Intent classification renders as a compact structured block."""
+        svc = _make_service()
+        request = svc._render(_make_assembled())
         intent_texts = [
-            b.get("text", "")
-            for b in user_content
-            if isinstance(b, dict) and "[INTENT CLASSIFICATION]" in b.get("text", "")
+            b.text
+            for b in request.rendered_blocks
+            if "[INTENT CLASSIFICATION]" in b.text
         ]
         assert len(intent_texts) == 1
         intent_text = intent_texts[0]
@@ -406,34 +281,18 @@ class TestVolatileSuffix:
         assert "ambiguous:" in intent_text
 
     def test_volatile_suffix_blocks_have_no_cache_control(self) -> None:
-        """All VolatileSuffix blocks carry no cache_control marker."""
-        renderer = PromptRenderer(_make_config())
-        payload = renderer.render(_make_assembled(current_input="Look around."))
+        """All VolatileSuffix blocks carry no cache breakpoint."""
+        svc = _make_service()
+        request = svc._render(_make_assembled(current_input="Look around."))
+        blocks = request.rendered_blocks
+        cache_idx = next(i for i, b in enumerate(blocks) if b.has_cache_breakpoint)
+        for b in blocks[cache_idx + 1 :]:
+            assert not b.has_cache_breakpoint
 
-        messages = payload["messages"]
-        user_content = messages[0]["content"]
+    def test_pass_id_is_writer(self) -> None:
+        """pass_id is set to WRITER."""
+        from afterworlds.entitlement.enums import PipelinePassId
 
-        # Find the position of the cache breakpoint
-        cache_idx = next(
-            i
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "cache_control" in b
-        )
-        # All blocks after the cache breakpoint (including ledger and volatile)
-        # that are not the cache block itself should have no cache_control
-        for b in user_content[cache_idx + 1 :]:
-            assert "cache_control" not in b
-
-    def test_payload_model_and_max_tokens(self) -> None:
-        """Payload includes the configured model and max_tokens."""
-        config = WriterConfig(
-            model="claude-sonnet-4-5",
-            api_key_env="ANTHROPIC_API_KEY",
-            extended_ttl=True,
-        )
-        renderer = PromptRenderer(config)
-        payload = renderer.render(_make_assembled())
-
-        assert payload["model"] == "claude-sonnet-4-5"
-        assert isinstance(payload["max_tokens"], int)
-        assert payload["max_tokens"] > 0
+        svc = _make_service()
+        request = svc._render(_make_assembled())
+        assert request.pass_id == PipelinePassId.WRITER

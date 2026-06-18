@@ -1,4 +1,4 @@
-"""Unit tests for PlannerService — CRD Issue 12a.
+"""Unit tests for PlannerService — CRD Issue 12a / 14a.
 
 Test classes
 ------------
@@ -6,16 +6,16 @@ TestHappyPath                 — well-formed response returns PlannerResult
 TestSchemaValidation          — PlannerOutput field_validator rules
 TestProviderException         — provider exception → PlannerPassError
 TestMissingToolBlock          — no tool-use block → PlannerPassError
-TestRendererStructure         — payload shape: model, tool_choice, system, block order
-TestSystemPromptPlacement     — system_prompt in system param + first user block
-TestCacheBreakpoint           — cache_control on last stable-prefix block
+TestRendererStructure         — ProviderCallRequest shape: pass_id, forced_tool, blocks
+TestSystemPromptPlacement     — system_blocks order and content
+TestCacheBreakpoint           — cache breakpoint on last stable-prefix block
 TestExtendedTTL               — ttl honours extended_ttl config flag
-TestCallerInjection           — custom caller is invoked; default not constructed
+TestProviderAdapterInjection  — provider.call() is invoked once per plan()
 TestCacheMetricsPropagation   — all four token counts propagated to PlannerResult
 TestBuiltContextImmutability  — caller's AssembledContext is not mutated
 TestEmptyPassForwardLedger    — empty ledger produces no extra user block
 TestNotesField                — None and present notes handled correctly
-TestModelIdentifier           — model_identifier includes provider prefix
+TestModelIdentifier           — model_identifier propagated from ProviderCallResult
 """
 
 from __future__ import annotations
@@ -25,9 +25,9 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
 from pydantic import ValidationError
 
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardEntry,
@@ -46,11 +46,14 @@ from afterworlds.models.story_bible import (
     StoryBibleContext,
 )
 from afterworlds.pipeline._stable_prefix_renderer import (
+    TTL_DEFAULT,
+    TTL_EXTENDED,
+)
+from afterworlds.pipeline._stable_prefix_renderer import (
     collect_stable_prefix_texts as _collect_stable_texts_impl,
 )
 from afterworlds.pipeline.planner.caller import (
     PRODUCE_PLAN_TOOL_NAME,
-    PlannerPayload,
 )
 from afterworlds.pipeline.planner.config import PlannerConfig
 from afterworlds.pipeline.planner.models import (
@@ -59,10 +62,15 @@ from afterworlds.pipeline.planner.models import (
     PlannerResult,
 )
 from afterworlds.pipeline.planner.service import PlannerService
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderToolCallPart,
+)
 from afterworlds.pipeline.writer.config import WriterConfig
 
 
-def _collect_stable_texts(ctx):  # type: ignore[no-untyped-def]
+def _collect_stable_texts(ctx: AssembledContext) -> list[str]:
     """Backwards-compatible test shim — delegates to the shared Issue 12c renderer."""
     return _collect_stable_texts_impl(ctx.stable_prefix)
 
@@ -134,57 +142,65 @@ def _make_assembled(
     )
 
 
-def _fake_tool_response(
+def _fake_tool_result(
     tool_input: dict[str, Any] | None = None,
-    input_tokens: int = 100,
-    output_tokens: int = 50,
-    cache_read_input_tokens: int | None = None,
-    cache_creation_input_tokens: int | None = None,
-) -> Message:
+    input_token_count: int = 100,
+    output_token_count: int = 50,
+    cache_read_token_count: int | None = None,
+    cache_creation_token_count: int | None = None,
+    model_identifier: str = "anthropic:claude-haiku-test",
+) -> ProviderCallResult:
     if tool_input is None:
         tool_input = {
             "scene_goal": "Escape the hotel.",
             "next_beat": "Aldric steps into the corridor.",
             "facts_needed": [],
         }
-    return Message(
-        id="msg_fake_planner",
-        type="message",
-        role="assistant",
-        content=[
-            ToolUseBlock(
-                type="tool_use",
-                id="toolu_fake_01",
-                name=PRODUCE_PLAN_TOOL_NAME,
-                input=tool_input,
+    return ProviderCallResult(
+        pass_id=PipelinePassId.PLANNER,
+        provider_name="anthropic",
+        model_identifier=model_identifier,
+        model_tier=ModelTier.HAIKU,
+        content_parts=[
+            ProviderToolCallPart(
+                tool_name=PRODUCE_PLAN_TOOL_NAME,
+                tool_input=tool_input,
             )
         ],
-        model="claude-haiku-4-5-20251001",
-        stop_reason="tool_use",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cache_read_input_tokens=cache_read_input_tokens,
-            cache_creation_input_tokens=cache_creation_input_tokens,
-        ),
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+        cache_read_token_count=cache_read_token_count,
+        cache_creation_token_count=cache_creation_token_count,
+        cache_warmed=bool(cache_read_token_count),
+        latency_ms=1,
     )
 
 
-def _make_fake_caller(
-    response: Message | None = None,
+class _FakeProviderAdapter:
+    """Capturing fake ProviderAdapter for PlannerService tests."""
+
+    def __init__(
+        self,
+        result: ProviderCallResult | None = None,
+        raise_exc: Exception | None = None,
+    ) -> None:
+        self._result = result
+        self._raise_exc = raise_exc
+        self.captured_requests: list[ProviderCallRequest] = []
+        self.provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.captured_requests.append(request)
+        if self._raise_exc is not None:
+            raise self._raise_exc
+        return self._result or _fake_tool_result()
+
+
+def _make_fake_adapter(
+    result: ProviderCallResult | None = None,
     raise_exc: Exception | None = None,
-):  # type: ignore[no-untyped-def]
-    captured: list[PlannerPayload] = []
-
-    def caller(payload: PlannerPayload) -> Message:
-        captured.append(payload)
-        if raise_exc is not None:
-            raise raise_exc
-        return response or _fake_tool_response()
-
-    caller.captured = captured  # type: ignore[attr-defined]
-    return caller
+) -> _FakeProviderAdapter:
+    return _FakeProviderAdapter(result=result, raise_exc=raise_exc)
 
 
 # ---------------------------------------------------------------------------
@@ -194,9 +210,9 @@ def _make_fake_caller(
 
 class TestHappyPath:
     def test_returns_planner_result(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        result = svc.plan(_make_assembled())
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         assert isinstance(result, PlannerResult)
 
     def test_fields_propagated(self) -> None:
@@ -206,9 +222,9 @@ class TestHappyPath:
             "facts_needed": ["Aldric has the Obsidian Key."],
             "notes": "Keep tension high.",
         }
-        caller = _make_fake_caller(_fake_tool_response(tool_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
-        result = svc.plan(_make_assembled())
+        adapter = _make_fake_adapter(_fake_tool_result(tool_input))
+        svc = PlannerService(config=_make_config())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
         assert result.plan.scene_goal == "Escape the hotel."
         assert result.plan.next_beat == "Aldric slips through the service exit."
@@ -221,15 +237,17 @@ class TestHappyPath:
             "next_beat": "Aldric moves.",
             "facts_needed": [],
         }
-        caller = _make_fake_caller(_fake_tool_response(tool_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
-        result = svc.plan(_make_assembled())
+        adapter = _make_fake_adapter(_fake_tool_result(tool_input))
+        svc = PlannerService(config=_make_config())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.notes is None
 
     def test_model_identifier_present(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        result = svc.plan(_make_assembled())
+        adapter = _make_fake_adapter(
+            _fake_tool_result(model_identifier="anthropic:claude-haiku-test")
+        )
+        svc = PlannerService(config=_make_config())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         assert result.model_identifier == "anthropic:claude-haiku-test"
 
 
@@ -364,10 +382,10 @@ class TestSchemaValidation:
 
 class TestProviderException:
     def test_provider_exception_raises_planner_pass_error(self) -> None:
-        caller = _make_fake_caller(raise_exc=RuntimeError("Network error"))
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(raise_exc=RuntimeError("Network error"))
+        svc = PlannerService(config=_make_config())
         with pytest.raises(PlannerPassError, match="Planner provider call failed"):
-            svc.plan(_make_assembled())
+            svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -377,25 +395,25 @@ class TestProviderException:
 
 class TestMissingToolBlock:
     def test_no_tool_block_raises_planner_pass_error(self) -> None:
-        no_tool_response = Message(
-            id="msg_fake_no_tool",
-            type="message",
-            role="assistant",
-            content=[TextBlock(type="text", text="I cannot plan this.")],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="end_turn",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=50,
-                output_tokens=10,
-                cache_read_input_tokens=None,
-                cache_creation_input_tokens=None,
-            ),
+        from afterworlds.pipeline.provider._models import ProviderTextPart
+
+        no_tool_result = ProviderCallResult(
+            pass_id=PipelinePassId.PLANNER,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[ProviderTextPart(text="I cannot plan this.")],
+            input_token_count=50,
+            output_token_count=10,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        caller = _make_fake_caller(response=no_tool_response)
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(no_tool_result)
+        svc = PlannerService(config=_make_config())
         with pytest.raises(PlannerPassError):
-            svc.plan(_make_assembled())
+            svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -411,11 +429,11 @@ class TestFactsNeededValidationViaService:
             "next_beat": "Aldric runs.",
             "facts_needed": ["   "],
         }
-        caller = _make_fake_caller(_fake_tool_response(bad_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result(bad_input))
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
         with pytest.raises(PlannerPassError, match="schema validation"):
-            svc.plan(_make_assembled())
+            svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
     def test_empty_string_fact_raises_planner_pass_error(self) -> None:
         bad_input = {
@@ -423,11 +441,11 @@ class TestFactsNeededValidationViaService:
             "next_beat": "Aldric runs.",
             "facts_needed": [""],
         }
-        caller = _make_fake_caller(_fake_tool_response(bad_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result(bad_input))
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
         with pytest.raises(PlannerPassError, match="schema validation"):
-            svc.plan(_make_assembled())
+            svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -436,52 +454,35 @@ class TestFactsNeededValidationViaService:
 
 
 class TestRendererStructure:
-    def test_model_in_payload(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        assert payload["model"] == "claude-haiku-test"
+    def test_pass_id_is_planner(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.pass_id == PipelinePassId.PLANNER
 
-    def test_tool_choice_forced(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        assert payload["tool_choice"] == {
-            "type": "tool",
-            "name": PRODUCE_PLAN_TOOL_NAME,
-        }
+    def test_forced_tool_name_set(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.forced_tool_name == PRODUCE_PLAN_TOOL_NAME
 
-    def test_single_user_message(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        messages = payload["messages"]
-        assert isinstance(messages, list)
-        assert len(messages) == 1
-        assert messages[0]["role"] == "user"
+    def test_tool_definitions_contain_planner_tool(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert len(request.tool_definitions) == 1
+        assert request.tool_definitions[0].name == PRODUCE_PLAN_TOOL_NAME
 
     def test_volatile_suffix_block_last(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        svc.plan(_make_assembled(current_input="I push the door."))
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        last_block = user_content[-1]
-        assert isinstance(last_block, dict)
-        assert "I push the door." in last_block.get("text", "")
-
-    def test_tool_spec_present(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        tools = payload["tools"]
-        assert isinstance(tools, list)
-        assert len(tools) == 1
-        assert tools[0]["name"] == PRODUCE_PLAN_TOOL_NAME
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
+        svc.plan(_make_assembled(current_input="I push the door."), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        last_block = request.rendered_blocks[-1]
+        assert "I push the door." in last_block.text
 
 
 # ---------------------------------------------------------------------------
@@ -490,90 +491,81 @@ class TestRendererStructure:
 
 
 class TestSystemPromptPlacement:
-    def test_pass_prompt_in_system_param(self) -> None:
-        """Planner pass contract appears in the 'system' parameter."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_pass_prompt_in_system_blocks(self) -> None:
+        """Planner pass contract appears in system_blocks."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        system = payload["system"]
-        assert isinstance(system, list)
-        assert any("PLANNER SYSTEM PROMPT" in b.get("text", "") for b in system)
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert any("PLANNER SYSTEM PROMPT" in b.text for b in request.system_blocks)
 
-    def test_mode_contract_in_system_param(self) -> None:
-        """Active mode contract appears in the 'system' parameter as second block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_mode_contract_in_system_blocks(self) -> None:
+        """Active mode contract appears in system_blocks as second block."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        system = payload["system"]
-        assert isinstance(system, list)
-        assert any("You are the story architect." in b.get("text", "") for b in system)
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert any(
+            "You are the story architect." in b.text for b in request.system_blocks
+        )
 
     def test_system_has_two_blocks(self) -> None:
-        """System param has exactly two blocks: pass contract + mode contract."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+        """system_blocks has exactly two blocks: pass contract + mode contract."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        assert len(payload["system"]) == 2
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert len(request.system_blocks) == 2
 
     def test_pass_contract_is_first_system_block(self) -> None:
         """Planner pass contract is the first system block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        assert "PLANNER SYSTEM PROMPT" in payload["system"][0].get("text", "")
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert "PLANNER SYSTEM PROMPT" in request.system_blocks[0].text
 
     def test_mode_contract_is_second_system_block(self) -> None:
         """Active mode contract is the second system block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        assert "You are the story architect." in payload["system"][1].get("text", "")
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert "You are the story architect." in request.system_blocks[1].text
 
-    def test_story_bible_is_first_user_block(self) -> None:
-        """Story Bible context is the first user-message stable-prefix block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_story_bible_is_first_rendered_block(self) -> None:
+        """Story Bible context is the first rendered stable-prefix block."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        first_block = user_content[0]
-        assert isinstance(first_block, dict)
-        assert "Story Bible" in first_block.get("text", "")
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert "Story Bible" in request.rendered_blocks[0].text
 
-    def test_mode_contract_not_in_user_blocks(self) -> None:
-        """sp.system_prompt must not appear in any user-message content block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_mode_contract_not_in_rendered_blocks(self) -> None:
+        """sp.system_prompt must not appear in any rendered_block."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER SYSTEM PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        for block in user_content:
-            assert isinstance(block, dict)
-            assert "You are the story architect." not in block.get("text", "")
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        for block in request.rendered_blocks:
+            assert "You are the story architect." not in block.text
 
-    def test_pass_prompt_not_in_user_blocks(self) -> None:
-        """Pass contract must not appear in user-message content blocks."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_pass_prompt_not_in_rendered_blocks(self) -> None:
+        """Pass contract must not appear in rendered_blocks."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "UNIQUE_PLANNER_PROMPT_MARKER"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        for block in user_content:
-            assert isinstance(block, dict)
-            assert "UNIQUE_PLANNER_PROMPT_MARKER" not in block.get("text", "")
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        for block in request.rendered_blocks:
+            assert "UNIQUE_PLANNER_PROMPT_MARKER" not in block.text
 
 
 # ---------------------------------------------------------------------------
@@ -582,46 +574,42 @@ class TestSystemPromptPlacement:
 
 
 class TestCacheBreakpoint:
-    def test_exactly_one_cache_control_marker(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_exactly_one_cache_breakpoint(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled(rolling_summary="Summary here."))
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        cached = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
+        svc.plan(_make_assembled(rolling_summary="Summary here."), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
         assert len(cached) == 1
 
-    def test_cache_control_on_last_stable_prefix_block(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_cache_breakpoint_on_last_stable_prefix_block(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled(rolling_summary="Session summary here."))
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        cached = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
+        svc.plan(
+            _make_assembled(rolling_summary="Session summary here."),
+            provider=adapter,  # type: ignore[arg-type]
+        )
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
         assert len(cached) == 1
-        # Last stable block is rolling summary when present
-        assert "Session summary here." in cached[0].get("text", "")
+        assert "Session summary here." in cached[0].text
 
-    def test_volatile_blocks_have_no_cache_control(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_volatile_blocks_have_no_cache_breakpoint(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled(current_input="What is happening?"))
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
+        svc.plan(
+            _make_assembled(current_input="What is happening?"),
+            provider=adapter,  # type: ignore[arg-type]
+        )
+        request = adapter.captured_requests[0]
         input_blocks = [
-            b
-            for b in user_content
-            if isinstance(b, dict) and "What is happening?" in b.get("text", "")
+            b for b in request.rendered_blocks if "What is happening?" in b.text
         ]
         for b in input_blocks:
-            assert "cache_control" not in b
+            assert not b.has_cache_breakpoint
 
 
 # ---------------------------------------------------------------------------
@@ -631,57 +619,49 @@ class TestCacheBreakpoint:
 
 class TestExtendedTTL:
     def test_extended_ttl_sets_1h(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(extended_ttl=True), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config(extended_ttl=True))
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        cached = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
         assert cached
-        assert cached[0]["cache_control"]["ttl"] == "1h"
+        assert cached[0].ttl == TTL_EXTENDED
 
     def test_default_ttl_sets_5m(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(extended_ttl=False), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config(extended_ttl=False))
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled())
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        cached = [
-            b for b in user_content if isinstance(b, dict) and "cache_control" in b
-        ]
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
         assert cached
-        assert cached[0]["cache_control"]["ttl"] == "5m"
+        assert cached[0].ttl == TTL_DEFAULT
 
 
 # ---------------------------------------------------------------------------
-# TestCallerInjection
+# TestProviderAdapterInjection
 # ---------------------------------------------------------------------------
 
 
-class TestCallerInjection:
-    def test_custom_caller_invoked(self) -> None:
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+class TestProviderAdapterInjection:
+    def test_provider_adapter_invoked_once(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(_make_assembled())
-        assert len(caller.captured) == 1
+        svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        assert len(adapter.captured_requests) == 1
 
-    def test_default_caller_not_constructed_when_injected(self) -> None:
-        """When a custom caller is injected, AnthropicPlannerCaller is not built."""
-        caller = _make_fake_caller()
-        # PlannerService.__init__ should not attempt to read the API key env
-        # when a caller is explicitly provided.
+    def test_no_api_key_needed_when_adapter_injected(self) -> None:
+        """Injected adapter bypasses API key env lookup in the constructor."""
         import os
 
+        adapter = _make_fake_adapter()
         original = os.environ.pop("ANTHROPIC_API_KEY", None)
         try:
-            svc = PlannerService(config=_make_config(), caller=caller)
+            svc = PlannerService(config=_make_config())
             svc._system_prompt = "PLANNER PROMPT"
-            svc.plan(_make_assembled())  # must not raise KeyError / ValueError
+            svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         finally:
             if original is not None:
                 os.environ["ANTHROPIC_API_KEY"] = original
@@ -694,36 +674,36 @@ class TestCallerInjection:
 
 class TestCacheMetricsPropagation:
     def test_all_four_token_counts_propagated(self) -> None:
-        response = _fake_tool_response(
-            input_tokens=200,
-            output_tokens=75,
-            cache_read_input_tokens=150,
-            cache_creation_input_tokens=50,
+        result = _fake_tool_result(
+            input_token_count=200,
+            output_token_count=75,
+            cache_read_token_count=150,
+            cache_creation_token_count=50,
         )
-        caller = _make_fake_caller(response=response)
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(result)
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        result = svc.plan(_make_assembled())
+        planner_result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
-        assert result.input_token_count == 200
-        assert result.output_token_count == 75
-        assert result.cache_read_token_count == 150
-        assert result.cache_creation_token_count == 50
+        assert planner_result.input_token_count == 200
+        assert planner_result.output_token_count == 75
+        assert planner_result.cache_read_token_count == 150
+        assert planner_result.cache_creation_token_count == 50
 
     def test_none_cache_counts_propagated(self) -> None:
-        response = _fake_tool_response(
-            input_tokens=100,
-            output_tokens=50,
-            cache_read_input_tokens=None,
-            cache_creation_input_tokens=None,
+        result = _fake_tool_result(
+            input_token_count=100,
+            output_token_count=50,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
         )
-        caller = _make_fake_caller(response=response)
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(result)
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        result = svc.plan(_make_assembled())
+        planner_result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
 
-        assert result.cache_read_token_count is None
-        assert result.cache_creation_token_count is None
+        assert planner_result.cache_read_token_count is None
+        assert planner_result.cache_creation_token_count is None
 
 
 # ---------------------------------------------------------------------------
@@ -737,10 +717,10 @@ class TestBuiltContextImmutability:
         original_len = len(ctx.pass_forward_ledger.entries)
         original_prompt = ctx.stable_prefix.system_prompt
 
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        svc.plan(ctx)
+        svc.plan(ctx, provider=adapter)  # type: ignore[arg-type]
 
         assert len(ctx.pass_forward_ledger.entries) == original_len
         assert ctx.stable_prefix.system_prompt == original_prompt
@@ -754,42 +734,35 @@ class TestBuiltContextImmutability:
 class TestEmptyPassForwardLedger:
     def test_empty_ledger_produces_no_extra_user_block(self) -> None:
         """Empty PassForwardLedger at Planner invocation produces no extra block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        ctx = _make_assembled()  # ledger is empty by default
-        svc.plan(ctx)
+        ctx = _make_assembled()
+        svc.plan(ctx, provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-        # No block should contain PassForwardLedger markup
-        for block in user_content:
-            assert isinstance(block, dict)
-            assert "[WRITER OUTPUT]" not in block.get("text", "")
-            assert "[PLANNER OUTPUT]" not in block.get("text", "")
+        request = adapter.captured_requests[0]
+        for block in request.rendered_blocks:
+            assert "[WRITER OUTPUT]" not in block.text
+            assert "[PLANNER OUTPUT]" not in block.text
 
-    def test_non_empty_ledger_appears_after_stable_prefix(self) -> None:
-        """Pre-populated ledger entry appears after the cache-control block."""
-        caller = _make_fake_caller()
-        svc = PlannerService(config=_make_config(), caller=caller)
+    def test_non_empty_ledger_appears_after_cache_breakpoint(self) -> None:
+        """Pre-populated ledger entry appears after the cache-breakpoint block."""
+        adapter = _make_fake_adapter()
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
         ctx = _make_assembled(ledger_entries=[("writer", "The door is open.")])
-        svc.plan(ctx)
+        svc.plan(ctx, provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        user_content = payload["messages"][0]["content"]
-
+        request = adapter.captured_requests[0]
         cached_idx = next(
-            i
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "cache_control" in b
+            i for i, b in enumerate(request.rendered_blocks) if b.has_cache_breakpoint
         )
         ledger_blocks = [
             (i, b)
-            for i, b in enumerate(user_content)
-            if isinstance(b, dict) and "The door is open." in b.get("text", "")
+            for i, b in enumerate(request.rendered_blocks)
+            if "The door is open." in b.text
         ]
-        assert ledger_blocks, "Ledger content not found in user blocks"
+        assert ledger_blocks, "Ledger content not found in rendered_blocks"
         ledger_idx = ledger_blocks[0][0]
         assert ledger_idx > cached_idx
 
@@ -806,10 +779,10 @@ class TestNotesField:
             "next_beat": "Aldric runs.",
             "facts_needed": [],
         }
-        caller = _make_fake_caller(_fake_tool_response(tool_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result(tool_input))
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        result = svc.plan(_make_assembled())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.notes is None
 
     def test_notes_value_propagates(self) -> None:
@@ -819,10 +792,10 @@ class TestNotesField:
             "facts_needed": [],
             "notes": "Keep it brief.",
         }
-        caller = _make_fake_caller(_fake_tool_response(tool_input))
-        svc = PlannerService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result(tool_input))
+        svc = PlannerService(config=_make_config())
         svc._system_prompt = "PLANNER PROMPT"
-        result = svc.plan(_make_assembled())
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.notes == "Keep it brief."
 
 
@@ -832,16 +805,15 @@ class TestNotesField:
 
 
 class TestModelIdentifier:
-    def test_model_identifier_includes_provider_prefix(self) -> None:
-        caller = _make_fake_caller()
+    def test_model_identifier_propagated_from_result(self) -> None:
+        fake = _fake_tool_result(model_identifier="anthropic:claude-haiku-custom")
+        adapter = _make_fake_adapter(fake)
         svc = PlannerService(
-            config=PlannerConfig(model="claude-haiku-custom", api_key_env="X"),
-            caller=caller,
+            config=PlannerConfig(model="claude-haiku-custom", api_key_env="X")
         )
         svc._system_prompt = "PLANNER PROMPT"
-        result = svc.plan(_make_assembled())
-        assert result.model_identifier.startswith("anthropic:")
-        assert "claude-haiku-custom" in result.model_identifier
+        result = svc.plan(_make_assembled(), provider=adapter)  # type: ignore[arg-type]
+        assert result.model_identifier == "anthropic:claude-haiku-custom"
 
 
 # ---------------------------------------------------------------------------
@@ -889,8 +861,6 @@ class TestCacheLayoutMatchesWriter:
     def test_stable_texts_identical_to_writer(self) -> None:
         ctx = _make_assembled(rolling_summary="Summary for cache test.")
         planner_texts = _collect_stable_texts(ctx)
-        # Issue 12c: Writer and Planner now share one renderer.  Reach into the
-        # shared module directly instead of the historical private helper.
         writer_texts = _collect_stable_texts(ctx)
         assert planner_texts == writer_texts
 

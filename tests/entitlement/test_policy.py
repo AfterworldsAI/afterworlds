@@ -289,6 +289,133 @@ def test_compute_deduction_unchanged_for_valid_positive_snapshots() -> None:
     assert deduction == Decimal("1.5")
 
 
+# ---------------------------------------------------------------------------
+# P1-2: extract_snapshots propagates provider and model_tier from pass results
+# ---------------------------------------------------------------------------
+
+
+def test_extract_snapshots_propagates_provider_and_model_tier() -> None:
+    """P1-2: extract_snapshots copies provider/model_tier from pass results."""
+    from uuid import uuid4
+
+    from afterworlds.models.enums import IntentType
+    from afterworlds.models.extractor import (
+        ExtractorProposalSet,
+        ExtractorRoutingSummary,
+    )
+    from afterworlds.models.intent_classification import IntentClassificationResult
+    from afterworlds.pipeline.contradiction.models import (
+        ContradictionResult,
+        ContradictionVerdict,
+    )
+    from afterworlds.pipeline.extractor.models import ExtractorResult
+    from afterworlds.pipeline.orchestrator.models import (
+        OrchestrationResult,
+        PipelineDisposition,
+    )
+    from afterworlds.pipeline.planner.models import PlannerOutput, PlannerResult
+    from afterworlds.pipeline.writer.models import WriterResult
+
+    turn_id = uuid4()
+    planner = PlannerResult(
+        plan=PlannerOutput(scene_goal="g", next_beat="b", facts_needed=[]),
+        model_identifier="claude-haiku",
+        latency_ms=0,
+        input_token_count=100,
+        output_token_count=50,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        provider="anthropic",
+        model_tier="haiku",
+    )
+    writer = WriterResult(
+        turn_id=turn_id,
+        assistant_output="prose",
+        model_identifier="claude-sonnet",
+        latency_ms=0,
+        input_token_count=200,
+        output_token_count=80,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        provider="anthropic",
+        model_tier="sonnet",
+    )
+    extractor = ExtractorResult(
+        proposal_set=ExtractorProposalSet(proposals=[]),
+        routed=ExtractorRoutingSummary(
+            locked_fact_staged_ids=[],
+            soft_fact_staged_ids=[],
+            transient_state_staged_ids=[],
+            unresolved_thread_staged_ids=[],
+            event_ids=[],
+        ),
+        input_token_count=150,
+        output_token_count=60,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        provider="anthropic",
+        model_identifier="claude-sonnet",
+        model_tier="sonnet",
+    )
+    contradiction = ContradictionResult(
+        verdict=ContradictionVerdict.CLEAR,
+        violations=[],
+        model_identifier="claude-haiku",
+        latency_ms=0,
+        input_token_count=80,
+        output_token_count=20,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        provider="anthropic",
+        model_tier="haiku",
+    )
+    result = OrchestrationResult(
+        disposition=PipelineDisposition.DELIVERED,
+        delivered_output="prose",
+        turn_id=turn_id,
+        intent_classification=IntentClassificationResult(
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            confidence=1.0,
+            raw_input="",
+            ambiguous=False,
+        ),
+        planner_result=planner,
+        writer_result=writer,
+        extractor_result=extractor,
+        contradiction_result=contradiction,
+        total_latency_ms=0,
+        pass_latency_breakdown={},
+    )
+
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    assert all(s.provider == "anthropic" for s in snapshots)
+    writer_snap = next(s for s in snapshots if s.pass_id == PipelinePassId.WRITER)
+    assert writer_snap.model_tier == ModelTier.SONNET
+    planner_snap = next(s for s in snapshots if s.pass_id == PipelinePassId.PLANNER)
+    assert planner_snap.model_tier == ModelTier.HAIKU
+
+
+def test_compute_deduction_with_real_normalization_succeeds() -> None:
+    """P1: compute_deduction with AnthropicNormalizationFactorProvider succeeds."""
+    from afterworlds.pipeline.provider.normalization import (
+        AnthropicNormalizationFactorProvider,
+    )
+
+    snapshots = [
+        PassUsageSnapshot(
+            pass_id=PipelinePassId.WRITER,
+            model_tier=ModelTier.SONNET,
+            provider="anthropic",
+            input_tokens=1000,
+            output_tokens=500,
+        )
+    ]
+    deduction = make_policy("1000").compute_deduction(
+        snapshots, normalization=AnthropicNormalizationFactorProvider()
+    )
+    assert deduction > 0
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

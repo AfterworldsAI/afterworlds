@@ -1,10 +1,8 @@
-"""Default-CI integration tests for PlannerService — CRD Issue 12a.
+"""Default-CI integration tests for PlannerService — CRD Issue 12a / 14a.
 
-Uses a high-fidelity fake caller with two scripted scenarios:
+Uses a high-fidelity fake ProviderAdapter with two scripted scenarios:
   - Scenario A: action input → well-formed plan with notes
   - Scenario B: exploration input → plan with empty facts_needed and no notes
-
-These tests run in default CI (no special env flags required).
 """
 
 from __future__ import annotations
@@ -12,8 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from anthropic.types import Message, ToolUseBlock, Usage
-
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -27,10 +24,11 @@ from afterworlds.models.story_bible import CastEntry, StoryBibleContext
 from afterworlds.pipeline.planner.caller import PRODUCE_PLAN_TOOL_NAME
 from afterworlds.pipeline.planner.config import PlannerConfig
 from afterworlds.pipeline.planner.service import PlannerService
-
-# ---------------------------------------------------------------------------
-# Shared context factory
-# ---------------------------------------------------------------------------
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderToolCallPart,
+)
 
 
 def _make_context(current_input: str = "I try to pick the lock.") -> AssembledContext:
@@ -77,51 +75,38 @@ def _make_context(current_input: str = "I try to pick the lock.") -> AssembledCo
     )
 
 
-# ---------------------------------------------------------------------------
-# High-fidelity fake
-# ---------------------------------------------------------------------------
+class _ScriptedAdapter:
+    """Fake ProviderAdapter that plays back scripted tool inputs in order."""
 
+    def __init__(self, tool_inputs: list[dict]) -> None:
+        self._responses = [
+            ProviderCallResult(
+                pass_id=PipelinePassId.PLANNER,
+                provider_name="anthropic",
+                model_identifier="anthropic:claude-haiku-test",
+                model_tier=ModelTier.HAIKU,
+                content_parts=[
+                    ProviderToolCallPart(
+                        tool_name=PRODUCE_PLAN_TOOL_NAME,
+                        tool_input=ti,
+                    )
+                ],
+                input_token_count=120,
+                output_token_count=60,
+                cache_read_token_count=90,
+                cache_creation_token_count=None,
+                cache_warmed=True,
+                latency_ms=5,
+            )
+            for ti in tool_inputs
+        ]
+        self._idx = 0
+        self.provider_name = "anthropic"
 
-def _scripted_caller(tool_inputs: list[dict]) -> object:  # type: ignore[type-arg]
-    """Return a caller that plays back scripted tool inputs in order."""
-    responses = [
-        Message(
-            id=f"msg_fake_{i}",
-            type="message",
-            role="assistant",
-            content=[
-                ToolUseBlock(
-                    type="tool_use",
-                    id=f"toolu_fake_{i}",
-                    name=PRODUCE_PLAN_TOOL_NAME,
-                    input=ti,
-                )
-            ],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="tool_use",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=120,
-                output_tokens=60,
-                cache_read_input_tokens=90,
-                cache_creation_input_tokens=None,
-            ),
-        )
-        for i, ti in enumerate(tool_inputs)
-    ]
-    idx = [0]
-
-    def caller(payload: object) -> Message:  # type: ignore[type-arg]
-        response = responses[idx[0]]
-        idx[0] += 1
-        return response
-
-    return caller
-
-
-# ---------------------------------------------------------------------------
-# Scenario A — action input with notes
-# ---------------------------------------------------------------------------
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        result = self._responses[self._idx]
+        self._idx += 1
+        return result
 
 
 class TestScenarioAWithNotes:
@@ -135,52 +120,51 @@ class TestScenarioAWithNotes:
         "notes": "Keep prose tense; use short sentences.",
     }
 
-    def _make_svc(self) -> PlannerService:
+    def _make_svc(self) -> tuple[PlannerService, _ScriptedAdapter]:
         config = PlannerConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        svc = PlannerService(
-            config=config,
-            caller=_scripted_caller([self.SCRIPTED_PLAN]),  # type: ignore[arg-type]
-        )
+        svc = PlannerService(config=config)
         svc._system_prompt = "PLANNER PROMPT"
-        return svc
+        adapter = _ScriptedAdapter([self.SCRIPTED_PLAN])
+        return svc, adapter
 
     def test_scene_goal_present(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.scene_goal == "Escape room 14 without being detected."
 
     def test_next_beat_present(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert "Aldric Crane" in result.plan.next_beat
 
     def test_facts_needed_populated(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert len(result.plan.facts_needed) == 2
         assert any("lockpick" in f for f in result.plan.facts_needed)
 
     def test_notes_present(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.notes is not None
         assert "tense" in result.plan.notes
 
     def test_token_metrics_present(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert result.input_token_count == 120
         assert result.output_token_count == 60
         assert result.cache_read_token_count == 90
         assert result.cache_creation_token_count is None
 
     def test_model_identifier(self) -> None:
-        result = self._make_svc().plan(_make_context("I try to pick the lock."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I try to pick the lock."), provider=adapter)  # type: ignore[arg-type]
         assert result.model_identifier == "anthropic:claude-haiku-test"
-
-
-# ---------------------------------------------------------------------------
-# Scenario B — exploration input, no notes
-# ---------------------------------------------------------------------------
 
 
 class TestScenarioBNoNotes:
@@ -190,31 +174,30 @@ class TestScenarioBNoNotes:
         "facts_needed": [],
     }
 
-    def _make_svc(self) -> PlannerService:
+    def _make_svc(self) -> tuple[PlannerService, _ScriptedAdapter]:
         config = PlannerConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        svc = PlannerService(
-            config=config,
-            caller=_scripted_caller([self.SCRIPTED_PLAN]),  # type: ignore[arg-type]
-        )
+        svc = PlannerService(config=config)
         svc._system_prompt = "PLANNER PROMPT"
-        return svc
+        adapter = _ScriptedAdapter([self.SCRIPTED_PLAN])
+        return svc, adapter
 
     def test_facts_needed_empty(self) -> None:
-        result = self._make_svc().plan(_make_context("I look around the room."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I look around the room."), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.facts_needed == []
 
     def test_notes_none(self) -> None:
-        result = self._make_svc().plan(_make_context("I look around the room."))
+        svc, adapter = self._make_svc()
+        result = svc.plan(_make_context("I look around the room."), provider=adapter)  # type: ignore[arg-type]
         assert result.plan.notes is None
 
     def test_context_not_mutated(self) -> None:
+        svc, adapter = self._make_svc()
         ctx = _make_context("I look around the room.")
         original_len = len(ctx.pass_forward_ledger.entries)
-
-        self._make_svc().plan(ctx)
-
+        svc.plan(ctx, provider=adapter)  # type: ignore[arg-type]
         assert len(ctx.pass_forward_ledger.entries) == original_len

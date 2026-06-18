@@ -1,10 +1,14 @@
-"""Orchestrator typed shapes and execution policy — CRD Issue 12c.
+"""Orchestrator typed shapes and execution policy — CRD Issue 12c / 14a.
 
 This module defines the exhaustive disposition enum, the typed
 ``OrchestrationResult`` produced by ``OrchestratorService.orchestrate_turn``,
-the ``OrchestratorError`` raised when a result is constructed with invalid
-field combinations, and the conservative v1 ``SafetyPolicy`` that decides
-when Safety Input Preflight and Output Audit actually run.
+and the ``OrchestratorError`` raised when a result is constructed with invalid
+field combinations.
+
+Issue 14a: ``SafetyPolicy`` (12c) is replaced by
+``CapabilityProfileAwareSafetyPolicy`` from ``pipeline.provider._routing``.
+``SafetyPolicy`` is re-exported here for import compatibility with existing
+tests; new code should import ``CapabilityProfileAwareSafetyPolicy`` directly.
 
 The disposition-population invariants table in Issue 12c is enforced at
 ``OrchestrationResult`` construction time via a Pydantic ``model_validator``.
@@ -28,6 +32,10 @@ from afterworlds.pipeline.contradiction.models import (
 )
 from afterworlds.pipeline.extractor.models import ExtractorResult
 from afterworlds.pipeline.planner.models import PlannerResult
+from afterworlds.pipeline.provider._routing import (
+    CapabilityProfileAwareSafetyPolicy,
+    SafetyPolicyContext,
+)
 from afterworlds.pipeline.safety.models import SafetyResult, SafetyVerdict
 from afterworlds.pipeline.writer.models import WriterResult
 
@@ -75,65 +83,6 @@ class OrchestratorError(Exception):
 
 
 # ---------------------------------------------------------------------------
-# Safety execution policy
-# ---------------------------------------------------------------------------
-
-
-class SafetyPolicy:
-    """Decides whether Input Preflight and Output Audit run for a turn.
-
-    Conservative v1 default (Issue 12c):
-
-    - Whitelist of provider identifiers that may skip Safety calls is
-      empty.  Both Input Preflight and Output Audit therefore run on every
-      turn until Issue 14 introduces provider capability profiles.
-    - ``request_risk_signal`` is the caller-injected escape hatch.  When
-      True, Input Preflight runs unconditionally regardless of provider
-      whitelist state.  v1 callers leave this False; later UI work may
-      populate it.
-
-    ``writer_provider`` is the provider used (or to be used) by the Writer
-    pass for this turn.  Input Preflight uses it because the goal is to
-    avoid sending policy-violating input to a provider that has not been
-    certified.  Output Audit uses it together with the Writer result so
-    Issue 14 can later refine the predicate (e.g. skip Output Audit on
-    short low-risk Writer outputs from whitelisted providers).
-    """
-
-    def __init__(self, whitelisted_providers: frozenset[str] | None = None) -> None:
-        self._whitelist: frozenset[str] = whitelisted_providers or frozenset()
-
-    @property
-    def whitelisted_providers(self) -> frozenset[str]:
-        return self._whitelist
-
-    def should_run_input_preflight(
-        self,
-        writer_provider: str,
-        request_risk_signal: bool,
-    ) -> bool:
-        """Run Input Preflight if provider is not whitelisted or risk is set."""
-        if request_risk_signal:
-            return True
-        return writer_provider not in self._whitelist
-
-    def should_run_output_audit(
-        self,
-        writer_provider: str,
-        writer_result: WriterResult,
-    ) -> bool:
-        """Run Output Audit on the same conservative whitelist as input.
-
-        ``writer_result`` is accepted so Issue 14 can refine the predicate
-        based on per-call characteristics (length, latency, observed
-        refusal patterns) without changing the orchestrator contract.  v1
-        ignores it.
-        """
-        del writer_result  # v1: predicate is provider-driven only.
-        return writer_provider not in self._whitelist
-
-
-# ---------------------------------------------------------------------------
 # OrchestrationResult
 # ---------------------------------------------------------------------------
 
@@ -167,6 +116,10 @@ class OrchestrationResult(BaseModel):
 
     total_latency_ms: int
     pass_latency_breakdown: dict[str, int]
+
+    # Additive Issue 14a field: True iff any pass reported a cache read.
+    # Issue 19 uses this for optional "resuming your story" UX.
+    stable_prefix_cache_warmed: bool = False
 
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
@@ -418,9 +371,14 @@ class OrchestrationResult(BaseModel):
             )
 
 
+# 12c compatibility alias — new code should import CapabilityProfileAwareSafetyPolicy.
+SafetyPolicy = CapabilityProfileAwareSafetyPolicy
+
 __all__ = [
+    "CapabilityProfileAwareSafetyPolicy",
     "OrchestrationResult",
     "OrchestratorError",
     "PipelineDisposition",
     "SafetyPolicy",
+    "SafetyPolicyContext",
 ]

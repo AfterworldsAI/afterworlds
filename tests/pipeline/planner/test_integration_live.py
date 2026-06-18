@@ -28,6 +28,7 @@ from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.story_bible import CastEntry, StoryBibleContext
 from afterworlds.pipeline.planner.config import PlannerConfig
 from afterworlds.pipeline.planner.service import PlannerService
+from afterworlds.pipeline.provider.adapters._anthropic import AnthropicDirectAdapter
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("AFTERWORLDS_LIVE_TESTS") != "1",
@@ -83,12 +84,16 @@ def _make_context() -> AssembledContext:
     )
 
 
+def _make_adapter() -> AnthropicDirectAdapter:
+    return AnthropicDirectAdapter(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
 class TestLivePlan:
     def test_returns_non_empty_plan(self) -> None:
-        config = PlannerConfig.from_env()
-        svc = PlannerService(config=config)
+        svc = PlannerService(config=PlannerConfig.from_env())
+        adapter = _make_adapter()
 
-        result = svc.plan(_make_context())
+        result = svc.plan(_make_context(), provider=adapter)
 
         assert result.plan.scene_goal.strip()
         assert result.plan.next_beat.strip()
@@ -98,10 +103,10 @@ class TestLivePlan:
         assert result.latency_ms >= 0
 
     def test_notes_is_none_or_non_empty_string(self) -> None:
-        config = PlannerConfig.from_env()
-        svc = PlannerService(config=config)
+        svc = PlannerService(config=PlannerConfig.from_env())
+        adapter = _make_adapter()
 
-        result = svc.plan(_make_context())
+        result = svc.plan(_make_context(), provider=adapter)
 
         assert result.plan.notes is None or (
             isinstance(result.plan.notes, str) and result.plan.notes.strip()

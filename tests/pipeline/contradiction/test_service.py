@@ -1,4 +1,4 @@
-"""Unit tests for ContradictionService — CRD Issue 11.
+"""Unit tests for ContradictionService — CRD Issue 11 / 14a.
 
 Test classes
 ------------
@@ -9,9 +9,9 @@ TestSchemaValidation          — ContradictionViolation field_validator
 TestProviderException         — provider exception → ContradictionPassError
 TestMissingToolBlock          — no tool-use block → ContradictionPassError
 TestEmptyViolations           — empty violations array is valid (CLEAR)
-TestRendererStructure         — payload shape: model, tool_choice, system, ledger order
-TestExtendedTTL               — cache_control ttl honours extended_ttl config flag
-TestCallerInjection           — custom caller is invoked; default caller not constructed
+TestRendererStructure         — ProviderCallRequest shape: pass_id, tool, system, order
+TestExtendedTTL               — cache breakpoint ttl honours extended_ttl config flag
+TestAdapterInjection          — injected adapter is invoked; default not constructed
 TestCacheMetricsPropagation   — all four token counts propagated to ContradictionResult
 TestBuiltContextImmutability  — caller's AssembledContext is not mutated
 TestPassForwardLedgerPreserved — pre-existing ledger entries preserved in derived ctx
@@ -27,8 +27,8 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
-from anthropic.types import Message, TextBlock, ToolUseBlock, Usage
 
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardEntry,
@@ -46,10 +46,8 @@ from afterworlds.models.story_bible import (
     CastEntry,
     StoryBibleContext,
 )
-from afterworlds.pipeline.contradiction.caller import (
-    REPORT_TOOL_NAME,
-    ContradictionPayload,
-)
+from afterworlds.pipeline._stable_prefix_renderer import TTL_DEFAULT, TTL_EXTENDED
+from afterworlds.pipeline.contradiction.caller import REPORT_TOOL_NAME
 from afterworlds.pipeline.contradiction.config import ContradictionConfig
 from afterworlds.pipeline.contradiction.models import (
     ContradictionCategory,
@@ -61,6 +59,12 @@ from afterworlds.pipeline.contradiction.models import (
 from afterworlds.pipeline.contradiction.service import (
     ContradictionService,
     _derive_context,
+)
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderTextPart,
+    ProviderToolCallPart,
 )
 
 # ---------------------------------------------------------------------------
@@ -130,51 +134,59 @@ def _make_assembled(
     )
 
 
-def _fake_tool_response(
+def _fake_tool_result(
     tool_input: dict[str, Any] | None = None,
-    input_tokens: int = 100,
-    output_tokens: int = 50,
-    cache_read_input_tokens: int | None = None,
-    cache_creation_input_tokens: int | None = None,
-) -> Message:
-    return Message(
-        id="msg_fake_contradiction",
-        type="message",
-        role="assistant",
-        content=[
-            ToolUseBlock(
-                type="tool_use",
-                id="toolu_fake_01",
-                name=REPORT_TOOL_NAME,
-                input=tool_input if tool_input is not None else {"violations": []},
+    input_token_count: int = 100,
+    output_token_count: int = 50,
+    cache_read_token_count: int | None = None,
+    cache_creation_token_count: int | None = None,
+    model_identifier: str = "anthropic:claude-haiku-test",
+) -> ProviderCallResult:
+    return ProviderCallResult(
+        pass_id=PipelinePassId.CONTRADICTION,
+        provider_name="anthropic",
+        model_identifier=model_identifier,
+        model_tier=ModelTier.HAIKU,
+        content_parts=[
+            ProviderToolCallPart(
+                tool_name=REPORT_TOOL_NAME,
+                tool_input=tool_input if tool_input is not None else {"violations": []},
             )
         ],
-        model="claude-haiku-4-5-20251001",
-        stop_reason="tool_use",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            cache_read_input_tokens=cache_read_input_tokens,
-            cache_creation_input_tokens=cache_creation_input_tokens,
-        ),
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+        cache_read_token_count=cache_read_token_count,
+        cache_creation_token_count=cache_creation_token_count,
+        cache_warmed=bool(cache_read_token_count),
+        latency_ms=1,
     )
 
 
-def _make_fake_caller(
-    response: Message | None = None,
+class _FakeProviderAdapter:
+    """Capturing fake ProviderAdapter for ContradictionService tests."""
+
+    def __init__(
+        self,
+        result: ProviderCallResult | None = None,
+        raise_exc: Exception | None = None,
+    ) -> None:
+        self._result = result
+        self._raise_exc = raise_exc
+        self.captured_requests: list[ProviderCallRequest] = []
+        self.provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.captured_requests.append(request)
+        if self._raise_exc is not None:
+            raise self._raise_exc
+        return self._result or _fake_tool_result()
+
+
+def _make_fake_adapter(
+    result: ProviderCallResult | None = None,
     raise_exc: Exception | None = None,
-):  # type: ignore[no-untyped-def]
-    captured: list[ContradictionPayload] = []
-
-    def caller(payload: ContradictionPayload) -> Message:
-        captured.append(payload)
-        if raise_exc is not None:
-            raise raise_exc
-        return response or _fake_tool_response()
-
-    caller.captured = captured  # type: ignore[attr-defined]
-    return caller
+) -> _FakeProviderAdapter:
+    return _FakeProviderAdapter(result=result, raise_exc=raise_exc)
 
 
 def _make_violation_dict(
@@ -196,25 +208,27 @@ def _make_violation_dict(
 
 class TestHappyPathClear:
     def test_returns_clear_verdict_on_empty_violations(self) -> None:
-        caller = _make_fake_caller(_fake_tool_response({"violations": []}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": []}))
+        svc = ContradictionService(config=_make_config())
         ctx = _make_assembled()
 
-        result = svc.check(ctx, "You pocket the key and step into the corridor.")
+        result = svc.check(  # type: ignore[arg-type]
+            ctx, "You pocket the key and step into the corridor.", provider=adapter
+        )
 
         assert result.verdict == ContradictionVerdict.CLEAR
         assert result.violations == []
 
     def test_result_type(self) -> None:
-        caller = _make_fake_caller(_fake_tool_response({"violations": []}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose here.")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": []}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose here.", provider=adapter)  # type: ignore[arg-type]
         assert isinstance(result, ContradictionResult)
 
     def test_model_identifier_present(self) -> None:
-        caller = _make_fake_caller(_fake_tool_response({"violations": []}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose here.")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": []}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose here.", provider=adapter)  # type: ignore[arg-type]
         assert result.model_identifier == "anthropic:claude-haiku-test"
 
 
@@ -226,10 +240,12 @@ class TestHappyPathClear:
 class TestHappyPathBlocked:
     def test_returns_blocked_verdict_on_violations(self) -> None:
         viol = _make_violation_dict()
-        caller = _make_fake_caller(_fake_tool_response({"violations": [viol]}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": [viol]}))
+        svc = ContradictionService(config=_make_config())
 
-        result = svc.check(_make_assembled(), "Aldric walks into the precinct.")
+        result = svc.check(  # type: ignore[arg-type]
+            _make_assembled(), "Aldric walks into the precinct.", provider=adapter
+        )
 
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert len(result.violations) == 1
@@ -240,10 +256,10 @@ class TestHappyPathBlocked:
             description="Aldric at the precinct.",
             canon_reference="Story Bible: Aldric is at The Meridian Hotel.",
         )
-        caller = _make_fake_caller(_fake_tool_response({"violations": [viol]}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": [viol]}))
+        svc = ContradictionService(config=_make_config())
 
-        result = svc.check(_make_assembled(), "Prose.")
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
         v = result.violations[0]
         assert v.category == ContradictionCategory.LOCATION_DRIFT
@@ -255,10 +271,10 @@ class TestHappyPathBlocked:
             _make_violation_dict("location_drift", "A at precinct.", "A is at hotel."),
             _make_violation_dict("name_drift", "Called 'Drake'.", "Name is 'Aldric'."),
         ]
-        caller = _make_fake_caller(_fake_tool_response({"violations": viols}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": viols}))
+        svc = ContradictionService(config=_make_config())
 
-        result = svc.check(_make_assembled(), "Prose.")
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert len(result.violations) == 2
@@ -271,29 +287,26 @@ class TestHappyPathBlocked:
 
 class TestVerdictDerivation:
     def test_clear_when_empty(self) -> None:
-        caller = _make_fake_caller(_fake_tool_response({"violations": []}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": []}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.CLEAR
 
     def test_blocked_when_non_empty(self) -> None:
         viol = _make_violation_dict()
-        caller = _make_fake_caller(_fake_tool_response({"violations": [viol]}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": [viol]}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.BLOCKED
 
     def test_verdict_not_returned_by_model(self) -> None:
-        # The tool schema does not include a 'verdict' field.
-        # Providing one in the tool input does not propagate to the result.
         tool_input = {
             "violations": [],
-            "verdict": "BLOCKED",  # spurious field — should be ignored
+            "verdict": "BLOCKED",
         }
-        caller = _make_fake_caller(_fake_tool_response(tool_input))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
-        # Derived from violations list — not from the model's spurious field.
+        adapter = _make_fake_adapter(_fake_tool_result(tool_input))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.CLEAR
 
 
@@ -344,7 +357,6 @@ class TestSchemaValidation:
         assert v.category == ContradictionCategory.LOCATION_DRIFT
 
     def test_schema_validation_error_wraps_as_pass_error(self) -> None:
-        # Tool input with empty description → validation fails → ContradictionPassError
         bad_input = {
             "violations": [
                 {
@@ -354,11 +366,11 @@ class TestSchemaValidation:
                 }
             ]
         }
-        caller = _make_fake_caller(_fake_tool_response(bad_input))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(_fake_tool_result(bad_input))
+        svc = ContradictionService(config=_make_config())
 
         with pytest.raises(ContradictionPassError, match="schema validation"):
-            svc.check(_make_assembled(), "Prose.")
+            svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -368,18 +380,18 @@ class TestSchemaValidation:
 
 class TestProviderException:
     def test_provider_exception_raises_pass_error(self) -> None:
-        caller = _make_fake_caller(raise_exc=RuntimeError("network timeout"))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(raise_exc=RuntimeError("network timeout"))
+        svc = ContradictionService(config=_make_config())
 
         with pytest.raises(ContradictionPassError, match="provider call failed"):
-            svc.check(_make_assembled(), "Prose.")
+            svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
     def test_original_exception_chained(self) -> None:
-        caller = _make_fake_caller(raise_exc=RuntimeError("boom"))
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(raise_exc=RuntimeError("boom"))
+        svc = ContradictionService(config=_make_config())
 
         with pytest.raises(ContradictionPassError) as exc_info:
-            svc.check(_make_assembled(), "Prose.")
+            svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
         assert isinstance(exc_info.value.__cause__, RuntimeError)
 
@@ -391,55 +403,52 @@ class TestProviderException:
 
 class TestMissingToolBlock:
     def test_no_tool_block_raises_pass_error(self) -> None:
-        prose_response = Message(
-            id="msg_fake",
-            type="message",
-            role="assistant",
-            content=[TextBlock(type="text", text="The prose is fine.")],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="end_turn",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=100,
-                output_tokens=20,
-                cache_read_input_tokens=None,
-                cache_creation_input_tokens=None,
-            ),
+        no_tool_result = ProviderCallResult(
+            pass_id=PipelinePassId.CONTRADICTION,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[ProviderTextPart(text="The prose is fine.")],
+            input_token_count=100,
+            output_token_count=20,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        caller = _make_fake_caller(prose_response)
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(no_tool_result)
+        svc = ContradictionService(config=_make_config())
 
-        with pytest.raises(ContradictionPassError, match="no '.*' tool-use block"):
-            svc.check(_make_assembled(), "Prose.")
+        with pytest.raises(
+            ContradictionPassError,
+            match="no '.*' tool-use block|missing tool-use block",
+        ):
+            svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
     def test_wrong_tool_name_raises_pass_error(self) -> None:
-        wrong_name_response = Message(
-            id="msg_fake",
-            type="message",
-            role="assistant",
-            content=[
-                ToolUseBlock(
-                    type="tool_use",
-                    id="toolu_fake",
-                    name="some_other_tool",
-                    input={"violations": []},
+        wrong_name_result = ProviderCallResult(
+            pass_id=PipelinePassId.CONTRADICTION,
+            provider_name="anthropic",
+            model_identifier="anthropic:claude-haiku-test",
+            model_tier=ModelTier.HAIKU,
+            content_parts=[
+                ProviderToolCallPart(
+                    tool_name="some_other_tool",
+                    tool_input={"violations": []},
                 )
             ],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="tool_use",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=100,
-                output_tokens=20,
-                cache_read_input_tokens=None,
-                cache_creation_input_tokens=None,
-            ),
+            input_token_count=100,
+            output_token_count=20,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            cache_warmed=False,
+            latency_ms=1,
         )
-        caller = _make_fake_caller(wrong_name_response)
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter(wrong_name_result)
+        svc = ContradictionService(config=_make_config())
 
         with pytest.raises(ContradictionPassError):
-            svc.check(_make_assembled(), "Prose.")
+            svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -449,9 +458,9 @@ class TestMissingToolBlock:
 
 class TestEmptyViolations:
     def test_empty_array_is_valid(self) -> None:
-        caller = _make_fake_caller(_fake_tool_response({"violations": []}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": []}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.CLEAR
         assert result.violations == []
 
@@ -462,44 +471,40 @@ class TestEmptyViolations:
 
 
 class TestRendererStructure:
-    def test_payload_model_matches_config(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        payload = caller.captured[0]
-        assert payload["model"] == "claude-haiku-test"
+    def test_pass_id_is_contradiction(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.pass_id == PipelinePassId.CONTRADICTION
 
-    def test_payload_tool_choice_forces_report_tool(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        payload = caller.captured[0]
-        assert payload["tool_choice"] == {"type": "tool", "name": REPORT_TOOL_NAME}
+    def test_forced_tool_name_set(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.forced_tool_name == REPORT_TOOL_NAME
 
     def test_payload_has_system_blocks(self) -> None:
-        """Issue 12c: ``system`` carries [pass contract, mode contract]."""
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        payload = caller.captured[0]
-        assert len(payload["system"]) == 2
-        assert all(b["type"] == "text" for b in payload["system"])
+        """system_blocks carries [pass contract, mode contract]."""
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert len(request.system_blocks) == 2
 
-    def test_system_field_contains_contradiction_pass_prompt(self) -> None:
+    def test_system_block_contains_contradiction_pass_prompt(self) -> None:
         """First system block is the Contradiction pass prompt."""
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        payload = caller.captured[0]
-        system_text = payload["system"][0]["text"]
-        assert "Contradiction Checker" in system_text
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert "Contradiction Checker" in request.system_blocks[0].text
 
     def test_mode_contract_is_second_system_block(self) -> None:
-        """Issue 12c: mode contract moved from user blocks to system[1]."""
+        """Issue 12c: mode contract moved from user blocks to system_blocks[1]."""
         MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
         ctx = _make_assembled()
-        from afterworlds.models.context import StablePrefix
-
         new_sp = StablePrefix(
             system_prompt=MODE_CONTRACT,
             story_bible_context=ctx.stable_prefix.story_bible_context,
@@ -512,19 +517,17 @@ class TestRendererStructure:
             volatile_suffix=ctx.volatile_suffix,
             pass_forward_ledger=ctx.pass_forward_ledger,
         )
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(ctx2, "Prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(ctx2, "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        assert payload["system"][1]["text"] == MODE_CONTRACT
+        request = adapter.captured_requests[0]
+        assert request.system_blocks[1].text == MODE_CONTRACT
 
-    def test_mode_contract_absent_from_user_blocks(self) -> None:
-        """Issue 12c: mode contract no longer duplicated into user blocks."""
+    def test_mode_contract_absent_from_rendered_blocks(self) -> None:
+        """Issue 12c: mode contract no longer duplicated into rendered_blocks."""
         MODE_CONTRACT = "UNIQUE-MODE-CONTRACT-SENTINEL"
         ctx = _make_assembled()
-        from afterworlds.models.context import StablePrefix
-
         new_sp = StablePrefix(
             system_prompt=MODE_CONTRACT,
             story_bible_context=ctx.stable_prefix.story_bible_context,
@@ -537,45 +540,36 @@ class TestRendererStructure:
             volatile_suffix=ctx.volatile_suffix,
             pass_forward_ledger=ctx.pass_forward_ledger,
         )
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(ctx2, "Prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(ctx2, "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        texts = [b["text"] for b in caller.captured[0]["messages"][0]["content"]]
+        request = adapter.captured_requests[0]
         assert not any(
-            MODE_CONTRACT in t for t in texts
-        ), "Mode contract must not appear in user-message stable region after 12c"
+            MODE_CONTRACT in b.text for b in request.rendered_blocks
+        ), "Mode contract must not appear in rendered_blocks after 12c"
 
-    def test_cache_breakpoint_on_last_stable_prefix_block_not_writer(self) -> None:
+    def test_cache_breakpoint_precedes_writer_output_and_volatile(self) -> None:
         """Cache breakpoint on the final stable-prefix block, before writer/volatile."""
-        caller = _make_fake_caller()
-        svc = ContradictionService(
-            config=_make_config(extended_ttl=True), caller=caller
-        )
-        svc.check(_make_assembled(), "Writer prose here.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config(extended_ttl=True))
+        svc.check(_make_assembled(), "Writer prose here.", provider=adapter)  # type: ignore[arg-type]
 
-        content = caller.captured[0]["messages"][0]["content"]
+        request = adapter.captured_requests[0]
+        blocks = request.rendered_blocks
         cache_idx = next(
-            (i for i, b in enumerate(content) if b.get("cache_control") is not None),
+            (i for i, b in enumerate(blocks) if b.has_cache_breakpoint),
             None,
         )
         writer_idx = next(
-            (
-                i
-                for i, b in enumerate(content)
-                if "[WRITER OUTPUT]" in b.get("text", "")
-            ),
+            (i for i, b in enumerate(blocks) if "[WRITER OUTPUT]" in b.text),
             None,
         )
         volatile_idx = next(
-            (
-                i
-                for i, b in enumerate(content)
-                if "I step into the corridor." in b.get("text", "")
-            ),
+            (i for i, b in enumerate(blocks) if "I step into the corridor." in b.text),
             None,
         )
-        assert cache_idx is not None, "No cache_control block found"
+        assert cache_idx is not None, "No cache breakpoint block found"
         assert writer_idx is not None, "No writer output block found"
         assert volatile_idx is not None, "No volatile suffix block found"
         assert (
@@ -586,48 +580,45 @@ class TestRendererStructure:
         ), "Cache breakpoint must precede volatile suffix block"
 
     def test_writer_output_in_ledger_before_volatile_suffix(self) -> None:
-        """Writer output must appear before recent turns / current input."""
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        """Writer output must appear before current input in rendered_blocks."""
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
         writer_output = "THE WRITER PROSE HERE"
-        svc.check(_make_assembled(), writer_output)
+        svc.check(_make_assembled(), writer_output, provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        messages = payload["messages"]
-        assert len(messages) == 1
-        content_blocks = messages[0]["content"]
-
-        # Find the block containing the writer output and the volatile suffix block.
-        texts = [b["text"] for b in content_blocks]
+        request = adapter.captured_requests[0]
+        texts = [b.text for b in request.rendered_blocks]
         writer_idx = next((i for i, t in enumerate(texts) if writer_output in t), None)
         volatile_idx = next(
             (i for i, t in enumerate(texts) if "I step into the corridor." in t), None
         )
-        assert writer_idx is not None, "Writer output not found in payload"
-        assert volatile_idx is not None, "Volatile suffix not found in payload"
+        assert writer_idx is not None, "Writer output not found in rendered_blocks"
+        assert volatile_idx is not None, "Volatile suffix not found in rendered_blocks"
         assert (
             writer_idx < volatile_idx
         ), "Writer output block must appear before volatile suffix block"
 
     def test_writer_output_formatted_as_ledger_entry(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
         writer_output = "You step into the corridor."
-        svc.check(_make_assembled(), writer_output)
+        svc.check(_make_assembled(), writer_output, provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        texts = [b["text"] for b in payload["messages"][0]["content"]]
-        ledger_block = next((t for t in texts if "[WRITER OUTPUT]" in t), None)
+        request = adapter.captured_requests[0]
+        ledger_block = next(
+            (b.text for b in request.rendered_blocks if "[WRITER OUTPUT]" in b.text),
+            None,
+        )
         assert ledger_block is not None, "No [WRITER OUTPUT] ledger block found"
         assert writer_output in ledger_block
 
-    def test_tool_spec_in_payload(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        payload = caller.captured[0]
-        assert len(payload["tools"]) == 1
-        assert payload["tools"][0]["name"] == REPORT_TOOL_NAME
+    def test_tool_definitions_contain_report_tool(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert len(request.tool_definitions) == 1
+        assert request.tool_definitions[0].name == REPORT_TOOL_NAME
 
 
 # ---------------------------------------------------------------------------
@@ -637,57 +628,39 @@ class TestRendererStructure:
 
 class TestExtendedTTL:
     def test_extended_ttl_true_sets_1h(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(
-            config=_make_config(extended_ttl=True), caller=caller
-        )
-        svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config(extended_ttl=True))
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        blocks_with_cache = [
-            b
-            for b in payload["messages"][0]["content"]
-            if b.get("cache_control") is not None
-        ]
-        assert blocks_with_cache, "No cache_control block found"
-        assert blocks_with_cache[-1]["cache_control"]["ttl"] == "1h"
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached, "No cache breakpoint block found"
+        assert cached[-1].ttl == TTL_EXTENDED
 
     def test_extended_ttl_false_sets_5m(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(
-            config=_make_config(extended_ttl=False), caller=caller
-        )
-        svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config(extended_ttl=False))
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        blocks_with_cache = [
-            b
-            for b in payload["messages"][0]["content"]
-            if b.get("cache_control") is not None
-        ]
-        assert blocks_with_cache, "No cache_control block found"
-        assert blocks_with_cache[-1]["cache_control"]["ttl"] == "5m"
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached, "No cache breakpoint block found"
+        assert cached[-1].ttl == TTL_DEFAULT
 
     def test_cache_control_on_last_stable_prefix_block(self) -> None:
         """Cache breakpoint on the final stable-prefix block, not writer output."""
-        caller = _make_fake_caller()
-        svc = ContradictionService(
-            config=_make_config(extended_ttl=True), caller=caller
-        )
-        svc.check(_make_assembled(), "Writer prose goes here.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config(extended_ttl=True))
+        svc.check(_make_assembled(), "Writer prose goes here.", provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        content = payload["messages"][0]["content"]
+        request = adapter.captured_requests[0]
+        blocks = request.rendered_blocks
         cache_idx = next(
-            (i for i, b in enumerate(content) if b.get("cache_control") is not None),
+            (i for i, b in enumerate(blocks) if b.has_cache_breakpoint),
             None,
         )
         writer_idx = next(
-            (
-                i
-                for i, b in enumerate(content)
-                if "[WRITER OUTPUT]" in b.get("text", "")
-            ),
+            (i for i, b in enumerate(blocks) if "[WRITER OUTPUT]" in b.text),
             None,
         )
         assert cache_idx is not None
@@ -698,23 +671,23 @@ class TestExtendedTTL:
 
 
 # ---------------------------------------------------------------------------
-# TestCallerInjection
+# TestAdapterInjection
 # ---------------------------------------------------------------------------
 
 
-class TestCallerInjection:
-    def test_injected_caller_is_used(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose.")
-        assert len(caller.captured) == 1
+class TestAdapterInjection:
+    def test_injected_adapter_is_used(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
+        assert len(adapter.captured_requests) == 1
 
-    def test_caller_receives_one_call_per_check(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(_make_assembled(), "Prose 1.")
-        svc.check(_make_assembled(), "Prose 2.")
-        assert len(caller.captured) == 2
+    def test_adapter_receives_one_call_per_check(self) -> None:
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(_make_assembled(), "Prose 1.", provider=adapter)  # type: ignore[arg-type]
+        svc.check(_make_assembled(), "Prose 2.", provider=adapter)  # type: ignore[arg-type]
+        assert len(adapter.captured_requests) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -724,39 +697,39 @@ class TestCallerInjection:
 
 class TestCacheMetricsPropagation:
     def test_all_token_counts_propagated(self) -> None:
-        response = _fake_tool_response(
-            input_tokens=200,
-            output_tokens=60,
-            cache_read_input_tokens=150,
-            cache_creation_input_tokens=50,
+        result = _fake_tool_result(
+            input_token_count=200,
+            output_token_count=60,
+            cache_read_token_count=150,
+            cache_creation_token_count=50,
         )
-        caller = _make_fake_caller(response)
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter(result)
+        svc = ContradictionService(config=_make_config())
+        contradiction_result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        assert result.input_token_count == 200
-        assert result.output_token_count == 60
-        assert result.cache_read_token_count == 150
-        assert result.cache_creation_token_count == 50
+        assert contradiction_result.input_token_count == 200
+        assert contradiction_result.output_token_count == 60
+        assert contradiction_result.cache_read_token_count == 150
+        assert contradiction_result.cache_creation_token_count == 50
 
     def test_none_cache_counts_allowed(self) -> None:
-        response = _fake_tool_response(
-            input_tokens=100,
-            output_tokens=40,
-            cache_read_input_tokens=None,
-            cache_creation_input_tokens=None,
+        result = _fake_tool_result(
+            input_token_count=100,
+            output_token_count=40,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
         )
-        caller = _make_fake_caller(response)
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter(result)
+        svc = ContradictionService(config=_make_config())
+        contradiction_result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
 
-        assert result.cache_read_token_count is None
-        assert result.cache_creation_token_count is None
+        assert contradiction_result.cache_read_token_count is None
+        assert contradiction_result.cache_creation_token_count is None
 
     def test_latency_ms_is_non_negative_int(self) -> None:
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert isinstance(result.latency_ms, int)
         assert result.latency_ms >= 0
 
@@ -771,9 +744,9 @@ class TestBuiltContextImmutability:
         ctx = _make_assembled()
         original_entry_count = len(ctx.pass_forward_ledger.entries)
 
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(ctx, "Writer prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(ctx, "Writer prose.", provider=adapter)  # type: ignore[arg-type]
 
         assert len(ctx.pass_forward_ledger.entries) == original_entry_count
 
@@ -800,14 +773,14 @@ class TestBuiltContextImmutability:
 class TestPassForwardLedgerPreserved:
     def test_pre_existing_ledger_entries_preserved(self) -> None:
         ctx = _make_assembled(ledger_entries=[("planner", "Plan output goes here.")])
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        svc.check(ctx, "Writer prose.")
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
+        svc.check(ctx, "Writer prose.", provider=adapter)  # type: ignore[arg-type]
 
-        payload = caller.captured[0]
-        texts = [b["text"] for b in payload["messages"][0]["content"]]
-        ledger_text = next((t for t in texts if "[PLANNER OUTPUT]" in t), None)
-        assert ledger_text is not None, "Pre-existing ledger entry not found in payload"
+        request = adapter.captured_requests[0]
+        assert any(
+            "[PLANNER OUTPUT]" in b.text for b in request.rendered_blocks
+        ), "Pre-existing ledger entry not found in rendered_blocks"
 
     def test_writer_entry_appended_after_existing_entries(self) -> None:
         ctx = _make_assembled(ledger_entries=[("planner", "Plan output.")])
@@ -851,10 +824,13 @@ class TestNonEmptyStringValidation:
 
 class TestScopeBoundary:
     def test_model_identifier_has_provider_prefix(self) -> None:
-        config = ContradictionConfig(model="my-custom-model", api_key_env="KEY_ENV")
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=config, caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        """model_identifier from ProviderCallResult must include provider prefix."""
+        custom_result = _fake_tool_result(model_identifier="anthropic:my-custom-model")
+        adapter = _make_fake_adapter(custom_result)
+        svc = ContradictionService(
+            config=ContradictionConfig(model="my-custom-model", api_key_env="KEY_ENV")
+        )
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.model_identifier == "anthropic:my-custom-model"
 
     def test_no_story_id_parameter_in_check(self) -> None:
@@ -894,9 +870,9 @@ class TestCategoryPlumbing:
             "description": "Some prose text.",
             "canon_reference": "Story Bible fact.",
         }
-        caller = _make_fake_caller(_fake_tool_response({"violations": [viol]}))
-        svc = ContradictionService(config=_make_config(), caller=caller)
-        result = svc.check(_make_assembled(), "Prose.")
+        adapter = _make_fake_adapter(_fake_tool_result({"violations": [viol]}))
+        svc = ContradictionService(config=_make_config())
+        result = svc.check(_make_assembled(), "Prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert result.violations[0].category.value == category
 
@@ -956,19 +932,19 @@ class TestDeriveContextIdempotency:
     def test_idempotent_via_check_service(self) -> None:
         """check() does not raise when the ledger already has the same writer entry."""
         ctx = _make_assembled(ledger_entries=[("writer", "Writer prose.")])
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
 
-        result = svc.check(ctx, "Writer prose.")
+        result = svc.check(ctx, "Writer prose.", provider=adapter)  # type: ignore[arg-type]
         assert result.verdict == ContradictionVerdict.CLEAR
 
     def test_conflicting_entry_raises_via_check(self) -> None:
         ctx = _make_assembled(ledger_entries=[("writer", "Old prose.")])
-        caller = _make_fake_caller()
-        svc = ContradictionService(config=_make_config(), caller=caller)
+        adapter = _make_fake_adapter()
+        svc = ContradictionService(config=_make_config())
 
         with pytest.raises(ContradictionPassError, match="differs from"):
-            svc.check(ctx, "New prose.")
+            svc.check(ctx, "New prose.", provider=adapter)  # type: ignore[arg-type]
 
     def test_original_context_not_mutated_on_idempotent_path(self) -> None:
         ctx = _make_assembled(ledger_entries=[("writer", "Writer prose.")])

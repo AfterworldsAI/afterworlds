@@ -1,4 +1,4 @@
-"""Unit tests for SafetyService — CRD Issue 12b.
+"""Unit tests for SafetyService — CRD Issue 12b / 14a.
 
 Covers:
   - Schema validation (evidence_summary >300 chars, unknown category, missing
@@ -14,19 +14,20 @@ Covers:
   - Extended TTL and default TTL
   - BuiltContext immutability (ledger, stable_prefix)
   - PassForwardLedger non-mutation even when ledger has content
-  - Model caller injection
-  - Cache metrics: TokenUsage fields surfaced; absent → None
+  - Provider adapter injection
+  - Cache metrics: flat *_token_count fields surfaced; absent → None
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
-from anthropic.types import Message, ToolUseBlock, Usage
 
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardEntry,
@@ -38,6 +39,13 @@ from afterworlds.models.context import (
 from afterworlds.models.enums import CastRole, IntentType
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.story_bible import CastEntry, StoryBibleContext
+from afterworlds.pipeline._stable_prefix_renderer import TTL_DEFAULT, TTL_EXTENDED
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderTextPart,
+    ProviderToolCallPart,
+)
 from afterworlds.pipeline.safety.caller import REPORT_SAFETY_TOOL_NAME
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.models import (
@@ -100,73 +108,75 @@ def _make_assembled(
     )
 
 
-def _fake_tool_response(
-    tool_input: dict,  # type: ignore[type-arg]
+def _fake_tool_result(
+    tool_input: dict[str, Any],
     cache_read: int | None = 80,
     cache_creation: int | None = None,
-) -> Message:
-    return Message(
-        id="msg_fake_safety",
-        type="message",
-        role="assistant",
-        content=[
-            ToolUseBlock(
-                type="tool_use",
-                id="toolu_fake_safety",
-                name=REPORT_SAFETY_TOOL_NAME,
-                input=tool_input,
+    pass_id: PipelinePassId = PipelinePassId.INPUT_SAFETY,
+) -> ProviderCallResult:
+    return ProviderCallResult(
+        pass_id=pass_id,
+        provider_name="anthropic",
+        model_identifier="anthropic:claude-haiku-test",
+        model_tier=ModelTier.HAIKU,
+        content_parts=[
+            ProviderToolCallPart(
+                tool_name=REPORT_SAFETY_TOOL_NAME,
+                tool_input=tool_input,
             )
         ],
-        model="claude-haiku-test",
-        stop_reason="tool_use",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=100,
-            output_tokens=50,
-            cache_read_input_tokens=cache_read,
-            cache_creation_input_tokens=cache_creation,
-        ),
+        input_token_count=100,
+        output_token_count=50,
+        cache_read_token_count=cache_read,
+        cache_creation_token_count=cache_creation,
+        cache_warmed=bool(cache_read),
+        latency_ms=1,
     )
 
 
-def _text_only_response() -> Message:
-    from anthropic.types import TextBlock
-
-    return Message(
-        id="msg_fake_text",
-        type="message",
-        role="assistant",
-        content=[TextBlock(type="text", text="I cannot help with that.")],
-        model="claude-haiku-test",
-        stop_reason="end_turn",
-        stop_sequence=None,
-        usage=Usage(
-            input_tokens=100,
-            output_tokens=20,
-            cache_read_input_tokens=None,
-            cache_creation_input_tokens=None,
-        ),
+def _text_only_result() -> ProviderCallResult:
+    return ProviderCallResult(
+        pass_id=PipelinePassId.INPUT_SAFETY,
+        provider_name="anthropic",
+        model_identifier="anthropic:claude-haiku-test",
+        model_tier=ModelTier.HAIKU,
+        content_parts=[ProviderTextPart(text="I cannot help with that.")],
+        input_token_count=100,
+        output_token_count=20,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        cache_warmed=False,
+        latency_ms=1,
     )
 
 
-def _make_svc(caller: object) -> SafetyService:  # type: ignore[type-arg]
+class _FakeProviderAdapter:
+    """Capturing fake ProviderAdapter for SafetyService tests."""
+
+    def __init__(
+        self,
+        result: ProviderCallResult | None = None,
+        raise_exc: Exception | None = None,
+    ) -> None:
+        self._result = result
+        self._raise_exc = raise_exc
+        self.captured_requests: list[ProviderCallRequest] = []
+        self.provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.captured_requests.append(request)
+        if self._raise_exc is not None:
+            raise self._raise_exc
+        return self._result or _fake_tool_result({"concerns": []})
+
+
+def _make_svc(extended_ttl: bool = True) -> SafetyService:
     config = SafetyConfig(
         model="claude-haiku-test",
         api_key_env="ANTHROPIC_API_KEY",
-        extended_ttl=True,
+        extended_ttl=extended_ttl,
     )
-    svc = SafetyService(config=config, caller=caller)  # type: ignore[arg-type]
-    svc._system_prompt = "SAFETY PROMPT"
-    return svc
-
-
-def _make_svc_default_ttl(caller: object) -> SafetyService:  # type: ignore[type-arg]
-    config = SafetyConfig(
-        model="claude-haiku-test",
-        api_key_env="ANTHROPIC_API_KEY",
-        extended_ttl=False,
-    )
-    svc = SafetyService(config=config, caller=caller)  # type: ignore[arg-type]
+    svc = SafetyService(config=config)
     svc._system_prompt = "SAFETY PROMPT"
     return svc
 
@@ -178,9 +188,9 @@ def _make_svc_default_ttl(caller: object) -> SafetyService:  # type: ignore[type
 
 class TestVerdictDerivation:
     def test_empty_concerns_yields_allow(self) -> None:
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
-        result = _make_svc(caller).check(
-            _make_assembled(), "Hello world", SafetyTarget.INPUT
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        result = _make_svc().check(
+            _make_assembled(), "Hello world", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
         )
         assert result.verdict == SafetyVerdict.ALLOW
 
@@ -190,16 +200,16 @@ class TestVerdictDerivation:
             "description": "Explicit content involving a minor.",
             "evidence_summary": "Character described as 14 in explicit scene.",
         }
-        caller = lambda _: _fake_tool_response({"concerns": [concern]})  # noqa: E731
-        result = _make_svc(caller).check(
-            _make_assembled(), "some text", SafetyTarget.INPUT
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": [concern]}))
+        result = _make_svc().check(
+            _make_assembled(), "some text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
         )
         assert result.verdict == SafetyVerdict.BLOCK
 
     def test_verdict_is_computed_not_model_supplied(self) -> None:
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
-        result = _make_svc(caller).check(
-            _make_assembled(), "safe text", SafetyTarget.INPUT
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        result = _make_svc().check(
+            _make_assembled(), "safe text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
         )
         assert not hasattr(result.report, "verdict")
         assert result.verdict == SafetyVerdict.ALLOW
@@ -211,10 +221,12 @@ class TestVerdictDerivation:
 
 
 class TestSchemaValidation:
-    def _check(self, tool_input: dict) -> None:  # type: ignore[type-arg]
-        caller = lambda _: _fake_tool_response(tool_input)  # noqa: E731
+    def _check(self, tool_input: dict[str, Any]) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result(tool_input))
         with pytest.raises(SafetyPassError):
-            _make_svc(caller).check(_make_assembled(), "text", SafetyTarget.INPUT)
+            _make_svc().check(
+                _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+            )
 
     def test_missing_category_raises(self) -> None:
         self._check(
@@ -286,7 +298,7 @@ class TestSchemaValidation:
                         "category": "OTHER",
                         "description": "desc",
                         "evidence_summary": "summary",
-                        "severity": "high",  # extra field
+                        "severity": "high",
                     }
                 ]
             }
@@ -296,7 +308,7 @@ class TestSchemaValidation:
         self._check(
             {
                 "concerns": [],
-                "verdict": "allow",  # extra field
+                "verdict": "allow",
             }
         )
 
@@ -324,8 +336,10 @@ class TestCategoryRoundTrips:
             "description": f"Concern in {category}",
             "evidence_summary": "Evidence here.",
         }
-        caller = lambda _: _fake_tool_response({"concerns": [concern]})  # noqa: E731
-        result = _make_svc(caller).check(_make_assembled(), "text", SafetyTarget.INPUT)
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": [concern]}))
+        result = _make_svc().check(
+            _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+        )
         assert result.report.concerns[0].category == SafetyCategory(category)
 
 
@@ -336,26 +350,24 @@ class TestCategoryRoundTrips:
 
 class TestParseFailures:
     def test_no_tool_block_raises_safety_pass_error(self) -> None:
-        caller = lambda _: _text_only_response()  # noqa: E731
+        adapter = _FakeProviderAdapter(_text_only_result())
         with pytest.raises(SafetyPassError):
-            _make_svc(caller).check(_make_assembled(), "text", SafetyTarget.INPUT)
+            _make_svc().check(
+                _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+            )
 
     def test_provider_exception_raises_safety_pass_error(self) -> None:
-        def failing_caller(_: object) -> Message:
-            raise RuntimeError("Network error")
-
+        adapter = _FakeProviderAdapter(raise_exc=RuntimeError("Network error"))
         with pytest.raises(SafetyPassError):
-            _make_svc(failing_caller).check(
-                _make_assembled(), "text", SafetyTarget.INPUT
+            _make_svc().check(
+                _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
             )
 
     def test_provider_exception_never_returns_allow(self) -> None:
-        def failing_caller(_: object) -> Message:
-            raise RuntimeError("Connection refused")
-
+        adapter = _FakeProviderAdapter(raise_exc=RuntimeError("Connection refused"))
         with pytest.raises(SafetyPassError) as exc_info:
-            _make_svc(failing_caller).check(
-                _make_assembled(), "text", SafetyTarget.INPUT
+            _make_svc().check(
+                _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
             )
         assert exc_info.value is not None
 
@@ -366,45 +378,47 @@ class TestParseFailures:
 
 
 class TestTargetLabelRendering:
-    def _capture_payload(self) -> tuple[dict, SafetyService]:  # type: ignore[type-arg]
-        captured: list[dict] = []  # type: ignore[type-arg]
+    def test_input_label_in_rendered_blocks(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(  # type: ignore[arg-type]
+            _make_assembled(),
+            "Player typed this.",
+            SafetyTarget.INPUT,
+            provider=adapter,
+        )
+        request = adapter.captured_requests[0]
+        last_block = request.rendered_blocks[-1]
+        assert "[SOJOURNER INPUT FOR SAFETY EVALUATION]" in last_block.text
+        assert "Player typed this." in last_block.text
 
-        def capturing_caller(payload: dict) -> Message:  # type: ignore[type-arg]
-            captured.append(payload)
-            return _fake_tool_response({"concerns": []})
-
-        svc = _make_svc(capturing_caller)
-        return captured, svc  # type: ignore[return-value]
-
-    def test_input_label_in_user_block(self) -> None:
-        captured, svc = self._capture_payload()
-        ctx = _make_assembled()
-        svc.check(ctx, "Player typed this.", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        last_block = user_content[-1]
-        assert "[SOJOURNER INPUT FOR SAFETY EVALUATION]" in last_block["text"]
-        assert "Player typed this." in last_block["text"]
-
-    def test_output_label_in_user_block(self) -> None:
-        captured, svc = self._capture_payload()
-        ctx = _make_assembled()
-        svc.check(ctx, "Writer wrote this.", SafetyTarget.OUTPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        last_block = user_content[-1]
-        assert "[WRITER OUTPUT FOR SAFETY EVALUATION]" in last_block["text"]
-        assert "Writer wrote this." in last_block["text"]
+    def test_output_label_in_rendered_blocks(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(  # type: ignore[arg-type]
+            _make_assembled(),
+            "Writer wrote this.",
+            SafetyTarget.OUTPUT,
+            provider=adapter,
+        )
+        request = adapter.captured_requests[0]
+        last_block = request.rendered_blocks[-1]
+        assert "[WRITER OUTPUT FOR SAFETY EVALUATION]" in last_block.text
+        assert "Writer wrote this." in last_block.text
 
     def test_evaluated_text_not_in_stable_prefix_blocks(self) -> None:
         """Evaluated text must only appear in the volatile suffix, not in
         stable-prefix blocks that would pollute the cache."""
-        captured, svc = self._capture_payload()
-        ctx = _make_assembled()
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
         evaluated_text = "UNIQUE_EVAL_TEXT_12345"
-        svc.check(ctx, evaluated_text, SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
+        svc.check(
+            _make_assembled(), evaluated_text, SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+        )
+        request = adapter.captured_requests[0]
         # last block is the volatile/label block — all preceding blocks are stable
-        for block in user_content[:-1]:
-            assert evaluated_text not in block["text"]
+        for block in request.rendered_blocks[:-1]:
+            assert evaluated_text not in block.text
 
 
 # ---------------------------------------------------------------------------
@@ -413,89 +427,102 @@ class TestTargetLabelRendering:
 
 
 class TestPromptRendering:
-    def _capture_payload(self) -> tuple[list[dict], SafetyService]:  # type: ignore[type-arg]
-        captured: list[dict] = []  # type: ignore[type-arg]
-
-        def capturing_caller(payload: dict) -> Message:  # type: ignore[type-arg]
-            captured.append(payload)
-            return _fake_tool_response({"concerns": []})
-
-        svc = _make_svc(capturing_caller)
-        return captured, svc  # type: ignore[return-value]
-
     def test_two_system_blocks(self) -> None:
-        captured, svc = self._capture_payload()
-        svc.check(_make_assembled(), "text", SafetyTarget.INPUT)
-        assert len(captured[0]["system"]) == 2
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert len(request.system_blocks) == 2
 
     def test_first_system_block_is_safety_prompt(self) -> None:
-        captured, svc = self._capture_payload()
-        svc.check(_make_assembled(), "text", SafetyTarget.INPUT)
-        assert captured[0]["system"][0]["text"] == "SAFETY PROMPT"
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.system_blocks[0].text == "SAFETY PROMPT"
 
     def test_second_system_block_is_mode_contract(self) -> None:
-        captured, svc = self._capture_payload()
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
         mode_prompt = "You are the RPG narrator."
         ctx = _make_assembled(system_prompt=mode_prompt)
-        svc.check(ctx, "text", SafetyTarget.INPUT)
-        assert captured[0]["system"][1]["text"] == mode_prompt
+        svc.check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.system_blocks[1].text == mode_prompt
 
-    def test_mode_contract_not_in_user_blocks(self) -> None:
-        captured, svc = self._capture_payload()
+    def test_mode_contract_not_in_rendered_blocks(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
         mode_prompt = "UNIQUE_MODE_CONTRACT_XYZ"
         ctx = _make_assembled(system_prompt=mode_prompt)
-        svc.check(ctx, "text", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        for block in user_content:
-            assert mode_prompt not in block["text"]
+        svc.check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        for block in request.rendered_blocks:
+            assert mode_prompt not in block.text
 
-    def test_story_bible_is_first_user_block(self) -> None:
-        captured, svc = self._capture_payload()
-        svc.check(_make_assembled(), "text", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        first_block = user_content[0]
-        assert "Mira Sol" in first_block["text"]
+    def test_story_bible_is_first_rendered_block(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        first_block = request.rendered_blocks[0]
+        assert "Mira Sol" in first_block.text
 
     def test_cache_breakpoint_on_last_stable_prefix_block(self) -> None:
-        captured, svc = self._capture_payload()
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
         ctx = _make_assembled()
-        svc.check(ctx, "text", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        # The volatile block (last) has no cache_control; the last stable block does
-        # We have one stable block (Story Bible only, no rolling summary etc.)
-        stable_blocks = user_content[:-1] if len(user_content) > 1 else []
+        svc.check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        # The volatile block (last) has no cache breakpoint; the last stable block does
+        stable_blocks = (
+            request.rendered_blocks[:-1] if len(request.rendered_blocks) > 1 else []
+        )
         if stable_blocks:
             last_stable = stable_blocks[-1]
-            assert "cache_control" in last_stable
-        volatile_block = user_content[-1]
-        assert (
-            "cache_control" not in volatile_block
-            or volatile_block.get("cache_control") is None
-        )
+            assert last_stable.has_cache_breakpoint
+        volatile_block = request.rendered_blocks[-1]
+        assert not volatile_block.has_cache_breakpoint
 
     def test_extended_ttl_on_cache_block(self) -> None:
-        captured, svc = self._capture_payload()
-        svc.check(_make_assembled(), "text", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        for block in user_content:
-            if block.get("cache_control"):
-                assert block["cache_control"]["ttl"] == "1h"
-                break
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc(extended_ttl=True)
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached
+        assert cached[0].ttl == TTL_EXTENDED
 
     def test_default_ttl_when_extended_disabled(self) -> None:
-        captured: list[dict] = []  # type: ignore[type-arg]
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc(extended_ttl=False)
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        cached = [b for b in request.rendered_blocks if b.has_cache_breakpoint]
+        assert cached
+        assert cached[0].ttl == TTL_DEFAULT
 
-        def capturing_caller(payload: dict) -> Message:  # type: ignore[type-arg]
-            captured.append(payload)
-            return _fake_tool_response({"concerns": []})
+    def test_forced_tool_name_set(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.forced_tool_name == REPORT_SAFETY_TOOL_NAME
 
-        svc = _make_svc_default_ttl(capturing_caller)
-        svc.check(_make_assembled(), "text", SafetyTarget.INPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        for block in user_content:
-            if block.get("cache_control"):
-                assert block["cache_control"]["ttl"] == "5m"
-                break
+    def test_input_pass_id(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.pass_id == PipelinePassId.INPUT_SAFETY
+
+    def test_output_pass_id(self) -> None:
+        fake = _fake_tool_result({"concerns": []}, pass_id=PipelinePassId.OUTPUT_SAFETY)
+        adapter = _FakeProviderAdapter(fake)
+        svc = _make_svc()
+        svc.check(_make_assembled(), "text", SafetyTarget.OUTPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        assert request.pass_id == PipelinePassId.OUTPUT_SAFETY
 
 
 # ---------------------------------------------------------------------------
@@ -505,36 +532,31 @@ class TestPromptRendering:
 
 class TestPassForwardLedgerNonMutation:
     def test_empty_ledger_unchanged(self) -> None:
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
         ctx = _make_assembled()
         original_len = len(ctx.pass_forward_ledger.entries)
-        _make_svc(caller).check(ctx, "text", SafetyTarget.INPUT)
+        _make_svc().check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
         assert len(ctx.pass_forward_ledger.entries) == original_len
 
     def test_ledger_with_writer_content_unchanged(self) -> None:
         """Even when the ledger has Writer content, it must not be mutated."""
         entry = PassForwardEntry(pass_name="writer", content="Writer prose here.")
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
         ctx = _make_assembled(ledger_entries=[entry])
         original_len = len(ctx.pass_forward_ledger.entries)
-        _make_svc(caller).check(ctx, "text", SafetyTarget.OUTPUT)
+        _make_svc().check(ctx, "text", SafetyTarget.OUTPUT, provider=adapter)  # type: ignore[arg-type]
         assert len(ctx.pass_forward_ledger.entries) == original_len
 
-    def test_writer_ledger_not_in_safety_user_blocks(self) -> None:
-        """Writer prose in the ledger must not appear in Safety user blocks."""
-        captured: list[dict] = []  # type: ignore[type-arg]
-
-        def capturing_caller(payload: dict) -> Message:  # type: ignore[type-arg]
-            captured.append(payload)
-            return _fake_tool_response({"concerns": []})
-
+    def test_writer_ledger_not_in_safety_rendered_blocks(self) -> None:
+        """Writer prose in the ledger must not appear in Safety rendered_blocks."""
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
         writer_prose = "WRITER_PROSE_CONTENT_UNIQUE_99"
         entry = PassForwardEntry(pass_name="writer", content=writer_prose)
         ctx = _make_assembled(ledger_entries=[entry])
-        _make_svc(capturing_caller).check(ctx, "eval text", SafetyTarget.OUTPUT)
-        user_content = captured[0]["messages"][0]["content"]
-        for block in user_content:
-            assert writer_prose not in block["text"]
+        _make_svc().check(ctx, "eval text", SafetyTarget.OUTPUT, provider=adapter)  # type: ignore[arg-type]
+        request = adapter.captured_requests[0]
+        for block in request.rendered_blocks:
+            assert writer_prose not in block.text
 
 
 # ---------------------------------------------------------------------------
@@ -544,15 +566,15 @@ class TestPassForwardLedgerNonMutation:
 
 class TestBuiltContextImmutability:
     def test_stable_prefix_unchanged(self) -> None:
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
         ctx = _make_assembled(system_prompt="Original mode contract.")
-        _make_svc(caller).check(ctx, "text", SafetyTarget.INPUT)
+        _make_svc().check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
         assert ctx.stable_prefix.system_prompt == "Original mode contract."
 
     def test_volatile_suffix_unchanged(self) -> None:
-        caller = lambda _: _fake_tool_response({"concerns": []})  # noqa: E731
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
         ctx = _make_assembled(current_input="original input")
-        _make_svc(caller).check(ctx, "text", SafetyTarget.INPUT)
+        _make_svc().check(ctx, "text", SafetyTarget.INPUT, provider=adapter)  # type: ignore[arg-type]
         assert ctx.volatile_suffix.current_input == "original input"
 
 
@@ -562,25 +584,35 @@ class TestBuiltContextImmutability:
 
 
 class TestTokenUsage:
-    def test_usage_fields_populated(self) -> None:
-        caller = lambda _: _fake_tool_response(  # noqa: E731
-            {"concerns": []}, cache_read=80, cache_creation=None
+    def test_token_count_fields_populated(self) -> None:
+        adapter = _FakeProviderAdapter(
+            _fake_tool_result({"concerns": []}, cache_read=80, cache_creation=None)
         )
-        result = _make_svc(caller).check(_make_assembled(), "text", SafetyTarget.INPUT)
-        assert result.usage is not None
-        assert result.usage.input_tokens == 100
-        assert result.usage.output_tokens == 50
-        assert result.usage.cache_read_input_tokens == 80
-        assert result.usage.cache_creation_input_tokens is None
+        result = _make_svc().check(
+            _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+        )
+        assert result.input_token_count == 100
+        assert result.output_token_count == 50
+        assert result.cache_read_token_count == 80
+        assert result.cache_creation_token_count is None
 
     def test_absent_cache_creation_is_none_not_zero(self) -> None:
-        caller = lambda _: _fake_tool_response(  # noqa: E731
-            {"concerns": []}, cache_read=None, cache_creation=None
+        adapter = _FakeProviderAdapter(
+            _fake_tool_result({"concerns": []}, cache_read=None, cache_creation=None)
         )
-        result = _make_svc(caller).check(_make_assembled(), "text", SafetyTarget.INPUT)
-        assert result.usage is not None
-        assert result.usage.cache_read_input_tokens is None
-        assert result.usage.cache_creation_input_tokens is None
+        result = _make_svc().check(
+            _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+        )
+        assert result.cache_read_token_count is None
+        assert result.cache_creation_token_count is None
+
+    def test_provider_and_model_identifier_propagated(self) -> None:
+        adapter = _FakeProviderAdapter(_fake_tool_result({"concerns": []}))
+        result = _make_svc().check(
+            _make_assembled(), "text", SafetyTarget.INPUT, provider=adapter  # type: ignore[arg-type]
+        )
+        assert result.provider == "anthropic"
+        assert result.model_identifier == "anthropic:claude-haiku-test"
 
 
 # ---------------------------------------------------------------------------

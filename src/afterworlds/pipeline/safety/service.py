@@ -1,8 +1,8 @@
-"""Safety pass service — CRD Issue 12b.
+"""Safety pass service — CRD Issue 12b / 14a.
 
-Safety envelope: receives AssembledContext + text + SafetyTarget, renders an
-Anthropic Messages payload, calls the LLM using Anthropic tool use, validates
-the SafetyReport, and returns a typed SafetyResult.
+Safety envelope: receives AssembledContext + text + SafetyTarget, builds a
+ProviderCallRequest, calls the LLM via the injected ProviderAdapter using forced
+tool use, validates the SafetyReport, and returns a typed SafetyResult.
 
 Architectural invariants enforced here:
   - The Safety pass is a guardrail envelope, NOT a narrative pass.  It does
@@ -26,33 +26,32 @@ Architectural invariants enforced here:
   - PassForwardLedger is NOT rendered into the Safety payload and is NOT
     mutated by the Safety pass.
   - Verdict is computed from the concerns list — the model never supplies it.
-  - Fail-closed: SafetyPassError on any provider, parsing, or validation
-    failure.  No silent ALLOW.
+  - Fail-closed: SafetyPassError on ANY provider, parsing, or validation
+    failure — including ProviderRefusalError.  No silent ALLOW on any failure
+    path.  Provider refusals must not silently grant a safety ALLOW.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from anthropic.types import (
-    MessageParam,
-    TextBlockParam,
-)
-
+from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
 from afterworlds.pipeline._stable_prefix_renderer import (
     TTL_DEFAULT,
     TTL_EXTENDED,
+    RenderedBlock,
     render_stable_prefix_blocks,
 )
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderToolCallPart,
+    ProviderToolDefinition,
+)
+from afterworlds.pipeline.provider._protocol import ProviderAdapter
 from afterworlds.pipeline.safety.caller import (
     REPORT_SAFETY_TOOL_NAME,
     REPORT_SAFETY_TOOL_SPEC,
-    AnthropicSafetyCaller,
-    SafetyModelCaller,
-    SafetyPayload,
-    parse_tool_input,
-    timed_call,
 )
 from afterworlds.pipeline.safety.config import (
     SAFETY_MAX_TOKENS,
@@ -63,7 +62,6 @@ from afterworlds.pipeline.safety.models import (
     SafetyReport,
     SafetyResult,
     SafetyTarget,
-    TokenUsage,
 )
 
 # ---------------------------------------------------------------------------
@@ -96,6 +94,16 @@ _LABEL_INPUT: str = "[SOJOURNER INPUT FOR SAFETY EVALUATION]"
 _LABEL_OUTPUT: str = "[WRITER OUTPUT FOR SAFETY EVALUATION]"
 
 # ---------------------------------------------------------------------------
+# Module-level tool definition (built once)
+# ---------------------------------------------------------------------------
+
+_SAFETY_TOOL_DEF = ProviderToolDefinition(
+    name=REPORT_SAFETY_TOOL_NAME,
+    description=REPORT_SAFETY_TOOL_SPEC["description"],
+    input_schema=REPORT_SAFETY_TOOL_SPEC["input_schema"],
+)
+
+# ---------------------------------------------------------------------------
 # SafetyService
 # ---------------------------------------------------------------------------
 
@@ -104,29 +112,29 @@ class SafetyService:
     """Safety pass service.
 
     Responsibilities:
-      1. Render the AssembledContext + evaluated text into an Anthropic
-         Messages payload.
+      1. Render the AssembledContext + evaluated text into a ProviderCallRequest.
          System parameter: two blocks — Safety pass contract and active mode
          contract.  User-message stable-prefix blocks start with Story Bible.
-      2. Invoke the provider via the injected caller (forced tool use).
-      3. Parse the ToolUseBlock response.
+      2. Invoke the provider via the injected ProviderAdapter (forced tool use).
+      3. Parse the ProviderToolCallPart response.
       4. Validate the tool input against SafetyReport.
       5. Return a typed SafetyResult with a computed verdict.
 
     The caller's AssembledContext and PassForwardLedger are NEVER mutated.
 
+    Fail-closed: ALL exceptions — including ProviderRefusalError — are wrapped
+    in SafetyPassError.  A provider refusal on a Safety call must never silently
+    grant a safety ALLOW.
+
     Args:
         config: Safety configuration.  Defaults to SafetyConfig.from_env().
-        caller: Injectable model caller.  Defaults to AnthropicSafetyCaller.
     """
 
     def __init__(
         self,
         config: SafetyConfig | None = None,
-        caller: SafetyModelCaller | None = None,
     ) -> None:
         self._config = config or SafetyConfig.from_env()
-        self._caller: SafetyModelCaller = caller or AnthropicSafetyCaller(self._config)
         self._system_prompt: str = load_safety_prompt()
 
     def check(
@@ -134,6 +142,8 @@ class SafetyService:
         built_context: AssembledContext,
         text: str,
         target: SafetyTarget,
+        *,
+        provider: ProviderAdapter,
     ) -> SafetyResult:
         """Execute one Safety pass and return a typed result.
 
@@ -144,52 +154,58 @@ class SafetyService:
                 (INPUT target) or the Writer's output prose (OUTPUT target).
             target: Which target is being evaluated; determines the label
                 placed around the text in the volatile suffix.
+            provider: ProviderAdapter for this turn.
 
         Returns:
-            SafetyResult with report (concerns list), target, usage, and
+            SafetyResult with report (concerns list), target, token counts, and
             computed verdict (ALLOW when concerns is empty, BLOCK otherwise).
 
         Raises:
-            SafetyPassError: if the provider call fails, the response contains
-                no tool-use block, or the tool input fails schema validation.
-                Never returns ALLOW on failure — always raises.
+            SafetyPassError: on any failure — provider call, parsing, validation,
+                or ProviderRefusalError.  Never returns ALLOW on failure.
         """
-        payload = self._render(built_context, text, target)
+        request = self._render(built_context, text, target)
 
         try:
-            response, _latency_ms = timed_call(self._caller, payload)
-        except SafetyPassError:
-            raise
+            result = provider.call(request)
         except Exception as exc:
             raise SafetyPassError(
                 f"Safety provider call failed: {exc}", cause=exc
             ) from exc
 
-        try:
-            tool_input = parse_tool_input(response)
-        except SafetyPassError:
-            raise
-        except Exception as exc:
+        tool_parts = [
+            p for p in result.content_parts if isinstance(p, ProviderToolCallPart)
+        ]
+        if not tool_parts:
             raise SafetyPassError(
-                f"Safety response parsing failed: {exc}", cause=exc
-            ) from exc
+                "Safety response missing tool-use block",
+                cause=None,
+            )
+        if tool_parts[0].tool_name != REPORT_SAFETY_TOOL_NAME:
+            raise SafetyPassError(
+                f"Safety unexpected tool name: {tool_parts[0].tool_name!r}; "
+                f"expected {REPORT_SAFETY_TOOL_NAME!r}",
+                cause=None,
+            )
 
         try:
-            report = SafetyReport.model_validate(tool_input)
+            report = SafetyReport.model_validate(tool_parts[0].tool_input)
         except Exception as exc:
             raise SafetyPassError(
                 f"Safety tool input failed schema validation: {exc}", cause=exc
             ) from exc
 
-        raw_usage = response.usage
-        usage = TokenUsage(
-            input_tokens=raw_usage.input_tokens,
-            output_tokens=raw_usage.output_tokens,
-            cache_read_input_tokens=raw_usage.cache_read_input_tokens,
-            cache_creation_input_tokens=raw_usage.cache_creation_input_tokens,
+        return SafetyResult(
+            report=report,
+            target=target,
+            input_token_count=result.input_token_count,
+            output_token_count=result.output_token_count,
+            cache_read_token_count=result.cache_read_token_count,
+            cache_creation_token_count=result.cache_creation_token_count,
+            provider=result.provider_name,
+            model_identifier=result.model_identifier,
+            model_tier=result.model_tier.value,
         )
-
-        return SafetyResult(report=report, target=target, usage=usage)
 
     # -----------------------------------------------------------------------
     # Private: prompt rendering
@@ -200,51 +216,47 @@ class SafetyService:
         built_context: AssembledContext,
         text: str,
         target: SafetyTarget,
-    ) -> SafetyPayload:
-        """Render the AssembledContext + text into a Safety payload."""
+    ) -> ProviderCallRequest:
+        """Render the AssembledContext + text into a ProviderCallRequest."""
+        pass_id = (
+            PipelinePassId.INPUT_SAFETY
+            if target is SafetyTarget.INPUT
+            else PipelinePassId.OUTPUT_SAFETY
+        )
         ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
-        user_blocks: list[TextBlockParam] = list(
+        rendered_blocks: list[RenderedBlock] = list(
             render_stable_prefix_blocks(built_context.stable_prefix, ttl)
         )
 
-        # Volatile suffix: recent turns + evaluated text with target label.
         vs = built_context.volatile_suffix
         for turn in vs.recent_turns:
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
+            rendered_blocks.append(
+                RenderedBlock(
                     text=(
                         f"Player: {turn.user_input}\n"
                         f"Narrator: {turn.assistant_output}"
-                    ),
+                    )
                 )
             )
 
-        label = _LABEL_INPUT if target == SafetyTarget.INPUT else _LABEL_OUTPUT
-        user_blocks.append(
-            TextBlockParam(
-                type="text",
+        label = _LABEL_INPUT if target is SafetyTarget.INPUT else _LABEL_OUTPUT
+        rendered_blocks.append(
+            RenderedBlock(
                 text=(
                     f"{label}\n{text}\n\n"
                     f"[Intent: {vs.classified_intent.intent_type.value}]"
-                ),
+                )
             )
         )
 
-        return {
-            "model": self._config.model,
-            "max_tokens": SAFETY_MAX_TOKENS,
-            "system": [
-                TextBlockParam(type="text", text=self._system_prompt),
-                TextBlockParam(
-                    type="text",
-                    text=built_context.stable_prefix.system_prompt,
-                ),
+        return ProviderCallRequest(
+            pass_id=pass_id,
+            system_blocks=[
+                RenderedBlock(text=self._system_prompt),
+                RenderedBlock(text=built_context.stable_prefix.system_prompt),
             ],
-            "messages": [MessageParam(role="user", content=user_blocks)],
-            "tools": [REPORT_SAFETY_TOOL_SPEC],
-            "tool_choice": {
-                "type": "tool",
-                "name": REPORT_SAFETY_TOOL_NAME,
-            },
-        }
+            rendered_blocks=rendered_blocks,
+            max_output_tokens=SAFETY_MAX_TOKENS,
+            tool_definitions=[_SAFETY_TOOL_DEF],
+            forced_tool_name=REPORT_SAFETY_TOOL_NAME,
+        )

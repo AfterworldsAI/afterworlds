@@ -1,9 +1,10 @@
-"""Contradiction pass service — CRD Issue 11.
+"""Contradiction pass service — CRD Issue 11 / 14a.
 
 Contradiction pass: receives AssembledContext + writer_output, derives a new
 context where the Writer output appears in the PassForwardLedger (rendered
-before the volatile suffix), calls the LLM using Anthropic tool use, validates
-the flat ContradictionReport, and returns a typed ContradictionResult.
+before the volatile suffix), builds a ProviderCallRequest, calls the LLM via
+the injected ProviderAdapter using forced tool use, validates the flat
+ContradictionReport, and returns a typed ContradictionResult.
 
 Architectural invariants enforced here:
   - The Contradiction pass does NOT write canon, does NOT persist, and does NOT
@@ -24,11 +25,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from anthropic.types import (
-    MessageParam,
-    TextBlockParam,
-)
-
+from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -37,16 +34,12 @@ from afterworlds.pipeline._refusal import ProviderRefusalError
 from afterworlds.pipeline._stable_prefix_renderer import (
     TTL_DEFAULT,
     TTL_EXTENDED,
+    RenderedBlock,
     render_stable_prefix_blocks,
 )
 from afterworlds.pipeline.contradiction.caller import (
     REPORT_TOOL_NAME,
     REPORT_TOOL_SPEC,
-    AnthropicContradictionCaller,
-    ContradictionModelCaller,
-    ContradictionPayload,
-    parse_tool_input,
-    timed_call,
 )
 from afterworlds.pipeline.contradiction.config import (
     CONTRADICTION_MAX_TOKENS,
@@ -58,6 +51,12 @@ from afterworlds.pipeline.contradiction.models import (
     ContradictionResult,
     ContradictionVerdict,
 )
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderToolCallPart,
+    ProviderToolDefinition,
+)
+from afterworlds.pipeline.provider._protocol import ProviderAdapter
 
 # ---------------------------------------------------------------------------
 # Prompt loading
@@ -82,6 +81,17 @@ def load_contradiction_prompt() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Module-level tool definition (built once)
+# ---------------------------------------------------------------------------
+
+_CONTRADICTION_TOOL_DEF = ProviderToolDefinition(
+    name=REPORT_TOOL_NAME,
+    description=REPORT_TOOL_SPEC["description"],
+    input_schema=REPORT_TOOL_SPEC["input_schema"],
+)
+
+
+# ---------------------------------------------------------------------------
 # ContradictionService
 # ---------------------------------------------------------------------------
 
@@ -93,9 +103,9 @@ class ContradictionService:
       1. Derive a new AssembledContext where writer_output is inserted into the
          PassForwardLedger (renders as "[WRITER OUTPUT]\\n..." before the
          volatile suffix).  The caller's context is never mutated.
-      2. Render an Anthropic Messages payload from the derived context.
-      3. Invoke the provider via the injected caller (forced tool use).
-      4. Parse the ToolUseBlock response.
+      2. Render a ProviderCallRequest from the derived context.
+      3. Invoke the provider via the injected ProviderAdapter (forced tool use).
+      4. Parse the ProviderToolCallPart response.
       5. Validate the tool input against ContradictionReport.
       6. Derive the verdict from the violations list.
       7. Return a typed ContradictionResult.
@@ -103,25 +113,21 @@ class ContradictionService:
     Args:
         config: Contradiction configuration.  Defaults to
             ContradictionConfig.from_env().
-        caller: Injectable model caller.  Defaults to
-            AnthropicContradictionCaller.
     """
 
     def __init__(
         self,
         config: ContradictionConfig | None = None,
-        caller: ContradictionModelCaller | None = None,
     ) -> None:
         self._config = config or ContradictionConfig.from_env()
-        self._caller: ContradictionModelCaller = caller or AnthropicContradictionCaller(
-            self._config
-        )
         self._system_prompt: str = load_contradiction_prompt()
 
     def check(
         self,
         built_context: AssembledContext,
         writer_output: str,
+        *,
+        provider: ProviderAdapter,
     ) -> ContradictionResult:
         """Execute one Contradiction pass and return a typed result.
 
@@ -130,21 +136,23 @@ class ContradictionService:
                 The Contradiction pass derives a new context from this without
                 mutating it.
             writer_output: The prose produced by the Writer pass this turn.
+            provider: ProviderAdapter for this turn.
 
         Returns:
             ContradictionResult with the derived verdict, violations, and
             token metrics.
 
         Raises:
+            ProviderRefusalError: propagated unchanged for REFUSED_BY_PROVIDER routing.
             ContradictionPassError: if the provider call fails, the response
                 contains no tool-use block, or the tool input fails schema
                 validation.
         """
         derived = _derive_context(built_context, writer_output)
-        payload = self._render(derived)
+        request = self._render(derived)
 
         try:
-            response, latency_ms = timed_call(self._caller, payload)
+            result = provider.call(request)
         except ProviderRefusalError:
             raise
         except Exception as exc:
@@ -152,17 +160,21 @@ class ContradictionService:
                 f"Contradiction provider call failed: {exc}"
             ) from exc
 
-        try:
-            tool_input = parse_tool_input(response)
-        except ContradictionPassError:
-            raise
-        except Exception as exc:
+        tool_parts = [
+            p for p in result.content_parts if isinstance(p, ProviderToolCallPart)
+        ]
+        if not tool_parts:
             raise ContradictionPassError(
-                f"Contradiction response parsing failed: {exc}"
-            ) from exc
+                "Contradiction response missing tool-use block"
+            )
+        if tool_parts[0].tool_name != REPORT_TOOL_NAME:
+            raise ContradictionPassError(
+                f"Contradiction unexpected tool name: {tool_parts[0].tool_name!r}; "
+                f"expected {REPORT_TOOL_NAME!r}"
+            )
 
         try:
-            report = ContradictionReport.model_validate(tool_input)
+            report = ContradictionReport.model_validate(tool_parts[0].tool_input)
         except Exception as exc:
             raise ContradictionPassError(
                 f"Contradiction tool input failed schema validation: {exc}"
@@ -174,24 +186,25 @@ class ContradictionService:
             else ContradictionVerdict.CLEAR
         )
 
-        usage = response.usage
         return ContradictionResult(
             verdict=verdict,
             violations=report.violations,
-            model_identifier=f"anthropic:{self._config.model}",
-            latency_ms=latency_ms,
-            input_token_count=usage.input_tokens,
-            output_token_count=usage.output_tokens,
-            cache_read_token_count=usage.cache_read_input_tokens,
-            cache_creation_token_count=usage.cache_creation_input_tokens,
+            model_identifier=result.model_identifier,
+            latency_ms=result.latency_ms,
+            input_token_count=result.input_token_count,
+            output_token_count=result.output_token_count,
+            cache_read_token_count=result.cache_read_token_count,
+            cache_creation_token_count=result.cache_creation_token_count,
+            provider=result.provider_name,
+            model_tier=result.model_tier.value,
         )
 
     # -----------------------------------------------------------------------
     # Private: prompt rendering
     # -----------------------------------------------------------------------
 
-    def _render(self, derived_context: AssembledContext) -> ContradictionPayload:
-        """Render the derived AssembledContext into a Contradiction payload.
+    def _render(self, derived_context: AssembledContext) -> ProviderCallRequest:
+        """Render the derived AssembledContext into a ProviderCallRequest.
 
         Cache breakpoint placement:
           - Stable-prefix blocks come from the shared Issue 12c renderer
@@ -208,51 +221,44 @@ class ContradictionService:
           - Volatile suffix blocks carry no marker.
         """
         ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
-        user_blocks: list[TextBlockParam] = list(
+        rendered_blocks: list[RenderedBlock] = list(
             render_stable_prefix_blocks(derived_context.stable_prefix, ttl)
         )
 
-        # PassForwardLedger includes the Writer output (added by _derive_context).
         ledger_text = derived_context.pass_forward_ledger.render()
         if ledger_text:
-            user_blocks.append(TextBlockParam(type="text", text=ledger_text))
+            rendered_blocks.append(RenderedBlock(text=ledger_text))
 
-        # Volatile suffix: recent turns + current input + intent.
         vs = derived_context.volatile_suffix
         for turn in vs.recent_turns:
-            user_blocks.append(
-                TextBlockParam(
-                    type="text",
+            rendered_blocks.append(
+                RenderedBlock(
                     text=(
                         f"Player: {turn.user_input}\n"
                         f"Narrator: {turn.assistant_output}"
-                    ),
+                    )
                 )
             )
-        user_blocks.append(
-            TextBlockParam(
-                type="text",
+        rendered_blocks.append(
+            RenderedBlock(
                 text=(
                     f"Player: {vs.current_input}\n"
                     f"[Intent: {vs.classified_intent.intent_type.value}]"
-                ),
+                )
             )
         )
 
-        return {
-            "model": self._config.model,
-            "max_tokens": CONTRADICTION_MAX_TOKENS,
-            "system": [
-                TextBlockParam(type="text", text=self._system_prompt),
-                TextBlockParam(
-                    type="text",
-                    text=derived_context.stable_prefix.system_prompt,
-                ),
+        return ProviderCallRequest(
+            pass_id=PipelinePassId.CONTRADICTION,
+            system_blocks=[
+                RenderedBlock(text=self._system_prompt),
+                RenderedBlock(text=derived_context.stable_prefix.system_prompt),
             ],
-            "messages": [MessageParam(role="user", content=user_blocks)],
-            "tools": [REPORT_TOOL_SPEC],
-            "tool_choice": {"type": "tool", "name": REPORT_TOOL_NAME},
-        }
+            rendered_blocks=rendered_blocks,
+            max_output_tokens=CONTRADICTION_MAX_TOKENS,
+            tool_definitions=[_CONTRADICTION_TOOL_DEF],
+            forced_tool_name=REPORT_TOOL_NAME,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -291,7 +297,6 @@ def _derive_context(
     if len(writer_entries) == 1:
         existing = writer_entries[0].content
         if existing == writer_output:
-            # Already present and consistent — return a copy without appending.
             new_ledger = PassForwardLedger(
                 entries=list(built_context.pass_forward_ledger.entries)
             )

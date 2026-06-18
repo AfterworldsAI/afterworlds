@@ -1,9 +1,9 @@
-"""Shared stable-prefix block renderer — CRD Issue 12c.
+"""Shared stable-prefix block renderer — CRD Issue 12c / 14a.
 
 Single pure utility used by every provider-backed pass (Planner, Writer,
 Input/Output Safety, Extractor, Contradiction) to render the already-built
-``StablePrefix`` into the ordered list of provider-facing user-message text
-blocks with the cache breakpoint placed on the final emitted stable block.
+``StablePrefix`` into the ordered list of provider-neutral content blocks
+with the cache breakpoint placed on the final emitted stable block.
 
 Canonical stable block order (Issue 12c spec):
 
@@ -22,6 +22,14 @@ Planner / Writer / Safety convention already in the codebase and removes
 the divergent Extractor / Contradiction placement that previously included
 ``system_prompt`` as a stable-prefix user block.
 
+Issue 14a rendering seam (Case 2 — formalized in this module):
+  ``render_stable_prefix_blocks`` returns ``list[RenderedBlock]`` — a
+  provider-neutral type carrying text + cache-breakpoint signal.  Adapters
+  realize provider-specific cache markers from the breakpoint signal;
+  adapters never choose breakpoint placement and never re-render context.
+  Record in PR Architecture Notes: "formalized renderer output type in shared
+  rendering module."
+
 This module is a pure callable.  It performs no Context Builder calls, holds
 no sessions, makes no orchestration decisions, and never mutates its inputs.
 """
@@ -30,10 +38,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from anthropic.types import (
-    CacheControlEphemeralParam,
-    TextBlockParam,
-)
+from pydantic import BaseModel, ConfigDict
 
 from afterworlds.models.context import (
     StablePrefix,
@@ -53,6 +58,34 @@ StablePrefixTTL = Literal["1h", "5m"]
 
 TTL_EXTENDED: StablePrefixTTL = "1h"
 TTL_DEFAULT: StablePrefixTTL = "5m"
+
+
+# ---------------------------------------------------------------------------
+# RenderedBlock — provider-neutral stable-prefix block (Issue 14a, Case 2)
+# ---------------------------------------------------------------------------
+
+
+class RenderedBlock(BaseModel):
+    """Provider-neutral stable-prefix block produced by the shared renderer.
+
+    Adapters realize provider-specific cache markers from ``has_cache_breakpoint``
+    and ``ttl``.  They never choose breakpoint placement or re-render content.
+
+    Attributes:
+        text: The plain-text content for this block.
+        has_cache_breakpoint: True for the final stable-prefix block that
+            carries the cache breakpoint signal.  Only one block per rendered
+            list will have this set.
+        ttl: Cache TTL intent, populated only when ``has_cache_breakpoint`` is
+            True.  Anthropic adapters realize this as ``cache_control`` with the
+            given TTL; other adapters may ignore or map it as appropriate.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+    has_cache_breakpoint: bool = False
+    ttl: StablePrefixTTL | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -94,41 +127,35 @@ def collect_stable_prefix_texts(stable_prefix: StablePrefix) -> list[str]:
 def render_stable_prefix_blocks(
     stable_prefix: StablePrefix,
     ttl: StablePrefixTTL = TTL_EXTENDED,
-) -> list[TextBlockParam]:
+) -> list[RenderedBlock]:
     """Return the user-message stable-prefix content blocks for one pass.
 
-    Wraps :func:`collect_stable_prefix_texts` and applies the cache breakpoint
-    marker (``cache_control: {"type": "ephemeral", "ttl": ttl}``) to the final
-    emitted block.  When the collected text list is empty (which would only
-    occur for an unusual empty Story Bible), the returned block list is also
-    empty and the caller's downstream payload is unaffected.
+    Wraps :func:`collect_stable_prefix_texts` and marks the cache breakpoint
+    on the final emitted block via ``has_cache_breakpoint=True`` and the
+    caller-supplied ``ttl``.  When the collected text list is empty (which
+    would only occur for an unusual empty Story Bible), the returned block
+    list is also empty.
+
+    Adapters read ``has_cache_breakpoint`` and ``ttl`` to apply
+    provider-specific cache markers.  The orchestrator's surrounding
+    pass-specific blocks (system parameter, PassForwardLedger, volatile suffix,
+    evaluated text, etc.) are not produced here — each pass owns those.
 
     Args:
         stable_prefix: already-built stable prefix from the Context Builder.
         ttl: caller-supplied ephemeral cache TTL.  Defaults to extended 1h
-            per CRD Item 14 invariant #9.  Only changes the breakpoint TTL;
-            the stable block text and order are independent of this value.
+            per CRD Item 14 invariant #9.
 
     Returns:
-        Ordered list of ``TextBlockParam`` ready to insert into a provider
-        payload.  Pass-specific surrounding blocks (system parameter, pass
-        forward ledger, volatile suffix, evaluated text, etc.) are not
-        produced here — each pass continues to own those.
+        Ordered list of ``RenderedBlock`` ready to include in a
+        ``ProviderCallRequest``.
     """
     texts = collect_stable_prefix_texts(stable_prefix)
     if not texts:
         return []
 
-    cache_control = CacheControlEphemeralParam(type="ephemeral", ttl=ttl)
-
-    blocks: list[TextBlockParam] = []
+    blocks: list[RenderedBlock] = []
     for text in texts[:-1]:
-        blocks.append(TextBlockParam(type="text", text=text))
-    blocks.append(
-        TextBlockParam(
-            type="text",
-            text=texts[-1],
-            cache_control=cache_control,
-        )
-    )
+        blocks.append(RenderedBlock(text=text))
+    blocks.append(RenderedBlock(text=texts[-1], has_cache_breakpoint=True, ttl=ttl))
     return blocks

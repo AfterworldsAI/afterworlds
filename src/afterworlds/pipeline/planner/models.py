@@ -59,6 +59,10 @@ class PlannerResult(BaseModel):
     cache_read_token_count: int | None
     cache_creation_token_count: int | None
 
+    # Additive Issue 14a fields
+    provider: str | None = None
+    model_tier: str | None = None  # ModelTier value as str to avoid circular import
+
 
 class PlannerPassError(Exception):
     """Fail-closed exception for the Planner pass.

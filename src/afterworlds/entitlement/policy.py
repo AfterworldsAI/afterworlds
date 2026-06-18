@@ -139,8 +139,8 @@ class TurnCostPolicy:
         Non-None pass results only.  Intent classification produces no snapshot.
         Safety pass snapshots are included when present (consumed hosted compute).
 
-        Uses ``PASS_TIER_DEFAULTS`` for model_tier since v1 pass results do not
-        report model_tier directly.
+        Uses pass result ``model_tier`` when set; falls back to
+        ``PASS_TIER_DEFAULTS`` for backward compatibility.
 
         Raises ``EntitlementSettlementError`` if ``input_token_count`` or
         ``output_token_count`` is None on any pass result.
@@ -161,6 +161,8 @@ class TurnCostPolicy:
             cache_read: int | None,
             cache_create: int | None,
             model_id: str | None,
+            provider: str | None = None,
+            model_tier_str: str | None = None,
         ) -> PassUsageSnapshot:
             if input_t is None:
                 raise EntitlementSettlementError(
@@ -170,9 +172,18 @@ class TurnCostPolicy:
                 raise EntitlementSettlementError(
                     f"output_token_count is None for pass {pass_id}; cannot settle"
                 )
+            tier: ModelTier
+            if model_tier_str is not None:
+                try:
+                    tier = ModelTier(model_tier_str)
+                except ValueError:
+                    tier = PASS_TIER_DEFAULTS[pass_id]
+            else:
+                tier = PASS_TIER_DEFAULTS[pass_id]
             return PassUsageSnapshot(
                 pass_id=pass_id,
-                model_tier=PASS_TIER_DEFAULTS[pass_id],
+                model_tier=tier,
+                provider=provider,
                 model_identifier=model_id,
                 input_tokens=input_t,
                 output_tokens=output_t,
@@ -183,12 +194,16 @@ class TurnCostPolicy:
         def _safety_snapshot(
             pass_id: PipelinePassId, sr: SafetyResult
         ) -> PassUsageSnapshot:
-            usage = sr.usage
-            in_t = usage.input_tokens if usage else None
-            out_t = usage.output_tokens if usage else None
-            cr = usage.cache_read_input_tokens if usage else None
-            cc = usage.cache_creation_input_tokens if usage else None
-            return _require_tokens(pass_id, in_t, out_t, cr, cc, None)
+            return _require_tokens(
+                pass_id,
+                sr.input_token_count,
+                sr.output_token_count,
+                sr.cache_read_token_count,
+                sr.cache_creation_token_count,
+                sr.model_identifier,
+                provider=sr.provider,
+                model_tier_str=sr.model_tier,
+            )
 
         if result.input_safety_result is not None:
             snapshots.append(
@@ -208,6 +223,8 @@ class TurnCostPolicy:
                     pr.cache_read_token_count,
                     pr.cache_creation_token_count,
                     pr.model_identifier,
+                    provider=pr.provider,
+                    model_tier_str=pr.model_tier,
                 )
             )
 
@@ -221,6 +238,8 @@ class TurnCostPolicy:
                     wr.cache_read_token_count,
                     wr.cache_creation_token_count,
                     wr.model_identifier,
+                    provider=wr.provider,
+                    model_tier_str=wr.model_tier,
                 )
             )
 
@@ -241,7 +260,9 @@ class TurnCostPolicy:
                     er.output_token_count,
                     er.cache_read_token_count,
                     er.cache_creation_token_count,
-                    None,
+                    er.model_identifier,
+                    provider=er.provider,
+                    model_tier_str=er.model_tier,
                 )
             )
 
@@ -255,6 +276,8 @@ class TurnCostPolicy:
                     cr_result.cache_read_token_count,
                     cr_result.cache_creation_token_count,
                     cr_result.model_identifier,
+                    provider=cr_result.provider,
+                    model_tier_str=cr_result.model_tier,
                 )
             )
 

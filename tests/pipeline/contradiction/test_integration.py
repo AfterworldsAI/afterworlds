@@ -1,10 +1,8 @@
-"""Default-CI integration tests for ContradictionService — CRD Issue 11.
+"""Default-CI integration tests for ContradictionService — CRD Issue 11 / 14a.
 
-Uses a high-fidelity fake caller with two scripted scenarios:
+Uses a high-fidelity fake ProviderAdapter with two scripted scenarios:
   - Scenario A: clean prose → CLEAR verdict, no violations
   - Scenario B: location-drift prose → BLOCKED verdict, one violation
-
-These tests run in default CI (no special env flags required).
 """
 
 from __future__ import annotations
@@ -12,8 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from anthropic.types import Message, ToolUseBlock, Usage
-
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -28,10 +25,11 @@ from afterworlds.pipeline.contradiction.caller import REPORT_TOOL_NAME
 from afterworlds.pipeline.contradiction.config import ContradictionConfig
 from afterworlds.pipeline.contradiction.models import ContradictionVerdict
 from afterworlds.pipeline.contradiction.service import ContradictionService
-
-# ---------------------------------------------------------------------------
-# Shared context factory
-# ---------------------------------------------------------------------------
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderCallResult,
+    ProviderToolCallPart,
+)
 
 
 def _make_context() -> AssembledContext:
@@ -80,51 +78,38 @@ def _make_context() -> AssembledContext:
     )
 
 
-# ---------------------------------------------------------------------------
-# High-fidelity fakes
-# ---------------------------------------------------------------------------
+class _ScriptedAdapter:
+    """Fake ProviderAdapter that plays back scripted contradiction tool inputs."""
 
+    def __init__(self, tool_inputs: list[dict]) -> None:
+        self._responses = [
+            ProviderCallResult(
+                pass_id=PipelinePassId.CONTRADICTION,
+                provider_name="anthropic",
+                model_identifier="anthropic:claude-haiku-test",
+                model_tier=ModelTier.HAIKU,
+                content_parts=[
+                    ProviderToolCallPart(
+                        tool_name=REPORT_TOOL_NAME,
+                        tool_input=ti,
+                    )
+                ],
+                input_token_count=120,
+                output_token_count=40,
+                cache_read_token_count=80,
+                cache_creation_token_count=None,
+                cache_warmed=True,
+                latency_ms=5,
+            )
+            for ti in tool_inputs
+        ]
+        self._idx = 0
+        self.provider_name = "anthropic"
 
-def _scripted_caller(tool_inputs: list[dict]) -> object:  # type: ignore[type-arg]
-    """Return a caller that plays back scripted tool inputs in order."""
-    responses = [
-        Message(
-            id=f"msg_fake_{i}",
-            type="message",
-            role="assistant",
-            content=[
-                ToolUseBlock(
-                    type="tool_use",
-                    id=f"toolu_fake_{i}",
-                    name=REPORT_TOOL_NAME,
-                    input=ti,
-                )
-            ],
-            model="claude-haiku-4-5-20251001",
-            stop_reason="tool_use",
-            stop_sequence=None,
-            usage=Usage(
-                input_tokens=120,
-                output_tokens=40,
-                cache_read_input_tokens=80,
-                cache_creation_input_tokens=None,
-            ),
-        )
-        for i, ti in enumerate(tool_inputs)
-    ]
-    idx = [0]
-
-    def caller(payload: object) -> Message:  # type: ignore[type-arg]
-        response = responses[idx[0]]
-        idx[0] += 1
-        return response
-
-    return caller
-
-
-# ---------------------------------------------------------------------------
-# Scenario A — clean prose
-# ---------------------------------------------------------------------------
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        result = self._responses[self._idx]
+        self._idx += 1
+        return result
 
 
 class TestScenarioAClear:
@@ -134,46 +119,41 @@ class TestScenarioAClear:
     )
 
     def test_verdict_clear(self) -> None:
-        fake = _scripted_caller([{"violations": []}])
+        adapter = _ScriptedAdapter([{"violations": []}])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
 
         assert result.verdict == ContradictionVerdict.CLEAR
         assert result.violations == []
 
     def test_token_metrics_present(self) -> None:
-        fake = _scripted_caller([{"violations": []}])
+        adapter = _ScriptedAdapter([{"violations": []}])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
 
         assert result.input_token_count == 120
         assert result.output_token_count == 40
         assert result.cache_read_token_count == 80
 
     def test_model_identifier(self) -> None:
-        fake = _scripted_caller([{"violations": []}])
+        adapter = _ScriptedAdapter([{"violations": []}])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
         assert result.model_identifier == "anthropic:claude-haiku-test"
-
-
-# ---------------------------------------------------------------------------
-# Scenario B — blocked (location drift)
-# ---------------------------------------------------------------------------
 
 
 class TestScenarioBBlocked:
@@ -199,14 +179,14 @@ class TestScenarioBBlocked:
     }
 
     def test_verdict_blocked(self) -> None:
-        fake = _scripted_caller([self.SCRIPTED_VIOLATION])
+        adapter = _ScriptedAdapter([self.SCRIPTED_VIOLATION])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
             extended_ttl=True,
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
 
         assert result.verdict == ContradictionVerdict.BLOCKED
         assert len(result.violations) == 1
@@ -214,24 +194,23 @@ class TestScenarioBBlocked:
     def test_violation_category(self) -> None:
         from afterworlds.pipeline.contradiction.models import ContradictionCategory
 
-        fake = _scripted_caller([self.SCRIPTED_VIOLATION])
+        adapter = _ScriptedAdapter([self.SCRIPTED_VIOLATION])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
-
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
         assert result.violations[0].category == ContradictionCategory.LOCATION_DRIFT
 
     def test_violation_description_and_canon(self) -> None:
-        fake = _scripted_caller([self.SCRIPTED_VIOLATION])
+        adapter = _ScriptedAdapter([self.SCRIPTED_VIOLATION])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        result = svc.check(_make_context(), self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        result = svc.check(_make_context(), self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
 
         v = result.violations[0]
         assert "precinct" in v.description
@@ -241,12 +220,12 @@ class TestScenarioBBlocked:
         ctx = _make_context()
         original_len = len(ctx.pass_forward_ledger.entries)
 
-        fake = _scripted_caller([self.SCRIPTED_VIOLATION])
+        adapter = _ScriptedAdapter([self.SCRIPTED_VIOLATION])
         config = ContradictionConfig(
             model="claude-haiku-test",
             api_key_env="ANTHROPIC_API_KEY",
         )
-        svc = ContradictionService(config=config, caller=fake)  # type: ignore[arg-type]
-        svc.check(ctx, self.WRITER_OUTPUT)
+        svc = ContradictionService(config=config)
+        svc.check(ctx, self.WRITER_OUTPUT, provider=adapter)  # type: ignore[arg-type]
 
         assert len(ctx.pass_forward_ledger.entries) == original_len
