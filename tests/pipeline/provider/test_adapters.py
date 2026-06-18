@@ -34,8 +34,9 @@ from afterworlds.pipeline.provider._models import (
 )
 from afterworlds.pipeline.provider._routing import (
     CapabilityProfileAwareSafetyPolicy,
-    EligibleWriterRoute,
+    EligibleModelRoute,
     SafetyPolicyContext,
+    SafetyWhitelistStatus,
 )
 from afterworlds.pipeline.provider.adapters._anthropic import (
     AnthropicCapabilityProfile,
@@ -92,17 +93,30 @@ def _route(
     trusted: bool = True,
     provider: str = "anthropic",
     is_openrouter: bool = False,
-) -> EligibleWriterRoute:
-    return EligibleWriterRoute(
+) -> EligibleModelRoute:
+    """Build a test EligibleModelRoute.
+
+    ``trusted=True`` maps to WHITELISTED + capable (Anthropic-style trust).
+    ``trusted=False`` maps to NOT_WHITELISTED + not capable (OpenRouter default).
+    ``is_openrouter`` is unused in the new model; use ``provider`` instead.
+    """
+    if trusted:
+        return EligibleModelRoute(
+            provider_name=provider,
+            model_identifier="claude-sonnet-4-6",
+            whitelist_status=SafetyWhitelistStatus.WHITELISTED,
+            supports_required_capabilities=True,
+        )
+    return EligibleModelRoute(
         provider_name=provider,
         model_identifier="claude-sonnet-4-6",
-        is_openrouter=is_openrouter,
-        trusted_for_safety_skip=trusted,
+        whitelist_status=SafetyWhitelistStatus.NOT_WHITELISTED,
+        supports_required_capabilities=False,
     )
 
 
 def _ctx(
-    routes: tuple[EligibleWriterRoute, ...],
+    routes: tuple[EligibleModelRoute, ...],
     risk: bool = False,
     writer_result: object = None,
 ) -> SafetyPolicyContext:
@@ -198,7 +212,7 @@ def test_safety_policy_runs_when_any_route_untrusted() -> None:
     ctx = _ctx(
         (
             _route(trusted=True),
-            _route(trusted=False, provider="openrouter", is_openrouter=True),
+            _route(trusted=False, provider="openrouter"),
         )
     )
     assert policy.should_run_input_preflight(ctx)
@@ -207,7 +221,7 @@ def test_safety_policy_runs_when_any_route_untrusted() -> None:
 
 def test_safety_policy_runs_when_all_routes_untrusted() -> None:
     policy = CapabilityProfileAwareSafetyPolicy()
-    ctx = _ctx((_route(trusted=False, provider="openrouter", is_openrouter=True),))
+    ctx = _ctx((_route(trusted=False, provider="openrouter"),))
     assert policy.should_run_input_preflight(ctx)
 
 
