@@ -88,17 +88,22 @@ code that causes mypy failures is removed.
 
 ---
 
-## Decision 6: No fallback after a Safety BLOCK — enforced structurally
+## Decision 6: Safety provider refusals are excluded from fallback by an explicit router guard
 
-**Decision:** `RefusalFallbackRouter` is only attached to narrative pipeline
-adapters (Planner, Writer, Extractor, Contradiction). Safety passes use the same
-adapter but the orchestrator halts on a BLOCK verdict before any narrative pass
-`call()` occurs. No code path in the router inspects `pass_id` to gate fallback.
+**Decision:** `RefusalFallbackRouter.call()` contains an explicit pass-id guard:
+when the primary raises `ProviderRefusalError` on `INPUT_SAFETY` or
+`OUTPUT_SAFETY`, fallback is bypassed, a `NO_FALLBACK_CONFIGURED` log row is
+written for the audit record, and the original `ProviderRefusalError` is
+re-raised immediately. Narrative and state passes (Planner, Writer, Extractor,
+Contradiction) remain fallback-eligible on `ProviderRefusalError`.
 
-**Rationale:** The CRD acceptance invariant is "no fallback after a Safety BLOCK."
-Structural enforcement (BLOCK halts the pipeline before narrative passes run) is
-more robust than a conditional in `RefusalFallbackRouter`. A conditional there
-would need to be tested for every pass and could silently regress.
+**Rationale:** The CRD acceptance invariant is "no fallback after a Safety
+provider refusal." The guard in the router provides defense-in-depth when a
+Safety pass refusal fires inside an already-running orchestration (e.g., Output
+Safety after Writer completes). The audit row is preserved regardless — the
+`NO_FALLBACK_CONFIGURED` code is logged before re-raise so refusal analytics and
+support reconstruction can distinguish "refused with no fallback available" from
+"refused on a pass where fallback is structurally disabled by policy."
 
 ---
 
@@ -139,18 +144,61 @@ just the ORM layer) provides durable audit integrity.
 
 ---
 
-## Decision 10: Lazy imports for `keyring` and `openai` in provider code
+## Decision 10: `keyring` and `openai` are declared runtime dependencies; lazy imports are hygiene only
 
-**Decision:** `keyring` and `openai` are imported inside method bodies where
-they are used (not at module top level). `type: ignore[import-not-found]` is
-not needed when packages are installed; stubs for `keyring.errors` are absent
-from the installed `keyring` stubs, so `import keyring.errors` carries
+**Decision:** `keyring` and `openai` are declared runtime dependencies in
+`pyproject.toml` and are present in normal installs. Lazy imports (inside method
+bodies rather than at module top level) are retained as implementation hygiene but
+are no longer required for absence. Stubs for `keyring.errors` are absent from the
+installed `keyring` stubs, so `import keyring.errors` still carries
 `# type: ignore[import-not-found]`.
 
-**Rationale:** These are optional runtime dependencies — `keyring` is absent
-on CI runners using `FallbackEnvCredentialStore`; `openai` is absent when no
-OpenRouter BYOK key is configured. Lazy imports prevent `ImportError` at module
-load time on environments where the package is not installed.
+**Rationale:** Both packages are required at runtime for the BYOK credential path
+(`keyring` for `OSKeychainCredentialStore`, `openai` for the OpenRouter adapter's
+HTTP client). Lazy imports prevent `ImportError` at module load time on
+environments that load provider modules without exercising the BYOK path (e.g.,
+lightweight tooling environments), but the packages must not be treated as absent
+in production or CI.
+
+---
+
+## Decision 11: Fallback operational failure re-raises the primary `ProviderRefusalError`
+
+**Decision:** When the primary raises `ProviderRefusalError` and the fallback
+raises `ProviderCallError` (operational failure — network, timeout, server error),
+`RefusalFallbackRouter` logs `FALLBACK_ERROR` and re-raises the **primary**
+`ProviderRefusalError` — not the fallback `ProviderCallError`.
+
+**Rationale:** A fallback operational failure did not change the nature of the turn
+outcome: the primary legitimately refused. The orchestrator's terminal disposition
+remains `REFUSED_BY_PROVIDER`, not `PIPELINE_ERROR`. UI and support tooling can
+resolve "why did this turn end?" from the typed `ProviderRefusal` field without
+needing to reason about what the fallback did. The `FALLBACK_ERROR` code in
+`provider_refusal_log` records the fallback failure for operational investigation
+without promoting it to the terminal cause.
+
+---
+
+## Decision 12: BYOK credential eligibility requires active metadata, non-error status, and retrievable key
+
+**Decision:** In 14a, a BYOK provider is eligible for turn routing if and only if:
+1. A `ProviderCredentialMetadata` row exists for `(sojourner_id, provider_name)`
+   with `is_active=True`.
+2. The row's `validation_status` is not `"invalid"` or `"error"`.
+3. A raw key is retrievable from `CredentialStore`.
+
+`"valid"` and `"untested"` status values are eligible. A credential that has
+never been validated (`"untested"`) is treated as potentially available rather
+than failing closed, consistent with new-install ergonomics where a Sojourner
+may add a key before running validation. Stricter validate-before-use behavior
+(requiring `"valid"` status) is deferred as a later owner decision.
+
+**Rationale:** Failing hard on `"untested"` would block first-use for any
+Sojourner who adds a credential without immediately running a validation check.
+`is_active=False` is the definitive opt-out controlled by the user; `"invalid"`
+and `"error"` represent states where the system determined the key is known-bad
+and should not be presented to a provider API, regardless of whether the user
+has explicitly deactivated it.
 
 ---
 
