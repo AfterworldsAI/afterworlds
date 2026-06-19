@@ -226,6 +226,13 @@ alias.  Callers updated in the same PR.
 **Fail-safe defaults:** Catalog miss → UNKNOWN → Safety.  None fields → Safety.
 Rejection only on explicit `False`.
 
+**Capability evaluation (Step 6):** `supports_required_capabilities=True` requires
+text output confirmed (`True`), context_length known and ≥ floor, **and** at least
+one structured mechanism confirmed (`supports_tool_use is True OR
+supports_structured_output is True`).  A route with both structured fields `None`
+is not capable — Safety runs, route is live.  A single confirmed mechanism is
+sufficient (OR, not AND).
+
 **Dynamic-alias rule:** Static deny-set (O(1)) + catalog defense-in-depth.
 
 **14b ships machinery:** The registry and whitelist infrastructure are complete.

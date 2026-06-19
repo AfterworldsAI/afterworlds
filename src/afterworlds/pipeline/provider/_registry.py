@@ -25,7 +25,9 @@ Resolution ladder (``resolve_route``):
        - ``context_length=None``: unverified; does not reject — Safety runs.
   6. Catalog entry — capability evaluation:
        - ``supports_required_capabilities=True`` only when
-         ``supports_text_output is True`` AND context_length is known and >= floor.
+         ``supports_text_output is True`` AND context_length is known and >= floor
+         AND at least one structured mechanism is confirmed
+         (``supports_tool_use is True`` OR ``supports_structured_output is True``).
        - All other cases → False (fail-safe; Safety runs, route not rejected).
   7. Whitelist lookup:
        - whitelist disabled → DISABLED
@@ -219,10 +221,14 @@ class OpenRouterCapabilityRegistry:
             )
 
         # Step 6: capability evaluation (fail-safe: unknown → False)
+        supports_structured_capability = (
+            entry.supports_tool_use is True or entry.supports_structured_output is True
+        )
         supports_required = (
             entry.supports_text_output is True
             and entry.context_length is not None
             and entry.context_length >= self._floor
+            and supports_structured_capability
         )
 
         # Step 7: whitelist lookup (with time-based staleness check)

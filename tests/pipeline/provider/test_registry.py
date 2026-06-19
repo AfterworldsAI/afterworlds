@@ -227,14 +227,34 @@ def test_tool_use_none_structured_output_false_does_not_raise() -> None:
 
 
 def test_both_structured_fields_none_does_not_raise() -> None:
-    """tool_use=None + structured_output=None: both unverified → no reject."""
+    """tool_use=None + structured_output=None: unverified → no reject, capable=False."""
     entry = _catalog_entry(
         _MODEL, supports_tool_use=None, supports_structured_output=None
     )
     registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
     status, profile, capable = registry.resolve_route(_MODEL)
     assert profile is not None
-    assert capable is True  # text_output=True + context_length=200000 >= floor
+    assert capable is False  # unverified structured → Safety must run
+
+
+def test_tool_use_true_structured_none_is_capable() -> None:
+    """tool_use=True satisfies structured requirement even if structured_output=None."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=True, supports_structured_output=None
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    _, _, capable = registry.resolve_route(_MODEL)
+    assert capable is True
+
+
+def test_tool_use_none_structured_output_true_is_capable() -> None:
+    """structured_output=True satisfies structured requirement even if tool_use=None."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=None, supports_structured_output=True
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    _, _, capable = registry.resolve_route(_MODEL)
+    assert capable is True
 
 
 # ---------------------------------------------------------------------------

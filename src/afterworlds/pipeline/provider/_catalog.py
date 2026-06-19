@@ -99,17 +99,28 @@ class LiveOpenRouterCatalogProvider:
             model_id: str = entry.get("id", "")
             if not model_id:
                 continue
-            arch = entry.get("architecture") or {}
-            output_modalities: list[str] = arch.get("output_modalities") or []
-            supports_text: bool | None = True if "text" in output_modalities else None
+            arch = entry.get("architecture")
+            raw_modalities = (
+                arch.get("output_modalities") if isinstance(arch, dict) else None
+            )
+            supports_text: bool | None = (
+                ("text" in raw_modalities) if isinstance(raw_modalities, list) else None
+            )
+            raw_params = entry.get("supported_parameters")
+            if isinstance(raw_params, list):
+                supports_tool: bool | None = "tools" in raw_params
+                supports_structured: bool | None = "structured_outputs" in raw_params
+            else:
+                supports_tool = None
+                supports_structured = None
             models.append(
                 OpenRouterCatalogModel(
                     id=model_id,
                     name=entry.get("name") or "",
                     context_length=entry.get("context_length"),
                     supports_text_output=supports_text,
-                    supports_tool_use=entry.get("supports_tool_use"),
-                    supports_structured_output=entry.get("supports_structured_output"),
+                    supports_tool_use=supports_tool,
+                    supports_structured_output=supports_structured,
                     is_dynamic_router=bool(entry.get("is_dynamic_router", False)),
                     fetched_at=fetched_at,
                 )
