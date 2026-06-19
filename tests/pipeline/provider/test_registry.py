@@ -299,6 +299,26 @@ def test_tool_use_false_structured_output_true_is_not_capable() -> None:
     assert status is SafetyWhitelistStatus.WHITELISTED
 
 
+def test_response_format_evidence_prevents_ac11_rejection() -> None:
+    """structured_output=True (from response_format) prevents AC 11 rejection.
+
+    At the registry, response_format-only and structured_outputs-only models
+    are the same input vector: tool_use=False, tool_choice=False, structured=True.
+    Both must not trigger AC 11; both are not capable (adapter path is tools only).
+    """
+    entry = _catalog_entry(
+        _MODEL,
+        supports_tool_use=False,
+        supports_tool_choice=False,
+        supports_structured_output=True,
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert profile is not None  # route live — AC 11 did not fire
+    assert capable is False  # adapter requires tool_use; Safety runs
+    assert status is SafetyWhitelistStatus.WHITELISTED
+
+
 # ---------------------------------------------------------------------------
 # Step 6: tool_choice contract — adapter-realized capability (P2)
 # ---------------------------------------------------------------------------

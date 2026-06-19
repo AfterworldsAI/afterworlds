@@ -111,7 +111,10 @@ class LiveOpenRouterCatalogProvider:
             if isinstance(raw_params, list):
                 supports_tool: bool | None = "tools" in raw_params
                 supports_tool_choice: bool | None = "tool_choice" in raw_params
-                supports_structured: bool | None = "structured_outputs" in raw_params
+                supports_structured: bool | None = (
+                    "structured_outputs" in raw_params
+                    or "response_format" in raw_params
+                )
             else:
                 supports_tool = None
                 supports_tool_choice = None

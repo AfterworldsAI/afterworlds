@@ -249,15 +249,32 @@ call-time failure.  Both `tools` and `tool_choice` must be confirmed `True` in
 `supported_parameters` before the adapter-realized capability contract is
 satisfied.
 
-Catalog `structured_outputs` / `response_format` support is recorded faithfully
-in `ModelRouteCapabilityProfile.supports_structured_output` but is not sufficient
-for `supports_required_capabilities=True` until an OpenRouter structured-output
-adapter path exists (deferred, not in 14b scope).  Safety-skip eligibility tracks
-adapter-realized capability, not catalog capability.
+**Abstract catalog capability vs. adapter-realized capability:**
+`ModelRouteCapabilityProfile.supports_structured_output` is an *abstract* field
+that captures any structured-output evidence from the catalog: either
+`"structured_outputs"` or `"response_format"` in the API's `supported_parameters`
+array maps to `supports_structured_output=True`.  This prevents wrongful AC 11
+rejection for models that signal structured-output capability only via
+`response_format`.  It does NOT grant `supports_required_capabilities=True`.
 
-The gate now mirrors every capability-bearing parameter the adapter emits for
-structured passes; `structured_outputs`/`response_format` is the only uncovered
-mechanism and remains out of scope until that adapter path exists.
+`supports_required_capabilities=True` (Step 6) requires adapter-realized
+capability: the 14b `OpenRouterAdapter` emits exactly `tools` and `tool_choice`
+for structured passes, so only `supports_tool_use is True AND supports_tool_choice
+is True` satisfies the adapter contract.  `structured_outputs`/`response_format`
+evidence is not sufficient for Safety-skip until an adapter path that emits those
+parameters exists (deferred, not in 14b scope).
+
+**`supported_parameters` token classification (14b scope):**
+
+| Token                | abstract structured evidence | adapter-realized capable | AC 11 prevents rejection |
+|----------------------|------------------------------|--------------------------|--------------------------|
+| `tools`              | No                           | Yes (required)           | N/A                      |
+| `tool_choice`        | No                           | Yes (required)           | N/A                      |
+| `structured_outputs` | Yes → `structured_output=True` | No                    | Yes (when tool_use≠False)|
+| `response_format`    | Yes → `structured_output=True` | No                    | Yes (when tool_use≠False)|
+
+Any other tokens: ignored (fail-safe).  A future token that enables structured
+output via a new adapter path is a new issue, not an extension of 14b scope.
 
 **Resolution-ladder matrix (Step 6 capability evaluation):**
 
