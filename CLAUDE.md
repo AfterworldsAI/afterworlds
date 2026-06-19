@@ -1,107 +1,107 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working in this repository.
-Read it fully at the start of every session before taking any action.
+Read this file fully at the start of every Claude Code session before taking action.
 
 ## Project
 
 Afterworlds is an interactive storytelling platform built on the Sojourn Story
-State Machine. It lets users inhabit and continue narrative worlds across three
-modes: RPG, Branching, and Writing. The target users are called Sojourners.
-This is a solo-developer project operated under AfterworldsAI, LLC.
+State Machine. Users are **Sojourners**. Modes are RPG, Branching, and Writing.
+Authoritative sources live in `/docs/architecture/`, `/docs/decisions/`, and
+`/docs/prompts/`. The CRD issue spec governs the current task. If implementation
+would deviate from these sources, flag it in Architecture Notes; do not resolve
+drift silently.
 
-The authoritative design documents are in /docs/architecture/. Read them before
-making any architectural decision. If your implementation would deviate from
-anything in those documents, flag it in your PR description — do not resolve it
-silently.
+## Stack and Local Gates
 
-## Language & Tooling
-
-- **Language:** Python 3.12 only
-- **Package management:** pip + virtualenv only — do not introduce Poetry, PDM,
-  uv, or any alternative dependency manager
-- **Testing:** pytest (minimum 80% coverage on new code)
-- **Type checking:** mypy strict mode — zero tolerance
-- **Formatting:** Black — zero tolerance
-- **Linting:** Ruff — zero tolerance
-- **Dependency scanning:** pip-audit (blocking CI gate)
-- **Secret scanning:** detect-secrets (pre-commit hook)
-
-## Build & Test Commands
+* Python 3.12 only. Use standard `pip` + `virtualenv`; do not introduce Poetry,
+  PDM, uv, or another dependency manager.
+* Black, Ruff, mypy strict, pytest, pip-audit, and detect-secrets are required.
+* Minimum coverage on new code: 80% unless the issue specifies otherwise.
 
 ```bash
-# Create and activate virtualenv
 python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # Mac/Linux
-
-# Install dependencies
 pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Type check
-mypy src/
-
-# Format
 black src/ tests/
-
-# Lint
 ruff check src/ tests/
-
-# Dependency audit
+mypy src/
+pytest -q
 pip-audit
 ```
 
-## Architecture Principles — Non-Negotiable
+Run gates on the exact branch head before pushing. If blocked, say what could not run.
 
-These must not be violated. Any code that breaks them is an architectural
-violation and must be flagged in the PR, not silently resolved.
+## Architecture Invariants
 
-1. Story Bible is structurally separate from prose history
-2. Six memory layers have distinct roles: Immediate / Rolling Summary /
-   Story Bible / Rules Package / Retrieval Memory / Contradiction Checker
-3. Intent is classified before context is assembled
-4. The Sojourn orchestration path is the **core narrative pipeline**
-   (Planner → Writer → Extractor → Contradiction) wrapped by a **safety
-   envelope** with conditional execution: Input Safety Preflight runs
-   before Planner/Writer when orchestration policy requires it; Output
-   Safety Audit runs after Writer and before Extractor/Contradiction when
-   provider or risk policy requires it. Provider refusals during any
-   provider-backed pass are typed pass failures, not Safety verdicts. The
-   ordering is fixed; the safety calls are conditional, not unconditional
-   terminal passes.
-5. Extractor proposes canon updates — it does not write canon directly
-6. Stable prompt prefix is assembled once per turn and shared across all
-   passes for caching efficiency
+These are non-negotiable. Violations must be surfaced, not quietly patched.
 
-## Repository & PR Rules
+1. Story Bible is structured narrative canon, never prose history.
+2. Memory layers stay distinct: Immediate, Rolling Summary, Story Bible, Rules
+   Package, Retrieval Memory, Contradiction Checker.
+3. Intent is classified before context assembly.
+4. Core narrative path: Planner -> Writer -> Extractor -> Contradiction.
+5. Safety is an envelope: Input Preflight before Planner/Writer when required;
+   Output Audit after Writer and before Extractor/Contradiction when required.
+   Provider refusals are typed pass failures, not Safety verdicts.
+6. Extractor proposes canon updates through approved service paths; it does not
+   bypass the Story Bible service or write canon directly.
+7. Stable prefix is assembled once per turn and reused across provider-backed
+   passes. Rebuilding it per pass is an architectural violation.
+8. Rules Package is mechanical canon; Story Bible is narrative canon. Do not
+   cross their persistence or authority models.
+9. RPG character sheets are first-class, ruleset-specific persistent objects.
+   Rules meaning belongs to the active Rules Package and adjudication layer.
+10. Deterministic/trust-relevant RPG rails are code-owned where specified:
+    dice generation, hidden/backend-visible rolls, roll-result preservation,
+    and `gm_cheating = off` enforcement.
+11. Operational state affecting money, access, user data, or auditability must be
+    reconstructable from explicit event logs, not inferred from opaque state.
+12. Scope creep and Known Unknowns must be surfaced, not silently resolved.
 
-- Feature branches per issue: `feature/issue-N-short-description`
-- No direct commits to main under any circumstances
-- Open a PR for every issue; PRs are not merged without Codex review passing
-- No PR merges with failing CI
-- Every PR description must include an **Architecture Notes** section:
-  either "No drift from design principles" or an explicit description of
-  any deviation and rationale
-- Scope creep is a review failure — stay within issue boundaries
+## Context Discipline
+
+Claude Code context is a build resource. Do not waste it on raw archaeology.
+
+* Use `/context` before large implementation phases. Note major context costs.
+* Do not dump broad docs, Graphify output, or large source sweeps into the main
+  implementation thread when a subagent can summarize them.
+* Use subagents for reconnaissance: architecture-doc reading, source seam
+  discovery, Graphify orientation, sibling-structure audits, and review triage.
+* Keep the main implementation context focused on the issue spec, invariant
+  card, accepted plan, target files, failing tests, and current diff.
+* Consult `/advisor` after briefing and planning, not after raw doc ingestion.
+  Advisor is for judgment forks; subagents are for context isolation.
+* Prefer manual `/compact` or `/clear` at phase boundaries. Do not wait for
+  auto-compact to fire mid-edit.
+* For large issues, use fresh phases rather than one long invariant-heavy pass.
+
+## Compact Instructions
+
+When compacting, preserve these items exactly:
+
+1. CRD issue number, GitHub issue/PR number, branch, and implementation phase.
+2. In-scope and out-of-scope boundaries.
+3. Owner decisions, ADR decisions, and Known Unknowns touched by the work.
+4. Narrow issue-specific invariants; do not replace them with vague summaries.
+5. Exact service, DTO, enum, migration, prompt, and test names changed.
+6. Files changed and why each file changed.
+7. Test commands run and results.
+8. Current failing tests, reviewer comments, and unresolved boundary questions.
+9. Architecture Notes content that must appear in the PR.
 
 ## Graphify Preflight
 
-Before starting non-trivial implementation work, use Graphify for codebase orientation when it is available in the local environment.
+Use Graphify before non-trivial implementation or review when available. It is
+an orientation aid only, not an authority and not a runtime dependency.
 
-Graphify is a construction aid only. It is not an Afterworlds runtime dependency, not an architectural authority, and not a replacement for the issue spec, ADRs, `CLAUDE.md`, `AGENTS.md`, or architecture docs.
-
-Required preflight for non-trivial implementation work:
-
-1. Read the governing instructions and issue spec first.
-2. Refresh or query the Graphify code graph before broad file inspection.
-3. Use narrow, task-specific Graphify queries to identify likely files, services, models, tests, and ownership seams.
-4. Verify all Graphify output against source files and authoritative docs before making changes.
-5. If Graphify is blocked by the sandbox, request approval/escalation to run the Graphify preflight once. If Graphify is still unavailable, stale, or failing after that, state it explicitly and continue with normal source inspection.
-
-Current local code-only Graphify workflow:
+1. Read governing instructions and the issue/PR first.
+2. Refresh or query the graph before broad file inspection.
+3. Use narrow, task-specific queries for files, services, models, tests, callers,
+   and ownership seams.
+4. Verify Graphify output against source, tests, issue specs, ADRs, and docs.
+5. If blocked, request approval/escalation once. If still unavailable, state that
+   and continue with normal source inspection.
 
 ```powershell
 cd D:\AI\Claude\afterworlds\src
@@ -110,121 +110,87 @@ graphify cluster-only D:\AI\Claude\afterworlds\src
 graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."
 ```
 
-## Review-Loop Parallel Structure Check
-When fixing a Codex comment, classify the defect class and check sibling structures before patching. If the same class exists elsewhere, fix the class in one bundled pass or explain why the sibling is intentionally different.
+## Implementation Workflow
 
-## Review-Loop Boundary Check
+For small fixes, work directly and keep the diff tight. For non-trivial CRD
+issues, use this sequence:
 
-If repeated review rounds on the same PR begin focusing on the same file, function, 
-query path, schema hotspot, or service hotspot, or if feedback shifts from concrete 
-defects to questions of ownership, semantics, architectural placement, or which issue 
-should own a behavior, treat that as a boundary problem rather than “the next patch.”
+1. Read `CLAUDE.md`, `AGENTS.md`, the issue spec, relevant ADRs, and Known Unknowns.
+2. Run Graphify/subagent briefing before broad manual spelunking.
+3. Produce an invariant card: scope, seams, affected services, tests, risks.
+4. Make an implementation plan and consult advisor when the issue involves
+   architecture, ownership, routing, entitlement, safety, orchestration, RPG
+   adjudication, migrations, or a Known Unknown.
+5. Implement in phases. End each phase with gates, `git diff --stat`, and
+   `git status`.
+6. Commit coherent phases with conventional commits.
+7. Before PR handoff, verify tests, Architecture Notes, acceptance criteria, and
+   no unrelated drift.
 
-When this happens:
+## Repository and PR Rules
 
-- Stop iterative fix/re-review cycling.
-- Classify the remaining feedback as:
-  - merge-blocking defect,
-  - issue-scope boundary problem,
-  - Known Unknown,
-  - non-blocking improvement.
-- Do not resolve boundary or ownership questions unilaterally in code.
-- Raise the issue explicitly in the PR description or PR comments under
-  **Architecture Notes**.
-- Pause for owner decision when the implementation appears to cross issue
-  scope, touch a Known Unknown, or require a new ownership rule.
+* Feature branches: `feature/issue-N-short-description`; no direct commits to `main`.
+* Open a PR for every issue; do not merge without passing CI and Codex review.
+* PR description must include what was built, acceptance criteria coverage, test
+  coverage summary, and **Architecture Notes**.
+* Architecture Notes must say either `No drift from design principles` or
+  describe the deviation/rationale explicitly.
+* Conventional commits only: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
+* Use `CRD Issue N` for construction issues and `#N` for GitHub issues/PRs.
+  Never use bare `Issue N`.
 
-Do not keep patching a hotspot indefinitely just because a reviewer produced
-another comment. Repeated churn on the same hotspot is evidence that the PR may
-have crossed its intended boundary.
-
-## Commit Format
-
-Conventional commits:  
-`type(scope): description`
-
-Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-
-Example: `feat(story-bible): implement tiered inclusion policy for events ledger`
-
-## Known Unknowns — Do Not Resolve Silently
+## Boundary and Known Unknown Rules
 
 See `/docs/architecture/known_unknowns.md`. If implementation touches a listed
-unknown, stop and flag it in the PR — do not resolve it unilaterally.
+unknown, stop and flag it; do not decide it in code.
 
-## Business Model Constraints — Architectural Invariants
+Trigger a boundary check when:
 
-There is **one canonical Sojourn orchestration path** — the core narrative
-pipeline (Planner → Writer → Extractor → Contradiction) plus the safety
-envelope (conditional Input Preflight and Output Audit) — across all paying
-access paths. No commercial tier may remove core continuity functions or the
-safety envelope. A degraded free-tier pipeline is not part of this product.
+* repeated review/fix rounds hit the same file, function, query, schema, or
+  service hotspot;
+* feedback shifts from concrete defects to ownership, semantics, placement, or
+  which issue owns behavior;
+* a proposed fix would generalize beyond the issue;
+* implementation discovers a materially better architecture than the spec.
 
-Access paths and their constraints:
+When triggered:
 
-- **Hosted Subscription:** metered subscription with included monthly credits +
-  transparent top-ups. When credits are exhausted, the system stops or prompts
-  for top-up — it never silently degrades output quality or drops pipeline
-  passes.
-- **BYOK Perpetual License:** permanent product rights with full pipeline
-  parity. First year of Cloud Services included. BYOK is a first-class path —
-  not a fallback or reduced-function mode.
-- **BYOK Cloud Services Renewal:** optional annual renewal for ongoing hosted
-  services (storage, sync, backup, remote access, ingestion processing). The
-  perpetual license and the Cloud Services layer must not be collapsed in code
-  or entitlement logic.
-- **Starter Access (optional):** small paid entry package using the same full
-  orchestration path and normal hosted credits. Not a free tier. Not a
-  degraded path.
+1. Stop treating the latest comment as automatically the next patch.
+2. Classify remaining work: merge-blocking defect, scope boundary, Known
+   Unknown, or non-blocking improvement.
+3. Audit sibling structures before fixing the latest symptom.
+4. Surface the boundary in PR comments or Architecture Notes.
+5. Wait for owner decision when ownership, scope, or Known Unknowns are involved.
 
-Additional invariants:
+## Business and Access Invariants
 
-- Extended TTL caching must be enabled by default wherever the provider
-  supports it — this is an economic requirement, not a preference
-- Stable prompt prefix is assembled once per turn and shared across all passes
-  — rebuilding it per pass is an architectural violation
-- Entitlement routing governs billing path, credit balance, Cloud Services
-  status, and storage/ingestion entitlements — never whether the core
-  narrative pipeline or the safety envelope exists
-- BYOK non-renewal must preserve read/export/download access to owned work;
-  user content must never be held hostage as leverage for renewal
-- Top-up flows must be transparent and non-manipulative — no dark patterns,
-  no concealed overage behavior
+There is one canonical Sojourn orchestration path across paying access paths. No
+commercial tier may remove core continuity functions or the safety envelope.
 
-## Note-Taking (Self-Improvement Loop)
+* Hosted access uses included credits plus transparent top-ups. Exhaustion stops
+  or prompts; it never silently degrades quality or drops passes.
+* BYOK perpetual license preserves full pipeline parity. BYOK is a first-class
+  path, not a fallback or reduced-function mode.
+* Cloud Services are separable from perpetual license rights. Lapse may gate
+  hosted storage/sync/backup/remote access/hosted ingestion, but not owned-work
+  read/export/download.
+* Starter Access, if offered, is paid entry access using the same full pipeline
+  and normal hosted credits. It is not a degraded free tier.
+* Extended TTL caching is required wherever provider support and adapter
+  verification allow it; cache correctness belongs to provider adapters.
+* Entitlement routing governs access path, credits, Cloud Services, and
+  settlement. Provider routing governs model/provider choice. Do not conflate.
+* No dark patterns in top-up, renewal, cancellation, export, or data retention.
 
-After each task, log any correction, preference, or pattern learned during
-that task. This is how the project accumulates institutional memory across
-sessions.
+## Lessons and Self-Improvement
 
-**Trigger conditions — log when:**
+After each task, append dated one-line lessons when corrected, an assumption fails,
+a pattern is discovered, or a better approach should persist. Format:
+`[YYYY-MM-DD] <lesson learned>`. Avoid duplicates. Preserve unless superseded:
 
-- You were corrected on an implementation decision
-- You discovered a behavioral pattern not covered by existing rules
-- You made an assumption that turned out to be wrong
-- You found a better approach than what the spec implied
-
-**Format:** one line, dated, plain language.  
-`[YYYY-MM-DD] <lesson learned>`
-
-**Where to log:**
-
-- Project-wide lessons go in the Lessons section below
-- Subsystem-specific lessons go in the relevant file in `/context/`
-- When three or more related lessons accumulate anywhere, create a new
-  context file in `/context/`, add it to the folder tree in the docs,
-  and note it below
-
-## Lessons
-
-[2026-04-02] Before committing, run the full local gate sequence on the exact branch head you plan to push: `black src/ tests/ && ruff check src/ tests/ && mypy src/ && pytest -q`. A green Black check alone does not mean the branch is CI-clean.
-
-[2026-04-02] When CI reports a specific file in a formatter or lint failure, verify that the file’s diff is actually staged and included in a pushed commit. A local fix is not complete until `git diff`, `git status`, and the commit contents confirm it was committed.
-
-[2026-04-02] When fixing a reported formatter or lint issue, inspect the files changed in the commit(s) being pushed. If CI complained about a file and that file is absent from the pushed commit summary, assume the fix did not reach GitHub.
-
-[2026-04-02] Pin Black to an exact version in dev dependencies to reduce avoidable CI/local drift, but do not assume version drift is the root cause without proof from the failing file, the actual commit contents, and the current CI run.
-
-[2026-04-07] CRD issue numbers (Issue 4, Issue 8, Issue 18, …) and GitHub issue numbers (#43, #44, #45, …) are different namespaces. Always write "CRD Issue N" for construction-readiness document references and "#N" for GitHub issue/ +PR references. Never use bare "Issue N" — every AI tool reviewed so far conflates the two sequences.
+* [2026-04-02] Run the full local gate sequence on the exact branch head before pushing; a green formatter alone does not mean CI-clean.
+* [2026-04-02] When CI reports a file, verify the fix is staged, committed, and pushed by checking `git diff`, `git status`, and commit contents.
+* [2026-04-02] Pin Black exactly in dev dependencies to reduce CI/local drift, but prove drift before blaming it.
+* [2026-04-07] CRD issue numbers and GitHub issue/PR numbers are different namespaces; always write `CRD Issue N` or `#N`.
 
 <!-- Claude Code appends dated one-line lessons here as they are learned -->
