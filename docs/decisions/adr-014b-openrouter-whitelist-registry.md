@@ -100,12 +100,17 @@ whether multiple per-pass floors are needed remain owner decisions.  See
 
 ---
 
-## Decision 5: STALE vs. UNKNOWN semantics and time-based staleness
+## Decision 5: DISABLED / STALE / UNKNOWN semantics and time-based staleness
 
 **Decision:**
-- `UNKNOWN` — model id is not in the whitelist and not in the catalog.
-  Safety always runs.  Route not rejected.
-- `STALE` — model id IS in the whitelist but:
+- `DISABLED` — the whitelist is administratively off (`WhitelistConfig(enabled=False)`).
+  Applies on both catalog hits and catalog misses: it is an administrative
+  whitelist state, not a catalog-resolution state.  Safety always runs.
+  Route not rejected.  `DISABLED` is always evaluated before `STALE` / `UNKNOWN`
+  so it is unambiguous in telemetry.
+- `UNKNOWN` — whitelist is enabled; model id is not in the whitelist and not in
+  the catalog.  Safety always runs.  Route not rejected.
+- `STALE` — whitelist is enabled; model id IS in the whitelist but:
   - not found in the catalog (delisted/renamed), OR
   - found in the catalog but `WhitelistEntry.verified_at` is older than
     `max_evidence_age` (whitelist evidence expired).
@@ -114,11 +119,13 @@ whether multiple per-pass floors are needed remain owner decisions.  See
 `max_evidence_age` is a constructor parameter on `OpenRouterCapabilityRegistry`
 (`timedelta | None`; `None` means entries never expire by age).
 
-**Rationale:** The distinction matters for operational observability.  `STALE`
-signals a whitelist entry that may need review.  `UNKNOWN` signals a model the
-system has never assessed.  Both force Safety; neither rejects the route,
-consistent with the fail-safe rule.  Time-based staleness allows operators to
-require periodic re-verification of whitelist entries.
+**Rationale:** The three-way distinction matters for operational observability.
+`DISABLED` signals administrative policy-off (intentional).  `STALE` signals a
+whitelist entry that may need review (action required).  `UNKNOWN` signals a
+model the system has never assessed (expected during onboarding).  All three
+force Safety; none rejects the route, consistent with the fail-safe rule.
+Returning `UNKNOWN` for a disabled-whitelist catalog miss would conflate
+administrative off with unassessed, making telemetry unusable for operations.
 
 ---
 

@@ -130,6 +130,14 @@ def test_dynamic_alias_rejected_before_catalog_lookup() -> None:
         registry.resolve_route("openrouter/auto")
 
 
+def test_dynamic_alias_rejected_with_disabled_whitelist() -> None:
+    """Dynamic alias raises ProviderConfigError even when whitelist is disabled."""
+    disabled_wl = WhitelistConfig(enabled=False)
+    registry = _make_registry(whitelist=disabled_wl)
+    with pytest.raises(ProviderConfigError, match="dynamic alias"):
+        registry.resolve_route("openrouter/auto")
+
+
 # ---------------------------------------------------------------------------
 # Step 3: catalog miss
 # ---------------------------------------------------------------------------
@@ -149,6 +157,16 @@ def test_catalog_miss_whitelisted_returns_stale() -> None:
     registry = _make_registry(whitelist=_whitelist(_MODEL))
     status, profile, capable = registry.resolve_route(_MODEL)
     assert status is SafetyWhitelistStatus.STALE
+    assert profile is None
+    assert capable is False
+
+
+def test_catalog_miss_disabled_whitelist_returns_disabled() -> None:
+    """Catalog miss + disabled whitelist → DISABLED, not UNKNOWN."""
+    disabled_wl = WhitelistConfig(enabled=False)
+    registry = _make_registry(whitelist=disabled_wl)  # empty catalog
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert status is SafetyWhitelistStatus.DISABLED
     assert profile is None
     assert capable is False
 

@@ -11,9 +11,11 @@ Resolution ladder (``resolve_route``):
   2. Catalog lookup: fetch_catalog() is called once per registry instance
      (result is cached on first call).
   3. Catalog miss:
-       - model NOT in whitelist → (UNKNOWN, None, False)
-       - model IN whitelist     → (STALE, None, False)
-     Both force Safety without rejecting the route.
+       - whitelist disabled             → (DISABLED, None, False)
+       - whitelist enabled + in entries → (STALE, None, False)
+       - whitelist enabled + not found  → (UNKNOWN, None, False)
+     All three force Safety without rejecting the route.
+     DISABLED here reflects administrative whitelist state, not catalog status.
   4. Catalog entry with is_dynamic_router=True → ``ProviderConfigError``
      (catalog-authoritative dynamic alias; defense-in-depth after step 1).
   5. Catalog entry — positive-evidence rejection:
@@ -105,10 +107,6 @@ class WhitelistConfig:
     enabled: bool = True
     entries: dict[str, WhitelistEntry] = field(default_factory=dict)
 
-    def is_whitelisted(self, model_identifier: str) -> bool:
-        """Return True when the whitelist is enabled and the model has an entry."""
-        return self.enabled and model_identifier in self.entries
-
 
 # ---------------------------------------------------------------------------
 # Registry
@@ -186,9 +184,12 @@ class OpenRouterCapabilityRegistry:
         catalog = self._get_catalog()
         entry = catalog.get(model_identifier)
 
-        # Step 3: catalog miss
+        # Step 3: catalog miss — whitelist-disabled check runs before entry lookup
+        # so DISABLED is distinguishable from UNKNOWN in telemetry.
         if entry is None:
-            if self._whitelist.is_whitelisted(model_identifier):
+            if not self._whitelist.enabled:
+                return SafetyWhitelistStatus.DISABLED, None, False
+            if model_identifier in self._whitelist.entries:
                 return SafetyWhitelistStatus.STALE, None, False
             return SafetyWhitelistStatus.UNKNOWN, None, False
 
