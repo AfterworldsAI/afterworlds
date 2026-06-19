@@ -36,6 +36,7 @@ class TestOpenRouterCatalogModel:
         assert m.context_length is None
         assert m.supports_text_output is None
         assert m.supports_tool_use is None
+        assert m.supports_tool_choice is None
         assert m.supports_structured_output is None
         assert m.is_dynamic_router is False
 
@@ -50,12 +51,14 @@ class TestOpenRouterCatalogModel:
             id="vendor/model",
             supports_text_output=True,
             supports_tool_use=False,
+            supports_tool_choice=True,
             supports_structured_output=None,
             context_length=128_000,
             is_dynamic_router=False,
         )
         assert m.supports_text_output is True
         assert m.supports_tool_use is False
+        assert m.supports_tool_choice is True
         assert m.supports_structured_output is None
         assert m.context_length == 128_000
 
@@ -151,6 +154,7 @@ class TestLiveOpenRouterCatalogProvider:
         assert m.context_length == 32_768
         assert m.supports_text_output is True
         assert m.supports_tool_use is True
+        assert m.supports_tool_choice is False
         assert m.supports_structured_output is False
 
     def test_no_text_in_output_modalities_gives_false(self) -> None:
@@ -170,25 +174,27 @@ class TestLiveOpenRouterCatalogProvider:
         assert results[0].supports_text_output is False
 
     def test_supported_parameters_tools_only(self) -> None:
-        """supported_parameters=['tools'] → tool_use=True, structured_output=False."""
+        """['tools'] → tool_use=True, tool_choice=False, structured=False."""
         payload = [{"id": "v/m", "supported_parameters": ["tools"]}]
         mock_resp = _make_api_response(payload)
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is True
+        assert results[0].supports_tool_choice is False
         assert results[0].supports_structured_output is False
 
     def test_supported_parameters_structured_outputs_only(self) -> None:
-        """['structured_outputs'] → tool_use=False, structured_output=True."""
+        """['structured_outputs'] → tool_use/choice=False, structured=True."""
         payload = [{"id": "v/m", "supported_parameters": ["structured_outputs"]}]
         mock_resp = _make_api_response(payload)
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is False
+        assert results[0].supports_tool_choice is False
         assert results[0].supports_structured_output is True
 
     def test_supported_parameters_both(self) -> None:
-        """supported_parameters with both values → both True."""
+        """tools+structured: tool_use=True, tool_choice=False, structured=True."""
         payload = [
             {"id": "v/m", "supported_parameters": ["tools", "structured_outputs"]}
         ]
@@ -196,33 +202,57 @@ class TestLiveOpenRouterCatalogProvider:
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is True
+        assert results[0].supports_tool_choice is False
         assert results[0].supports_structured_output is True
 
+    def test_supported_parameters_tools_and_tool_choice(self) -> None:
+        """tools+tool_choice → tool_use=True, tool_choice=True, structured=False."""
+        payload = [{"id": "v/m", "supported_parameters": ["tools", "tool_choice"]}]
+        mock_resp = _make_api_response(payload)
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
+        assert results[0].supports_tool_use is True
+        assert results[0].supports_tool_choice is True
+        assert results[0].supports_structured_output is False
+
+    def test_supported_parameters_tool_choice_only(self) -> None:
+        """['tool_choice'] → tool_use=False, tool_choice=True, structured=False."""
+        payload = [{"id": "v/m", "supported_parameters": ["tool_choice"]}]
+        mock_resp = _make_api_response(payload)
+        with patch("urllib.request.urlopen", return_value=mock_resp):
+            results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
+        assert results[0].supports_tool_use is False
+        assert results[0].supports_tool_choice is True
+        assert results[0].supports_structured_output is False
+
     def test_supported_parameters_empty_list(self) -> None:
-        """supported_parameters=[] (list present, no matching values) → both False."""
+        """supported_parameters=[] (list present, no matching values) → all False."""
         payload = [{"id": "v/m", "supported_parameters": []}]
         mock_resp = _make_api_response(payload)
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is False
+        assert results[0].supports_tool_choice is False
         assert results[0].supports_structured_output is False
 
     def test_supported_parameters_absent(self) -> None:
-        """supported_parameters absent → both None (fail-safe)."""
+        """supported_parameters absent → all None (fail-safe)."""
         payload = [{"id": "v/m"}]
         mock_resp = _make_api_response(payload)
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is None
+        assert results[0].supports_tool_choice is None
         assert results[0].supports_structured_output is None
 
     def test_supported_parameters_malformed_non_list(self) -> None:
-        """supported_parameters is not a list → both None (fail-safe)."""
+        """supported_parameters is not a list → all None (fail-safe)."""
         payload = [{"id": "v/m", "supported_parameters": "tools"}]
         mock_resp = _make_api_response(payload)
         with patch("urllib.request.urlopen", return_value=mock_resp):
             results = list(LiveOpenRouterCatalogProvider(api_key="k").fetch_catalog())
         assert results[0].supports_tool_use is None
+        assert results[0].supports_tool_choice is None
         assert results[0].supports_structured_output is None
 
     def test_missing_architecture_gives_none_text_support(self) -> None:

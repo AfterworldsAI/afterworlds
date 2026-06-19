@@ -28,10 +28,10 @@ Resolution ladder (``resolve_route``):
   6. Catalog entry — capability evaluation:
        - ``supports_required_capabilities=True`` only when
          ``supports_text_output is True`` AND context_length is known and >= floor
-         AND ``supports_tool_use is True`` (adapter constraint: the 14b
-         ``OpenRouterAdapter`` uses ``tools``/``tool_choice`` only; catalog
-         ``structured_outputs`` support is recorded in the profile but is not
-         sufficient for Safety-skip until an adapter path exists).
+         AND ``supports_tool_use is True`` AND ``supports_tool_choice is True``
+         (adapter constraint: the 14b ``OpenRouterAdapter`` emits exactly two
+         capability-bearing kwargs for structured passes — ``tools`` and
+         ``tool_choice``; both must be catalog-confirmed True).
        - All other cases → False (fail-safe; Safety runs, route not rejected).
   7. Whitelist lookup:
        - whitelist disabled → DISABLED
@@ -224,14 +224,16 @@ class OpenRouterCapabilityRegistry:
             )
 
         # Step 6: capability evaluation (fail-safe: unknown → False)
-        # Adapter constraint: OpenRouterAdapter uses tools/tool_choice only.
-        # Catalog structured_outputs is recorded in the profile but is not
-        # sufficient for Safety-skip until an adapter path exists.
+        # Adapter constraint: OpenRouterAdapter emits exactly two capability-bearing
+        # kwargs for structured passes — tools and tool_choice.  Both must be
+        # catalog-confirmed True.  structured_outputs is recorded in the profile
+        # but is not sufficient for Safety-skip until an adapter path exists.
         supports_required = (
             entry.supports_text_output is True
             and entry.context_length is not None
             and entry.context_length >= self._floor
             and entry.supports_tool_use is True
+            and entry.supports_tool_choice is True
         )
 
         # Step 7: whitelist lookup (with time-based staleness check)
@@ -254,6 +256,7 @@ class OpenRouterCapabilityRegistry:
             model_identifier=model_identifier,
             supports_text_output=entry.supports_text_output,
             supports_tool_use=entry.supports_tool_use,
+            supports_tool_choice=entry.supports_tool_choice,
             supports_structured_output=entry.supports_structured_output,
             context_length=entry.context_length,
             evidence_source=CapabilityEvidenceSource.OPENROUTER_MODELS_API,
@@ -292,6 +295,7 @@ def make_anthropic_capability_profile(
         model_identifier=model_identifier,
         supports_text_output=True,
         supports_tool_use=True,
+        supports_tool_choice=True,
         supports_structured_output=True,
         context_length=200_000,
         evidence_source=CapabilityEvidenceSource.AFTERWORLDS_VERIFIED,

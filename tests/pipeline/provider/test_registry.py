@@ -52,6 +52,7 @@ def _catalog_entry(
     *,
     supports_text_output: bool | None = True,
     supports_tool_use: bool | None = True,
+    supports_tool_choice: bool | None = True,
     supports_structured_output: bool | None = True,
     context_length: int | None = 200_000,
     is_dynamic_router: bool = False,
@@ -62,6 +63,7 @@ def _catalog_entry(
         context_length=context_length,
         supports_text_output=supports_text_output,
         supports_tool_use=supports_tool_use,
+        supports_tool_choice=supports_tool_choice,
         supports_structured_output=supports_structured_output,
         is_dynamic_router=is_dynamic_router,
         fetched_at=_NOW,
@@ -295,6 +297,38 @@ def test_tool_use_false_structured_output_true_is_not_capable() -> None:
     assert capable is False
     assert profile is not None  # route is live; AC 11 did not fire
     assert status is SafetyWhitelistStatus.WHITELISTED
+
+
+# ---------------------------------------------------------------------------
+# Step 6: tool_choice contract — adapter-realized capability (P2)
+# ---------------------------------------------------------------------------
+
+
+def test_tool_choice_false_is_not_capable() -> None:
+    """tool_use=True but tool_choice=False → not capable; route live, Safety runs."""
+    entry = _catalog_entry(_MODEL, supports_tool_choice=False)
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert capable is False
+    assert profile is not None
+    assert status is SafetyWhitelistStatus.WHITELISTED
+
+
+def test_tool_choice_none_is_not_capable() -> None:
+    """tool_use=True but tool_choice=None → not capable (unverified; fail-safe)."""
+    entry = _catalog_entry(_MODEL, supports_tool_choice=None)
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    _, profile, capable = registry.resolve_route(_MODEL)
+    assert capable is False
+    assert profile is not None
+
+
+def test_both_tool_use_and_tool_choice_true_is_capable() -> None:
+    """tool_use=True AND tool_choice=True → capable (complete adapter contract)."""
+    entry = _catalog_entry(_MODEL, supports_tool_use=True, supports_tool_choice=True)
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    _, _, capable = registry.resolve_route(_MODEL)
+    assert capable is True
 
 
 # ---------------------------------------------------------------------------

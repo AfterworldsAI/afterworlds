@@ -37,6 +37,7 @@ class OpenRouterCatalogModel(BaseModel, extra="forbid"):
     context_length: int | None = None
     supports_text_output: bool | None = None
     supports_tool_use: bool | None = None
+    supports_tool_choice: bool | None = None
     supports_structured_output: bool | None = None
     is_dynamic_router: bool = False
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -109,9 +110,11 @@ class LiveOpenRouterCatalogProvider:
             raw_params = entry.get("supported_parameters")
             if isinstance(raw_params, list):
                 supports_tool: bool | None = "tools" in raw_params
+                supports_tool_choice: bool | None = "tool_choice" in raw_params
                 supports_structured: bool | None = "structured_outputs" in raw_params
             else:
                 supports_tool = None
+                supports_tool_choice = None
                 supports_structured = None
             models.append(
                 OpenRouterCatalogModel(
@@ -120,6 +123,7 @@ class LiveOpenRouterCatalogProvider:
                     context_length=entry.get("context_length"),
                     supports_text_output=supports_text,
                     supports_tool_use=supports_tool,
+                    supports_tool_choice=supports_tool_choice,
                     supports_structured_output=supports_structured,
                     is_dynamic_router=bool(entry.get("is_dynamic_router", False)),
                     fetched_at=fetched_at,

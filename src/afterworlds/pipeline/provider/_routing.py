@@ -77,7 +77,7 @@ class SafetyWhitelistStatus(enum.StrEnum):
 class ModelRouteCapabilityProfile:
     """Capability facts for one exact-model-route, from catalog or fixture.
 
-    All three supports_* fields use tri-state (True / False / None):
+    All four supports_* fields use tri-state (True / False / None):
       - True:  provider catalog confirms support.
       - False: provider catalog confirms no support; route may be rejected.
       - None:  support status unknown (fail-safe: do not reject; Safety runs).
@@ -92,6 +92,7 @@ class ModelRouteCapabilityProfile:
     model_identifier: str
     supports_text_output: bool | None
     supports_tool_use: bool | None
+    supports_tool_choice: bool | None
     supports_structured_output: bool | None
     context_length: int | None
     evidence_source: CapabilityEvidenceSource

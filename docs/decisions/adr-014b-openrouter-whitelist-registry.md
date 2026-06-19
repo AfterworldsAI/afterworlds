@@ -236,13 +236,45 @@ alias.  Callers updated in the same PR.
 Rejection only on explicit `False`.
 
 **Capability evaluation (Step 6):** `supports_required_capabilities=True` requires
-text output confirmed (`True`), context_length known and ≥ floor, **and**
-`supports_tool_use is True`.  The `OpenRouterAdapter` uses `tools`/`tool_choice`
-only — there is no `response_format` / structured-output request path.  Catalog
-`structured_outputs` support is recorded faithfully in `ModelRouteCapabilityProfile`
-but is not sufficient for `supports_required_capabilities=True` until an
-OpenRouter structured-output adapter path exists (deferred, not in 14b scope).
-Safety-skip eligibility tracks adapter-realized capability, not catalog capability.
+text output confirmed (`True`), context_length known and ≥ floor, **and** both
+`supports_tool_use is True` **and** `supports_tool_choice is True`.
+
+The `OpenRouterAdapter` emits exactly two capability-bearing kwargs for structured
+passes: `tools` (when `tool_definitions` is set) and `tool_choice` (when
+`forced_tool_name` is set).  Every structured narrative pass — Planner, Writer,
+Extractor, Contradiction, Safety — sets a `forced_tool_name`.  A model with
+`"tools"` in `supported_parameters` but without `"tool_choice"` can accept tool
+definitions but may reject or ignore the forced-tool parameter, causing a
+call-time failure.  Both `tools` and `tool_choice` must be confirmed `True` in
+`supported_parameters` before the adapter-realized capability contract is
+satisfied.
+
+Catalog `structured_outputs` / `response_format` support is recorded faithfully
+in `ModelRouteCapabilityProfile.supports_structured_output` but is not sufficient
+for `supports_required_capabilities=True` until an OpenRouter structured-output
+adapter path exists (deferred, not in 14b scope).  Safety-skip eligibility tracks
+adapter-realized capability, not catalog capability.
+
+The gate now mirrors every capability-bearing parameter the adapter emits for
+structured passes; `structured_outputs`/`response_format` is the only uncovered
+mechanism and remains out of scope until that adapter path exists.
+
+**Resolution-ladder matrix (Step 6 capability evaluation):**
+
+| text_output | ctx_length | tool_use | tool_choice | capable |
+|-------------|------------|----------|-------------|---------|
+| True        | ≥ floor    | True     | True        | True    |
+| True        | ≥ floor    | True     | False       | False   |
+| True        | ≥ floor    | True     | None        | False   |
+| True        | ≥ floor    | False    | *           | False   |
+| True        | ≥ floor    | None     | *           | False   |
+| True        | None       | *        | *           | False   |
+| True        | < floor    | *        | *           | ProviderConfigError (Step 5) |
+| False       | *          | *        | *           | ProviderConfigError (Step 5) |
+| None        | *          | *        | *           | False   |
+
+All False / None entries: route is live, Safety runs.  Reject (ProviderConfigError)
+is reserved for positive evidence at Step 5 only.
 
 **Dynamic-alias rule:** Static deny-set (O(1)) + catalog defense-in-depth.
 
