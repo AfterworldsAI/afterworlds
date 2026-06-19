@@ -53,8 +53,10 @@ These were open questions during design or early construction. Decisions are rec
 | Retrieval-memory ownership and gate | Issue 18 owns ChromaDB retrieval-memory design and implementation, beginning with a mandatory ADR / owner checkpoint before implementation code proceeds | Exact collection schema and retrieval parameters remain open until the Issue 18 ADR is accepted. |
 | OOC narrative effect | OOC does not advance story or canon unless a later mode-specific contract defines a safe typed configuration update | The UI provides explicit OOC affordance; manual `[OOC]` remains valid. Branching interaction-style/cadence changes are examples of safe typed config updates. |
 | Credit deduction timing | Hosted credits deducted only for `DELIVERED` and `OOC_HANDLED` turns. Safety blocks, contradiction blocks, provider refusals, and pipeline errors do not deduct. | Resolved during Issue 13; see ADR-013. Owner Decision #1. |
-| Safety-policy provider whitelist | Anthropic direct (`trusted_for_safety_skip=True`); OpenRouter (`trusted_for_safety_skip=False`). Implemented in `CapabilityProfileAwareSafetyPolicy` via `TurnProviderBinding.primary_writer_route`. | Resolved during Issue 14a; see adr-014a. |
-| Provider capability profiles and fallback eligibility | `AnthropicCapabilityProfile` owns pass→model mapping. `EligibleWriterRoute` carries `trusted_for_safety_skip`. `RefusalFallbackRouter` owns at-most-one-fallback semantics. BYOK pool bounded by configured credentials; no hosted/BYOK boundary crossing. | Resolved during Issue 14a; see adr-014a. OpenRouter cache adapter verification deferred to Issue 14b. |
+| Safety-policy provider whitelist | Anthropic direct: always WHITELISTED + capable via AFTERWORLDS_VERIFIED profile. OpenRouter: whitelist + capability evaluated per-model via `OpenRouterCapabilityRegistry`. Implemented in `CapabilityProfileAwareSafetyPolicy` via `EligibleModelRoute.whitelist_status` and `supports_required_capabilities`. | Resolved during Issue 14a/14b; see adr-014a, adr-014b. |
+| Provider capability profiles and fallback eligibility | `AnthropicCapabilityProfile` owns pass→model mapping. `EligibleModelRoute` carries `whitelist_status` + `supports_required_capabilities`. `RefusalFallbackRouter` owns at-most-one-fallback semantics. BYOK pool bounded by configured credentials; no hosted/BYOK boundary crossing. | Resolved during Issue 14a/14b; see adr-014a, adr-014b. OpenRouter cache adapter verification deferred — still open (see Open section). |
+| OpenRouter context-length floor value and rejection semantics | `resolve_route` rejects routes with known `context_length < writer_context_length_floor` (ProviderConfigError). Floor is a constructor parameter on `OpenRouterCapabilityRegistry`; default `_WRITER_CONTEXT_LENGTH_FLOOR = 8192` is provisional. `context_length=None` does not reject. | Resolved during Issue 14b; see adr-014b Decision 4. The correct production floor value remains an operator configuration decision. |
+| OpenRouter structured-pass capability pre-validation at route resolution | `resolve_route` rejects routes where `supports_tool_use is False AND supports_structured_output is False` (ProviderConfigError). Only explicit False triggers rejection; None fields fail safe. | Resolved during Issue 14b; see adr-014b Decision 11. |
 | React or Svelte for the initial frontend | Deferred to before Issue 19 per CRD Item 4. All Issues 1–18 are backend/pipeline and are unblocked. | CRD Item 4 establishes this must be resolved before frontend skeleton work (Issue 19). No decision required before Issue 18. |
 
 ---
@@ -62,6 +64,16 @@ These were open questions during design or early construction. Decisions are rec
 ## Open — Acceptable to Resolve During Construction
 
 These are genuinely open. Each has a designated resolution window. Do not resolve early without explicit approval.
+
+---
+
+### OpenRouter cache adapter verification
+
+**Resolve during:** Issue 14 (any remaining 14x sub-issue) or before OpenRouter routes enable extended-TTL caching.
+
+ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRouter cache adapter behavior (cross-pass reuse, TTL, cache metric semantics) requires adapter verification before extended-TTL caching is enabled for OpenRouter routes. This verification was not completed in 14a or 14b.
+
+**What resolution requires:** Verify OpenRouter cache behavior for stable-prefix reuse across passes within a turn. Document verified assumptions, update the adapter and ADR-014a/014b. Extended-TTL caching must not be enabled for OpenRouter routes without this verification.
 
 ---
 

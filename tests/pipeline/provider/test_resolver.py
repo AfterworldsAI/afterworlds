@@ -78,7 +78,7 @@ def test_hosted_with_key_and_blank_model_raises() -> None:
 
 
 def test_hosted_anthropic_only_returns_single_eligible_route() -> None:
-    """No OpenRouter key → single Anthropic route with trusted_for_safety_skip=True."""
+    """No OpenRouter key → single Anthropic route WHITELISTED and capable."""
     cfg = HostedRoutingConfig(anthropic_api_key="sk-ant-test")
     binding = _resolver(cfg).resolve_for_turn(
         access_path=RuntimeAccessPath.HOSTED,
@@ -87,8 +87,10 @@ def test_hosted_anthropic_only_returns_single_eligible_route() -> None:
     assert len(binding.eligible_writer_routes) == 1
     route = binding.eligible_writer_routes[0]
     assert route.provider_name == "anthropic"
-    assert route.trusted_for_safety_skip is True
-    assert route.is_openrouter is False
+    from afterworlds.pipeline.provider._routing import SafetyWhitelistStatus
+
+    assert route.whitelist_status is SafetyWhitelistStatus.WHITELISTED
+    assert route.supports_required_capabilities is True
 
 
 def test_hosted_anthropic_only_access_path_is_hosted() -> None:
@@ -121,8 +123,8 @@ def test_hosted_with_key_and_model_returns_two_eligible_routes() -> None:
     assert providers == {"anthropic", "openrouter"}
 
 
-def test_hosted_openrouter_route_is_not_trusted_for_safety_skip() -> None:
-    """OpenRouter eligible route always has trusted_for_safety_skip=False."""
+def test_hosted_openrouter_route_without_registry_is_unknown() -> None:
+    """OpenRouter route without registry → UNKNOWN status, not capable (fail-safe)."""
     cfg = HostedRoutingConfig(
         anthropic_api_key="sk-ant-test",
         openrouter_api_key="sk-or-test",
@@ -132,8 +134,13 @@ def test_hosted_openrouter_route_is_not_trusted_for_safety_skip() -> None:
         access_path=RuntimeAccessPath.HOSTED,
         sojourner_id=uuid4(),
     )
-    or_route = next(r for r in binding.eligible_writer_routes if r.is_openrouter)
-    assert or_route.trusted_for_safety_skip is False
+    from afterworlds.pipeline.provider._routing import SafetyWhitelistStatus
+
+    or_route = next(
+        r for r in binding.eligible_writer_routes if r.provider_name == "openrouter"
+    )
+    assert or_route.whitelist_status is SafetyWhitelistStatus.UNKNOWN
+    assert or_route.supports_required_capabilities is False
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +280,9 @@ def test_byok_openrouter_padded_model_id_returns_stripped(engine) -> None:  # ty
     sess.close()
     resolver = _byok_resolver(sf)
     binding = resolver.resolve_for_turn(RuntimeAccessPath.BYOK, sid)
-    or_route = next(r for r in binding.eligible_writer_routes if r.is_openrouter)
+    or_route = next(
+        r for r in binding.eligible_writer_routes if r.provider_name == "openrouter"
+    )
     assert or_route.model_identifier == "anthropic/claude-haiku-4-5"
 
 

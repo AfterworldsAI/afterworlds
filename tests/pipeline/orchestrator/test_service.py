@@ -86,7 +86,8 @@ from afterworlds.pipeline.orchestrator import (
 )
 from afterworlds.pipeline.planner.models import PlannerOutput
 from afterworlds.pipeline.provider._routing import (
-    EligibleWriterRoute,
+    EligibleModelRoute,
+    SafetyWhitelistStatus,
     TurnProviderBinding,
 )
 from afterworlds.pipeline.safety.models import (
@@ -136,11 +137,15 @@ def _make_fake_resolver(trusted: bool = False) -> object:
     (safety may be skipped by ``CapabilityProfileAwareSafetyPolicy``).
     ``trusted=False`` (default) → routes are not trusted; safety always runs.
     """
-    route = EligibleWriterRoute(
+    route = EligibleModelRoute(
         provider_name="fake-anthropic",
         model_identifier="fake-anthropic:claude-test",
-        is_openrouter=False,
-        trusted_for_safety_skip=trusted,
+        whitelist_status=(
+            SafetyWhitelistStatus.WHITELISTED
+            if trusted
+            else SafetyWhitelistStatus.NOT_WHITELISTED
+        ),
+        supports_required_capabilities=trusted,
     )
     adapter = _FakeProviderAdapter()
     binding = TurnProviderBinding(

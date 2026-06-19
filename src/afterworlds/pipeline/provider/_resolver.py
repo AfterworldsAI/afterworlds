@@ -1,12 +1,12 @@
-"""ProviderResolver — per-turn provider binding — CRD Issue 14a.
+"""ProviderResolver — per-turn provider binding — CRD Issue 14a/14b.
 
 ``resolve_for_turn`` is the single entry point for provider/platform selection.
 No provider policy lives in HTTP handlers or entitlement code.
 
 Hosted path:
-  - Anthropic direct primary (``trusted_for_safety_skip=True``).
-  - Optional OpenRouter fallback from hosted routing configuration
-    (``trusted_for_safety_skip=False``).
+  - Anthropic direct primary (WHITELISTED + capable via AFTERWORLDS_VERIFIED profile).
+  - Optional OpenRouter fallback from hosted routing configuration; whitelist status
+    and capability resolved via ``OpenRouterCapabilityRegistry`` when injected.
   - Wrapped in ``RefusalFallbackRouter`` when fallback exists.
 
 BYOK path:
@@ -21,7 +21,11 @@ BYOK path:
 
 Cross-boundary rule: hosted/BYOK pools never cross.
 Dynamic alias rule: dynamic aliases are rejected at ``OpenRouterAdapter``
-construction (``ProviderConfigError``).
+construction (``ProviderConfigError``) and additionally by the registry.
+
+14b: ``OpenRouterCapabilityRegistry`` is optional.  When absent, OpenRouter routes
+default to UNKNOWN and ``supports_required_capabilities=False``
+(fail-safe; Safety always runs).
 """
 
 from __future__ import annotations
@@ -31,8 +35,13 @@ from uuid import UUID
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.pipeline.provider._errors import ProviderConfigError
+from afterworlds.pipeline.provider._registry import (
+    OpenRouterCapabilityRegistry,
+    make_anthropic_capability_profile,
+)
 from afterworlds.pipeline.provider._routing import (
-    EligibleWriterRoute,
+    EligibleModelRoute,
+    SafetyWhitelistStatus,
     TurnProviderBinding,
 )
 from afterworlds.pipeline.provider.adapters._anthropic import (
@@ -252,6 +261,9 @@ class ProviderResolver:
             Required when serving hosted-access Sojourners.
         session_factory: Factory returning SQLAlchemy sessions for reading
             ``ProviderRouteConfig`` rows.  Optional; required for BYOK path.
+        capability_registry: OpenRouter model-route capability registry (14b).
+            When None, OpenRouter routes resolve to UNKNOWN + not capable;
+            Safety always runs for those routes.
     """
 
     def __init__(
@@ -259,10 +271,12 @@ class ProviderResolver:
         credential_store: CredentialStore,
         hosted_config: HostedRoutingConfig | None = None,
         session_factory: object = None,
+        capability_registry: OpenRouterCapabilityRegistry | None = None,
     ) -> None:
         self._credential_store = credential_store
         self._hosted_config = hosted_config
         self._session_factory = session_factory
+        self._capability_registry = capability_registry
 
     def resolve_for_turn(
         self,
@@ -302,11 +316,12 @@ class ProviderResolver:
         from afterworlds.entitlement.enums import PipelinePassId
 
         writer_model = cfg.anthropic_profile.model_for(PipelinePassId.WRITER)
-        primary_route = EligibleWriterRoute(
+        primary_route = EligibleModelRoute(
             provider_name="anthropic",
             model_identifier=writer_model,
-            is_openrouter=False,
-            trusted_for_safety_skip=True,
+            whitelist_status=SafetyWhitelistStatus.WHITELISTED,
+            supports_required_capabilities=True,
+            capability_profile=make_anthropic_capability_profile(writer_model),
         )
 
         if cfg.openrouter_api_key:
@@ -322,11 +337,8 @@ class ProviderResolver:
                 model_identifier=cfg.openrouter_fallback_model,
                 api_key=cfg.openrouter_api_key,
             )
-            fallback_route = EligibleWriterRoute(
-                provider_name="openrouter",
-                model_identifier=cfg.openrouter_fallback_model,
-                is_openrouter=True,
-                trusted_for_safety_skip=False,
+            fallback_route = self._resolve_openrouter_route(
+                cfg.openrouter_fallback_model
             )
             wrapped_adapter = RefusalFallbackRouter(
                 primary=primary_adapter,
@@ -388,30 +400,26 @@ class ProviderResolver:
 
         def _make_anthropic(
             api_key: str,
-        ) -> tuple[AnthropicDirectAdapter, EligibleWriterRoute]:
+        ) -> tuple[AnthropicDirectAdapter, EligibleModelRoute]:
             from afterworlds.entitlement.enums import PipelinePassId
 
             profile = AnthropicCapabilityProfile()
             adapter = AnthropicDirectAdapter(api_key=api_key, profile=profile)
             writer_model = profile.model_for(PipelinePassId.WRITER)
-            route = EligibleWriterRoute(
+            route = EligibleModelRoute(
                 provider_name="anthropic",
                 model_identifier=writer_model,
-                is_openrouter=False,
-                trusted_for_safety_skip=True,
+                whitelist_status=SafetyWhitelistStatus.WHITELISTED,
+                supports_required_capabilities=True,
+                capability_profile=make_anthropic_capability_profile(writer_model),
             )
             return adapter, route
 
         def _make_openrouter(
             api_key: str, model_id: str
-        ) -> tuple[OpenRouterAdapter, EligibleWriterRoute]:
+        ) -> tuple[OpenRouterAdapter, EligibleModelRoute]:
             adapter = OpenRouterAdapter(model_identifier=model_id, api_key=api_key)
-            route = EligibleWriterRoute(
-                provider_name="openrouter",
-                model_identifier=model_id,
-                is_openrouter=True,
-                trusted_for_safety_skip=False,
-            )
+            route = self._resolve_openrouter_route(model_id)
             return adapter, route
 
         def _get_openrouter_model(sojourner_id: UUID) -> str:
@@ -495,6 +503,41 @@ class ProviderResolver:
             access_path=RuntimeAccessPath.BYOK,
             pre_transaction_fn=proxy.start_buffering,
             post_transaction_fn=proxy.flush,
+        )
+
+    # -----------------------------------------------------------------------
+    # Private: OpenRouter route resolution (14b)
+    # -----------------------------------------------------------------------
+
+    def _resolve_openrouter_route(self, model_identifier: str) -> EligibleModelRoute:
+        """Resolve capability and whitelist status for an OpenRouter model route.
+
+        If no ``capability_registry`` was injected, falls back to fail-safe
+        defaults: UNKNOWN status, not capable, no profile.  This preserves the
+        14a behaviour (Safety always runs for OpenRouter) when the registry is
+        not yet configured.
+
+        Raises:
+            ProviderConfigError: if the registry rejects the model (dynamic alias
+                or positively incapable of serving the Writer pass).
+        """
+        if self._capability_registry is None:
+            return EligibleModelRoute(
+                provider_name="openrouter",
+                model_identifier=model_identifier,
+                whitelist_status=SafetyWhitelistStatus.UNKNOWN,
+                supports_required_capabilities=False,
+                capability_profile=None,
+            )
+        whitelist_status, profile, supports_required = (
+            self._capability_registry.resolve_route(model_identifier)
+        )
+        return EligibleModelRoute(
+            provider_name="openrouter",
+            model_identifier=model_identifier,
+            whitelist_status=whitelist_status,
+            supports_required_capabilities=supports_required,
+            capability_profile=profile,
         )
 
 
