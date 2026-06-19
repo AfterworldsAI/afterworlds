@@ -266,12 +266,12 @@ parameters exists (deferred, not in 14b scope).
 
 **`supported_parameters` token classification (14b scope):**
 
-| Token                | abstract structured evidence | adapter-realized capable | AC 11 prevents rejection |
-|----------------------|------------------------------|--------------------------|--------------------------|
-| `tools`              | No                           | Yes (required)           | N/A                      |
-| `tool_choice`        | No                           | Yes (required)           | N/A                      |
-| `structured_outputs` | Yes → `structured_output=True` | No                    | Yes (when tool_use≠False)|
-| `response_format`    | Yes → `structured_output=True` | No                    | Yes (when tool_use≠False)|
+| Token                | abstract structured evidence   | adapter-realized capable | AC 11 prevents rejection       |
+|----------------------|--------------------------------|--------------------------|--------------------------------|
+| `tools`              | No                             | Yes (required)           | Yes (forces `tool_use=True`)   |
+| `tool_choice`        | No                             | Yes (required)           | No (not an AC 11 input)        |
+| `structured_outputs` | Yes → `structured_output=True` | No                       | Yes (forces `structured=True`) |
+| `response_format`    | Yes → `structured_output=True` | No                       | Yes (forces `structured=True`) |
 
 Any other tokens: ignored (fail-safe).  A future token that enables structured
 output via a new adapter path is a new issue, not an extension of 14b scope.
