@@ -247,14 +247,36 @@ def test_tool_use_true_structured_none_is_capable() -> None:
     assert capable is True
 
 
-def test_tool_use_none_structured_output_true_is_capable() -> None:
-    """structured_output=True satisfies structured requirement even if tool_use=None."""
+def test_tool_use_none_structured_output_true_is_not_capable() -> None:
+    """structured_output=True, tool_use=None → not capable (adapter: tools only)."""
     entry = _catalog_entry(
         _MODEL, supports_tool_use=None, supports_structured_output=True
     )
     registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
     _, _, capable = registry.resolve_route(_MODEL)
+    assert capable is False
+
+
+def test_tool_use_true_structured_output_false_is_capable() -> None:
+    """tool_use=True, structured_output=False → capable (adapter path confirmed)."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=True, supports_structured_output=False
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    _, _, capable = registry.resolve_route(_MODEL)
     assert capable is True
+
+
+def test_tool_use_false_structured_output_true_is_not_capable() -> None:
+    """tool_use=False + structured_output=True → not capable, not rejected."""
+    entry = _catalog_entry(
+        _MODEL, supports_tool_use=False, supports_structured_output=True
+    )
+    registry = _make_registry(entries=[entry], whitelist=_whitelist(_MODEL))
+    status, profile, capable = registry.resolve_route(_MODEL)
+    assert capable is False
+    assert profile is not None  # route is live; AC 11 did not fire
+    assert status is SafetyWhitelistStatus.WHITELISTED
 
 
 # ---------------------------------------------------------------------------

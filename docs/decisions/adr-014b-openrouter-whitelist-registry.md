@@ -203,7 +203,9 @@ the AC 12 text-output rejection.
 
 Only explicit `False` triggers rejection — `None` (unverified) fails safe:
 Safety runs, route is live.  If only one of the two structured-pass fields is
-`False`, the other may still permit structured calls via that mechanism.
+`False` (e.g. `tool_use=False, structured_output=True`), AC 11 does not fire —
+the route falls through to Step 6 where `supports_required_capabilities=False`
+(since `tool_use` is not `True` for 14b); Safety runs, route is not rejected.
 
 **Rationale:** AC 11 explicitly requires rejection "for structured passes at
 resolution" — this is the 14b upgrade over 14a's call-time failure.  Planner
@@ -227,11 +229,13 @@ alias.  Callers updated in the same PR.
 Rejection only on explicit `False`.
 
 **Capability evaluation (Step 6):** `supports_required_capabilities=True` requires
-text output confirmed (`True`), context_length known and ≥ floor, **and** at least
-one structured mechanism confirmed (`supports_tool_use is True OR
-supports_structured_output is True`).  A route with both structured fields `None`
-is not capable — Safety runs, route is live.  A single confirmed mechanism is
-sufficient (OR, not AND).
+text output confirmed (`True`), context_length known and ≥ floor, **and**
+`supports_tool_use is True`.  The `OpenRouterAdapter` uses `tools`/`tool_choice`
+only — there is no `response_format` / structured-output request path.  Catalog
+`structured_outputs` support is recorded faithfully in `ModelRouteCapabilityProfile`
+but is not sufficient for `supports_required_capabilities=True` until an
+OpenRouter structured-output adapter path exists (deferred, not in 14b scope).
+Safety-skip eligibility tracks adapter-realized capability, not catalog capability.
 
 **Dynamic-alias rule:** Static deny-set (O(1)) + catalog defense-in-depth.
 
