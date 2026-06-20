@@ -140,6 +140,10 @@ class RpgAdjudicationPassService:
         self._config = config or AdjudicationConfig.from_env()
         self._system_prompt: str = load_adjudication_prompt()
 
+    def is_adjudicable(self, sheet: Dnd5eCharacterSheet) -> bool:
+        """Delegate to adapter — True if the sheet has enough data to adjudicate."""
+        return self._adapter.is_adjudicable(sheet)
+
     def adjudicate(
         self,
         built_context: AssembledContext,

@@ -15,8 +15,10 @@ Architectural invariants this module enforces (Issue 12c / 14a):
    only through ``StoryBibleService.route_extractor_proposals`` (Issue 10).
    Turn writes remain repository-backed in ``persistence/crud/node.py``.
 3. ``AssembledContext`` is built once per Turn via ``ContextBuilder`` and
-   threaded through all passes.  The orchestrator's only ledger mutation
-   is appending ``PlannerOutput`` after Planner returns.
+   threaded through all passes.  The orchestrator's ledger mutations are:
+   appending ``PlannerOutput`` after Planner returns, and (RPG IN_PLAY
+   turns only) appending adjudication writer-views after the adjudication
+   pass.  No other orchestrator code mutates the ledger.
 4. Blocked or refused prose produces no Turn row, no Story Bible writes,
    and no Node update.  ``BLOCKED_INPUT_SAFETY`` opens no outer transaction
    at all; later block / refusal / operational-error paths roll the outer
@@ -53,7 +55,7 @@ from afterworlds.models.context import (
     PassForwardLedger,
     StablePrefix,
 )
-from afterworlds.models.enums import IntentType, StoryMode
+from afterworlds.models.enums import IntentType, RpgPlayStatus, StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
@@ -396,7 +398,6 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 request_risk_signal,
-                story_mode,
             )
 
         return self._run_narrative(
@@ -545,56 +546,69 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                 )
-            # Use local to narrow from DiceService | None for the lambda capture.
-            _dice_svc = self._rpg_dice_service
+            # Gate: skip adjudication for setup turns and for sheets that
+            # aren't fully configured.  play_status SETUP covers character
+            # creation and world-setup turns that flow through _run_narrative
+            # (OOC turns are already short-circuited upstream).
+            # is_adjudicable is a second-line guard: if the sheet has since
+            # been corrupted, skip cleanly instead of throwing from the adapter.
             _adj_svc = self._rpg_adjudication_service
-            try:
-                adj_result, adj_ms = _timed(
-                    lambda: _adj_svc.adjudicate(
-                        ctx,
-                        session_state,
-                        sheet,
-                        _dice_svc,
-                        provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
-                        story_id=story_id,
-                        originating_turn_id=writer_turn_id,
+            if (
+                session_state.play_status is RpgPlayStatus.IN_PLAY
+                and _adj_svc.is_adjudicable(sheet)
+            ):
+                # Use local to narrow from DiceService | None for the lambda capture.
+                _dice_svc = self._rpg_dice_service
+                try:
+                    adj_result, adj_ms = _timed(
+                        lambda: _adj_svc.adjudicate(
+                            ctx,
+                            session_state,
+                            sheet,
+                            _dice_svc,
+                            provider=ScopedProviderAdapter(
+                                binding.adapter,  # type: ignore[arg-type]
+                                sojourner_id,
+                            ),
+                            story_id=story_id,
+                            originating_turn_id=writer_turn_id,
+                        )
                     )
-                )
-                latency["rpg_adjudication"] = adj_ms
-            except ProviderRefusalError as exc:
-                return self._build_result(
-                    PipelineDisposition.REFUSED_BY_PROVIDER,
-                    intent_result,
-                    latency,
-                    turn_start,
-                    input_safety_result=input_safety,
-                    planner_result=planner_result,
-                    provider_refusal=exc.refusal,
-                )
-            except AdjudicationPassError as exc:
-                return self._pipeline_error(
-                    intent_result,
-                    latency,
-                    turn_start,
-                    f"adjudication pass failed: {exc}",
-                    input_safety_result=input_safety,
-                    planner_result=planner_result,
-                )
-            except Exception as exc:  # noqa: BLE001
-                return self._pipeline_error(
-                    intent_result,
-                    latency,
-                    turn_start,
-                    f"adjudication unexpected error: {exc}",
-                    input_safety_result=input_safety,
-                    planner_result=planner_result,
-                )
-            # All except branches return; adj_result is set at this point.
-            assert adj_result is not None  # noqa: S101 — mypy narrowing
-            if adj_result.writer_views:
-                ctx.pass_forward_ledger.add(
-                    "rpg_adjudication", _serialize_adj_views(adj_result)
-                )
+                    latency["rpg_adjudication"] = adj_ms
+                except ProviderRefusalError as exc:
+                    return self._build_result(
+                        PipelineDisposition.REFUSED_BY_PROVIDER,
+                        intent_result,
+                        latency,
+                        turn_start,
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        provider_refusal=exc.refusal,
+                    )
+                except AdjudicationPassError as exc:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"adjudication pass failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"adjudication unexpected error: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                    )
+                # All except branches return; adj_result is set at this point.
+                assert adj_result is not None  # noqa: S101 — mypy narrowing
+                if adj_result.writer_views:
+                    ctx.pass_forward_ledger.add(
+                        "rpg_adjudication", _serialize_adj_views(adj_result)
+                    )
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -901,7 +915,6 @@ class OrchestratorService:
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
-        story_mode: StoryMode,
     ) -> OrchestrationResult:
         input_safety: SafetyResult | None = None
         preflight_ctx = SafetyPolicyContext(
