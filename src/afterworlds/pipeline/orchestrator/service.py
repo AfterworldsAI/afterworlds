@@ -35,13 +35,14 @@ import them without dragging the service in.
 
 from __future__ import annotations
 
+import json
 import time
 from collections.abc import Callable
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -52,12 +53,20 @@ from afterworlds.models.context import (
     PassForwardLedger,
     StablePrefix,
 )
-from afterworlds.models.enums import IntentType
+from afterworlds.models.enums import IntentType, StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
     ProviderRefusalError,
 )
+from afterworlds.pipeline.rpg.models import AdjudicationPassError
+
+if TYPE_CHECKING:
+    from afterworlds.models.character_sheet import Dnd5eCharacterSheet
+    from afterworlds.models.session import RpgSessionState
+    from afterworlds.pipeline.rpg.dice import DiceService
+    from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
     ContradictionResult,
@@ -246,6 +255,11 @@ class OrchestratorService:
         executor: ThreadPoolExecutor | None = None,
         parallel_pass_timeout_seconds: float = DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS,
         parallel_pass_max_workers: int = DEFAULT_PARALLEL_PASS_MAX_WORKERS,
+        rpg_adjudication_service: RpgAdjudicationPassService | None = None,
+        rpg_session_sheet_resolver: (
+            Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]] | None
+        ) = None,
+        rpg_dice_service: DiceService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -260,6 +274,9 @@ class OrchestratorService:
         self._mode_resolver: ModeResolver = mode_resolver or _default_mode_resolver(
             session_factory
         )
+        self._rpg_adjudication_service = rpg_adjudication_service
+        self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
+        self._rpg_dice_service = rpg_dice_service
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -358,7 +375,9 @@ class OrchestratorService:
 
         # 2. Context assembly (once per turn).
         try:
-            ctx, ctx_ms = self._build_context(story_id, user_input, intent_result)
+            ctx, story_mode, ctx_ms = self._build_context(
+                story_id, user_input, intent_result
+            )
             latency["context"] = ctx_ms
         except Exception as exc:  # noqa: BLE001
             return self._pipeline_error(
@@ -377,6 +396,7 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 request_risk_signal,
+                story_mode,
             )
 
         return self._run_narrative(
@@ -389,6 +409,7 @@ class OrchestratorService:
             latency,
             turn_start,
             request_risk_signal,
+            story_mode,
         )
 
     # ------------------------------------------------------------------
@@ -406,6 +427,7 @@ class OrchestratorService:
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
+        story_mode: StoryMode,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -486,6 +508,95 @@ class OrchestratorService:
 
         ctx.pass_forward_ledger.add("planner", _serialize_planner(planner_result))
 
+        # Preallocate writer_turn_id before adjudication so the PendingRollRequest
+        # can record originating_turn_id without waiting for the transaction to open.
+        writer_turn_id = uuid4()
+
+        # --- RPG Adjudication pass (Fork A→A1): runs after Planner, before Writer.
+        # Result is held in memory and flushed inside the outer transaction (Fork B→B1).
+        adj_result: AdjudicationPassResult | None = None
+        rpg_session_id: UUID | None = None
+        rpg_character_id: UUID | None = None
+
+        if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
+            if (
+                self._rpg_session_sheet_resolver is None
+                or self._rpg_dice_service is None
+            ):
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "RPG adjudication wired without session/sheet resolver"
+                    " or dice service",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            try:
+                session_state, sheet = self._rpg_session_sheet_resolver(story_id)
+                rpg_session_id = session_state.session_id
+                rpg_character_id = sheet.sheet_id
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"RPG session/sheet resolution failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            # Use local to narrow from DiceService | None for the lambda capture.
+            _dice_svc = self._rpg_dice_service
+            _adj_svc = self._rpg_adjudication_service
+            try:
+                adj_result, adj_ms = _timed(
+                    lambda: _adj_svc.adjudicate(
+                        ctx,
+                        session_state,
+                        sheet,
+                        _dice_svc,
+                        provider=ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
+                        story_id=story_id,
+                        originating_turn_id=writer_turn_id,
+                    )
+                )
+                latency["rpg_adjudication"] = adj_ms
+            except ProviderRefusalError as exc:
+                return self._build_result(
+                    PipelineDisposition.REFUSED_BY_PROVIDER,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    provider_refusal=exc.refusal,
+                )
+            except AdjudicationPassError as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"adjudication pass failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"adjudication unexpected error: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            # All except branches return; adj_result is set at this point.
+            assert adj_result is not None  # noqa: S101 — mypy narrowing
+            if adj_result.writer_views:
+                ctx.pass_forward_ledger.add(
+                    "rpg_adjudication", _serialize_adj_views(adj_result)
+                )
+        # -------------------------------------------------------------------------
+
         # Open outer transaction now: Writer is about to persist a Turn.
         # Session lifecycle (factory, begin, finalize, close) is centralized
         # in ``_run_with_transaction`` so the narrative and OOC paths cannot
@@ -506,6 +617,10 @@ class OrchestratorService:
                 request_risk_signal,
                 latency,
                 turn_start,
+                writer_turn_id=writer_turn_id,
+                adj_result=adj_result,
+                rpg_session_id=rpg_session_id,
+                rpg_character_id=rpg_character_id,
             ),
             intent_result,
             latency,
@@ -529,15 +644,19 @@ class OrchestratorService:
         request_risk_signal: bool,
         latency: dict[str, int],
         turn_start: float,
+        *,
+        writer_turn_id: UUID,
+        adj_result: AdjudicationPassResult | None = None,
+        rpg_session_id: UUID | None = None,
+        rpg_character_id: UUID | None = None,
     ) -> OrchestrationResult:
         # 5. Writer persists provisional Turn inside the outer transaction.
         #
-        # Preallocate the Turn id before the provider call so refusal-log rows
-        # written by RefusalFallbackRouter carry the same id that will be used
-        # for the Turn if the call (or its fallback) succeeds.  On failure no
-        # Turn is persisted; the log row still carries the candidate id, which
-        # is the only consistent rule without post-insert row mutation.
-        writer_turn_id = uuid4()
+        # writer_turn_id is pre-allocated by _run_narrative so the adjudication
+        # pass can store it as PendingRollRequest.originating_turn_id before the
+        # transaction opens.  RefusalFallbackRouter also carries the same id so
+        # refusal-log rows are consistent with the Turn row on success.  On
+        # failure no Turn is persisted; the log row still carries the candidate id.
         try:
             writer_result, ms = _timed(
                 lambda: self._writer_service.write(
@@ -581,6 +700,23 @@ class OrchestratorService:
                 f"writer unexpected error: {exc}",
                 input_safety_result=input_safety,
                 planner_result=planner_result,
+            )
+
+        # 5b. [RPG only] Write adjudication audit rows + pending roll inside the
+        # outer transaction (Fork B→B1).  Runs only when adjudication produced a
+        # result; skipped on non-RPG turns and on RPG turns with no proposals.
+        if (
+            adj_result is not None
+            and rpg_session_id is not None
+            and rpg_character_id is not None
+        ):
+            self._write_rpg_audit(
+                session,
+                adj_result,
+                writer_result.turn_id,
+                story_id,
+                rpg_session_id,
+                rpg_character_id,
             )
 
         # 6. Output Safety Audit, conditional.
@@ -745,6 +881,7 @@ class OrchestratorService:
             output_safety_result=output_safety,
             extractor_result=extractor_result,
             contradiction_result=contradiction_result,
+            rpg_adjudication_result=adj_result,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
         )
@@ -764,6 +901,7 @@ class OrchestratorService:
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
+        story_mode: StoryMode,
     ) -> OrchestrationResult:
         input_safety: SafetyResult | None = None
         preflight_ctx = SafetyPolicyContext(
@@ -1129,6 +1267,84 @@ class OrchestratorService:
         return extractor_result, contradiction_result, ext_ms, contr_ms
 
     # ------------------------------------------------------------------
+    # RPG audit persistence
+    # ------------------------------------------------------------------
+
+    def _write_rpg_audit(
+        self,
+        session: Session,
+        adj_result: AdjudicationPassResult,
+        turn_id: UUID,
+        story_id: UUID,
+        session_id: UUID,
+        character_id: UUID,
+    ) -> None:
+        """Write adjudication audit rows inside the outer transaction (Fork B→B1).
+
+        Writes one ``RpgRollAuditORM`` row per resolved proposal.  Writes one
+        ``PendingRollRequestORM`` row when the result carries a pending player roll.
+        Both are rolled back atomically with the Turn on any block disposition.
+        """
+        from datetime import UTC, datetime
+
+        from afterworlds.persistence.orm.rpg import (
+            PendingRollRequestORM,
+            RpgRollAuditORM,
+        )
+
+        now_str = datetime.now(tz=UTC).isoformat()
+
+        for record in adj_result.proposals:
+            session.add(
+                RpgRollAuditORM(
+                    turn_id=str(turn_id),
+                    story_id=str(story_id),
+                    session_id=str(session_id),
+                    character_id=str(character_id),
+                    check_label=record.check_label,
+                    visibility=record.visibility.value,
+                    expression=record.expression,
+                    raw_rolls_json=json.dumps(list(record.raw_rolls)),
+                    modifiers_json=record.modifiers_json,
+                    total=record.total,
+                    dc=record.dc,
+                    outcome=record.outcome,
+                    source=record.source,
+                    gm_cheating_at_roll=record.gm_cheating_at_roll,
+                    sheet_effects_json=json.dumps(
+                        [e.model_dump() for e in record.sheet_effects]
+                    ),
+                    created_at=now_str,
+                )
+            )
+
+        pending = adj_result.pending_roll_request
+        if pending is not None:
+            session.add(
+                PendingRollRequestORM(
+                    request_id=str(pending.request_id),
+                    story_id=str(pending.story_id),
+                    session_id=str(pending.session_id),
+                    character_id=str(pending.character_id),
+                    originating_turn_id=str(turn_id),
+                    check_label=pending.check_label,
+                    player_facing_instruction=pending.player_facing_instruction,
+                    expected_value_shape=pending.expected_value_shape,
+                    visible_modifier_note=pending.visible_modifier_note,
+                    visibility=pending.visibility.value,
+                    source_proposal_ref=pending.source_proposal_ref,
+                    status="pending",
+                    schema_version=1,
+                    roll_expression=pending.roll_expression,
+                    visible_modifier_total=pending.visible_modifier_total,
+                    visible_modifier_breakdown_json=pending.visible_modifier_breakdown_json,
+                    hidden_modifier_present=pending.hidden_modifier_present,
+                    adapter_context_hash=pending.adapter_context_hash,
+                    created_at=now_str,
+                )
+            )
+
+    # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
@@ -1137,9 +1353,9 @@ class OrchestratorService:
         story_id: UUID,
         user_input: str,
         intent_result: IntentClassificationResult,
-    ) -> tuple[AssembledContext, int]:
-        mode = self._mode_resolver(story_id)
-        return _timed(
+    ) -> tuple[AssembledContext, StoryMode, int]:
+        mode: StoryMode = self._mode_resolver(story_id)
+        ctx, ms = _timed(
             lambda: self._context_builder.assemble(
                 story_id=story_id,
                 mode=mode,
@@ -1147,6 +1363,7 @@ class OrchestratorService:
                 classified_intent=intent_result,
             )
         )
+        return ctx, mode, ms
 
     def _build_result(
         self,
@@ -1163,6 +1380,7 @@ class OrchestratorService:
         output_safety_result: SafetyResult | None = None,
         extractor_result: ExtractorResult | None = None,
         contradiction_result: ContradictionResult | None = None,
+        rpg_adjudication_result: AdjudicationPassResult | None = None,
         provider_refusal: ProviderRefusal | None = None,
         pipeline_error_summary: str | None = None,
     ) -> OrchestrationResult:
@@ -1186,6 +1404,7 @@ class OrchestratorService:
             output_safety_result=output_safety_result,
             extractor_result=extractor_result,
             contradiction_result=contradiction_result,
+            rpg_adjudication_result=rpg_adjudication_result,
             provider_refusal=provider_refusal,
             pipeline_error_summary=pipeline_error_summary,
             total_latency_ms=total_ms,
@@ -1366,6 +1585,7 @@ class OrchestratorService:
                     output_safety_result=inner_result.output_safety_result,
                     extractor_result=inner_result.extractor_result,
                     contradiction_result=inner_result.contradiction_result,
+                    rpg_adjudication_result=inner_result.rpg_adjudication_result,
                     pipeline_error_summary=(
                         f"transaction commit failed after "
                         f"{success_disposition.value}: {commit_exc}"
@@ -1491,11 +1711,28 @@ def _synthesize_intent(user_input: str) -> IntentClassificationResult:
     )
 
 
+def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:
+    """Serialize adjudication writer views for the pass-forward ledger.
+
+    Produces a JSON string that the Writer pass reads from the ledger key
+    ``"rpg_adjudication"``.  The ``pending_player_roll_instruction`` field is
+    included only when the result carries a PLAYER-roll announce so the Writer
+    can prompt the Sojourner to roll physical dice.
+    """
+    views_data = [json.loads(v.model_dump_json()) for v in adj_result.writer_views]
+    pending_instruction: str | None = None
+    if adj_result.pending_roll_request is not None:
+        pending_instruction = adj_result.pending_roll_request.player_facing_instruction
+    return json.dumps(
+        {"views": views_data, "pending_player_roll_instruction": pending_instruction},
+        sort_keys=True,
+    )
+
+
 def _default_mode_resolver(
     session_factory: Callable[[], Session],
 ) -> ModeResolver:
     """Default mode resolver: SQLite lookup against the stories table."""
-    from afterworlds.models.enums import StoryMode
     from afterworlds.persistence.orm.story import StoryORM
 
     def resolve(story_id: UUID) -> StoryMode:
