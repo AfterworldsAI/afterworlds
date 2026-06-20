@@ -74,6 +74,64 @@ class DiceHandling(StrEnum):
     AI_ROLLS = "ai_rolls"
 
 
+class RpgPlayStatus(StrEnum):
+    """Play-status for an RPG story: setup phase or active play."""
+
+    SETUP = "setup"
+    IN_PLAY = "in_play"
+
+
+class RpgSetupPhase(StrEnum):
+    """Progress through the mandatory RPG pre-play sequence."""
+
+    WORLD_SETUP = "world_setup"
+    CHARACTER_CREATION = "character_creation"
+    PLAY_CONFIGURATION = "play_configuration"
+    COMPLETE = "complete"
+
+
+class RpgSessionType(StrEnum):
+    """Pacing expectation set by the Sojourner at play configuration."""
+
+    SHORT_ADVENTURE = "short_adventure"
+    CAMPAIGN = "campaign"
+    OPEN_ENDED = "open_ended"
+
+
+class RpgTone(StrEnum):
+    """Consequence severity calibration configured at play configuration."""
+
+    GRITTY = "gritty"
+    BALANCED = "balanced"
+    FORGIVING = "forgiving"
+    DANGER_FREE = "danger_free"
+
+
+class RollVisibility(StrEnum):
+    """Who can see the result of a resolved adjudication roll.
+
+    SHOWN — AI roll whose result is shown to the Sojourner.
+    HIDDEN — Backend-visible only; player-facing fields nulled in the Writer view.
+    PLAYER — Sojourner rolls and reports the result.
+    """
+
+    SHOWN = "shown"
+    HIDDEN = "hidden"
+    PLAYER = "player"
+
+
+class ConditionVisibility(StrEnum):
+    """Whether an active condition is visible to the Sojourner.
+
+    VISIBLE — Shown in visible_state_sidebar and WriterAdjudicationView.
+    HIDDEN — Backend-visible only (e.g., a secretly inflicted compulsion or curse
+             that the character is unaware of).
+    """
+
+    VISIBLE = "visible"
+    HIDDEN = "hidden"
+
+
 class WritingPersona(StrEnum):
     """Writing-mode persona selected by the Sojourner."""
 

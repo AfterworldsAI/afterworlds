@@ -24,6 +24,7 @@ class PassIdentifier(StrEnum):
     """Identifier for which provider-backed pass produced a refusal."""
 
     PLANNER = "planner"
+    RPG_ADJUDICATION = "rpg_adjudication"
     WRITER = "writer"
     EXTRACTOR = "extractor"
     CONTRADICTION = "contradiction"

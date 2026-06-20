@@ -25,6 +25,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.pipeline._refusal import ProviderRefusal
 from afterworlds.pipeline.contradiction.models import (
     ContradictionResult,
@@ -36,6 +37,7 @@ from afterworlds.pipeline.provider._routing import (
     CapabilityProfileAwareSafetyPolicy,
     SafetyPolicyContext,
 )
+from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 from afterworlds.pipeline.safety.models import SafetyResult, SafetyVerdict
 from afterworlds.pipeline.writer.models import WriterResult
 
@@ -120,6 +122,11 @@ class OrchestrationResult(BaseModel):
     # Additive Issue 14a field: True iff any pass reported a cache read.
     # Issue 19 uses this for optional "resuming your story" UX.
     stable_prefix_cache_warmed: bool = False
+
+    # Additive Issue 15 fields: populated for RPG in-play turns only.
+    # None for all non-RPG turns and for RPG setup/OOC turns.
+    rpg_adjudication_result: AdjudicationPassResult | None = None
+    rpg_visible_state: RpgVisibleState | None = None
 
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
@@ -313,6 +320,7 @@ class OrchestrationResult(BaseModel):
 
             failing_field_by_pass: dict[PassIdentifier, object] = {
                 PassIdentifier.PLANNER: self.planner_result,
+                PassIdentifier.RPG_ADJUDICATION: self.rpg_adjudication_result,
                 PassIdentifier.WRITER: self.writer_result,
                 PassIdentifier.EXTRACTOR: self.extractor_result,
                 PassIdentifier.CONTRADICTION: self.contradiction_result,
