@@ -62,12 +62,15 @@ from afterworlds.pipeline._refusal import (
     ProviderRefusalError,
 )
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
+from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
+    from afterworlds.models.rpg import PendingRollRequest
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.rpg.dice import DiceService
     from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+    from afterworlds.pipeline.rpg.pending import PendingRollRequestService
     from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
@@ -262,6 +265,7 @@ class OrchestratorService:
             Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]] | None
         ) = None,
         rpg_dice_service: DiceService | None = None,
+        rpg_pending_roll_service: PendingRollRequestService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -279,6 +283,7 @@ class OrchestratorService:
         self._rpg_adjudication_service = rpg_adjudication_service
         self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
         self._rpg_dice_service = rpg_dice_service
+        self._rpg_pending_roll_service = rpg_pending_roll_service
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -326,12 +331,16 @@ class OrchestratorService:
         access_path: RuntimeAccessPath,
         *,
         request_risk_signal: bool = False,
+        player_reported_total: int | None = None,
     ) -> OrchestrationResult:
         """Run one full Sojourn Turn end-to-end.
 
-        Returns a typed ``OrchestrationResult`` matching one of the seven
+        Returns a typed ``OrchestrationResult`` matching one of the eight
         ``PipelineDisposition`` values.  Construction-time invariants on
         the result enforce the spec's per-disposition field matrix.
+
+        ``player_reported_total`` is non-None on the pending-roll consume
+        path: the Sojourner is reporting the total from their physical roll.
         """
         turn_start = time.perf_counter()
         latency: dict[str, int] = {}
@@ -387,6 +396,8 @@ class OrchestratorService:
             )
 
         # OOC short-circuit owns its own pipeline shape.
+        # OOC-while-pending: the pending-roll intercept is deliberately skipped
+        # for OOC turns — the pending roll waits while the player asks questions.
         if intent_result.intent_type is IntentType.OOC:
             return self._run_ooc(
                 ctx,
@@ -400,6 +411,34 @@ class OrchestratorService:
                 request_risk_signal,
             )
 
+        # Pending-roll intercept for RPG in-play narrative turns.
+        # Runs before Planner so a block-redirect returns before any LLM call.
+        pending_roll: PendingRollRequest | None = None
+        if story_mode == StoryMode.RPG and self._rpg_pending_roll_service is not None:
+            try:
+                pending_roll = self._rpg_pending_roll_service.load_pending_for_story(
+                    story_id
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"pending roll lookup failed: {exc}",
+                )
+            if pending_roll is not None and player_reported_total is None:
+                # Player has an outstanding pending roll to report but did not
+                # provide a total.  Block and redirect with the original instruction.
+                return self._build_result(
+                    PipelineDisposition.BLOCKED_PENDING_ROLL,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    pending_roll_redirect_message=(
+                        pending_roll.player_facing_instruction
+                    ),
+                )
+
         return self._run_narrative(
             ctx,
             story_id,
@@ -411,6 +450,8 @@ class OrchestratorService:
             turn_start,
             request_risk_signal,
             story_mode,
+            pending_roll=pending_roll,
+            player_reported_total=player_reported_total,
         )
 
     # ------------------------------------------------------------------
@@ -429,6 +470,9 @@ class OrchestratorService:
         turn_start: float,
         request_risk_signal: bool,
         story_mode: StoryMode,
+        *,
+        pending_roll: PendingRollRequest | None = None,
+        player_reported_total: int | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -560,6 +604,8 @@ class OrchestratorService:
                 # Use local to narrow from DiceService | None for the lambda capture.
                 _dice_svc = self._rpg_dice_service
                 try:
+                    _pending = pending_roll
+                    _total = player_reported_total
                     adj_result, adj_ms = _timed(
                         lambda: _adj_svc.adjudicate(
                             ctx,
@@ -572,6 +618,8 @@ class OrchestratorService:
                             ),
                             story_id=story_id,
                             originating_turn_id=writer_turn_id,
+                            pending_roll=_pending,
+                            player_reported_total=_total,
                         )
                     )
                     latency["rpg_adjudication"] = adj_ms
@@ -635,6 +683,7 @@ class OrchestratorService:
                 adj_result=adj_result,
                 rpg_session_id=rpg_session_id,
                 rpg_character_id=rpg_character_id,
+                pending_roll_consumed=pending_roll,
             ),
             intent_result,
             latency,
@@ -663,6 +712,7 @@ class OrchestratorService:
         adj_result: AdjudicationPassResult | None = None,
         rpg_session_id: UUID | None = None,
         rpg_character_id: UUID | None = None,
+        pending_roll_consumed: PendingRollRequest | None = None,
     ) -> OrchestrationResult:
         # 5. Writer persists provisional Turn inside the outer transaction.
         #
@@ -716,22 +766,34 @@ class OrchestratorService:
                 planner_result=planner_result,
             )
 
-        # 5b. [RPG only] Write adjudication audit rows + pending roll inside the
-        # outer transaction (Fork B→B1).  Runs only when adjudication produced a
-        # result; skipped on non-RPG turns and on RPG turns with no proposals.
+        # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
+        # roll, inside the outer transaction (Fork B→B1).  Runs only when
+        # adjudication produced a result; skipped on non-RPG and no-proposal turns.
         if (
             adj_result is not None
             and rpg_session_id is not None
             and rpg_character_id is not None
         ):
-            self._write_rpg_audit(
-                session,
-                adj_result,
-                writer_result.turn_id,
-                story_id,
-                rpg_session_id,
-                rpg_character_id,
-            )
+            try:
+                self._write_rpg_audit(
+                    session,
+                    adj_result,
+                    writer_result.turn_id,
+                    story_id,
+                    rpg_session_id,
+                    rpg_character_id,
+                    pending_roll_consumed=pending_roll_consumed,
+                )
+            except PendingRollDuplicateError as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"pending roll duplicate on announce: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                )
 
         # 6. Output Safety Audit, conditional.
         output_safety: SafetyResult | None = None
@@ -1291,12 +1353,20 @@ class OrchestratorService:
         story_id: UUID,
         session_id: UUID,
         character_id: UUID,
+        *,
+        pending_roll_consumed: PendingRollRequest | None = None,
     ) -> None:
         """Write adjudication audit rows inside the outer transaction (Fork B→B1).
 
-        Writes one ``RpgRollAuditORM`` row per resolved proposal.  Writes one
-        ``PendingRollRequestORM`` row when the result carries a pending player roll.
-        Both are rolled back atomically with the Turn on any block disposition.
+        Writes one ``RpgRollAuditORM`` row per resolved proposal.
+        On the consume path: calls ``mark_consumed`` to update the consumed row.
+        On the announce path: calls ``check_no_pending_for_story`` (duplicate
+        rejection) then writes one ``PendingRollRequestORM``.
+        All writes are rolled back atomically with the Turn on any block.
+
+        Raises:
+            PendingRollDuplicateError: if an active pending roll exists when
+                this turn is attempting to announce a new one.
         """
         from datetime import UTC, datetime
 
@@ -1306,6 +1376,15 @@ class OrchestratorService:
         )
 
         now_str = datetime.now(tz=UTC).isoformat()
+
+        # Consume path: mark the consumed pending roll before writing audit rows.
+        if (
+            pending_roll_consumed is not None
+            and self._rpg_pending_roll_service is not None
+        ):
+            self._rpg_pending_roll_service.mark_consumed(
+                session, pending_roll_consumed.request_id, turn_id
+            )
 
         for record in adj_result.proposals:
             session.add(
@@ -1331,8 +1410,13 @@ class OrchestratorService:
                 )
             )
 
+        # Announce path: duplicate rejection before writing the new row.
         pending = adj_result.pending_roll_request
         if pending is not None:
+            if self._rpg_pending_roll_service is not None:
+                self._rpg_pending_roll_service.check_no_pending_for_story(
+                    session, story_id
+                )
             session.add(
                 PendingRollRequestORM(
                     request_id=str(pending.request_id),
@@ -1396,6 +1480,7 @@ class OrchestratorService:
         rpg_adjudication_result: AdjudicationPassResult | None = None,
         provider_refusal: ProviderRefusal | None = None,
         pipeline_error_summary: str | None = None,
+        pending_roll_redirect_message: str | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -1420,6 +1505,7 @@ class OrchestratorService:
             rpg_adjudication_result=rpg_adjudication_result,
             provider_refusal=provider_refusal,
             pipeline_error_summary=pipeline_error_summary,
+            pending_roll_redirect_message=pending_roll_redirect_message,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,

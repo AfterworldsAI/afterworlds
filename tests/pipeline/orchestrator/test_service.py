@@ -60,6 +60,7 @@ from afterworlds.models.extractor import (
     SoftFactProposal,
     UnresolvedThreadProposal,
 )
+from afterworlds.models.rpg import PendingRollRequest
 from afterworlds.models.story_bible import CastEntry
 from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.persistence.orm.story_bible import (
@@ -3271,3 +3272,228 @@ class TestSharedRendererTTLPlumbing:
         assert [b.text for b in blocks_5m] == texts
         assert blocks_1h[-1].ttl == "1h"
         assert blocks_5m[-1].ttl == "5m"
+
+
+# ---------------------------------------------------------------------------
+# BLOCKED_PENDING_ROLL disposition (CRD Issue 15 Phase 6)
+# ---------------------------------------------------------------------------
+
+
+def _make_pending_roll_request() -> PendingRollRequest:
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from afterworlds.models.enums import RollVisibility
+    from afterworlds.models.rpg import PendingRollRequest
+
+    return PendingRollRequest(
+        request_id=uuid4(),
+        story_id=uuid4(),
+        session_id=uuid4(),
+        character_id=uuid4(),
+        check_label="Stealth Check",
+        player_facing_instruction="Roll a Stealth Check and report the total!",
+        expected_value_shape="d20",
+        visibility=RollVisibility.PLAYER,
+        source_proposal_ref="roll_0",
+        originating_turn_id=uuid4(),
+        created_at=datetime.now(tz=UTC),
+        roll_expression="1d20+5",
+    )
+
+
+class TestBlockedPendingRollDisposition:
+    def test_valid_blocked_pending_roll(self) -> None:
+        intent = make_intent()
+        result = OrchestrationResult(
+            disposition=PipelineDisposition.BLOCKED_PENDING_ROLL,
+            delivered_output=None,
+            turn_id=None,
+            intent_classification=intent,
+            pending_roll_redirect_message="Roll a Stealth Check and report the total!",
+            total_latency_ms=5,
+            pass_latency_breakdown={},
+        )
+        assert result.disposition is PipelineDisposition.BLOCKED_PENDING_ROLL
+        assert result.pending_roll_redirect_message is not None
+
+    def test_blocked_pending_roll_requires_redirect_message(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError, match="pending_roll_redirect_message"):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_PENDING_ROLL,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                pending_roll_redirect_message=None,  # missing
+                total_latency_ms=5,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_pending_roll_forbids_planner_result(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError, match="planner_result"):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_PENDING_ROLL,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                pending_roll_redirect_message="Roll!",
+                planner_result=_stub_planner_result(),  # forbidden
+                total_latency_ms=5,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_pending_roll_forbids_provider_refusal(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_PENDING_ROLL,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                pending_roll_redirect_message="Roll!",
+                provider_refusal=_stub_refusal(),  # forbidden
+                total_latency_ms=5,
+                pass_latency_breakdown={},
+            )
+
+    def test_blocked_pending_roll_forbids_pipeline_error_summary(self) -> None:
+        intent = make_intent()
+        with pytest.raises(OrchestratorError):
+            OrchestrationResult(
+                disposition=PipelineDisposition.BLOCKED_PENDING_ROLL,
+                delivered_output=None,
+                turn_id=None,
+                intent_classification=intent,
+                pending_roll_redirect_message="Roll!",
+                pipeline_error_summary="ghost cause",  # forbidden
+                total_latency_ms=5,
+                pass_latency_breakdown={},
+            )
+
+
+# ---------------------------------------------------------------------------
+# Pending-roll orchestrator intercept (CRD Issue 15 Phase 6)
+# ---------------------------------------------------------------------------
+
+
+class _FakePendingRollService:
+    """Programmable fake for PendingRollRequestService."""
+
+    def __init__(self, pending: object = None) -> None:
+        self._pending = pending
+        self.consumed: list[tuple[object, object]] = []
+        self.checked: list[object] = []
+
+    def load_pending_for_story(self, story_id: object) -> object:
+        return self._pending
+
+    def mark_consumed(
+        self, session: object, request_id: object, consumed_turn_id: object
+    ) -> None:
+        self.consumed.append((request_id, consumed_turn_id))
+
+    def check_no_pending_for_story(self, session: object, story_id: object) -> None:
+        self.checked.append(story_id)
+
+
+def _make_orchestrator_with_pending(
+    session_factory: object,
+    pending_roll_svc: object,
+    *,
+    mode_resolver: object | None = None,
+    intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
+) -> OrchestratorService:
+    from afterworlds.models.enums import StoryMode
+    from tests.pipeline.orchestrator.conftest import (  # noqa: E402
+        FakeContextBuilder,
+        FakeContradictionService,
+        FakeExtractorService,
+        FakeIntentClassifier,
+        FakePlannerService,
+        FakeSafetyService,
+        FakeWriterService,
+        fixed_mode_resolver,
+        make_intent,
+    )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=mode_resolver or fixed_mode_resolver(StoryMode.RPG),
+        rpg_pending_roll_service=pending_roll_svc,  # type: ignore[arg-type]
+    )
+
+
+class TestPendingRollIntercept:
+    def test_block_redirect_when_pending_exists_and_no_total(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I sneak past the guard.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            # player_reported_total NOT supplied
+        )
+
+        assert result.disposition is PipelineDisposition.BLOCKED_PENDING_ROLL
+        assert result.pending_roll_redirect_message == (
+            pending.player_facing_instruction
+        )
+        assert result.delivered_output is None
+        assert result.turn_id is None
+
+    def test_no_block_when_no_pending_exists(
+        self, session_factory, seeded_story
+    ) -> None:
+        story_id, node_id = seeded_story
+        pending_svc = _FakePendingRollService(pending=None)
+        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I sneak past the guard.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # No pending roll → normal narrative path → DELIVERED
+        assert result.disposition is PipelineDisposition.DELIVERED
+
+    def test_ooc_skips_pending_roll_check(self, session_factory, seeded_story) -> None:
+        """OOC turns must not be blocked by a pending roll."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_with_pending(
+            session_factory, pending_svc, intent_type=IntentType.OOC
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my stealth modifier?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # OOC short-circuit must proceed even with pending roll.
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        assert result.pending_roll_redirect_message is None
