@@ -66,12 +66,13 @@ from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
-    from afterworlds.models.rpg import PendingRollRequest
+    from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.rpg.dice import DiceService
     from afterworlds.pipeline.rpg.models import AdjudicationPassResult
     from afterworlds.pipeline.rpg.pending import PendingRollRequestService
     from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
     ContradictionResult,
@@ -266,6 +267,7 @@ class OrchestratorService:
         ) = None,
         rpg_dice_service: DiceService | None = None,
         rpg_pending_roll_service: PendingRollRequestService | None = None,
+        rpg_visible_state_service: RpgVisibleStateService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -284,6 +286,7 @@ class OrchestratorService:
         self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
         self._rpg_dice_service = rpg_dice_service
         self._rpg_pending_roll_service = rpg_pending_roll_service
+        self._rpg_visible_state_service = rpg_visible_state_service
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -562,6 +565,7 @@ class OrchestratorService:
         adj_result: AdjudicationPassResult | None = None
         rpg_session_id: UUID | None = None
         rpg_character_id: UUID | None = None
+        rpg_visible_state: RpgVisibleState | None = None
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -657,6 +661,8 @@ class OrchestratorService:
                     ctx.pass_forward_ledger.add(
                         "rpg_adjudication", _serialize_adj_views(adj_result)
                     )
+                if self._rpg_visible_state_service is not None:
+                    rpg_visible_state = self._rpg_visible_state_service.build(sheet)
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -684,6 +690,7 @@ class OrchestratorService:
                 rpg_session_id=rpg_session_id,
                 rpg_character_id=rpg_character_id,
                 pending_roll_consumed=pending_roll,
+                rpg_visible_state=rpg_visible_state,
             ),
             intent_result,
             latency,
@@ -713,6 +720,7 @@ class OrchestratorService:
         rpg_session_id: UUID | None = None,
         rpg_character_id: UUID | None = None,
         pending_roll_consumed: PendingRollRequest | None = None,
+        rpg_visible_state: RpgVisibleState | None = None,
     ) -> OrchestrationResult:
         # 5. Writer persists provisional Turn inside the outer transaction.
         #
@@ -958,6 +966,7 @@ class OrchestratorService:
             extractor_result=extractor_result,
             contradiction_result=contradiction_result,
             rpg_adjudication_result=adj_result,
+            rpg_visible_state=rpg_visible_state,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
         )
@@ -1478,6 +1487,7 @@ class OrchestratorService:
         extractor_result: ExtractorResult | None = None,
         contradiction_result: ContradictionResult | None = None,
         rpg_adjudication_result: AdjudicationPassResult | None = None,
+        rpg_visible_state: RpgVisibleState | None = None,
         provider_refusal: ProviderRefusal | None = None,
         pipeline_error_summary: str | None = None,
         pending_roll_redirect_message: str | None = None,
@@ -1503,6 +1513,7 @@ class OrchestratorService:
             extractor_result=extractor_result,
             contradiction_result=contradiction_result,
             rpg_adjudication_result=rpg_adjudication_result,
+            rpg_visible_state=rpg_visible_state,
             provider_refusal=provider_refusal,
             pipeline_error_summary=pipeline_error_summary,
             pending_roll_redirect_message=pending_roll_redirect_message,

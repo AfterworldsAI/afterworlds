@@ -169,6 +169,13 @@ class OrchestrationResult(BaseModel):
         d = self.disposition
         is_ooc = self.intent_classification.intent_type == IntentType.OOC
 
+        # rpg_visible_state is only valid on successfully-delivered RPG turns.
+        if d is not PipelineDisposition.DELIVERED:
+            self._forbid(
+                "rpg_visible_state absent on non-DELIVERED",
+                self.rpg_visible_state is not None,
+            )
+
         if d is PipelineDisposition.DELIVERED:
             self._require(
                 "delivered_output non-empty", self._non_empty_str(self.delivered_output)

@@ -3497,3 +3497,179 @@ class TestPendingRollIntercept:
         # OOC short-circuit must proceed even with pending roll.
         assert result.disposition is PipelineDisposition.OOC_HANDLED
         assert result.pending_roll_redirect_message is None
+
+
+# ---------------------------------------------------------------------------
+# TestRpgVisibleState — CRD Issue 15 Phase 7
+# ---------------------------------------------------------------------------
+#
+# Verify that rpg_visible_state is populated on a DELIVERED in-play RPG turn
+# and is None when the service is not wired or adjudication does not run.
+
+
+class _FakeRpgAdjudicationService:
+    """Minimal fake for RpgAdjudicationPassService."""
+
+    def __init__(self, adjudicable: bool = True) -> None:
+        self.adjudicable = adjudicable
+
+    def is_adjudicable(self, sheet: object) -> bool:
+        return self.adjudicable
+
+    def adjudicate(self, *args: object, **kwargs: object) -> object:
+        from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+
+        return AdjudicationPassResult(proposals=(), writer_views=())
+
+
+def _make_rpg_session_and_sheet() -> tuple[object, object]:
+    """Return (RpgSessionState, Dnd5eCharacterSheet) for an in-play RPG turn."""
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from afterworlds.models.character_sheet import (
+        Dnd5eAbilityScores,
+        Dnd5eCharacterSheet,
+    )
+    from afterworlds.models.enums import DiceHandling, RpgPlayStatus
+    from afterworlds.models.session import RpgSessionState
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story_id = uuid4()
+    sheet = Dnd5eCharacterSheet(
+        story_id=story_id,
+        rules_package_id="dnd5e-v1",
+        character_name="Aldric",
+        character_class="Fighter",
+        background="Soldier",
+        level=3,
+        ability_scores=Dnd5eAbilityScores(
+            strength=16,
+            dexterity=12,
+            constitution=15,
+            intelligence=10,
+            wisdom=11,
+            charisma=9,
+        ),
+        equipment=["Longsword", "Shield"],
+        current_hp=28,
+        maximum_hp=28,
+        active_conditions=[],
+        created_at=now,
+        updated_at=now,
+    )
+    session_state = RpgSessionState(
+        story_id=story_id,
+        character_sheet_id=sheet.sheet_id,
+        dice_handling=DiceHandling.AI_ROLLS,
+        play_status=RpgPlayStatus.IN_PLAY,
+    )
+    return session_state, sheet
+
+
+def _make_orchestrator_with_adjudication(
+    session_factory: object,
+    *,
+    with_visible_state_service: bool = True,
+    adjudicable: bool = True,
+    play_status_setup: bool = False,
+) -> OrchestratorService:
+    from afterworlds.models.enums import DiceHandling, RpgPlayStatus, StoryMode
+
+    session_state, sheet = _make_rpg_session_and_sheet()
+
+    if play_status_setup:
+        from afterworlds.models.session import RpgSessionState
+
+        session_state = RpgSessionState(
+            story_id=session_state.story_id,
+            character_sheet_id=session_state.character_sheet_id,
+            dice_handling=DiceHandling.AI_ROLLS,
+            play_status=RpgPlayStatus.SETUP,
+        )
+
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+    from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
+
+    visible_svc = RpgVisibleStateService() if with_visible_state_service else None
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent()),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_adjudication_service=_FakeRpgAdjudicationService(adjudicable=adjudicable),  # type: ignore[arg-type]
+        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+        rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
+        rpg_visible_state_service=visible_svc,  # type: ignore[arg-type]
+    )
+
+
+class TestRpgVisibleState:
+    def test_visible_state_populated_on_in_play_delivered_turn(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_with_adjudication(session_factory)
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.rpg_visible_state is not None
+        assert result.rpg_visible_state.character.character_name == "Aldric"
+        assert result.rpg_visible_state.character.character_class == "Fighter"
+        assert result.rpg_visible_state.character.current_hp == 28
+        assert result.rpg_visible_state.character.active_conditions == ()
+        assert len(result.rpg_visible_state.inventory) == 2  # noqa: PLR2004
+
+    def test_visible_state_none_when_service_not_wired(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_with_adjudication(
+            session_factory, with_visible_state_service=False
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.rpg_visible_state is None
+
+    def test_visible_state_none_when_play_status_is_setup(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_with_adjudication(
+            session_factory, play_status_setup=True
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I am setting up my character.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # SETUP turns skip adjudication → visible state is not computed.
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.rpg_visible_state is None
