@@ -901,3 +901,33 @@ def test_router_fallback_not_triggered_on_short_valid_output() -> None:
 
     assert result is short_result
     fallback.call.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# AnthropicCapabilityProfile — RPG_ADJUDICATION pass (Fix 1, CRD Issue 15)
+# ---------------------------------------------------------------------------
+
+
+def test_model_for_rpg_adjudication_does_not_raise() -> None:
+    """RPG_ADJUDICATION must be in _PASS_PROFILE — no KeyError."""
+    profile = AnthropicCapabilityProfile()
+    model = profile.model_for(PipelinePassId.RPG_ADJUDICATION)
+    assert "haiku" in model.lower()
+
+
+def test_tier_for_rpg_adjudication_returns_haiku() -> None:
+    """RPG adjudication defaults to HAIKU tier (matches PASS_TIER_DEFAULTS)."""
+    profile = AnthropicCapabilityProfile()
+    assert profile.tier_for(PipelinePassId.RPG_ADJUDICATION) is ModelTier.HAIKU
+
+
+def test_pass_identifier_rpg_adjudication_mapped() -> None:
+    """_pass_id_to_pass_identifier maps RPG_ADJUDICATION to RPG_ADJUDICATION,
+    not the PLANNER fallback."""
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.provider.adapters._anthropic import (
+        _pass_id_to_pass_identifier,
+    )
+
+    result = _pass_id_to_pass_identifier(PipelinePassId.RPG_ADJUDICATION)
+    assert result is PassIdentifier.RPG_ADJUDICATION

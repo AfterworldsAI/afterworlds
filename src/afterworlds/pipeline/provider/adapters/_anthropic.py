@@ -85,6 +85,7 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
     PipelinePassId.CONTRADICTION: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.INPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.OUTPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
+    PipelinePassId.RPG_ADJUDICATION: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
 }
 
 
@@ -407,6 +408,7 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
         PipelinePassId.CONTRADICTION: PassIdentifier.CONTRADICTION,
         PipelinePassId.INPUT_SAFETY: PassIdentifier.PLANNER,  # Safety→PIPELINE_ERROR
         PipelinePassId.OUTPUT_SAFETY: PassIdentifier.PLANNER,  # see note below
+        PipelinePassId.RPG_ADJUDICATION: PassIdentifier.RPG_ADJUDICATION,
     }
     return _MAP.get(pass_id, PassIdentifier.PLANNER)
 
