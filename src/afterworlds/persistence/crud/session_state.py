@@ -8,6 +8,13 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.models.enums import (
+    DiceHandling,
+    RpgPlayStatus,
+    RpgSessionType,
+    RpgSetupPhase,
+    RpgTone,
+)
 from afterworlds.models.session import (
     BranchingSessionState,
     BranchTree,
@@ -32,7 +39,15 @@ def _rpg_orm_to_model(row: RpgSessionStateORM) -> RpgSessionState:
         session_id=UUID(row.session_id),
         story_id=UUID(row.story_id),
         character_sheet_id=UUID(row.character_sheet_id),
-        dice_handling=row.dice_handling,  # type: ignore[arg-type]
+        dice_handling=DiceHandling(row.dice_handling),
+        play_status=RpgPlayStatus(row.play_status),
+        setup_phase=RpgSetupPhase(row.setup_phase),
+        gm_cheating=bool(row.gm_cheating),
+        tone=RpgTone(row.tone),
+        session_type=RpgSessionType(row.session_type),
+        genre_flavor=row.genre_flavor,
+        house_rules=row.house_rules,
+        acceptable_content=row.acceptable_content,
         active_quests=list(row.active_quests),
         combat_context=CombatContext.model_validate(row.combat_context),
     )
@@ -47,6 +62,14 @@ def create_rpg_session_state(
         story_id=str(state.story_id),
         character_sheet_id=str(state.character_sheet_id),
         dice_handling=state.dice_handling.value,
+        play_status=state.play_status.value,
+        setup_phase=state.setup_phase.value,
+        gm_cheating=state.gm_cheating,
+        tone=state.tone.value,
+        session_type=state.session_type.value,
+        genre_flavor=state.genre_flavor,
+        house_rules=state.house_rules,
+        acceptable_content=state.acceptable_content,
         active_quests=list(state.active_quests),
         combat_context=state.combat_context.model_dump(),
     )
@@ -83,6 +106,14 @@ def update_rpg_session_state(
     if row is None:
         return None
     row.dice_handling = state.dice_handling.value
+    row.play_status = state.play_status.value
+    row.setup_phase = state.setup_phase.value
+    row.gm_cheating = state.gm_cheating
+    row.tone = state.tone.value
+    row.session_type = state.session_type.value
+    row.genre_flavor = state.genre_flavor
+    row.house_rules = state.house_rules
+    row.acceptable_content = state.acceptable_content
     row.active_quests = list(state.active_quests)
     row.combat_context = state.combat_context.model_dump()
     session.flush()
