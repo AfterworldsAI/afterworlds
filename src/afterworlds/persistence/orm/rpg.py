@@ -62,6 +62,14 @@ class PendingRollRequestORM(Base):
     """
 
     __tablename__ = "pending_roll_requests"
+    __table_args__ = (
+        sa.Index(
+            "uq_pending_roll_requests_story_active",
+            "story_id",
+            unique=True,
+            sqlite_where=sa.text("status = 'pending'"),
+        ),
+    )
 
     request_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     story_id: Mapped[str] = mapped_column(

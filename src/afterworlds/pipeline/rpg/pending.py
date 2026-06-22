@@ -34,6 +34,10 @@ class PendingRollDuplicateError(Exception):
     """Raised when a pending roll is announced while one already exists."""
 
 
+class PendingRollAlreadyConsumedError(Exception):
+    """Raised when mark_consumed targets a row that is no longer pending."""
+
+
 class PendingRollRequestService:
     """Pending-roll-request lifecycle manager for the RPG adjudication loop.
 
@@ -80,9 +84,16 @@ class PendingRollRequestService:
         """
         from afterworlds.persistence.orm.rpg import PendingRollRequestORM
 
-        session.query(PendingRollRequestORM).filter_by(
-            request_id=str(request_id)
-        ).update({"status": "consumed", "consumed_turn_id": str(consumed_turn_id)})
+        rowcount = (
+            session.query(PendingRollRequestORM)
+            .filter_by(request_id=str(request_id), status="pending")
+            .update({"status": "consumed", "consumed_turn_id": str(consumed_turn_id)})
+        )
+        if rowcount == 0:
+            raise PendingRollAlreadyConsumedError(
+                f"PendingRollRequest {request_id!r} is not in 'pending' status; "
+                "cannot consume"
+            )
 
     def check_no_pending_for_story(self, session: Session, story_id: UUID) -> None:
         """Raise PendingRollDuplicateError if an active pending roll exists.
@@ -133,6 +144,7 @@ def _orm_to_model(orm: PendingRollRequestORM) -> PendingRollRequest:
 
 
 __all__ = [
+    "PendingRollAlreadyConsumedError",
     "PendingRollDuplicateError",
     "PendingRollRequestService",
 ]

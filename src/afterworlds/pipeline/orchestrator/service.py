@@ -801,6 +801,16 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                 )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg audit write failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                )
 
         # 5c. Apply sheet effects (Fork B→B1) inside the outer transaction, then
         # compute visible state from the post-mutation snapshot.  Both run only

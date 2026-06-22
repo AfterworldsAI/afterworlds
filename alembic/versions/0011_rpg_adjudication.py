@@ -257,9 +257,14 @@ def upgrade() -> None:
         "pending_roll_requests",
         ["story_id", "status"],
     )
+    op.execute(
+        "CREATE UNIQUE INDEX uq_pending_roll_requests_story_active "
+        "ON pending_roll_requests (story_id) WHERE status = 'pending'"
+    )
 
 
 def downgrade() -> None:
+    op.execute("DROP INDEX IF EXISTS uq_pending_roll_requests_story_active")
     op.drop_table("pending_roll_requests")
 
     # Drop triggers before dropping rpg_roll_audit.

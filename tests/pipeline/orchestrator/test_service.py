@@ -3673,3 +3673,112 @@ class TestRpgVisibleState:
         # SETUP turns skip adjudication → visible state is not computed.
         assert result.disposition is PipelineDisposition.DELIVERED
         assert result.rpg_visible_state is None
+
+
+# ---------------------------------------------------------------------------
+# TestRpgAuditErrorMapping — CRD Issue 15 remediation Fix 3
+# ---------------------------------------------------------------------------
+#
+# _narrative_persist must map any non-PendingRollDuplicateError exception from
+# _write_rpg_audit to PIPELINE_ERROR (the new except Exception branch).
+
+
+class _FailingOnConsumePendingRollService:
+    """Fake pending-roll service whose mark_consumed raises a given exception."""
+
+    def __init__(self, exc: Exception) -> None:
+        self._exc = exc
+
+    def load_pending_for_story(self, story_id: object) -> object:
+        return _make_pending_roll_request()
+
+    def mark_consumed(
+        self, session: object, request_id: object, consumed_turn_id: object
+    ) -> None:
+        raise self._exc
+
+    def check_no_pending_for_story(self, session: object, story_id: object) -> None:
+        pass
+
+
+def _make_orchestrator_for_audit_errors(
+    session_factory: object,
+    *,
+    pending_svc: object,
+) -> OrchestratorService:
+    from afterworlds.models.enums import StoryMode
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    session_state, sheet = _make_rpg_session_and_sheet()
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent()),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_adjudication_service=_FakeRpgAdjudicationService(),  # type: ignore[arg-type]
+        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+        rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
+        rpg_pending_roll_service=pending_svc,  # type: ignore[arg-type]
+    )
+
+
+class TestRpgAuditErrorMapping:
+    def test_already_consumed_error_maps_to_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """PendingRollAlreadyConsumedError from mark_consumed → PIPELINE_ERROR."""
+        from afterworlds.pipeline.rpg.pending import PendingRollAlreadyConsumedError
+
+        story_id, node_id = seeded_story
+        failing_svc = _FailingOnConsumePendingRollService(
+            PendingRollAlreadyConsumedError("already consumed")
+        )
+        orch = _make_orchestrator_for_audit_errors(
+            session_factory, pending_svc=failing_svc
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "rpg audit write failed" in result.pipeline_error_summary
+
+    def test_general_audit_failure_maps_to_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Any non-PendingRollDuplicateError from _write_rpg_audit → PIPELINE_ERROR."""
+        story_id, node_id = seeded_story
+        failing_svc = _FailingOnConsumePendingRollService(
+            RuntimeError("synthetic db failure")
+        )
+        orch = _make_orchestrator_for_audit_errors(
+            session_factory, pending_svc=failing_svc
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "rpg audit write failed" in result.pipeline_error_summary

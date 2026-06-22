@@ -11,6 +11,7 @@ import pytest
 from afterworlds.models.enums import RollVisibility
 from afterworlds.models.rpg import PendingRollRequest
 from afterworlds.pipeline.rpg.pending import (
+    PendingRollAlreadyConsumedError,
     PendingRollDuplicateError,
     PendingRollRequestService,
     _orm_to_model,
@@ -140,6 +141,7 @@ def test_load_pending_closes_session_on_exception() -> None:
 def test_mark_consumed_updates_status() -> None:
     mock_session = MagicMock()
     mock_query = mock_session.query.return_value.filter_by.return_value
+    mock_query.update.return_value = 1
     factory = MagicMock(return_value=mock_session)
     svc = PendingRollRequestService(session_factory=factory)
 
@@ -150,6 +152,35 @@ def test_mark_consumed_updates_status() -> None:
     mock_query.update.assert_called_once_with(
         {"status": "consumed", "consumed_turn_id": str(turn_id)}
     )
+
+
+def test_mark_consumed_filters_on_pending_status() -> None:
+    mock_session = MagicMock()
+    mock_query = mock_session.query.return_value.filter_by.return_value
+    mock_query.update.return_value = 1
+    factory = MagicMock(return_value=mock_session)
+    svc = PendingRollRequestService(session_factory=factory)
+
+    request_id = uuid4()
+    turn_id = uuid4()
+    svc.mark_consumed(mock_session, request_id, turn_id)
+
+    mock_session.query.return_value.filter_by.assert_called_once_with(
+        request_id=str(request_id), status="pending"
+    )
+
+
+def test_mark_consumed_raises_when_zero_rows_updated() -> None:
+    mock_session = MagicMock()
+    mock_query = mock_session.query.return_value.filter_by.return_value
+    mock_query.update.return_value = 0
+    factory = MagicMock(return_value=mock_session)
+    svc = PendingRollRequestService(session_factory=factory)
+
+    with pytest.raises(
+        PendingRollAlreadyConsumedError, match="not in 'pending' status"
+    ):
+        svc.mark_consumed(mock_session, uuid4(), uuid4())
 
 
 # ---------------------------------------------------------------------------
