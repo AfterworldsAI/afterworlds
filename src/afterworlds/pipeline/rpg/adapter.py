@@ -474,10 +474,12 @@ class D20RulesSystemAdapter:
         ``hidden_modifier_present`` is never surfaced here.
         """
         if record.visibility is RollVisibility.HIDDEN:
+            # check_label and player_facing_summary must not reveal the check
+            # exists, its type, or any mechanical result (ADR-015 Decision 5).
             return WriterAdjudicationView(
-                check_label=record.check_label,
+                check_label="",
                 visibility=record.visibility,
-                player_facing_summary=f"A hidden {record.check_label} resolved.",
+                player_facing_summary="The scene continues.",
                 total=None,
                 dc=None,
                 outcome=None,
