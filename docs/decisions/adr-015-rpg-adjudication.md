@@ -255,6 +255,43 @@ the dispatch and `gm_cheating_at_roll` snapshot have no authoritative source.
 
 ---
 
+## Decision 10: `BLOCKED_PENDING_ROLL` disposition — supersedes prior scope note
+
+**Decision (owner-accepted correction):** An earlier statement in the Issue 15
+specification said that the `PipelineDisposition` set is unchanged by Issue 15.
+That statement is superseded for the **pending-roll intercept case only**.
+
+`BLOCKED_PENDING_ROLL` is an accepted disposition within `PipelineDisposition`
+for the case where a Sojourner submits a new in-character action while a
+`PendingRollRequest` is outstanding.
+
+**What `BLOCKED_PENDING_ROLL` must do:**
+
+- Return a disposition of `BLOCKED_PENDING_ROLL` that surfaces the outstanding
+  pending roll to the caller.
+- Redirect the Sojourner to supply the requested roll result before new in-character
+  narration continues.
+
+**What `BLOCKED_PENDING_ROLL` must NOT do:**
+
+- Run the Planner, RPG adjudication, Writer, Extractor, or sheet-effect application
+  for the intercepted action.
+- Create a new narrative outcome Turn row or Node.
+- Consume, modify, or expire the pending roll request.
+
+**Interaction with OOC/config input:** Out-of-character and configuration inputs
+arriving while a pending roll is outstanding may be answered normally (OOC short-
+circuit path). The pending roll is preserved and the BLOCKED_PENDING_ROLL
+intercept applies only to new in-character narrative actions.
+
+**Rationale:** Allowing new in-character actions to bypass a pending-roll state
+would create ambiguous canon (the narrative proceeds before the player's declared
+result). Blocking is the correct response. Adding `BLOCKED_PENDING_ROLL` is a
+narrow, well-scoped extension of the disposition set with no pipeline ownership
+implications.
+
+---
+
 ## Consequences
 
 - `PipelinePassId.RPG_ADJUDICATION` is added to `entitlement/enums.py`
