@@ -66,7 +66,7 @@ from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
-    from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState
+    from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.rpg.dice import DiceService
     from afterworlds.pipeline.rpg.models import AdjudicationPassResult
@@ -565,7 +565,7 @@ class OrchestratorService:
         adj_result: AdjudicationPassResult | None = None
         rpg_session_id: UUID | None = None
         rpg_character_id: UUID | None = None
-        rpg_visible_state: RpgVisibleState | None = None
+        rpg_sheet: Dnd5eCharacterSheet | None = None
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -585,6 +585,7 @@ class OrchestratorService:
                 session_state, sheet = self._rpg_session_sheet_resolver(story_id)
                 rpg_session_id = session_state.session_id
                 rpg_character_id = sheet.sheet_id
+                rpg_sheet = sheet
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
                     intent_result,
@@ -661,8 +662,6 @@ class OrchestratorService:
                     ctx.pass_forward_ledger.add(
                         "rpg_adjudication", _serialize_adj_views(adj_result)
                     )
-                if self._rpg_visible_state_service is not None:
-                    rpg_visible_state = self._rpg_visible_state_service.build(sheet)
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -690,7 +689,7 @@ class OrchestratorService:
                 rpg_session_id=rpg_session_id,
                 rpg_character_id=rpg_character_id,
                 pending_roll_consumed=pending_roll,
-                rpg_visible_state=rpg_visible_state,
+                rpg_sheet=rpg_sheet,
             ),
             intent_result,
             latency,
@@ -720,7 +719,7 @@ class OrchestratorService:
         rpg_session_id: UUID | None = None,
         rpg_character_id: UUID | None = None,
         pending_roll_consumed: PendingRollRequest | None = None,
-        rpg_visible_state: RpgVisibleState | None = None,
+        rpg_sheet: Dnd5eCharacterSheet | None = None,
     ) -> OrchestrationResult:
         # 5. Writer persists provisional Turn inside the outer transaction.
         #
@@ -802,6 +801,34 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                 )
+
+        # 5c. Apply sheet effects (Fork B→B1) inside the outer transaction, then
+        # compute visible state from the post-mutation snapshot.  Both run only
+        # when adjudication produced proposals; skipped otherwise.
+        rpg_visible_state: RpgVisibleState | None = None
+        if adj_result is not None and rpg_sheet is not None:
+            all_effects = tuple(
+                effect
+                for record in adj_result.proposals
+                for effect in record.sheet_effects
+            )
+            if all_effects:
+                try:
+                    rpg_sheet = self._apply_rpg_sheet_effects(
+                        session, all_effects, rpg_sheet
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"sheet effect application failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        writer_result=writer_result,
+                    )
+            if self._rpg_visible_state_service is not None:
+                rpg_visible_state = self._rpg_visible_state_service.build(rpg_sheet)
 
         # 6. Output Safety Audit, conditional.
         output_safety: SafetyResult | None = None
@@ -1449,6 +1476,115 @@ class OrchestratorService:
                     created_at=now_str,
                 )
             )
+
+    # ------------------------------------------------------------------
+    # RPG sheet-effect application (Fork B→B1)
+    # ------------------------------------------------------------------
+
+    def _apply_rpg_sheet_effects(
+        self,
+        session: Session,
+        effects: tuple[SheetEffect, ...],
+        sheet: Dnd5eCharacterSheet,
+    ) -> Dnd5eCharacterSheet:
+        """Apply sheet effects to the character sheet inside the outer transaction.
+
+        Supports delta/set for current_hp and spell_slot.<N>, plus
+        apply_condition and clear_condition against active_conditions.
+        Unknown or ambiguous targets fail closed (raise ValueError).
+        Callers must handle exceptions and return a pipeline error so the
+        outer transaction rolls back Turn + audit rows + mutations atomically.
+        """
+        import json as _json
+        from datetime import UTC, datetime
+
+        from afterworlds.models.character_sheet import (
+            Dnd5eActiveCondition,
+            Dnd5eCharacterSheet,
+            SpellSlotLevel,
+        )
+        from afterworlds.persistence.crud.character_sheet import update_dnd5e_sheet
+
+        new_current_hp = sheet.current_hp
+        new_spell_slots: dict[int, SpellSlotLevel] = dict(sheet.spell_slots)
+        new_conditions: list[Dnd5eActiveCondition] = list(sheet.active_conditions)
+
+        for effect in effects:
+            value = _json.loads(effect.value_json)
+
+            if effect.operation in ("delta", "set"):
+                if effect.target == "current_hp":
+                    int_val = int(value)
+                    if effect.operation == "delta":
+                        new_current_hp = max(
+                            0, min(sheet.maximum_hp, new_current_hp + int_val)
+                        )
+                    else:
+                        new_current_hp = max(0, min(sheet.maximum_hp, int_val))
+                elif effect.target.startswith("spell_slot."):
+                    level_str = effect.target.removeprefix("spell_slot.")
+                    if not level_str.isdigit():
+                        raise ValueError(
+                            f"Unknown sheet-effect target: {effect.target!r}"
+                        )
+                    slot_level = int(level_str)
+                    if slot_level not in new_spell_slots:
+                        raise ValueError(
+                            f"Unknown sheet-effect target: {effect.target!r}"
+                            f" — no spell slot level {slot_level}"
+                        )
+                    slot = new_spell_slots[slot_level]
+                    int_val = int(value)
+                    if effect.operation == "delta":
+                        new_used = max(0, min(slot.total, slot.used + int_val))
+                    else:
+                        new_used = max(0, min(slot.total, int_val))
+                    new_spell_slots[slot_level] = SpellSlotLevel(
+                        total=slot.total, used=new_used
+                    )
+                else:
+                    raise ValueError(f"Unknown sheet-effect target: {effect.target!r}")
+
+            elif effect.operation == "apply_condition":
+                if not isinstance(value, dict):
+                    raise ValueError("apply_condition value_json must be a JSON object")
+                cond_data = {**value, "sheet_id": str(sheet.sheet_id)}
+                cond_data.setdefault("condition_id", str(__import__("uuid").uuid4()))
+                condition = Dnd5eActiveCondition.model_validate(cond_data)
+                new_conditions.append(condition)
+
+            elif effect.operation == "clear_condition":
+                if not isinstance(value, dict):
+                    raise ValueError("clear_condition value_json must be a JSON object")
+                identifier_to_clear = value.get("identifier")
+                if not identifier_to_clear:
+                    raise ValueError(
+                        "clear_condition value_json must contain 'identifier'"
+                    )
+                new_conditions = [
+                    c for c in new_conditions if c.identifier != identifier_to_clear
+                ]
+
+            else:
+                raise ValueError(
+                    f"Unknown sheet-effect operation: {effect.operation!r}"
+                )
+
+        mutated = Dnd5eCharacterSheet.model_validate(
+            {
+                **sheet.model_dump(mode="json"),
+                "current_hp": new_current_hp,
+                "spell_slots": {k: v.model_dump() for k, v in new_spell_slots.items()},
+                "active_conditions": [c.model_dump() for c in new_conditions],
+                "updated_at": datetime.now(tz=UTC).isoformat(),
+            }
+        )
+        result = update_dnd5e_sheet(session, mutated)
+        if result is None:
+            raise ValueError(
+                f"Sheet {sheet.sheet_id!r} not found during effect application"
+            )
+        return result
 
     # ------------------------------------------------------------------
     # Helpers
