@@ -83,9 +83,9 @@ ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRout
 
 Issue 12c short-circuits OOC turns away from the ordinary narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The v2 mode prompt contracts now contain OOC sections, but the implementation question remains: how the orchestrator selects or injects the final mode-specific OOC instruction, and whether the placeholder is replaced outright or retained as a generic fallback.
 
-**RPG resolution (Issue 15):** The RPG OOC protocol is implemented as a distinct mode-specific handler for RPG mode, replacing the 12c placeholder when `StoryMode.RPG` is active. It answers rules, configuration, setup, and clarification questions; advances no story; mutates no canon; routes configuration changes through typed paths. See ADR-015.
+**RPG resolution (Issue 15):** Implemented as a distinct mode-specific handler for RPG mode via `docs/prompts/rpg_ooc_handler.md`. Replaces the 12c placeholder when `StoryMode.RPG` is active. Answers rules, configuration, setup, and clarification questions; advances no story; mutates no canon; routes configuration changes through typed paths. The orchestrator OOC-handler selection logic was not changed — no new ADR required; the placeholder file selection is mode-aware per existing pattern. See ADR-015 and `/docs/prompts/rpg_ooc_handler.md`.
 
-**What remaining resolution requires:** Issues 16–17 must finalize the Branching and Writing mode OOC protocol sections and specify how they are selected at runtime. Document the swap in an ADR if the orchestrator’s OOC-handler selection logic changes shape.
+**What remaining resolution requires:** Issues 16–17 must finalize the Branching and Writing mode OOC protocol sections via `/docs/prompts/branching_ooc_handler.md` and `/docs/prompts/writing_ooc_handler.md` respectively, and implement mode-aware handler file selection if the orchestrator’s OOC-routing logic needs revision. Document any changes in an ADR if the orchestrator’s handler-selection path changes shape.
 
 ---
 
