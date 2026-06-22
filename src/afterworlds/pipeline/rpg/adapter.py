@@ -43,9 +43,6 @@ if TYPE_CHECKING:
     from afterworlds.pipeline.rpg.dice import DiceService
 
 
-# D&D 5e proficiency bonus by level.  Index = level (1-based; index 0 unused).
-_PROFICIENCY_BY_LEVEL = (0, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6)
-
 # Skill → governing ability score name (D&D 5e).
 _SKILL_ABILITY: dict[str, str] = {
     "acrobatics": "dexterity",
@@ -81,12 +78,6 @@ _SAVE_ABILITY: dict[str, str] = {
 
 def _ability_modifier(score: int) -> int:
     return (score - 10) // 2
-
-
-def _proficiency_bonus(level: int) -> int:
-    if 1 <= level <= 20:
-        return _PROFICIENCY_BY_LEVEL[level]
-    return 2
 
 
 def _context_hash(sheet: Dnd5eCharacterSheet) -> str:
@@ -186,35 +177,28 @@ class D20RulesSystemAdapter:
         (no invisible conditional bonuses in the bounded d20 scope).
         """
         scores = sheet.ability_scores.model_dump()
-        prof = _proficiency_bonus(sheet.level)
 
         label = (proposal.skill_or_attribute_label or "").lower().replace(" ", "_")
         breakdown: dict[str, int] = {}
         visible_total = 0
 
         if label in _SKILL_ABILITY:
-            ability = _SKILL_ABILITY[label]
-            mod = _ability_modifier(scores[ability])
-            breakdown[f"{ability}_modifier"] = mod
-            visible_total += mod
             if label in sheet.skills:
-                prof_val = sheet.skills[label]
-                if prof_val > 0:
-                    breakdown["proficiency"] = prof
-                    visible_total += prof
-                elif prof_val < 0:
-                    half = prof // 2
-                    breakdown["half_proficiency"] = half
-                    visible_total += half
+                # skills stores the computed modifier (ability mod + prof).
+                stored = sheet.skills[label]
+                breakdown[f"{label}_modifier"] = stored
+                visible_total += stored
+            else:
+                ability = _SKILL_ABILITY[label]
+                mod = _ability_modifier(scores[ability])
+                breakdown[f"{ability}_modifier"] = mod
+                visible_total += mod
         elif label in _SAVE_ABILITY:
+            # v1: saves are ability-mod-only; no save-proficiency in sheet.
             ability = _SAVE_ABILITY[label]
             mod = _ability_modifier(scores[ability])
             breakdown[f"{ability}_modifier"] = mod
             visible_total += mod
-            save_key = label
-            if save_key in sheet.skills and sheet.skills[save_key] > 0:
-                breakdown["proficiency"] = prof
-                visible_total += prof
         elif label in scores:
             mod = _ability_modifier(scores[label])
             breakdown[f"{label}_modifier"] = mod
@@ -249,30 +233,14 @@ class D20RulesSystemAdapter:
 
     def _verify_dc(
         self,
-        proposal: RollProposal,
         _rule_slice: ActiveRuleSlice | None,
         _overrides: list[RuleOverride],
     ) -> int | None:
-        """Verify DC from rule slice or house-rule overrides.
+        """DC verification is deferred to Issue 18.
 
-        Returns code-verified DC or None when the mechanic doesn't supply
-        an authoritative value.  The model's ``difficulty_reference_note``
-        is NEVER used as a DC here.
-
-        v1: DC verification from rule slice text is deferred (requires
-        semantic extraction from rule chunks — Issue 18 scope).  Returns
-        None for all calls in v1 except trivially obvious fixed-DC checks
-        that can be determined from the subsystem tag.
+        Always returns None in v1.  Model-authored subsystem_tag and
+        difficulty_reference_note are never authoritative DC sources.
         """
-        tag = proposal.subsystem_tag.lower()
-        if "dc" in tag:
-            parts = tag.split()
-            for i, part in enumerate(parts):
-                if part == "dc" and i + 1 < len(parts):
-                    try:
-                        return int(parts[i + 1])
-                    except ValueError:
-                        pass
         return None
 
     def _compute_outcome(
@@ -326,7 +294,7 @@ class D20RulesSystemAdapter:
         mods = self._assemble_modifiers(proposal, sheet, rule_slice, overrides)
         dice_result: DiceResult = dice_service.roll(mods.expression)
         total = dice_result.chosen + mods.full_total
-        dc = self._verify_dc(proposal, rule_slice, overrides)
+        dc = self._verify_dc(rule_slice, overrides)
         outcome = self._compute_outcome(total, dc, dice_result.chosen)
 
         return ResolvedAdjudicationRecord(
@@ -428,15 +396,7 @@ class D20RulesSystemAdapter:
         freshly recomputed sheet state.  ``adapter_context_hash`` drift is
         logged but does NOT trigger recomputation in v1.
         """
-        dc = self._verify_dc(
-            RollProposal(
-                check_label=pending.check_label,
-                subsystem_tag=pending.source_proposal_ref.split("/")[0],
-                visibility=RollVisibility.PLAYER,
-            ),
-            rule_slice,
-            overrides,
-        )
+        dc = self._verify_dc(rule_slice, overrides)
         visible_mod = pending.visible_modifier_total or 0
         hidden_mod = 0
         raw_die = reported_total - visible_mod - hidden_mod

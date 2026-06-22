@@ -139,6 +139,12 @@ def load_ooc_handler_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8")
 
 
+def load_rpg_ooc_handler_prompt() -> str:
+    """Load the RPG-mode OOC handler from docs/prompts/rpg_ooc_handler.md."""
+    prompt_path = _PROMPT_DIR / "rpg_ooc_handler.md"
+    return prompt_path.read_text(encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Mode resolver
 # ---------------------------------------------------------------------------
@@ -300,6 +306,7 @@ class OrchestratorService:
         )
         self._timeout = parallel_pass_timeout_seconds
         self._ooc_handler_prompt: str = load_ooc_handler_prompt()
+        self._rpg_ooc_handler_prompt: str = load_rpg_ooc_handler_prompt()
 
     def close(self) -> None:
         """Release the orchestrator-owned executor.
@@ -412,6 +419,7 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 request_risk_signal,
+                story_mode=story_mode,
             )
 
         # Pending-roll intercept for RPG in-play narrative turns.
@@ -1023,6 +1031,8 @@ class OrchestratorService:
         latency: dict[str, int],
         turn_start: float,
         request_risk_signal: bool,
+        *,
+        story_mode: StoryMode,
     ) -> OrchestrationResult:
         input_safety: SafetyResult | None = None
         preflight_ctx = SafetyPolicyContext(
@@ -1065,11 +1075,13 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                 )
 
-        # Derive an OOC-specific context: only the system_prompt swaps to the
-        # v1 OOC handler instruction.  Story Bible, rolling summary, rules
-        # slice, and retrieval are left in place — the OOC prompt instructs
-        # the model to ignore them.  Issues 15–17 may revisit this.
-        ooc_ctx = _swap_system_prompt(ctx, self._ooc_handler_prompt)
+        # Select mode-specific OOC handler; RPG mode has a dedicated prompt.
+        ooc_prompt = (
+            self._rpg_ooc_handler_prompt
+            if story_mode is StoryMode.RPG
+            else self._ooc_handler_prompt
+        )
+        ooc_ctx = _swap_system_prompt(ctx, ooc_prompt)
 
         return self._run_with_transaction(
             lambda session: self._ooc_persist(

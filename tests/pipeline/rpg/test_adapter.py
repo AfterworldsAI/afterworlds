@@ -3,10 +3,62 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
+from unittest.mock import MagicMock
+from uuid import uuid4
 
+from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import ResolvedAdjudicationRecord
+from afterworlds.models.rpg import ResolvedAdjudicationRecord, RollProposal
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+_NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _make_sheet(
+    *,
+    skills: dict[str, int] | None = None,
+    level: int = 5,
+    dex: int = 16,
+) -> Dnd5eCharacterSheet:
+    return Dnd5eCharacterSheet(
+        story_id=uuid4(),
+        rules_package_id="dnd5e-v1",
+        character_name="Test Hero",
+        created_at=_NOW,
+        updated_at=_NOW,
+        character_class="rogue",
+        background="criminal",
+        level=level,
+        ability_scores=Dnd5eAbilityScores(
+            strength=10,
+            dexterity=dex,
+            constitution=14,
+            intelligence=12,
+            wisdom=13,
+            charisma=10,
+        ),
+        skills=skills or {},
+        current_hp=30,
+        maximum_hp=30,
+    )
+
+
+def _make_proposal(
+    label: str | None = "stealth",
+    visibility: RollVisibility = RollVisibility.SHOWN,
+    subsystem_tag: str = "skill_check",
+) -> RollProposal:
+    return RollProposal(
+        check_label=f"{label or 'unknown'} check",
+        subsystem_tag=subsystem_tag,
+        skill_or_attribute_label=label,
+        visibility=visibility,
+    )
 
 
 def _make_record(
@@ -113,3 +165,81 @@ def test_player_roll_preserves_all_fields() -> None:
     assert view.dc == 15
     assert view.outcome == "success"
     assert "18" in view.player_facing_summary
+
+
+# ---------------------------------------------------------------------------
+# Trust boundary: _verify_dc always returns None (Fix 2)
+# ---------------------------------------------------------------------------
+
+
+def test_verify_dc_returns_none_regardless_of_subsystem_tag() -> None:
+    """_verify_dc must never parse a DC from model-authored subsystem_tag."""
+    adapter = D20RulesSystemAdapter()
+    assert adapter._verify_dc(None, []) is None  # noqa: SLF001
+
+
+def test_verify_dc_returns_none_for_dc_tag() -> None:
+    """Even a subsystem_tag like 'skill_check dc 15' must return None."""
+    adapter = D20RulesSystemAdapter()
+    assert adapter._verify_dc(None, []) is None  # noqa: SLF001
+
+
+def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
+    """When _verify_dc returns None, resolve_roll produces outcome='undetermined'."""
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 7})
+    proposal = _make_proposal(
+        "stealth", RollVisibility.SHOWN, subsystem_tag="skill_check dc 5"
+    )
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
+    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    assert record.dc is None
+    assert record.outcome == "undetermined"
+
+
+# ---------------------------------------------------------------------------
+# Skill modifier: uses stored computed modifier (Fix 1)
+# ---------------------------------------------------------------------------
+
+
+def test_skill_in_sheet_uses_stored_modifier() -> None:
+    """stealth: 7, Dex +3, level 5 — adapter must use stored +7, not recomputed +6."""
+    adapter = D20RulesSystemAdapter()
+    # Dex 16 → raw modifier +3; proficiency at level 5 = +3 → recomputed would be +6.
+    # The sheet stores +7 (e.g. from Expertise), so the adapter must use +7.
+    sheet = _make_sheet(skills={"stealth": 7}, level=5, dex=16)
+    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    # total = 10 (die) + 7 (stored modifier) = 17
+    assert record.total == 17
+    breakdown = json.loads(record.modifiers_json)
+    assert breakdown["breakdown"]["stealth_modifier"] == 7
+
+
+def test_skill_not_in_sheet_falls_back_to_ability_mod() -> None:
+    """When a skill is missing from sheet.skills, fall back to governing ability mod."""
+    adapter = D20RulesSystemAdapter()
+    # Dex 16 → +3; stealth not in skills dict
+    sheet = _make_sheet(skills={}, dex=16)
+    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    # total = 10 + 3 (Dex mod) = 13
+    assert record.total == 13
+    breakdown = json.loads(record.modifiers_json)
+    assert breakdown["breakdown"]["dexterity_modifier"] == 3
+
+
+def test_skill_modifier_differs_from_recomputed_value() -> None:
+    """Stored modifier 9 is used verbatim even when ability+prof differs."""
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 9}, level=5, dex=16)
+    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5,))
+    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    assert record.total == 14  # 5 + 9

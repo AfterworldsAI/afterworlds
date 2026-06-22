@@ -40,7 +40,7 @@ from uuid import UUID
 
 from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
-from afterworlds.models.enums import RollVisibility
+from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
     PendingRollRequest,
@@ -113,6 +113,34 @@ _ADJUDICATION_TOOL_DEF = ProviderToolDefinition(
     description=PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC["description"],
     input_schema=PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC["input_schema"],
 )
+
+
+# ---------------------------------------------------------------------------
+# Dice-handling enforcement
+# ---------------------------------------------------------------------------
+
+
+def _effective_visibility(
+    proposal_vis: RollVisibility,
+    dice_handling: DiceHandling,
+    has_pending: bool,
+) -> RollVisibility:
+    """Return the code-enforced visibility for a proposal.
+
+    Model-emitted visibility is advisory; dice_handling mode is authoritative.
+    AI_ROLLS: PLAYER proposals are coerced to SHOWN (AI resolves all rolls).
+    PLAYER_ROLLS: first eligible SHOWN becomes PLAYER; HIDDEN stays HIDDEN.
+    """
+    if dice_handling is DiceHandling.AI_ROLLS:
+        return (
+            RollVisibility.SHOWN
+            if proposal_vis is RollVisibility.PLAYER
+            else proposal_vis
+        )
+    # PLAYER_ROLLS: first SHOWN without a pending request becomes PLAYER.
+    if proposal_vis is RollVisibility.SHOWN and not has_pending:
+        return RollVisibility.PLAYER
+    return proposal_vis
 
 
 # ---------------------------------------------------------------------------
@@ -296,12 +324,23 @@ class RpgAdjudicationPassService:
         pending_roll_request: PendingRollRequest | None = None
 
         for proposal in proposals:
-            if proposal.visibility is RollVisibility.PLAYER:
+            effective_vis = _effective_visibility(
+                proposal.visibility,
+                session_state.dice_handling,
+                pending_roll_request is not None,
+            )
+            coerced = (
+                proposal.model_copy(update={"visibility": effective_vis})
+                if effective_vis is not proposal.visibility
+                else proposal
+            )
+
+            if effective_vis is RollVisibility.PLAYER:
                 if pending_roll_request is not None:
                     # Only one PLAYER roll announce per turn.
                     continue
                 pending, view = self._adapter.prepare_player_roll_announce(
-                    proposal,
+                    coerced,
                     sheet,
                     rule_slice,
                     overrides,
@@ -314,7 +353,7 @@ class RpgAdjudicationPassService:
             else:
                 try:
                     record = self._adapter.resolve_roll(
-                        proposal,
+                        coerced,
                         sheet,
                         rule_slice,
                         overrides,

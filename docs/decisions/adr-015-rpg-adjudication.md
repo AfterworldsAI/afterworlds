@@ -292,6 +292,31 @@ implications.
 
 ---
 
+## Decision 11: Mode-aware OOC handler selection
+
+**Decision:** `OrchestratorService._run_ooc()` accepts a `story_mode:
+StoryMode` keyword argument and selects the OOC handler prompt at call time.
+RPG mode uses `docs/prompts/rpg_ooc_handler.md`; all other modes fall back
+to the generic `docs/prompts/ooc_handler.md`.  Both prompts are loaded at
+`__init__` time and stored as instance variables to avoid per-turn I/O.
+
+**What changed:** `_run_ooc()` gained a `story_mode` keyword-only parameter
+and the call site in the main orchestration path passes the `story_mode`
+already resolved by `_build_context()`.  `load_rpg_ooc_handler_prompt()` was
+added alongside `load_ooc_handler_prompt()`.
+
+**What must not change:** The OOC short-circuit shape itself is stable — no
+new pipeline passes, no new disposition values, no change to the transaction
+boundary.  Issues 16 and 17 should follow the same pattern for Branching and
+Writing modes.
+
+**Rationale:** `known_unknowns.md` required that any handler-selection path
+change be documented in an ADR.  The change is narrow (one new parameter, one
+conditional expression) but the path shape changed from unconditional to
+mode-conditional, making a decision record appropriate.
+
+---
+
 ## Consequences
 
 - `PipelinePassId.RPG_ADJUDICATION` is added to `entitlement/enums.py`

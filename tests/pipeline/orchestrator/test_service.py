@@ -51,6 +51,7 @@ from afterworlds.models.enums import (
     EventKind,
     EventSignificance,
     IntentType,
+    StoryMode,
     TargetDomain,
 )
 from afterworlds.models.extractor import (
@@ -772,6 +773,51 @@ class TestOOCShortCircuit:
         )
         assert result.disposition is PipelineDisposition.BLOCKED_INPUT_SAFETY
         assert writer.calls == []
+
+    def test_rpg_ooc_uses_rpg_handler_prompt(
+        self, session_factory, seeded_story
+    ) -> None:
+        """RPG mode OOC turns must use rpg_ooc_handler.md, not the generic fallback."""
+        story_id, node_id = seeded_story
+        writer = FakeWriterService()
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(writer.calls) == 1
+        derived_ctx = writer.calls[0][0]
+        assert derived_ctx.stable_prefix.system_prompt.startswith("# RPG OOC Handler")
+
+    def test_non_rpg_ooc_uses_generic_handler_prompt(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Non-RPG mode OOC turns must still use the generic ooc_handler.md."""
+        story_id, node_id = seeded_story
+        orch, *_, writer, _, _ = _make_orchestrator(
+            session_factory, intent=IntentType.OOC
+        )
+        orch.orchestrate_turn(
+            story_id, node_id, "[OOC] What is HP?", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert len(writer.calls) == 1
+        derived_ctx = writer.calls[0][0]
+        assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
 
 
 # ---------------------------------------------------------------------------
