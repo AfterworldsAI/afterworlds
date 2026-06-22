@@ -1020,6 +1020,57 @@ class OrchestratorService:
     # OOC path
     # ------------------------------------------------------------------
 
+    def _build_rpg_ooc_state(self, story_id: UUID) -> str | None:
+        """Build a player-visible RPG state payload for the OOC handler ledger.
+
+        Returns None when rpg_session_sheet_resolver is not wired (graceful
+        degrade — OOC prompt instructs the model to say it lacks state).
+        Raises on resolver or service failure; caller maps to PIPELINE_ERROR.
+
+        Allowlisted fields only — never serialises the full sheet or pending
+        object (those carry hidden_modifier_present and adapter_context_hash).
+        """
+        if self._rpg_session_sheet_resolver is None:
+            return None
+        session_state, sheet = self._rpg_session_sheet_resolver(story_id)
+        parts: list[str] = [
+            "## RPG Session State",
+            f"play_status: {session_state.play_status.value}",
+            f"setup_phase: {session_state.setup_phase.value}",
+            f"dice_handling: {session_state.dice_handling.value}",
+            f"gm_cheating: {session_state.gm_cheating}",
+            f"tone: {session_state.tone.value}",
+            f"session_type: {session_state.session_type.value}",
+        ]
+        if self._rpg_visible_state_service is not None:
+            visible = self._rpg_visible_state_service.build(sheet)
+            char = visible.character
+            parts += [
+                "",
+                "## Character",
+                f"name: {char.character_name}",
+                f"class: {char.character_class}",
+                f"level: {char.level}",
+                f"hp: {char.current_hp}/{char.maximum_hp}",
+                (
+                    f"conditions: {', '.join(char.active_conditions)}"
+                    if char.active_conditions
+                    else "conditions: none"
+                ),
+            ]
+        if self._rpg_pending_roll_service is not None:
+            pending = self._rpg_pending_roll_service.load_pending_for_story(story_id)
+            if pending is not None:
+                parts += [
+                    "",
+                    "## Pending Roll",
+                    f"check: {pending.check_label}",
+                    f"instruction: {pending.player_facing_instruction}",
+                ]
+                if pending.visible_modifier_note is not None:
+                    parts.append(f"modifier: {pending.visible_modifier_note}")
+        return "\n".join(parts)
+
     def _run_ooc(
         self,
         ctx: AssembledContext,
@@ -1082,6 +1133,19 @@ class OrchestratorService:
             else self._ooc_handler_prompt
         )
         ooc_ctx = _swap_system_prompt(ctx, ooc_prompt)
+
+        if story_mode is StoryMode.RPG:
+            try:
+                rpg_ooc_state = self._build_rpg_ooc_state(story_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg_ooc_state build failed: {exc}",
+                )
+            if rpg_ooc_state:
+                ooc_ctx.pass_forward_ledger.add("rpg_ooc_state", rpg_ooc_state)
 
         return self._run_with_transaction(
             lambda session: self._ooc_persist(

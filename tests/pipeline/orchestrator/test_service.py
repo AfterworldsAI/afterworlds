@@ -40,17 +40,23 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import (
+    DiceHandling,
     EventKind,
     EventSignificance,
     IntentType,
+    RpgPlayStatus,
+    RpgSessionType,
+    RpgSetupPhase,
+    RpgTone,
     StoryMode,
     TargetDomain,
 )
@@ -61,7 +67,12 @@ from afterworlds.models.extractor import (
     SoftFactProposal,
     UnresolvedThreadProposal,
 )
-from afterworlds.models.rpg import PendingRollRequest
+from afterworlds.models.rpg import (
+    PendingRollRequest,
+    RpgVisibleState,
+    VisibleCharacterState,
+)
+from afterworlds.models.session import RpgSessionState
 from afterworlds.models.story_bible import CastEntry
 from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.persistence.orm.story_bible import (
@@ -818,6 +829,359 @@ class TestOOCShortCircuit:
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
         assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
+
+
+# ---------------------------------------------------------------------------
+# RPG OOC state grounding (Round 5 Fix 3)
+# ---------------------------------------------------------------------------
+
+_NOW_RPG = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _make_rpg_session_state(story_id: UUID) -> RpgSessionState:
+    return RpgSessionState(
+        story_id=story_id,
+        character_sheet_id=uuid4(),
+        dice_handling=DiceHandling.PLAYER_ROLLS,
+        play_status=RpgPlayStatus.IN_PLAY,
+        setup_phase=RpgSetupPhase.COMPLETE,
+        gm_cheating=False,
+        tone=RpgTone.BALANCED,
+        session_type=RpgSessionType.OPEN_ENDED,
+    )
+
+
+def _make_rpg_sheet(story_id: UUID) -> Dnd5eCharacterSheet:
+    return Dnd5eCharacterSheet(
+        story_id=story_id,
+        rules_package_id="dnd5e-v1",
+        character_name="Aldric",
+        created_at=_NOW_RPG,
+        updated_at=_NOW_RPG,
+        character_class="fighter",
+        background="soldier",
+        level=3,
+        ability_scores=Dnd5eAbilityScores(
+            strength=16,
+            dexterity=12,
+            constitution=14,
+            intelligence=10,
+            wisdom=11,
+            charisma=9,
+        ),
+        skills={},
+        current_hp=25,
+        maximum_hp=28,
+    )
+
+
+class _FakeVisibleStateService:
+    """Returns a canned RpgVisibleState for testing."""
+
+    def build(self, sheet: Dnd5eCharacterSheet) -> RpgVisibleState:
+        return RpgVisibleState(
+            character=VisibleCharacterState(
+                character_name=sheet.character_name,
+                character_class=sheet.character_class,
+                level=sheet.level,
+                current_hp=sheet.current_hp,
+                maximum_hp=sheet.maximum_hp,
+                active_conditions=(),
+            ),
+            inventory=(),
+            location=None,
+            relationship_meters=(),
+            known_objectives=(),
+        )
+
+
+class _FakePendingRollService:
+    def __init__(self, pending: PendingRollRequest | None = None) -> None:
+        self._pending = pending
+
+    def load_pending_for_story(self, story_id: UUID) -> PendingRollRequest | None:
+        return self._pending
+
+
+def _make_rpg_ooc_orchestrator(
+    session_factory,
+    *,
+    pending: PendingRollRequest | None = None,
+    wire_resolver: bool = True,
+):
+    """Build an OrchestratorService wired for RPG OOC state tests."""
+    writer = FakeWriterService()
+    story_holder: dict[str, UUID] = {}
+
+    def resolver(story_id: UUID):
+        story_holder["id"] = story_id
+        return _make_rpg_session_state(story_id), _make_rpg_sheet(story_id)
+
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_session_sheet_resolver=resolver if wire_resolver else None,
+        rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
+        rpg_pending_roll_service=_FakePendingRollService(pending),  # type: ignore[arg-type]
+    )
+    return orch, writer
+
+
+class TestRpgOocStateGrounding:
+    def test_rpg_ooc_ledger_contains_state_entry(
+        self, session_factory, seeded_story
+    ) -> None:
+        """RPG OOC Writer call must receive rpg_ooc_state in the pass-forward ledger."""
+        story_id, node_id = seeded_story
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(writer.calls) == 1
+        ledger = writer.calls[0][0].pass_forward_ledger
+        names = [e.pass_name for e in ledger.entries]
+        assert "rpg_ooc_state" in names
+
+    def test_rpg_ooc_state_contains_session_fields(
+        self, session_factory, seeded_story
+    ) -> None:
+        """rpg_ooc_state payload must include session config fields."""
+        story_id, node_id = seeded_story
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "play_status" in content
+        assert "dice_handling" in content
+        assert "gm_cheating" in content
+        assert "tone" in content
+
+    def test_rpg_ooc_state_contains_character_fields(
+        self, session_factory, seeded_story
+    ) -> None:
+        """rpg_ooc_state payload must include character name, class, level, and hp."""
+        story_id, node_id = seeded_story
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "Aldric" in content
+        assert "fighter" in content
+        assert "3" in content
+        assert "25" in content
+        assert "28" in content
+
+    def test_rpg_ooc_with_pending_roll_includes_summary(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Pending roll check_label and instruction must appear in rpg_ooc_state."""
+        from afterworlds.models.enums import RollVisibility
+
+        story_id, node_id = seeded_story
+        pending = PendingRollRequest(
+            request_id=uuid4(),
+            story_id=story_id,
+            session_id=uuid4(),
+            character_id=uuid4(),
+            check_label="Stealth check",
+            player_facing_instruction="Roll 1d20",
+            expected_value_shape="integer",
+            visibility=RollVisibility.PLAYER,
+            source_proposal_ref="skill_check/Stealth check",
+            originating_turn_id=uuid4(),
+            created_at=_NOW_RPG,
+            roll_expression="1d20",
+        )
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory, pending=pending)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What roll do I need?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "Stealth check" in content
+        assert "Roll 1d20" in content
+
+    def test_rpg_ooc_pending_roll_not_consumed(
+        self, session_factory, seeded_story
+    ) -> None:
+        """OOC path must not call mark_consumed — pending roll status is unchanged."""
+        from afterworlds.models.enums import RollVisibility
+
+        story_id, node_id = seeded_story
+        pending = PendingRollRequest(
+            request_id=uuid4(),
+            story_id=story_id,
+            session_id=uuid4(),
+            character_id=uuid4(),
+            check_label="Perception check",
+            player_facing_instruction="Roll 1d20 +3",
+            expected_value_shape="integer",
+            visibility=RollVisibility.PLAYER,
+            source_proposal_ref="skill_check/Perception check",
+            originating_turn_id=uuid4(),
+            created_at=_NOW_RPG,
+            roll_expression="1d20",
+            visible_modifier_total=3,
+        )
+        pending_svc = _FakePendingRollService(pending)
+        # Attach a mark_consumed spy — OOC must NOT call it.
+        consumed_calls: list[object] = []
+        pending_svc.mark_consumed = lambda *a, **kw: consumed_calls.append(a)  # type: ignore[attr-defined]
+
+        writer = FakeWriterService()
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+            rpg_session_sheet_resolver=lambda sid: (
+                _make_rpg_session_state(sid),
+                _make_rpg_sheet(sid),
+            ),
+            rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
+            rpg_pending_roll_service=pending_svc,  # type: ignore[arg-type]
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What roll do I need?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert consumed_calls == []
+
+    def test_non_rpg_ooc_has_no_rpg_state_in_ledger(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Non-RPG OOC must not inject rpg_ooc_state into the ledger."""
+        story_id, node_id = seeded_story
+        writer = FakeWriterService()
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+            rpg_session_sheet_resolver=lambda sid: (
+                _make_rpg_session_state(sid),
+                _make_rpg_sheet(sid),
+            ),
+            rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] How does HP work?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        names = [e.pass_name for e in ledger.entries]
+        assert "rpg_ooc_state" not in names
+
+    def test_rpg_ooc_resolver_not_wired_degrades_gracefully(
+        self, session_factory, seeded_story
+    ) -> None:
+        """When resolver is None, OOC succeeds with no rpg_ooc_state in ledger."""
+        story_id, node_id = seeded_story
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory, wire_resolver=False)
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        ledger = writer.calls[0][0].pass_forward_ledger
+        names = [e.pass_name for e in ledger.entries]
+        assert "rpg_ooc_state" not in names
+
+    def test_rpg_ooc_planner_and_extractor_not_called(
+        self, session_factory, seeded_story
+    ) -> None:
+        """OOC short-circuit must not invoke Planner, Extractor, or Contradiction."""
+        story_id, node_id = seeded_story
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory)
+        # Retrieve the internal fake services via the _make_orchestrator approach
+        # by re-building with access to extractor/planner.
+        planner = FakePlannerService()
+        extractor = FakeExtractorService()
+        orch2 = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=planner,
+            writer_service=writer,
+            extractor_service=extractor,
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+            rpg_session_sheet_resolver=lambda sid: (
+                _make_rpg_session_state(sid),
+                _make_rpg_sheet(sid),
+            ),
+            rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
+        )
+        orch2.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my AC?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert planner.calls == []
+        assert extractor.calls == []
 
 
 # ---------------------------------------------------------------------------

@@ -7,10 +7,16 @@ from datetime import UTC, datetime
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
+
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import ResolvedAdjudicationRecord, RollProposal
-from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+from afterworlds.models.rpg import (
+    PendingRollRequest,
+    ResolvedAdjudicationRecord,
+    RollProposal,
+)
+from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter, PlayerRollValueError
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -243,3 +249,191 @@ def test_skill_modifier_differs_from_recomputed_value() -> None:
     dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5,))
     record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
     assert record.total == 14  # 5 + 9
+
+
+# ---------------------------------------------------------------------------
+# Advantage/disadvantage parsing: word-boundary fix (Round 5 Fix 1)
+# ---------------------------------------------------------------------------
+
+
+def _make_adv_proposal(subsystem_tag: str) -> RollProposal:
+    return RollProposal(
+        check_label="Stealth check",
+        subsystem_tag=subsystem_tag,
+        skill_or_attribute_label="stealth",
+        visibility=RollVisibility.SHOWN,
+    )
+
+
+def test_advantage_tag_selects_2d20kh1() -> None:
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 3})
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=15, raw_rolls=(15, 10))
+    adapter.resolve_roll(
+        _make_adv_proposal("skill_check advantage"), sheet, None, [], dice_svc, False
+    )
+    dice_svc.roll.assert_called_once_with("2d20kh1")
+
+
+def test_disadvantage_tag_selects_2d20kl1() -> None:
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 3})
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8, 15))
+    adapter.resolve_roll(
+        _make_adv_proposal("skill_check disadvantage"), sheet, None, [], dice_svc, False
+    )
+    dice_svc.roll.assert_called_once_with("2d20kl1")
+
+
+def test_disadvantage_containing_advantage_substring_selects_2d20kl1() -> None:
+    """'saving_throw disadvantage' must not trigger advantage (substring trap)."""
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet()
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5, 12))
+    adapter.resolve_roll(
+        _make_adv_proposal("saving_throw disadvantage"),
+        sheet,
+        None,
+        [],
+        dice_svc,
+        False,
+    )
+    dice_svc.roll.assert_called_once_with("2d20kl1")
+
+
+def test_plain_tag_selects_1d20() -> None:
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 3})
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
+    adapter.resolve_roll(
+        _make_adv_proposal("skill_check"), sheet, None, [], dice_svc, False
+    )
+    dice_svc.roll.assert_called_once_with("1d20")
+
+
+def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
+    adapter = D20RulesSystemAdapter()
+    sheet = _make_sheet(skills={"stealth": 3})
+    dice_svc = MagicMock()
+    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
+    adapter.resolve_roll(
+        _make_adv_proposal("skill_check advantage disadvantage"),
+        sheet,
+        None,
+        [],
+        dice_svc,
+        False,
+    )
+    dice_svc.roll.assert_called_once_with("1d20")
+
+
+# ---------------------------------------------------------------------------
+# consume_player_roll validation: raw die range check (Round 5 Fix 2)
+# ---------------------------------------------------------------------------
+
+
+def _make_pending(
+    *,
+    expression: str = "1d20",
+    visible_mod: int | None = None,
+) -> PendingRollRequest:
+    return PendingRollRequest(
+        request_id=uuid4(),
+        story_id=uuid4(),
+        session_id=uuid4(),
+        character_id=uuid4(),
+        check_label="Stealth check",
+        player_facing_instruction=f"Roll {expression}",
+        expected_value_shape="integer",
+        visible_modifier_note=f"+{visible_mod}" if visible_mod else None,
+        visibility=RollVisibility.PLAYER,
+        source_proposal_ref="skill_check/Stealth check",
+        originating_turn_id=uuid4(),
+        created_at=_NOW,
+        roll_expression=expression,
+        visible_modifier_total=visible_mod,
+        visible_modifier_breakdown_json=None,
+    )
+
+
+def test_consume_valid_total_accepted() -> None:
+    """reported_total=15 with no modifier → raw_die=15 which is in [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending()
+    record = adapter.consume_player_roll(pending, 15, None, [], False)
+    assert record.total == 15
+    assert record.raw_rolls == (15,)
+
+
+def test_consume_min_die_accepted() -> None:
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending()
+    record = adapter.consume_player_roll(pending, 1, None, [], False)
+    assert record.raw_rolls == (1,)
+
+
+def test_consume_max_die_accepted() -> None:
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending()
+    record = adapter.consume_player_roll(pending, 20, None, [], False)
+    assert record.raw_rolls == (20,)
+
+
+def test_consume_total_zero_raw_die_rejected() -> None:
+    """reported_total=0 → raw_die=0, outside [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending()
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 0, None, [], False)
+
+
+def test_consume_total_implies_raw_die_above_max_rejected() -> None:
+    """reported_total=21 with no modifier → raw_die=21, outside [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending()
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 21, None, [], False)
+
+
+def test_consume_with_modifier_valid() -> None:
+    """reported_total=18, visible_mod=5 → raw_die=13, in [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(visible_mod=5)
+    record = adapter.consume_player_roll(pending, 18, None, [], False)
+    assert record.raw_rolls == (13,)
+
+
+def test_consume_with_modifier_raw_die_too_low_rejected() -> None:
+    """reported_total=5, visible_mod=7 → raw_die=-2, outside [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(visible_mod=7)
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 5, None, [], False)
+
+
+def test_consume_advantage_expression_accepted() -> None:
+    """2d20kh1 total=17, mod=0 → raw_die=17, in [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kh1")
+    record = adapter.consume_player_roll(pending, 17, None, [], False)
+    assert record.raw_rolls == (17,)
+
+
+def test_consume_disadvantage_expression_accepted() -> None:
+    """2d20kl1 total=4, mod=0 → raw_die=4, in [1,20]."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kl1")
+    record = adapter.consume_player_roll(pending, 4, None, [], False)
+    assert record.raw_rolls == (4,)
+
+
+def test_consume_unsupported_expression_rejected() -> None:
+    """Unsupported multi-die-sum expression must fail-closed."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="3d6")
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 10, None, [], False)

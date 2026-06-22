@@ -48,6 +48,21 @@ def _parse_expression(expression: str) -> tuple[int, int, str | None, int | None
     return count, sides, keep_op, keep_n
 
 
+def chosen_die_range(expression: str) -> tuple[int, int]:
+    """Return (min_chosen, max_chosen) for a single-chosen dice expression.
+
+    Valid: straight ``1dS``, or ``NdSkh1`` / ``NdSkl1`` (one die kept).
+    Raises ``ValueError`` for multi-die-sum expressions (unsupported) or
+    unparseable formats — caller must treat as fail-closed.
+    """
+    count, sides, keep_op, keep_n = _parse_expression(expression)
+    if keep_op is None and count != 1:
+        raise ValueError(
+            f"Multi-die-sum not supported for range validation: {expression!r}"
+        )
+    return (1, sides)
+
+
 @runtime_checkable
 class DiceService(Protocol):
     """Injectable dice service — no d20 semantics, no modifiers.

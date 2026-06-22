@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
@@ -32,10 +33,20 @@ from afterworlds.models.rpg import (
     SheetEffect,
     WriterAdjudicationView,
 )
+from afterworlds.pipeline.rpg.dice import chosen_die_range
 
 _Outcome = Literal[
     "success", "failure", "critical_success", "critical_failure", "undetermined"
 ]
+
+# Word-boundary patterns so "disadvantage" doesn't trigger the advantage branch.
+_ADV_RE = re.compile(r"\badvantage\b", re.IGNORECASE)
+_DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
+
+
+class PlayerRollValueError(ValueError):
+    """Raised when a player-reported total implies a die value outside legal range."""
+
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
@@ -211,8 +222,9 @@ class D20RulesSystemAdapter:
                     visible_total += mod
                     break
 
-        advantage = "advantage" in proposal.subsystem_tag.lower()
-        disadvantage = "disadvantage" in proposal.subsystem_tag.lower()
+        tag = proposal.subsystem_tag
+        advantage = bool(_ADV_RE.search(tag))
+        disadvantage = bool(_DISADV_RE.search(tag))
 
         if advantage and not disadvantage:
             expression = "2d20kh1"
@@ -400,6 +412,19 @@ class D20RulesSystemAdapter:
         visible_mod = pending.visible_modifier_total or 0
         hidden_mod = 0
         raw_die = reported_total - visible_mod - hidden_mod
+
+        try:
+            min_die, max_die = chosen_die_range(pending.roll_expression)
+        except ValueError as exc:
+            raise PlayerRollValueError(
+                f"Cannot validate roll: unsupported expression "
+                f"{pending.roll_expression!r}"
+            ) from exc
+        if not (min_die <= raw_die <= max_die):
+            raise PlayerRollValueError(
+                f"Player-reported total {reported_total} implies raw die {raw_die}, "
+                f"outside [{min_die}, {max_die}] for {pending.roll_expression!r}"
+            )
 
         outcome = self._compute_outcome(reported_total, dc, raw_die)
 

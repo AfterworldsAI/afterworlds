@@ -60,6 +60,7 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
     ProviderToolDefinition,
 )
+from afterworlds.pipeline.rpg.adapter import PlayerRollValueError
 from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC,
@@ -256,13 +257,18 @@ class RpgAdjudicationPassService:
 
         No LLM call.  Token counts are None (code-only path).
         """
-        record = self._adapter.consume_player_roll(
-            pending,
-            reported_total,
-            rule_slice,
-            overrides,
-            session_state.gm_cheating,
-        )
+        try:
+            record = self._adapter.consume_player_roll(
+                pending,
+                reported_total,
+                rule_slice,
+                overrides,
+                session_state.gm_cheating,
+            )
+        except PlayerRollValueError as exc:
+            raise AdjudicationPassError(
+                f"Player-reported roll rejected: {exc}"
+            ) from exc
         writer_view = self._adapter.to_writer_view(record)
         return AdjudicationPassResult(
             proposals=(record,),
