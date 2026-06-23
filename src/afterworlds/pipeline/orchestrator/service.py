@@ -1764,6 +1764,7 @@ class OrchestratorService:
             output_safety_result,
             extractor_result,
             contradiction_result,
+            rpg_adjudication_result,
         )
         return OrchestrationResult(
             disposition=disposition,

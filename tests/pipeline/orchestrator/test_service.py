@@ -4680,3 +4680,50 @@ class TestRpgVisibleStateBuildFailure:
         )
 
         assert result.writer_result is not None
+
+
+# ---------------------------------------------------------------------------
+# P3: RPG adjudication cache tokens reflected in stable_prefix_cache_warmed
+# ---------------------------------------------------------------------------
+
+
+class TestRpgAdjudicationCacheWarmed:
+    """_build_result must pass rpg_adjudication_result to _any_cache_read."""
+
+    def test_cache_warmed_when_only_adjudication_has_cache_tokens(
+        self, session_factory: object
+    ) -> None:
+        from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+
+        orch = _make_orchestrator_with_adjudication(session_factory)
+        adj_result = AdjudicationPassResult(
+            proposals=(), writer_views=(), cache_read_token_count=5
+        )
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            rpg_adjudication_result=adj_result,
+        )
+        assert result.stable_prefix_cache_warmed is True
+
+    def test_cache_not_warmed_when_adjudication_has_no_cache(
+        self, session_factory: object
+    ) -> None:
+        from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+
+        orch = _make_orchestrator_with_adjudication(session_factory)
+        adj_result = AdjudicationPassResult(
+            proposals=(), writer_views=(), cache_read_token_count=None
+        )
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            rpg_adjudication_result=adj_result,
+        )
+        assert result.stable_prefix_cache_warmed is False
