@@ -4744,7 +4744,7 @@ class TestPendingRollPrecedenceOverOoc:
         story_id, node_id = seeded_story
         pending = _make_pending_roll_request()
         pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_with_pending(
+        orch = _make_orchestrator_for_consume_wiring(
             session_factory, pending_svc, intent_type=IntentType.OOC
         )
         result = orch.orchestrate_turn(
@@ -4815,6 +4815,172 @@ class TestPendingRollPrecedenceOverOoc:
         )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert "not wired" in (result.pipeline_error_summary or "").lower()
+
+
+# ---------------------------------------------------------------------------
+# P2 Round 12: consume-path service wiring guard
+# ---------------------------------------------------------------------------
+
+
+def _make_orchestrator_for_consume_wiring(
+    session_factory: object,
+    pending_roll_svc: object,
+    *,
+    wire_adjudication: bool = True,
+    wire_session_resolver: bool = True,
+    wire_dice: bool = True,
+    intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
+) -> OrchestratorService:
+    from afterworlds.models.enums import StoryMode
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+    from tests.pipeline.orchestrator.conftest import (  # noqa: E402
+        FakeContextBuilder,
+        FakeContradictionService,
+        FakeExtractorService,
+        FakeIntentClassifier,
+        FakePlannerService,
+        FakeSafetyService,
+        FakeWriterService,
+        fixed_mode_resolver,
+        make_intent,
+    )
+
+    session_state, sheet = _make_rpg_session_and_sheet()
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_adjudication_service=(
+            _FakeRpgAdjudicationService() if wire_adjudication else None  # type: ignore[arg-type]
+        ),
+        rpg_session_sheet_resolver=(
+            (lambda _sid: (session_state, sheet)) if wire_session_resolver else None  # type: ignore[arg-type]
+        ),
+        rpg_dice_service=(
+            SystemRandomDiceService(seed=42) if wire_dice else None  # type: ignore[arg-type]
+        ),
+        rpg_pending_roll_service=pending_roll_svc,  # type: ignore[arg-type]
+    )
+
+
+class TestConsumePathServiceWiringGuard:
+    """Consume-path services must all be wired when player_reported_total is set."""
+
+    def test_consume_path_adjudication_missing_is_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """adj=None, pending+total → PIPELINE_ERROR 'not fully wired'."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_for_consume_wiring(
+            session_factory, pending_svc, wire_adjudication=False
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not fully wired" in (result.pipeline_error_summary or "")
+        assert pending_svc.consumed == []
+
+    def test_consume_path_session_resolver_missing_is_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """resolver=None, pending+total → PIPELINE_ERROR; intercepted before consume."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_for_consume_wiring(
+            session_factory, pending_svc, wire_session_resolver=False
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "resolver" in (result.pipeline_error_summary or "")
+        assert pending_svc.consumed == []
+
+    def test_consume_path_dice_service_missing_is_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """dice=None, pending+total → PIPELINE_ERROR 'not fully wired'."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_for_consume_wiring(
+            session_factory, pending_svc, wire_dice=False
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not fully wired" in (result.pipeline_error_summary or "")
+        assert pending_svc.consumed == []
+
+    def test_consume_path_all_services_wired_delivers(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """All wired + pending + total → DELIVERED; pending roll consumed."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_for_consume_wiring(session_factory, pending_svc)
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert pending_svc.consumed != []
+
+    def test_ooc_no_total_pending_still_routes_to_ooc(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """OOC + no total + pending → OOC_HANDLED; wiring guard is not triggered."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_for_consume_wiring(
+            session_factory,
+            pending_svc,
+            wire_adjudication=False,
+            intent_type=IntentType.OOC,
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "[OOC] What is my stealth modifier?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
 
 
 # ---------------------------------------------------------------------------

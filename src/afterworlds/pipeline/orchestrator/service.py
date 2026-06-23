@@ -503,6 +503,22 @@ class OrchestratorService:
                     "player_reported_total provided but no pending roll found"
                     " for story",
                 )
+            # Fail closed: without adjudication, session/sheet resolver, and
+            # dice service the pending roll cannot be validated, audited, or
+            # applied — routing to narrative would silently bypass the consume
+            # lifecycle.
+            if (
+                self._rpg_adjudication_service is None
+                or self._rpg_session_sheet_resolver is None
+                or self._rpg_dice_service is None
+            ):
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "player_reported_total provided but RPG adjudication consume"
+                    " path is not fully wired",
+                )
             return self._run_narrative(
                 ctx,
                 story_id,
