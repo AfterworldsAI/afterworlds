@@ -43,6 +43,8 @@ def test_alembic_upgrade_head() -> None:
             "writing_session_states",
             "rpg_character_sheet_bases",
             "dnd5e_character_sheets",
+            "rpg_roll_audit",
+            "pending_roll_requests",
         ]
         for table in expected_tables:
             assert table in table_names, f"Table {table!r} not found after migration"

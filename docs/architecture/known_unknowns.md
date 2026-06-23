@@ -79,11 +79,13 @@ ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRout
 
 ### Mode-specific OOC handler selection and final protocol implementation
 
-**Resolve during:** Issues 15 (RPG), 16 (Branching), 17 (Writing).
+**Resolve during:** Issues 16 (Branching), 17 (Writing). **RPG mode resolved during Issue 15.**
 
 Issue 12c short-circuits OOC turns away from the ordinary narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The v2 mode prompt contracts now contain OOC sections, but the implementation question remains: how the orchestrator selects or injects the final mode-specific OOC instruction, and whether the placeholder is replaced outright or retained as a generic fallback.
 
-**What resolution requires:** Issues 15–17 must finalize the mode-specific OOC protocol sections and specify how they are selected at runtime. Document the swap in an ADR if the orchestrator’s OOC-handler selection logic changes shape.
+**RPG resolution (Issue 15):** Implemented as a distinct mode-specific handler for RPG mode via `docs/prompts/rpg_ooc_handler.md`. Replaces the 12c placeholder when `StoryMode.RPG` is active. Answers rules, configuration, setup, and clarification questions; advances no story; mutates no canon; routes configuration changes through typed paths. The orchestrator `_run_ooc()` now accepts `story_mode` and selects between `rpg_ooc_handler.md` (RPG mode) and `ooc_handler.md` (other modes). See ADR-015 Decision 11 and `/docs/prompts/rpg_ooc_handler.md`.
+
+**What remaining resolution requires:** Issues 16–17 must finalize the Branching and Writing mode OOC protocol sections via `/docs/prompts/branching_ooc_handler.md` and `/docs/prompts/writing_ooc_handler.md` respectively, and implement mode-aware handler file selection if the orchestrator’s OOC-routing logic needs revision. Document any changes in an ADR if the orchestrator’s handler-selection path changes shape.
 
 ---
 
@@ -169,6 +171,18 @@ The question is whether Mentors and Peers should be constrained to match or appr
 2. **Scope — Peers only or all personas:** Parity makes clean sense for Peers, who are co-writers. It is murkier for Mentors, whose output is often feedback and craft instruction rather than prose.
 
 **What resolution requires:** Decide on the parity model, the scope, and how Mentor feedback is measured differently from generated prose. If implemented, store the required counters in Writing session state and document how they are updated.
+
+---
+
+### Pending-roll rewind/cancel policy
+
+**Resolve during:** A future issue after Issue 15, when at minimum one supported rewind/cancel flow exists.
+
+**Surfaced during:** Issue 15.
+
+Issue 15 ships a v1 block-and-redirect policy: if a new in-character action arrives while a `PendingRollRequest` is outstanding, the orchestrator blocks and redirects the Sojourner to the pending roll. It does not cancel, supersede, or expire the request. `PendingRollRequest.status` has `cancelled` and `expired` as valid literals for schema compatibility, but no code path activates them in v1.
+
+**What resolution requires:** Decide at minimum one of: (a) whether the Sojourner can explicitly cancel a pending roll and what the mechanical/narrative consequence is; (b) whether a pending roll expires after N turns or N minutes and what cleanup applies; (c) whether a GM-initiated scene transition supersedes a pending roll. Implement the chosen policy, add or remove `cancelled`/`expired` lifecycle transitions accordingly, and test rollback for each non-consumed termination path.
 
 ---
 

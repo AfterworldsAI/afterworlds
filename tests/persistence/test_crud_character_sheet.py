@@ -10,10 +10,12 @@ from sqlalchemy.exc import IntegrityError
 
 from afterworlds.models.character_sheet import (
     Dnd5eAbilityScores,
+    Dnd5eActiveCondition,
     Dnd5eCharacterSheet,
     RpgCharacterSheetBase,
     SpellSlotLevel,
 )
+from afterworlds.models.enums import ConditionVisibility
 from afterworlds.persistence.crud.character_sheet import (
     create_dnd5e_sheet,
     create_rpg_base_sheet,
@@ -286,3 +288,136 @@ def test_delete_dnd5e_sheet(session):  # type: ignore[no-untyped-def]
     session.commit()
     assert get_dnd5e_sheet(session, sheet.sheet_id) is None
     assert get_rpg_base_sheet(session, sheet.sheet_id) is None
+
+
+# ---------------------------------------------------------------------------
+# active_conditions round-trips (Fix 2b, CRD Issue 15 remediation)
+# ---------------------------------------------------------------------------
+
+
+def _make_condition(
+    sheet_id: object,
+    identifier: str = "poisoned",
+    display_label: str = "Poisoned",
+    visibility: ConditionVisibility = ConditionVisibility.VISIBLE,
+) -> Dnd5eActiveCondition:
+    from uuid import UUID
+
+    return Dnd5eActiveCondition(
+        sheet_id=sheet_id if isinstance(sheet_id, UUID) else UUID(str(sheet_id)),
+        identifier=identifier,
+        display_label=display_label,
+        source="test",
+        visibility=visibility,
+    )
+
+
+def _make_dnd5e_sheet_with_conditions(
+    story_id: str,
+    conditions: list[Dnd5eActiveCondition],
+) -> Dnd5eCharacterSheet:
+
+    sheet = _make_dnd5e_sheet(story_id)
+    return sheet.model_copy(update={"active_conditions": conditions})
+
+
+def test_active_conditions_empty_round_trip(session):  # type: ignore[no-untyped-def]
+    """Sheet with no active_conditions persists and reloads as empty list."""
+    story = make_story()
+    create_story(session, story)
+    sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
+    create_dnd5e_sheet(session, sheet)
+    session.commit()
+
+    fetched = get_dnd5e_sheet(session, sheet.sheet_id)
+    assert fetched is not None
+    assert fetched.active_conditions == []
+
+
+def test_active_conditions_create_round_trip(session):  # type: ignore[no-untyped-def]
+    """Active conditions persist and reload via create_dnd5e_sheet."""
+    story = make_story()
+    create_story(session, story)
+    base = _make_dnd5e_sheet(str(story.story_id))
+    cond = _make_condition(base.sheet_id)
+    sheet = _make_dnd5e_sheet_with_conditions(str(story.story_id), [cond])
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
+    create_dnd5e_sheet(session, sheet)
+    session.commit()
+
+    fetched = get_dnd5e_sheet(session, sheet.sheet_id)
+    assert fetched is not None
+    assert len(fetched.active_conditions) == 1
+    assert fetched.active_conditions[0].identifier == "poisoned"
+    assert fetched.active_conditions[0].display_label == "Poisoned"
+    assert fetched.active_conditions[0].visibility == ConditionVisibility.VISIBLE
+
+
+def test_active_conditions_update_round_trip(session):  # type: ignore[no-untyped-def]
+    """update_dnd5e_sheet syncs active_conditions (delete-and-recreate)."""
+    story = make_story()
+    create_story(session, story)
+    sheet = _make_dnd5e_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
+    create_dnd5e_sheet(session, sheet)
+    session.commit()
+
+    # Add a condition on update
+    cond = _make_condition(
+        sheet.sheet_id, identifier="frightened", display_label="Frightened"
+    )
+    updated = sheet.model_copy(update={"active_conditions": [cond]})
+    update_dnd5e_sheet(session, updated)
+    session.commit()
+
+    fetched = get_dnd5e_sheet(session, sheet.sheet_id)
+    assert fetched is not None
+    assert len(fetched.active_conditions) == 1
+    assert fetched.active_conditions[0].identifier == "frightened"
+
+
+def test_active_conditions_update_clears_old(session):  # type: ignore[no-untyped-def]
+    """update_dnd5e_sheet replaces all conditions, removing old ones."""
+    story = make_story()
+    create_story(session, story)
+    sheet = _make_dnd5e_sheet(str(story.story_id))
+    old_cond2 = _make_condition(sheet.sheet_id, identifier="poisoned")
+    sheet = sheet.model_copy(update={"active_conditions": [old_cond2]})
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
+    create_dnd5e_sheet(session, sheet)
+    session.commit()
+
+    # Replace with a different condition
+    new_cond = _make_condition(
+        sheet.sheet_id, identifier="blinded", display_label="Blinded"
+    )
+    updated = sheet.model_copy(update={"active_conditions": [new_cond]})
+    update_dnd5e_sheet(session, updated)
+    session.commit()
+
+    fetched = get_dnd5e_sheet(session, sheet.sheet_id)
+    assert fetched is not None
+    assert len(fetched.active_conditions) == 1
+    assert fetched.active_conditions[0].identifier == "blinded"
+
+
+def test_active_conditions_hidden_persists(session):  # type: ignore[no-untyped-def]
+    """HIDDEN conditions persist visibility correctly."""
+    story = make_story()
+    create_story(session, story)
+    sheet = _make_dnd5e_sheet(str(story.story_id))
+    cond = _make_condition(
+        sheet.sheet_id,
+        identifier="cursed",
+        display_label="Cursed",
+        visibility=ConditionVisibility.HIDDEN,
+    )
+    sheet = sheet.model_copy(update={"active_conditions": [cond]})
+    create_rpg_base_sheet(session, _make_base_sheet_from_dnd5e(sheet))
+    create_dnd5e_sheet(session, sheet)
+    session.commit()
+
+    fetched = get_dnd5e_sheet(session, sheet.sheet_id)
+    assert fetched is not None
+    assert fetched.active_conditions[0].visibility == ConditionVisibility.HIDDEN

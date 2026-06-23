@@ -30,10 +30,12 @@ layer.
 """
 
 from datetime import datetime
-from typing import Self
+from typing import Literal, Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from afterworlds.models.enums import ConditionVisibility
 
 # D&D 5e ability score range.
 # The normal adventurer cap is 20, but class features (Epic Boons) and
@@ -93,6 +95,31 @@ class SpellSlotLevel(BaseModel):
         return self
 
 
+class Dnd5eActiveCondition(BaseModel):
+    """An active condition or effect on a D&D 5e character sheet.
+
+    Owned by the concrete sheet layer, not by session state.  Conditions
+    persist across app/session restarts; fictional time, rest events, turn
+    counters, or explicit clear effects remove them — not process lifecycle.
+
+    This model is NOT on ``RpgCharacterSheetBase``.  The base stores structure;
+    the active Rules Package and d20 adapter interpret mechanical meaning.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    condition_id: UUID = Field(default_factory=uuid4)
+    sheet_id: UUID
+    identifier: str
+    display_label: str
+    source: str
+    visibility: ConditionVisibility
+    duration_policy: str | None = None
+    applied_turn_id: str | None = None
+    rules_package_ref: str | None = None
+    schema_version: Literal[1] = 1
+
+
 class RpgCharacterSheetBase(BaseModel):
     """Structural base for the v1 RPG character sheet.
 
@@ -134,6 +161,7 @@ class Dnd5eCharacterSheet(RpgCharacterSheetBase):
     current_hp: int
     maximum_hp: int = Field(ge=0)
     spell_slots: dict[int, SpellSlotLevel] = Field(default_factory=dict)
+    active_conditions: list[Dnd5eActiveCondition] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def current_hp_within_maximum(self) -> Self:

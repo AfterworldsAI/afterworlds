@@ -5,6 +5,7 @@ Public re-exports for convenient import by other modules.
 
 from afterworlds.models.character_sheet import (
     Dnd5eAbilityScores,
+    Dnd5eActiveCondition,
     Dnd5eCharacterSheet,
     RpgCharacterSheetBase,
     SpellSlotLevel,
@@ -17,9 +18,15 @@ from afterworlds.models.context import (
     VolatileSuffix,
 )
 from afterworlds.models.enums import (
+    ConditionVisibility,
     DiceHandling,
     IntentType,
     PacingStage,
+    RollVisibility,
+    RpgPlayStatus,
+    RpgSessionType,
+    RpgSetupPhase,
+    RpgTone,
     StoryMode,
     WritingPersona,
 )
@@ -31,6 +38,20 @@ from afterworlds.models.node import (
     RpgNodeMetadata,
     StateDelta,
     WritingNodeMetadata,
+)
+from afterworlds.models.rpg import (
+    AdjudicationProposalOutput,
+    DiceResult,
+    PendingRollRequest,
+    ResolvedAdjudicationRecord,
+    RollProposal,
+    RpgVisibleState,
+    SheetEffect,
+    VisibleCharacterState,
+    VisibleItem,
+    VisibleLocation,
+    VisibleRelationship,
+    WriterAdjudicationView,
 )
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.models.session import (
@@ -55,9 +76,15 @@ from afterworlds.models.turn import Turn
 
 __all__ = [
     # enums
+    "ConditionVisibility",
     "DiceHandling",
     "IntentType",
     "PacingStage",
+    "RollVisibility",
+    "RpgPlayStatus",
+    "RpgSessionType",
+    "RpgSetupPhase",
+    "RpgTone",
     "StoryMode",
     "WritingPersona",
     # story hierarchy
@@ -99,7 +126,21 @@ __all__ = [
     "RuleSliceRequest",
     # character sheet
     "Dnd5eAbilityScores",
+    "Dnd5eActiveCondition",
     "SpellSlotLevel",
     "RpgCharacterSheetBase",
     "Dnd5eCharacterSheet",
+    # RPG adjudication DTOs (Issue 15)
+    "AdjudicationProposalOutput",
+    "DiceResult",
+    "PendingRollRequest",
+    "ResolvedAdjudicationRecord",
+    "RollProposal",
+    "RpgVisibleState",
+    "SheetEffect",
+    "VisibleCharacterState",
+    "VisibleItem",
+    "VisibleLocation",
+    "VisibleRelationship",
+    "WriterAdjudicationView",
 ]

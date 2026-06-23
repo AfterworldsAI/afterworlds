@@ -25,6 +25,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.pipeline._refusal import ProviderRefusal
 from afterworlds.pipeline.contradiction.models import (
     ContradictionResult,
@@ -36,6 +37,7 @@ from afterworlds.pipeline.provider._routing import (
     CapabilityProfileAwareSafetyPolicy,
     SafetyPolicyContext,
 )
+from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 from afterworlds.pipeline.safety.models import SafetyResult, SafetyVerdict
 from afterworlds.pipeline.writer.models import WriterResult
 
@@ -62,6 +64,7 @@ class PipelineDisposition(StrEnum):
     BLOCKED_INPUT_SAFETY = "blocked_input_safety"
     BLOCKED_OUTPUT_SAFETY = "blocked_output_safety"
     BLOCKED_CONTRADICTION = "blocked_contradiction"
+    BLOCKED_PENDING_ROLL = "blocked_pending_roll"
     REFUSED_BY_PROVIDER = "refused_by_provider"
     PIPELINE_ERROR = "pipeline_error"
 
@@ -121,6 +124,16 @@ class OrchestrationResult(BaseModel):
     # Issue 19 uses this for optional "resuming your story" UX.
     stable_prefix_cache_warmed: bool = False
 
+    # Additive Issue 15 fields: populated for RPG in-play turns only.
+    # None for all non-RPG turns and for RPG setup/OOC turns.
+    rpg_adjudication_result: AdjudicationPassResult | None = None
+    rpg_visible_state: RpgVisibleState | None = None
+
+    # Set on BLOCKED_PENDING_ROLL: the player_facing_instruction from the
+    # PendingRollRequest that the Sojourner must resolve before proceeding.
+    # None on all other dispositions.
+    pending_roll_redirect_message: str | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -145,6 +158,7 @@ class OrchestrationResult(BaseModel):
         | BLOCKED_INPUT_SAFETY     | forbid           | forbid                 |
         | BLOCKED_OUTPUT_SAFETY    | forbid           | forbid                 |
         | BLOCKED_CONTRADICTION    | forbid           | forbid                 |
+        | BLOCKED_PENDING_ROLL     | forbid           | forbid                 |
         | REFUSED_BY_PROVIDER      | require          | forbid                 |
         | PIPELINE_ERROR           | forbid           | require                |
         """
@@ -154,6 +168,13 @@ class OrchestrationResult(BaseModel):
 
         d = self.disposition
         is_ooc = self.intent_classification.intent_type == IntentType.OOC
+
+        # rpg_visible_state is only valid on successfully-delivered RPG turns.
+        if d is not PipelineDisposition.DELIVERED:
+            self._forbid(
+                "rpg_visible_state absent on non-DELIVERED",
+                self.rpg_visible_state is not None,
+            )
 
         if d is PipelineDisposition.DELIVERED:
             self._require(
@@ -300,6 +321,29 @@ class OrchestrationResult(BaseModel):
                 self.pipeline_error_summary is not None,
             )
 
+        elif d is PipelineDisposition.BLOCKED_PENDING_ROLL:
+            self._require("delivered_output is None", self.delivered_output is None)
+            self._require("turn_id is None", self.turn_id is None)
+            self._require(
+                "pending_roll_redirect_message present",
+                self._non_empty_str(self.pending_roll_redirect_message),
+            )
+            self._forbid("planner_result absent", self.planner_result is not None)
+            self._forbid("writer_result absent", self.writer_result is not None)
+            self._forbid("extractor_result absent", self.extractor_result is not None)
+            self._forbid(
+                "contradiction_result absent",
+                self.contradiction_result is not None,
+            )
+            self._forbid(
+                "provider_refusal absent on pending-roll block",
+                self.provider_refusal is not None,
+            )
+            self._forbid(
+                "pipeline_error_summary absent on pending-roll block",
+                self.pipeline_error_summary is not None,
+            )
+
         elif d is PipelineDisposition.REFUSED_BY_PROVIDER:
             self._require("delivered_output is None", self.delivered_output is None)
             self._require("turn_id is None", self.turn_id is None)
@@ -313,6 +357,7 @@ class OrchestrationResult(BaseModel):
 
             failing_field_by_pass: dict[PassIdentifier, object] = {
                 PassIdentifier.PLANNER: self.planner_result,
+                PassIdentifier.RPG_ADJUDICATION: self.rpg_adjudication_result,
                 PassIdentifier.WRITER: self.writer_result,
                 PassIdentifier.EXTRACTOR: self.extractor_result,
                 PassIdentifier.CONTRADICTION: self.contradiction_result,

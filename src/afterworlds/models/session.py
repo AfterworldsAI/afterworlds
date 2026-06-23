@@ -15,7 +15,15 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
-from afterworlds.models.enums import DiceHandling, PacingStage, WritingPersona
+from afterworlds.models.enums import (
+    DiceHandling,
+    PacingStage,
+    RpgPlayStatus,
+    RpgSessionType,
+    RpgSetupPhase,
+    RpgTone,
+    WritingPersona,
+)
 
 # ---------------------------------------------------------------------------
 # RPG session state
@@ -35,18 +43,32 @@ class RpgSessionState(BaseModel):
     """Transient RPG session context.
 
     Owns only state not already on the character sheet:
-    - Dice configuration
+    - Play status and pre-play sequence progress
+    - Per-session GM and play configuration (dice, gm_cheating, tone, etc.)
     - Active quests (transient, Extractor-maintained)
-    - Combat context (cleared between encounters)
+    - Combat context (non-authoritative encounter scaffolding)
 
-    HP, spell slots, ability scores, and equipment are owned by
-    ``Dnd5eCharacterSheet``.  Do not duplicate them here.
+    HP, spell slots, ability scores, equipment, and active conditions are
+    owned by ``Dnd5eCharacterSheet``.  Do not duplicate them here.
+
+    ``gm_cheating`` defaults to True (``gm_cheating = on`` per prompt contract).
+    ``play_status`` transitions from SETUP to IN_PLAY when the character sheet
+    passes ``D20RulesSystemAdapter.is_adjudicable()`` and setup_phase reaches
+    COMPLETE.
     """
 
     session_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
     character_sheet_id: UUID
     dice_handling: DiceHandling
+    play_status: RpgPlayStatus = RpgPlayStatus.SETUP
+    setup_phase: RpgSetupPhase = RpgSetupPhase.WORLD_SETUP
+    gm_cheating: bool = True
+    tone: RpgTone = RpgTone.BALANCED
+    session_type: RpgSessionType = RpgSessionType.OPEN_ENDED
+    genre_flavor: str | None = None
+    house_rules: str | None = None
+    acceptable_content: str | None = None
     active_quests: list[str] = Field(default_factory=list)
     combat_context: CombatContext = Field(default_factory=CombatContext)
 

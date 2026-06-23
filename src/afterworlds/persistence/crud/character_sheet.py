@@ -7,10 +7,13 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from afterworlds.models.character_sheet import (
+    Dnd5eActiveCondition,
     Dnd5eCharacterSheet,
     RpgCharacterSheetBase,
 )
+from afterworlds.models.enums import ConditionVisibility
 from afterworlds.persistence.orm.character_sheet import (
+    Dnd5eActiveConditionORM,
     Dnd5eCharacterSheetORM,
     RpgCharacterSheetBaseORM,
 )
@@ -31,12 +34,28 @@ def _base_orm_to_model(row: RpgCharacterSheetBaseORM) -> RpgCharacterSheetBase:
     )
 
 
+def _condition_orm_to_model(row: Dnd5eActiveConditionORM) -> Dnd5eActiveCondition:
+    return Dnd5eActiveCondition(
+        condition_id=row.condition_id,  # type: ignore[arg-type]
+        sheet_id=row.sheet_id,  # type: ignore[arg-type]
+        identifier=row.identifier,
+        display_label=row.display_label,
+        source=row.source,
+        visibility=ConditionVisibility(row.visibility),
+        duration_policy=row.duration_policy,
+        applied_turn_id=row.applied_turn_id,
+        rules_package_ref=row.rules_package_ref,
+        schema_version=1,
+    )
+
+
 def _dnd5e_orm_to_model(
     base_row: RpgCharacterSheetBaseORM,
     dnd_row: Dnd5eCharacterSheetORM,
 ) -> Dnd5eCharacterSheet:
     # spell_slots serialised as {"1": {"total": 2, "used": 0}, ...}
     # Pydantic handles str→int key coercion on model_validate.
+    conditions = [_condition_orm_to_model(c) for c in dnd_row.active_conditions]
     return Dnd5eCharacterSheet.model_validate(
         {
             "sheet_id": base_row.sheet_id,
@@ -54,6 +73,7 @@ def _dnd5e_orm_to_model(
             "current_hp": dnd_row.current_hp,
             "maximum_hp": dnd_row.maximum_hp,
             "spell_slots": dnd_row.spell_slots,
+            "active_conditions": [c.model_dump() for c in conditions],
         }
     )
 
@@ -147,7 +167,24 @@ def create_dnd5e_sheet(
         spell_slots=spell_slots_serialised,
     )
     session.add(dnd_row)
+    for cond in sheet.active_conditions:
+        session.add(
+            Dnd5eActiveConditionORM(
+                condition_id=str(cond.condition_id),
+                sheet_id=str(sheet.sheet_id),
+                identifier=cond.identifier,
+                display_label=cond.display_label,
+                source=cond.source,
+                visibility=cond.visibility.value,
+                duration_policy=cond.duration_policy,
+                applied_turn_id=cond.applied_turn_id,
+                rules_package_ref=cond.rules_package_ref,
+                schema_version=cond.schema_version,
+            )
+        )
     session.flush()
+    # Expire the row so the active_conditions relationship reloads from DB.
+    session.expire(dnd_row)
     return _dnd5e_orm_to_model(base_row, dnd_row)
 
 
@@ -188,7 +225,27 @@ def update_dnd5e_sheet(
     dnd_row.current_hp = sheet.current_hp
     dnd_row.maximum_hp = sheet.maximum_hp
     dnd_row.spell_slots = spell_slots_serialised
+    # Sync active_conditions: delete all existing, then re-insert from model.
+    for existing in list(dnd_row.active_conditions):
+        session.delete(existing)
+    for cond in sheet.active_conditions:
+        session.add(
+            Dnd5eActiveConditionORM(
+                condition_id=str(cond.condition_id),
+                sheet_id=str(sheet.sheet_id),
+                identifier=cond.identifier,
+                display_label=cond.display_label,
+                source=cond.source,
+                visibility=cond.visibility.value,
+                duration_policy=cond.duration_policy,
+                applied_turn_id=cond.applied_turn_id,
+                rules_package_ref=cond.rules_package_ref,
+                schema_version=cond.schema_version,
+            )
+        )
     session.flush()
+    # Expire the row so the active_conditions relationship reloads from DB.
+    session.expire(dnd_row)
     return _dnd5e_orm_to_model(base_row, dnd_row)
 
 

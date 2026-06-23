@@ -7,7 +7,15 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from afterworlds.models.enums import DiceHandling, PacingStage, WritingPersona
+from afterworlds.models.enums import (
+    DiceHandling,
+    PacingStage,
+    RpgPlayStatus,
+    RpgSessionType,
+    RpgSetupPhase,
+    RpgTone,
+    WritingPersona,
+)
 from afterworlds.models.session import (
     BranchingSessionState,
     BranchNode,
@@ -316,6 +324,115 @@ def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
     assert delete_writing_session_state(session, state.session_id) is True
     session.commit()
     assert get_writing_session_state(session, state.session_id) is None
+
+
+# ---------------------------------------------------------------------------
+# RpgSessionState — new field round-trips (Fix 2, CRD Issue 15 remediation)
+# ---------------------------------------------------------------------------
+
+
+def _make_full_rpg_state(story_id: str, sheet_id: UUID) -> RpgSessionState:
+    return RpgSessionState(
+        story_id=UUID(story_id),
+        character_sheet_id=sheet_id,
+        dice_handling=DiceHandling.AI_ROLLS,
+        play_status=RpgPlayStatus.IN_PLAY,
+        setup_phase=RpgSetupPhase.COMPLETE,
+        gm_cheating=False,
+        tone=RpgTone.GRITTY,
+        session_type=RpgSessionType.CAMPAIGN,
+        genre_flavor="dark fantasy",
+        house_rules="no flanking bonus",
+        acceptable_content="fade to black",
+        active_quests=["Find the artifact"],
+        combat_context=CombatContext(),
+    )
+
+
+def test_rpg_session_state_new_fields_create_round_trip(session):  # type: ignore[no-untyped-def]
+    """New fields persist and reload via create_rpg_session_state."""
+    story = make_story()
+    create_story(session, story)
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_full_rpg_state(str(story.story_id), base_sheet.sheet_id)
+    create_rpg_session_state(session, state)
+    session.commit()
+
+    fetched = get_rpg_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status == RpgPlayStatus.IN_PLAY
+    assert fetched.setup_phase == RpgSetupPhase.COMPLETE
+    assert fetched.gm_cheating is False
+    assert fetched.tone == RpgTone.GRITTY
+    assert fetched.session_type == RpgSessionType.CAMPAIGN
+    assert fetched.genre_flavor == "dark fantasy"
+    assert fetched.house_rules == "no flanking bonus"
+    assert fetched.acceptable_content == "fade to black"
+
+
+def test_rpg_session_state_new_fields_update_round_trip(session):  # type: ignore[no-untyped-def]
+    """New fields persist and reload via update_rpg_session_state."""
+    story = make_story()
+    create_story(session, story)
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
+    create_rpg_session_state(session, state)
+    session.commit()
+
+    updated = state.model_copy(
+        update={
+            "play_status": RpgPlayStatus.IN_PLAY,
+            "setup_phase": RpgSetupPhase.COMPLETE,
+            "gm_cheating": False,
+            "tone": RpgTone.FORGIVING,
+            "session_type": RpgSessionType.SHORT_ADVENTURE,
+            "genre_flavor": "high fantasy",
+            "house_rules": "flanking gives advantage",
+            "acceptable_content": "all content",
+        }
+    )
+    update_rpg_session_state(session, updated)
+    session.commit()
+
+    fetched = get_rpg_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status == RpgPlayStatus.IN_PLAY
+    assert fetched.gm_cheating is False
+    assert fetched.tone == RpgTone.FORGIVING
+    assert fetched.session_type == RpgSessionType.SHORT_ADVENTURE
+    assert fetched.genre_flavor == "high fantasy"
+    assert fetched.house_rules == "flanking gives advantage"
+    assert fetched.acceptable_content == "all content"
+
+
+def test_rpg_session_state_defaults_persist(session):  # type: ignore[no-untyped-def]
+    """Default values for new fields survive a create→reload round-trip."""
+    story = make_story()
+    create_story(session, story)
+    base_sheet = make_base_sheet(str(story.story_id))
+    create_rpg_base_sheet(session, base_sheet)
+    session.commit()
+
+    state = _make_rpg_state(str(story.story_id), sheet_id=base_sheet.sheet_id)
+    create_rpg_session_state(session, state)
+    session.commit()
+
+    fetched = get_rpg_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status == RpgPlayStatus.SETUP
+    assert fetched.setup_phase == RpgSetupPhase.WORLD_SETUP
+    assert fetched.gm_cheating is True
+    assert fetched.tone == RpgTone.BALANCED
+    assert fetched.session_type == RpgSessionType.OPEN_ENDED
+    assert fetched.genre_flavor is None
+    assert fetched.house_rules is None
+    assert fetched.acceptable_content is None
 
 
 # ---------------------------------------------------------------------------

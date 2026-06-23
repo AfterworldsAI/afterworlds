@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
     PipelinePassId.PLANNER: ModelTier.HAIKU,
+    PipelinePassId.RPG_ADJUDICATION: ModelTier.HAIKU,
     PipelinePassId.WRITER: ModelTier.SONNET,
     PipelinePassId.EXTRACTOR: ModelTier.SONNET,
     PipelinePassId.CONTRADICTION: ModelTier.HAIKU,
@@ -150,6 +151,9 @@ class TurnCostPolicy:
             ExtractorResult,
         )  # noqa: PLC0415
         from afterworlds.pipeline.planner.models import PlannerResult  # noqa: PLC0415
+        from afterworlds.pipeline.rpg.models import (
+            AdjudicationPassResult,
+        )  # noqa: PLC0415
         from afterworlds.pipeline.safety.models import SafetyResult  # noqa: PLC0415
 
         snapshots: list[PassUsageSnapshot] = []
@@ -227,6 +231,32 @@ class TurnCostPolicy:
                     model_tier_str=pr.model_tier,
                 )
             )
+
+        if result.rpg_adjudication_result is not None:
+            assert isinstance(result.rpg_adjudication_result, AdjudicationPassResult)
+            ar = result.rpg_adjudication_result
+            is_code_only = (
+                ar.provider is None
+                and ar.model_identifier is None
+                and ar.model_tier is None
+                and ar.input_token_count is None
+                and ar.output_token_count is None
+                and ar.cache_read_token_count is None
+                and ar.cache_creation_token_count is None
+            )
+            if not is_code_only:
+                snapshots.append(
+                    _require_tokens(
+                        PipelinePassId.RPG_ADJUDICATION,
+                        ar.input_token_count,
+                        ar.output_token_count,
+                        ar.cache_read_token_count,
+                        ar.cache_creation_token_count,
+                        ar.model_identifier,
+                        provider=ar.provider,
+                        model_tier_str=ar.model_tier,
+                    )
+                )
 
         if result.writer_result is not None:
             wr = result.writer_result
