@@ -44,6 +44,17 @@ _ADV_RE = re.compile(r"\badvantage\b", re.IGNORECASE)
 _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
 
 
+def _normalize_skill_key(value: str) -> str:
+    """Normalize a skill key to lowercase underscore form for case-insensitive lookup.
+
+    Strips leading/trailing whitespace, collapses repeated internal whitespace
+    and hyphens to underscores, and lowercases, so "Sleight of Hand", "stealth",
+    and "animal_handling" all map to the same canonical key form used in
+    _SKILL_ABILITY.
+    """
+    return re.sub(r"[\s\-]+", "_", value.strip()).lower()
+
+
 class PlayerRollValueError(ValueError):
     """Raised when a player-reported total implies a die value outside legal range."""
 
@@ -189,14 +200,19 @@ class D20RulesSystemAdapter:
         """
         scores = sheet.ability_scores.model_dump()
 
-        label = (proposal.skill_or_attribute_label or "").lower().replace(" ", "_")
+        label = _normalize_skill_key(proposal.skill_or_attribute_label or "")
         breakdown: dict[str, int] = {}
         visible_total = 0
 
+        # Build a normalized lookup so display-case sheet keys ("Stealth",
+        # "Sleight of Hand") are found by the same underscore form used in
+        # _SKILL_ABILITY and by the normalized label above.
+        _skill_map = {_normalize_skill_key(k): v for k, v in sheet.skills.items()}
+
         if label in _SKILL_ABILITY:
-            if label in sheet.skills:
+            if label in _skill_map:
                 # skills stores the computed modifier (ability mod + prof).
-                stored = sheet.skills[label]
+                stored = _skill_map[label]
                 breakdown[f"{label}_modifier"] = stored
                 visible_total += stored
             else:

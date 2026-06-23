@@ -506,3 +506,97 @@ def test_consume_kl1_mod5_one_under_min_rejected() -> None:
     pending = _make_pending(expression="2d20kl1", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
         adapter.consume_player_roll(pending, 5, None, [], False)
+
+
+# ---------------------------------------------------------------------------
+# Skill key normalization: display-case and whitespace tolerance (Round 13)
+# ---------------------------------------------------------------------------
+
+
+class TestSkillKeyNormalization:
+    """Skill-key normalization: display-case/whitespace sheet keys resolve correctly."""
+
+    def test_display_case_single_word_key_uses_stored_modifier(self) -> None:
+        """sheet.skills={'Stealth': 7}: display-case key finds stored +7, not Dex +3."""
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
+        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
+        data = json.loads(record.modifiers_json)
+        assert data["breakdown"]["stealth_modifier"] == 7
+
+    def test_multiword_sleight_of_hand_display_case(self) -> None:
+        """{'Sleight of Hand': 6}: multiword display key finds stored +6, not Dex +3."""
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={"Sleight of Hand": 6}, dex=16)
+        proposal = _make_proposal("Sleight of Hand", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 16  # 10 + 6; pre-fix would be 10 + 3 = 13
+        data = json.loads(record.modifiers_json)
+        assert data["breakdown"]["sleight_of_hand_modifier"] == 6
+
+    def test_multiword_animal_handling_display_case(self) -> None:
+        """{'Animal Handling': 5}: multiword display key finds stored +5, not Wis +1."""
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={"Animal Handling": 5})  # wis=13 default → mod +1
+        proposal = _make_proposal("Animal Handling", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 13  # 8 + 5; pre-fix would be 8 + 1 = 9
+        data = json.loads(record.modifiers_json)
+        assert data["breakdown"]["animal_handling_modifier"] == 5
+
+    def test_leading_trailing_whitespace_in_sheet_key_normalized(self) -> None:
+        """{'  stealth  ': 7}: key with extra whitespace is stripped and found."""
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={"  stealth  ": 7}, dex=16)
+        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
+
+    def test_absent_skill_fallback_unaffected_by_normalization(self) -> None:
+        """When skill is absent from sheet.skills, ability-mod fallback still fires."""
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={}, dex=16)
+        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 13  # 10 + 3 (Dex fallback)
+        data = json.loads(record.modifiers_json)
+        assert data["breakdown"]["dexterity_modifier"] == 3
+
+    def test_announce_display_case_key_visible_modifier_and_note(self) -> None:
+        """Announce: display-case sheet key produces correct visible_modifier_total."""
+        from uuid import uuid4 as _uuid4
+
+        adapter = D20RulesSystemAdapter()
+        sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
+        proposal = _make_proposal("stealth", RollVisibility.PLAYER)
+        pending, _view = adapter.prepare_player_roll_announce(
+            proposal, sheet, None, [], _uuid4(), _uuid4(), _uuid4()
+        )
+        assert pending.visible_modifier_total == 7  # pre-fix would be 3 (Dex fallback)
+        assert pending.visible_modifier_note == "+7"
+
+    def test_resolve_roll_display_case_modifiers_json_structure(self) -> None:
+        """resolve_roll: Perception key gives correct visible_total/breakdown."""
+        adapter = D20RulesSystemAdapter()
+        # Perception is Wis-governed; wisdom=13 → mod +1 fallback; stored +8.
+        sheet = _make_sheet(skills={"Perception": 8})  # wis=13 default
+        proposal = _make_proposal("Perception", RollVisibility.SHOWN)
+        dice_svc = MagicMock()
+        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
+        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        assert record.total == 18  # 10 + 8; pre-fix would be 10 + 1 = 11
+        data = json.loads(record.modifiers_json)
+        assert data["visible_total"] == 8
+        assert data["breakdown"]["perception_modifier"] == 8
