@@ -670,6 +670,20 @@ class OrchestratorService:
                     ctx.pass_forward_ledger.add(
                         "rpg_adjudication", _serialize_adj_views(adj_result)
                     )
+                if (
+                    adj_result.pending_roll_request is not None
+                    and self._rpg_pending_roll_service is None
+                ):
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        "RPG pending-roll service not wired; cannot announce"
+                        " pending roll",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        rpg_adjudication_result=adj_result,
+                    )
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -761,6 +775,7 @@ class OrchestratorService:
                 input_safety_result=input_safety,
                 planner_result=planner_result,
                 provider_refusal=exc.refusal,
+                rpg_adjudication_result=adj_result,
             )
         except WriterPassError as exc:
             return self._pipeline_error(
@@ -770,6 +785,7 @@ class OrchestratorService:
                 f"writer pass failed: {exc}",
                 input_safety_result=input_safety,
                 planner_result=planner_result,
+                rpg_adjudication_result=adj_result,
             )
         except Exception as exc:  # noqa: BLE001 — see boundary docstring
             return self._pipeline_error(
@@ -779,6 +795,7 @@ class OrchestratorService:
                 f"writer unexpected error: {exc}",
                 input_safety_result=input_safety,
                 planner_result=planner_result,
+                rpg_adjudication_result=adj_result,
             )
 
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
@@ -808,6 +825,7 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
@@ -818,6 +836,7 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
                 )
 
         # 5c. Apply sheet effects (Fork B→B1) inside the outer transaction, then
@@ -844,9 +863,22 @@ class OrchestratorService:
                         input_safety_result=input_safety,
                         planner_result=planner_result,
                         writer_result=writer_result,
+                        rpg_adjudication_result=adj_result,
                     )
             if self._rpg_visible_state_service is not None:
-                rpg_visible_state = self._rpg_visible_state_service.build(rpg_sheet)
+                try:
+                    rpg_visible_state = self._rpg_visible_state_service.build(rpg_sheet)
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"visible state build failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        writer_result=writer_result,
+                        rpg_adjudication_result=adj_result,
+                    )
 
         # 6. Output Safety Audit, conditional.
         output_safety: SafetyResult | None = None
@@ -881,6 +913,7 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
                 )
             except Exception as exc:  # noqa: BLE001 — see boundary docstring
                 return self._pipeline_error(
@@ -891,6 +924,7 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
                 )
             assert output_safety is not None  # noqa: S101 — mypy narrowing
             if output_safety.verdict is SafetyVerdict.BLOCK:
@@ -903,6 +937,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     output_safety_result=output_safety,
+                    rpg_adjudication_result=adj_result,
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
@@ -939,6 +974,7 @@ class OrchestratorService:
                 output_safety_result=output_safety,
                 extractor_result=exc.extractor_result,
                 provider_refusal=exc.refusal,
+                rpg_adjudication_result=adj_result,
             )
         except ProviderRefusalError as exc:
             # Extractor-side refusal: the failing pass result must remain
@@ -954,6 +990,7 @@ class OrchestratorService:
                 writer_result=writer_result,
                 output_safety_result=output_safety,
                 provider_refusal=exc.refusal,
+                rpg_adjudication_result=adj_result,
             )
         except _ParallelSyncError as exc:
             return self._pipeline_error(
@@ -965,6 +1002,7 @@ class OrchestratorService:
                 planner_result=planner_result,
                 writer_result=writer_result,
                 output_safety_result=output_safety,
+                rpg_adjudication_result=adj_result,
             )
         except Exception as exc:  # noqa: BLE001 — see boundary docstring
             # Defense-in-depth: ``_run_parallel_sync`` already maps every
@@ -980,6 +1018,7 @@ class OrchestratorService:
                 planner_result=planner_result,
                 writer_result=writer_result,
                 output_safety_result=output_safety,
+                rpg_adjudication_result=adj_result,
             )
 
         # 8. Gate on Contradiction.
@@ -995,6 +1034,7 @@ class OrchestratorService:
                 output_safety_result=output_safety,
                 extractor_result=extractor_result,
                 contradiction_result=contradiction_result,
+                rpg_adjudication_result=adj_result,
             )
 
         # ALLOW → commit Turn + Extractor writes.  Outer transaction context
@@ -1535,10 +1575,12 @@ class OrchestratorService:
         # Announce path: duplicate rejection before writing the new row.
         pending = adj_result.pending_roll_request
         if pending is not None:
-            if self._rpg_pending_roll_service is not None:
-                self._rpg_pending_roll_service.check_no_pending_for_story(
-                    session, story_id
+            if self._rpg_pending_roll_service is None:
+                raise RuntimeError(
+                    "Cannot announce pending roll: _rpg_pending_roll_service"
+                    " is not wired"
                 )
+            self._rpg_pending_roll_service.check_no_pending_for_story(session, story_id)
             session.add(
                 PendingRollRequestORM(
                     request_id=str(pending.request_id),
@@ -1755,6 +1797,7 @@ class OrchestratorService:
         planner_result: PlannerResult | None = None,
         writer_result: WriterResult | None = None,
         output_safety_result: SafetyResult | None = None,
+        rpg_adjudication_result: AdjudicationPassResult | None = None,
     ) -> OrchestrationResult:
         return self._build_result(
             PipelineDisposition.PIPELINE_ERROR,
@@ -1766,6 +1809,7 @@ class OrchestratorService:
             writer_result=writer_result,
             output_safety_result=output_safety_result,
             pipeline_error_summary=summary,
+            rpg_adjudication_result=rpg_adjudication_result,
         )
 
     def _run_with_transaction(
