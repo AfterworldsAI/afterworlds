@@ -437,3 +437,72 @@ def test_consume_unsupported_expression_rejected() -> None:
     pending = _make_pending(expression="3d6")
     with pytest.raises(PlayerRollValueError):
         adapter.consume_player_roll(pending, 10, None, [], False)
+
+
+# ---------------------------------------------------------------------------
+# consume_player_roll boundary cases with visible modifier (Round 6 spec)
+# ---------------------------------------------------------------------------
+
+
+def test_consume_1d20_mod5_max_boundary_accepted() -> None:
+    """1d20 + mod=5, total=25 → raw=20, accepted (exact max)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="1d20", visible_mod=5)
+    record = adapter.consume_player_roll(pending, 25, None, [], False)
+    assert record.raw_rolls == (20,)
+
+
+def test_consume_1d20_mod5_min_boundary_accepted() -> None:
+    """1d20 + mod=5, total=6 → raw=1, accepted (exact min)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="1d20", visible_mod=5)
+    record = adapter.consume_player_roll(pending, 6, None, [], False)
+    assert record.raw_rolls == (1,)
+
+
+def test_consume_1d20_mod5_one_over_max_rejected() -> None:
+    """1d20 + mod=5, total=26 → raw=21, rejected (one over max)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="1d20", visible_mod=5)
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 26, None, [], False)
+
+
+def test_consume_1d20_mod5_one_under_min_rejected() -> None:
+    """1d20 + mod=5, total=5 → raw=0, rejected (one under min)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="1d20", visible_mod=5)
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 5, None, [], False)
+
+
+def test_consume_kh1_mod5_max_boundary_accepted() -> None:
+    """2d20kh1 + mod=5, total=25 → raw=20, accepted (exact max)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kh1", visible_mod=5)
+    record = adapter.consume_player_roll(pending, 25, None, [], False)
+    assert record.raw_rolls == (20,)
+
+
+def test_consume_kh1_mod5_one_over_max_rejected() -> None:
+    """2d20kh1 + mod=5, total=26 → raw=21, rejected (one over max)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kh1", visible_mod=5)
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 26, None, [], False)
+
+
+def test_consume_kl1_mod5_min_boundary_accepted() -> None:
+    """2d20kl1 + mod=5, total=6 → raw=1, accepted (exact min)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kl1", visible_mod=5)
+    record = adapter.consume_player_roll(pending, 6, None, [], False)
+    assert record.raw_rolls == (1,)
+
+
+def test_consume_kl1_mod5_one_under_min_rejected() -> None:
+    """2d20kl1 + mod=5, total=5 → raw=0, rejected (one under min)."""
+    adapter = D20RulesSystemAdapter()
+    pending = _make_pending(expression="2d20kl1", visible_mod=5)
+    with pytest.raises(PlayerRollValueError):
+        adapter.consume_player_roll(pending, 5, None, [], False)

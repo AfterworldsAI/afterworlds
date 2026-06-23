@@ -1183,6 +1183,104 @@ class TestRpgOocStateGrounding:
         assert planner.calls == []
         assert extractor.calls == []
 
+    def test_rpg_ooc_pending_roll_visible_modifier_note_included(
+        self, session_factory, seeded_story
+    ) -> None:
+        """visible_modifier_note included in rpg_ooc_state when pending roll has one."""
+        from afterworlds.models.enums import RollVisibility
+
+        story_id, node_id = seeded_story
+        pending = PendingRollRequest(
+            request_id=uuid4(),
+            story_id=story_id,
+            session_id=uuid4(),
+            character_id=uuid4(),
+            check_label="Stealth check",
+            player_facing_instruction="Roll 1d20 +5",
+            expected_value_shape="integer",
+            visibility=RollVisibility.PLAYER,
+            source_proposal_ref="skill_check/Stealth check",
+            originating_turn_id=uuid4(),
+            created_at=_NOW_RPG,
+            roll_expression="1d20",
+            visible_modifier_note="+5",
+            visible_modifier_total=5,
+        )
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory, pending=pending)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What modifier applies?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "+5" in content
+
+    def test_rpg_ooc_hidden_condition_excluded_from_state(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Hidden condition excluded; visible condition present in rpg_ooc_state."""
+        from afterworlds.models.character_sheet import Dnd5eActiveCondition
+        from afterworlds.models.enums import ConditionVisibility
+        from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
+
+        story_id, node_id = seeded_story
+        sheet_id = uuid4()
+        visible_cond = Dnd5eActiveCondition(
+            sheet_id=sheet_id,
+            identifier="blessed",
+            display_label="Blessed",
+            source="spell",
+            visibility=ConditionVisibility.VISIBLE,
+        )
+        hidden_cond = Dnd5eActiveCondition(
+            sheet_id=sheet_id,
+            identifier="poisoned_secret",
+            display_label="Poisoned",
+            source="trap",
+            visibility=ConditionVisibility.HIDDEN,
+        )
+        writer = FakeWriterService()
+
+        def resolver(sid):
+            sheet = _make_rpg_sheet(sid).model_copy(
+                update={"active_conditions": [visible_cond, hidden_cond]}
+            )
+            return _make_rpg_session_state(sid), sheet
+
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+            rpg_session_sheet_resolver=resolver,
+            rpg_visible_state_service=RpgVisibleStateService(),  # type: ignore[arg-type]
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What conditions affect me?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "Blessed" in content
+        assert "Poisoned" not in content
+
 
 # ---------------------------------------------------------------------------
 # Safety policy invocation
