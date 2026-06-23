@@ -4727,3 +4727,305 @@ class TestRpgAdjudicationCacheWarmed:
             rpg_adjudication_result=adj_result,
         )
         assert result.stable_prefix_cache_warmed is False
+
+
+# ---------------------------------------------------------------------------
+# P2-1: Pending-roll consume path takes precedence over OOC routing (Round 11)
+# ---------------------------------------------------------------------------
+
+
+class TestPendingRollPrecedenceOverOoc:
+    """player_reported_total in RPG mode takes precedence over OOC short-circuit."""
+
+    def test_ooc_intent_with_total_bypasses_ooc_routes_to_narrative(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """OOC intent + player_reported_total → narrative consume path, NOT OOC."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_with_pending(
+            session_factory, pending_svc, intent_type=IntentType.OOC
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "[OOC] I rolled 15 for my stealth check.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        # P2-1: when player_reported_total is set the consume path must take
+        # precedence — OOC_HANDLED would mean the fix is absent.
+        assert result.disposition is PipelineDisposition.DELIVERED
+
+    def test_ooc_intent_without_total_still_routes_to_ooc(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """OOC intent + no total + pending → OOC fires; pending roll not consumed."""
+        story_id, node_id = seeded_story
+        pending = _make_pending_roll_request()
+        pending_svc = _FakePendingRollService(pending=pending)
+        orch = _make_orchestrator_with_pending(
+            session_factory, pending_svc, intent_type=IntentType.OOC
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "[OOC] What is my stealth modifier?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+
+    def test_total_with_no_pending_roll_is_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """player_reported_total set but no pending roll for story → PIPELINE_ERROR."""
+        story_id, node_id = seeded_story
+        pending_svc = _FakePendingRollService(pending=None)
+        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "no pending roll" in (result.pipeline_error_summary or "").lower()
+
+    def test_total_without_pending_roll_service_is_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """player_reported_total set but service not wired → PIPELINE_ERROR."""
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_with_pending(
+            session_factory,
+            None,  # type: ignore[arg-type]
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I rolled a 15.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            player_reported_total=15,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not wired" in (result.pipeline_error_summary or "").lower()
+
+
+# ---------------------------------------------------------------------------
+# P2-2: RuleSliceRequest built before context assembly (Round 11)
+# ---------------------------------------------------------------------------
+
+
+class _SpyContextBuilder:
+    """Wraps FakeContextBuilder to capture rule_slice_request per assemble() call."""
+
+    def __init__(self) -> None:
+        self._inner = FakeContextBuilder()
+        self.rule_slice_requests: list[object] = []
+
+    def assemble(
+        self,
+        story_id: object,
+        mode: object,
+        current_input: object,
+        classified_intent: object,
+        rule_slice_request: object = None,
+    ) -> object:
+        self.rule_slice_requests.append(rule_slice_request)
+        return self._inner.assemble(  # type: ignore[arg-type]
+            story_id, mode, current_input, classified_intent, rule_slice_request
+        )
+
+
+class TestRuleSlicePreContext:
+    """RuleSliceRequest is built before _build_context() for adjudicating RPG turns."""
+
+    def _make_orch(
+        self,
+        session_factory: object,
+        spy: _SpyContextBuilder,
+        *,
+        intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
+        rules_package_id: str = "dnd5e-v1",
+        mode: StoryMode = StoryMode.RPG,
+        wire_adjudication: bool = True,
+        play_status_setup: bool = False,
+    ) -> OrchestratorService:
+        from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+        session_state, sheet = _make_rpg_session_and_sheet()
+        sheet = sheet.model_copy(update={"rules_package_id": rules_package_id})
+        if play_status_setup:
+            from afterworlds.models.enums import DiceHandling, RpgPlayStatus
+            from afterworlds.models.session import RpgSessionState
+
+            session_state = RpgSessionState(
+                story_id=session_state.story_id,  # type: ignore[attr-defined]
+                character_sheet_id=session_state.character_sheet_id,  # type: ignore[attr-defined]
+                dice_handling=DiceHandling.AI_ROLLS,
+                play_status=RpgPlayStatus.SETUP,
+            )
+        return OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
+            context_builder=spy,  # type: ignore[arg-type]
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(mode),
+            rpg_adjudication_service=(
+                _FakeRpgAdjudicationService() if wire_adjudication else None  # type: ignore[arg-type]
+            ),
+            rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+            rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
+            rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
+        )
+
+    def test_uuid_binding_passes_rule_slice_request_to_context(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Adjudicating intent + UUID rules_package_id → non-None RuleSliceRequest."""
+        from uuid import UUID, uuid4
+
+        from afterworlds.models.rules_package import RuleSliceRequest
+
+        pkg_id = str(uuid4())
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(session_factory, spy, rules_package_id=pkg_id)
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        rsr = spy.rule_slice_requests[0]
+        assert rsr is not None
+        assert isinstance(rsr, RuleSliceRequest)
+        assert rsr.package_id == UUID(pkg_id)
+
+    def test_slug_binding_omits_rule_slice_request(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Non-UUID slug binding → RuleSliceRequest is None (slug→UUID gap)."""
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        assert spy.rule_slice_requests[0] is None
+
+    def test_ooc_intent_omits_rule_slice_request(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """OOC is not an adjudicating intent → no early resolution → None."""
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        # Wire pending-roll service so RPG OOC path can build state gracefully.
+        pending_svc = _FakePendingRollService(pending=None)
+        orch = _make_orchestrator_with_pending(
+            session_factory,
+            pending_svc,
+            intent_type=IntentType.OOC,
+        )
+        # Replace the context_builder with our spy after construction so the
+        # rest of the wiring comes from the helper.
+        orch._context_builder = spy  # type: ignore[attr-defined]
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "[OOC] What level am I?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        assert spy.rule_slice_requests[0] is None
+
+    def test_setup_turn_omits_rule_slice_request(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """RPG + adjudicating intent but play_status=SETUP → no rule slice."""
+        from uuid import uuid4
+
+        pkg_id = str(uuid4())
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(
+            session_factory, spy, rules_package_id=pkg_id, play_status_setup=True
+        )
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        assert spy.rule_slice_requests[0] is None
+
+    def test_non_rpg_mode_omits_rule_slice_request(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Non-RPG mode → rule-slice construction skipped entirely."""
+        from uuid import uuid4
+
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(
+            session_factory,
+            spy,
+            rules_package_id=str(uuid4()),
+            mode=StoryMode.BRANCHING,
+            wire_adjudication=False,
+        )
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I choose option A.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        assert spy.rule_slice_requests[0] is None
+
+    def test_no_adjudication_service_omits_rule_slice_request(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """RPG + adjudicating intent but adjudication service absent → None."""
+        from uuid import uuid4
+
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(
+            session_factory,
+            spy,
+            rules_package_id=str(uuid4()),
+            wire_adjudication=False,
+        )
+        orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert len(spy.rule_slice_requests) == 1
+        assert spy.rule_slice_requests[0] is None

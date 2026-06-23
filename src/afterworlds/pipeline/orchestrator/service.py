@@ -57,6 +57,7 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import IntentType, RpgPlayStatus, StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
     ProviderRefusalError,
@@ -124,6 +125,17 @@ DEFAULT_PARALLEL_PASS_TIMEOUT_SECONDS: float = 30.0
 #: for the requesting turn because the timeout fires on its own future,
 #: not on the worker.
 DEFAULT_PARALLEL_PASS_MAX_WORKERS: int = 4
+
+#: Intent types for which the Context Builder will use a ``RuleSliceRequest``
+#: to include mechanical-rule content in the stable prefix.  Matches the gate
+#: inside ``ContextBuilderService.build_stable_prefix()``.
+_ADJUDICATING_INTENT_TYPES: frozenset[IntentType] = frozenset(
+    {
+        IntentType.IN_CHARACTER_ACTION,
+        IntentType.DIALOGUE,
+        IntentType.LORE_QUESTION,
+    }
+)
 
 
 # ---------------------------------------------------------------------------
@@ -394,10 +406,64 @@ class OrchestratorService:
                 f"intent classification failed: {exc}",
             )
 
-        # 2. Context assembly (once per turn).
+        # 2. Early mode resolution (P2-2: must happen before context assembly so
+        # we know whether to build a RuleSliceRequest for the stable prefix).
         try:
-            ctx, story_mode, ctx_ms = self._build_context(
-                story_id, user_input, intent_result
+            story_mode: StoryMode = self._mode_resolver(story_id)
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                intent_result, latency, turn_start, f"mode resolution failed: {exc}"
+            )
+
+        # 2a. For RPG adjudicating intents with adjudication wired, resolve
+        # session/sheet early so the RuleSliceRequest can be built before
+        # context assembly (stable-prefix-once invariant: context is built
+        # exactly once, with the rule slice already determined).
+        rule_slice_request: RuleSliceRequest | None = None
+        pre_session_state: RpgSessionState | None = None
+        pre_sheet: Dnd5eCharacterSheet | None = None
+        if (
+            story_mode is StoryMode.RPG
+            and intent_result.intent_type in _ADJUDICATING_INTENT_TYPES
+            and self._rpg_adjudication_service is not None
+        ):
+            if self._rpg_session_sheet_resolver is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "RPG adjudication wired without session/sheet resolver",
+                )
+            try:
+                pre_session_state, pre_sheet = self._rpg_session_sheet_resolver(
+                    story_id
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"RPG session/sheet resolution failed: {exc}",
+                )
+            # Only build a rule slice for IN_PLAY sessions; setup turns do not
+            # run adjudication so the context builder does not need the slice.
+            if pre_session_state.play_status is RpgPlayStatus.IN_PLAY:
+                try:
+                    _pkg_uuid = UUID(pre_sheet.rules_package_id)
+                    rule_slice_request = RuleSliceRequest(package_id=_pkg_uuid)
+                except ValueError:
+                    # Non-UUID binding (slug) — omit request; adjudication
+                    # proceeds without a rule slice and produces "undetermined".
+                    rule_slice_request = None
+
+        # 2b. Context assembly (once per turn).
+        try:
+            ctx, _, ctx_ms = self._build_context(
+                story_id,
+                user_input,
+                intent_result,
+                mode=story_mode,
+                rule_slice_request=rule_slice_request,
             )
             latency["context"] = ctx_ms
         except Exception as exc:  # noqa: BLE001
@@ -405,9 +471,60 @@ class OrchestratorService:
                 intent_result, latency, turn_start, f"context assembly failed: {exc}"
             )
 
+        # P2-1: when player_reported_total is set in RPG mode the consume path
+        # takes precedence over the OOC short-circuit — the player is reporting
+        # the result of their physical roll, not asking an out-of-character
+        # question, regardless of how the intent classifier classified the input.
+        if story_mode is StoryMode.RPG and player_reported_total is not None:
+            if self._rpg_pending_roll_service is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "player_reported_total provided but RPG pending-roll service"
+                    " not wired",
+                )
+            try:
+                _pending_for_consume = (
+                    self._rpg_pending_roll_service.load_pending_for_story(story_id)
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"pending roll lookup failed: {exc}",
+                )
+            if _pending_for_consume is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "player_reported_total provided but no pending roll found"
+                    " for story",
+                )
+            return self._run_narrative(
+                ctx,
+                story_id,
+                node_id,
+                sojourner_id,
+                intent_result,
+                binding,
+                latency,
+                turn_start,
+                request_risk_signal,
+                story_mode,
+                pending_roll=_pending_for_consume,
+                player_reported_total=player_reported_total,
+                _pre_session_state=pre_session_state,
+                _pre_sheet=pre_sheet,
+            )
+
         # OOC short-circuit owns its own pipeline shape.
         # OOC-while-pending: the pending-roll intercept is deliberately skipped
         # for OOC turns — the pending roll waits while the player asks questions.
+        # The P2-1 guard above ensures this only fires when player_reported_total
+        # is None (i.e. the player is not reporting a roll total).
         if intent_result.intent_type is IntentType.OOC:
             return self._run_ooc(
                 ctx,
@@ -424,6 +541,8 @@ class OrchestratorService:
 
         # Pending-roll intercept for RPG in-play narrative turns.
         # Runs before Planner so a block-redirect returns before any LLM call.
+        # At this point player_reported_total is None (P2-1 handled the non-None
+        # RPG case above).
         pending_roll: PendingRollRequest | None = None
         if story_mode == StoryMode.RPG and self._rpg_pending_roll_service is not None:
             try:
@@ -463,6 +582,8 @@ class OrchestratorService:
             story_mode,
             pending_roll=pending_roll,
             player_reported_total=player_reported_total,
+            _pre_session_state=pre_session_state,
+            _pre_sheet=pre_sheet,
         )
 
     # ------------------------------------------------------------------
@@ -484,6 +605,8 @@ class OrchestratorService:
         *,
         pending_roll: PendingRollRequest | None = None,
         player_reported_total: int | None = None,
+        _pre_session_state: RpgSessionState | None = None,
+        _pre_sheet: Dnd5eCharacterSheet | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -589,20 +712,28 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                 )
-            try:
-                session_state, sheet = self._rpg_session_sheet_resolver(story_id)
-                rpg_session_id = session_state.session_id
-                rpg_character_id = sheet.sheet_id
-                rpg_sheet = sheet
-            except Exception as exc:  # noqa: BLE001
-                return self._pipeline_error(
-                    intent_result,
-                    latency,
-                    turn_start,
-                    f"RPG session/sheet resolution failed: {exc}",
-                    input_safety_result=input_safety,
-                    planner_result=planner_result,
-                )
+            # Use pre-resolved values from early phase (P2-2) when available to
+            # avoid a second resolver call for the same story within the same turn.
+            if _pre_session_state is not None and _pre_sheet is not None:
+                _ss: RpgSessionState = _pre_session_state
+                _sh: Dnd5eCharacterSheet = _pre_sheet
+            else:
+                try:
+                    _ss, _sh = self._rpg_session_sheet_resolver(story_id)
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"RPG session/sheet resolution failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                    )
+            session_state = _ss
+            sheet = _sh
+            rpg_session_id = session_state.session_id
+            rpg_character_id = sheet.sheet_id
+            rpg_sheet = sheet
             # Gate: skip adjudication for setup turns and for sheets that
             # aren't fully configured.  play_status SETUP covers character
             # creation and world-setup turns that flow through _run_narrative
@@ -1723,17 +1854,23 @@ class OrchestratorService:
         story_id: UUID,
         user_input: str,
         intent_result: IntentClassificationResult,
+        *,
+        mode: StoryMode | None = None,
+        rule_slice_request: RuleSliceRequest | None = None,
     ) -> tuple[AssembledContext, StoryMode, int]:
-        mode: StoryMode = self._mode_resolver(story_id)
+        resolved_mode: StoryMode = (
+            mode if mode is not None else self._mode_resolver(story_id)
+        )
         ctx, ms = _timed(
             lambda: self._context_builder.assemble(
                 story_id=story_id,
-                mode=mode,
+                mode=resolved_mode,
                 current_input=user_input,
                 classified_intent=intent_result,
+                rule_slice_request=rule_slice_request,
             )
         )
-        return ctx, mode, ms
+        return ctx, resolved_mode, ms
 
     def _build_result(
         self,
