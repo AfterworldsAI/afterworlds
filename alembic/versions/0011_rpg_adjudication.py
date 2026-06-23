@@ -139,7 +139,7 @@ def upgrade() -> None:
         sa.Column(
             "turn_id",
             sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
+            sa.ForeignKey("turns.turn_id"),
             nullable=False,
         ),
         sa.Column("story_id", sa.String(36), nullable=False),

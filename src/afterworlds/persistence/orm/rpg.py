@@ -31,7 +31,7 @@ class RpgRollAuditORM(Base):
     global_sequence: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     turn_id: Mapped[str] = mapped_column(
         sa.String(36),
-        sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
+        sa.ForeignKey("turns.turn_id"),
         nullable=False,
     )
     story_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)

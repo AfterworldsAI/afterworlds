@@ -416,6 +416,116 @@ def test_compute_deduction_with_real_normalization_succeeds() -> None:
     assert deduction > 0
 
 
+# ---------------------------------------------------------------------------
+# Round 7: extract_snapshots — RPG adjudication billing (code-only vs provider-backed)
+# ---------------------------------------------------------------------------
+
+
+def _make_adj_result(
+    provider: str | None = None,
+    model_identifier: str | None = None,
+    model_tier: str | None = None,
+    input_token_count: int | None = None,
+    output_token_count: int | None = None,
+    cache_read_token_count: int | None = None,
+    cache_creation_token_count: int | None = None,
+) -> object:
+    """Minimal OrchestrationResult (PIPELINE_ERROR) with rpg_adjudication_result set."""
+    from afterworlds.models.enums import IntentType
+    from afterworlds.models.intent_classification import IntentClassificationResult
+    from afterworlds.pipeline.orchestrator.models import (
+        OrchestrationResult,
+        PipelineDisposition,
+    )
+    from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+
+    adj = AdjudicationPassResult(
+        proposals=(),
+        writer_views=(),
+        provider=provider,
+        model_identifier=model_identifier,
+        model_tier=model_tier,
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+        cache_read_token_count=cache_read_token_count,
+        cache_creation_token_count=cache_creation_token_count,
+    )
+    return OrchestrationResult(
+        disposition=PipelineDisposition.PIPELINE_ERROR,
+        delivered_output=None,
+        turn_id=None,
+        intent_classification=IntentClassificationResult(
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            confidence=1.0,
+            raw_input="",
+            ambiguous=False,
+        ),
+        pipeline_error_summary="adjudication billing test",
+        total_latency_ms=0,
+        pass_latency_breakdown={},
+        rpg_adjudication_result=adj,
+    )
+
+
+def test_extract_snapshots_rpg_adjudication_provider_backed_included() -> None:
+    """Provider-backed adjudication result produces RPG_ADJUDICATION snapshot."""
+    result = _make_adj_result(
+        provider="anthropic",
+        model_identifier="claude-haiku",
+        model_tier="haiku",
+        input_token_count=200,
+        output_token_count=80,
+    )
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.RPG_ADJUDICATION in pass_ids
+
+
+def test_extract_snapshots_rpg_adjudication_code_only_excluded() -> None:
+    """Code-only consume path (all None) produces no RPG_ADJUDICATION snapshot."""
+    result = _make_adj_result()  # all fields default to None → code-only
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.RPG_ADJUDICATION not in pass_ids
+
+
+def test_extract_snapshots_rpg_adjudication_missing_input_token_raises() -> None:
+    """Provider-backed adjudication with missing input_token_count raises."""
+    result = _make_adj_result(
+        provider="anthropic",
+        model_identifier="claude-haiku",
+        model_tier="haiku",
+        input_token_count=None,  # missing
+        output_token_count=80,
+    )
+    with pytest.raises(EntitlementSettlementError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
+def test_extract_snapshots_rpg_adjudication_missing_output_token_raises() -> None:
+    """Provider-backed adjudication with missing output_token_count raises."""
+    result = _make_adj_result(
+        provider="anthropic",
+        model_identifier="claude-haiku",
+        model_tier="haiku",
+        input_token_count=200,
+        output_token_count=None,  # missing
+    )
+    with pytest.raises(EntitlementSettlementError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
+def test_extract_snapshots_rpg_adjudication_partial_token_not_silently_skipped() -> (
+    None
+):
+    """Partial token data (input set, no provider/model) is not silently skipped."""
+    result = _make_adj_result(
+        input_token_count=200,  # only input set; provider/model/output all None
+    )
+    with pytest.raises(EntitlementSettlementError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

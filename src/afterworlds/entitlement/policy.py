@@ -235,7 +235,16 @@ class TurnCostPolicy:
         if result.rpg_adjudication_result is not None:
             assert isinstance(result.rpg_adjudication_result, AdjudicationPassResult)
             ar = result.rpg_adjudication_result
-            if ar.input_token_count is not None and ar.output_token_count is not None:
+            is_code_only = (
+                ar.provider is None
+                and ar.model_identifier is None
+                and ar.model_tier is None
+                and ar.input_token_count is None
+                and ar.output_token_count is None
+                and ar.cache_read_token_count is None
+                and ar.cache_creation_token_count is None
+            )
+            if not is_code_only:
                 snapshots.append(
                     _require_tokens(
                         PipelinePassId.RPG_ADJUDICATION,
