@@ -53,12 +53,28 @@ def test_player_rolls_first_shown_becomes_player() -> None:
     assert result is RollVisibility.PLAYER
 
 
-def test_player_rolls_shown_stays_shown_when_pending_exists() -> None:
-    """PLAYER_ROLLS + SHOWN + pending already exists → stays SHOWN (AI-resolved)."""
+def test_player_rolls_shown_pending_exists_deferred_as_player() -> None:
+    """PLAYER_ROLLS + SHOWN + pending exists → PLAYER; overflow is deferred."""
     result = _effective_visibility(
         RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, True
     )
-    assert result is RollVisibility.SHOWN
+    assert result is RollVisibility.PLAYER
+
+
+def test_player_rolls_player_pending_exists_deferred() -> None:
+    """PLAYER_ROLLS + PLAYER + pending exists → PLAYER (visible overflow deferred)."""
+    result = _effective_visibility(
+        RollVisibility.PLAYER, DiceHandling.PLAYER_ROLLS, True
+    )
+    assert result is RollVisibility.PLAYER
+
+
+def test_player_rolls_hidden_pending_exists_still_code_resolved() -> None:
+    """PLAYER_ROLLS + HIDDEN + pending exists → HIDDEN (hidden always code-resolved)."""
+    result = _effective_visibility(
+        RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, True
+    )
+    assert result is RollVisibility.HIDDEN
 
 
 def test_player_rolls_preserves_player_proposal_first() -> None:
@@ -100,9 +116,9 @@ def test_player_rolls_hidden_unchanged_even_when_no_pending() -> None:
         (RollVisibility.SHOWN, DiceHandling.AI_ROLLS, True, RollVisibility.SHOWN),
         (RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, False, RollVisibility.HIDDEN),
         (RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, True, RollVisibility.HIDDEN),
-        # PLAYER_ROLLS: SHOWN+no-pending → PLAYER; otherwise unchanged
+        # PLAYER_ROLLS: all visible (SHOWN or PLAYER) → PLAYER; HIDDEN unchanged
         (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, False, RollVisibility.PLAYER),
-        (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, True, RollVisibility.SHOWN),
+        (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, True, RollVisibility.PLAYER),
         (
             RollVisibility.PLAYER,
             DiceHandling.PLAYER_ROLLS,

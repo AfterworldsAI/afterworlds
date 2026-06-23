@@ -5,11 +5,12 @@ Responsibilities:
        a. Render AssembledContext + character state into a ProviderCallRequest.
        b. Call the LLM via forced tool use → AdjudicationProposalOutput.
        c. Enforce multi-roll bound (ADJUDICATION_MAX_ROLLS_PER_TURN).
-       d. For each SHOWN/HIDDEN proposal: resolve via D20RulesSystemAdapter +
-          DiceService → ResolvedAdjudicationRecord.
-       e. For each PLAYER proposal: prepare announce via adapter →
-          PendingRollRequest + announce WriterAdjudicationView.  Only the
-          first PLAYER proposal is accepted per turn; extras are dropped.
+       d. For each HIDDEN proposal (and SHOWN in AI_ROLLS mode): resolve via
+          D20RulesSystemAdapter + DiceService → ResolvedAdjudicationRecord.
+       e. For the first visible (SHOWN→PLAYER or PLAYER) proposal in
+          PLAYER_ROLLS mode: prepare announce via adapter → PendingRollRequest
+          + announce WriterAdjudicationView.  Overflow visible proposals are
+          deferred (not AI-resolved, not a second pending roll).
        f. Return AdjudicationPassResult with resolved records + writer views
           + optional pending_roll_request.
 
@@ -130,7 +131,10 @@ def _effective_visibility(
 
     Model-emitted visibility is advisory; dice_handling mode is authoritative.
     AI_ROLLS: PLAYER proposals are coerced to SHOWN (AI resolves all rolls).
-    PLAYER_ROLLS: first eligible SHOWN becomes PLAYER; HIDDEN stays HIDDEN.
+    PLAYER_ROLLS: all visible proposals (SHOWN or PLAYER) become PLAYER.
+      The caller's has_pending guard drops overflow visible proposals without
+      calling DiceService.  Returning PLAYER for overflow means "deferred",
+      not "create a second pending roll".  HIDDEN stays HIDDEN.
     """
     if dice_handling is DiceHandling.AI_ROLLS:
         return (
@@ -138,10 +142,11 @@ def _effective_visibility(
             if proposal_vis is RollVisibility.PLAYER
             else proposal_vis
         )
-    # PLAYER_ROLLS: first SHOWN without a pending request becomes PLAYER.
-    if proposal_vis is RollVisibility.SHOWN and not has_pending:
-        return RollVisibility.PLAYER
-    return proposal_vis
+    # PLAYER_ROLLS: hidden is always code-resolved; all visible proposals → PLAYER.
+    # When has_pending=True the loop guard drops the overflow (no DiceService call).
+    if proposal_vis is RollVisibility.HIDDEN:
+        return RollVisibility.HIDDEN
+    return RollVisibility.PLAYER
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +348,8 @@ class RpgAdjudicationPassService:
 
             if effective_vis is RollVisibility.PLAYER:
                 if pending_roll_request is not None:
-                    # Only one PLAYER roll announce per turn.
+                    # Overflow visible proposal deferred — not AI-resolved, not
+                    # a second pending.
                     continue
                 pending, view = self._adapter.prepare_player_roll_announce(
                     coerced,
