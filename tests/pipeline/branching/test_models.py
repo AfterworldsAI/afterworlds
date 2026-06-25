@@ -475,3 +475,37 @@ class TestAllowedRangesByStyle:
         assert BranchCountRange.TWO_TO_FIVE in cyoa_ranges
         assert BranchCountRange.ONE_TO_TWO not in cyoa_ranges
         assert BranchCountRange.THREE_TO_FOUR not in cyoa_ranges
+
+
+# ---------------------------------------------------------------------------
+# Test: BranchingWriterConfig.from_env
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingWriterConfigFromEnv:
+    def test_defaults_when_env_unset(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from afterworlds.pipeline.branching.config import BranchingWriterConfig
+
+        monkeypatch.delenv("AFTERWORLDS_BRANCHING_WRITER_MODEL", raising=False)
+        monkeypatch.delenv("AFTERWORLDS_BRANCHING_WRITER_API_KEY_ENV", raising=False)
+        monkeypatch.delenv("AFTERWORLDS_BRANCHING_WRITER_EXTENDED_TTL", raising=False)
+        cfg = BranchingWriterConfig.from_env()
+        assert cfg.model != ""
+        assert cfg.api_key_env == "ANTHROPIC_API_KEY"
+        assert cfg.extended_ttl is True
+
+    def test_model_override_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from afterworlds.pipeline.branching.config import BranchingWriterConfig
+
+        monkeypatch.setenv("AFTERWORLDS_BRANCHING_WRITER_MODEL", "custom-model")
+        cfg = BranchingWriterConfig.from_env()
+        assert cfg.model == "custom-model"
+
+    def test_extended_ttl_false_when_set_to_false(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.pipeline.branching.config import BranchingWriterConfig
+
+        monkeypatch.setenv("AFTERWORLDS_BRANCHING_WRITER_EXTENDED_TTL", "false")
+        cfg = BranchingWriterConfig.from_env()
+        assert cfg.extended_ttl is False
