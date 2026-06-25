@@ -9,7 +9,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import (
+    BranchCountRange,
+    BranchingCadence,
+    BranchingPlayStatus,
     DiceHandling,
+    InteractionStyle,
+    LengthPreference,
     RpgPlayStatus,
     RpgSessionType,
     RpgSetupPhase,
@@ -148,6 +153,35 @@ def _branching_orm_to_model(row: BranchingSessionStateORM) -> BranchingSessionSt
         current_node_id=(
             UUID(row.current_node_id) if row.current_node_id is not None else None
         ),
+        # Issue 16: interaction configuration fields — nullable, read as enum or None.
+        interaction_style=(
+            InteractionStyle(row.interaction_style)
+            if row.interaction_style is not None
+            else None
+        ),
+        branching_cadence=(
+            BranchingCadence(row.branching_cadence)
+            if row.branching_cadence is not None
+            else None
+        ),
+        length_preference=(
+            LengthPreference(row.length_preference)
+            if row.length_preference is not None
+            else None
+        ),
+        branch_count_range=(
+            BranchCountRange(row.branch_count_range)
+            if row.branch_count_range is not None
+            else None
+        ),
+        play_status=BranchingPlayStatus(row.play_status),
+        world_summary=row.world_summary,
+        story_seeds=row.story_seeds,
+        character_concept=row.character_concept,
+        supporting_cast=row.supporting_cast,
+        world_constraints=row.world_constraints,
+        pacing_notes=row.pacing_notes,
+        acceptable_content=row.acceptable_content,
     )
 
 
@@ -170,6 +204,34 @@ def create_branching_session_state(
         current_node_id=(
             str(state.current_node_id) if state.current_node_id is not None else None
         ),
+        interaction_style=(
+            state.interaction_style.value
+            if state.interaction_style is not None
+            else None
+        ),
+        branching_cadence=(
+            state.branching_cadence.value
+            if state.branching_cadence is not None
+            else None
+        ),
+        length_preference=(
+            state.length_preference.value
+            if state.length_preference is not None
+            else None
+        ),
+        branch_count_range=(
+            state.branch_count_range.value
+            if state.branch_count_range is not None
+            else None
+        ),
+        play_status=state.play_status.value,
+        world_summary=state.world_summary,
+        story_seeds=state.story_seeds,
+        character_concept=state.character_concept,
+        supporting_cast=state.supporting_cast,
+        world_constraints=state.world_constraints,
+        pacing_notes=state.pacing_notes,
+        acceptable_content=state.acceptable_content,
     )
     session.add(row)
     session.flush()
@@ -215,8 +277,60 @@ def update_branching_session_state(
     row.current_node_id = (
         str(state.current_node_id) if state.current_node_id is not None else None
     )
+    row.interaction_style = (
+        state.interaction_style.value if state.interaction_style is not None else None
+    )
+    row.branching_cadence = (
+        state.branching_cadence.value if state.branching_cadence is not None else None
+    )
+    row.length_preference = (
+        state.length_preference.value if state.length_preference is not None else None
+    )
+    row.branch_count_range = (
+        state.branch_count_range.value if state.branch_count_range is not None else None
+    )
+    row.play_status = state.play_status.value
+    row.world_summary = state.world_summary
+    row.story_seeds = state.story_seeds
+    row.character_concept = state.character_concept
+    row.supporting_cast = state.supporting_cast
+    row.world_constraints = state.world_constraints
+    row.pacing_notes = state.pacing_notes
+    row.acceptable_content = state.acceptable_content
     session.flush()
     return _branching_orm_to_model(row)
+
+
+def apply_branching_config_update(
+    session: Session,
+    story_id: UUID,
+    interaction_style: InteractionStyle | None = None,
+    branching_cadence: BranchingCadence | None = None,
+    branch_count_range: BranchCountRange | None = None,
+    length_preference: LengthPreference | None = None,
+) -> bool:
+    """Apply non-None config fields to the BranchingSessionState ORM row for a story.
+
+    Only updates the fields that are non-None.  Returns True when the row was
+    found and flushed; False when no row exists for the given story_id.
+    """
+    row = session.scalars(
+        select(BranchingSessionStateORM).where(
+            BranchingSessionStateORM.story_id == str(story_id)
+        )
+    ).first()
+    if row is None:
+        return False
+    if interaction_style is not None:
+        row.interaction_style = interaction_style.value
+    if branching_cadence is not None:
+        row.branching_cadence = branching_cadence.value
+    if branch_count_range is not None:
+        row.branch_count_range = branch_count_range.value
+    if length_preference is not None:
+        row.length_preference = length_preference.value
+    session.flush()
+    return True
 
 
 def delete_branching_session_state(session: Session, session_id: UUID) -> bool:

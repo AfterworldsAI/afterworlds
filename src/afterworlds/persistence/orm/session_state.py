@@ -74,6 +74,22 @@ class BranchingSessionStateORM(Base):
         sa.ForeignKey("nodes.node_id", ondelete="SET NULL"),
         nullable=True,
     )
+    # Issue 16: interaction configuration columns.  All nullable so existing rows
+    # are never silently backfilled to freeform_only (conservative backfill rule).
+    interaction_style: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    branching_cadence: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    length_preference: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    branch_count_range: Mapped[str | None] = mapped_column(sa.String(8), nullable=True)
+    play_status: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="setup"
+    )
+    world_summary: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    story_seeds: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    character_concept: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    supporting_cast: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    world_constraints: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    pacing_notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    acceptable_content: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
 
 class WritingSessionStateORM(Base):

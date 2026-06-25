@@ -25,6 +25,7 @@ class PassIdentifier(StrEnum):
 
     PLANNER = "planner"
     RPG_ADJUDICATION = "rpg_adjudication"
+    BRANCHING_WRITER = "branching_writer"
     WRITER = "writer"
     EXTRACTOR = "extractor"
     CONTRADICTION = "contradiction"

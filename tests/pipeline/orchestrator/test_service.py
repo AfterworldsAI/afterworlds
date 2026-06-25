@@ -306,7 +306,7 @@ class TestDispositionOOCHandled:
         assert contradiction.calls == []
         assert writer.calls and writer.calls[0][
             0
-        ].stable_prefix.system_prompt.startswith("# OOC Handler")
+        ].stable_prefix.system_prompt.startswith("# Branching Mode OOC Handler")
 
 
 class TestDispositionBlockedInputSafety:
@@ -721,7 +721,9 @@ class TestOOCShortCircuit:
         )
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
-        assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
+        assert derived_ctx.stable_prefix.system_prompt.startswith(
+            "# Branching Mode OOC Handler"
+        )
 
     def test_ooc_persists_turn_with_ooc_intent(
         self, session_factory, seeded_story, session
@@ -815,10 +817,10 @@ class TestOOCShortCircuit:
         derived_ctx = writer.calls[0][0]
         assert derived_ctx.stable_prefix.system_prompt.startswith("# RPG OOC Handler")
 
-    def test_non_rpg_ooc_uses_generic_handler_prompt(
+    def test_branching_ooc_uses_branching_handler_prompt(
         self, session_factory, seeded_story
     ) -> None:
-        """Non-RPG mode OOC turns must still use the generic ooc_handler.md."""
+        """Branching mode OOC turns use the branching-specific ooc handler."""
         story_id, node_id = seeded_story
         orch, *_, writer, _, _ = _make_orchestrator(
             session_factory, intent=IntentType.OOC
@@ -828,7 +830,9 @@ class TestOOCShortCircuit:
         )
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
-        assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
+        assert derived_ctx.stable_prefix.system_prompt.startswith(
+            "# Branching Mode OOC Handler"
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -19,11 +19,12 @@ result into a different disposition.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from afterworlds.models.enums import InteractionRejectionReason
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.pipeline._refusal import ProviderRefusal
@@ -65,6 +66,7 @@ class PipelineDisposition(StrEnum):
     BLOCKED_OUTPUT_SAFETY = "blocked_output_safety"
     BLOCKED_CONTRADICTION = "blocked_contradiction"
     BLOCKED_PENDING_ROLL = "blocked_pending_roll"
+    INTERACTION_REJECTED = "interaction_rejected"
     REFUSED_BY_PROVIDER = "refused_by_provider"
     PIPELINE_ERROR = "pipeline_error"
 
@@ -134,6 +136,25 @@ class OrchestrationResult(BaseModel):
     # None on all other dispositions.
     pending_roll_redirect_message: str | None = None
 
+    # Set on INTERACTION_REJECTED: typed reason and human-readable message why
+    # the input was rejected (non-billable; no Turn, no Node, no canon mutation).
+    # Both are None on all other dispositions; both are required (non-empty) on
+    # INTERACTION_REJECTED per CRD Issue 16.
+    interaction_rejection_reason: InteractionRejectionReason | None = None
+    interaction_rejection_message: str | None = None
+
+    # Additive Issue 16 field: full structured branching output for HYBRID/TRUE_CYOA
+    # turns.  Populated in place of writer_result for those modes; None otherwise.
+    # Type is BranchingPassResult from pipeline.branching.models — declared as Any
+    # here to avoid an import cycle; narrowed to BranchingPassResult by callers.
+    branching_pass_result: Any | None = None
+
+    # Additive Issue 16 field: branching session visible state for DELIVERED
+    # BRANCHING-mode turns.  None for all non-BRANCHING turns and non-DELIVERED
+    # dispositions.  Type is BranchingVisibleState from pipeline.branching.models —
+    # declared as Any here to avoid an import cycle.
+    branching_visible_state: Any | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -169,11 +190,16 @@ class OrchestrationResult(BaseModel):
         d = self.disposition
         is_ooc = self.intent_classification.intent_type == IntentType.OOC
 
-        # rpg_visible_state is only valid on successfully-delivered RPG turns.
+        # rpg_visible_state and branching_visible_state are only valid on
+        # successfully-delivered turns.
         if d is not PipelineDisposition.DELIVERED:
             self._forbid(
                 "rpg_visible_state absent on non-DELIVERED",
                 self.rpg_visible_state is not None,
+            )
+            self._forbid(
+                "branching_visible_state absent on non-DELIVERED",
+                self.branching_visible_state is not None,
             )
 
         if d is PipelineDisposition.DELIVERED:
@@ -344,6 +370,39 @@ class OrchestrationResult(BaseModel):
                 self.pipeline_error_summary is not None,
             )
 
+        elif d is PipelineDisposition.INTERACTION_REJECTED:
+            # Non-billable: no Turn, no Node, no canon mutation.
+            # Modeled on BLOCKED_PENDING_ROLL per 12c extension procedure.
+            self._require("delivered_output is None", self.delivered_output is None)
+            self._require("turn_id is None", self.turn_id is None)
+            self._require(
+                "interaction_rejection_reason non-empty",
+                self.interaction_rejection_reason is not None,
+            )
+            self._require(
+                "interaction_rejection_message non-empty",
+                self._non_empty_str(self.interaction_rejection_message),
+            )
+            self._forbid("planner_result absent", self.planner_result is not None)
+            self._forbid("writer_result absent", self.writer_result is not None)
+            self._forbid("extractor_result absent", self.extractor_result is not None)
+            self._forbid(
+                "contradiction_result absent",
+                self.contradiction_result is not None,
+            )
+            self._forbid(
+                "pending_roll_redirect_message absent on INTERACTION_REJECTED",
+                self.pending_roll_redirect_message is not None,
+            )
+            self._forbid(
+                "provider_refusal absent on INTERACTION_REJECTED",
+                self.provider_refusal is not None,
+            )
+            self._forbid(
+                "pipeline_error_summary absent on INTERACTION_REJECTED",
+                self.pipeline_error_summary is not None,
+            )
+
         elif d is PipelineDisposition.REFUSED_BY_PROVIDER:
             self._require("delivered_output is None", self.delivered_output is None)
             self._require("turn_id is None", self.turn_id is None)
@@ -358,6 +417,7 @@ class OrchestrationResult(BaseModel):
             failing_field_by_pass: dict[PassIdentifier, object] = {
                 PassIdentifier.PLANNER: self.planner_result,
                 PassIdentifier.RPG_ADJUDICATION: self.rpg_adjudication_result,
+                PassIdentifier.BRANCHING_WRITER: self.branching_pass_result,
                 PassIdentifier.WRITER: self.writer_result,
                 PassIdentifier.EXTRACTOR: self.extractor_result,
                 PassIdentifier.CONTRADICTION: self.contradiction_result,
@@ -421,6 +481,7 @@ SafetyPolicy = CapabilityProfileAwareSafetyPolicy
 
 __all__ = [
     "CapabilityProfileAwareSafetyPolicy",
+    "InteractionRejectionReason",
     "OrchestrationResult",
     "OrchestratorError",
     "PipelineDisposition",
