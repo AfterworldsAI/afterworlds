@@ -5199,3 +5199,125 @@ class TestRuleSlicePreContext:
         )
         assert len(spy.rule_slice_requests) == 1
         assert spy.rule_slice_requests[0] is None
+
+
+# ---------------------------------------------------------------------------
+# Fix 4: Branching-writer lineage guard — cross-story node rejects before LLM call
+# ---------------------------------------------------------------------------
+
+
+class _FakeBranchingWriterService:
+    """Stub branching writer that must NOT be called if the lineage guard fires."""
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        self.called = True
+        raise AssertionError(
+            "BranchingWriterService.write() must not be reached when the"
+            " lineage guard fires"
+        )
+
+
+class TestBranchingWriterLineageGuard:
+    """_narrative_persist lineage guard rejects cross-story node before LLM call."""
+
+    def test_cross_story_node_returns_pipeline_error(
+        self,
+        session_factory: object,
+        session: object,
+        seeded_story: tuple[UUID, UUID],
+    ) -> None:
+        """Using node_id from story B with story A's story_id → PIPELINE_ERROR."""
+        from datetime import UTC, datetime
+
+        from afterworlds.entitlement.enums import RuntimeAccessPath
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            IntentType,
+            InteractionStyle,
+            PacingStage,
+            StoryMode,
+        )
+        from afterworlds.models.node import (
+            BranchingNodeMetadata,
+            Node,
+            NodeMetadata,
+            StateDelta,
+        )
+        from afterworlds.models.session import BranchingSessionState
+        from afterworlds.models.story import Arc, Chapter, Story
+        from afterworlds.persistence.crud.node import create_node
+        from afterworlds.persistence.crud.story import (
+            create_arc,
+            create_chapter,
+            create_story,
+        )
+
+        # story_A is the seeded fixture story.
+        story_a_id, _node_a_id = seeded_story
+
+        # Seed a second story (story_B) with its own node.
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        story_b = Story(
+            title="Story B (different story)",
+            mode=StoryMode.BRANCHING,
+            created_at=now,
+            updated_at=now,
+        )
+        create_story(session, story_b)  # type: ignore[arg-type]
+        arc_b = Arc(story_id=story_b.story_id, title="Arc B", order=0)
+        create_arc(session, arc_b)  # type: ignore[arg-type]
+        chap_b = Chapter(arc_id=arc_b.arc_id, title="Chapter B", order=0)
+        create_chapter(session, chap_b)  # type: ignore[arg-type]
+        node_b = Node(
+            chapter_id=chap_b.chapter_id,
+            content="",
+            state_delta=StateDelta(),
+            branching_logic=[],
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            metadata=NodeMetadata(timestamp=now),
+            mode_metadata=BranchingNodeMetadata(),
+        )
+        create_node(session, node_b)  # type: ignore[arg-type]
+        session.commit()  # type: ignore[union-attr]
+
+        def _branching_resolver(sid: UUID) -> BranchingSessionState:
+            return BranchingSessionState(
+                story_id=sid,
+                pacing_stage=PacingStage.ESCALATION,
+                interaction_style=InteractionStyle.HYBRID,
+                branching_cadence=BranchingCadence.BALANCED,
+            )
+
+        fake_branching_writer = _FakeBranchingWriterService()
+
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(
+                make_intent(IntentType.IN_CHARACTER_ACTION, "I cross the bridge.")
+            ),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+            branching_writer_service=fake_branching_writer,  # type: ignore[arg-type]
+            branching_session_resolver=_branching_resolver,
+        )
+
+        result = orch.orchestrate_turn(
+            story_a_id,  # story A
+            node_b.node_id,  # node belongs to story B — cross-story mismatch
+            "I cross the bridge.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert fake_branching_writer.called is False

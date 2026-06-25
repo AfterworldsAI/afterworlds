@@ -67,6 +67,7 @@ from afterworlds.pipeline.provider._models import (
 
 if TYPE_CHECKING:
     from afterworlds.models.session import BranchingSessionState
+    from afterworlds.pipeline.branching.models import SelectedBranchContext
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
 
 # ---------------------------------------------------------------------------
@@ -110,15 +111,30 @@ _BRANCHING_TOOL_DEF = ProviderToolDefinition(
 def _validate_branch_count(
     branch_options_text: list[str],
     branch_count_range: str | None,
+    branch_presentation_state: str | None,
 ) -> None:
     """Validate proposed branch option count against the session's range.
 
+    For ``held`` and ``omitted`` presentation states the tool contract requires
+    an empty list.  Non-empty options with those states are a contract violation
+    (fail-closed).  For ``shown`` the configured [min, max] range applies.
+
     Raises ``BranchingPassError`` when:
-    - ``branch_count_range`` is set and the count is outside [min, max].
+    - ``branch_presentation_state`` is 'held'/'omitted' and options are non-empty.
+    - ``branch_count_range`` is set and the count is outside [min, max] for 'shown'.
     - ``branch_count_range`` is set but unknown (not in BRANCH_COUNT_RANGE_BOUNDS).
 
     Never clamps, pads, or truncates.  Out-of-range is a hard fail-closed error.
     """
+    if branch_presentation_state in ("held", "omitted"):
+        if branch_options_text:
+            raise BranchingPassError(
+                f"Model proposed {len(branch_options_text)} branch option(s) with"
+                f" branch_presentation_state={branch_presentation_state!r}."
+                " branch_options_text must be empty ([]) when presentation state is"
+                " 'held' or 'omitted'."
+            )
+        return
     if branch_count_range is None:
         return
     bounds = BRANCH_COUNT_RANGE_BOUNDS.get(branch_count_range)
@@ -163,6 +179,7 @@ class BranchingWriterService:
         session_state: BranchingSessionState,
         *,
         provider: ProviderAdapter,
+        selected_branch_context: SelectedBranchContext | None = None,
     ) -> BranchingPassResult:
         """Execute one branching writer pass and return a typed result.
 
@@ -170,6 +187,9 @@ class BranchingWriterService:
             built_context: AssembledContext from the Context Builder.
             session_state: Current BranchingSessionState with interaction config.
             provider: ProviderAdapter for the LLM call.
+            selected_branch_context: Resolved selection from a BRANCH_CHOICE turn,
+                rendered as a volatile block so the model can reference the chosen
+                branch.  Not part of the stable prefix or cache key.
 
         Returns:
             BranchingPassResult with code-stamped affordances and validated options.
@@ -179,7 +199,11 @@ class BranchingWriterService:
             BranchingPassError: LLM call failure, missing tool block, schema
                 validation failure, or branch-count range violation.
         """
-        request = self._render(built_context, session_state)
+        request = self._render(
+            built_context,
+            session_state,
+            selected_branch_context=selected_branch_context,
+        )
 
         try:
             result = provider.call(request)
@@ -214,7 +238,11 @@ class BranchingWriterService:
             if session_state.branch_count_range is not None
             else None
         )
-        _validate_branch_count(proposal.branch_options_text, branch_count_range_val)
+        _validate_branch_count(
+            proposal.branch_options_text,
+            branch_count_range_val,
+            proposal.branch_presentation_state,
+        )
 
         # Code stamps: option_id assigned sequentially.
         branch_options = [
@@ -265,6 +293,8 @@ class BranchingWriterService:
         self,
         built_context: AssembledContext,
         session_state: BranchingSessionState,
+        *,
+        selected_branch_context: SelectedBranchContext | None = None,
     ) -> ProviderCallRequest:
         """Render AssembledContext into a ProviderCallRequest.
 
@@ -272,6 +302,11 @@ class BranchingWriterService:
         A session-state summary is appended to the volatile suffix so the model
         knows the active interaction style, cadence, and branch count range
         without those values appearing in the tool schema (they are code-owned).
+
+        When ``selected_branch_context`` is present it is rendered as a volatile
+        block after the session-config block and before the player-input block,
+        so the model can reference which branch the Sojourner chose.  It must
+        not appear in stable-prefix or cache-warmable blocks.
         """
         ttl = TTL_EXTENDED if self._config.extended_ttl else TTL_DEFAULT
         rendered_blocks: list[RenderedBlock] = list(
@@ -314,6 +349,21 @@ class BranchingWriterService:
             f"freeform_available: {_free_v}",
         ]
         rendered_blocks.append(RenderedBlock(text="\n".join(session_context_lines)))
+
+        # Volatile: selected branch context from a BRANCH_CHOICE turn.
+        # Placed after session config and before player input so the model can
+        # reference the chosen branch in its narrative.  Must not be in any
+        # stable-prefix or cache-warmable block.
+        if selected_branch_context is not None:
+            _sbc = selected_branch_context
+            _sbc_lines = [
+                "[Selected Branch]",
+                f"option_id: {_sbc.option_id}",
+                f"action_text: {_sbc.action_text}",
+            ]
+            if _sbc.annotation is not None:
+                _sbc_lines.append(f"annotation: {_sbc.annotation}")
+            rendered_blocks.append(RenderedBlock(text="\n".join(_sbc_lines)))
 
         rendered_blocks.append(
             RenderedBlock(

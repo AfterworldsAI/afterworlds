@@ -42,8 +42,14 @@ from afterworlds.pipeline._refusal import (
 )
 from afterworlds.pipeline.branching.caller import PRODUCE_BRANCH_OUTPUT_TOOL_NAME
 from afterworlds.pipeline.branching.config import BranchingWriterConfig
-from afterworlds.pipeline.branching.models import BranchingPassError
-from afterworlds.pipeline.branching.service import BranchingWriterService
+from afterworlds.pipeline.branching.models import (
+    BranchingPassError,
+    SelectedBranchContext,
+)
+from afterworlds.pipeline.branching.service import (
+    BranchingWriterService,
+    _validate_branch_count,
+)
 from afterworlds.pipeline.provider._models import (
     ProviderCallRequest,
     ProviderCallResult,
@@ -499,3 +505,249 @@ class TestProviderFailurePaths:
                 session,
                 provider=_FakeProvider(bad_input),
             )
+
+
+# ---------------------------------------------------------------------------
+# Helpers for request inspection tests
+# ---------------------------------------------------------------------------
+
+
+class _CapturingProvider:
+    """FakeProvider that records the last ProviderCallRequest."""
+
+    def __init__(self, tool_input: dict) -> None:  # type: ignore[type-arg]
+        self._tool_input = tool_input
+        self.last_request: ProviderCallRequest | None = None
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        self.last_request = request
+        return _make_result(self._tool_input)
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+
+def _all_block_text(request: ProviderCallRequest) -> str:
+    return "\n".join(b.text for b in request.rendered_blocks)
+
+
+def _stable_block_text(request: ProviderCallRequest) -> str:
+    # Stable-prefix blocks are identified by the cache-breakpoint signal.
+    # Only the last stable block has has_cache_breakpoint=True.  Collect
+    # everything up to AND including that block as the "stable region."
+    blocks = request.rendered_blocks
+    breakpoint_idx = next(
+        (i for i, b in enumerate(blocks) if b.has_cache_breakpoint), -1
+    )
+    if breakpoint_idx == -1:
+        return ""
+    return "\n".join(b.text for b in blocks[: breakpoint_idx + 1])
+
+
+# ---------------------------------------------------------------------------
+# Test: Fix 1 — SelectedBranchContext threaded into BranchingWriterService
+# ---------------------------------------------------------------------------
+
+
+class TestSelectedBranchContextRendering:
+    """SelectedBranchContext appears as volatile block in the provider payload."""
+
+    def test_action_text_and_annotation_in_rendered_blocks(self) -> None:
+        sbc = SelectedBranchContext(
+            option_id="opt_2",
+            action_text="Cross the bridge",
+            annotation="cautiously",
+        )
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        provider = _CapturingProvider(_valid_tool_input())
+        service = BranchingWriterService(config=_make_config())
+        service.write(
+            _make_assembled(),
+            session,
+            provider=provider,
+            selected_branch_context=sbc,
+        )
+        assert provider.last_request is not None
+        text = _all_block_text(provider.last_request)
+        assert "Cross the bridge" in text
+        assert "cautiously" in text
+
+    def test_selected_context_not_in_stable_prefix_blocks(self) -> None:
+        sbc = SelectedBranchContext(
+            option_id="opt_1",
+            action_text="Cross the bridge",
+            annotation="cautiously",
+        )
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        provider = _CapturingProvider(_valid_tool_input())
+        service = BranchingWriterService(
+            config=BranchingWriterConfig(
+                model="claude-sonnet-4-6",
+                api_key_env="ANTHROPIC_API_KEY",
+                extended_ttl=True,
+            )
+        )
+        service.write(
+            _make_assembled(),
+            session,
+            provider=provider,
+            selected_branch_context=sbc,
+        )
+        assert provider.last_request is not None
+        stable_text = _stable_block_text(provider.last_request)
+        assert "Cross the bridge" not in stable_text
+        assert "cautiously" not in stable_text
+
+    def test_annotation_line_absent_when_none(self) -> None:
+        sbc = SelectedBranchContext(
+            option_id="opt_1",
+            action_text="Cross the bridge",
+            annotation=None,
+        )
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        provider = _CapturingProvider(_valid_tool_input())
+        service = BranchingWriterService(config=_make_config())
+        service.write(
+            _make_assembled(),
+            session,
+            provider=provider,
+            selected_branch_context=sbc,
+        )
+        assert provider.last_request is not None
+        text = _all_block_text(provider.last_request)
+        assert "annotation:" not in text
+        assert "Cross the bridge" in text
+
+    def test_no_selected_context_no_selected_branch_block(self) -> None:
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        provider = _CapturingProvider(_valid_tool_input())
+        service = BranchingWriterService(config=_make_config())
+        service.write(
+            _make_assembled(),
+            session,
+            provider=provider,
+        )
+        assert provider.last_request is not None
+        text = _all_block_text(provider.last_request)
+        assert "[Selected Branch]" not in text
+
+
+# ---------------------------------------------------------------------------
+# Test: Fix 2 — held/omitted branch_presentation_state allows empty options
+# ---------------------------------------------------------------------------
+
+
+class TestHeldOmittedPresentationState:
+    """held/omitted with [] passes; held/omitted with non-empty fails-closed."""
+
+    def test_held_with_empty_options_passes(self) -> None:
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        tool_input = {
+            "narrative_text": "The story continues…",
+            "branch_options_text": [],
+            "branch_presentation_state": "held",
+            "pacing_stage_hint": None,
+        }
+        service = BranchingWriterService(config=_make_config())
+        result = service.write(
+            _make_assembled(),
+            session,
+            provider=_FakeProvider(tool_input),
+        )
+        assert result.branch_options == []
+
+    def test_omitted_with_empty_options_passes(self) -> None:
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        tool_input = {
+            "narrative_text": "The story continues…",
+            "branch_options_text": [],
+            "branch_presentation_state": "omitted",
+            "pacing_stage_hint": None,
+        }
+        service = BranchingWriterService(config=_make_config())
+        result = service.write(
+            _make_assembled(),
+            session,
+            provider=_FakeProvider(tool_input),
+        )
+        assert result.branch_options == []
+
+    def test_held_with_nonempty_options_raises(self) -> None:
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        tool_input = {
+            "narrative_text": "The story continues…",
+            "branch_options_text": ["Option A", "Option B"],
+            "branch_presentation_state": "held",
+            "pacing_stage_hint": None,
+        }
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError, match="held"):
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_FakeProvider(tool_input),
+            )
+
+    def test_omitted_with_nonempty_options_raises(self) -> None:
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        tool_input = {
+            "narrative_text": "The story continues…",
+            "branch_options_text": ["Option A"],
+            "branch_presentation_state": "omitted",
+            "pacing_stage_hint": None,
+        }
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError, match="omitted"):
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_FakeProvider(tool_input),
+            )
+
+    def test_shown_with_zero_options_still_fails(self) -> None:
+        # 'shown' with a configured range still enforces count; zero violates min.
+        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_THREE)
+        tool_input = {
+            "narrative_text": "The story continues…",
+            "branch_options_text": [],
+            "branch_presentation_state": "shown",
+            "pacing_stage_hint": None,
+        }
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError, match="0 branch option"):
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_FakeProvider(tool_input),
+            )
+
+
+# ---------------------------------------------------------------------------
+# Test: Fix 2 — _validate_branch_count unit coverage
+# ---------------------------------------------------------------------------
+
+
+class TestValidateBranchCountDirect:
+    """Direct tests for _validate_branch_count with branch_presentation_state."""
+
+    def test_held_empty_returns_none(self) -> None:
+        _validate_branch_count([], "2-3", "held")  # should not raise
+
+    def test_omitted_empty_returns_none(self) -> None:
+        _validate_branch_count([], "3-4", "omitted")  # should not raise
+
+    def test_held_nonempty_raises(self) -> None:
+        with pytest.raises(BranchingPassError, match="held"):
+            _validate_branch_count(["A", "B"], "2-3", "held")
+
+    def test_omitted_nonempty_raises(self) -> None:
+        with pytest.raises(BranchingPassError, match="omitted"):
+            _validate_branch_count(["A"], "2-3", "omitted")
+
+    def test_shown_within_range_passes(self) -> None:
+        _validate_branch_count(["A", "B"], "2-3", "shown")  # should not raise
+
+    def test_shown_below_min_raises(self) -> None:
+        with pytest.raises(BranchingPassError):
+            _validate_branch_count(["A"], "2-3", "shown")

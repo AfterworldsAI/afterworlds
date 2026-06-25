@@ -1069,6 +1069,34 @@ class OrchestratorService:
                 self._branching_writer_service is not None
             )  # noqa: S101 — narrowed above
             _branching_svc = self._branching_writer_service
+            # Lineage guard: verify node/story lineage before the LLM call so no
+            # provider spend is wasted on a turn that cannot be persisted.
+            from afterworlds.persistence.crud.node import (
+                node_belongs_to_story as _nbs,
+            )
+
+            if not _nbs(session, node_id, story_id):
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer: node {node_id} does not belong to story"
+                    f" {story_id}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            _ctx_story_id = ctx.stable_prefix.story_bible_context.story_id
+            if _ctx_story_id != story_id:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer: assembled context story {_ctx_story_id}"
+                    f" != target story {story_id}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            _sel_ctx = selected_branch_context
             try:
                 branching_pass_result, ms = _timed(
                     lambda: _branching_svc.write(
@@ -1079,6 +1107,7 @@ class OrchestratorService:
                             sojourner_id,
                             turn_id=writer_turn_id,
                         ),
+                        selected_branch_context=_sel_ctx,
                     )
                 )
                 latency["branching_writer"] = ms
@@ -1242,6 +1271,22 @@ class OrchestratorService:
                 model_tier=_bpr.model_tier or "",
             )
         else:
+            # Thread selected branch context into the ledger when the branching
+            # writer is not active (partially-wired orchestrator: selection service
+            # wired, branching writer service not).  The prose WriterService renders
+            # the ledger as a volatile block, so selected context reaches the model.
+            if selected_branch_context is not None:
+                _sbc = selected_branch_context
+                _sbc_lines = [
+                    "[Selected Branch]",
+                    f"option_id: {_sbc.option_id}",
+                    f"action_text: {_sbc.action_text}",
+                ]
+                if _sbc.annotation is not None:
+                    _sbc_lines.append(f"annotation: {_sbc.annotation}")
+                ctx.pass_forward_ledger.add(
+                    "branching_selection", "\n".join(_sbc_lines)
+                )
             try:
                 writer_result, ms = _timed(
                     lambda: self._writer_service.write(
@@ -1875,13 +1920,30 @@ class OrchestratorService:
                     ):
                         _validated_range = None  # discard invalid range silently
 
+                # Determine persistence strategy for the style × range pair to
+                # avoid leaving the row in a mismatched configuration:
+                # • FREEFORM_ONLY: persist style, clear range to NULL.
+                # • HYBRID/TRUE_CYOA with valid range: persist both.
+                # • HYBRID/TRUE_CYOA without valid range: skip the style change
+                #   so the existing style stays in place (atomicity).
+                _apply_style = _cfg_update.interaction_style
+                _should_clear_range = False
+                if _cfg_update.interaction_style is _IS.FREEFORM_ONLY:
+                    _should_clear_range = True
+                elif (
+                    _cfg_update.interaction_style in (_IS.HYBRID, _IS.TRUE_CYOA)
+                    and _validated_range is None
+                ):
+                    _apply_style = None  # skip style; existing row stays intact
+
                 _apply_cfg(
                     session,
                     story_id,
-                    interaction_style=_cfg_update.interaction_style,
+                    interaction_style=_apply_style,
                     branching_cadence=_cfg_update.branching_cadence,
                     branch_count_range=_validated_range,
                     length_preference=_cfg_update.length_preference,
+                    clear_branch_count_range=_should_clear_range,
                 )
             except Exception:  # noqa: BLE001
                 pass  # Best-effort; OOC prose already delivered

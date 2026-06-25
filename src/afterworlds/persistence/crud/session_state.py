@@ -308,11 +308,18 @@ def apply_branching_config_update(
     branching_cadence: BranchingCadence | None = None,
     branch_count_range: BranchCountRange | None = None,
     length_preference: LengthPreference | None = None,
+    *,
+    clear_branch_count_range: bool = False,
 ) -> bool:
     """Apply non-None config fields to the BranchingSessionState ORM row for a story.
 
     Only updates the fields that are non-None.  Returns True when the row was
     found and flushed; False when no row exists for the given story_id.
+
+    ``clear_branch_count_range=True`` explicitly sets ``branch_count_range`` to
+    NULL regardless of the ``branch_count_range`` argument (use when switching to
+    FREEFORM_ONLY, which has no valid range).  When ``False``, the usual
+    "non-None means set, None means leave unchanged" semantics apply.
     """
     row = session.scalars(
         select(BranchingSessionStateORM).where(
@@ -325,7 +332,9 @@ def apply_branching_config_update(
         row.interaction_style = interaction_style.value
     if branching_cadence is not None:
         row.branching_cadence = branching_cadence.value
-    if branch_count_range is not None:
+    if clear_branch_count_range:
+        row.branch_count_range = None
+    elif branch_count_range is not None:
         row.branch_count_range = branch_count_range.value
     if length_preference is not None:
         row.length_preference = length_preference.value

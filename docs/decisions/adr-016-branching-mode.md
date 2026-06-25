@@ -219,6 +219,30 @@ to) is deferred to a future issue.
 }
 ```
 
+**⚠ Boundary: `Node.branching_logic` type mismatch with labeled-edge requirement**
+
+The CRD Issue 16 spec describes the realized selection edge as a labeled entry in
+`Node.branching_logic`. The current field type is `list[UUID]`, which **cannot
+express the labeled-edge shape** `{"option_id": "opt_1", "target_node_id": "<UUID>"}`
+without a schema change. Two problems compound this:
+
+1. **Type incompatibility:** `list[UUID]` cannot carry `option_id` labels.
+   Changing to `list[dict]` or a `LabeledEdge` model requires a migration.
+2. **Missing target:** `target_node_id` does not exist until the next node is
+   created via graph traversal — which is itself deferred.
+
+**What Issue 16 implements instead:** Phase G writes `selected_option_id` and
+`selection_annotation` to `Node.mode_metadata.branching` (the JSON sub-document
+field on the same Node). This preserves the selection record for observability and
+future navigation without the schema change required to write labeled edges to
+`branching_logic`.
+
+**What remains open:** Full compliance with the `branching_logic` labeled-edge
+requirement needs: (a) a migration to change the field type, (b) graph traversal
+to resolve `target_node_id`, and (c) Phase G to write both fields atomically. This
+is explicitly out of scope for Issue 16. Owner acceptance is required before merge
+if the `branching_logic` field-type change is considered a blocking requirement.
+
 **Rationale:** Recording what was selected on a beat (`selected_option_id`) is
 needed for observability and future navigation even before the graph traversal
 layer exists. Activating `BranchTree`/`BranchNode` requires resolving the
