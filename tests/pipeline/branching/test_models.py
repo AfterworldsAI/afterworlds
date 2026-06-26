@@ -509,3 +509,66 @@ class TestBranchingWriterConfigFromEnv:
         monkeypatch.setenv("AFTERWORLDS_BRANCHING_WRITER_EXTENDED_TTL", "false")
         cfg = BranchingWriterConfig.from_env()
         assert cfg.extended_ttl is False
+
+
+# ---------------------------------------------------------------------------
+# Test: BranchingWriterProposal — branch_presentation_state validation (Round 3)
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingWriterProposalPresentationState:
+    """BranchingWriterProposal rejects invalid branch_presentation_state values."""
+
+    def test_shown_is_valid(self) -> None:
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        p = BranchingWriterProposal(
+            narrative_text="prose",
+            branch_options_text=["opt 1", "opt 2"],
+            branch_presentation_state="shown",
+        )
+        assert p.branch_presentation_state == "shown"
+
+    def test_held_is_valid(self) -> None:
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        p = BranchingWriterProposal(
+            narrative_text="prose",
+            branch_options_text=[],
+            branch_presentation_state="held",
+        )
+        assert p.branch_presentation_state == "held"
+
+    def test_omitted_is_valid(self) -> None:
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        p = BranchingWriterProposal(
+            narrative_text="prose",
+            branch_options_text=[],
+            branch_presentation_state="omitted",
+        )
+        assert p.branch_presentation_state == "omitted"
+
+    def test_invalid_value_fails_schema_validation(self) -> None:
+        from pydantic import ValidationError
+
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        with pytest.raises(ValidationError):
+            BranchingWriterProposal(
+                narrative_text="prose",
+                branch_options_text=["opt 1"],
+                branch_presentation_state="later",
+            )
+
+    def test_empty_string_fails_schema_validation(self) -> None:
+        from pydantic import ValidationError
+
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        with pytest.raises(ValidationError):
+            BranchingWriterProposal(
+                narrative_text="prose",
+                branch_options_text=[],
+                branch_presentation_state="",
+            )

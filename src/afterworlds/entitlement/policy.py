@@ -260,7 +260,7 @@ class TurnCostPolicy:
                     )
                 )
 
-        if result.writer_result is not None:
+        if result.writer_result is not None and result.branching_pass_result is None:
             wr = result.writer_result
             snapshots.append(
                 _require_tokens(

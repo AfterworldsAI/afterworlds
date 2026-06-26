@@ -61,7 +61,7 @@ class BranchingWriterProposal(BaseModel):
 
     narrative_text: str
     branch_options_text: list[str]
-    branch_presentation_state: str
+    branch_presentation_state: BranchPresentationState
     pacing_stage_hint: str | None = None
 
 

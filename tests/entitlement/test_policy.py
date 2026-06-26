@@ -676,6 +676,104 @@ def test_extract_snapshots_skips_branching_ooc_extractor_when_none() -> None:
     assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR not in pass_ids
 
 
+# ---------------------------------------------------------------------------
+# Round 3: WRITER snapshot skipped when branching_pass_result present
+# ---------------------------------------------------------------------------
+
+
+def _make_branching_writer_both() -> object:
+    """PIPELINE_ERROR result with BOTH writer_result and branching_pass_result.
+
+    Simulates the synthetic WriterResult stamped for downstream prose-consuming
+    passes alongside the real BranchingPassResult.  Used to verify no double-charge.
+    """
+    from uuid import uuid4
+
+    from afterworlds.models.enums import BranchingCadence, IntentType, InteractionStyle
+    from afterworlds.models.intent_classification import IntentClassificationResult
+    from afterworlds.pipeline.branching.models import BranchingPassResult
+    from afterworlds.pipeline.orchestrator.models import (
+        OrchestrationResult,
+        PipelineDisposition,
+    )
+    from afterworlds.pipeline.writer.models import WriterResult
+
+    bpr = BranchingPassResult(
+        narrative_text="test",
+        interaction_style=InteractionStyle.HYBRID,
+        branching_cadence=BranchingCadence.BALANCED,
+        length_preference=None,
+        freeform_available=True,
+        branch_count_range=None,
+        branch_options=[],
+        branch_presentation_state="held",
+        provider="anthropic",
+        model_identifier="claude-sonnet-4-5",
+        model_tier="sonnet",
+        latency_ms=100,
+        input_token_count=100,
+        output_token_count=50,
+    )
+    wr = WriterResult(
+        turn_id=uuid4(),
+        assistant_output="prose",
+        model_identifier="claude-sonnet-4-5",
+        latency_ms=10,
+        input_token_count=200,
+        output_token_count=80,
+        cache_read_token_count=None,
+        cache_creation_token_count=None,
+        provider="anthropic",
+        model_tier="sonnet",
+    )
+    return OrchestrationResult(
+        disposition=PipelineDisposition.PIPELINE_ERROR,
+        delivered_output=None,
+        turn_id=None,
+        intent_classification=IntentClassificationResult(
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            confidence=1.0,
+            raw_input="",
+            ambiguous=False,
+        ),
+        pipeline_error_summary="double-charge regression test",
+        total_latency_ms=0,
+        pass_latency_breakdown={},
+        writer_result=wr,
+        branching_pass_result=bpr,
+    )
+
+
+def test_extract_snapshots_prose_writer_emits_writer_snapshot() -> None:
+    """Prose Writer turn (no branching_pass_result) still emits WRITER snapshot."""
+    from uuid import uuid4
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    result = _make_delivered_result(uuid4())
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.WRITER in pass_ids
+
+
+def test_extract_snapshots_branching_writer_turn_no_writer_snapshot() -> None:
+    """Branching turn: BRANCHING_WRITER present, WRITER absent (no double-charge)."""
+    result = _make_branching_writer_both()
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.BRANCHING_WRITER in pass_ids
+    assert PipelinePassId.WRITER not in pass_ids
+
+
+def test_extract_snapshots_branching_writer_no_duplicate_snapshots() -> None:
+    """No duplicate WRITER/BRANCHING_WRITER when both result fields are present."""
+    result = _make_branching_writer_both()
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert pass_ids.count(PipelinePassId.WRITER) == 0
+    assert pass_ids.count(PipelinePassId.BRANCHING_WRITER) == 1
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

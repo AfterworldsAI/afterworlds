@@ -836,6 +836,258 @@ class TestOOCShortCircuit:
 
 
 # ---------------------------------------------------------------------------
+# Branching OOC config persistence strategy (Round 3 Fix 2)
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass as _dataclass  # noqa: E402
+
+
+@_dataclass
+class _FakeBranchingOocExtractor:
+    """Returns a fixed BranchingOocConfigExtractorResult; never calls the provider."""
+
+    config_update: object
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingOocConfigExtractorResult,
+        )
+
+        return BranchingOocConfigExtractorResult(
+            config_update=self.config_update,  # type: ignore[arg-type]
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+
+
+def _make_ooc_cfg_orch(
+    session_factory: object, config_update: object
+) -> OrchestratorService:
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(),
+        branching_ooc_config_extractor=_FakeBranchingOocExtractor(  # type: ignore[arg-type]
+            config_update
+        ),
+    )
+
+
+class TestBranchingOocConfigPersistence:
+    """Round 3 Fix 2: style-only OOC transitions respect persisted range compat."""
+
+    def _seed_bss(
+        self,
+        session: object,
+        story_id: UUID,
+        *,
+        interaction_style: object,
+        branch_count_range: object = None,
+    ) -> None:
+        from afterworlds.models.enums import PacingStage
+        from afterworlds.models.session import BranchingSessionState
+        from afterworlds.persistence.crud.session_state import (
+            create_branching_session_state,
+        )
+
+        bss = BranchingSessionState(
+            story_id=story_id,
+            pacing_stage=PacingStage.SETUP,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branch_count_range=branch_count_range,  # type: ignore[arg-type]
+        )
+        create_branching_session_state(session, bss)  # type: ignore[arg-type]
+        session.commit()  # type: ignore[union-attr]
+
+    def _read_bss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_branching_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_hybrid_2_3_to_true_cyoa_no_range_persists_style_and_keeps_range(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA (no range): style changes to TRUE_CYOA, 2-3 kept."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+    def test_hybrid_3_4_to_true_cyoa_no_range_suppresses_style_change(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 3-4 → TRUE_CYOA (no range): suppressed — 3-4 invalid for TRUE_CYOA."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.THREE_TO_FOUR,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.THREE_TO_FOUR
+
+    def test_explicit_invalid_range_suppresses_style_does_not_fallback_to_persisted(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Explicit invalid range: suppress style; no fallback to persisted range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+    def test_freeform_only_clears_range_unchanged(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY: persists style and clears branch count range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.FREEFORM_ONLY),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to freeform",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        assert bss.branch_count_range is None
+
+    def test_explicit_valid_range_persists_style_and_range(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Explicit valid range for target style: persists both style and range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=None,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.TWO_TO_FOUR,
+            ),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 2-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+
+
+# ---------------------------------------------------------------------------
 # RPG OOC state grounding (Round 5 Fix 3)
 # ---------------------------------------------------------------------------
 

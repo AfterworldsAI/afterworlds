@@ -1888,6 +1888,7 @@ class OrchestratorService:
         ):
             try:
                 from afterworlds.models.enums import InteractionStyle as _IS
+                from afterworlds.models.session import BranchingSessionState as _BSS
                 from afterworlds.persistence.crud.session_state import (
                     apply_branching_config_update as _apply_cfg,
                 )
@@ -1908,6 +1909,7 @@ class OrchestratorService:
                 _cfg_update = _extract_result.config_update
 
                 # Determine the target interaction style for range validation.
+                _bss_row: _BSS | None = None
                 _target_style: _IS | None = _cfg_update.interaction_style
                 if _target_style is None:
                     _bss_row = _get_bss(session, story_id)
@@ -1915,8 +1917,12 @@ class OrchestratorService:
                         _bss_row.interaction_style if _bss_row is not None else None
                     )
 
+                # Separate "no range requested" from "explicit range requested but
+                # later found invalid" so the two cases get different treatment.
+                _requested_range = _cfg_update.branch_count_range
+
                 # Validate branch_count_range against the target style.
-                _validated_range = _cfg_update.branch_count_range
+                _validated_range = _requested_range
                 if _validated_range is not None and _target_style is not None:
                     _allowed_ranges = _ALLOWED.get(_target_style)
                     if (
@@ -1928,18 +1934,41 @@ class OrchestratorService:
                 # Determine persistence strategy for the style × range pair to
                 # avoid leaving the row in a mismatched configuration:
                 # • FREEFORM_ONLY: persist style, clear range to NULL.
-                # • HYBRID/TRUE_CYOA with valid range: persist both.
-                # • HYBRID/TRUE_CYOA without valid range: skip the style change
-                #   so the existing style stays in place (atomicity).
+                # • HYBRID/TRUE_CYOA with a valid requested range: persist both.
+                # • HYBRID/TRUE_CYOA, no range requested, persisted range
+                #   compatible with target style: persist style, keep existing range.
+                # • HYBRID/TRUE_CYOA, no range requested, persisted range
+                #   incompatible (or absent): suppress style change (atomicity).
+                # • HYBRID/TRUE_CYOA, explicit range requested but invalid:
+                #   suppress style change (do not fall back to persisted range).
                 _apply_style = _cfg_update.interaction_style
                 _should_clear_range = False
                 if _cfg_update.interaction_style is _IS.FREEFORM_ONLY:
                     _should_clear_range = True
-                elif (
-                    _cfg_update.interaction_style in (_IS.HYBRID, _IS.TRUE_CYOA)
-                    and _validated_range is None
-                ):
-                    _apply_style = None  # skip style; existing row stays intact
+                elif _cfg_update.interaction_style in (_IS.HYBRID, _IS.TRUE_CYOA):
+                    if _validated_range is not None:
+                        pass  # persist style + explicit valid range
+                    elif _requested_range is None:
+                        # No range requested — check if the persisted range is
+                        # valid for the target style before allowing the switch.
+                        if _bss_row is None:
+                            _bss_row = _get_bss(session, story_id)
+                        _persisted = (
+                            _bss_row.branch_count_range
+                            if _bss_row is not None
+                            else None
+                        )
+                        _target_allowed = _ALLOWED.get(_cfg_update.interaction_style)
+                        if (
+                            _persisted is None
+                            or _target_allowed is None
+                            or _persisted not in _target_allowed
+                        ):
+                            _apply_style = None  # incompatible persisted range
+                        # else: persisted range is valid for target — allow style
+                    else:
+                        # Explicit range was requested but is invalid; suppress.
+                        _apply_style = None
 
                 _apply_cfg(
                     session,
