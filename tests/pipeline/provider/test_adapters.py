@@ -931,3 +931,62 @@ def test_pass_identifier_rpg_adjudication_mapped() -> None:
 
     result = _pass_id_to_pass_identifier(PipelinePassId.RPG_ADJUDICATION)
     assert result is PassIdentifier.RPG_ADJUDICATION
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 (Round 2, CRD Issue 16): BRANCHING_WRITER and
+# BRANCHING_OOC_CONFIG_EXTRACTOR registered in all provider maps
+# ---------------------------------------------------------------------------
+
+
+def test_model_for_branching_writer_returns_sonnet_model() -> None:
+    """BRANCHING_WRITER must be in _PASS_PROFILE — no KeyError."""
+    profile = AnthropicCapabilityProfile()
+    model = profile.model_for(PipelinePassId.BRANCHING_WRITER)
+    assert "sonnet" in model.lower()
+
+
+def test_tier_for_branching_writer_returns_sonnet() -> None:
+    """BRANCHING_WRITER defaults to SONNET tier."""
+    profile = AnthropicCapabilityProfile()
+    assert profile.tier_for(PipelinePassId.BRANCHING_WRITER) is ModelTier.SONNET
+
+
+def test_model_for_branching_ooc_extractor_returns_haiku_model() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR must be in _PASS_PROFILE — no KeyError."""
+    profile = AnthropicCapabilityProfile()
+    model = profile.model_for(PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR)
+    assert "haiku" in model.lower()
+
+
+def test_tier_for_branching_ooc_extractor_returns_haiku() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR defaults to HAIKU tier."""
+    profile = AnthropicCapabilityProfile()
+    assert (
+        profile.tier_for(PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR)
+        is ModelTier.HAIKU
+    )
+
+
+def test_pass_identifier_branching_writer_explicitly_mapped() -> None:
+    """_pass_id_to_pass_identifier maps BRANCHING_WRITER to BRANCHING_WRITER
+    (not silently to the PLANNER default)."""
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.provider.adapters._anthropic import (
+        _pass_id_to_pass_identifier,
+    )
+
+    result = _pass_id_to_pass_identifier(PipelinePassId.BRANCHING_WRITER)
+    assert result is PassIdentifier.BRANCHING_WRITER
+
+
+def test_all_pipeline_pass_ids_have_pass_profile_entry() -> None:
+    """Regression: every PipelinePassId must have a _PASS_PROFILE entry so that
+    AnthropicCapabilityProfile.model_for() and tier_for() never raise KeyError."""
+    from afterworlds.pipeline.provider.adapters._anthropic import _PASS_PROFILE
+
+    for pass_id in PipelinePassId:
+        assert pass_id in _PASS_PROFILE, (
+            f"PipelinePassId.{pass_id} is missing from _PASS_PROFILE — "
+            "add it before adding new passes to the pipeline"
+        )

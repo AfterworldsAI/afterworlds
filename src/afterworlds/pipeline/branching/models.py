@@ -180,6 +180,31 @@ class BranchingConfigUpdate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# OOC config extractor result
+# ---------------------------------------------------------------------------
+
+
+class BranchingOocConfigExtractorResult(BaseModel):
+    """Result from the OOC config extractor pass (CRD Issue 16 Phase F).
+
+    Wraps the extracted config update with provider usage metrics so the
+    entitlement layer can include this pass in credit settlement.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    config_update: BranchingConfigUpdate
+    provider: str | None = None
+    model_identifier: str | None = None
+    model_tier: str | None = None
+    latency_ms: int = 0
+    input_token_count: int | None = None
+    output_token_count: int | None = None
+    cache_read_token_count: int | None = None
+    cache_creation_token_count: int | None = None
+
+
+# ---------------------------------------------------------------------------
 # Branching visible state
 # ---------------------------------------------------------------------------
 
@@ -209,6 +234,7 @@ class BranchingVisibleState(BaseModel):
 __all__ = [
     "BranchOption",
     "BranchingConfigUpdate",
+    "BranchingOocConfigExtractorResult",
     "BranchingPassError",
     "BranchingPassResult",
     "BranchingVisibleState",

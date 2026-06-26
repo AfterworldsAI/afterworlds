@@ -155,6 +155,12 @@ class OrchestrationResult(BaseModel):
     # declared as Any here to avoid an import cycle.
     branching_visible_state: Any | None = None
 
+    # Additive Issue 16 Round-2 field: OOC config extractor provider usage for
+    # entitlement settlement.  Populated when Phase F extraction succeeds (best-
+    # effort); None if extraction is skipped or fails.  Type is
+    # BranchingOocConfigExtractorResult — declared as Any to avoid import cycle.
+    branching_ooc_config_result: Any | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.

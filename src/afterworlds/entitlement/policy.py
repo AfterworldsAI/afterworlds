@@ -31,6 +31,8 @@ PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
     PipelinePassId.CONTRADICTION: ModelTier.HAIKU,
     PipelinePassId.INPUT_SAFETY: ModelTier.HAIKU,
     PipelinePassId.OUTPUT_SAFETY: ModelTier.HAIKU,
+    PipelinePassId.BRANCHING_WRITER: ModelTier.SONNET,
+    PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: ModelTier.HAIKU,
 }
 
 _CREDIT_QUANTIZE = Decimal("0.0001")
@@ -308,6 +310,48 @@ class TurnCostPolicy:
                     cr_result.model_identifier,
                     provider=cr_result.provider,
                     model_tier_str=cr_result.model_tier,
+                )
+            )
+
+        if result.branching_pass_result is not None:
+            from afterworlds.pipeline.branching.models import (  # noqa: PLC0415
+                BranchingPassResult,
+            )
+
+            assert isinstance(result.branching_pass_result, BranchingPassResult)
+            bpr = result.branching_pass_result
+            snapshots.append(
+                _require_tokens(
+                    PipelinePassId.BRANCHING_WRITER,
+                    bpr.input_token_count,
+                    bpr.output_token_count,
+                    bpr.cache_read_token_count,
+                    bpr.cache_creation_token_count,
+                    bpr.model_identifier,
+                    provider=bpr.provider,
+                    model_tier_str=bpr.model_tier,
+                )
+            )
+
+        if result.branching_ooc_config_result is not None:
+            from afterworlds.pipeline.branching.models import (  # noqa: PLC0415
+                BranchingOocConfigExtractorResult,
+            )
+
+            assert isinstance(
+                result.branching_ooc_config_result, BranchingOocConfigExtractorResult
+            )
+            bocr = result.branching_ooc_config_result
+            snapshots.append(
+                _require_tokens(
+                    PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR,
+                    bocr.input_token_count,
+                    bocr.output_token_count,
+                    bocr.cache_read_token_count,
+                    bocr.cache_creation_token_count,
+                    bocr.model_identifier,
+                    provider=bocr.provider,
+                    model_tier_str=bocr.model_tier,
                 )
             )
 

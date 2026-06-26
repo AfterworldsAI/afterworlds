@@ -526,6 +526,156 @@ def test_extract_snapshots_rpg_adjudication_partial_token_not_silently_skipped()
         TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
 
 
+# ---------------------------------------------------------------------------
+# Round 2 (CRD Issue 16): BRANCHING_WRITER and BRANCHING_OOC_CONFIG_EXTRACTOR
+# in PASS_TIER_DEFAULTS and extract_snapshots
+# ---------------------------------------------------------------------------
+
+
+def test_pass_tier_defaults_includes_branching_writer() -> None:
+    """BRANCHING_WRITER must be in PASS_TIER_DEFAULTS at SONNET tier."""
+    from afterworlds.entitlement.enums import ModelTier
+    from afterworlds.entitlement.policy import PASS_TIER_DEFAULTS
+
+    assert PipelinePassId.BRANCHING_WRITER in PASS_TIER_DEFAULTS
+    assert PASS_TIER_DEFAULTS[PipelinePassId.BRANCHING_WRITER] is ModelTier.SONNET
+
+
+def test_pass_tier_defaults_includes_branching_ooc_extractor() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR must be in PASS_TIER_DEFAULTS at HAIKU tier."""
+    from afterworlds.entitlement.enums import ModelTier
+    from afterworlds.entitlement.policy import PASS_TIER_DEFAULTS
+
+    assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in PASS_TIER_DEFAULTS
+    assert (
+        PASS_TIER_DEFAULTS[PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR]
+        is ModelTier.HAIKU
+    )
+
+
+def _make_branching_writer_result(
+    input_token_count: int | None = 100,
+    output_token_count: int | None = 50,
+) -> object:
+    """Minimal OrchestrationResult (PIPELINE_ERROR) with branching_pass_result set."""
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        IntentType,
+        InteractionStyle,
+    )
+    from afterworlds.models.intent_classification import IntentClassificationResult
+    from afterworlds.pipeline.branching.models import BranchingPassResult
+    from afterworlds.pipeline.orchestrator.models import (
+        OrchestrationResult,
+        PipelineDisposition,
+    )
+
+    bpr = BranchingPassResult(
+        narrative_text="test",
+        interaction_style=InteractionStyle.HYBRID,
+        branching_cadence=BranchingCadence.BALANCED,
+        length_preference=None,
+        freeform_available=True,
+        branch_count_range=None,
+        branch_options=[],
+        branch_presentation_state="held",
+        provider="anthropic",
+        model_identifier="claude-sonnet-4-5",
+        model_tier="sonnet",
+        latency_ms=100,
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+    )
+    return OrchestrationResult(
+        disposition=PipelineDisposition.PIPELINE_ERROR,
+        delivered_output=None,
+        turn_id=None,
+        intent_classification=IntentClassificationResult(
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            confidence=1.0,
+            raw_input="",
+            ambiguous=False,
+        ),
+        pipeline_error_summary="branching writer billing test",
+        total_latency_ms=0,
+        pass_latency_breakdown={},
+        branching_pass_result=bpr,
+    )
+
+
+def _make_ooc_extractor_result(
+    input_token_count: int | None = 50,
+    output_token_count: int | None = 20,
+) -> object:
+    """Minimal OrchestrationResult (PIPELINE_ERROR) with ooc_config_result set."""
+    from afterworlds.models.enums import IntentType
+    from afterworlds.models.intent_classification import IntentClassificationResult
+    from afterworlds.pipeline.branching.models import (
+        BranchingConfigUpdate,
+        BranchingOocConfigExtractorResult,
+    )
+    from afterworlds.pipeline.orchestrator.models import (
+        OrchestrationResult,
+        PipelineDisposition,
+    )
+
+    bocr = BranchingOocConfigExtractorResult(
+        config_update=BranchingConfigUpdate(),
+        provider="anthropic",
+        model_identifier="claude-haiku-4-5-20251001",
+        model_tier="haiku",
+        latency_ms=30,
+        input_token_count=input_token_count,
+        output_token_count=output_token_count,
+    )
+    return OrchestrationResult(
+        disposition=PipelineDisposition.PIPELINE_ERROR,
+        delivered_output=None,
+        turn_id=None,
+        intent_classification=IntentClassificationResult(
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            confidence=1.0,
+            raw_input="",
+            ambiguous=False,
+        ),
+        pipeline_error_summary="ooc extractor billing test",
+        total_latency_ms=0,
+        pass_latency_breakdown={},
+        branching_ooc_config_result=bocr,
+    )
+
+
+def test_extract_snapshots_includes_branching_writer() -> None:
+    """BRANCHING_WRITER snapshot is produced when branching_pass_result is set."""
+    result = _make_branching_writer_result()
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.BRANCHING_WRITER in pass_ids
+
+
+def test_extract_snapshots_branching_writer_nil_input_tokens_raises() -> None:
+    """Missing input_token_count on branching_pass_result raises settlement error."""
+    result = _make_branching_writer_result(input_token_count=None)
+    with pytest.raises(EntitlementSettlementError):
+        TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+
+
+def test_extract_snapshots_includes_branching_ooc_extractor() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR snapshot produced when ooc result is set."""
+    result = _make_ooc_extractor_result()
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in pass_ids
+
+
+def test_extract_snapshots_skips_branching_ooc_extractor_when_none() -> None:
+    """No OOC extractor snapshot when branching_ooc_config_result is None."""
+    result = _make_branching_writer_result()
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    pass_ids = [s.pass_id for s in snapshots]
+    assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR not in pass_ids
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

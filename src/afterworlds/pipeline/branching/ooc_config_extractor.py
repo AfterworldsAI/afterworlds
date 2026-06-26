@@ -28,6 +28,7 @@ from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
 from afterworlds.pipeline.branching.models import (
     BranchingConfigUpdate,
+    BranchingOocConfigExtractorResult,
     BranchingPassError,
 )
 from afterworlds.pipeline.provider._models import (
@@ -166,18 +167,19 @@ class BranchingOocConfigExtractorService:
         self,
         ctx: AssembledContext,
         provider: ProviderAdapter,
-    ) -> BranchingConfigUpdate:
-        """Run the config extraction pass and return a structured update.
+    ) -> BranchingOocConfigExtractorResult:
+        """Run the config extraction pass and return a typed result with metrics.
 
-        The returned ``BranchingConfigUpdate`` may have all-None fields when
-        the player's OOC message contained no config change request.
+        The ``config_update`` in the result may have all-None fields when the
+        player's OOC message contained no config change request.
 
         Args:
             ctx: AssembledContext for the current OOC turn.
             provider: ProviderAdapter for the forced-tool LLM call.
 
         Returns:
-            BranchingConfigUpdate with non-None fields for each change requested.
+            BranchingOocConfigExtractorResult with config_update and provider
+            usage metrics for entitlement settlement.
 
         Raises:
             BranchingPassError: on provider error, missing tool block, tool name
@@ -186,14 +188,16 @@ class BranchingOocConfigExtractorService:
         request = self._render(ctx)
 
         try:
-            result = provider.call(request)
+            call_result = provider.call(request)
         except Exception as exc:
             raise BranchingPassError(
                 f"Branching OOC config extractor provider call failed: {exc}"
             ) from exc
 
+        # Capture metrics immediately — before any validation that might raise —
+        # so the provider usage is available even if parsing later fails.
         tool_parts = [
-            p for p in result.content_parts if isinstance(p, ProviderToolCallPart)
+            p for p in call_result.content_parts if isinstance(p, ProviderToolCallPart)
         ]
         if not tool_parts:
             raise BranchingPassError(
@@ -214,7 +218,17 @@ class BranchingOocConfigExtractorService:
                 f" {exc}"
             ) from exc
 
-        return update
+        return BranchingOocConfigExtractorResult(
+            config_update=update,
+            provider=call_result.provider_name,
+            model_identifier=call_result.model_identifier,
+            model_tier=call_result.model_tier.value if call_result.model_tier else None,
+            latency_ms=call_result.latency_ms,
+            input_token_count=call_result.input_token_count,
+            output_token_count=call_result.output_token_count,
+            cache_read_token_count=call_result.cache_read_token_count,
+            cache_creation_token_count=call_result.cache_creation_token_count,
+        )
 
     def _render(self, ctx: AssembledContext) -> ProviderCallRequest:
         """Build a minimal ProviderCallRequest for the extraction pass."""

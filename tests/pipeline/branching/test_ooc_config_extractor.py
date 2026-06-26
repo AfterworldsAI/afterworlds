@@ -34,6 +34,7 @@ from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.story_bible import StoryBibleContext
 from afterworlds.pipeline.branching.models import (
     BranchingConfigUpdate,
+    BranchingOocConfigExtractorResult,
     BranchingPassError,
 )
 from afterworlds.pipeline.branching.ooc_config_extractor import (
@@ -191,40 +192,41 @@ class _WrongToolProvider:
 
 
 class TestHappyPath:
-    """BranchingOocConfigExtractorService returns BranchingConfigUpdate on success."""
+    """BranchingOocConfigExtractorService returns BranchingOocConfigExtractorResult."""
 
     def test_all_none_is_valid(self) -> None:
         svc = BranchingOocConfigExtractorService()
         result = svc.extract(_make_ctx(), _FakeProvider(_ALL_NONE_INPUT))
-        assert isinstance(result, BranchingConfigUpdate)
-        assert result.interaction_style is None
-        assert result.branching_cadence is None
-        assert result.branch_count_range is None
-        assert result.length_preference is None
+        assert isinstance(result, BranchingOocConfigExtractorResult)
+        assert isinstance(result.config_update, BranchingConfigUpdate)
+        assert result.config_update.interaction_style is None
+        assert result.config_update.branching_cadence is None
+        assert result.config_update.branch_count_range is None
+        assert result.config_update.length_preference is None
 
     def test_interaction_style_extracted(self) -> None:
         svc = BranchingOocConfigExtractorService()
         tool_input = {**_ALL_NONE_INPUT, "interaction_style": "true_cyoa"}
         result = svc.extract(_make_ctx(), _FakeProvider(tool_input))
-        assert result.interaction_style is InteractionStyle.TRUE_CYOA
+        assert result.config_update.interaction_style is InteractionStyle.TRUE_CYOA
 
     def test_branching_cadence_extracted(self) -> None:
         svc = BranchingOocConfigExtractorService()
         tool_input = {**_ALL_NONE_INPUT, "branching_cadence": "interactive"}
         result = svc.extract(_make_ctx(), _FakeProvider(tool_input))
-        assert result.branching_cadence is BranchingCadence.INTERACTIVE
+        assert result.config_update.branching_cadence is BranchingCadence.INTERACTIVE
 
     def test_branch_count_range_extracted(self) -> None:
         svc = BranchingOocConfigExtractorService()
         tool_input = {**_ALL_NONE_INPUT, "branch_count_range": "2-3"}
         result = svc.extract(_make_ctx(), _FakeProvider(tool_input))
-        assert result.branch_count_range is BranchCountRange.TWO_TO_THREE
+        assert result.config_update.branch_count_range is BranchCountRange.TWO_TO_THREE
 
     def test_length_preference_extracted(self) -> None:
         svc = BranchingOocConfigExtractorService()
         tool_input = {**_ALL_NONE_INPUT, "length_preference": "novella"}
         result = svc.extract(_make_ctx(), _FakeProvider(tool_input))
-        assert result.length_preference is LengthPreference.NOVELLA
+        assert result.config_update.length_preference is LengthPreference.NOVELLA
 
     def test_multiple_fields_extracted(self) -> None:
         svc = BranchingOocConfigExtractorService()
@@ -235,10 +237,22 @@ class TestHappyPath:
             "length_preference": "short_story",
         }
         result = svc.extract(_make_ctx(), _FakeProvider(tool_input))
-        assert result.interaction_style is InteractionStyle.HYBRID
-        assert result.branching_cadence is BranchingCadence.BALANCED
-        assert result.branch_count_range is BranchCountRange.THREE_TO_FOUR
-        assert result.length_preference is LengthPreference.SHORT_STORY
+        assert result.config_update.interaction_style is InteractionStyle.HYBRID
+        assert result.config_update.branching_cadence is BranchingCadence.BALANCED
+        assert result.config_update.branch_count_range is BranchCountRange.THREE_TO_FOUR
+        assert result.config_update.length_preference is LengthPreference.SHORT_STORY
+
+    def test_provider_metrics_surfaced_in_result(self) -> None:
+        """extract() returns provider usage metrics for entitlement settlement."""
+        svc = BranchingOocConfigExtractorService()
+        result = svc.extract(_make_ctx(), _FakeProvider(_ALL_NONE_INPUT))
+        # _FakeProvider returns provider_name="fake", model_tier=ModelTier.SONNET,
+        # input_token_count=50, output_token_count=20, latency_ms=5.
+        assert result.provider == "fake"
+        assert result.input_token_count == 50
+        assert result.output_token_count == 20
+        assert result.latency_ms == 5
+        assert result.model_tier == ModelTier.SONNET.value
 
 
 # ---------------------------------------------------------------------------

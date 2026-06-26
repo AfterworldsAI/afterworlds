@@ -1881,6 +1881,7 @@ class OrchestratorService:
         # interaction-config changes the Sojourner requested and persist them
         # inside this transaction.  Best-effort — failure skips persistence
         # without blocking OOC_HANDLED.
+        _ooc_cfg_extractor_result: object | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -1897,10 +1898,14 @@ class OrchestratorService:
                     ALLOWED_RANGES_BY_STYLE as _ALLOWED,
                 )
 
-                _cfg_update = self._branching_ooc_config_extractor.extract(
+                _extract_result = self._branching_ooc_config_extractor.extract(
                     ooc_ctx,
                     ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
                 )
+                # Capture metrics immediately so usage is visible to settlement
+                # even if a later best-effort persistence step raises.
+                _ooc_cfg_extractor_result = _extract_result
+                _cfg_update = _extract_result.config_update
 
                 # Determine the target interaction style for range validation.
                 _target_style: _IS | None = _cfg_update.interaction_style
@@ -1958,6 +1963,7 @@ class OrchestratorService:
             output_safety_result=output_safety,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
+            branching_ooc_config_result=_ooc_cfg_extractor_result,
         )
 
     # ------------------------------------------------------------------
@@ -2394,6 +2400,7 @@ class OrchestratorService:
         interaction_rejection_message: str | None = None,
         branching_pass_result: _BranchingPassResult | None = None,
         branching_visible_state: object | None = None,
+        branching_ooc_config_result: object | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -2425,6 +2432,7 @@ class OrchestratorService:
             interaction_rejection_message=interaction_rejection_message,
             branching_pass_result=branching_pass_result,
             branching_visible_state=branching_visible_state,
+            branching_ooc_config_result=branching_ooc_config_result,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,

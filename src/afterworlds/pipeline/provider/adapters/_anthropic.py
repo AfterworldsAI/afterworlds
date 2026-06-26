@@ -86,6 +86,11 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
     PipelinePassId.INPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.OUTPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.RPG_ADJUDICATION: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
+    PipelinePassId.BRANCHING_WRITER: (_DEFAULT_SONNET_MODEL, ModelTier.SONNET),
+    PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: (
+        _DEFAULT_HAIKU_MODEL,
+        ModelTier.HAIKU,
+    ),
 }
 
 
@@ -400,7 +405,14 @@ class AnthropicDirectAdapter:
 
 
 def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
-    """Map a PipelinePassId to the 12c PassIdentifier for ProviderRefusal."""
+    """Map a PipelinePassId to the 12c PassIdentifier for ProviderRefusal.
+
+    BRANCHING_OOC_CONFIG_EXTRACTOR is intentionally absent: the extractor
+    service wraps ProviderRefusalError as BranchingPassError (best-effort),
+    so a refusal from that pass never reaches this function.  Omitting it
+    ensures any future change that accidentally exposes it surfaces as a
+    loud KeyError rather than a silent PLANNER misattribution.
+    """
     _MAP: dict[PipelinePassId, PassIdentifier] = {
         PipelinePassId.PLANNER: PassIdentifier.PLANNER,
         PipelinePassId.WRITER: PassIdentifier.WRITER,
@@ -409,8 +421,9 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
         PipelinePassId.INPUT_SAFETY: PassIdentifier.PLANNER,  # Safety→PIPELINE_ERROR
         PipelinePassId.OUTPUT_SAFETY: PassIdentifier.PLANNER,  # see note below
         PipelinePassId.RPG_ADJUDICATION: PassIdentifier.RPG_ADJUDICATION,
+        PipelinePassId.BRANCHING_WRITER: PassIdentifier.BRANCHING_WRITER,
     }
-    return _MAP.get(pass_id, PassIdentifier.PLANNER)
+    return _MAP[pass_id]
 
 
 def _extract_excerpt(response: object) -> str:

@@ -112,6 +112,7 @@ def _validate_branch_count(
     branch_options_text: list[str],
     branch_count_range: str | None,
     branch_presentation_state: str | None,
+    interaction_style: InteractionStyle | None = None,
 ) -> None:
     """Validate proposed branch option count against the session's range.
 
@@ -119,13 +120,32 @@ def _validate_branch_count(
     an empty list.  Non-empty options with those states are a contract violation
     (fail-closed).  For ``shown`` the configured [min, max] range applies.
 
+    True CYOA requires branch options on every delivered beat; ``held`` and
+    ``omitted`` are forbidden for that interaction style even with an empty list,
+    because there is no freeform input surface to fall back on.
+
     Raises ``BranchingPassError`` when:
+    - ``interaction_style`` is TRUE_CYOA and ``branch_presentation_state`` is
+      'held' or 'omitted' (always — regardless of option count).
     - ``branch_presentation_state`` is 'held'/'omitted' and options are non-empty.
     - ``branch_count_range`` is set and the count is outside [min, max] for 'shown'.
     - ``branch_count_range`` is set but unknown (not in BRANCH_COUNT_RANGE_BOUNDS).
 
     Never clamps, pads, or truncates.  Out-of-range is a hard fail-closed error.
     """
+    # TRUE_CYOA: held/omitted are forbidden — no freeform input surface to fall
+    # back on when branch cards are absent.
+    if (
+        interaction_style is InteractionStyle.TRUE_CYOA
+        and branch_presentation_state in ("held", "omitted")
+    ):
+        raise BranchingPassError(
+            f"True CYOA requires branch options on every in-play beat;"
+            f" branch_presentation_state={branch_presentation_state!r} is"
+            " not valid for TRUE_CYOA. Model must return 'shown' with valid"
+            " options on every TRUE_CYOA turn."
+        )
+
     if branch_presentation_state in ("held", "omitted"):
         if branch_options_text:
             raise BranchingPassError(
@@ -242,6 +262,7 @@ class BranchingWriterService:
             proposal.branch_options_text,
             branch_count_range_val,
             proposal.branch_presentation_state,
+            interaction_style=session_state.interaction_style,
         )
 
         # Code stamps: option_id assigned sequentially.

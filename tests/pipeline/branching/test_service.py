@@ -751,3 +751,37 @@ class TestValidateBranchCountDirect:
     def test_shown_below_min_raises(self) -> None:
         with pytest.raises(BranchingPassError):
             _validate_branch_count(["A"], "2-3", "shown")
+
+    # Fix 3 (Round 2): TRUE_CYOA forbids held/omitted even with empty options.
+
+    def test_true_cyoa_held_empty_raises(self) -> None:
+        """TRUE_CYOA + held + [] must fail — no freeform fallback surface."""
+        with pytest.raises(BranchingPassError, match="True CYOA"):
+            _validate_branch_count([], "2-3", "held", InteractionStyle.TRUE_CYOA)
+
+    def test_true_cyoa_omitted_empty_raises(self) -> None:
+        """TRUE_CYOA + omitted + [] must fail."""
+        with pytest.raises(BranchingPassError, match="True CYOA"):
+            _validate_branch_count([], "2-3", "omitted", InteractionStyle.TRUE_CYOA)
+
+    def test_true_cyoa_shown_within_range_passes(self) -> None:
+        """TRUE_CYOA + shown + valid count must succeed."""
+        _validate_branch_count(
+            ["A", "B"], "2-3", "shown", InteractionStyle.TRUE_CYOA
+        )  # must not raise
+
+    def test_hybrid_held_empty_still_passes(self) -> None:
+        """HYBRID + held + [] is valid — Hybrid allows deferred cards."""
+        _validate_branch_count(
+            [], "2-3", "held", InteractionStyle.HYBRID
+        )  # must not raise
+
+    def test_hybrid_omitted_empty_still_passes(self) -> None:
+        """HYBRID + omitted + [] is valid."""
+        _validate_branch_count(
+            [], "2-3", "omitted", InteractionStyle.HYBRID
+        )  # must not raise
+
+    def test_none_style_held_empty_still_passes(self) -> None:
+        """interaction_style=None preserves legacy behaviour — held + [] passes."""
+        _validate_branch_count([], "2-3", "held")  # must not raise
