@@ -692,6 +692,12 @@ class OrchestratorService:
                 BranchSelectionValidationVerdict,
             )
 
+            # A DB/session/crud failure while reading the presented option set
+            # is an operational fault, not invalid user input — surface it as
+            # PIPELINE_ERROR before any validate() call.  A successful read that
+            # yields no options (node missing, non-branching metadata, or empty
+            # branch_options) is a valid empty set; the validator then returns
+            # INVALID_BRANCH_SELECTION.
             _presented_options: list[PersistedBranchOption] = []
             try:
                 with self._session_factory() as _read_session:
@@ -704,8 +710,13 @@ class OrchestratorService:
                         _presented_options = list(
                             _current_node.mode_metadata.branch_options
                         )
-            except Exception:  # noqa: BLE001
-                pass  # No presented options available; validator will reject
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branch-card read failed: {exc}",
+                )
 
             _sel_result = self._branching_selection_service.validate(
                 intent_result.raw_input,

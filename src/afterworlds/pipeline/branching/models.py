@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from afterworlds.models.enums import (
     BranchCountRange,
@@ -63,6 +63,34 @@ class BranchingWriterProposal(BaseModel):
     branch_options_text: list[str]
     branch_presentation_state: BranchPresentationState
     pacing_stage_hint: str | None = None
+
+    @field_validator("narrative_text")
+    @classmethod
+    def _narrative_text_non_empty(cls, value: str) -> str:
+        """Reject blank prose; the model must author real narrative text."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("narrative_text must be non-empty after stripping")
+        return stripped
+
+    @field_validator("branch_options_text")
+    @classmethod
+    def _branch_option_labels_non_empty(cls, value: list[str]) -> list[str]:
+        """Reject blank option labels; an empty list ([]) stays valid.
+
+        Empty ``branch_options_text`` is allowed for ``held``/``omitted``
+        HYBRID turns.  When labels are present, each must be non-empty after
+        stripping; the stripped value is what code stamps onto ``option_id``.
+        """
+        cleaned: list[str] = []
+        for label in value:
+            stripped = label.strip()
+            if not stripped:
+                raise ValueError(
+                    "branch_options_text labels must be non-empty after stripping"
+                )
+            cleaned.append(stripped)
+        return cleaned
 
 
 class BranchingPassResult(BaseModel):

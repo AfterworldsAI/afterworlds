@@ -122,6 +122,27 @@ class TestOrdinalReference:
         result = self.svc.validate("third", TWO_OPTS)
         assert result.verdict is BranchSelectionValidationVerdict.REJECT
 
+    def test_first_option_phrase_no_annotation(self) -> None:
+        result = self.svc.validate("Take the first option", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_1"
+        assert result.selected_context.annotation is None
+
+    def test_second_choice_phrase_no_annotation(self) -> None:
+        result = self.svc.validate("I choose the second choice", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation is None
+
+    def test_first_option_phrase_preserves_real_modifier(self) -> None:
+        result = self.svc.validate("Take the first option cautiously", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_1"
+        assert result.selected_context.annotation == "cautiously"
+
 
 class TestNoMatch:
     """Inputs that don't match any option are rejected."""

@@ -5573,3 +5573,209 @@ class TestBranchingWriterLineageGuard:
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert fake_branching_writer.called is False
+
+
+# ---------------------------------------------------------------------------
+# Branch-card read path: operational fault vs invalid input (Round 4 Fix 1)
+# ---------------------------------------------------------------------------
+
+
+class _RecordingBranchingWriterService:
+    """Records that write() was reached, then aborts with a sentinel error.
+
+    Used to prove a *valid* opt_N selection proceeds past branch-selection
+    validation into the branching writer pass (rather than being rejected),
+    without standing up a full DELIVERED branching pipeline.
+    """
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        from afterworlds.pipeline.branching.models import BranchingPassError
+
+        self.called = True
+        raise BranchingPassError("sentinel-reached-branching-writer")
+
+
+def _seed_branching_story_with_options(
+    session: object,
+    option_labels: list[str],
+) -> tuple[UUID, UUID]:
+    """Seed a BRANCHING story + node, optionally carrying presented options."""
+    from datetime import UTC, datetime
+
+    from afterworlds.models.enums import IntentType, StoryMode
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        PersistedBranchOption,
+        StateDelta,
+    )
+    from afterworlds.models.story import Arc, Chapter, Story
+    from afterworlds.persistence.crud.node import create_node
+    from afterworlds.persistence.crud.story import (
+        create_arc,
+        create_chapter,
+        create_story,
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        title="Branching read-path story",
+        mode=StoryMode.BRANCHING,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = Arc(story_id=story.story_id, title="Arc", order=0)
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chap = Chapter(arc_id=arc.arc_id, title="Chapter", order=0)
+    create_chapter(session, chap)  # type: ignore[arg-type]
+    options = [
+        PersistedBranchOption(option_id=f"opt_{i + 1}", action_text=label)
+        for i, label in enumerate(option_labels)
+    ]
+    node = Node(
+        chapter_id=chap.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=now),
+        mode_metadata=BranchingNodeMetadata(branch_options=options),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+    session.commit()  # type: ignore[union-attr]
+    return story.story_id, node.node_id
+
+
+def _make_branching_choice_orchestrator(
+    session_factory: object,
+    branching_writer: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator wired for a HYBRID BRANCH_CHOICE turn with selection validation."""
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        IntentType,
+        InteractionStyle,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.BRANCH_CHOICE, raw_input)
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+        branching_selection_service=BranchSelectionValidationService(),
+    )
+
+
+class TestBranchCardReadPath:
+    """BRANCH_CHOICE branch-card read: DB faults are PIPELINE_ERROR, not rejection."""
+
+    def test_branch_card_read_failure_routes_to_pipeline_error(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A crud/session error reading presented options → PIPELINE_ERROR, no LLM."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _FakeBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic branch-card read failure")
+
+        monkeypatch.setattr("afterworlds.persistence.crud.node.get_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card read failed" in summary, summary
+        assert "synthetic branch-card read failure" in summary, summary
+        # Operational fault is never reclassified as user-invalid input.
+        assert result.interaction_rejection_reason is None
+        # No LLM call on the failure path.
+        assert writer.called is False
+
+    def test_empty_presented_options_after_read_rejects(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """Successful read with no options → INVALID_BRANCH_SELECTION, no LLM."""
+        from afterworlds.models.enums import InteractionRejectionReason
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert (
+            result.interaction_rejection_reason
+            is InteractionRejectionReason.INVALID_BRANCH_SELECTION
+        )
+        # No LLM call on the rejection path.
+        assert writer.called is False
+
+    def test_valid_opt_n_proceeds_to_branching_writer(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """A valid opt_N selection passes validation and reaches the writer pass."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _RecordingBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Not rejected: validation accepted and the narrative path was entered,
+        # reaching the branching writer (which aborts with a sentinel error).
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (
+            result.pipeline_error_summary or ""
+        )
+        assert result.interaction_rejection_reason is None

@@ -572,3 +572,69 @@ class TestBranchingWriterProposalPresentationState:
                 branch_options_text=[],
                 branch_presentation_state="",
             )
+
+
+# ---------------------------------------------------------------------------
+# Test: BranchingWriterProposal — non-empty narrative / option labels (Round 4)
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingWriterProposalNonEmptyContent:
+    """Blank narrative prose and blank option labels fail closed."""
+
+    def test_whitespace_only_narrative_fails(self) -> None:
+        from pydantic import ValidationError
+
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        with pytest.raises(ValidationError):
+            BranchingWriterProposal(
+                narrative_text="   \n\t ",
+                branch_options_text=["opt 1"],
+                branch_presentation_state="shown",
+            )
+
+    def test_empty_narrative_fails(self) -> None:
+        from pydantic import ValidationError
+
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        with pytest.raises(ValidationError):
+            BranchingWriterProposal(
+                narrative_text="",
+                branch_options_text=["opt 1"],
+                branch_presentation_state="shown",
+            )
+
+    def test_whitespace_only_option_label_fails(self) -> None:
+        from pydantic import ValidationError
+
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        with pytest.raises(ValidationError):
+            BranchingWriterProposal(
+                narrative_text="prose",
+                branch_options_text=["Take the bridge", "  "],
+                branch_presentation_state="shown",
+            )
+
+    def test_narrative_and_labels_are_stripped(self) -> None:
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        p = BranchingWriterProposal(
+            narrative_text="  prose  ",
+            branch_options_text=["  Take the bridge  ", "Wade the river"],
+            branch_presentation_state="shown",
+        )
+        assert p.narrative_text == "prose"
+        assert p.branch_options_text == ["Take the bridge", "Wade the river"]
+
+    def test_empty_option_list_remains_valid_for_held(self) -> None:
+        from afterworlds.pipeline.branching.models import BranchingWriterProposal
+
+        p = BranchingWriterProposal(
+            narrative_text="prose",
+            branch_options_text=[],
+            branch_presentation_state="held",
+        )
+        assert p.branch_options_text == []

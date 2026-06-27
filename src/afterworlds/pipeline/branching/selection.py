@@ -45,7 +45,13 @@ _OPT_ID_RE = re.compile(r"\bopt_(\d+)\b", re.IGNORECASE)
 _NUMERIC_PHRASE_RE = re.compile(
     r"\b(?:option|choice)\s+(\d+)\b|\b(\d+)\b", re.IGNORECASE
 )
-_ORDINAL_RE = re.compile(r"\b(first|second|third|fourth|fifth)\b", re.IGNORECASE)
+# An ordinal may be followed by a neutral selection noun ("option"/"choice");
+# when present it is part of the selection phrase, not a trailing annotation, so
+# the whole match (group 0) is consumed.  Group 1 holds the ordinal word.
+_ORDINAL_RE = re.compile(
+    r"\b(first|second|third|fourth|fifth)\b(?:\s+(?:option|choice)\b)?",
+    re.IGNORECASE,
+)
 
 
 def _extract_annotation(raw_input: str, consumed_token: str) -> str | None:
@@ -130,7 +136,7 @@ class BranchSelectionValidationService:
                 candidate = f"opt_{n}"
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
-                    consumed_token = m.group(1)
+                    consumed_token = m.group(0)
 
         if resolved_id is None:
             opt_labels = ", ".join(
