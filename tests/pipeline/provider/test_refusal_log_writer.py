@@ -616,3 +616,65 @@ def test_output_safety_refusal_log_row_has_writer_turn_id(sf) -> None:  # type: 
         assert row.fallback_outcome == "NO_FALLBACK_CONFIGURED"
         assert row.pass_id == "output_safety"
         assert row.turn_id == str(writer_turn_id)
+
+
+# ---------------------------------------------------------------------------
+# Round 6 (CRD Issue 16): Branching OOC config extractor refusal is logged with
+# its own pass identity (the literal "refusal/fallback logging receives the pass
+# identity" requirement, end-to-end through the router and writer).
+# ---------------------------------------------------------------------------
+
+
+class _RefusingBranchingOocExtractor:
+    """Primary that refuses a BRANCHING_OOC_CONFIG_EXTRACTOR call.
+
+    Stands in for the adapter once ``_pass_id_to_pass_identifier`` has resolved
+    the typed identity (no KeyError); this test exercises the logging half — that
+    the new pass_id value persists in the append-only ``provider_refusal_log``.
+    """
+
+    provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        raise ProviderRefusalError(
+            ProviderRefusal(
+                provider="anthropic",
+                model="claude-haiku-4-5",
+                pass_identifier=PassIdentifier.BRANCHING_OOC_CONFIG_EXTRACTOR,
+                refusal_category=RefusalCategory.CONTENT_POLICY,
+            )
+        )
+
+
+def test_branching_ooc_extractor_refusal_logged_with_pass_id(sf) -> None:  # type: ignore[no-untyped-def]
+    """A BRANCHING_OOC_CONFIG_EXTRACTOR refusal persists one log row whose pass_id
+    is the extractor's own value (proves the String(32) column accepts it and the
+    refusal/fallback logger receives this pass identity, scoped to the OOC turn)."""
+    from uuid import uuid4
+
+    sojourner_id = uuid4()
+    ooc_turn_id = uuid4()
+    log_fn = _build_refusal_log_fn(sf)
+    router = RefusalFallbackRouter(
+        primary=_RefusingBranchingOocExtractor(),
+        fallback=None,
+        refusal_log_fn=log_fn,
+    )
+    scoped = ScopedProviderAdapter(router, sojourner_id, turn_id=ooc_turn_id)
+    request = ProviderCallRequest(
+        pass_id=PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR,
+        system_blocks=[],
+        rendered_blocks=[],
+        max_output_tokens=1000,
+    )
+    with pytest.raises(ProviderRefusalError):
+        scoped.call(request)
+
+    assert _count_rows(sf) == 1
+    assert callable(sf)
+    with sf() as session:
+        row = session.execute(select(ProviderRefusalEvent)).scalar_one()
+        assert row.fallback_outcome == "NO_FALLBACK_CONFIGURED"
+        assert row.pass_id == "branching_ooc_config_extractor"
+        assert row.turn_id == str(ooc_turn_id)
+        assert row.sojourner_id == str(sojourner_id)
