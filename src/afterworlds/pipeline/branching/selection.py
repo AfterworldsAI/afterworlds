@@ -5,10 +5,15 @@ presented on the current beat.  Pure-Python — no LLM call.
 
 Resolution algorithm (in order, first match wins):
 1. Exact option_id match: raw_input contains "opt_N" verbatim.
-2. Positional numeric: raw_input contains a bare number or "option N" /
-   "choice N" phrase that maps to "opt_N".
+2. Explicit numeric phrase: "option N" / "choice N" maps to "opt_N".
 3. Ordinal word: "first" → opt_1, "second" → opt_2, … (up to opt_5).
-4. No match → INVALID_BRANCH_SELECTION.
+4. Bare number: a lone "N" maps to "opt_N", but only when it is the operative
+   trailing selection token — an incidental number embedded in prose
+   ("take 2 torches") is not a selection.
+5. No match → INVALID_BRANCH_SELECTION.
+
+Explicit forms outrank bare numbers: "I use my 2 torches and choose option 1"
+resolves to opt_1, never opt_2.
 
 V1 scope note: material-rewrite detection (MATERIAL_BRANCH_REWRITE) requires
 LLM judgment and is not implemented here.  The verdict is ACCEPT for any
@@ -42,9 +47,10 @@ _ORDINALS: dict[str, int] = {
 }
 
 _OPT_ID_RE = re.compile(r"\bopt_(\d+)\b", re.IGNORECASE)
-_NUMERIC_PHRASE_RE = re.compile(
-    r"\b(?:option|choice)\s+(\d+)\b|\b(\d+)\b", re.IGNORECASE
-)
+# Explicit numeric selection phrase: "option 2" / "choice 3".  Outranks bare
+# numbers so an incidental quantity ("my 2 torches") cannot pre-empt an explicit
+# later selection ("choose option 1").
+_EXPLICIT_NUM_RE = re.compile(r"\b(?:option|choice)\s+(\d+)\b", re.IGNORECASE)
 # An ordinal may be followed by a neutral selection noun ("option"/"choice");
 # when present it is part of the selection phrase, not a trailing annotation, so
 # the whole match (group 0) is consumed.  Group 1 holds the ordinal word.
@@ -52,6 +58,11 @@ _ORDINAL_RE = re.compile(
     r"\b(first|second|third|fourth|fifth)\b(?:\s+(?:option|choice)\b)?",
     re.IGNORECASE,
 )
+# Bare number, accepted only as a last resort and only when it is the operative
+# trailing selection token (nothing but whitespace/punctuation follows it).  An
+# incidental number embedded in prose ("take 2 torches") is not a selection.
+_BARE_NUMBER_RE = re.compile(r"\b(\d+)\b")
+_WORD_RE = re.compile(r"\w")
 
 
 def _extract_annotation(raw_input: str, consumed_token: str) -> str | None:
@@ -115,13 +126,10 @@ class BranchSelectionValidationService:
                 resolved_id = candidate
                 consumed_token = m.group(0)
 
-        # 2. Numeric phrase ("option 2", "choice 3", or bare "2")
+        # 2. Explicit numeric phrase ("option 2", "choice 3")
         if resolved_id is None:
-            for m in _NUMERIC_PHRASE_RE.finditer(raw_input):
-                num_str = m.group(1) or m.group(2)
-                if num_str is None:
-                    continue
-                n = int(num_str)
+            for m in _EXPLICIT_NUM_RE.finditer(raw_input):
+                n = int(m.group(1))
                 candidate = f"opt_{n}"
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
@@ -137,6 +145,20 @@ class BranchSelectionValidationService:
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
                     consumed_token = m.group(0)
+
+        # 4. Bare number — lowest precedence, and only when it is the operative
+        #    trailing selection token.  A number followed by further words is an
+        #    incidental quantity, not a branch choice, and is skipped.
+        if resolved_id is None:
+            for m in _BARE_NUMBER_RE.finditer(raw_input):
+                if _WORD_RE.search(raw_input[m.end() :]):
+                    continue
+                n = int(m.group(1))
+                candidate = f"opt_{n}"
+                if 1 <= n <= max_index and candidate in opt_map:
+                    resolved_id = candidate
+                    consumed_token = m.group(0)
+                    break
 
         if resolved_id is None:
             opt_labels = ", ".join(

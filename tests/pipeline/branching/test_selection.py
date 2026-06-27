@@ -190,3 +190,44 @@ class TestAnnotation:
         assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
         assert result.selected_context is not None
         assert result.selected_context.annotation is None
+
+
+class TestSelectionPrecedence:
+    """Explicit selection forms outrank incidental bare numbers."""
+
+    def setup_method(self) -> None:
+        self.svc = BranchSelectionValidationService()
+
+    def test_explicit_option_outranks_incidental_bare_number(self) -> None:
+        result = self.svc.validate("I use my 2 torches and choose option 1", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_1"
+
+    def test_explicit_choice_outranks_trailing_bare_number(self) -> None:
+        result = self.svc.validate(
+            "I choose choice 3 after checking 2 doors", THREE_OPTS
+        )
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_3"
+
+    def test_bare_number_still_resolves(self) -> None:
+        result = self.svc.validate("2", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+
+    def test_trailing_bare_number_selection_resolves(self) -> None:
+        result = self.svc.validate("I pick 2", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+
+    def test_incidental_quantity_does_not_resolve(self) -> None:
+        result = self.svc.validate("Take 2 torches", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.REJECT
+        assert (
+            result.rejection_reason
+            is InteractionRejectionReason.INVALID_BRANCH_SELECTION
+        )

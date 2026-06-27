@@ -182,6 +182,22 @@ class _FailingProvider:
         return "fake"
 
 
+class _MustNotCallProvider:
+    """Stub ProviderAdapter that fails the test if call() is ever reached.
+
+    Used to prove a fail-closed guard fires before any provider spend.
+    """
+
+    def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+        raise AssertionError(
+            "provider.call() must not be reached when the writer fails closed"
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "fake"
+
+
 class _NoToolProvider:
     """Returns a ProviderCallResult with no tool-use blocks."""
 
@@ -395,16 +411,33 @@ class TestBranchCountRangeValidation:
                 provider=_FakeProvider(_valid_tool_input(["A", "B", "C", "D", "E"])),
             )
 
-    def test_none_range_skips_validation(self) -> None:
-        # None branch_count_range: any count is accepted
-        session = _make_session(branch_count_range=None)
-        service = BranchingWriterService(config=_make_config())
-        result = service.write(
-            _make_assembled(),
-            session,
-            provider=_FakeProvider(_valid_tool_input(["A", "B", "C", "D", "E"])),
+    def test_hybrid_none_range_fails_closed(self) -> None:
+        # HYBRID branch cards require a configured range; None is a misroute and
+        # must fail closed before the provider call (Round 5 Fix 2).
+        session = _make_session(
+            interaction_style=InteractionStyle.HYBRID, branch_count_range=None
         )
-        assert len(result.branch_options) == 5
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError, match="branch_count_range"):
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_MustNotCallProvider(),
+            )
+
+    def test_true_cyoa_none_range_fails_closed(self) -> None:
+        # TRUE_CYOA branch cards require a configured range; None must fail closed
+        # before the provider call (Round 5 Fix 2).
+        session = _make_session(
+            interaction_style=InteractionStyle.TRUE_CYOA, branch_count_range=None
+        )
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError, match="branch_count_range"):
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_MustNotCallProvider(),
+            )
 
     def test_three_four_range_max_boundary(self) -> None:
         # 3-4 range: 4 options is valid

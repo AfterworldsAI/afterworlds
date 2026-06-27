@@ -219,6 +219,25 @@ class BranchingWriterService:
             BranchingPassError: LLM call failure, missing tool block, schema
                 validation failure, or branch-count range violation.
         """
+        # Fail closed: HYBRID and TRUE_CYOA branch cards require a configured
+        # branch_count_range before any in-play branch-card output.  A partially
+        # configured session (range=None) must route through setup/prose
+        # behavior before reaching this service; arriving here is a misroute.
+        # Raise before the provider call so no spend is wasted on a turn that
+        # cannot be delivered.
+        if (
+            session_state.interaction_style
+            in (InteractionStyle.HYBRID, InteractionStyle.TRUE_CYOA)
+            and session_state.branch_count_range is None
+        ):
+            raise BranchingPassError(
+                "BranchingWriterService called for interaction_style="
+                f"{session_state.interaction_style} without a configured"
+                " branch_count_range; in-play branch-card styles require a valid"
+                " persisted range. Partially configured sessions must route"
+                " through setup/prose behavior before this pass."
+            )
+
         request = self._render(
             built_context,
             session_state,
