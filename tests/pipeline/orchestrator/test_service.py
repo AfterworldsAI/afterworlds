@@ -865,6 +865,36 @@ class _FakeBranchingOocExtractor:
         )
 
 
+@_dataclass
+class _TurnCapturingOocExtractor:
+    """Records the turn_id on the ScopedProviderAdapter handed to extract().
+
+    Returns an all-None config update so the best-effort persistence path is a
+    no-op; the test only asserts on the provider scope.
+    """
+
+    captured_turn_id: object = None
+    called: bool = False
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+        )
+
+        self.called = True
+        self.captured_turn_id = getattr(provider, "_turn_id", "MISSING")
+        return BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+
+
 def _make_ooc_cfg_orch(
     session_factory: object, config_update: object
 ) -> OrchestratorService:
@@ -1085,6 +1115,51 @@ class TestBranchingOocConfigPersistence:
         assert bss is not None
         assert bss.interaction_style is InteractionStyle.TRUE_CYOA
         assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+
+    def test_config_extractor_provider_scoped_to_ooc_writer_turn(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Round 6 Fix 2: the extractor's provider call is scoped to
+        writer_result.turn_id so any refusal/fallback/provider-call audit row
+        is reconstructable from the OOC turn (not an unscoped None)."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        extractor = _TurnCapturingOocExtractor()
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(),
+            branching_ooc_config_extractor=extractor,  # type: ignore[arg-type]
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] no config change",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert extractor.called
+        # The scoped turn id must be the OOC writer's persisted turn — proving
+        # turn_id=writer_result.turn_id flowed into the ScopedProviderAdapter.
+        assert extractor.captured_turn_id not in (None, "MISSING")
+        assert session.get(TurnORM, str(extractor.captured_turn_id)) is not None
 
 
 # ---------------------------------------------------------------------------

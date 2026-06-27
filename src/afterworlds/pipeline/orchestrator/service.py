@@ -1910,9 +1910,19 @@ class OrchestratorService:
                     ALLOWED_RANGES_BY_STYLE as _ALLOWED,
                 )
 
+                # Scope the extractor's provider call to the OOC prose-writer's
+                # turn so any refusal/fallback/provider-call audit row is
+                # reconstructable from that same turn (post-writer convention,
+                # mirroring the output-audit call above).  turn_id may be None
+                # if the writer did not produce one — ScopedProviderAdapter
+                # omits it safely in that case.
                 _extract_result = self._branching_ooc_config_extractor.extract(
                     ooc_ctx,
-                    ScopedProviderAdapter(binding.adapter, sojourner_id),  # type: ignore[arg-type]
+                    ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=writer_result.turn_id,
+                    ),
                 )
                 # Capture metrics immediately so usage is visible to settlement
                 # even if a later best-effort persistence step raises.
