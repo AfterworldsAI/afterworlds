@@ -1431,6 +1431,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
@@ -1442,6 +1443,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
 
         # 5c. Apply sheet effects (Fork B→B1) inside the outer transaction, then
@@ -1469,6 +1471,7 @@ class OrchestratorService:
                         planner_result=planner_result,
                         writer_result=writer_result,
                         rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
                     )
             if self._rpg_visible_state_service is not None:
                 try:
@@ -1483,6 +1486,7 @@ class OrchestratorService:
                         planner_result=planner_result,
                         writer_result=writer_result,
                         rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
                     )
 
         # 6. Output Safety Audit, conditional.
