@@ -1,20 +1,19 @@
 """Branching Writer pass service — CRD Issue 16.
 
 Responsibilities:
-  1. Load the branching mode prompt contract at init time.
-  2. Render AssembledContext + BranchingSessionState into a ProviderCallRequest
+  1. Render AssembledContext + BranchingSessionState into a ProviderCallRequest
      with forced tool use (``produce_branch_output``).
-  3. Call the LLM → ``BranchingWriterProposal``.
-  4. Validate branch option count against the session's ``branch_count_range``.
+  2. Call the LLM → ``BranchingWriterProposal``.
+  3. Validate branch option count against the session's ``branch_count_range``.
      Fail-closed: out-of-range count raises ``BranchingPassError`` (never
      clamp, pad, or truncate).
-  5. Code-stamp all affordance fields from session state:
+  4. Code-stamp all affordance fields from session state:
      - ``interaction_style`` (from session state)
      - ``branching_cadence`` (from session state)
      - ``freeform_available`` (derived: True iff style is not TRUE_CYOA)
      - ``branch_count_range`` (from session state)
      - ``option_id`` for each branch option (sequential: opt_1, opt_2, …)
-  6. Return ``BranchingPassResult`` with validated, code-stamped output.
+  5. Return ``BranchingPassResult`` with validated, code-stamped output.
 
 Architectural invariants:
   - This service is called ONLY for HYBRID and TRUE_CYOA modes.
@@ -31,7 +30,6 @@ Architectural invariants:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from afterworlds.entitlement.enums import PipelinePassId
@@ -69,28 +67,6 @@ if TYPE_CHECKING:
     from afterworlds.models.session import BranchingSessionState
     from afterworlds.pipeline.branching.models import SelectedBranchContext
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
-
-# ---------------------------------------------------------------------------
-# Prompt loading
-# ---------------------------------------------------------------------------
-
-_PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
-
-
-class UnknownPromptError(ValueError):
-    """Raised when the branching writer prompt file is missing."""
-
-
-def load_branching_writer_prompt() -> str:
-    """Load the Branching Writer pass system prompt from docs/prompts/."""
-    prompt_path = _PROMPT_DIR / "branching_mode.md"
-    try:
-        return prompt_path.read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise UnknownPromptError(
-            f"Branching writer prompt file not found at {prompt_path}"
-        ) from exc
-
 
 # ---------------------------------------------------------------------------
 # Module-level tool definition (built once)
@@ -191,7 +167,6 @@ class BranchingWriterService:
         config: BranchingWriterConfig | None = None,
     ) -> None:
         self._config = config or BranchingWriterConfig.from_env()
-        self._system_prompt: str = load_branching_writer_prompt()
 
     def write(
         self,
@@ -416,8 +391,12 @@ class BranchingWriterService:
 
         return ProviderCallRequest(
             pass_id=PipelinePassId.BRANCHING_WRITER,
+            # The BRANCHING mode contract is the BranchingWriter's system prompt
+            # and is already assembled once into ``stable_prefix.system_prompt``
+            # (ContextBuilder.load_mode_contract).  Include it exactly once here,
+            # matching the prose WriterService convention; the forced-tool
+            # definition below carries the pass-specific output contract.
             system_blocks=[
-                RenderedBlock(text=self._system_prompt),
                 RenderedBlock(text=built_context.stable_prefix.system_prompt),
             ],
             rendered_blocks=rendered_blocks,
@@ -429,6 +408,4 @@ class BranchingWriterService:
 
 __all__ = [
     "BranchingWriterService",
-    "UnknownPromptError",
-    "load_branching_writer_prompt",
 ]

@@ -57,6 +57,7 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import (
     BranchingPlayStatus,
+    BranchPresentationState,
     IntentType,
     InteractionRejectionReason,
     InteractionStyle,
@@ -1189,8 +1190,16 @@ class OrchestratorService:
                     planner_result=planner_result,
                 )
             # Phase G: persist branch options to Node.mode_metadata.branching.
-            # Best-effort: failure logs to pipeline_error but we continue since
-            # metadata persistence is non-critical for the current turn's DELIVER.
+            # For shown branch-card turns the persisted option set is the
+            # authoritative source for later BRANCH_CHOICE validation, so it must
+            # be committed in the same transaction that delivers the cards.  If
+            # persistence fails on a shown turn we fail closed (PIPELINE_ERROR ->
+            # rollback) rather than deliver selectable cards backed by an
+            # unpersisted option set.  Held/omitted turns carry no selectable
+            # cards, so their metadata persistence remains best-effort.
+            _cards_shown = (
+                _bpr.branch_presentation_state == BranchPresentationState.SHOWN.value
+            )
             try:
                 from afterworlds.models.node import (
                     BranchingNodeMetadata,
@@ -1204,44 +1213,59 @@ class OrchestratorService:
                 )
 
                 _node_to_update = _gn(session, node_id)
-                if _node_to_update is not None:
-                    _existing_mm = _node_to_update.mode_metadata
-                    _ps_str = _bpr.branch_presentation_state
-                    _new_mm = BranchingNodeMetadata(
-                        pacing_stage_at_beat=(
-                            _existing_mm.pacing_stage_at_beat
-                            if isinstance(_existing_mm, BranchingNodeMetadata)
-                            else None
-                        ),
-                        interaction_style=(
-                            branching_state.interaction_style
-                            if branching_state
-                            else None
-                        ),
-                        branching_cadence=(
-                            branching_state.branching_cadence
-                            if branching_state
-                            else None
-                        ),
-                        freeform_available=_bpr.freeform_available,
-                        branch_count_range=(
-                            branching_state.branch_count_range.value
-                            if branching_state and branching_state.branch_count_range
-                            else None
-                        ),
-                        branch_options=[
-                            PersistedBranchOption(
-                                option_id=o.option_id,
-                                action_text=o.action_text,
-                            )
-                            for o in _bpr.branch_options
-                        ],
-                        branch_presentation_state=_ps_str,
+                if _node_to_update is None:
+                    raise RuntimeError(
+                        f"node {node_id} not found for branch-option persistence"
                     )
-                    _node_to_update.mode_metadata = _new_mm
-                    _un(session, _node_to_update)
-            except Exception:  # noqa: BLE001
-                pass  # Non-critical; node metadata update best-effort
+                _existing_mm = _node_to_update.mode_metadata
+                _ps_str = _bpr.branch_presentation_state
+                _new_mm = BranchingNodeMetadata(
+                    pacing_stage_at_beat=(
+                        _existing_mm.pacing_stage_at_beat
+                        if isinstance(_existing_mm, BranchingNodeMetadata)
+                        else None
+                    ),
+                    interaction_style=(
+                        branching_state.interaction_style if branching_state else None
+                    ),
+                    branching_cadence=(
+                        branching_state.branching_cadence if branching_state else None
+                    ),
+                    freeform_available=_bpr.freeform_available,
+                    branch_count_range=(
+                        branching_state.branch_count_range.value
+                        if branching_state and branching_state.branch_count_range
+                        else None
+                    ),
+                    branch_options=[
+                        PersistedBranchOption(
+                            option_id=o.option_id,
+                            action_text=o.action_text,
+                        )
+                        for o in _bpr.branch_options
+                    ],
+                    branch_presentation_state=_ps_str,
+                )
+                _node_to_update.mode_metadata = _new_mm
+                if _un(session, _node_to_update) is None:
+                    raise RuntimeError(
+                        f"node {node_id} update returned no row during "
+                        "branch-option persistence"
+                    )
+            except Exception as exc:  # noqa: BLE001
+                if _cards_shown:
+                    # Shown cards without a persisted option set would leave later
+                    # BRANCH_CHOICE validation with no authoritative source.
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"branch-card persistence failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                    )
+                # Held/omitted turns carry no selectable cards; node metadata
+                # persistence is non-critical, so continue best-effort.
 
             # Phase G (selection edge): persist the resolved selection into the
             # node's mode_metadata.branching so callers can replay what was chosen.

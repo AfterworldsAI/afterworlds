@@ -667,6 +667,69 @@ class TestSelectedBranchContextRendering:
 
 
 # ---------------------------------------------------------------------------
+# Test: Round 8 Finding 2 — no duplicate Branching mode contract
+# ---------------------------------------------------------------------------
+
+
+class TestNoDuplicateModeContract:
+    """The Branching mode contract is injected exactly once per provider call.
+
+    Regression for PR #112 Round 8: BranchingWriter previously emitted the
+    BRANCHING mode contract twice — once as its own ``_system_prompt`` (loaded
+    from ``branching_mode.md``) and again via ``stable_prefix.system_prompt``
+    (the same file, assembled once by ContextBuilder).  The pass now mirrors the
+    prose WriterService convention: the stable-prefix mode contract only.  The
+    sentinel "branching mode test" is the stable-prefix system_prompt set by
+    ``_make_assembled`` and stands in for ``branching_mode.md`` here.
+    """
+
+    _SENTINEL = "branching mode test"  # == stable_prefix.system_prompt
+
+    def _capture(self, session: BranchingSessionState) -> ProviderCallRequest:
+        provider = _CapturingProvider(_valid_tool_input())
+        service = BranchingWriterService(config=_make_config())
+        service.write(_make_assembled(), session, provider=provider)
+        assert provider.last_request is not None
+        return provider.last_request
+
+    def test_hybrid_contract_appears_exactly_once(self) -> None:
+        request = self._capture(
+            _make_session(interaction_style=InteractionStyle.HYBRID)
+        )
+        system_count = sum(b.text.count(self._SENTINEL) for b in request.system_blocks)
+        rendered_count = sum(
+            b.text.count(self._SENTINEL) for b in request.rendered_blocks
+        )
+        assert system_count == 1
+        # The mode contract must never be duplicated into the user-message region.
+        assert rendered_count == 0
+
+    def test_true_cyoa_contract_appears_exactly_once(self) -> None:
+        request = self._capture(
+            _make_session(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.TWO_TO_THREE,
+            )
+        )
+        system_count = sum(b.text.count(self._SENTINEL) for b in request.system_blocks)
+        assert system_count == 1
+
+    def test_stable_prefix_contract_is_the_single_system_block(self) -> None:
+        request = self._capture(_make_session())
+        # Stable prefix included exactly once, as the sole system block.
+        assert len(request.system_blocks) == 1
+        assert request.system_blocks[0].text == self._SENTINEL
+
+    def test_forced_tool_and_output_contract_still_present(self) -> None:
+        request = self._capture(_make_session())
+        # Output-format guidance survives via the forced-tool definition.
+        assert request.forced_tool_name == PRODUCE_BRANCH_OUTPUT_TOOL_NAME
+        assert any(
+            t.name == PRODUCE_BRANCH_OUTPUT_TOOL_NAME for t in request.tool_definitions
+        )
+
+
+# ---------------------------------------------------------------------------
 # Test: Fix 2 — held/omitted branch_presentation_state allows empty options
 # ---------------------------------------------------------------------------
 

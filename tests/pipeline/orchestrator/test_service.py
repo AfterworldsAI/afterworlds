@@ -6299,3 +6299,218 @@ class TestBranchingPassResultPreservedOnRefusal:
         assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
         # No branching writer ran; the field stays None (behavior unchanged).
         assert result.branching_pass_result is None
+
+
+# ---------------------------------------------------------------------------
+# Round 8 Finding 1: branch-card persistence is fail-closed on shown turns.
+#
+# For HYBRID/TRUE_CYOA turns that DELIVER selectable branch cards, the option
+# set persisted on the node is the authoritative source for later BRANCH_CHOICE
+# validation.  If persistence fails on a shown turn the orchestrator must fail
+# closed (PIPELINE_ERROR -> rollback) rather than deliver unbacked cards.  The
+# Phase G selected-edge write stays best-effort.
+# ---------------------------------------------------------------------------
+
+
+class TestBranchCardPersistenceFailClosed:
+    """Shown branch-card turns persist the authoritative option set or fail closed."""
+
+    def test_hybrid_shown_turn_persists_options_before_delivery(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + in_play DELIVER persists the shown option set on the node."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert branching_writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        assert node.mode_metadata.branch_presentation_state == "shown"
+
+    def test_true_cyoa_shown_turn_persists_options_before_delivery(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + valid BRANCH_CHOICE DELIVER persists the shown option set."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            writer,
+            "opt_1",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        assert node.mode_metadata.branch_presentation_state == "shown"
+
+    def test_shown_turn_persistence_failure_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A persistence fault on a shown turn → PIPELINE_ERROR, no delivered cards."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic branch-option persistence failure")
+
+        # The only update_node on a HYBRID freeform turn is the branch-card write.
+        monkeypatch.setattr("afterworlds.persistence.crud.node.update_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card persistence failed" in summary, summary
+        assert "synthetic branch-option persistence failure" in summary, summary
+        # Failing closed means NOT surfacing the selectable cards.
+        assert result.branching_pass_result is None
+        # Transaction rolled back: no option set committed to the node.
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert node.mode_metadata.branch_options == []
+
+    def test_shown_turn_missing_node_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A get_node miss on a shown turn → PIPELINE_ERROR, no delivered cards."""
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, _branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        # The branch-card persistence block re-fetches the node before writing;
+        # a missing row must fail closed rather than deliver unpersisted cards.
+        monkeypatch.setattr(
+            "afterworlds.persistence.crud.node.get_node",
+            lambda *args, **kwargs: None,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card persistence failed" in summary, summary
+        assert result.branching_pass_result is None
+
+    def test_persisted_option_set_drives_later_branch_choice(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A later BRANCH_CHOICE validates against the orchestrator-persisted set."""
+        # Turn 1: HYBRID shown turn — seed carries NO options; the turn persists
+        # opt_1/opt_2 onto the node.
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch1, writer1 = _make_branching_refusal_orchestrator(session_factory)
+        r1 = orch1.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert r1.disposition is PipelineDisposition.DELIVERED
+        assert writer1.called is True
+
+        # Turn 2: a valid opt_1 BRANCH_CHOICE reads the persisted set and proceeds.
+        writer2 = _RecordingBranchingWriterService()
+        orch2 = _make_branching_choice_orchestrator(session_factory, writer2, "opt_1")
+        r2 = orch2.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # The seed carried no options; only the persisted set makes opt_1 valid.
+        assert writer2.called is True
+        assert r2.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (r2.pipeline_error_summary or "")
+        assert r2.interaction_rejection_reason is None
+
+    def test_phase_g_selected_edge_failure_is_non_blocking(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """Selected-edge persistence failure stays best-effort once cards persisted."""
+        import afterworlds.persistence.crud.node as _node_crud
+        from afterworlds.models.node import BranchingNodeMetadata
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        real_update = _node_crud.update_node
+        calls = {"n": 0}
+
+        def _fail_on_selected_edge(sess: object, node: object) -> object:
+            # First update_node = branch-card persistence (must succeed); second =
+            # Phase G selected-edge persistence (forced to fail, best-effort).
+            calls["n"] += 1
+            if calls["n"] >= 2:
+                raise RuntimeError("synthetic selected-edge persistence failure")
+            return real_update(sess, node)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(
+            "afterworlds.persistence.crud.node.update_node", _fail_on_selected_edge
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Card persistence succeeded; the selected-edge failure does not block.
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert calls["n"] >= 2
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = _node_crud.get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # Authoritative option set committed …
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        # … but the best-effort selection annotation was not.
+        assert node.mode_metadata.selected_option_id is None
