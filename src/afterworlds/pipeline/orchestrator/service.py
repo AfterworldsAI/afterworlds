@@ -56,6 +56,7 @@ from afterworlds.models.context import (
     StablePrefix,
 )
 from afterworlds.models.enums import (
+    BranchingPlayStatus,
     IntentType,
     InteractionRejectionReason,
     InteractionStyle,
@@ -650,8 +651,12 @@ class OrchestratorService:
         # INTERACTION_REJECTED: True CYOA mode rejects non-OOC freeform input.
         # Runs after the OOC short-circuit (OOC is always valid) and after the
         # pending-roll intercept (RPG-only).  No LLM call, no Turn, no canon.
+        # Gated on in_play: during setup, TRUE_CYOA setup confirmation and
+        # clarification route through the ordinary prose Writer path per
+        # ADR-016 Decision 3; interaction-style enforcement is in-play only.
         if (
             pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
             and pre_branching_state.interaction_style is InteractionStyle.TRUE_CYOA
             and intent_result.intent_type is not IntentType.BRANCH_CHOICE
         ):
@@ -1053,9 +1058,12 @@ class OrchestratorService:
     ) -> OrchestrationResult:
         # Determine if this is a BRANCHING HYBRID/TRUE_CYOA turn (BranchingWriterService
         # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
+        # Gated on in_play: during setup, HYBRID/TRUE_CYOA setup confirmation and
+        # clarification route through the prose Writer path per ADR-016 Decision 3.
         _use_branching_writer = (
             story_mode is StoryMode.BRANCHING
             and branching_state is not None
+            and branching_state.play_status is BranchingPlayStatus.IN_PLAY
             and branching_state.interaction_style
             in (
                 InteractionStyle.HYBRID,
@@ -1523,6 +1531,7 @@ class OrchestratorService:
                 extractor_result=exc.extractor_result,
                 provider_refusal=exc.refusal,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
         except ProviderRefusalError as exc:
             # Extractor-side refusal: the failing pass result must remain
@@ -1539,6 +1548,7 @@ class OrchestratorService:
                 output_safety_result=output_safety,
                 provider_refusal=exc.refusal,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
         except _ParallelSyncError as exc:
             return self._pipeline_error(

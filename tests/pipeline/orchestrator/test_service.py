@@ -5562,6 +5562,7 @@ class TestBranchingWriterLineageGuard:
         from afterworlds.entitlement.enums import RuntimeAccessPath
         from afterworlds.models.enums import (
             BranchingCadence,
+            BranchingPlayStatus,
             IntentType,
             InteractionStyle,
             PacingStage,
@@ -5616,6 +5617,7 @@ class TestBranchingWriterLineageGuard:
                 pacing_stage=PacingStage.ESCALATION,
                 interaction_style=InteractionStyle.HYBRID,
                 branching_cadence=BranchingCadence.BALANCED,
+                play_status=BranchingPlayStatus.IN_PLAY,
             )
 
         fake_branching_writer = _FakeBranchingWriterService()
@@ -5730,10 +5732,15 @@ def _make_branching_choice_orchestrator(
     session_factory: object,
     branching_writer: object,
     raw_input: str,
+    interaction_style: object = None,
 ):  # type: ignore[no-untyped-def]
-    """Orchestrator wired for a HYBRID BRANCH_CHOICE turn with selection validation."""
+    """Orchestrator wired for an in-play BRANCH_CHOICE turn with selection validation.
+
+    Defaults to HYBRID; pass ``interaction_style`` to exercise TRUE_CYOA routing.
+    """
     from afterworlds.models.enums import (
         BranchingCadence,
+        BranchingPlayStatus,
         IntentType,
         InteractionStyle,
         PacingStage,
@@ -5744,12 +5751,17 @@ def _make_branching_choice_orchestrator(
         BranchSelectionValidationService,
     )
 
+    resolved_style = (
+        InteractionStyle.HYBRID if interaction_style is None else interaction_style
+    )
+
     def _branching_resolver(sid: UUID) -> BranchingSessionState:
         return BranchingSessionState(
             story_id=sid,
             pacing_stage=PacingStage.ESCALATION,
-            interaction_style=InteractionStyle.HYBRID,
+            interaction_style=resolved_style,  # type: ignore[arg-type]
             branching_cadence=BranchingCadence.BALANCED,
+            play_status=BranchingPlayStatus.IN_PLAY,
         )
 
     return OrchestratorService(
@@ -5854,3 +5866,436 @@ class TestBranchCardReadPath:
             result.pipeline_error_summary or ""
         )
         assert result.interaction_rejection_reason is None
+
+    def test_true_cyoa_in_play_valid_choice_proceeds_to_branching_writer(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """TRUE_CYOA + in_play + valid opt_N still routes to the branching writer.
+
+        Finding 1 enumerates "HYBRID/TRUE_CYOA + in_play uses BranchingWriter".
+        Under TRUE_CYOA the only path that reaches the writer is a valid
+        BRANCH_CHOICE (freeform is rejected), so this exercises the selection
+        harness rather than the freeform routing harness.
+        """
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _RecordingBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            writer,
+            "opt_1",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (
+            result.pipeline_error_summary or ""
+        )
+        assert result.interaction_rejection_reason is None
+
+
+# ---------------------------------------------------------------------------
+# Round 7 Finding 1: in_play gating of interaction-style enforcement.
+#
+# Branching interaction-style enforcement (TRUE_CYOA freeform rejection and
+# HYBRID/TRUE_CYOA BranchingWriter routing) applies only when
+# play_status == IN_PLAY.  During setup, confirmation/clarification routes
+# through the ordinary prose Writer path per ADR-016 Decision 3.
+# ---------------------------------------------------------------------------
+
+
+class _SuccessfulBranchingWriterService:
+    """Branching writer fake that returns a complete, valid pass result.
+
+    Lets a HYBRID/TRUE_CYOA in-play turn proceed past the writer into the
+    downstream Extractor/Contradiction passes (used by the refusal-preservation
+    tests below).
+    """
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        from afterworlds.models.enums import BranchingCadence, InteractionStyle
+        from afterworlds.pipeline.branching.models import (
+            BranchingPassResult,
+            BranchOption,
+        )
+
+        self.called = True
+        return BranchingPassResult(
+            narrative_text="The corridor forks before you.",
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            freeform_available=True,
+            branch_count_range=None,
+            branch_options=[
+                BranchOption(option_id="opt_1", action_text="Go left"),
+                BranchOption(option_id="opt_2", action_text="Go right"),
+            ],
+            branch_presentation_state="shown",
+            provider="anthropic",
+            model_identifier="claude-haiku-4-5",
+            model_tier="haiku",
+            latency_ms=7,
+        )
+
+
+def _make_branching_routing_orchestrator(
+    session_factory: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    intent_type: object,
+    branching_writer: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator wired for a BRANCHING turn at a given style/play_status."""
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+
+
+class TestBranchingInPlayGating:
+    """Interaction-style enforcement is gated on play_status == IN_PLAY."""
+
+    def test_true_cyoa_setup_freeform_not_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + setup + non-branch input → prose Writer, not rejected."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="Make the tone darker, please.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Make the tone darker, please.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Setup clarification is NOT rejected and routes through prose Writer.
+        assert result.disposition is not PipelineDisposition.INTERACTION_REJECTED
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+        assert writer.called is False
+
+    def test_true_cyoa_in_play_freeform_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + in_play + non-branch input → INTERACTION_REJECTED."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionRejectionReason,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I wander off the path on my own.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the path on my own.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert (
+            result.interaction_rejection_reason
+            is InteractionRejectionReason.INVALID_FOR_INTERACTION_STYLE
+        )
+        assert writer.called is False
+
+    def test_hybrid_setup_uses_prose_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + setup → prose Writer, BranchingWriter not reached."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="Yes, that premise sounds right.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Yes, that premise sounds right.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is False
+
+    def test_hybrid_in_play_uses_branching_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + in_play → BranchingWriter is reached."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _RecordingBranchingWriterService()  # records + aborts
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I push deeper into the corridor.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I push deeper into the corridor.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+
+    def test_freeform_only_in_play_unchanged_uses_prose_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """FREEFORM_ONLY + in_play → prose Writer (never BranchingWriter)."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I improvise and follow the sound.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I improvise and follow the sound.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+        assert writer.called is False
+
+
+# ---------------------------------------------------------------------------
+# Round 7 Finding 2: preserve branching_pass_result on downstream refusal.
+#
+# After a successful BranchingWriter pass, a downstream provider refusal
+# (Extractor refusal, or Contradiction refusal after Extractor succeeded)
+# must preserve the upstream successful ``branching_pass_result``.  Only the
+# failing downstream pass result remains absent.
+# ---------------------------------------------------------------------------
+
+
+def _make_branching_refusal_orchestrator(
+    session_factory: object,
+    *,
+    extractor_exc: Exception | None = None,
+    contradiction_exc: Exception | None = None,
+):  # type: ignore[no-untyped-def]
+    """BRANCHING HYBRID in-play orchestrator with a successful BranchingWriter."""
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        BranchingPlayStatus,
+        IntentType,
+        InteractionStyle,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=BranchingPlayStatus.IN_PLAY,
+        )
+
+    branching_writer = _SuccessfulBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.IN_CHARACTER_ACTION, "I push deeper.")
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(raise_exc=extractor_exc),
+        contradiction_service=FakeContradictionService(raise_exc=contradiction_exc),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+    return orch, branching_writer
+
+
+class TestBranchingPassResultPreservedOnRefusal:
+    """Downstream refusals preserve the upstream branching_pass_result."""
+
+    def test_extractor_refusal_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter success + Extractor refusal → result preserved."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.EXTRACTOR
+        assert branching_writer.called is True
+        # Upstream success preserved …
+        assert result.branching_pass_result is not None
+        assert result.writer_result is not None
+        # … failing downstream pass result remains absent.
+        assert result.extractor_result is None
+
+    def test_contradiction_refusal_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter + Extractor success + Contradiction refusal."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            contradiction_exc=make_refusal(PassIdentifier.CONTRADICTION),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.CONTRADICTION
+        assert branching_writer.called is True
+        # Upstream successes preserved, including the Extractor that completed.
+        assert result.branching_pass_result is not None
+        assert result.extractor_result is not None
+        # Failing pass (Contradiction) result absent.
+        assert result.contradiction_result is None
+
+    def test_prose_writer_refusal_leaves_branching_pass_result_none(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Prose-Writer path: Extractor refusal carries no branching_pass_result."""
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        # No branching writer ran; the field stays None (behavior unchanged).
+        assert result.branching_pass_result is None
