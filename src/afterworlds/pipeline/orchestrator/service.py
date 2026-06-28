@@ -57,7 +57,6 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import (
     BranchingPlayStatus,
-    BranchPresentationState,
     IntentType,
     InteractionRejectionReason,
     InteractionStyle,
@@ -1084,7 +1083,13 @@ class OrchestratorService:
         # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
         # Gated on in_play: during setup, HYBRID/TRUE_CYOA setup confirmation and
         # clarification route through the prose Writer path per ADR-016 Decision 3.
-        _use_branching_writer = (
+        # An in-play HYBRID/TRUE_CYOA turn REQUIRES the BranchingWriterService.
+        # The service-wiring check is split out from _use_branching_writer so a
+        # missing service fails closed (below) rather than silently falling
+        # through to the prose Writer, which would bypass the typed branch-card
+        # contract and omit branching_pass_result.  Setup turns and
+        # FREEFORM_ONLY still route through the prose Writer per ADR-016 Dec. 3.
+        _branching_required = (
             story_mode is StoryMode.BRANCHING
             and branching_state is not None
             and branching_state.play_status is BranchingPlayStatus.IN_PLAY
@@ -1093,7 +1098,19 @@ class OrchestratorService:
                 InteractionStyle.HYBRID,
                 InteractionStyle.TRUE_CYOA,
             )
-            and self._branching_writer_service is not None
+        )
+        if _branching_required and self._branching_writer_service is None:
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "branching writer service not wired for in-play"
+                " HYBRID/TRUE_CYOA session; refusing prose-writer downgrade",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+            )
+        _use_branching_writer = (
+            _branching_required and self._branching_writer_service is not None
         )
 
         # 5. Writer persists provisional Turn inside the outer transaction.
@@ -1213,17 +1230,16 @@ class OrchestratorService:
                     planner_result=planner_result,
                     branching_pass_result=branching_pass_result,
                 )
-            # Phase G: persist branch options to Node.mode_metadata.branching.
-            # For shown branch-card turns the persisted option set is the
-            # authoritative source for later BRANCH_CHOICE validation, so it must
-            # be committed in the same transaction that delivers the cards.  If
-            # persistence fails on a shown turn we fail closed (PIPELINE_ERROR ->
-            # rollback) rather than deliver selectable cards backed by an
-            # unpersisted option set.  Held/omitted turns carry no selectable
-            # cards, so their metadata persistence remains best-effort.
-            _cards_shown = (
-                _bpr.branch_presentation_state == BranchPresentationState.SHOWN.value
-            )
+            # Phase G: persist branch options + presentation state to
+            # Node.mode_metadata.branching.  This metadata is the authoritative
+            # surface the next BRANCH_CHOICE turn validates against, so it must be
+            # committed in the same transaction that delivers the turn — for
+            # held/omitted just as much as for shown.  A shown turn needs its
+            # option set persisted; a held/omitted turn needs the prior beat's
+            # branch_options cleared (held/omitted always carry an empty option
+            # set) so stale cards cannot be selected.  If this write fails we fail
+            # closed (PIPELINE_ERROR -> rollback) rather than deliver a turn whose
+            # next valid choice surface cannot be trusted.
             try:
                 from afterworlds.models.node import (
                     BranchingNodeMetadata,
@@ -1277,20 +1293,20 @@ class OrchestratorService:
                         "branch-option persistence"
                     )
             except Exception as exc:  # noqa: BLE001
-                if _cards_shown:
-                    # Shown cards without a persisted option set would leave later
-                    # BRANCH_CHOICE validation with no authoritative source.
-                    return self._pipeline_error(
-                        intent_result,
-                        latency,
-                        turn_start,
-                        f"branch-card persistence failed: {exc}",
-                        input_safety_result=input_safety,
-                        planner_result=planner_result,
-                        branching_pass_result=branching_pass_result,
-                    )
-                # Held/omitted turns carry no selectable cards; node metadata
-                # persistence is non-critical, so continue best-effort.
+                # Authoritative branch-choice surface failed to persist (shown
+                # options unsaved, or stale held/omitted options not cleared).
+                # Fail closed so the next turn cannot validate against a surface
+                # that was never committed.  The BranchingWriter already ran, so
+                # branching_pass_result is preserved for settlement/audit.
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branch-card metadata persistence failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    branching_pass_result=branching_pass_result,
+                )
 
             # Phase G (selection edge): persist the resolved selection into the
             # node's mode_metadata.branching so callers can replay what was chosen.
