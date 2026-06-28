@@ -718,11 +718,16 @@ class OrchestratorService:
 
         # INTERACTION_REJECTED: validate BRANCH_CHOICE selection against the
         # presented option set from the current node's mode_metadata.branching.
-        # Runs for HYBRID and TRUE_CYOA when intent is BRANCH_CHOICE.
+        # Runs for in-play HYBRID and TRUE_CYOA when intent is BRANCH_CHOICE.
+        # Branch-choice validation is an in-play rail: a setup row routes through
+        # the prose setup-confirmation path per ADR-016 Decision 3 even when the
+        # selection service is wired and the classifier emits BRANCH_CHOICE, so
+        # this block is gated on IN_PLAY to match the missing-service guard above.
         # No LLM call, no Turn, no canon mutation on rejection.
         pre_selected_context: SelectedBranchContext | None = None
         if (
             pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
             and intent_result.intent_type is IntentType.BRANCH_CHOICE
             and pre_branching_state.interaction_style
             in (

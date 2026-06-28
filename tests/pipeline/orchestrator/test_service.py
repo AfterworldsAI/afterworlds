@@ -5746,10 +5746,14 @@ def _make_branching_choice_orchestrator(
     branching_writer: object,
     raw_input: str,
     interaction_style: object = None,
+    play_status: object = None,
 ):  # type: ignore[no-untyped-def]
-    """Orchestrator wired for an in-play BRANCH_CHOICE turn with selection validation.
+    """Orchestrator wired for a BRANCH_CHOICE turn with selection validation.
 
-    Defaults to HYBRID; pass ``interaction_style`` to exercise TRUE_CYOA routing.
+    Defaults to in-play HYBRID; pass ``interaction_style`` to exercise TRUE_CYOA
+    routing and ``play_status`` to exercise the SETUP path (where the in-play
+    branch-choice validation rail must not run even though the selection service
+    is wired and the classifier emitted BRANCH_CHOICE).
     """
     from afterworlds.models.enums import (
         BranchingCadence,
@@ -5767,6 +5771,9 @@ def _make_branching_choice_orchestrator(
     resolved_style = (
         InteractionStyle.HYBRID if interaction_style is None else interaction_style
     )
+    resolved_status = (
+        BranchingPlayStatus.IN_PLAY if play_status is None else play_status
+    )
 
     def _branching_resolver(sid: UUID) -> BranchingSessionState:
         return BranchingSessionState(
@@ -5774,7 +5781,7 @@ def _make_branching_choice_orchestrator(
             pacing_stage=PacingStage.ESCALATION,
             interaction_style=resolved_style,  # type: ignore[arg-type]
             branching_cadence=BranchingCadence.BALANCED,
-            play_status=BranchingPlayStatus.IN_PLAY,
+            play_status=resolved_status,  # type: ignore[arg-type]
         )
 
     return OrchestratorService(
@@ -7695,3 +7702,71 @@ class TestBranchChoiceValidationServiceRequired:
 
         assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
         assert result.interaction_rejection_reason is not None
+
+    def test_setup_hybrid_wired_selection_service_routes_through_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup HYBRID + classifier BRANCH_CHOICE + wired svc → prose, not rejection.
+
+        Branch-choice validation is an in-play rail.  Same invalid input that the
+        in-play positive control rejects (``test_wired_selection_service_invalid_
+        choice_still_rejected``) must NOT be validated during setup even though
+        the selection service is wired and the classifier emitted BRANCH_CHOICE;
+        the setup row routes through the prose setup-confirmation path instead.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Setup did not run the in-play branch-choice validation rail.
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+
+    def test_setup_true_cyoa_wired_selection_service_routes_through_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup TRUE_CYOA + classifier BRANCH_CHOICE + wired svc → prose path.
+
+        Same in-play-only invariant as the HYBRID case: a setup TRUE_CYOA row
+        routes through prose setup confirmation rather than branch validation.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
