@@ -634,10 +634,24 @@ class OrchestratorService:
         # and for the narrative path (HYBRID/TRUE_CYOA).  Modeled on the RPG
         # pre_session_state pattern: resolve once, thread through as _pre_branching_state.  # noqa: E501
         pre_branching_state: BranchingSessionState | None = None
-        if (
-            story_mode is StoryMode.BRANCHING
-            and self._branching_session_resolver is not None
-        ):
+        if story_mode is StoryMode.BRANCHING:
+            # In-play interaction-style enforcement (TRUE_CYOA freeform
+            # rejection, BRANCH_CHOICE validation) and writer routing all depend
+            # on the resolved Branching session state to distinguish setup,
+            # FREEFORM_ONLY, HYBRID, TRUE_CYOA, and play status.  Without the
+            # resolver we cannot prove the turn is one of the "unchanged" paths,
+            # so fail closed before any interaction-style enforcement or
+            # writer-routing decision rather than silently proceeding with
+            # pre_branching_state=None (which would skip in-play HYBRID/TRUE_CYOA
+            # enforcement and downgrade to the prose Writer).
+            if self._branching_session_resolver is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "branching session resolver not wired for BRANCHING turn;"
+                    " cannot determine interaction style or play status",
+                )
             try:
                 pre_branching_state = self._branching_session_resolver(story_id)
             except Exception as exc:  # noqa: BLE001
@@ -672,6 +686,34 @@ class OrchestratorService:
                     " Freeform narrative input is not valid in this mode."
                     " Use [OOC] to switch to Hybrid mode."
                 ),
+            )
+
+        # Fail closed: an in-play HYBRID/TRUE_CYOA BRANCH_CHOICE requires the
+        # BranchSelectionValidationService.  Without it we cannot validate the
+        # selection against the presented option set; treating the choice as
+        # freeform narrative input would bypass the typed branch-card contract
+        # and proceed to generation with selected_branch_context=None.  This
+        # guard is in-play only, so setup rows stay on the existing wired-only
+        # validation path ("setup unchanged").  Must precede any LLM call, Turn
+        # persistence, canon mutation, or provider billing.
+        if (
+            pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and intent_result.intent_type is IntentType.BRANCH_CHOICE
+            and pre_branching_state.interaction_style
+            in (
+                InteractionStyle.HYBRID,
+                InteractionStyle.TRUE_CYOA,
+            )
+            and self._branching_selection_service is None
+        ):
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "branch selection validation service not wired for in-play"
+                " HYBRID/TRUE_CYOA branch choice; refusing unvalidated"
+                " selection",
             )
 
         # INTERACTION_REJECTED: validate BRANCH_CHOICE selection against the

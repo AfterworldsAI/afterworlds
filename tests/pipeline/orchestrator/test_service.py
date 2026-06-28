@@ -180,6 +180,18 @@ def _make_fake_resolver(trusted: bool = False) -> object:
 # ---------------------------------------------------------------------------
 
 
+def _null_branching_resolver(_story_id: UUID) -> None:
+    """Default branching-session resolver for mode-agnostic orchestrator tests.
+
+    The harness mode defaults to ``StoryMode.BRANCHING``, which now requires a
+    wired ``branching_session_resolver`` (a missing resolver fails closed).
+    These generic pipeline tests carry no branching session, so resolution
+    yields ``None`` and the turn routes through the prose Writer exactly as it
+    did under the prior fail-open behavior.
+    """
+    return None
+
+
 def _make_orchestrator(  # type: ignore[no-untyped-def]
     session_factory,
     *,
@@ -233,6 +245,7 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
         safety_policy=safety_policy or CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=resolver,  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(),
+        branching_session_resolver=_null_branching_resolver,
         executor=executor,
         parallel_pass_timeout_seconds=parallel_timeout,
     )
@@ -7375,3 +7388,310 @@ class TestBranchingOocStyleNoopSurfaced:
         assert bss.interaction_style is InteractionStyle.TRUE_CYOA
         assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
         assert _OOC_STYLE_NOOP_SENTINEL not in (result.delivered_output or "")
+
+
+def _make_branching_orch_without_resolver(
+    session_factory: object,
+    *,
+    intent_type: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """BRANCHING orchestrator with NO branching_session_resolver wired.
+
+    Exposes the prose writer and branching writer fakes so callers can prove
+    neither pass ran when the missing-resolver guard fails closed.
+    """
+    from afterworlds.models.enums import StoryMode
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+
+    writer = FakeWriterService()
+    branching_writer = _FakeBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        # branching_session_resolver intentionally omitted (None).
+        branching_selection_service=BranchSelectionValidationService(),
+    )
+    return orch, writer, branching_writer
+
+
+class TestBranchingResolverRequired:
+    """A BRANCHING turn fails closed when branching_session_resolver is absent.
+
+    Without the resolver the orchestrator cannot distinguish setup,
+    FREEFORM_ONLY, HYBRID, TRUE_CYOA, or play status, so it must not proceed
+    with pre_branching_state=None and silently downgrade to the prose Writer.
+    """
+
+    def test_in_character_action_missing_resolver_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-character BRANCHING turn + no resolver → PIPELINE_ERROR, no writer."""
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, writer, branching_writer = _make_branching_orch_without_resolver(
+            session_factory,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I press onward.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I press onward.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "resolver not wired" in summary, summary
+        # Fail closed before any writer routing: neither pass ran, no Turn.
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_branch_choice_missing_resolver_fails_closed_before_rejection(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BRANCH_CHOICE + no resolver → PIPELINE_ERROR, not INTERACTION_REJECTED.
+
+        Proves the guard precedes TRUE_CYOA freeform rejection and branch
+        selection validation, both of which depend on the resolved state.
+        """
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_orch_without_resolver(
+            session_factory,
+            intent_type=IntentType.BRANCH_CHOICE,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "resolver not wired" in (result.pipeline_error_summary or "")
+        # Not a user-input rejection: error precedes interaction-style checks.
+        assert result.interaction_rejection_reason is None
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_wired_resolver_setup_hybrid_still_delivers(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: a wired resolver still permits the setup prose path."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=_FakeBranchingWriterService(),
+            raw_input="Let's begin the tale.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Let's begin the tale.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+
+def _make_branching_choice_orch_without_selection(
+    session_factory: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """In-play/SETUP BRANCH_CHOICE orchestrator with NO selection service wired.
+
+    Exposes the writer fakes so callers can prove no narrative pass ran when
+    the missing-selection-service guard fails closed.
+    """
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        IntentType,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    writer = FakeWriterService()
+    branching_writer = _FakeBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.BRANCH_CHOICE, raw_input)
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+        # branching_selection_service intentionally omitted (None).
+    )
+    return orch, writer, branching_writer
+
+
+class TestBranchChoiceValidationServiceRequired:
+    """In-play HYBRID/TRUE_CYOA BRANCH_CHOICE fails closed without selection svc.
+
+    Without BranchSelectionValidationService the selection cannot be validated
+    against the presented option set; treating it as freeform narrative would
+    bypass the typed branch-card contract and bill a turn for an unvalidated
+    choice.  Setup rows stay on the existing wired-only path (guard is in-play
+    only).
+    """
+
+    def test_in_play_hybrid_missing_selection_service_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play HYBRID BRANCH_CHOICE + no selection svc → PIPELINE_ERROR, no turn."""
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "selection validation service not wired" in summary, summary
+        # No LLM call, no Turn, no billing: neither writer ran.
+        assert writer.calls == []
+        assert branching_writer.called is False
+        # Fail-closed wiring guard, not a user-input rejection.
+        assert result.interaction_rejection_reason is None
+
+    def test_in_play_true_cyoa_missing_selection_service_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play TRUE_CYOA BRANCH_CHOICE + no selection svc → PIPELINE_ERROR."""
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            raw_input="opt_2",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_2", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "selection validation service not wired" in (
+            result.pipeline_error_summary or ""
+        )
+        assert writer.calls == []
+        assert branching_writer.called is False
+        assert result.interaction_rejection_reason is None
+
+    def test_setup_hybrid_missing_selection_service_unchanged(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: setup BRANCH_CHOICE + no selection svc → prose, no error.
+
+        The guard is in-play only, so setup behavior is unchanged: the missing
+        selection service does not fail the turn closed during setup.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        # Setup routes through the prose Writer, not the branching writer.
+        assert len(writer.calls) == 1
+        assert branching_writer.called is False
+
+    def test_wired_selection_service_invalid_choice_still_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: a wired service still returns INTERACTION_REJECTED."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.HYBRID,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert result.interaction_rejection_reason is not None
