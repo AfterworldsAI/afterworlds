@@ -661,6 +661,21 @@ class OrchestratorService:
                     turn_start,
                     f"branching session resolution failed: {exc}",
                 )
+            # A wired resolver returning None means the Branching session
+            # row/state is missing or corrupt.  Fail closed: without state we
+            # cannot prove the turn is setup, FREEFORM_ONLY, HYBRID, or
+            # TRUE_CYOA, so treating None as "setup" or "FREEFORM_ONLY" would
+            # silently skip in-play enforcement and downgrade to the prose
+            # Writer.  Error before any interaction-style enforcement,
+            # branch-choice validation, writer routing, or LLM call.
+            if pre_branching_state is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "branching session state missing or corrupt for BRANCHING"
+                    " turn; resolver returned None",
+                )
 
         # INTERACTION_REJECTED: True CYOA mode rejects non-OOC freeform input.
         # Runs after the OOC short-circuit (OOC is always valid) and after the
@@ -2164,6 +2179,26 @@ class OrchestratorService:
         _ooc_delivered = writer_result.assistant_output
         if _ooc_style_noop_note is not None:
             _ooc_delivered = f"{_ooc_delivered}\n\n{_ooc_style_noop_note}"
+            # Keep the persisted OOC Turn truthful.  The corrective no-op note
+            # is appended to the delivered output because the requested style
+            # change was suppressed; the raw writer prose alone could falsely
+            # imply the change happened.  Persist the same corrected output to
+            # the Turn row and mirror it onto the in-memory writer_result so
+            # delivered output, returned writer_result, and future recent-turn
+            # context all agree.  Done inside this transaction; a write failure
+            # rolls the whole OOC turn back rather than persisting a false
+            # confirmation.
+            if writer_result.turn_id is not None:
+                from afterworlds.persistence.crud.node import (
+                    update_turn_assistant_output,
+                )
+
+                update_turn_assistant_output(
+                    session, writer_result.turn_id, _ooc_delivered
+                )
+            writer_result = writer_result.model_copy(
+                update={"assistant_output": _ooc_delivered}
+            )
 
         return self._build_result(
             PipelineDisposition.OOC_HANDLED,
@@ -2828,6 +2863,19 @@ class OrchestratorService:
                     extractor_result=inner_result.extractor_result,
                     contradiction_result=inner_result.contradiction_result,
                     rpg_adjudication_result=inner_result.rpg_adjudication_result,
+                    # Preserve usage-carrying Branching pass results.  A
+                    # BranchingWriter or Branching OOC-config extractor that ran
+                    # before the failed commit already consumed provider tokens;
+                    # the disposition changes to PIPELINE_ERROR but that
+                    # successful provider-usage evidence must survive so cost
+                    # settlement (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_
+                    # EXTRACTOR) and audit can reconstruct the spend.  Delivery
+                    # is gated by the PIPELINE_ERROR disposition, not by nulling
+                    # these records.
+                    branching_pass_result=inner_result.branching_pass_result,
+                    branching_ooc_config_result=(
+                        inner_result.branching_ooc_config_result
+                    ),
                     pipeline_error_summary=(
                         f"transaction commit failed after "
                         f"{success_disposition.value}: {commit_exc}"

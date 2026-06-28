@@ -167,6 +167,29 @@ def get_turn(session: Session, turn_id: UUID) -> Turn | None:
     return _turn_orm_to_model(row)
 
 
+def update_turn_assistant_output(
+    session: Session, turn_id: UUID, assistant_output: str
+) -> bool:
+    """Overwrite a Turn's persisted assistant_output.  Returns True if updated.
+
+    Used to keep the persisted OOC Turn truthful when a corrective no-op note
+    is appended to the delivered output: the stored prose must carry the same
+    correction so future recent-turn context cannot reintroduce a false
+    confirmation of a change that did not happen.
+
+    Deliberately does NOT flush: the row is part of the caller's open unit of
+    work, so the dirty attribute is emitted by the surrounding transaction's
+    commit.  Flushing here would add a mid-pipeline raise surface that could
+    escape the orchestrator's typed-terminal contract; deferring keeps the
+    only failure point the commit, which already preserves usage on rebuild.
+    """
+    row = session.get(TurnORM, str(turn_id))
+    if row is None:
+        return False
+    row.assistant_output = assistant_output
+    return True
+
+
 def delete_turn(session: Session, turn_id: UUID) -> bool:
     """Delete a Turn.  Returns True if deleted."""
     row = session.get(TurnORM, str(turn_id))
