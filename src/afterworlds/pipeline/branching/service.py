@@ -47,6 +47,7 @@ from afterworlds.pipeline.branching.caller import (
     PRODUCE_BRANCH_OUTPUT_TOOL_SPEC,
 )
 from afterworlds.pipeline.branching.config import (
+    ALLOWED_RANGES_BY_STYLE,
     BRANCH_COUNT_RANGE_BOUNDS,
     BRANCHING_WRITER_MAX_TOKENS,
     BranchingWriterConfig,
@@ -131,6 +132,28 @@ def _validate_branch_count(
                 " 'held' or 'omitted'."
             )
         return
+    # Shown path.  Persisted Branching config compatibility (PR #112 R14):
+    # for in-play HYBRID/TRUE_CYOA the persisted branch_count_range must be
+    # BOTH known and allowed for the active interaction_style.  A persisted
+    # style/range mismatch is corrupt runtime state and must fail closed
+    # before any shown branch cards are accepted — numeric min/max validation
+    # alone is insufficient.  Reuses the code-owned ALLOWED_RANGES_BY_STYLE
+    # table (never duplicate or clamp).
+    if (
+        interaction_style is InteractionStyle.HYBRID
+        or interaction_style is InteractionStyle.TRUE_CYOA
+    ):
+        allowed_ranges = ALLOWED_RANGES_BY_STYLE.get(interaction_style)
+        allowed_values = {r.value for r in allowed_ranges} if allowed_ranges else set()
+        if branch_count_range is None or branch_count_range not in allowed_values:
+            raise BranchingPassError(
+                f"Persisted branch_count_range {branch_count_range!r} is not"
+                f" allowed for interaction_style={interaction_style.value};"
+                f" allowed ranges: {sorted(allowed_values)}. A persisted"
+                " incompatible style/range combination is corrupt runtime"
+                " state — failing closed before delivering branch cards."
+            )
+
     if branch_count_range is None:
         return
     bounds = BRANCH_COUNT_RANGE_BOUNDS.get(branch_count_range)

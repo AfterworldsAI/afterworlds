@@ -451,8 +451,13 @@ class TestBranchCountRangeValidation:
         assert len(result.branch_options) == 4
 
     def test_two_five_range_extreme(self) -> None:
-        # 2-5 range: 5 options is valid
-        session = _make_session(branch_count_range=BranchCountRange.TWO_TO_FIVE)
+        # 2-5 range: 5 options is valid.  "2-5" is a TRUE_CYOA-allowed range
+        # (not allowed for HYBRID), so this numeric-extreme case must use
+        # TRUE_CYOA to remain a compatible persisted style/range combination.
+        session = _make_session(
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            branch_count_range=BranchCountRange.TWO_TO_FIVE,
+        )
         service = BranchingWriterService(config=_make_config())
         result = service.write(
             _make_assembled(),
@@ -881,3 +886,85 @@ class TestValidateBranchCountDirect:
     def test_none_style_held_empty_still_passes(self) -> None:
         """interaction_style=None preserves legacy behaviour — held + [] passes."""
         _validate_branch_count([], "2-3", "held")  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# Test: PR #112 R14 — persisted branch_count_range / interaction_style
+# compatibility.  A shown HYBRID/TRUE_CYOA turn must fail closed when the
+# persisted range is not allowed for the active style, even if the option
+# count is numerically in-bounds.  Held/omitted behavior is unchanged
+# (those paths early-return before the compatibility check).
+# ---------------------------------------------------------------------------
+
+
+class TestPersistedRangeStyleCompatibility:
+    """branch_count_range must be known AND allowed for interaction_style."""
+
+    def test_hybrid_allowed_range_shown_passes(self) -> None:
+        """HYBRID + allowed range ("1-2"/"2-3"/"3-4") accepts valid counts."""
+        _validate_branch_count(["A"], "1-2", "shown", InteractionStyle.HYBRID)
+        _validate_branch_count(["A", "B"], "2-3", "shown", InteractionStyle.HYBRID)
+        _validate_branch_count(
+            ["A", "B", "C"], "3-4", "shown", InteractionStyle.HYBRID
+        )  # must not raise
+
+    def test_true_cyoa_allowed_range_shown_passes(self) -> None:
+        """TRUE_CYOA + allowed range ("2-3"/"2-4"/"2-5") accepts valid counts."""
+        _validate_branch_count(["A", "B"], "2-3", "shown", InteractionStyle.TRUE_CYOA)
+        _validate_branch_count(
+            ["A", "B", "C", "D"], "2-4", "shown", InteractionStyle.TRUE_CYOA
+        )
+        _validate_branch_count(
+            ["A", "B", "C", "D", "E"], "2-5", "shown", InteractionStyle.TRUE_CYOA
+        )  # must not raise
+
+    def test_hybrid_disallowed_range_shown_fails_closed(self) -> None:
+        """HYBRID + "2-4"/"2-5" is disallowed even with in-bounds count."""
+        with pytest.raises(BranchingPassError, match="not.*allowed"):
+            _validate_branch_count(["A", "B"], "2-4", "shown", InteractionStyle.HYBRID)
+        with pytest.raises(BranchingPassError, match="not.*allowed"):
+            _validate_branch_count(["A", "B"], "2-5", "shown", InteractionStyle.HYBRID)
+
+    def test_true_cyoa_disallowed_range_shown_fails_closed(self) -> None:
+        """TRUE_CYOA + "1-2"/"3-4" is disallowed even with in-bounds count."""
+        with pytest.raises(BranchingPassError, match="not.*allowed"):
+            _validate_branch_count(
+                ["A", "B"], "1-2", "shown", InteractionStyle.TRUE_CYOA
+            )
+        with pytest.raises(BranchingPassError, match="not.*allowed"):
+            _validate_branch_count(
+                ["A", "B", "C"], "3-4", "shown", InteractionStyle.TRUE_CYOA
+            )
+
+    def test_unknown_range_shown_fails_closed(self) -> None:
+        """An unknown persisted range fails closed for in-play styles."""
+        with pytest.raises(BranchingPassError):
+            _validate_branch_count(["A", "B"], "9-9", "shown", InteractionStyle.HYBRID)
+        with pytest.raises(BranchingPassError):
+            _validate_branch_count(
+                ["A", "B"], "9-9", "shown", InteractionStyle.TRUE_CYOA
+            )
+
+    def test_none_range_shown_fails_closed(self) -> None:
+        """A missing persisted range fails closed for in-play styles (shown)."""
+        with pytest.raises(BranchingPassError, match="not.*allowed"):
+            _validate_branch_count(["A", "B"], None, "shown", InteractionStyle.HYBRID)
+
+    def test_disallowed_range_held_still_valid(self) -> None:
+        """Held/omitted early-return before the compatibility check.
+
+        HYBRID held with an empty list stays valid even when the persisted
+        range would be disallowed for shown delivery — held/omitted behavior
+        is unchanged by the compatibility guard.
+        """
+        _validate_branch_count(
+            [], "2-4", "held", InteractionStyle.HYBRID
+        )  # must not raise
+        _validate_branch_count(
+            [], "2-4", "omitted", InteractionStyle.HYBRID
+        )  # must not raise
+
+    def test_true_cyoa_held_still_invalid(self) -> None:
+        """TRUE_CYOA held/omitted remains invalid (unchanged), even allowed range."""
+        with pytest.raises(BranchingPassError, match="True CYOA"):
+            _validate_branch_count([], "2-3", "held", InteractionStyle.TRUE_CYOA)

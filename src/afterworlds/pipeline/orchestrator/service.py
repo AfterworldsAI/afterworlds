@@ -2658,6 +2658,10 @@ class OrchestratorService:
             extractor_result,
             contradiction_result,
             rpg_adjudication_result,
+            # Branching provider results are stable-prefix-backed calls
+            # equivalent to planner/writer/extractor for cache observability.
+            branching_pass_result,
+            branching_ooc_config_result,
         )
         return OrchestrationResult(
             disposition=disposition,

@@ -5243,6 +5243,105 @@ class TestRpgAdjudicationCacheWarmed:
 
 
 # ---------------------------------------------------------------------------
+# PR #112 R14: Branching provider results reflected in stable_prefix_cache_warmed
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingCacheWarmed:
+    """_build_result must pass branching results to _any_cache_read.
+
+    BranchingWriter and the Branching OOC config extractor are stable-prefix-
+    backed provider calls; a non-zero cache_read_token_count on either must
+    warm stable_prefix_cache_warmed just like planner/writer/extractor.
+    """
+
+    @staticmethod
+    def _branching_pass_result(cache_read: int) -> object:
+        from afterworlds.models.enums import BranchingCadence, InteractionStyle
+        from afterworlds.pipeline.branching.models import (
+            BranchingPassResult,
+            BranchOption,
+        )
+
+        return BranchingPassResult(
+            narrative_text="The corridor forks before you.",
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            freeform_available=True,
+            branch_count_range=None,
+            branch_options=[BranchOption(option_id="opt_1", action_text="Go left")],
+            branch_presentation_state="shown",
+            provider="anthropic",
+            model_identifier="claude-haiku-4-5",
+            model_tier="haiku",
+            latency_ms=7,
+            cache_read_token_count=cache_read,
+        )
+
+    @staticmethod
+    def _ooc_config_result(cache_read: int) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+        )
+
+        return BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            cache_read_token_count=cache_read,
+        )
+
+    def test_cache_warmed_when_only_branching_writer_has_cache_tokens(
+        self, session_factory: object
+    ) -> None:
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_pass_result=self._branching_pass_result(7),
+        )
+        assert result.stable_prefix_cache_warmed is True
+
+    def test_cache_warmed_when_only_ooc_config_has_cache_tokens(
+        self, session_factory: object
+    ) -> None:
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_ooc_config_result=self._ooc_config_result(7),
+        )
+        assert result.stable_prefix_cache_warmed is True
+
+    def test_cache_not_warmed_when_branching_results_have_zero_cache(
+        self, session_factory: object
+    ) -> None:
+        # Both branching results report zero cache-read and no other pass is
+        # present — the only signal under test is the new branching plumbing.
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_pass_result=self._branching_pass_result(0),
+            branching_ooc_config_result=self._ooc_config_result(0),
+        )
+        assert result.stable_prefix_cache_warmed is False
+
+
+# ---------------------------------------------------------------------------
 # P2-1: Pending-roll consume path takes precedence over OOC routing (Round 11)
 # ---------------------------------------------------------------------------
 
