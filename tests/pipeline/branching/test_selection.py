@@ -231,3 +231,68 @@ class TestSelectionPrecedence:
             result.rejection_reason
             is InteractionRejectionReason.INVALID_BRANCH_SELECTION
         )
+
+
+class TestLeadingBareNumberAnnotation:
+    """Round 19: a leading bare number is the operative choice even when
+    followed by annotation; incidental embedded numbers still do not resolve."""
+
+    def setup_method(self) -> None:
+        self.svc = BranchSelectionValidationService()
+
+    def test_leading_number_comma_but_annotation(self) -> None:
+        result = self.svc.validate("2, but I do it cautiously", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation == "I do it cautiously"
+
+    def test_leading_number_but_annotation(self) -> None:
+        result = self.svc.validate("2 but I do it cautiously", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation == "I do it cautiously"
+
+    def test_leading_number_dash_annotation(self) -> None:
+        result = self.svc.validate("2 - cautiously", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation == "cautiously"
+
+    def test_leading_number_no_annotation(self) -> None:
+        result = self.svc.validate("2", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation is None
+
+    def test_leading_number_trailing_period_no_annotation(self) -> None:
+        result = self.svc.validate("2.", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_2"
+        assert result.selected_context.annotation is None
+
+    def test_embedded_quantity_does_not_resolve(self) -> None:
+        result = self.svc.validate("I use my 2 torches", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.REJECT
+        assert (
+            result.rejection_reason
+            is InteractionRejectionReason.INVALID_BRANCH_SELECTION
+        )
+
+    def test_embedded_quantity_with_trailing_prose_does_not_resolve(self) -> None:
+        result = self.svc.validate("I use my 2 torches and move carefully", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.REJECT
+        assert (
+            result.rejection_reason
+            is InteractionRejectionReason.INVALID_BRANCH_SELECTION
+        )
+
+    def test_explicit_phrase_outranks_leading_embedded_number(self) -> None:
+        result = self.svc.validate("I use my 2 torches and choose option 1", TWO_OPTS)
+        assert result.verdict is BranchSelectionValidationVerdict.ACCEPT
+        assert result.selected_context is not None
+        assert result.selected_context.option_id == "opt_1"

@@ -8,8 +8,9 @@ Resolution algorithm (in order, first match wins):
 2. Explicit numeric phrase: "option N" / "choice N" maps to "opt_N".
 3. Ordinal word: "first" → opt_1, "second" → opt_2, … (up to opt_5).
 4. Bare number: a lone "N" maps to "opt_N", but only when it is the operative
-   trailing selection token — an incidental number embedded in prose
-   ("take 2 torches") is not a selection.
+   selection token — either it leads the input ("2, but I do it cautiously")
+   or it trails it with nothing further ("I pick 2").  An incidental number
+   embedded in prose ("take 2 torches") is not a selection.
 5. No match → INVALID_BRANCH_SELECTION.
 
 Explicit forms outrank bare numbers: "I use my 2 torches and choose option 1"
@@ -59,22 +60,41 @@ _ORDINAL_RE = re.compile(
     re.IGNORECASE,
 )
 # Bare number, accepted only as a last resort and only when it is the operative
-# trailing selection token (nothing but whitespace/punctuation follows it).  An
-# incidental number embedded in prose ("take 2 torches") is not a selection.
+# selection token: either it leads the input ("2, but I do it cautiously") or it
+# trails it with nothing further ("I pick 2").  An incidental number embedded in
+# prose ("take 2 torches") is neither and is not a selection.
 _BARE_NUMBER_RE = re.compile(r"\b(\d+)\b")
 _WORD_RE = re.compile(r"\w")
+# Leading connectors / punctuation stripped from a captured annotation.  Word
+# connectors ("but"/"and") are only stripped on a word boundary so real words
+# ("butter", "andes") are preserved.
+_ANNOTATION_CONNECTORS: tuple[str, ...] = ("but", "and", ",", ";", "—", "-", ".")
 
 
-def _extract_annotation(raw_input: str, consumed_token: str) -> str | None:
-    """Return any trailing text after the match token, stripped, or None."""
-    idx = raw_input.lower().find(consumed_token.lower())
-    if idx == -1:
-        return None
-    tail = raw_input[idx + len(consumed_token) :].strip()
-    # Strip common connectors
-    for prefix in ("but", "and", ",", ";", "—", "-"):
-        if tail.lower().startswith(prefix):
+def _extract_annotation(tail: str) -> str | None:
+    """Return the trailing annotation text after a selection token, or None.
+
+    ``tail`` is the raw substring following the consumed match span.  Leading
+    connectors and punctuation are stripped repeatedly so that stacked
+    connectors collapse — e.g. "2, but I do it cautiously" yields the tail
+    ", but I do it cautiously", which reduces to "I do it cautiously" (both the
+    comma and "but" are removed), not "but I do it cautiously".
+    """
+    tail = tail.strip()
+    changed = True
+    while changed:
+        changed = False
+        for prefix in _ANNOTATION_CONNECTORS:
+            if not tail.lower().startswith(prefix):
+                continue
+            if prefix.isalpha():
+                # Only strip a word connector on a word boundary, so that
+                # "butter"/"andes" are not truncated to "ter"/"es".
+                after = tail[len(prefix) :]
+                if after[:1].isalnum():
+                    continue
             tail = tail[len(prefix) :].strip()
+            changed = True
     return tail if tail else None
 
 
@@ -116,7 +136,7 @@ class BranchSelectionValidationService:
         max_index = len(presented_options)
 
         resolved_id: str | None = None
-        consumed_token: str = ""
+        consumed_end: int = -1
 
         # 1. Explicit opt_N match
         m = _OPT_ID_RE.search(raw_input)
@@ -124,7 +144,7 @@ class BranchSelectionValidationService:
             candidate = f"opt_{m.group(1)}"
             if candidate in opt_map:
                 resolved_id = candidate
-                consumed_token = m.group(0)
+                consumed_end = m.end()
 
         # 2. Explicit numeric phrase ("option 2", "choice 3")
         if resolved_id is None:
@@ -133,7 +153,7 @@ class BranchSelectionValidationService:
                 candidate = f"opt_{n}"
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
-                    consumed_token = m.group(0)
+                    consumed_end = m.end()
                     break
 
         # 3. Ordinal word
@@ -144,20 +164,26 @@ class BranchSelectionValidationService:
                 candidate = f"opt_{n}"
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
-                    consumed_token = m.group(0)
+                    consumed_end = m.end()
 
         # 4. Bare number — lowest precedence, and only when it is the operative
-        #    trailing selection token.  A number followed by further words is an
-        #    incidental quantity, not a branch choice, and is skipped.
+        #    selection token.  A bare number qualifies when it *leads* the input
+        #    (only whitespace precedes it, so trailing annotation is allowed:
+        #    "2, but I do it cautiously") or when it *trails* the input with
+        #    nothing further ("I pick 2").  A number embedded mid-prose with
+        #    words on both sides ("take 2 torches") is an incidental quantity,
+        #    not a branch choice, and is skipped.
         if resolved_id is None:
             for m in _BARE_NUMBER_RE.finditer(raw_input):
-                if _WORD_RE.search(raw_input[m.end() :]):
+                is_leading = raw_input[: m.start()].strip() == ""
+                is_trailing = not _WORD_RE.search(raw_input[m.end() :])
+                if not (is_leading or is_trailing):
                     continue
                 n = int(m.group(1))
                 candidate = f"opt_{n}"
                 if 1 <= n <= max_index and candidate in opt_map:
                     resolved_id = candidate
-                    consumed_token = m.group(0)
+                    consumed_end = m.end()
                     break
 
         if resolved_id is None:
@@ -174,7 +200,7 @@ class BranchSelectionValidationService:
             )
 
         matched_option = opt_map[resolved_id]
-        annotation = _extract_annotation(raw_input, consumed_token)
+        annotation = _extract_annotation(raw_input[consumed_end:])
 
         return BranchSelectionValidationResult(
             verdict=BranchSelectionValidationVerdict.ACCEPT,
