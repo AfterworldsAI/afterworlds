@@ -8386,6 +8386,283 @@ class TestBranchingOocPersistedTruthfulness:
         assert _OOC_STYLE_NOOP_SENTINEL not in (persisted or "")
 
 
+_OOC_RANGE_NOOP_SENTINEL = "Branch-count range not changed"
+
+
+class TestBranchingOocRangeNoopSurfaced:
+    """A range-only OOC request with an invalid range is surfaced, not silent.
+
+    When an OOC request changes only ``branch_count_range`` to a value invalid
+    for the applicable style, the invalid range is discarded (never persisted)
+    and a dedicated correction is appended to the delivered/persisted output so
+    the prose cannot imply a range change that did not happen.  The range note
+    is mutually exclusive with the style non-confirmation note (a suppressed
+    style switch already names the needed range), so the two never produce
+    contradictory duplicates.
+    """
+
+    def test_hybrid_invalid_range_only_surfaces_correction(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID + invalid 2-5 (range only): not persisted, correction surfaced."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.TWO_TO_FIVE),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 2-5 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Persisted range unchanged …
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        # … and the correction names the rejected range, the style it is invalid
+        # for, and lists the compatible HYBRID ranges.
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert "2-5" in delivered
+        assert "hybrid" in delivered
+        assert "1-2" in delivered
+        assert "2-3" in delivered
+        assert "3-4" in delivered
+        # No style note: this was a range-only request.
+        assert _OOC_STYLE_NOOP_SENTINEL not in delivered
+
+    def test_true_cyoa_invalid_range_only_surfaces_correction(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """TRUE_CYOA + invalid 3-4 (range only): not persisted, correction shown."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            branch_count_range=BranchCountRange.TWO_TO_FOUR,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.THREE_TO_FOUR),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 3-4 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert "3-4" in delivered
+        assert "true_cyoa" in delivered
+        # Lists the compatible TRUE_CYOA ranges.
+        assert "2-3" in delivered
+        assert "2-4" in delivered
+        assert "2-5" in delivered
+
+    def test_style_switch_plus_invalid_range_has_no_duplicate_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Style switch + invalid range: style note only, range note suppressed."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Neither style nor range persisted.
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        delivered = result.delivered_output or ""
+        # The style note is the single correction; the range note is suppressed
+        # to avoid a contradictory duplicate.
+        assert _OOC_STYLE_NOOP_SENTINEL in delivered
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_valid_range_only_update_persists_without_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """A valid range-only update persists and adds no correction note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.THREE_TO_FOUR),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 3-4 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.branch_count_range is BranchCountRange.THREE_TO_FOUR
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+        assert _OOC_STYLE_NOOP_SENTINEL not in delivered
+
+    def test_no_range_requested_adds_no_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """A valid style-only update (no range) adds no range correction note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_freeform_switch_with_range_adds_no_false_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM switch clears range by design; no false 'not changed' note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.FREEFORM_ONLY,
+                branch_count_range=BranchCountRange.TWO_TO_FIVE,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to freeform",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Style switch succeeds; range is cleared by the FREEFORM transition.
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        assert bss.branch_count_range is None
+        delivered = result.delivered_output or ""
+        # A "range not changed" note would be false — the switch cleared it.
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_corrected_range_only_output_agrees_across_all_three(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Delivered, persisted Turn, and writer_result outputs all agree."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.TWO_TO_FIVE),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 2-5 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert persisted == delivered
+        assert result.writer_result is not None
+        assert result.writer_result.assistant_output == delivered
+
+
 def _make_branching_orch_without_resolver(
     session_factory: object,
     *,

@@ -2083,6 +2083,13 @@ class OrchestratorService:
         # output so the prose response cannot imply a style change that
         # persistence did not actually make (confirmation/persistence parity).
         _ooc_style_noop_note: str | None = None
+        # Set when an OOC request supplied an explicit branch_count_range that is
+        # invalid for the applicable style and is therefore discarded.  Surfaced
+        # for the range-only case (when no style switch was suppressed for the
+        # same reason) so the prose cannot imply a range change that did not
+        # persist.  Mutually exclusive with _ooc_style_noop_note to avoid
+        # contradictory duplicate corrections.
+        _ooc_range_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2132,7 +2139,11 @@ class OrchestratorService:
                 # later found invalid" so the two cases get different treatment.
                 _requested_range = _cfg_update.branch_count_range
 
-                # Validate branch_count_range against the target style.
+                # Validate branch_count_range against the target style.  Track
+                # whether an explicitly requested range was rejected so the
+                # range-only case can surface a corrective note (the style-only
+                # suppression already carries its own note below).
+                _range_invalid = False
                 _validated_range = _requested_range
                 if _validated_range is not None and _target_style is not None:
                     _allowed_ranges = _ALLOWED.get(_target_style)
@@ -2140,7 +2151,8 @@ class OrchestratorService:
                         _allowed_ranges is None
                         or _validated_range not in _allowed_ranges
                     ):
-                        _validated_range = None  # discard invalid range silently
+                        _range_invalid = True
+                        _validated_range = None  # discard invalid range
 
                 # Determine persistence strategy for the style × range pair to
                 # avoid leaving the row in a mismatched configuration:
@@ -2202,6 +2214,49 @@ class OrchestratorService:
                         f"again.]"
                     )
 
+                # An explicitly requested branch-count range that is invalid for
+                # the applicable style is discarded (never persisted).  Surface a
+                # dedicated correction ONLY when the style switch was not itself
+                # suppressed for the same reason (that note already names the
+                # range and lists compatible ranges — a second note would be a
+                # contradictory duplicate) and the range is not being cleared by
+                # a deliberate FREEFORM_ONLY switch (a "not changed" note would be
+                # false there, since the switch clears it by design).
+                if (
+                    _range_invalid
+                    and _ooc_style_noop_note is None
+                    and not _should_clear_range
+                    and _requested_range is not None
+                ):
+                    _range_allowed = (
+                        _ALLOWED.get(_target_style)
+                        if _target_style is not None
+                        else None
+                    )
+                    _range_ranges_txt = (
+                        ", ".join(sorted(r.value for r in _range_allowed))
+                        if _range_allowed
+                        else ""
+                    )
+                    _range_style_txt = (
+                        _target_style.value
+                        if _target_style is not None
+                        else "the current interaction style"
+                    )
+                    if _range_ranges_txt:
+                        _ooc_range_noop_note = (
+                            f"[Branch-count range not changed: "
+                            f"{_requested_range.value} is not valid for "
+                            f"{_range_style_txt}. Set one of: {_range_ranges_txt} "
+                            f"and try again.]"
+                        )
+                    else:
+                        _ooc_range_noop_note = (
+                            f"[Branch-count range not changed: "
+                            f"{_requested_range.value} is not valid for "
+                            f"{_range_style_txt}.]"
+                        )
+
                 _apply_cfg(
                     session,
                     story_id,
@@ -2221,10 +2276,21 @@ class OrchestratorService:
                 pass  # Best-effort; OOC prose already delivered
 
         _ooc_delivered = writer_result.assistant_output
-        if _ooc_style_noop_note is not None:
-            _ooc_delivered = f"{_ooc_delivered}\n\n{_ooc_style_noop_note}"
-            # Keep the persisted OOC Turn truthful.  The corrective no-op note
-            # is appended to the delivered output because the requested style
+        # At most one of the corrective notes is set (they are mutually
+        # exclusive by construction), but compose a single correction block from
+        # whichever are present so the delivered prose can never imply a config
+        # change that persistence did not make.
+        _ooc_config_noop_notes = [
+            _note
+            for _note in (_ooc_style_noop_note, _ooc_range_noop_note)
+            if _note is not None
+        ]
+        if _ooc_config_noop_notes:
+            _ooc_delivered = (
+                _ooc_delivered + "\n\n" + "\n\n".join(_ooc_config_noop_notes)
+            )
+            # Keep the persisted OOC Turn truthful.  The corrective no-op note is
+            # appended to the delivered output because the requested style/range
             # change was suppressed; the raw writer prose alone could falsely
             # imply the change happened.  Persist the same corrected output to
             # the Turn row and mirror it onto the in-memory writer_result so
