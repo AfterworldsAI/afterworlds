@@ -1444,6 +1444,33 @@ class OrchestratorService:
                 ctx.pass_forward_ledger.add(
                     "branching_selection", "\n".join(_sbc_lines)
                 )
+            # In-play FREEFORM_ONLY Branching turns use the prose Writer (no
+            # branch cards), but the code-owned Branching session configuration
+            # still governs storyteller response density.  Surface it as a
+            # volatile ledger block so cadence/length preference reaches the
+            # model.  Configuration context only: no branch cards or affordances
+            # are created here, and this block is never sent on non-Branching
+            # stories or for HYBRID/TRUE_CYOA (those use BranchingWriter).
+            if (
+                story_mode is StoryMode.BRANCHING
+                and branching_state is not None
+                and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+                and branching_state.interaction_style is InteractionStyle.FREEFORM_ONLY
+            ):
+                _cfg_lines = [
+                    "[Branching Session Configuration]",
+                    f"interaction_style: {branching_state.interaction_style.value}",
+                ]
+                if branching_state.branching_cadence is not None:
+                    _cfg_lines.append(
+                        f"branching_cadence: {branching_state.branching_cadence.value}"
+                    )
+                if branching_state.length_preference is not None:
+                    _cfg_lines.append(
+                        "length_preference: "
+                        f"{branching_state.length_preference.value}"
+                    )
+                ctx.pass_forward_ledger.add("branching_config", "\n".join(_cfg_lines))
             try:
                 writer_result, ms = _timed(
                     lambda: self._writer_service.write(

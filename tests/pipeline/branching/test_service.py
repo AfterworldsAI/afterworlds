@@ -476,24 +476,47 @@ class TestNullSessionConfigRaises:
     """interaction_style=None or branching_cadence=None raises BranchingPassError."""
 
     def test_interaction_style_none_raises(self) -> None:
+        # Required-config validation must fire before any provider spend
+        # (Round 17 Finding 2): _MustNotCallProvider proves the preflight raises
+        # before _render()/provider.call().
         session = _make_session(interaction_style=None)
         service = BranchingWriterService(config=_make_config())
         with pytest.raises(BranchingPassError, match="interaction_style=None"):
             service.write(
                 _make_assembled(),
                 session,
-                provider=_FakeProvider(_valid_tool_input()),
+                provider=_MustNotCallProvider(),
             )
 
     def test_branching_cadence_none_raises(self) -> None:
+        # Required-config validation must fire before any provider spend
+        # (Round 17 Finding 2): _MustNotCallProvider proves the preflight raises
+        # before _render()/provider.call().
         session = _make_session(branching_cadence=None)
         service = BranchingWriterService(config=_make_config())
         with pytest.raises(BranchingPassError, match="branching_cadence=None"):
             service.write(
                 _make_assembled(),
                 session,
-                provider=_FakeProvider(_valid_tool_input()),
+                provider=_MustNotCallProvider(),
             )
+
+    def test_pre_provider_failure_carries_no_usage_or_result(self) -> None:
+        # Pre-provider config failures must not fabricate a BranchingPassResult
+        # or cost snapshot (Round 17 Finding 2): the raised error is a plain
+        # BranchingPassError, not a usage-carrying subclass, and exposes no
+        # result/usage payload for settlement.
+        session = _make_session(branching_cadence=None)
+        service = BranchingWriterService(config=_make_config())
+        with pytest.raises(BranchingPassError) as excinfo:
+            service.write(
+                _make_assembled(),
+                session,
+                provider=_MustNotCallProvider(),
+            )
+        assert type(excinfo.value) is BranchingPassError
+        assert not hasattr(excinfo.value, "result")
+        assert not hasattr(excinfo.value, "usage")
 
 
 # ---------------------------------------------------------------------------

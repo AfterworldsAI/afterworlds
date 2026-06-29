@@ -236,6 +236,24 @@ class BranchingWriterService:
                 " through setup/prose behavior before this pass."
             )
 
+        # Fail closed: interaction_style and branching_cadence are required,
+        # code-owned affordances; BranchingWriter cannot produce valid branch
+        # output without them.  Validate before _render()/provider.call() so no
+        # provider spend is wasted on a turn that cannot be delivered.  The
+        # narrowed locals are reused downstream (freeform_available, result).
+        interaction_style = session_state.interaction_style
+        if interaction_style is None:
+            raise BranchingPassError(
+                "BranchingWriterService called with interaction_style=None;"
+                " cannot produce branch output without a configured style."
+            )
+        branching_cadence = session_state.branching_cadence
+        if branching_cadence is None:
+            raise BranchingPassError(
+                "BranchingWriterService called with branching_cadence=None;"
+                " cannot produce branch output without a configured cadence."
+            )
+
         request = self._render(
             built_context,
             session_state,
@@ -288,21 +306,9 @@ class BranchingWriterService:
             for i, text in enumerate(proposal.branch_options_text)
         ]
 
-        # Code derives freeform_available from interaction_style.
-        interaction_style = session_state.interaction_style
-        if interaction_style is None:
-            raise BranchingPassError(
-                "BranchingWriterService called with interaction_style=None;"
-                " cannot produce branch output without a configured style."
-            )
+        # Code derives freeform_available from interaction_style (validated in
+        # the preflight block above, before any provider spend).
         freeform_available = interaction_style is not InteractionStyle.TRUE_CYOA
-
-        branching_cadence = session_state.branching_cadence
-        if branching_cadence is None:
-            raise BranchingPassError(
-                "BranchingWriterService called with branching_cadence=None;"
-                " cannot produce branch output without a configured cadence."
-            )
 
         return BranchingPassResult(
             narrative_text=proposal.narrative_text,

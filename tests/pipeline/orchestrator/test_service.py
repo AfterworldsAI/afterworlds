@@ -1752,10 +1752,17 @@ class TestLedgerComposition:
             story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
         )
         derived = writer.calls[0][0]
-        assert len(derived.pass_forward_ledger.entries) == 1
-        assert derived.pass_forward_ledger.entries[0].pass_name == "planner"
+        # The default harness resolves an in-play FREEFORM_ONLY branching
+        # session, so the prose Writer ledger now carries a sibling
+        # ``branching_config`` block (Round 17 Finding 1) alongside the planner
+        # output.  Assert the planner entry is present rather than that it is the
+        # sole entry.
+        planner_entries = [
+            e for e in derived.pass_forward_ledger.entries if e.pass_name == "planner"
+        ]
+        assert len(planner_entries) == 1
         # PlannerOutput serializes as JSON; assert known fields are present.
-        ledger_text = derived.pass_forward_ledger.entries[0].content
+        ledger_text = planner_entries[0].content
         assert '"scene_goal"' in ledger_text
         assert '"next_beat"' in ledger_text
 
@@ -6497,6 +6504,70 @@ def _make_branching_routing_orchestrator(
     )
 
 
+def _make_branching_config_capture_orchestrator(
+    session_factory: object,
+    writer_service: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    branching_cadence: object,
+    length_preference: object,
+    mode: object,
+    intent_type: object,
+    raw_input: str,
+    branching_writer: object = None,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator that captures the prose Writer's AssembledContext.
+
+    Unlike ``_make_branching_routing_orchestrator`` (hardcoded cadence, no
+    length_preference, BRANCHING-only), this lets a test set the persisted
+    cadence / length_preference and the story mode so the FREEFORM_ONLY
+    ``branching_config`` ledger block (Round 17 Finding 1) can be inspected on
+    the injected ``writer_service.calls``.
+    """
+    from afterworlds.models.enums import PacingStage
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=branching_cadence,  # type: ignore[arg-type]
+            length_preference=length_preference,  # type: ignore[arg-type]
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer_service,  # type: ignore[arg-type]
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(mode),  # type: ignore[arg-type]
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+
+
+def _ledger_block(writer_service: object, pass_name: str) -> str | None:
+    """Return the content of the first ledger entry with ``pass_name``, or None."""
+    calls = writer_service.calls  # type: ignore[attr-defined]
+    assert calls, "prose Writer was not invoked"
+    built_context = calls[0][0]
+    for entry in built_context.pass_forward_ledger.entries:
+        if entry.pass_name == pass_name:
+            return entry.content
+    return None
+
+
 class TestBranchingInPlayGating:
     """Interaction-style enforcement is gated on play_status == IN_PLAY."""
 
@@ -7505,6 +7576,252 @@ class TestBranchingWriterRequiredWhenInPlay:
         assert result.disposition is PipelineDisposition.DELIVERED
         assert writer.called is True
         assert result.branching_pass_result is not None
+
+
+class TestFreeformConfigLedgerBlock:
+    """Round 17 Finding 1: in-play FREEFORM_ONLY prose turns receive a
+    code-owned Branching session-configuration ledger block before the prose
+    WriterService runs.  Configuration context only — no branch cards.
+    """
+
+    def test_freeform_in_play_adds_config_block_with_cadence(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Persisted interaction_style + branching_cadence reach the ledger."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I wander down the lane.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander down the lane.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        block = _ledger_block(writer, "branching_config")
+        assert block is not None
+        assert "interaction_style: freeform_only" in block
+        assert "branching_cadence: immersive" in block
+        # length_preference is absent on this session, so the line is omitted.
+        assert "length_preference" not in block
+
+    def test_freeform_in_play_config_block_includes_length_preference(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Persisted length_preference is included when present."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            LengthPreference,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=LengthPreference.NOVELLA,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I keep walking.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I keep walking.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        block = _ledger_block(writer, "branching_config")
+        assert block is not None
+        assert "length_preference: novella" in block
+
+    def test_freeform_in_play_uses_prose_not_branching_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """FREEFORM_ONLY in-play stays on the prose Writer path (no cards)."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        branching_writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I look around.",
+            branching_writer=branching_writer,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I look around.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.calls, "prose Writer must run for FREEFORM_ONLY"
+        assert result.branching_pass_result is None
+
+    def test_hybrid_in_play_does_not_take_prose_config_path(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID in-play uses BranchingWriter; the prose config block is absent."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        branching_writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I push deeper.",
+            branching_writer=branching_writer,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I push deeper.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is not None
+        # BranchingWriter handled the turn; the prose Writer (and its config
+        # ledger block) was never reached.
+        assert not writer.calls
+
+    def test_freeform_setup_does_not_add_config_block(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup FREEFORM_ONLY rows are not treated as in-play cadence context."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.SETUP,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="What is this place?",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "What is this place?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert _ledger_block(writer, "branching_config") is None
+
+    def test_non_branching_prose_call_has_no_config_block(
+        self, session_factory: object, session: object
+    ) -> None:
+        """WRITING-mode prose turns never receive the Branching config block."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.WRITING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="The rain fell.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "The rain fell.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.calls, "prose Writer must run for WRITING mode"
+        assert _ledger_block(writer, "branching_config") is None
 
 
 # ---------------------------------------------------------------------------
