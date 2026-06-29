@@ -29,6 +29,7 @@ from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
 from afterworlds.pipeline.branching.models import (
     BranchingConfigUpdate,
     BranchingOocConfigExtractorResult,
+    BranchingOocExtractionUsageError,
     BranchingPassError,
 )
 from afterworlds.pipeline.provider._models import (
@@ -182,8 +183,12 @@ class BranchingOocConfigExtractorService:
             usage metrics for entitlement settlement.
 
         Raises:
-            BranchingPassError: on provider error, missing tool block, tool name
-                mismatch, or schema validation failure.
+            BranchingPassError: on a provider error that raises before any result
+                exists (no usage consumed).
+            BranchingOocExtractionUsageError: on a missing tool block, tool name
+                mismatch, or schema validation failure *after* the provider
+                returned a result. Carries a usage-only result so already-consumed
+                provider usage is preserved for settlement.
         """
         request = self._render(ctx)
 
@@ -194,32 +199,11 @@ class BranchingOocConfigExtractorService:
                 f"Branching OOC config extractor provider call failed: {exc}"
             ) from exc
 
-        # Capture metrics immediately — before any validation that might raise —
-        # so the provider usage is available even if parsing later fails.
-        tool_parts = [
-            p for p in call_result.content_parts if isinstance(p, ProviderToolCallPart)
-        ]
-        if not tool_parts:
-            raise BranchingPassError(
-                "Branching OOC config extractor response missing tool-use block"
-            )
-        if tool_parts[0].tool_name != EXTRACT_CONFIG_UPDATE_TOOL_NAME:
-            raise BranchingPassError(
-                f"Branching OOC config extractor unexpected tool name:"
-                f" {tool_parts[0].tool_name!r};"
-                f" expected {EXTRACT_CONFIG_UPDATE_TOOL_NAME!r}"
-            )
-
-        try:
-            update = BranchingConfigUpdate.model_validate(tool_parts[0].tool_input)
-        except Exception as exc:
-            raise BranchingPassError(
-                f"Branching OOC config extractor tool input failed schema validation:"
-                f" {exc}"
-            ) from exc
-
-        return BranchingOocConfigExtractorResult(
-            config_update=update,
+        # The provider call returned, so tokens were consumed. Build a usage-only
+        # result now so any local validation failure below preserves the provider
+        # metrics for settlement (config_update stays all-null on failure).
+        usage_only = BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
             provider=call_result.provider_name,
             model_identifier=call_result.model_identifier,
             model_tier=call_result.model_tier.value if call_result.model_tier else None,
@@ -229,6 +213,33 @@ class BranchingOocConfigExtractorService:
             cache_read_token_count=call_result.cache_read_token_count,
             cache_creation_token_count=call_result.cache_creation_token_count,
         )
+
+        tool_parts = [
+            p for p in call_result.content_parts if isinstance(p, ProviderToolCallPart)
+        ]
+        if not tool_parts:
+            raise BranchingOocExtractionUsageError(
+                "Branching OOC config extractor response missing tool-use block",
+                usage_only,
+            )
+        if tool_parts[0].tool_name != EXTRACT_CONFIG_UPDATE_TOOL_NAME:
+            raise BranchingOocExtractionUsageError(
+                f"Branching OOC config extractor unexpected tool name:"
+                f" {tool_parts[0].tool_name!r};"
+                f" expected {EXTRACT_CONFIG_UPDATE_TOOL_NAME!r}",
+                usage_only,
+            )
+
+        try:
+            update = BranchingConfigUpdate.model_validate(tool_parts[0].tool_input)
+        except Exception as exc:
+            raise BranchingOocExtractionUsageError(
+                f"Branching OOC config extractor tool input failed schema validation:"
+                f" {exc}",
+                usage_only,
+            ) from exc
+
+        return usage_only.model_copy(update={"config_update": update})
 
     def _render(self, ctx: AssembledContext) -> ProviderCallRequest:
         """Build a minimal ProviderCallRequest for the extraction pass."""

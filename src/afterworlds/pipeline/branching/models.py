@@ -232,6 +232,29 @@ class BranchingOocConfigExtractorResult(BaseModel):
     cache_creation_token_count: int | None = None
 
 
+class BranchingOocExtractionUsageError(BranchingPassError):
+    """OOC config extraction failed *after* the provider returned a result.
+
+    Raised when the provider call succeeded (and therefore consumed tokens) but
+    a local validation step afterwards rejected the response — a missing
+    tool-use block, an unexpected tool name, or a schema validation failure.
+
+    The provider usage must not be erased just because the local parse failed,
+    so this error carries a usage-only ``BranchingOocConfigExtractorResult``
+    (provider/model/token/cache metrics populated, ``config_update`` all-null).
+    The orchestrator captures ``usage_result`` for settlement/audit before
+    swallowing the best-effort config-update failure. Provider-call failures
+    that raise *before* any result exists remain plain ``BranchingPassError``
+    with no fabricated usage.
+    """
+
+    def __init__(
+        self, message: str, usage_result: BranchingOocConfigExtractorResult
+    ) -> None:
+        super().__init__(message)
+        self.usage_result = usage_result
+
+
 # ---------------------------------------------------------------------------
 # Branching visible state
 # ---------------------------------------------------------------------------
@@ -263,6 +286,7 @@ __all__ = [
     "BranchOption",
     "BranchingConfigUpdate",
     "BranchingOocConfigExtractorResult",
+    "BranchingOocExtractionUsageError",
     "BranchingPassError",
     "BranchingPassResult",
     "BranchingVisibleState",

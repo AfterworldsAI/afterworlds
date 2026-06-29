@@ -69,7 +69,10 @@ from afterworlds.pipeline._refusal import (
     ProviderRefusal,
     ProviderRefusalError,
 )
-from afterworlds.pipeline.branching.models import BranchingPassError
+from afterworlds.pipeline.branching.models import (
+    BranchingOocExtractionUsageError,
+    BranchingPassError,
+)
 from afterworlds.pipeline.branching.models import (
     BranchingPassResult as _BranchingPassResult,
 )
@@ -2173,6 +2176,12 @@ class OrchestratorService:
                     length_preference=_cfg_update.length_preference,
                     clear_branch_count_range=_should_clear_range,
                 )
+            except BranchingOocExtractionUsageError as _usage_exc:
+                # The provider call succeeded (tokens consumed) but a local
+                # validation step rejected the response.  Preserve the usage-only
+                # result for settlement/audit; the config update is skipped as
+                # best-effort, exactly like the generic swallow below.
+                _ooc_cfg_extractor_result = _usage_exc.usage_result
             except Exception:  # noqa: BLE001
                 pass  # Best-effort; OOC prose already delivered
 

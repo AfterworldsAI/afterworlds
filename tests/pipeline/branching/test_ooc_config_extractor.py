@@ -35,6 +35,7 @@ from afterworlds.models.story_bible import StoryBibleContext
 from afterworlds.pipeline.branching.models import (
     BranchingConfigUpdate,
     BranchingOocConfigExtractorResult,
+    BranchingOocExtractionUsageError,
     BranchingPassError,
 )
 from afterworlds.pipeline.branching.ooc_config_extractor import (
@@ -288,6 +289,80 @@ class TestProviderFailurePaths:
         }
         with pytest.raises(BranchingPassError, match="schema validation"):
             svc.extract(_make_ctx(), _FakeProvider(bad_input))
+
+
+# ---------------------------------------------------------------------------
+# Tests: post-provider local failure preserves provider usage
+# ---------------------------------------------------------------------------
+
+
+class TestUsagePreservedOnLocalFailure:
+    """Local validation failures *after* a provider result preserve usage.
+
+    When the provider call returns (consuming tokens) but a later local step
+    rejects the response, the extractor raises BranchingOocExtractionUsageError
+    carrying a usage-only result so settlement still sees the consumed tokens.
+    The config_update on that usage result is all-null (no mutation implied).
+    """
+
+    def test_no_tool_block_preserves_usage(self) -> None:
+        svc = BranchingOocConfigExtractorService()
+        with pytest.raises(BranchingOocExtractionUsageError) as exc_info:
+            svc.extract(_make_ctx(), _NoToolProvider())
+        usage = exc_info.value.usage_result
+        # _NoToolProvider: provider="fake", input=50, output=10, no cache tokens.
+        assert isinstance(usage, BranchingOocConfigExtractorResult)
+        assert usage.provider == "fake"
+        assert usage.input_token_count == 50
+        assert usage.output_token_count == 10
+        assert usage.model_tier == ModelTier.SONNET.value
+        # config_update is all-null: no mutation is implied by a failed parse.
+        assert usage.config_update.interaction_style is None
+        assert usage.config_update.branching_cadence is None
+        assert usage.config_update.branch_count_range is None
+        assert usage.config_update.length_preference is None
+
+    def test_wrong_tool_name_preserves_usage(self) -> None:
+        svc = BranchingOocConfigExtractorService()
+        with pytest.raises(BranchingOocExtractionUsageError) as exc_info:
+            svc.extract(_make_ctx(), _WrongToolProvider())
+        usage = exc_info.value.usage_result
+        # _WrongToolProvider: provider="fake", input=50, output=10.
+        assert usage.provider == "fake"
+        assert usage.input_token_count == 50
+        assert usage.output_token_count == 10
+        assert usage.config_update.interaction_style is None
+        assert usage.config_update.branch_count_range is None
+
+    def test_schema_validation_failure_preserves_usage(self) -> None:
+        svc = BranchingOocConfigExtractorService()
+        bad_input = {
+            "interaction_style": "not_a_valid_style",
+            "branching_cadence": None,
+            "branch_count_range": None,
+            "length_preference": None,
+        }
+        with pytest.raises(BranchingOocExtractionUsageError) as exc_info:
+            svc.extract(_make_ctx(), _FakeProvider(bad_input))
+        usage = exc_info.value.usage_result
+        # _FakeProvider via _make_result: provider="fake", input=50, output=20.
+        assert usage.provider == "fake"
+        assert usage.input_token_count == 50
+        assert usage.output_token_count == 20
+        # The malformed style is discarded — config_update stays all-null.
+        assert usage.config_update.interaction_style is None
+
+    def test_provider_call_failure_carries_no_usage(self) -> None:
+        """A provider-call exception before any result is a plain error.
+
+        No result was returned, so no usage was consumed — the extractor must
+        not fabricate a usage payload (raises BranchingPassError, not the
+        usage-carrying subclass).
+        """
+        svc = BranchingOocConfigExtractorService()
+        with pytest.raises(BranchingPassError) as exc_info:
+            svc.extract(_make_ctx(), _FailingProvider())
+        assert not isinstance(exc_info.value, BranchingOocExtractionUsageError)
 
 
 # ---------------------------------------------------------------------------

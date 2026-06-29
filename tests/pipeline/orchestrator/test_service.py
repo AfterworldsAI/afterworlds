@@ -922,8 +922,55 @@ class _TurnCapturingOocExtractor:
         )
 
 
-def _make_ooc_cfg_orch(
-    session_factory: object, config_update: object
+@_dataclass
+class _UsageFailingOocExtractor:
+    """Raises BranchingOocExtractionUsageError carrying a usage-only result.
+
+    Simulates a provider call that returned (consuming tokens) but whose
+    response failed a local validation step.  The usage result carries token
+    metrics with an all-null config_update — no mutation is implied.
+    """
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+            BranchingOocExtractionUsageError,
+        )
+
+        usage = BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+        raise BranchingOocExtractionUsageError(
+            "Branching OOC config extractor response missing tool-use block",
+            usage,
+        )
+
+
+@_dataclass
+class _PlainFailingOocExtractor:
+    """Raises a plain BranchingPassError with no usage (pre-provider-result).
+
+    Simulates a provider-call exception before any result existed: no tokens
+    were consumed, so no usage may be fabricated.
+    """
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import BranchingPassError
+
+        raise BranchingPassError(
+            "Branching OOC config extractor provider call failed: boom"
+        )
+
+
+def _make_ooc_cfg_orch_with_extractor(
+    session_factory: object, extractor: object
 ) -> OrchestratorService:
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
@@ -937,9 +984,16 @@ def _make_ooc_cfg_orch(
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(),
-        branching_ooc_config_extractor=_FakeBranchingOocExtractor(  # type: ignore[arg-type]
-            config_update
-        ),
+        branching_ooc_config_extractor=extractor,  # type: ignore[arg-type]
+    )
+
+
+def _make_ooc_cfg_orch(
+    session_factory: object, config_update: object
+) -> OrchestratorService:
+    return _make_ooc_cfg_orch_with_extractor(
+        session_factory,
+        _FakeBranchingOocExtractor(config_update),
     )
 
 
@@ -3799,6 +3853,119 @@ class TestCommitFailurePreservesBranchingUsage:
         snapshots = TurnCostPolicy.extract_snapshots(snap_input)
         pass_ids = {snap.pass_id for snap in snapshots}
         assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in pass_ids
+
+
+class TestOocExtractorLocalFailurePreservesUsage:
+    """Local post-provider extraction failure preserves OOC extractor usage.
+
+    When the OOC config extractor reaches the provider and gets a result, but a
+    local validation step (missing tool block / wrong tool name / schema
+    failure) then rejects it, the consumed tokens must survive: the OOC turn
+    still settles as OOC_HANDLED, the config mutation is skipped, and
+    ``branching_ooc_config_result`` carries the usage so settlement/audit sees a
+    BRANCHING_OOC_CONFIG_EXTRACTOR result.  A provider-call failure *before* any
+    result must NOT fabricate usage.
+    """
+
+    def _read_bss(self, session: object, story_id: object) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_branching_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_local_failure_preserves_usage_and_skips_config(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """Post-provider local failure → OOC_HANDLED, usage kept, config unchanged."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _UsageFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # Usage consumed before the local failure survives for settlement.
+        assert result.branching_ooc_config_result is not None
+        assert result.branching_ooc_config_result.input_token_count == 10
+        assert result.branching_ooc_config_result.output_token_count == 5
+        # The config mutation was skipped — the persisted style is unchanged.
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+
+    def test_local_failure_usage_visible_to_cost_policy_snapshot(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """Preserved usage yields a BRANCHING_OOC_CONFIG_EXTRACTOR snapshot."""
+        from afterworlds.entitlement.enums import PipelinePassId
+        from afterworlds.entitlement.policy import TurnCostPolicy
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _UsageFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # Drop token-less Fake Safety passes so the assertion isolates the
+        # preserved OOC-config usage invariant.
+        snap_input = result.model_copy(
+            update={"input_safety_result": None, "output_safety_result": None}
+        )
+        snapshots = TurnCostPolicy.extract_snapshots(snap_input)
+        pass_ids = {snap.pass_id for snap in snapshots}
+        assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in pass_ids
+
+    def test_provider_call_failure_fabricates_no_usage(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """A pre-result provider failure leaves branching_ooc_config_result None."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _PlainFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # No provider result existed, so no usage may be fabricated.
+        assert result.branching_ooc_config_result is None
 
 
 # ---------------------------------------------------------------------------
