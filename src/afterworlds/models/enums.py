@@ -67,6 +67,88 @@ class PacingStage(StrEnum):
     AFTERMATH = "aftermath"
 
 
+class InteractionStyle(StrEnum):
+    """Branching-mode interaction contract: how the Sojourner interacts."""
+
+    FREEFORM_ONLY = "freeform_only"
+    HYBRID = "hybrid"
+    TRUE_CYOA = "true_cyoa"
+
+
+class BranchingCadence(StrEnum):
+    """Branching-mode pacing density — distinct axis from PacingStage."""
+
+    INTERACTIVE = "interactive"
+    BALANCED = "balanced"
+    IMMERSIVE = "immersive"
+
+
+class LengthPreference(StrEnum):
+    """Preferred response length for Branching-mode narrative beats."""
+
+    SHORT_STORY = "short_story"
+    NOVELLA = "novella"
+    NOVEL = "novel"
+
+
+class BranchCountRange(StrEnum):
+    """Validated branch-count ranges by interaction style.
+
+    Hybrid allows: 1-2, 2-3, 3-4.
+    True CYOA allows: 2-3, 2-4, 2-5.
+    """
+
+    ONE_TO_TWO = "1-2"
+    TWO_TO_THREE = "2-3"
+    THREE_TO_FOUR = "3-4"
+    TWO_TO_FOUR = "2-4"
+    TWO_TO_FIVE = "2-5"
+
+
+class BranchingPlayStatus(StrEnum):
+    """Play-status for a Branching story: setup phase or active play."""
+
+    SETUP = "setup"
+    IN_PLAY = "in_play"
+
+
+class InteractionRejectionReason(StrEnum):
+    """Typed reason an Interaction was rejected (CRD Issue 16).
+
+    Used in ``OrchestrationResult.interaction_rejection_reason`` when
+    ``disposition`` is ``INTERACTION_REJECTED``.  A human-readable message
+    is always emitted alongside this typed reason via
+    ``interaction_rejection_message``.
+
+    INVALID_FOR_INTERACTION_STYLE: input style is incompatible with the
+        current ``InteractionStyle`` (e.g. freeform prose in TRUE_CYOA).
+    MATERIAL_BRANCH_REWRITE: a branch annotation materially rewrites the
+        label in a way that changes the canonical meaning.
+    CANON_OR_GENRE_CONTRADICTION: the selected action violates Story Bible
+        canon or established genre constraints.
+    INVALID_BRANCH_SELECTION: BRANCH_CHOICE intent references an option_id
+        that does not appear in the most-recently-presented branch card set.
+    """
+
+    INVALID_FOR_INTERACTION_STYLE = "invalid_for_interaction_style"
+    MATERIAL_BRANCH_REWRITE = "material_branch_rewrite"
+    CANON_OR_GENRE_CONTRADICTION = "canon_or_genre_contradiction"
+    INVALID_BRANCH_SELECTION = "invalid_branch_selection"
+
+
+class BranchPresentationState(StrEnum):
+    """Whether branch-choice cards are shown, held, or omitted for a beat.
+
+    SHOWN: branch cards are rendered for the Sojourner this beat.
+    HELD: branch cards exist but are withheld (e.g. mid-scene tension).
+    OMITTED: no branch cards for this beat (freeform or narrative-only).
+    """
+
+    SHOWN = "shown"
+    HELD = "held"
+    OMITTED = "omitted"
+
+
 class DiceHandling(StrEnum):
     """Dice-roll mode configured by the player in RPG mode."""
 

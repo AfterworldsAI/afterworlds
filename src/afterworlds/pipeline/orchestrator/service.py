@@ -55,12 +55,26 @@ from afterworlds.models.context import (
     PassForwardLedger,
     StablePrefix,
 )
-from afterworlds.models.enums import IntentType, RpgPlayStatus, StoryMode
+from afterworlds.models.enums import (
+    BranchingPlayStatus,
+    IntentType,
+    InteractionRejectionReason,
+    InteractionStyle,
+    RpgPlayStatus,
+    StoryMode,
+)
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
     ProviderRefusalError,
+)
+from afterworlds.pipeline.branching.models import (
+    BranchingOocExtractionUsageError,
+    BranchingPassError,
+)
+from afterworlds.pipeline.branching.models import (
+    BranchingPassResult as _BranchingPassResult,
 )
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
@@ -68,7 +82,20 @@ from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
-    from afterworlds.models.session import RpgSessionState
+    from afterworlds.models.session import BranchingSessionState, RpgSessionState
+    from afterworlds.pipeline.branching.models import (
+        SelectedBranchContext,
+    )
+    from afterworlds.pipeline.branching.ooc_config_extractor import (
+        BranchingOocConfigExtractorService,
+    )
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+    from afterworlds.pipeline.branching.service import BranchingWriterService
+    from afterworlds.pipeline.branching.visible_state import (
+        BranchingVisibleStateService,
+    )
     from afterworlds.pipeline.rpg.dice import DiceService
     from afterworlds.pipeline.rpg.models import AdjudicationPassResult
     from afterworlds.pipeline.rpg.pending import PendingRollRequestService
@@ -154,6 +181,12 @@ def load_ooc_handler_prompt() -> str:
 def load_rpg_ooc_handler_prompt() -> str:
     """Load the RPG-mode OOC handler from docs/prompts/rpg_ooc_handler.md."""
     prompt_path = _PROMPT_DIR / "rpg_ooc_handler.md"
+    return prompt_path.read_text(encoding="utf-8")
+
+
+def load_branching_ooc_handler_prompt() -> str:
+    """Load the Branching-mode OOC handler from docs/prompts/branching_ooc_handler.md."""  # noqa: E501
+    prompt_path = _PROMPT_DIR / "branching_ooc_handler.md"
     return prompt_path.read_text(encoding="utf-8")
 
 
@@ -286,6 +319,15 @@ class OrchestratorService:
         rpg_dice_service: DiceService | None = None,
         rpg_pending_roll_service: PendingRollRequestService | None = None,
         rpg_visible_state_service: RpgVisibleStateService | None = None,
+        branching_writer_service: BranchingWriterService | None = None,
+        branching_session_resolver: (
+            Callable[[UUID], BranchingSessionState | None] | None
+        ) = None,
+        branching_visible_state_service: BranchingVisibleStateService | None = None,
+        branching_selection_service: BranchSelectionValidationService | None = None,
+        branching_ooc_config_extractor: (
+            BranchingOocConfigExtractorService | None
+        ) = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -305,6 +347,11 @@ class OrchestratorService:
         self._rpg_dice_service = rpg_dice_service
         self._rpg_pending_roll_service = rpg_pending_roll_service
         self._rpg_visible_state_service = rpg_visible_state_service
+        self._branching_writer_service = branching_writer_service
+        self._branching_session_resolver = branching_session_resolver
+        self._branching_visible_state_service = branching_visible_state_service
+        self._branching_selection_service = branching_selection_service
+        self._branching_ooc_config_extractor = branching_ooc_config_extractor
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -319,6 +366,7 @@ class OrchestratorService:
         self._timeout = parallel_pass_timeout_seconds
         self._ooc_handler_prompt: str = load_ooc_handler_prompt()
         self._rpg_ooc_handler_prompt: str = load_rpg_ooc_handler_prompt()
+        self._branching_ooc_handler_prompt: str = load_branching_ooc_handler_prompt()
 
     def close(self) -> None:
         """Release the orchestrator-owned executor.
@@ -585,6 +633,202 @@ class OrchestratorService:
                     ),
                 )
 
+        # Pre-resolve Branching session state once for INTERACTION_REJECTED check
+        # and for the narrative path (HYBRID/TRUE_CYOA).  Modeled on the RPG
+        # pre_session_state pattern: resolve once, thread through as _pre_branching_state.  # noqa: E501
+        pre_branching_state: BranchingSessionState | None = None
+        if story_mode is StoryMode.BRANCHING:
+            # In-play interaction-style enforcement (TRUE_CYOA freeform
+            # rejection, BRANCH_CHOICE validation) and writer routing all depend
+            # on the resolved Branching session state to distinguish setup,
+            # FREEFORM_ONLY, HYBRID, TRUE_CYOA, and play status.  Without the
+            # resolver we cannot prove the turn is one of the "unchanged" paths,
+            # so fail closed before any interaction-style enforcement or
+            # writer-routing decision rather than silently proceeding with
+            # pre_branching_state=None (which would skip in-play HYBRID/TRUE_CYOA
+            # enforcement and downgrade to the prose Writer).
+            if self._branching_session_resolver is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "branching session resolver not wired for BRANCHING turn;"
+                    " cannot determine interaction style or play status",
+                )
+            try:
+                pre_branching_state = self._branching_session_resolver(story_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching session resolution failed: {exc}",
+                )
+            # A wired resolver returning None means the Branching session
+            # row/state is missing or corrupt.  Fail closed: without state we
+            # cannot prove the turn is setup, FREEFORM_ONLY, HYBRID, or
+            # TRUE_CYOA, so treating None as "setup" or "FREEFORM_ONLY" would
+            # silently skip in-play enforcement and downgrade to the prose
+            # Writer.  Error before any interaction-style enforcement,
+            # branch-choice validation, writer routing, or LLM call.
+            if pre_branching_state is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "branching session state missing or corrupt for BRANCHING"
+                    " turn; resolver returned None",
+                )
+
+        # INTERACTION_REJECTED: True CYOA mode rejects non-OOC freeform input.
+        # Runs after the OOC short-circuit (OOC is always valid) and after the
+        # pending-roll intercept (RPG-only).  No LLM call, no Turn, no canon.
+        # Gated on in_play: during setup, TRUE_CYOA setup confirmation and
+        # clarification route through the ordinary prose Writer path per
+        # ADR-016 Decision 3; interaction-style enforcement is in-play only.
+        if (
+            pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and pre_branching_state.interaction_style is InteractionStyle.TRUE_CYOA
+            and intent_result.intent_type is not IntentType.BRANCH_CHOICE
+        ):
+            return self._build_result(
+                PipelineDisposition.INTERACTION_REJECTED,
+                intent_result,
+                latency,
+                turn_start,
+                interaction_rejection_reason=InteractionRejectionReason.INVALID_FOR_INTERACTION_STYLE,
+                interaction_rejection_message=(
+                    "True CYOA mode requires explicit branch selection"
+                    " (e.g., 'I choose option 2')."
+                    " Freeform narrative input is not valid in this mode."
+                    " Use [OOC] to switch to Hybrid mode."
+                ),
+            )
+
+        # Fail closed: an in-play HYBRID/TRUE_CYOA BRANCH_CHOICE requires the
+        # BranchSelectionValidationService.  Without it we cannot validate the
+        # selection against the presented option set; treating the choice as
+        # freeform narrative input would bypass the typed branch-card contract
+        # and proceed to generation with selected_branch_context=None.  This
+        # guard is in-play only, so setup rows stay on the existing wired-only
+        # validation path ("setup unchanged").  Must precede any LLM call, Turn
+        # persistence, canon mutation, or provider billing.
+        if (
+            pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and intent_result.intent_type is IntentType.BRANCH_CHOICE
+            and pre_branching_state.interaction_style
+            in (
+                InteractionStyle.HYBRID,
+                InteractionStyle.TRUE_CYOA,
+            )
+            and self._branching_selection_service is None
+        ):
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "branch selection validation service not wired for in-play"
+                " HYBRID/TRUE_CYOA branch choice; refusing unvalidated"
+                " selection",
+            )
+
+        # INTERACTION_REJECTED: validate BRANCH_CHOICE selection against the
+        # presented option set from the current node's mode_metadata.branching.
+        # Runs for in-play HYBRID and TRUE_CYOA when intent is BRANCH_CHOICE.
+        # Branch-choice validation is an in-play rail: a setup row routes through
+        # the prose setup-confirmation path per ADR-016 Decision 3 even when the
+        # selection service is wired and the classifier emits BRANCH_CHOICE, so
+        # this block is gated on IN_PLAY to match the missing-service guard above.
+        # No LLM call, no Turn, no canon mutation on rejection.
+        pre_selected_context: SelectedBranchContext | None = None
+        if (
+            pre_branching_state is not None
+            and pre_branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and intent_result.intent_type is IntentType.BRANCH_CHOICE
+            and pre_branching_state.interaction_style
+            in (
+                InteractionStyle.HYBRID,
+                InteractionStyle.TRUE_CYOA,
+            )
+            and self._branching_selection_service is not None
+        ):
+            from afterworlds.models.node import (
+                BranchingNodeMetadata,
+                PersistedBranchOption,
+            )
+            from afterworlds.pipeline.branching.models import (
+                BranchSelectionValidationVerdict,
+            )
+
+            # A DB/session/crud failure while reading the presented option set
+            # is an operational fault, not invalid user input — surface it as
+            # PIPELINE_ERROR before any validate() call.  A successful read that
+            # yields no options (node missing, non-branching metadata, or empty
+            # branch_options) is a valid empty set; the validator then returns
+            # INVALID_BRANCH_SELECTION.
+            _presented_options: list[PersistedBranchOption] = []
+            _lineage_ok = True
+            try:
+                with self._session_factory() as _read_session:
+                    from afterworlds.persistence.crud.node import (
+                        get_node as _get_node,
+                    )
+                    from afterworlds.persistence.crud.node import (
+                        node_belongs_to_story as _nbs,
+                    )
+
+                    # Lineage guard: never read branch-card options for a node
+                    # that does not belong to this story.  Foreign-story option
+                    # labels must not reach the selection validator or any
+                    # rejection text — fail closed with a generic lineage error
+                    # before the options are read.
+                    if not _nbs(_read_session, node_id, story_id):
+                        _lineage_ok = False
+                    else:
+                        _current_node = _get_node(_read_session, node_id)
+                        if _current_node is not None and isinstance(
+                            _current_node.mode_metadata, BranchingNodeMetadata
+                        ):
+                            _presented_options = list(
+                                _current_node.mode_metadata.branch_options
+                            )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branch-card read failed: {exc}",
+                )
+
+            if not _lineage_ok:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branch-choice lineage check failed: node {node_id} does"
+                    f" not belong to story {story_id}",
+                )
+
+            _sel_result = self._branching_selection_service.validate(
+                intent_result.raw_input,
+                _presented_options,
+            )
+            if _sel_result.verdict is BranchSelectionValidationVerdict.REJECT:
+                return self._build_result(
+                    PipelineDisposition.INTERACTION_REJECTED,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    interaction_rejection_reason=_sel_result.rejection_reason,
+                    interaction_rejection_message=(
+                        _sel_result.rejection_message
+                        or "Branch selection was rejected."
+                    ),
+                )
+            pre_selected_context = _sel_result.selected_context
+
         return self._run_narrative(
             ctx,
             story_id,
@@ -600,6 +844,8 @@ class OrchestratorService:
             player_reported_total=player_reported_total,
             _pre_session_state=pre_session_state,
             _pre_sheet=pre_sheet,
+            _pre_branching_state=pre_branching_state,
+            _pre_selected_context=pre_selected_context,
         )
 
     # ------------------------------------------------------------------
@@ -623,6 +869,8 @@ class OrchestratorService:
         player_reported_total: int | None = None,
         _pre_session_state: RpgSessionState | None = None,
         _pre_sheet: Dnd5eCharacterSheet | None = None,
+        _pre_branching_state: BranchingSessionState | None = None,
+        _pre_selected_context: SelectedBranchContext | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -859,6 +1107,9 @@ class OrchestratorService:
                 rpg_character_id=rpg_character_id,
                 pending_roll_consumed=pending_roll,
                 rpg_sheet=rpg_sheet,
+                branching_state=_pre_branching_state,
+                story_mode=story_mode,
+                selected_branch_context=_pre_selected_context,
             ),
             intent_result,
             latency,
@@ -889,7 +1140,44 @@ class OrchestratorService:
         rpg_character_id: UUID | None = None,
         pending_roll_consumed: PendingRollRequest | None = None,
         rpg_sheet: Dnd5eCharacterSheet | None = None,
+        branching_state: BranchingSessionState | None = None,
+        story_mode: StoryMode = StoryMode.WRITING,
+        selected_branch_context: SelectedBranchContext | None = None,
     ) -> OrchestrationResult:
+        # Determine if this is a BRANCHING HYBRID/TRUE_CYOA turn (BranchingWriterService
+        # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
+        # Gated on in_play: during setup, HYBRID/TRUE_CYOA setup confirmation and
+        # clarification route through the prose Writer path per ADR-016 Decision 3.
+        # An in-play HYBRID/TRUE_CYOA turn REQUIRES the BranchingWriterService.
+        # The service-wiring check is split out from _use_branching_writer so a
+        # missing service fails closed (below) rather than silently falling
+        # through to the prose Writer, which would bypass the typed branch-card
+        # contract and omit branching_pass_result.  Setup turns and
+        # FREEFORM_ONLY still route through the prose Writer per ADR-016 Dec. 3.
+        _branching_required = (
+            story_mode is StoryMode.BRANCHING
+            and branching_state is not None
+            and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and branching_state.interaction_style
+            in (
+                InteractionStyle.HYBRID,
+                InteractionStyle.TRUE_CYOA,
+            )
+        )
+        if _branching_required and self._branching_writer_service is None:
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "branching writer service not wired for in-play"
+                " HYBRID/TRUE_CYOA session; refusing prose-writer downgrade",
+                input_safety_result=input_safety,
+                planner_result=planner_result,
+            )
+        _use_branching_writer = (
+            _branching_required and self._branching_writer_service is not None
+        )
+
         # 5. Writer persists provisional Turn inside the outer transaction.
         #
         # writer_turn_id is pre-allocated by _run_narrative so the adjudication
@@ -897,53 +1185,339 @@ class OrchestratorService:
         # transaction opens.  RefusalFallbackRouter also carries the same id so
         # refusal-log rows are consistent with the Turn row on success.  On
         # failure no Turn is persisted; the log row still carries the candidate id.
-        try:
-            writer_result, ms = _timed(
-                lambda: self._writer_service.write(
-                    ctx,
-                    story_id,
-                    node_id,
-                    provider=ScopedProviderAdapter(
-                        binding.adapter,  # type: ignore[arg-type]
-                        sojourner_id,
-                        turn_id=writer_turn_id,
-                    ),
-                    session=session,
-                    turn_id=writer_turn_id,
+        branching_pass_result: _BranchingPassResult | None = None
+        if _use_branching_writer:
+            # 5a-branching: BranchingWriterService produces narrative + branch cards.
+            # Fail-closed: BranchingPassError + ProviderRefusalError both abort the turn.  # noqa: E501
+            assert branching_state is not None  # noqa: S101 — narrowed above
+            assert (
+                self._branching_writer_service is not None
+            )  # noqa: S101 — narrowed above
+            _branching_svc = self._branching_writer_service
+            # Lineage guard: verify node/story lineage before the LLM call so no
+            # provider spend is wasted on a turn that cannot be persisted.
+            from afterworlds.persistence.crud.node import (
+                node_belongs_to_story as _nbs,
+            )
+
+            if not _nbs(session, node_id, story_id):
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer: node {node_id} does not belong to story"
+                    f" {story_id}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
                 )
+            _ctx_story_id = ctx.stable_prefix.story_bible_context.story_id
+            if _ctx_story_id != story_id:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer: assembled context story {_ctx_story_id}"
+                    f" != target story {story_id}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            _sel_ctx = selected_branch_context
+            try:
+                branching_pass_result, ms = _timed(
+                    lambda: _branching_svc.write(
+                        ctx,
+                        branching_state,
+                        provider=ScopedProviderAdapter(
+                            binding.adapter,  # type: ignore[arg-type]
+                            sojourner_id,
+                            turn_id=writer_turn_id,
+                        ),
+                        selected_branch_context=_sel_ctx,
+                    )
+                )
+                latency["branching_writer"] = ms
+            except ProviderRefusalError as exc:
+                return self._build_result(
+                    PipelineDisposition.REFUSED_BY_PROVIDER,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    provider_refusal=exc.refusal,
+                )
+            except BranchingPassError as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer pass failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching writer unexpected error: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            # Persist Turn row with branching narrative_text inside the outer
+            # transaction.  Turn creation uses the same CRUD as WriterService.
+            assert branching_pass_result is not None  # noqa: S101 — mypy narrowing
+            _bpr = branching_pass_result
+            from datetime import UTC, datetime
+
+            from afterworlds.models.turn import Turn
+            from afterworlds.persistence.crud.node import create_turn
+
+            try:
+                _icr = ctx.volatile_suffix.classified_intent
+                _branching_turn = Turn(
+                    turn_id=writer_turn_id,
+                    user_input=ctx.volatile_suffix.current_input,
+                    assistant_output=_bpr.narrative_text,
+                    timestamp=datetime.now(UTC),
+                    intent_classification=IntentType(_icr.intent_type.value),
+                    node_id=node_id,
+                    intent_classification_result=_icr,
+                )
+                create_turn(session, _branching_turn)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branching turn persistence failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    branching_pass_result=branching_pass_result,
+                )
+            # Phase G: persist branch options + presentation state to
+            # Node.mode_metadata.branching.  This metadata is the authoritative
+            # surface the next BRANCH_CHOICE turn validates against, so it must be
+            # committed in the same transaction that delivers the turn — for
+            # held/omitted just as much as for shown.  A shown turn needs its
+            # option set persisted; a held/omitted turn needs the prior beat's
+            # branch_options cleared (held/omitted always carry an empty option
+            # set) so stale cards cannot be selected.  If this write fails we fail
+            # closed (PIPELINE_ERROR -> rollback) rather than deliver a turn whose
+            # next valid choice surface cannot be trusted.
+            try:
+                from afterworlds.models.node import (
+                    BranchingNodeMetadata,
+                    PersistedBranchOption,
+                )
+                from afterworlds.persistence.crud.node import (
+                    get_node as _gn,
+                )
+                from afterworlds.persistence.crud.node import (
+                    update_node as _un,
+                )
+
+                _node_to_update = _gn(session, node_id)
+                if _node_to_update is None:
+                    raise RuntimeError(
+                        f"node {node_id} not found for branch-option persistence"
+                    )
+                _existing_mm = _node_to_update.mode_metadata
+                _ps_str = _bpr.branch_presentation_state
+                _new_mm = BranchingNodeMetadata(
+                    pacing_stage_at_beat=(
+                        _existing_mm.pacing_stage_at_beat
+                        if isinstance(_existing_mm, BranchingNodeMetadata)
+                        else None
+                    ),
+                    interaction_style=(
+                        branching_state.interaction_style if branching_state else None
+                    ),
+                    branching_cadence=(
+                        branching_state.branching_cadence if branching_state else None
+                    ),
+                    freeform_available=_bpr.freeform_available,
+                    branch_count_range=(
+                        branching_state.branch_count_range.value
+                        if branching_state and branching_state.branch_count_range
+                        else None
+                    ),
+                    branch_options=[
+                        PersistedBranchOption(
+                            option_id=o.option_id,
+                            action_text=o.action_text,
+                        )
+                        for o in _bpr.branch_options
+                    ],
+                    branch_presentation_state=_ps_str,
+                )
+                _node_to_update.mode_metadata = _new_mm
+                if _un(session, _node_to_update) is None:
+                    raise RuntimeError(
+                        f"node {node_id} update returned no row during "
+                        "branch-option persistence"
+                    )
+            except Exception as exc:  # noqa: BLE001
+                # Authoritative branch-choice surface failed to persist (shown
+                # options unsaved, or stale held/omitted options not cleared).
+                # Fail closed so the next turn cannot validate against a surface
+                # that was never committed.  The BranchingWriter already ran, so
+                # branching_pass_result is preserved for settlement/audit.
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"branch-card metadata persistence failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    branching_pass_result=branching_pass_result,
+                )
+
+            # Phase G (selection edge): persist the resolved selection into the
+            # node's mode_metadata.branching so callers can replay what was chosen.
+            # Best-effort — failure does not block turn delivery.
+            if selected_branch_context is not None:
+                try:
+                    from afterworlds.models.node import (
+                        BranchingNodeMetadata as _BNM,
+                    )
+                    from afterworlds.persistence.crud.node import (
+                        get_node as _gn2,
+                    )
+                    from afterworlds.persistence.crud.node import (
+                        update_node as _un2,
+                    )
+
+                    _sel_node = _gn2(session, node_id)
+                    if _sel_node is not None and isinstance(
+                        _sel_node.mode_metadata, _BNM
+                    ):
+                        _sel_node.mode_metadata.selected_option_id = (
+                            selected_branch_context.option_id
+                        )
+                        # Stable selection record: option_id alone is ambiguous
+                        # because IDs (opt_1, …) are reused every beat. Persist
+                        # the chosen action text so the selection stays
+                        # reconstructable after the next beat's branch_options
+                        # overwrite this metadata.
+                        _sel_node.mode_metadata.selected_action_text = (
+                            selected_branch_context.action_text
+                        )
+                        _sel_node.mode_metadata.selection_annotation = (
+                            selected_branch_context.annotation
+                        )
+                        _un2(session, _sel_node)
+                except Exception:  # noqa: BLE001
+                    pass  # Non-critical for current turn delivery
+
+            # Build a thin WriterResult from branching output for downstream passes
+            # (Extractor, Contradiction, Output Safety).  These passes need the
+            # narrative text; branch_options live in branching_pass_result.
+            from afterworlds.pipeline.writer.models import WriterResult as _WriterResult
+
+            writer_result = _WriterResult(
+                turn_id=writer_turn_id,
+                assistant_output=_bpr.narrative_text,
+                model_identifier=_bpr.model_identifier or "",
+                latency_ms=_bpr.latency_ms,
+                input_token_count=_bpr.input_token_count,
+                output_token_count=_bpr.output_token_count,
+                cache_read_token_count=_bpr.cache_read_token_count,
+                cache_creation_token_count=_bpr.cache_creation_token_count,
+                provider=_bpr.provider,
+                model_tier=_bpr.model_tier or "",
             )
-            latency["writer"] = ms
-        except ProviderRefusalError as exc:
-            return self._build_result(
-                PipelineDisposition.REFUSED_BY_PROVIDER,
-                intent_result,
-                latency,
-                turn_start,
-                input_safety_result=input_safety,
-                planner_result=planner_result,
-                provider_refusal=exc.refusal,
-                rpg_adjudication_result=adj_result,
-            )
-        except WriterPassError as exc:
-            return self._pipeline_error(
-                intent_result,
-                latency,
-                turn_start,
-                f"writer pass failed: {exc}",
-                input_safety_result=input_safety,
-                planner_result=planner_result,
-                rpg_adjudication_result=adj_result,
-            )
-        except Exception as exc:  # noqa: BLE001 — see boundary docstring
-            return self._pipeline_error(
-                intent_result,
-                latency,
-                turn_start,
-                f"writer unexpected error: {exc}",
-                input_safety_result=input_safety,
-                planner_result=planner_result,
-                rpg_adjudication_result=adj_result,
-            )
+        else:
+            # Thread selected branch context into the ledger when the branching
+            # writer is not active (partially-wired orchestrator: selection service
+            # wired, branching writer service not).  The prose WriterService renders
+            # the ledger as a volatile block, so selected context reaches the model.
+            if selected_branch_context is not None:
+                _sbc = selected_branch_context
+                _sbc_lines = [
+                    "[Selected Branch]",
+                    f"option_id: {_sbc.option_id}",
+                    f"action_text: {_sbc.action_text}",
+                ]
+                if _sbc.annotation is not None:
+                    _sbc_lines.append(f"annotation: {_sbc.annotation}")
+                ctx.pass_forward_ledger.add(
+                    "branching_selection", "\n".join(_sbc_lines)
+                )
+            # In-play FREEFORM_ONLY Branching turns use the prose Writer (no
+            # branch cards), but the code-owned Branching session configuration
+            # still governs storyteller response density.  Surface it as a
+            # volatile ledger block so cadence/length preference reaches the
+            # model.  Configuration context only: no branch cards or affordances
+            # are created here, and this block is never sent on non-Branching
+            # stories or for HYBRID/TRUE_CYOA (those use BranchingWriter).
+            if (
+                story_mode is StoryMode.BRANCHING
+                and branching_state is not None
+                and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+                and branching_state.interaction_style is InteractionStyle.FREEFORM_ONLY
+            ):
+                _cfg_lines = [
+                    "[Branching Session Configuration]",
+                    f"interaction_style: {branching_state.interaction_style.value}",
+                ]
+                if branching_state.branching_cadence is not None:
+                    _cfg_lines.append(
+                        f"branching_cadence: {branching_state.branching_cadence.value}"
+                    )
+                if branching_state.length_preference is not None:
+                    _cfg_lines.append(
+                        "length_preference: "
+                        f"{branching_state.length_preference.value}"
+                    )
+                ctx.pass_forward_ledger.add("branching_config", "\n".join(_cfg_lines))
+            try:
+                writer_result, ms = _timed(
+                    lambda: self._writer_service.write(
+                        ctx,
+                        story_id,
+                        node_id,
+                        provider=ScopedProviderAdapter(
+                            binding.adapter,  # type: ignore[arg-type]
+                            sojourner_id,
+                            turn_id=writer_turn_id,
+                        ),
+                        session=session,
+                        turn_id=writer_turn_id,
+                    )
+                )
+                latency["writer"] = ms
+            except ProviderRefusalError as exc:
+                return self._build_result(
+                    PipelineDisposition.REFUSED_BY_PROVIDER,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    provider_refusal=exc.refusal,
+                    rpg_adjudication_result=adj_result,
+                )
+            except WriterPassError as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"writer pass failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    rpg_adjudication_result=adj_result,
+                )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"writer unexpected error: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    rpg_adjudication_result=adj_result,
+                )
 
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
         # roll, inside the outer transaction (Fork B→B1).  Runs only when
@@ -973,6 +1547,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
@@ -984,6 +1559,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
 
         # 5c. Apply sheet effects (Fork B→B1) inside the outer transaction, then
@@ -1011,6 +1587,7 @@ class OrchestratorService:
                         planner_result=planner_result,
                         writer_result=writer_result,
                         rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
                     )
             if self._rpg_visible_state_service is not None:
                 try:
@@ -1025,6 +1602,7 @@ class OrchestratorService:
                         planner_result=planner_result,
                         writer_result=writer_result,
                         rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
                     )
 
         # 6. Output Safety Audit, conditional.
@@ -1061,6 +1639,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
             except Exception as exc:  # noqa: BLE001 — see boundary docstring
                 return self._pipeline_error(
@@ -1072,6 +1651,7 @@ class OrchestratorService:
                     planner_result=planner_result,
                     writer_result=writer_result,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
             assert output_safety is not None  # noqa: S101 — mypy narrowing
             if output_safety.verdict is SafetyVerdict.BLOCK:
@@ -1085,6 +1665,7 @@ class OrchestratorService:
                     writer_result=writer_result,
                     output_safety_result=output_safety,
                     rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
@@ -1122,6 +1703,7 @@ class OrchestratorService:
                 extractor_result=exc.extractor_result,
                 provider_refusal=exc.refusal,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
         except ProviderRefusalError as exc:
             # Extractor-side refusal: the failing pass result must remain
@@ -1138,6 +1720,7 @@ class OrchestratorService:
                 output_safety_result=output_safety,
                 provider_refusal=exc.refusal,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
         except _ParallelSyncError as exc:
             return self._pipeline_error(
@@ -1150,6 +1733,7 @@ class OrchestratorService:
                 writer_result=writer_result,
                 output_safety_result=output_safety,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
         except Exception as exc:  # noqa: BLE001 — see boundary docstring
             # Defense-in-depth: ``_run_parallel_sync`` already maps every
@@ -1166,6 +1750,7 @@ class OrchestratorService:
                 writer_result=writer_result,
                 output_safety_result=output_safety,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
 
         # 8. Gate on Contradiction.
@@ -1182,7 +1767,23 @@ class OrchestratorService:
                 extractor_result=extractor_result,
                 contradiction_result=contradiction_result,
                 rpg_adjudication_result=adj_result,
+                branching_pass_result=branching_pass_result,
             )
+
+        # Build branching visible state for BRANCHING-mode DELIVERED turns.
+        branching_visible_state = None
+        if (
+            story_mode is StoryMode.BRANCHING
+            and branching_state is not None
+            and self._branching_visible_state_service is not None
+        ):
+            try:
+                branching_visible_state = self._branching_visible_state_service.build(
+                    branching_state,
+                    branching_pass_result,
+                )
+            except Exception:  # noqa: BLE001
+                branching_visible_state = None
 
         # ALLOW → commit Turn + Extractor writes.  Outer transaction context
         # manager will commit on normal exit; no explicit commit needed.
@@ -1199,6 +1800,8 @@ class OrchestratorService:
             contradiction_result=contradiction_result,
             rpg_adjudication_result=adj_result,
             rpg_visible_state=rpg_visible_state,
+            branching_pass_result=branching_pass_result,
+            branching_visible_state=branching_visible_state,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
         )
@@ -1313,12 +1916,13 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                 )
 
-        # Select mode-specific OOC handler; RPG mode has a dedicated prompt.
-        ooc_prompt = (
-            self._rpg_ooc_handler_prompt
-            if story_mode is StoryMode.RPG
-            else self._ooc_handler_prompt
-        )
+        # Select mode-specific OOC handler; RPG and Branching have dedicated prompts.
+        if story_mode is StoryMode.RPG:
+            ooc_prompt = self._rpg_ooc_handler_prompt
+        elif story_mode is StoryMode.BRANCHING:
+            ooc_prompt = self._branching_ooc_handler_prompt
+        else:
+            ooc_prompt = self._ooc_handler_prompt
         ooc_ctx = _swap_system_prompt(ctx, ooc_prompt)
 
         if story_mode is StoryMode.RPG:
@@ -1347,6 +1951,7 @@ class OrchestratorService:
                 request_risk_signal,
                 latency,
                 turn_start,
+                story_mode=story_mode,
             ),
             intent_result,
             latency,
@@ -1369,6 +1974,8 @@ class OrchestratorService:
         request_risk_signal: bool,
         latency: dict[str, int],
         turn_start: float,
+        *,
+        story_mode: StoryMode,
     ) -> OrchestrationResult:
         ooc_turn_id = uuid4()
         try:
@@ -1466,6 +2073,243 @@ class OrchestratorService:
                     output_safety_result=output_safety,
                 )
 
+        # Phase F (OOC config extraction): for BRANCHING turns, extract any
+        # interaction-config changes the Sojourner requested and persist them
+        # inside this transaction.  Best-effort — failure skips persistence
+        # without blocking OOC_HANDLED.
+        _ooc_cfg_extractor_result: object | None = None
+        # Set when a requested switch to HYBRID/TRUE_CYOA is suppressed because no
+        # compatible branch-count range exists.  Appended to the delivered OOC
+        # output so the prose response cannot imply a style change that
+        # persistence did not actually make (confirmation/persistence parity).
+        _ooc_style_noop_note: str | None = None
+        # Set when an OOC request supplied an explicit branch_count_range that is
+        # invalid for the applicable style and is therefore discarded.  Surfaced
+        # for the range-only case (when no style switch was suppressed for the
+        # same reason) so the prose cannot imply a range change that did not
+        # persist.  Mutually exclusive with _ooc_style_noop_note to avoid
+        # contradictory duplicate corrections.
+        _ooc_range_noop_note: str | None = None
+        if (
+            story_mode is StoryMode.BRANCHING
+            and self._branching_ooc_config_extractor is not None
+        ):
+            try:
+                from afterworlds.models.enums import InteractionStyle as _IS
+                from afterworlds.models.session import BranchingSessionState as _BSS
+                from afterworlds.persistence.crud.session_state import (
+                    apply_branching_config_update as _apply_cfg,
+                )
+                from afterworlds.persistence.crud.session_state import (
+                    get_branching_session_state_by_story as _get_bss,
+                )
+                from afterworlds.pipeline.branching.config import (
+                    ALLOWED_RANGES_BY_STYLE as _ALLOWED,
+                )
+
+                # Scope the extractor's provider call to the OOC prose-writer's
+                # turn so any refusal/fallback/provider-call audit row is
+                # reconstructable from that same turn (post-writer convention,
+                # mirroring the output-audit call above).  turn_id may be None
+                # if the writer did not produce one — ScopedProviderAdapter
+                # omits it safely in that case.
+                _extract_result = self._branching_ooc_config_extractor.extract(
+                    ooc_ctx,
+                    ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=writer_result.turn_id,
+                    ),
+                )
+                # Capture metrics immediately so usage is visible to settlement
+                # even if a later best-effort persistence step raises.
+                _ooc_cfg_extractor_result = _extract_result
+                _cfg_update = _extract_result.config_update
+
+                # Determine the target interaction style for range validation.
+                _bss_row: _BSS | None = None
+                _target_style: _IS | None = _cfg_update.interaction_style
+                if _target_style is None:
+                    _bss_row = _get_bss(session, story_id)
+                    _target_style = (
+                        _bss_row.interaction_style if _bss_row is not None else None
+                    )
+
+                # Separate "no range requested" from "explicit range requested but
+                # later found invalid" so the two cases get different treatment.
+                _requested_range = _cfg_update.branch_count_range
+
+                # Validate branch_count_range against the target style.  Track
+                # whether an explicitly requested range was rejected so the
+                # range-only case can surface a corrective note (the style-only
+                # suppression already carries its own note below).
+                _range_invalid = False
+                _validated_range = _requested_range
+                if _validated_range is not None and _target_style is not None:
+                    _allowed_ranges = _ALLOWED.get(_target_style)
+                    if (
+                        _allowed_ranges is None
+                        or _validated_range not in _allowed_ranges
+                    ):
+                        _range_invalid = True
+                        _validated_range = None  # discard invalid range
+
+                # Determine persistence strategy for the style × range pair to
+                # avoid leaving the row in a mismatched configuration:
+                # • FREEFORM_ONLY: persist style, clear range to NULL.
+                # • HYBRID/TRUE_CYOA with a valid requested range: persist both.
+                # • HYBRID/TRUE_CYOA, no range requested, persisted range
+                #   compatible with target style: persist style, keep existing range.
+                # • HYBRID/TRUE_CYOA, no range requested, persisted range
+                #   incompatible (or absent): suppress style change (atomicity).
+                # • HYBRID/TRUE_CYOA, explicit range requested but invalid:
+                #   suppress style change (do not fall back to persisted range).
+                _apply_style = _cfg_update.interaction_style
+                _should_clear_range = False
+                if _cfg_update.interaction_style is _IS.FREEFORM_ONLY:
+                    _should_clear_range = True
+                elif _cfg_update.interaction_style in (_IS.HYBRID, _IS.TRUE_CYOA):
+                    if _validated_range is not None:
+                        pass  # persist style + explicit valid range
+                    elif _requested_range is None:
+                        # No range requested — check if the persisted range is
+                        # valid for the target style before allowing the switch.
+                        if _bss_row is None:
+                            _bss_row = _get_bss(session, story_id)
+                        _persisted = (
+                            _bss_row.branch_count_range
+                            if _bss_row is not None
+                            else None
+                        )
+                        _target_allowed = _ALLOWED.get(_cfg_update.interaction_style)
+                        if (
+                            _persisted is None
+                            or _target_allowed is None
+                            or _persisted not in _target_allowed
+                        ):
+                            _apply_style = None  # incompatible persisted range
+                        # else: persisted range is valid for target — allow style
+                    else:
+                        # Explicit range was requested but is invalid; suppress.
+                        _apply_style = None
+
+                # If a switch to HYBRID/TRUE_CYOA was requested but suppressed
+                # (no compatible range), the style is NOT persisted.  Record an
+                # explicit non-confirmation so the OOC prose cannot silently
+                # imply the change happened.
+                if _apply_style is None and _cfg_update.interaction_style in (
+                    _IS.HYBRID,
+                    _IS.TRUE_CYOA,
+                ):
+                    _allowed_for_note = _ALLOWED.get(_cfg_update.interaction_style)
+                    _ranges_txt = (
+                        ", ".join(sorted(r.value for r in _allowed_for_note))
+                        if _allowed_for_note
+                        else ""
+                    )
+                    _ooc_style_noop_note = (
+                        f"[Interaction style not changed: switching to "
+                        f"{_cfg_update.interaction_style.value} needs a compatible "
+                        f"branch-count range. Set one of: {_ranges_txt} and try "
+                        f"again.]"
+                    )
+
+                # An explicitly requested branch-count range that is invalid for
+                # the applicable style is discarded (never persisted).  Surface a
+                # dedicated correction ONLY when the style switch was not itself
+                # suppressed for the same reason (that note already names the
+                # range and lists compatible ranges — a second note would be a
+                # contradictory duplicate) and the range is not being cleared by
+                # a deliberate FREEFORM_ONLY switch (a "not changed" note would be
+                # false there, since the switch clears it by design).
+                if (
+                    _range_invalid
+                    and _ooc_style_noop_note is None
+                    and not _should_clear_range
+                    and _requested_range is not None
+                ):
+                    _range_allowed = (
+                        _ALLOWED.get(_target_style)
+                        if _target_style is not None
+                        else None
+                    )
+                    _range_ranges_txt = (
+                        ", ".join(sorted(r.value for r in _range_allowed))
+                        if _range_allowed
+                        else ""
+                    )
+                    _range_style_txt = (
+                        _target_style.value
+                        if _target_style is not None
+                        else "the current interaction style"
+                    )
+                    if _range_ranges_txt:
+                        _ooc_range_noop_note = (
+                            f"[Branch-count range not changed: "
+                            f"{_requested_range.value} is not valid for "
+                            f"{_range_style_txt}. Set one of: {_range_ranges_txt} "
+                            f"and try again.]"
+                        )
+                    else:
+                        _ooc_range_noop_note = (
+                            f"[Branch-count range not changed: "
+                            f"{_requested_range.value} is not valid for "
+                            f"{_range_style_txt}.]"
+                        )
+
+                _apply_cfg(
+                    session,
+                    story_id,
+                    interaction_style=_apply_style,
+                    branching_cadence=_cfg_update.branching_cadence,
+                    branch_count_range=_validated_range,
+                    length_preference=_cfg_update.length_preference,
+                    clear_branch_count_range=_should_clear_range,
+                )
+            except BranchingOocExtractionUsageError as _usage_exc:
+                # The provider call succeeded (tokens consumed) but a local
+                # validation step rejected the response.  Preserve the usage-only
+                # result for settlement/audit; the config update is skipped as
+                # best-effort, exactly like the generic swallow below.
+                _ooc_cfg_extractor_result = _usage_exc.usage_result
+            except Exception:  # noqa: BLE001
+                pass  # Best-effort; OOC prose already delivered
+
+        _ooc_delivered = writer_result.assistant_output
+        # At most one of the corrective notes is set (they are mutually
+        # exclusive by construction), but compose a single correction block from
+        # whichever are present so the delivered prose can never imply a config
+        # change that persistence did not make.
+        _ooc_config_noop_notes = [
+            _note
+            for _note in (_ooc_style_noop_note, _ooc_range_noop_note)
+            if _note is not None
+        ]
+        if _ooc_config_noop_notes:
+            _ooc_delivered = (
+                _ooc_delivered + "\n\n" + "\n\n".join(_ooc_config_noop_notes)
+            )
+            # Keep the persisted OOC Turn truthful.  The corrective no-op note is
+            # appended to the delivered output because the requested style/range
+            # change was suppressed; the raw writer prose alone could falsely
+            # imply the change happened.  Persist the same corrected output to
+            # the Turn row and mirror it onto the in-memory writer_result so
+            # delivered output, returned writer_result, and future recent-turn
+            # context all agree.  Done inside this transaction; a write failure
+            # rolls the whole OOC turn back rather than persisting a false
+            # confirmation.
+            if writer_result.turn_id is not None:
+                from afterworlds.persistence.crud.node import (
+                    update_turn_assistant_output,
+                )
+
+                update_turn_assistant_output(
+                    session, writer_result.turn_id, _ooc_delivered
+                )
+            writer_result = writer_result.model_copy(
+                update={"assistant_output": _ooc_delivered}
+            )
+
         return self._build_result(
             PipelineDisposition.OOC_HANDLED,
             intent_result,
@@ -1474,8 +2318,9 @@ class OrchestratorService:
             input_safety_result=input_safety,
             writer_result=writer_result,
             output_safety_result=output_safety,
-            delivered_output=writer_result.assistant_output,
+            delivered_output=_ooc_delivered,
             turn_id=writer_result.turn_id,
+            branching_ooc_config_result=_ooc_cfg_extractor_result,
         )
 
     # ------------------------------------------------------------------
@@ -1908,6 +2753,11 @@ class OrchestratorService:
         provider_refusal: ProviderRefusal | None = None,
         pipeline_error_summary: str | None = None,
         pending_roll_redirect_message: str | None = None,
+        interaction_rejection_reason: InteractionRejectionReason | None = None,
+        interaction_rejection_message: str | None = None,
+        branching_pass_result: _BranchingPassResult | None = None,
+        branching_visible_state: object | None = None,
+        branching_ooc_config_result: object | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -1918,6 +2768,10 @@ class OrchestratorService:
             extractor_result,
             contradiction_result,
             rpg_adjudication_result,
+            # Branching provider results are stable-prefix-backed calls
+            # equivalent to planner/writer/extractor for cache observability.
+            branching_pass_result,
+            branching_ooc_config_result,
         )
         return OrchestrationResult(
             disposition=disposition,
@@ -1935,6 +2789,11 @@ class OrchestratorService:
             provider_refusal=provider_refusal,
             pipeline_error_summary=pipeline_error_summary,
             pending_roll_redirect_message=pending_roll_redirect_message,
+            interaction_rejection_reason=interaction_rejection_reason,
+            interaction_rejection_message=interaction_rejection_message,
+            branching_pass_result=branching_pass_result,
+            branching_visible_state=branching_visible_state,
+            branching_ooc_config_result=branching_ooc_config_result,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
@@ -1952,6 +2811,7 @@ class OrchestratorService:
         writer_result: WriterResult | None = None,
         output_safety_result: SafetyResult | None = None,
         rpg_adjudication_result: AdjudicationPassResult | None = None,
+        branching_pass_result: _BranchingPassResult | None = None,
     ) -> OrchestrationResult:
         return self._build_result(
             PipelineDisposition.PIPELINE_ERROR,
@@ -1964,6 +2824,7 @@ class OrchestratorService:
             output_safety_result=output_safety_result,
             pipeline_error_summary=summary,
             rpg_adjudication_result=rpg_adjudication_result,
+            branching_pass_result=branching_pass_result,
         )
 
     def _run_with_transaction(
@@ -2116,6 +2977,19 @@ class OrchestratorService:
                     extractor_result=inner_result.extractor_result,
                     contradiction_result=inner_result.contradiction_result,
                     rpg_adjudication_result=inner_result.rpg_adjudication_result,
+                    # Preserve usage-carrying Branching pass results.  A
+                    # BranchingWriter or Branching OOC-config extractor that ran
+                    # before the failed commit already consumed provider tokens;
+                    # the disposition changes to PIPELINE_ERROR but that
+                    # successful provider-usage evidence must survive so cost
+                    # settlement (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_
+                    # EXTRACTOR) and audit can reconstruct the spend.  Delivery
+                    # is gated by the PIPELINE_ERROR disposition, not by nulling
+                    # these records.
+                    branching_pass_result=inner_result.branching_pass_result,
+                    branching_ooc_config_result=(
+                        inner_result.branching_ooc_config_result
+                    ),
                     pipeline_error_summary=(
                         f"transaction commit failed after "
                         f"{success_disposition.value}: {commit_exc}"

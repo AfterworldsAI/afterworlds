@@ -180,6 +180,32 @@ def _make_fake_resolver(trusted: bool = False) -> object:
 # ---------------------------------------------------------------------------
 
 
+def _freeform_branching_resolver(_story_id: UUID):  # type: ignore[no-untyped-def]
+    """Default branching-session resolver for mode-agnostic orchestrator tests.
+
+    The harness mode defaults to ``StoryMode.BRANCHING``, which now requires a
+    wired ``branching_session_resolver`` that returns a real session state (a
+    missing resolver *and* a resolver that returns ``None`` both fail closed).
+    These generic pipeline tests exercise the prose path, so the harness
+    resolves a fully-configured in-play ``FREEFORM_ONLY`` session: in-play
+    HYBRID/TRUE_CYOA rails do not apply to FREEFORM_ONLY, so the turn routes
+    through the prose Writer exactly as it did under the prior behavior, while
+    no longer relying on the (now fail-closed) ``None`` session.
+    """
+    from afterworlds.models.enums import InteractionStyle, PacingStage
+    from afterworlds.models.session import (
+        BranchingPlayStatus,
+        BranchingSessionState,
+    )
+
+    return BranchingSessionState(
+        story_id=_story_id,
+        pacing_stage=PacingStage.ESCALATION,
+        interaction_style=InteractionStyle.FREEFORM_ONLY,
+        play_status=BranchingPlayStatus.IN_PLAY,
+    )
+
+
 def _make_orchestrator(  # type: ignore[no-untyped-def]
     session_factory,
     *,
@@ -233,6 +259,7 @@ def _make_orchestrator(  # type: ignore[no-untyped-def]
         safety_policy=safety_policy or CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=resolver,  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(),
+        branching_session_resolver=_freeform_branching_resolver,
         executor=executor,
         parallel_pass_timeout_seconds=parallel_timeout,
     )
@@ -306,7 +333,7 @@ class TestDispositionOOCHandled:
         assert contradiction.calls == []
         assert writer.calls and writer.calls[0][
             0
-        ].stable_prefix.system_prompt.startswith("# OOC Handler")
+        ].stable_prefix.system_prompt.startswith("# Branching Mode OOC Handler")
 
 
 class TestDispositionBlockedInputSafety:
@@ -721,7 +748,9 @@ class TestOOCShortCircuit:
         )
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
-        assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
+        assert derived_ctx.stable_prefix.system_prompt.startswith(
+            "# Branching Mode OOC Handler"
+        )
 
     def test_ooc_persists_turn_with_ooc_intent(
         self, session_factory, seeded_story, session
@@ -815,10 +844,10 @@ class TestOOCShortCircuit:
         derived_ctx = writer.calls[0][0]
         assert derived_ctx.stable_prefix.system_prompt.startswith("# RPG OOC Handler")
 
-    def test_non_rpg_ooc_uses_generic_handler_prompt(
+    def test_branching_ooc_uses_branching_handler_prompt(
         self, session_factory, seeded_story
     ) -> None:
-        """Non-RPG mode OOC turns must still use the generic ooc_handler.md."""
+        """Branching mode OOC turns use the branching-specific ooc handler."""
         story_id, node_id = seeded_story
         orch, *_, writer, _, _ = _make_orchestrator(
             session_factory, intent=IntentType.OOC
@@ -828,7 +857,390 @@ class TestOOCShortCircuit:
         )
         assert len(writer.calls) == 1
         derived_ctx = writer.calls[0][0]
-        assert derived_ctx.stable_prefix.system_prompt.startswith("# OOC Handler")
+        assert derived_ctx.stable_prefix.system_prompt.startswith(
+            "# Branching Mode OOC Handler"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Branching OOC config persistence strategy (Round 3 Fix 2)
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass as _dataclass  # noqa: E402
+
+
+@_dataclass
+class _FakeBranchingOocExtractor:
+    """Returns a fixed BranchingOocConfigExtractorResult; never calls the provider."""
+
+    config_update: object
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingOocConfigExtractorResult,
+        )
+
+        return BranchingOocConfigExtractorResult(
+            config_update=self.config_update,  # type: ignore[arg-type]
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+
+
+@_dataclass
+class _TurnCapturingOocExtractor:
+    """Records the turn_id on the ScopedProviderAdapter handed to extract().
+
+    Returns an all-None config update so the best-effort persistence path is a
+    no-op; the test only asserts on the provider scope.
+    """
+
+    captured_turn_id: object = None
+    called: bool = False
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+        )
+
+        self.called = True
+        self.captured_turn_id = getattr(provider, "_turn_id", "MISSING")
+        return BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+
+
+@_dataclass
+class _UsageFailingOocExtractor:
+    """Raises BranchingOocExtractionUsageError carrying a usage-only result.
+
+    Simulates a provider call that returned (consuming tokens) but whose
+    response failed a local validation step.  The usage result carries token
+    metrics with an all-null config_update — no mutation is implied.
+    """
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+            BranchingOocExtractionUsageError,
+        )
+
+        usage = BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+        raise BranchingOocExtractionUsageError(
+            "Branching OOC config extractor response missing tool-use block",
+            usage,
+        )
+
+
+@_dataclass
+class _PlainFailingOocExtractor:
+    """Raises a plain BranchingPassError with no usage (pre-provider-result).
+
+    Simulates a provider-call exception before any result existed: no tokens
+    were consumed, so no usage may be fabricated.
+    """
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.branching.models import BranchingPassError
+
+        raise BranchingPassError(
+            "Branching OOC config extractor provider call failed: boom"
+        )
+
+
+def _make_ooc_cfg_orch_with_extractor(
+    session_factory: object, extractor: object
+) -> OrchestratorService:
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(),
+        branching_ooc_config_extractor=extractor,  # type: ignore[arg-type]
+    )
+
+
+def _make_ooc_cfg_orch(
+    session_factory: object, config_update: object
+) -> OrchestratorService:
+    return _make_ooc_cfg_orch_with_extractor(
+        session_factory,
+        _FakeBranchingOocExtractor(config_update),
+    )
+
+
+class TestBranchingOocConfigPersistence:
+    """Round 3 Fix 2: style-only OOC transitions respect persisted range compat."""
+
+    def _seed_bss(
+        self,
+        session: object,
+        story_id: UUID,
+        *,
+        interaction_style: object,
+        branch_count_range: object = None,
+    ) -> None:
+        from afterworlds.models.enums import PacingStage
+        from afterworlds.models.session import BranchingSessionState
+        from afterworlds.persistence.crud.session_state import (
+            create_branching_session_state,
+        )
+
+        bss = BranchingSessionState(
+            story_id=story_id,
+            pacing_stage=PacingStage.SETUP,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branch_count_range=branch_count_range,  # type: ignore[arg-type]
+        )
+        create_branching_session_state(session, bss)  # type: ignore[arg-type]
+        session.commit()  # type: ignore[union-attr]
+
+    def _read_bss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_branching_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_hybrid_2_3_to_true_cyoa_no_range_persists_style_and_keeps_range(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA (no range): style changes to TRUE_CYOA, 2-3 kept."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+    def test_hybrid_3_4_to_true_cyoa_no_range_suppresses_style_change(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 3-4 → TRUE_CYOA (no range): suppressed — 3-4 invalid for TRUE_CYOA."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.THREE_TO_FOUR,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.THREE_TO_FOUR
+
+    def test_explicit_invalid_range_suppresses_style_does_not_fallback_to_persisted(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Explicit invalid range: suppress style; no fallback to persisted range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+    def test_freeform_only_clears_range_unchanged(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY: persists style and clears branch count range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.FREEFORM_ONLY),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to freeform",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        assert bss.branch_count_range is None
+
+    def test_explicit_valid_range_persists_style_and_range(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Explicit valid range for target style: persists both style and range."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=None,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.TWO_TO_FOUR,
+            ),
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 2-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+
+    def test_config_extractor_provider_scoped_to_ooc_writer_turn(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Round 6 Fix 2: the extractor's provider call is scoped to
+        writer_result.turn_id so any refusal/fallback/provider-call audit row
+        is reconstructable from the OOC turn (not an unscoped None)."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+
+        story_id, node_id = seeded_story
+        self._seed_bss(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        extractor = _TurnCapturingOocExtractor()
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(),
+            branching_ooc_config_extractor=extractor,  # type: ignore[arg-type]
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] no config change",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert extractor.called
+        # The scoped turn id must be the OOC writer's persisted turn — proving
+        # turn_id=writer_result.turn_id flowed into the ScopedProviderAdapter.
+        assert extractor.captured_turn_id not in (None, "MISSING")
+        assert session.get(TurnORM, str(extractor.captured_turn_id)) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -1340,10 +1752,17 @@ class TestLedgerComposition:
             story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
         )
         derived = writer.calls[0][0]
-        assert len(derived.pass_forward_ledger.entries) == 1
-        assert derived.pass_forward_ledger.entries[0].pass_name == "planner"
+        # The default harness resolves an in-play FREEFORM_ONLY branching
+        # session, so the prose Writer ledger now carries a sibling
+        # ``branching_config`` block (Round 17 Finding 1) alongside the planner
+        # output.  Assert the planner entry is present rather than that it is the
+        # sole entry.
+        planner_entries = [
+            e for e in derived.pass_forward_ledger.entries if e.pass_name == "planner"
+        ]
+        assert len(planner_entries) == 1
         # PlannerOutput serializes as JSON; assert known fields are present.
-        ledger_text = derived.pass_forward_ledger.entries[0].content
+        ledger_text = planner_entries[0].content
         assert '"scene_goal"' in ledger_text
         assert '"next_beat"' in ledger_text
 
@@ -3288,6 +3707,274 @@ class TestCommitFailureRoutesToPipelineError:
         assert result.writer_result.assistant_output == candidate_prose
 
 
+class TestCommitFailurePreservesBranchingUsage:
+    """Commit-failure rebuild preserves usage-carrying Branching pass results.
+
+    A BranchingWriter or Branching OOC-config extractor that ran before a
+    failed commit already consumed provider tokens.  The rebuilt
+    PIPELINE_ERROR must keep ``branching_pass_result`` /
+    ``branching_ooc_config_result`` so cost settlement (BRANCHING_WRITER /
+    BRANCHING_OOC_CONFIG_EXTRACTOR) and audit can reconstruct the spend.
+    """
+
+    def test_branching_writer_usage_survives_commit_failure(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter success + commit failure → preserved pass result."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, RuntimeError("simulated disk full")
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "transaction commit failed" in (result.pipeline_error_summary or "")
+        assert branching_writer.called is True
+        # Successful provider-usage evidence must survive the rebuild.
+        assert result.branching_pass_result is not None
+        # Delivery is still gated by the PIPELINE_ERROR disposition.
+        assert result.delivered_output is None
+        assert result.turn_id is None
+        assert failing_factory.rollback_calls >= 1
+
+    def test_branching_writer_usage_visible_to_cost_policy_snapshot(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Cost-policy snapshot sees BRANCHING_WRITER on the rebuilt error."""
+        from afterworlds.entitlement.enums import PipelinePassId
+        from afterworlds.entitlement.policy import TurnCostPolicy
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, RuntimeError("simulated disk full")
+        )
+        orch, _ = _make_branching_refusal_orchestrator(failing_factory)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.branching_pass_result is not None
+        # The Fake Safety service and successful-branching-writer fake emit
+        # token-less results (production passes carry tokens); the real
+        # snapshot extractor requires tokens.  Strip the fake safety passes and
+        # stamp realistic tokens onto the preserved branching pass result so
+        # the assertion isolates the mapping invariant: a branching_pass_result
+        # preserved on a PIPELINE_ERROR rebuild yields a BRANCHING_WRITER
+        # snapshot (it is not skipped because the disposition is an error).
+        bpr = result.branching_pass_result.model_copy(
+            update={"input_token_count": 200, "output_token_count": 50}
+        )
+        snap_input = result.model_copy(
+            update={
+                "input_safety_result": None,
+                "output_safety_result": None,
+                "branching_pass_result": bpr,
+            }
+        )
+        snapshots = TurnCostPolicy.extract_snapshots(snap_input)
+        pass_ids = {snap.pass_id for snap in snapshots}
+        assert PipelinePassId.BRANCHING_WRITER in pass_ids
+        # branching_pass_result is non-None, so the prose Writer snapshot is
+        # not double-counted (BRANCHING_WRITER stands in its place).
+        assert PipelinePassId.WRITER not in pass_ids
+
+    def test_ooc_config_extractor_usage_survives_commit_failure(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """OOC config extractor success + commit failure → preserved result."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, ConnectionError("simulated DB timeout")
+        )
+        orch = _make_ooc_cfg_orch(
+            failing_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.HYBRID),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "transaction commit failed" in (result.pipeline_error_summary or "")
+        # The OOC config extractor consumed tokens before the failed commit.
+        assert result.branching_ooc_config_result is not None
+        assert result.delivered_output is None
+        assert result.turn_id is None
+
+    def test_ooc_config_usage_visible_to_cost_policy_snapshot(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """Cost-policy snapshot sees BRANCHING_OOC_CONFIG_EXTRACTOR on rebuild."""
+        from afterworlds.entitlement.enums import PipelinePassId
+        from afterworlds.entitlement.policy import TurnCostPolicy
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, ConnectionError("simulated DB timeout")
+        )
+        orch = _make_ooc_cfg_orch(
+            failing_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.HYBRID),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        # Drop token-less Fake Safety passes (see sibling test) so the
+        # assertion isolates the branching OOC-config usage invariant.
+        snap_input = result.model_copy(
+            update={"input_safety_result": None, "output_safety_result": None}
+        )
+        snapshots = TurnCostPolicy.extract_snapshots(snap_input)
+        pass_ids = {snap.pass_id for snap in snapshots}
+        assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in pass_ids
+
+
+class TestOocExtractorLocalFailurePreservesUsage:
+    """Local post-provider extraction failure preserves OOC extractor usage.
+
+    When the OOC config extractor reaches the provider and gets a result, but a
+    local validation step (missing tool block / wrong tool name / schema
+    failure) then rejects it, the consumed tokens must survive: the OOC turn
+    still settles as OOC_HANDLED, the config mutation is skipped, and
+    ``branching_ooc_config_result`` carries the usage so settlement/audit sees a
+    BRANCHING_OOC_CONFIG_EXTRACTOR result.  A provider-call failure *before* any
+    result must NOT fabricate usage.
+    """
+
+    def _read_bss(self, session: object, story_id: object) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_branching_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_local_failure_preserves_usage_and_skips_config(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """Post-provider local failure → OOC_HANDLED, usage kept, config unchanged."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _UsageFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # Usage consumed before the local failure survives for settlement.
+        assert result.branching_ooc_config_result is not None
+        assert result.branching_ooc_config_result.input_token_count == 10
+        assert result.branching_ooc_config_result.output_token_count == 5
+        # The config mutation was skipped — the persisted style is unchanged.
+        bss = self._read_bss(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+
+    def test_local_failure_usage_visible_to_cost_policy_snapshot(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """Preserved usage yields a BRANCHING_OOC_CONFIG_EXTRACTOR snapshot."""
+        from afterworlds.entitlement.enums import PipelinePassId
+        from afterworlds.entitlement.policy import TurnCostPolicy
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _UsageFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # Drop token-less Fake Safety passes so the assertion isolates the
+        # preserved OOC-config usage invariant.
+        snap_input = result.model_copy(
+            update={"input_safety_result": None, "output_safety_result": None}
+        )
+        snapshots = TurnCostPolicy.extract_snapshots(snap_input)
+        pass_ids = {snap.pass_id for snap in snapshots}
+        assert PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR in pass_ids
+
+    def test_provider_call_failure_fabricates_no_usage(
+        self, session_factory: object, seeded_story: tuple[object, object], session
+    ) -> None:
+        """A pre-result provider failure leaves branching_ooc_config_result None."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+        orch = _make_ooc_cfg_orch_with_extractor(
+            session_factory, _PlainFailingOocExtractor()
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # No provider result existed, so no usage may be fabricated.
+        assert result.branching_ooc_config_result is None
+
+
 # ---------------------------------------------------------------------------
 # Session-lifecycle failure routing (Codex P1 #87 round 5)
 #
@@ -4730,6 +5417,105 @@ class TestRpgAdjudicationCacheWarmed:
 
 
 # ---------------------------------------------------------------------------
+# PR #112 R14: Branching provider results reflected in stable_prefix_cache_warmed
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingCacheWarmed:
+    """_build_result must pass branching results to _any_cache_read.
+
+    BranchingWriter and the Branching OOC config extractor are stable-prefix-
+    backed provider calls; a non-zero cache_read_token_count on either must
+    warm stable_prefix_cache_warmed just like planner/writer/extractor.
+    """
+
+    @staticmethod
+    def _branching_pass_result(cache_read: int) -> object:
+        from afterworlds.models.enums import BranchingCadence, InteractionStyle
+        from afterworlds.pipeline.branching.models import (
+            BranchingPassResult,
+            BranchOption,
+        )
+
+        return BranchingPassResult(
+            narrative_text="The corridor forks before you.",
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            freeform_available=True,
+            branch_count_range=None,
+            branch_options=[BranchOption(option_id="opt_1", action_text="Go left")],
+            branch_presentation_state="shown",
+            provider="anthropic",
+            model_identifier="claude-haiku-4-5",
+            model_tier="haiku",
+            latency_ms=7,
+            cache_read_token_count=cache_read,
+        )
+
+    @staticmethod
+    def _ooc_config_result(cache_read: int) -> object:
+        from afterworlds.pipeline.branching.models import (
+            BranchingConfigUpdate,
+            BranchingOocConfigExtractorResult,
+        )
+
+        return BranchingOocConfigExtractorResult(
+            config_update=BranchingConfigUpdate(),
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            cache_read_token_count=cache_read,
+        )
+
+    def test_cache_warmed_when_only_branching_writer_has_cache_tokens(
+        self, session_factory: object
+    ) -> None:
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_pass_result=self._branching_pass_result(7),
+        )
+        assert result.stable_prefix_cache_warmed is True
+
+    def test_cache_warmed_when_only_ooc_config_has_cache_tokens(
+        self, session_factory: object
+    ) -> None:
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_ooc_config_result=self._ooc_config_result(7),
+        )
+        assert result.stable_prefix_cache_warmed is True
+
+    def test_cache_not_warmed_when_branching_results_have_zero_cache(
+        self, session_factory: object
+    ) -> None:
+        # Both branching results report zero cache-read and no other pass is
+        # present — the only signal under test is the new branching plumbing.
+        orch = _make_orchestrator(session_factory)[0]
+        result = orch._build_result(  # type: ignore[attr-defined]
+            PipelineDisposition.PIPELINE_ERROR,
+            make_intent(),
+            {},
+            0.0,
+            pipeline_error_summary="test",
+            branching_pass_result=self._branching_pass_result(0),
+            branching_ooc_config_result=self._ooc_config_result(0),
+        )
+        assert result.stable_prefix_cache_warmed is False
+
+
+# ---------------------------------------------------------------------------
 # P2-1: Pending-roll consume path takes precedence over OOC routing (Round 11)
 # ---------------------------------------------------------------------------
 
@@ -5195,3 +5981,3260 @@ class TestRuleSlicePreContext:
         )
         assert len(spy.rule_slice_requests) == 1
         assert spy.rule_slice_requests[0] is None
+
+
+# ---------------------------------------------------------------------------
+# Fix 4: Branching-writer lineage guard — cross-story node rejects before LLM call
+# ---------------------------------------------------------------------------
+
+
+class _FakeBranchingWriterService:
+    """Stub branching writer that must NOT be called if the lineage guard fires."""
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        self.called = True
+        raise AssertionError(
+            "BranchingWriterService.write() must not be reached when the"
+            " lineage guard fires"
+        )
+
+
+class TestBranchingWriterLineageGuard:
+    """_narrative_persist lineage guard rejects cross-story node before LLM call."""
+
+    def test_cross_story_node_returns_pipeline_error(
+        self,
+        session_factory: object,
+        session: object,
+        seeded_story: tuple[UUID, UUID],
+    ) -> None:
+        """Using node_id from story B with story A's story_id → PIPELINE_ERROR."""
+        from datetime import UTC, datetime
+
+        from afterworlds.entitlement.enums import RuntimeAccessPath
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            PacingStage,
+            StoryMode,
+        )
+        from afterworlds.models.node import (
+            BranchingNodeMetadata,
+            Node,
+            NodeMetadata,
+            StateDelta,
+        )
+        from afterworlds.models.session import BranchingSessionState
+        from afterworlds.models.story import Arc, Chapter, Story
+        from afterworlds.persistence.crud.node import create_node
+        from afterworlds.persistence.crud.story import (
+            create_arc,
+            create_chapter,
+            create_story,
+        )
+
+        # story_A is the seeded fixture story.
+        story_a_id, _node_a_id = seeded_story
+
+        # Seed a second story (story_B) with its own node.
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        story_b = Story(
+            title="Story B (different story)",
+            mode=StoryMode.BRANCHING,
+            created_at=now,
+            updated_at=now,
+        )
+        create_story(session, story_b)  # type: ignore[arg-type]
+        arc_b = Arc(story_id=story_b.story_id, title="Arc B", order=0)
+        create_arc(session, arc_b)  # type: ignore[arg-type]
+        chap_b = Chapter(arc_id=arc_b.arc_id, title="Chapter B", order=0)
+        create_chapter(session, chap_b)  # type: ignore[arg-type]
+        node_b = Node(
+            chapter_id=chap_b.chapter_id,
+            content="",
+            state_delta=StateDelta(),
+            branching_logic=[],
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            metadata=NodeMetadata(timestamp=now),
+            mode_metadata=BranchingNodeMetadata(),
+        )
+        create_node(session, node_b)  # type: ignore[arg-type]
+        session.commit()  # type: ignore[union-attr]
+
+        def _branching_resolver(sid: UUID) -> BranchingSessionState:
+            return BranchingSessionState(
+                story_id=sid,
+                pacing_stage=PacingStage.ESCALATION,
+                interaction_style=InteractionStyle.HYBRID,
+                branching_cadence=BranchingCadence.BALANCED,
+                play_status=BranchingPlayStatus.IN_PLAY,
+            )
+
+        fake_branching_writer = _FakeBranchingWriterService()
+
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(
+                make_intent(IntentType.IN_CHARACTER_ACTION, "I cross the bridge.")
+            ),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+            branching_writer_service=fake_branching_writer,  # type: ignore[arg-type]
+            branching_session_resolver=_branching_resolver,
+        )
+
+        result = orch.orchestrate_turn(
+            story_a_id,  # story A
+            node_b.node_id,  # node belongs to story B — cross-story mismatch
+            "I cross the bridge.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert fake_branching_writer.called is False
+
+
+# ---------------------------------------------------------------------------
+# Branch-card read path: operational fault vs invalid input (Round 4 Fix 1)
+# ---------------------------------------------------------------------------
+
+
+class _RecordingBranchingWriterService:
+    """Records that write() was reached, then aborts with a sentinel error.
+
+    Used to prove a *valid* opt_N selection proceeds past branch-selection
+    validation into the branching writer pass (rather than being rejected),
+    without standing up a full DELIVERED branching pipeline.
+    """
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        from afterworlds.pipeline.branching.models import BranchingPassError
+
+        self.called = True
+        raise BranchingPassError("sentinel-reached-branching-writer")
+
+
+def _seed_branching_story_with_options(
+    session: object,
+    option_labels: list[str],
+) -> tuple[UUID, UUID]:
+    """Seed a BRANCHING story + node, optionally carrying presented options."""
+    from datetime import UTC, datetime
+
+    from afterworlds.models.enums import IntentType, StoryMode
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        PersistedBranchOption,
+        StateDelta,
+    )
+    from afterworlds.models.story import Arc, Chapter, Story
+    from afterworlds.persistence.crud.node import create_node
+    from afterworlds.persistence.crud.story import (
+        create_arc,
+        create_chapter,
+        create_story,
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        title="Branching read-path story",
+        mode=StoryMode.BRANCHING,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = Arc(story_id=story.story_id, title="Arc", order=0)
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chap = Chapter(arc_id=arc.arc_id, title="Chapter", order=0)
+    create_chapter(session, chap)  # type: ignore[arg-type]
+    options = [
+        PersistedBranchOption(option_id=f"opt_{i + 1}", action_text=label)
+        for i, label in enumerate(option_labels)
+    ]
+    node = Node(
+        chapter_id=chap.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=now),
+        mode_metadata=BranchingNodeMetadata(branch_options=options),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+    session.commit()  # type: ignore[union-attr]
+    return story.story_id, node.node_id
+
+
+def _make_branching_choice_orchestrator(
+    session_factory: object,
+    branching_writer: object,
+    raw_input: str,
+    interaction_style: object = None,
+    play_status: object = None,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator wired for a BRANCH_CHOICE turn with selection validation.
+
+    Defaults to in-play HYBRID; pass ``interaction_style`` to exercise TRUE_CYOA
+    routing and ``play_status`` to exercise the SETUP path (where the in-play
+    branch-choice validation rail must not run even though the selection service
+    is wired and the classifier emitted BRANCH_CHOICE).
+    """
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        BranchingPlayStatus,
+        IntentType,
+        InteractionStyle,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+
+    resolved_style = (
+        InteractionStyle.HYBRID if interaction_style is None else interaction_style
+    )
+    resolved_status = (
+        BranchingPlayStatus.IN_PLAY if play_status is None else play_status
+    )
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=resolved_style,  # type: ignore[arg-type]
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=resolved_status,  # type: ignore[arg-type]
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.BRANCH_CHOICE, raw_input)
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+        branching_selection_service=BranchSelectionValidationService(),
+    )
+
+
+class TestBranchCardReadPath:
+    """BRANCH_CHOICE branch-card read: DB faults are PIPELINE_ERROR, not rejection."""
+
+    def test_branch_card_read_failure_routes_to_pipeline_error(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A crud/session error reading presented options → PIPELINE_ERROR, no LLM."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _FakeBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic branch-card read failure")
+
+        monkeypatch.setattr("afterworlds.persistence.crud.node.get_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card read failed" in summary, summary
+        assert "synthetic branch-card read failure" in summary, summary
+        # Operational fault is never reclassified as user-invalid input.
+        assert result.interaction_rejection_reason is None
+        # No LLM call on the failure path.
+        assert writer.called is False
+
+    def test_empty_presented_options_after_read_rejects(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """Successful read with no options → INVALID_BRANCH_SELECTION, no LLM."""
+        from afterworlds.models.enums import InteractionRejectionReason
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert (
+            result.interaction_rejection_reason
+            is InteractionRejectionReason.INVALID_BRANCH_SELECTION
+        )
+        # No LLM call on the rejection path.
+        assert writer.called is False
+
+    def test_valid_opt_n_proceeds_to_branching_writer(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """A valid opt_N selection passes validation and reaches the writer pass."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _RecordingBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Not rejected: validation accepted and the narrative path was entered,
+        # reaching the branching writer (which aborts with a sentinel error).
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (
+            result.pipeline_error_summary or ""
+        )
+        assert result.interaction_rejection_reason is None
+
+    def test_true_cyoa_in_play_valid_choice_proceeds_to_branching_writer(
+        self,
+        session_factory: object,
+        session: object,
+    ) -> None:
+        """TRUE_CYOA + in_play + valid opt_N still routes to the branching writer.
+
+        Finding 1 enumerates "HYBRID/TRUE_CYOA + in_play uses BranchingWriter".
+        Under TRUE_CYOA the only path that reaches the writer is a valid
+        BRANCH_CHOICE (freeform is rejected), so this exercises the selection
+        harness rather than the freeform routing harness.
+        """
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _RecordingBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            writer,
+            "opt_1",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (
+            result.pipeline_error_summary or ""
+        )
+        assert result.interaction_rejection_reason is None
+
+
+# ---------------------------------------------------------------------------
+# Round 7 Finding 1: in_play gating of interaction-style enforcement.
+#
+# Branching interaction-style enforcement (TRUE_CYOA freeform rejection and
+# HYBRID/TRUE_CYOA BranchingWriter routing) applies only when
+# play_status == IN_PLAY.  During setup, confirmation/clarification routes
+# through the ordinary prose Writer path per ADR-016 Decision 3.
+# ---------------------------------------------------------------------------
+
+
+class _SuccessfulBranchingWriterService:
+    """Branching writer fake that returns a complete, valid pass result.
+
+    Lets a HYBRID/TRUE_CYOA in-play turn proceed past the writer into the
+    downstream Extractor/Contradiction passes (used by the refusal-preservation
+    tests below).
+    """
+
+    def __init__(self) -> None:
+        self.called = False
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        from afterworlds.models.enums import BranchingCadence, InteractionStyle
+        from afterworlds.pipeline.branching.models import (
+            BranchingPassResult,
+            BranchOption,
+        )
+
+        self.called = True
+        return BranchingPassResult(
+            narrative_text="The corridor forks before you.",
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            freeform_available=True,
+            branch_count_range=None,
+            branch_options=[
+                BranchOption(option_id="opt_1", action_text="Go left"),
+                BranchOption(option_id="opt_2", action_text="Go right"),
+            ],
+            branch_presentation_state="shown",
+            provider="anthropic",
+            model_identifier="claude-haiku-4-5",
+            model_tier="haiku",
+            latency_ms=7,
+        )
+
+
+class _PresentationBranchingWriterService:
+    """Branching writer fake returning a chosen presentation state + option set.
+
+    Held/omitted beats always carry an empty option list (the branching
+    validator forbids non-empty held/omitted), so the orchestrator's node
+    metadata write must clear any prior beat's branch_options.
+    """
+
+    def __init__(
+        self,
+        presentation_state: str,
+        *,
+        options: list[tuple[str, str]] | None = None,
+    ) -> None:
+        self.called = False
+        self._presentation_state = presentation_state
+        self._options = options or []
+
+    def write(self, *args: object, **kwargs: object) -> object:  # type: ignore[override]
+        from afterworlds.models.enums import BranchingCadence, InteractionStyle
+        from afterworlds.pipeline.branching.models import (
+            BranchingPassResult,
+            BranchOption,
+        )
+
+        self.called = True
+        return BranchingPassResult(
+            narrative_text="The corridor narrows; you hold your ground.",
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            freeform_available=True,
+            branch_count_range=None,
+            branch_options=[
+                BranchOption(option_id=oid, action_text=txt)
+                for oid, txt in self._options
+            ],
+            branch_presentation_state=self._presentation_state,
+            provider="anthropic",
+            model_identifier="claude-haiku-4-5",
+            model_tier="haiku",
+            latency_ms=7,
+        )
+
+
+def _make_branching_routing_orchestrator(
+    session_factory: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    intent_type: object,
+    branching_writer: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator wired for a BRANCHING turn at a given style/play_status."""
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+
+
+def _make_branching_config_capture_orchestrator(
+    session_factory: object,
+    writer_service: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    branching_cadence: object,
+    length_preference: object,
+    mode: object,
+    intent_type: object,
+    raw_input: str,
+    branching_writer: object = None,
+):  # type: ignore[no-untyped-def]
+    """Orchestrator that captures the prose Writer's AssembledContext.
+
+    Unlike ``_make_branching_routing_orchestrator`` (hardcoded cadence, no
+    length_preference, BRANCHING-only), this lets a test set the persisted
+    cadence / length_preference and the story mode so the FREEFORM_ONLY
+    ``branching_config`` ledger block (Round 17 Finding 1) can be inspected on
+    the injected ``writer_service.calls``.
+    """
+    from afterworlds.models.enums import PacingStage
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=branching_cadence,  # type: ignore[arg-type]
+            length_preference=length_preference,  # type: ignore[arg-type]
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer_service,  # type: ignore[arg-type]
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(mode),  # type: ignore[arg-type]
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+
+
+def _ledger_block(writer_service: object, pass_name: str) -> str | None:
+    """Return the content of the first ledger entry with ``pass_name``, or None."""
+    calls = writer_service.calls  # type: ignore[attr-defined]
+    assert calls, "prose Writer was not invoked"
+    built_context = calls[0][0]
+    for entry in built_context.pass_forward_ledger.entries:
+        if entry.pass_name == pass_name:
+            return entry.content
+    return None
+
+
+class TestBranchingInPlayGating:
+    """Interaction-style enforcement is gated on play_status == IN_PLAY."""
+
+    def test_true_cyoa_setup_freeform_not_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + setup + non-branch input → prose Writer, not rejected."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="Make the tone darker, please.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Make the tone darker, please.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Setup clarification is NOT rejected and routes through prose Writer.
+        assert result.disposition is not PipelineDisposition.INTERACTION_REJECTED
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+        assert writer.called is False
+
+    def test_true_cyoa_in_play_freeform_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + in_play + non-branch input → INTERACTION_REJECTED."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionRejectionReason,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I wander off the path on my own.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the path on my own.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert (
+            result.interaction_rejection_reason
+            is InteractionRejectionReason.INVALID_FOR_INTERACTION_STYLE
+        )
+        assert writer.called is False
+
+    def test_hybrid_setup_uses_prose_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + setup → prose Writer, BranchingWriter not reached."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="Yes, that premise sounds right.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Yes, that premise sounds right.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is False
+
+    def test_hybrid_in_play_uses_branching_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + in_play → BranchingWriter is reached."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _RecordingBranchingWriterService()  # records + aborts
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I push deeper into the corridor.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I push deeper into the corridor.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert writer.called is True
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+
+    def test_freeform_only_in_play_unchanged_uses_prose_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """FREEFORM_ONLY + in_play → prose Writer (never BranchingWriter)."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I improvise and follow the sound.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I improvise and follow the sound.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+        assert writer.called is False
+
+
+# ---------------------------------------------------------------------------
+# Round 7 Finding 2: preserve branching_pass_result on downstream refusal.
+#
+# After a successful BranchingWriter pass, a downstream provider refusal
+# (Extractor refusal, or Contradiction refusal after Extractor succeeded)
+# must preserve the upstream successful ``branching_pass_result``.  Only the
+# failing downstream pass result remains absent.
+# ---------------------------------------------------------------------------
+
+
+def _make_branching_refusal_orchestrator(
+    session_factory: object,
+    *,
+    extractor_exc: Exception | None = None,
+    contradiction_exc: Exception | None = None,
+    safety_output: object | None = None,
+    contradiction_violations: object | None = None,
+):  # type: ignore[no-untyped-def]
+    """BRANCHING HYBRID in-play orchestrator with a successful BranchingWriter.
+
+    ``safety_output`` and ``contradiction_violations`` let the same harness drive
+    the downstream terminal paths (output-safety BLOCK, contradiction BLOCK)
+    exercised by the Round 9 Finding 3 preservation tests.
+    """
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        BranchingPlayStatus,
+        IntentType,
+        InteractionStyle,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=BranchingPlayStatus.IN_PLAY,
+        )
+
+    branching_writer = _SuccessfulBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.IN_CHARACTER_ACTION, "I push deeper.")
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(output_verdict=safety_output),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(raise_exc=extractor_exc),
+        contradiction_service=FakeContradictionService(
+            raise_exc=contradiction_exc,
+            violations=contradiction_violations,  # type: ignore[arg-type]
+        ),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+    )
+    return orch, branching_writer
+
+
+class TestBranchingPassResultPreservedOnRefusal:
+    """Downstream refusals preserve the upstream branching_pass_result."""
+
+    def test_extractor_refusal_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter success + Extractor refusal → result preserved."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.EXTRACTOR
+        assert branching_writer.called is True
+        # Upstream success preserved …
+        assert result.branching_pass_result is not None
+        assert result.writer_result is not None
+        # … failing downstream pass result remains absent.
+        assert result.extractor_result is None
+
+    def test_contradiction_refusal_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter + Extractor success + Contradiction refusal."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            contradiction_exc=make_refusal(PassIdentifier.CONTRADICTION),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert result.provider_refusal.pass_identifier is PassIdentifier.CONTRADICTION
+        assert branching_writer.called is True
+        # Upstream successes preserved, including the Extractor that completed.
+        assert result.branching_pass_result is not None
+        assert result.extractor_result is not None
+        # Failing pass (Contradiction) result absent.
+        assert result.contradiction_result is None
+
+    def test_prose_writer_refusal_leaves_branching_pass_result_none(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Prose-Writer path: Extractor refusal carries no branching_pass_result."""
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            extractor_exc=make_refusal(PassIdentifier.EXTRACTOR),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        # No branching writer ran; the field stays None (behavior unchanged).
+        assert result.branching_pass_result is None
+
+
+# ---------------------------------------------------------------------------
+# Round 8 Finding 1: branch-card persistence is fail-closed on shown turns.
+#
+# For HYBRID/TRUE_CYOA turns that DELIVER selectable branch cards, the option
+# set persisted on the node is the authoritative source for later BRANCH_CHOICE
+# validation.  If persistence fails on a shown turn the orchestrator must fail
+# closed (PIPELINE_ERROR -> rollback) rather than deliver unbacked cards.  The
+# Phase G selected-edge write stays best-effort.
+# ---------------------------------------------------------------------------
+
+
+class TestBranchCardPersistenceFailClosed:
+    """Shown branch-card turns persist the authoritative option set or fail closed."""
+
+    def test_hybrid_shown_turn_persists_options_before_delivery(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID + in_play DELIVER persists the shown option set on the node."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert branching_writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        assert node.mode_metadata.branch_presentation_state == "shown"
+
+    def test_true_cyoa_shown_turn_persists_options_before_delivery(
+        self, session_factory: object, session: object
+    ) -> None:
+        """TRUE_CYOA + valid BRANCH_CHOICE DELIVER persists the shown option set."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            writer,
+            "opt_1",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        assert node.mode_metadata.branch_presentation_state == "shown"
+
+    def test_shown_turn_persistence_failure_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A persistence fault on a shown turn → PIPELINE_ERROR, no delivered cards."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic branch-option persistence failure")
+
+        # The only update_node on a HYBRID freeform turn is the branch-card write.
+        monkeypatch.setattr("afterworlds.persistence.crud.node.update_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card metadata persistence failed" in summary, summary
+        assert "synthetic branch-option persistence failure" in summary, summary
+        # Owner decision (Round 9): branching_pass_result records that
+        # BranchingWriter ran and consumed provider tokens — it is a
+        # settlement/audit record, NOT the branch-card delivery signal.  It is
+        # preserved on this fail-closed path; delivery is gated by the
+        # PIPELINE_ERROR disposition plus the absence of deliverable state.
+        assert result.branching_pass_result is not None
+        # Failing closed means NOT surfacing selectable cards: no deliverable
+        # branch-card visible state is built.
+        assert result.branching_visible_state is None
+        # Transaction rolled back: no option set committed to the node.
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert node.mode_metadata.branch_options == []
+
+    def test_shown_turn_missing_node_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A get_node miss on a shown turn → PIPELINE_ERROR, no delivered cards."""
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, _branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        # The branch-card persistence block re-fetches the node before writing;
+        # a missing row must fail closed rather than deliver unpersisted cards.
+        monkeypatch.setattr(
+            "afterworlds.persistence.crud.node.get_node",
+            lambda *args, **kwargs: None,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card metadata persistence failed" in summary, summary
+        # Owner decision (Round 9): preserve the settlement/audit record; gate
+        # delivery on PIPELINE_ERROR + absence of deliverable branch-card state.
+        assert result.branching_pass_result is not None
+        assert result.branching_visible_state is None
+
+    def test_persisted_option_set_drives_later_branch_choice(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A later BRANCH_CHOICE validates against the orchestrator-persisted set."""
+        # Turn 1: HYBRID shown turn — seed carries NO options; the turn persists
+        # opt_1/opt_2 onto the node.
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch1, writer1 = _make_branching_refusal_orchestrator(session_factory)
+        r1 = orch1.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert r1.disposition is PipelineDisposition.DELIVERED
+        assert writer1.called is True
+
+        # Turn 2: a valid opt_1 BRANCH_CHOICE reads the persisted set and proceeds.
+        writer2 = _RecordingBranchingWriterService()
+        orch2 = _make_branching_choice_orchestrator(session_factory, writer2, "opt_1")
+        r2 = orch2.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # The seed carried no options; only the persisted set makes opt_1 valid.
+        assert writer2.called is True
+        assert r2.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "sentinel-reached-branching-writer" in (r2.pipeline_error_summary or "")
+        assert r2.interaction_rejection_reason is None
+
+    def test_phase_g_selected_edge_failure_is_non_blocking(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """Selected-edge persistence failure stays best-effort once cards persisted."""
+        import afterworlds.persistence.crud.node as _node_crud
+        from afterworlds.models.node import BranchingNodeMetadata
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        real_update = _node_crud.update_node
+        calls = {"n": 0}
+
+        def _fail_on_selected_edge(sess: object, node: object) -> object:
+            # First update_node = branch-card persistence (must succeed); second =
+            # Phase G selected-edge persistence (forced to fail, best-effort).
+            calls["n"] += 1
+            if calls["n"] >= 2:
+                raise RuntimeError("synthetic selected-edge persistence failure")
+            return real_update(sess, node)  # type: ignore[arg-type]
+
+        monkeypatch.setattr(
+            "afterworlds.persistence.crud.node.update_node", _fail_on_selected_edge
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Card persistence succeeded; the selected-edge failure does not block.
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert calls["n"] >= 2
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = _node_crud.get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # Authoritative option set committed …
+        assert [o.option_id for o in node.mode_metadata.branch_options] == [
+            "opt_1",
+            "opt_2",
+        ]
+        # … but the best-effort selection annotation was not.
+        assert node.mode_metadata.selected_option_id is None
+
+
+# ---------------------------------------------------------------------------
+# Round 16: selection provenance survives the next beat's branch-card overwrite.
+#
+# Option IDs (opt_1, …) are reused every beat.  Once a BRANCH_CHOICE turn
+# persists the *new* beat's branch_options, the bare selected_option_id no
+# longer identifies which option the Sojourner actually chose (a new opt_1 has
+# different action_text).  Phase G therefore persists selected_action_text from
+# the SelectedBranchContext so the prior selection stays reconstructable
+# independently of the current branch_options list.
+# ---------------------------------------------------------------------------
+
+
+class TestSelectionProvenanceSurvivesOverwrite:
+    """Phase G stores stable selected branch context, not just a reused ID."""
+
+    def test_shown_next_beat_preserves_prior_selected_action_text(
+        self, session_factory: object, session: object
+    ) -> None:
+        """New beat reuses opt_1; selected_action_text still names the prior choice."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        # Prior beat: opt_1 = "Open the red door", opt_2 = "Take the stairs".
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Open the red door", "Take the stairs"]
+        )
+        # New beat shows a fresh card set that REUSES opt_1 for a different action.
+        # The trailing "but I sneak past" annotates the selection.
+        writer = _PresentationBranchingWriterService(
+            "shown",
+            options=[("opt_1", "Ask the guard"), ("opt_2", "Patrol the hall")],
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory, writer, "opt_1 but I sneak past"
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "opt_1 but I sneak past",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # The new beat's option surface is the next valid choice set …
+        assert [
+            (o.option_id, o.action_text) for o in node.mode_metadata.branch_options
+        ] == [("opt_1", "Ask the guard"), ("opt_2", "Patrol the hall")]
+        # … yet the prior selection remains reconstructable: the stored action
+        # text is the PRIOR opt_1 ("Open the red door"), not the new opt_1.
+        assert node.mode_metadata.selected_option_id == "opt_1"
+        assert node.mode_metadata.selected_action_text == "Open the red door"
+        assert node.mode_metadata.selection_annotation == "I sneak past"
+
+    def test_held_next_beat_clears_options_but_preserves_selection(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A held next beat clears branch_options; selection record still survives."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Open the red door", "Take the stairs"]
+        )
+        # Held beat carries no options (validator forbids non-empty held/omitted).
+        writer = _PresentationBranchingWriterService("held")
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # Stale options cleared and held state recorded …
+        assert node.mode_metadata.branch_options == []
+        assert node.mode_metadata.branch_presentation_state == "held"
+        # … but the selection record (id + action text + annotation) survives.
+        assert node.mode_metadata.selected_option_id == "opt_1"
+        assert node.mode_metadata.selected_action_text == "Open the red door"
+        assert node.mode_metadata.selection_annotation is None
+
+
+# ---------------------------------------------------------------------------
+# Round 10 Finding 1: held/omitted node metadata is authoritative.
+#
+# A HYBRID held/omitted beat must clear any prior beat's branch_options and
+# record the new presentation state in the same transaction that delivers the
+# turn.  If that write fails the orchestrator fails closed (PIPELINE_ERROR ->
+# rollback, branching_pass_result preserved) rather than continue best-effort,
+# because leftover options would let the Sojourner select stale cards from a
+# prior shown beat.  (TRUE_CYOA forbids held/omitted entirely, so this rule is
+# exercised under HYBRID.)
+# ---------------------------------------------------------------------------
+
+
+class TestHeldOmittedBranchMetadataAuthoritative:
+    """Held/omitted clears stale options; a failed clear fails closed."""
+
+    def _make_held_omitted_orch(
+        self,
+        session_factory: object,
+        writer: object,
+        raw_input: str,
+    ):  # type: ignore[no-untyped-def]
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        return _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input=raw_input,
+        )
+
+    def test_held_after_shown_clears_branch_options(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID held beat clears the prior shown beat's options, records held."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        # Prior beat left selectable cards on the node.
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _PresentationBranchingWriterService("held")
+        orch = self._make_held_omitted_orch(
+            session_factory, writer, "I hold my position."
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I hold my position.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # Stale options cleared; new presentation state recorded.
+        assert node.mode_metadata.branch_options == []
+        assert node.mode_metadata.branch_presentation_state == "held"
+
+    def test_omitted_after_shown_clears_branch_options(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID omitted beat clears the prior options and records omitted."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _PresentationBranchingWriterService("omitted")
+        orch = self._make_held_omitted_orch(
+            session_factory, writer, "I keep walking quietly."
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I keep walking quietly.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        assert node.mode_metadata.branch_options == []
+        assert node.mode_metadata.branch_presentation_state == "omitted"
+
+    def test_held_metadata_clear_failure_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A failed held-metadata clear → PIPELINE_ERROR, pass result preserved."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _PresentationBranchingWriterService("held")
+        orch = self._make_held_omitted_orch(
+            session_factory, writer, "I hold my position."
+        )
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic held-metadata clear failure")
+
+        # The only update_node on a HYBRID freeform held turn is the metadata
+        # clear (no selected-edge write without a BRANCH_CHOICE selection).
+        monkeypatch.setattr("afterworlds.persistence.crud.node.update_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I hold my position.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Previously held/omitted persistence was best-effort; it now fails closed.
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branch-card metadata persistence failed" in summary, summary
+        assert "synthetic held-metadata clear failure" in summary, summary
+        # BranchingWriter ran → settlement/audit record preserved (Round 9 rule).
+        assert result.branching_pass_result is not None
+        # No deliverable branch-card state on the failed turn.
+        assert result.branching_visible_state is None
+        # NOTE: the transaction rolls back, so the node still holds the prior
+        # shown beat's options.  The invariant is "no DELIVERED turn where a
+        # held state coexists with leftover selectable options" — enforced by
+        # the PIPELINE_ERROR rollback above, not by post-failure erasure, so we
+        # deliberately do not assert the prior options were removed.
+
+    def test_omitted_metadata_clear_failure_fails_closed(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """A failed omitted-metadata clear also fails closed, preserving the record."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _PresentationBranchingWriterService("omitted")
+        orch = self._make_held_omitted_orch(
+            session_factory, writer, "I keep walking quietly."
+        )
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic omitted-metadata clear failure")
+
+        monkeypatch.setattr("afterworlds.persistence.crud.node.update_node", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I keep walking quietly.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "branch-card metadata persistence failed" in (
+            result.pipeline_error_summary or ""
+        )
+        assert result.branching_pass_result is not None
+        assert result.branching_visible_state is None
+
+
+# ---------------------------------------------------------------------------
+# Round 10 Finding 2: in-play HYBRID/TRUE_CYOA require BranchingWriterService.
+#
+# A wiring gap must fail closed (PIPELINE_ERROR), never silently downgrade to
+# the prose Writer — that would bypass the typed branch-card contract and omit
+# branching_pass_result.  Setup turns and FREEFORM_ONLY still use prose Writer
+# per ADR-016 Decision 3.
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingWriterRequiredWhenInPlay:
+    """In-play HYBRID/TRUE_CYOA fail closed when BranchingWriterService is missing."""
+
+    def test_in_play_hybrid_missing_writer_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play HYBRID without a branching writer → PIPELINE_ERROR, not prose."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=None,
+            raw_input="I push deeper.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "not wired" in summary, summary
+        assert "prose-writer downgrade" in summary, summary
+        # No branching writer ran → no settlement record (nothing to bill).
+        assert result.branching_pass_result is None
+
+    def test_in_play_true_cyoa_missing_writer_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play TRUE_CYOA (valid BRANCH_CHOICE) without a writer → PIPELINE_ERROR."""
+        from afterworlds.models.enums import InteractionStyle
+
+        # TRUE_CYOA only reaches the writer gate via a valid BRANCH_CHOICE.
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            None,
+            "opt_1",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not wired" in (result.pipeline_error_summary or "")
+        # Fail-closed wiring guard, not a user-input rejection (selection passed).
+        assert result.interaction_rejection_reason is None
+        assert result.branching_pass_result is None
+
+    def test_setup_hybrid_missing_writer_uses_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup HYBRID without a branching writer still routes to prose Writer."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=None,
+            raw_input="Yes, that premise sounds right.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Yes, that premise sounds right.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+    def test_setup_true_cyoa_missing_writer_uses_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup TRUE_CYOA freeform without a writer still routes to prose Writer."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=None,
+            raw_input="Make the tone darker, please.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Make the tone darker, please.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+    def test_freeform_only_in_play_missing_writer_uses_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play FREEFORM_ONLY uses prose Writer regardless of branching wiring."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=None,
+            raw_input="I wander down the lane.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander down the lane.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+    def test_in_play_hybrid_wired_writer_emits_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Properly wired in-play HYBRID uses BranchingWriter and emits the record."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=writer,
+            raw_input="I push deeper.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        assert result.branching_pass_result is not None
+
+
+class TestFreeformConfigLedgerBlock:
+    """Round 17 Finding 1: in-play FREEFORM_ONLY prose turns receive a
+    code-owned Branching session-configuration ledger block before the prose
+    WriterService runs.  Configuration context only — no branch cards.
+    """
+
+    def test_freeform_in_play_adds_config_block_with_cadence(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Persisted interaction_style + branching_cadence reach the ledger."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I wander down the lane.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander down the lane.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        block = _ledger_block(writer, "branching_config")
+        assert block is not None
+        assert "interaction_style: freeform_only" in block
+        assert "branching_cadence: immersive" in block
+        # length_preference is absent on this session, so the line is omitted.
+        assert "length_preference" not in block
+
+    def test_freeform_in_play_config_block_includes_length_preference(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Persisted length_preference is included when present."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            LengthPreference,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=LengthPreference.NOVELLA,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I keep walking.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I keep walking.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        block = _ledger_block(writer, "branching_config")
+        assert block is not None
+        assert "length_preference: novella" in block
+
+    def test_freeform_in_play_uses_prose_not_branching_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """FREEFORM_ONLY in-play stays on the prose Writer path (no cards)."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        branching_writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I look around.",
+            branching_writer=branching_writer,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I look around.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.calls, "prose Writer must run for FREEFORM_ONLY"
+        assert result.branching_pass_result is None
+
+    def test_hybrid_in_play_does_not_take_prose_config_path(
+        self, session_factory: object, session: object
+    ) -> None:
+        """HYBRID in-play uses BranchingWriter; the prose config block is absent."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        branching_writer = _SuccessfulBranchingWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.BALANCED,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I push deeper.",
+            branching_writer=branching_writer,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I push deeper.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is not None
+        # BranchingWriter handled the turn; the prose Writer (and its config
+        # ledger block) was never reached.
+        assert not writer.calls
+
+    def test_freeform_setup_does_not_add_config_block(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup FREEFORM_ONLY rows are not treated as in-play cadence context."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.SETUP,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.BRANCHING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="What is this place?",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "What is this place?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert _ledger_block(writer, "branching_config") is None
+
+    def test_non_branching_prose_call_has_no_config_block(
+        self, session_factory: object, session: object
+    ) -> None:
+        """WRITING-mode prose turns never receive the Branching config block."""
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            StoryMode,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        writer = FakeWriterService()
+        orch = _make_branching_config_capture_orchestrator(
+            session_factory,
+            writer,
+            interaction_style=InteractionStyle.FREEFORM_ONLY,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            branching_cadence=BranchingCadence.IMMERSIVE,
+            length_preference=None,
+            mode=StoryMode.WRITING,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="The rain fell.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "The rain fell.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.calls, "prose Writer must run for WRITING mode"
+        assert _ledger_block(writer, "branching_config") is None
+
+
+# ---------------------------------------------------------------------------
+# Round 9 Finding 1: BRANCH_CHOICE node/story lineage guard.
+#
+# Before reading a node's branch-card options for BRANCH_CHOICE validation, the
+# node must be confirmed to belong to the current story.  A node from another
+# story must never have its option labels passed to the selection validator or
+# echoed in rejection text; a mismatch fails closed with a generic lineage
+# PIPELINE_ERROR, NOT an INVALID_BRANCH_SELECTION carrying foreign labels.
+#
+# The complementary scenarios are already covered elsewhere:
+# • valid same-story node still validates → TestBranchCardReadPath
+#   .test_valid_opt_n_proceeds_to_branching_writer
+# • same-story empty options → INVALID_BRANCH_SELECTION → TestBranchCardReadPath
+#   .test_empty_presented_options_after_read_rejects
+# • DB/session read failure → PIPELINE_ERROR → TestBranchCardReadPath
+#   .test_branch_card_read_failure_routes_to_pipeline_error
+# ---------------------------------------------------------------------------
+
+
+class TestBranchChoiceLineageGuard:
+    """A BRANCH_CHOICE node from another story fails closed before validation."""
+
+    def test_foreign_story_node_does_not_expose_option_labels(
+        self, session_factory: object, session: object
+    ) -> None:
+        """opt labels of a foreign-story node never reach validation or output."""
+        # Story A is the caller's story; story B owns the node carrying the
+        # distinctive option labels that must never leak.
+        story_a_id, _node_a_id = _seed_branching_story_with_options(session, [])
+        _story_b_id, node_b_id = _seed_branching_story_with_options(
+            session, ["FOREIGNLABEL_BRIDGE", "FOREIGNLABEL_RIVER"]
+        )
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_a_id, node_b_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Fails closed as a generic lineage PIPELINE_ERROR, not user-invalid.
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.interaction_rejection_reason is None
+        assert result.interaction_rejection_message is None
+        summary = result.pipeline_error_summary or ""
+        assert "lineage" in summary, summary
+        # The foreign option labels never surface anywhere in the result.
+        assert "FOREIGNLABEL" not in summary, summary
+        assert "FOREIGNLABEL" not in (result.delivered_output or "")
+        # No LLM call on the lineage-failure path.
+        assert writer.called is False
+
+    def test_foreign_story_node_fails_before_validation(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A foreign-story node is rejected as lineage failure, never as input."""
+        story_a_id, _node_a_id = _seed_branching_story_with_options(session, [])
+        _story_b_id, node_b_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        writer = _FakeBranchingWriterService()  # must-not-call stub
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_a_id, node_b_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # The lineage check precedes selection validation entirely.
+        assert result.disposition is not PipelineDisposition.INTERACTION_REJECTED
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert writer.called is False
+
+
+# ---------------------------------------------------------------------------
+# Round 9 Finding 3: branching_pass_result preserved on downstream terminals.
+#
+# Owner decision: branching_pass_result is the settlement/audit record that
+# BranchingWriter ran and consumed provider tokens — NOT the branch-card
+# delivery signal.  Once BranchingWriter succeeds, every later terminal path
+# (output-safety BLOCK, contradiction BLOCK, downstream pipeline error) must
+# preserve it so the BRANCHING_WRITER pass is billed.  Prose-Writer turns carry
+# no branching_pass_result, so those terminals stay unchanged.
+# ---------------------------------------------------------------------------
+
+
+class TestBranchingPassResultPreservedOnTerminals:
+    """Post-BranchingWriter terminal paths preserve the settlement/audit record."""
+
+    def test_output_safety_block_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter success + output-safety BLOCK → result preserved."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            safety_output=_block_safety(SafetyTarget.OUTPUT),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
+        assert branching_writer.called is True
+        assert result.branching_pass_result is not None
+
+    def test_contradiction_block_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter + Extractor success + Contradiction BLOCK → preserved."""
+        violations = [
+            ContradictionViolation(
+                category=ContradictionCategory.LOCKED_FACT_VIOLATED,
+                description="locked fact violated",
+                canon_reference="locked_fact_id=123",
+            )
+        ]
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            contradiction_violations=violations,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.BLOCKED_CONTRADICTION
+        assert branching_writer.called is True
+        assert result.branching_pass_result is not None
+        assert result.contradiction_result is not None
+
+    def test_turn_persistence_failure_preserves_branching_pass_result(
+        self,
+        session_factory: object,
+        session: object,
+        monkeypatch,  # type: ignore[no-untyped-def]
+    ) -> None:
+        """BranchingWriter success + Turn-persistence fault → preserved record."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(session_factory)
+
+        def _boom(*args: object, **kwargs: object) -> object:
+            raise RuntimeError("synthetic branching turn persistence failure")
+
+        monkeypatch.setattr("afterworlds.persistence.crud.node.create_turn", _boom)
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "branching turn persistence failed" in summary, summary
+        assert branching_writer.called is True
+        # Settlement/audit record preserved even when the Turn could not persist.
+        assert result.branching_pass_result is not None
+
+    def test_downstream_pipeline_error_preserves_branching_pass_result(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BranchingWriter success + non-refusal downstream fault → preserved."""
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Go left", "Go right"]
+        )
+        orch, branching_writer = _make_branching_refusal_orchestrator(
+            session_factory,
+            extractor_exc=RuntimeError("synthetic downstream extractor fault"),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I push deeper.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert branching_writer.called is True
+        assert result.branching_pass_result is not None
+
+    def test_prose_writer_output_block_leaves_branching_pass_result_none(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """Prose-Writer output BLOCK carries no branching_pass_result (unchanged)."""
+        story_id, node_id = seeded_story
+        orch, *_ = _make_orchestrator(
+            session_factory,
+            safety_output=_block_safety(SafetyTarget.OUTPUT),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
+        assert result.branching_pass_result is None
+
+
+# ---------------------------------------------------------------------------
+# Round 9 Finding 2: suppressed OOC style switch surfaces an explicit non-
+# confirmation so the delivered prose cannot imply a change persistence did not
+# make.  When a requested switch to HYBRID/TRUE_CYOA lacks a compatible branch
+# range, the style is NOT persisted AND the delivered OOC output carries a
+# visible "Interaction style not changed" note.  Valid switches that DO persist
+# carry no such note.
+# ---------------------------------------------------------------------------
+
+
+def _seed_branching_session_state(
+    session: object,
+    story_id: UUID,
+    *,
+    interaction_style: object,
+    branch_count_range: object = None,
+) -> None:
+    """Seed a BranchingSessionState row for OOC config no-op tests."""
+    from afterworlds.models.enums import PacingStage
+    from afterworlds.models.session import BranchingSessionState
+    from afterworlds.persistence.crud.session_state import (
+        create_branching_session_state,
+    )
+
+    bss = BranchingSessionState(
+        story_id=story_id,
+        pacing_stage=PacingStage.SETUP,
+        interaction_style=interaction_style,  # type: ignore[arg-type]
+        branch_count_range=branch_count_range,  # type: ignore[arg-type]
+    )
+    create_branching_session_state(session, bss)  # type: ignore[arg-type]
+    session.commit()  # type: ignore[union-attr]
+
+
+def _read_branching_session_state(session: object, story_id: UUID) -> object:
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session.expire_all()  # type: ignore[union-attr]
+    return get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+
+_OOC_STYLE_NOOP_SENTINEL = "Interaction style not changed"
+
+
+class TestBranchingOocStyleNoopSurfaced:
+    """A suppressed OOC style switch is surfaced, never silently confirmed."""
+
+    def test_freeform_to_hybrid_no_range_surfaces_non_confirmation(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY → HYBRID (no range): not persisted, note surfaced."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.HYBRID),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Persistence unchanged …
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        # … and the delivered prose surfaces the non-confirmation explicitly.
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+        assert "hybrid" in (result.delivered_output or "")
+
+    def test_freeform_to_true_cyoa_no_range_surfaces_non_confirmation(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY → TRUE_CYOA (no range): not persisted, note surfaced."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+        assert "true_cyoa" in (result.delivered_output or "")
+
+    def test_invalid_explicit_range_surfaces_non_confirmation(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA + invalid 3-4: suppressed and surfaced."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+
+    def test_valid_persisted_range_style_switch_carries_no_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA (no range): persists, no non-confirmation note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        assert _OOC_STYLE_NOOP_SENTINEL not in (result.delivered_output or "")
+
+    def test_valid_explicit_style_and_range_carries_no_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA + valid 2-4: persists both, no note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.TWO_TO_FOUR,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 2-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.TRUE_CYOA
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+        assert _OOC_STYLE_NOOP_SENTINEL not in (result.delivered_output or "")
+
+
+def _read_persisted_turn_output(session: object, turn_id: object) -> str | None:
+    """Return the persisted assistant_output for a Turn, or None if absent."""
+    from afterworlds.persistence.crud.node import get_turn
+
+    session.expire_all()  # type: ignore[union-attr]
+    turn = get_turn(session, turn_id)  # type: ignore[arg-type]
+    return turn.assistant_output if turn is not None else None
+
+
+class TestBranchingOocPersistedTruthfulness:
+    """A suppressed OOC style switch must persist the same corrective note.
+
+    The corrective no-op note is appended to the delivered output; the
+    persisted Turn must carry the identical corrected output so future
+    recent-turn context cannot reintroduce a false confirmation of an
+    unapplied change.  Delivered output and persisted Turn output must agree.
+    """
+
+    def test_suppressed_freeform_to_hybrid_persists_corrective_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY → HYBRID (no range): persisted Turn carries the note."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.HYBRID),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to hybrid",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+        # Persisted Turn carries the same correction, not raw confirming prose.
+        assert persisted == result.delivered_output
+        assert _OOC_STYLE_NOOP_SENTINEL in (persisted or "")
+
+    def test_suppressed_freeform_to_true_cyoa_persists_corrective_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM_ONLY → TRUE_CYOA (no range): persisted Turn carries the note."""
+        from afterworlds.models.enums import InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session, story_id, interaction_style=InteractionStyle.FREEFORM_ONLY
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+        assert persisted == result.delivered_output
+
+    def test_invalid_explicit_range_persists_corrective_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID 2-3 → TRUE_CYOA + invalid 3-4: persisted Turn carries the note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        assert _OOC_STYLE_NOOP_SENTINEL in (result.delivered_output or "")
+        assert persisted == result.delivered_output
+
+    def test_valid_style_switch_persists_raw_prose_without_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """A valid OOC config change adds no note; persisted Turn is raw prose."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        assert _OOC_STYLE_NOOP_SENTINEL not in (result.delivered_output or "")
+        # No note: delivered and persisted both the unmodified writer prose.
+        assert persisted == result.delivered_output
+        assert _OOC_STYLE_NOOP_SENTINEL not in (persisted or "")
+
+
+_OOC_RANGE_NOOP_SENTINEL = "Branch-count range not changed"
+
+
+class TestBranchingOocRangeNoopSurfaced:
+    """A range-only OOC request with an invalid range is surfaced, not silent.
+
+    When an OOC request changes only ``branch_count_range`` to a value invalid
+    for the applicable style, the invalid range is discarded (never persisted)
+    and a dedicated correction is appended to the delivered/persisted output so
+    the prose cannot imply a range change that did not happen.  The range note
+    is mutually exclusive with the style non-confirmation note (a suppressed
+    style switch already names the needed range), so the two never produce
+    contradictory duplicates.
+    """
+
+    def test_hybrid_invalid_range_only_surfaces_correction(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """HYBRID + invalid 2-5 (range only): not persisted, correction surfaced."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.TWO_TO_FIVE),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 2-5 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Persisted range unchanged …
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        # … and the correction names the rejected range, the style it is invalid
+        # for, and lists the compatible HYBRID ranges.
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert "2-5" in delivered
+        assert "hybrid" in delivered
+        assert "1-2" in delivered
+        assert "2-3" in delivered
+        assert "3-4" in delivered
+        # No style note: this was a range-only request.
+        assert _OOC_STYLE_NOOP_SENTINEL not in delivered
+
+    def test_true_cyoa_invalid_range_only_surfaces_correction(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """TRUE_CYOA + invalid 3-4 (range only): not persisted, correction shown."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            branch_count_range=BranchCountRange.TWO_TO_FOUR,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.THREE_TO_FOUR),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 3-4 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_FOUR
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert "3-4" in delivered
+        assert "true_cyoa" in delivered
+        # Lists the compatible TRUE_CYOA ranges.
+        assert "2-3" in delivered
+        assert "2-4" in delivered
+        assert "2-5" in delivered
+
+    def test_style_switch_plus_invalid_range_has_no_duplicate_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Style switch + invalid range: style note only, range note suppressed."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.TRUE_CYOA,
+                branch_count_range=BranchCountRange.THREE_TO_FOUR,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to CYOA with 3-4",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Neither style nor range persisted.
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.HYBRID
+        assert bss.branch_count_range is BranchCountRange.TWO_TO_THREE
+        delivered = result.delivered_output or ""
+        # The style note is the single correction; the range note is suppressed
+        # to avoid a contradictory duplicate.
+        assert _OOC_STYLE_NOOP_SENTINEL in delivered
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_valid_range_only_update_persists_without_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """A valid range-only update persists and adds no correction note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.THREE_TO_FOUR),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 3-4 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.branch_count_range is BranchCountRange.THREE_TO_FOUR
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+        assert _OOC_STYLE_NOOP_SENTINEL not in delivered
+
+    def test_no_range_requested_adds_no_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """A valid style-only update (no range) adds no range correction note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(interaction_style=InteractionStyle.TRUE_CYOA),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to true CYOA",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_freeform_switch_with_range_adds_no_false_range_note(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """FREEFORM switch clears range by design; no false 'not changed' note."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(
+                interaction_style=InteractionStyle.FREEFORM_ONLY,
+                branch_count_range=BranchCountRange.TWO_TO_FIVE,
+            ),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to freeform",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Style switch succeeds; range is cleared by the FREEFORM transition.
+        bss = _read_branching_session_state(session, story_id)
+        assert bss is not None
+        assert bss.interaction_style is InteractionStyle.FREEFORM_ONLY
+        assert bss.branch_count_range is None
+        delivered = result.delivered_output or ""
+        # A "range not changed" note would be false — the switch cleared it.
+        assert _OOC_RANGE_NOOP_SENTINEL not in delivered
+
+    def test_corrected_range_only_output_agrees_across_all_three(
+        self, session_factory, seeded_story, session
+    ) -> None:
+        """Delivered, persisted Turn, and writer_result outputs all agree."""
+        from afterworlds.models.enums import BranchCountRange, InteractionStyle
+        from afterworlds.pipeline.branching.models import BranchingConfigUpdate
+
+        story_id, node_id = seeded_story
+        _seed_branching_session_state(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branch_count_range=BranchCountRange.TWO_TO_THREE,
+        )
+
+        orch = _make_ooc_cfg_orch(
+            session_factory,
+            BranchingConfigUpdate(branch_count_range=BranchCountRange.TWO_TO_FIVE),
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use 2-5 branches",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        persisted = _read_persisted_turn_output(session, result.turn_id)
+        delivered = result.delivered_output or ""
+        assert _OOC_RANGE_NOOP_SENTINEL in delivered
+        assert persisted == delivered
+        assert result.writer_result is not None
+        assert result.writer_result.assistant_output == delivered
+
+
+def _make_branching_orch_without_resolver(
+    session_factory: object,
+    *,
+    intent_type: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """BRANCHING orchestrator with NO branching_session_resolver wired.
+
+    Exposes the prose writer and branching writer fakes so callers can prove
+    neither pass ran when the missing-resolver guard fails closed.
+    """
+    from afterworlds.models.enums import StoryMode
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+
+    writer = FakeWriterService()
+    branching_writer = _FakeBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        # branching_session_resolver intentionally omitted (None).
+        branching_selection_service=BranchSelectionValidationService(),
+    )
+    return orch, writer, branching_writer
+
+
+def _make_branching_orch_with_resolver(
+    session_factory: object,
+    *,
+    intent_type: object,
+    raw_input: str,
+    resolver,  # type: ignore[no-untyped-def]
+):  # type: ignore[no-untyped-def]
+    """BRANCHING orchestrator with an injected ``branching_session_resolver``.
+
+    Lets callers wire a resolver that returns ``None`` or raises, to prove the
+    fail-closed guard fires before any writer routing.  Exposes both writer
+    fakes so callers can assert no narrative pass ran.
+    """
+    from afterworlds.models.enums import StoryMode
+    from afterworlds.pipeline.branching.selection import (
+        BranchSelectionValidationService,
+    )
+
+    writer = FakeWriterService()
+    branching_writer = _FakeBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(intent_type, raw_input)  # type: ignore[arg-type]
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=resolver,
+        branching_selection_service=BranchSelectionValidationService(),
+    )
+    return orch, writer, branching_writer
+
+
+class TestBranchingResolverRequired:
+    """A BRANCHING turn fails closed when branching_session_resolver is absent.
+
+    Without the resolver the orchestrator cannot distinguish setup,
+    FREEFORM_ONLY, HYBRID, TRUE_CYOA, or play status, so it must not proceed
+    with pre_branching_state=None and silently downgrade to the prose Writer.
+    """
+
+    def test_in_character_action_missing_resolver_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-character BRANCHING turn + no resolver → PIPELINE_ERROR, no writer."""
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, writer, branching_writer = _make_branching_orch_without_resolver(
+            session_factory,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I press onward.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I press onward.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "resolver not wired" in summary, summary
+        # Fail closed before any writer routing: neither pass ran, no Turn.
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_branch_choice_missing_resolver_fails_closed_before_rejection(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BRANCH_CHOICE + no resolver → PIPELINE_ERROR, not INTERACTION_REJECTED.
+
+        Proves the guard precedes TRUE_CYOA freeform rejection and branch
+        selection validation, both of which depend on the resolved state.
+        """
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_orch_without_resolver(
+            session_factory,
+            intent_type=IntentType.BRANCH_CHOICE,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "resolver not wired" in (result.pipeline_error_summary or "")
+        # Not a user-input rejection: error precedes interaction-style checks.
+        assert result.interaction_rejection_reason is None
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_wired_resolver_setup_hybrid_still_delivers(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: a wired resolver still permits the setup prose path."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=_FakeBranchingWriterService(),
+            raw_input="Let's begin the tale.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Let's begin the tale.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+    def test_in_character_action_resolver_returns_none_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Wired resolver returning None → PIPELINE_ERROR, no writer.
+
+        A wired resolver returning ``None`` means the Branching session row is
+        missing or corrupt.  The orchestrator must fail closed rather than
+        treat None as setup/FREEFORM_ONLY and downgrade to the prose Writer.
+        """
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+
+        def _none_resolver(_sid: UUID) -> None:
+            return None
+
+        orch, writer, branching_writer = _make_branching_orch_with_resolver(
+            session_factory,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I press onward.",
+            resolver=_none_resolver,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I press onward.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "missing or corrupt" in summary, summary
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_branch_choice_resolver_returns_none_fails_closed_before_rejection(
+        self, session_factory: object, session: object
+    ) -> None:
+        """BRANCH_CHOICE + resolver None → PIPELINE_ERROR, not INTERACTION_REJECTED.
+
+        The None guard must precede TRUE_CYOA freeform rejection and branch
+        selection validation, both of which depend on the resolved state.
+        """
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+
+        def _none_resolver(_sid: UUID) -> None:
+            return None
+
+        orch, writer, branching_writer = _make_branching_orch_with_resolver(
+            session_factory,
+            intent_type=IntentType.BRANCH_CHOICE,
+            raw_input="opt_1",
+            resolver=_none_resolver,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "missing or corrupt" in (result.pipeline_error_summary or "")
+        assert result.interaction_rejection_reason is None
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_resolver_raises_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Resolver raising → PIPELINE_ERROR, no writer (existing guard control)."""
+        from afterworlds.models.enums import IntentType
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+
+        def _raising_resolver(_sid: UUID):  # type: ignore[no-untyped-def]
+            raise RuntimeError("session store unavailable")
+
+        orch, writer, branching_writer = _make_branching_orch_with_resolver(
+            session_factory,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            raw_input="I press onward.",
+            resolver=_raising_resolver,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I press onward.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "resolution failed" in (result.pipeline_error_summary or "")
+        assert writer.calls == []
+        assert branching_writer.called is False
+
+    def test_wired_resolver_setup_true_cyoa_still_delivers(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: setup TRUE_CYOA still routes through prose setup."""
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=_FakeBranchingWriterService(),
+            raw_input="Let's begin the tale.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Let's begin the tale.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.branching_pass_result is None
+
+    def test_wired_resolver_inplay_hybrid_still_reaches_rails(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: the None guard does not block a real in-play state.
+
+        A wired resolver returning a real in-play HYBRID session must still
+        reach the in-play BranchingWriter rail (proves the guard fires only on
+        None, not on every BRANCHING turn).
+        """
+        from afterworlds.models.enums import (
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        branching_writer = _FakeBranchingWriterService()
+        orch = _make_branching_routing_orchestrator(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            intent_type=IntentType.IN_CHARACTER_ACTION,
+            branching_writer=branching_writer,
+            raw_input="I press onward.",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I press onward.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # The rail is reached (BranchingWriter invoked); the None guard does not
+        # fire for a real in-play state.  The fake writer aborts, so the error
+        # here is the writer's, never the "missing or corrupt" state guard.
+        assert branching_writer.called is True
+        assert "missing or corrupt" not in (result.pipeline_error_summary or "")
+
+
+def _make_branching_choice_orch_without_selection(
+    session_factory: object,
+    *,
+    interaction_style: object,
+    play_status: object,
+    raw_input: str,
+):  # type: ignore[no-untyped-def]
+    """In-play/SETUP BRANCH_CHOICE orchestrator with NO selection service wired.
+
+    Exposes the writer fakes so callers can prove no narrative pass ran when
+    the missing-selection-service guard fails closed.
+    """
+    from afterworlds.models.enums import (
+        BranchingCadence,
+        IntentType,
+        PacingStage,
+        StoryMode,
+    )
+    from afterworlds.models.session import BranchingSessionState
+
+    def _branching_resolver(sid: UUID) -> BranchingSessionState:
+        return BranchingSessionState(
+            story_id=sid,
+            pacing_stage=PacingStage.ESCALATION,
+            interaction_style=interaction_style,  # type: ignore[arg-type]
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=play_status,  # type: ignore[arg-type]
+        )
+
+    writer = FakeWriterService()
+    branching_writer = _FakeBranchingWriterService()
+    orch = OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.BRANCH_CHOICE, raw_input)
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=writer,
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+        branching_writer_service=branching_writer,  # type: ignore[arg-type]
+        branching_session_resolver=_branching_resolver,
+        # branching_selection_service intentionally omitted (None).
+    )
+    return orch, writer, branching_writer
+
+
+class TestBranchChoiceValidationServiceRequired:
+    """In-play HYBRID/TRUE_CYOA BRANCH_CHOICE fails closed without selection svc.
+
+    Without BranchSelectionValidationService the selection cannot be validated
+    against the presented option set; treating it as freeform narrative would
+    bypass the typed branch-card contract and bill a turn for an unvalidated
+    choice.  Setup rows stay on the existing wired-only path (guard is in-play
+    only).
+    """
+
+    def test_in_play_hybrid_missing_selection_service_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play HYBRID BRANCH_CHOICE + no selection svc → PIPELINE_ERROR, no turn."""
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        summary = result.pipeline_error_summary or ""
+        assert "selection validation service not wired" in summary, summary
+        # No LLM call, no Turn, no billing: neither writer ran.
+        assert writer.calls == []
+        assert branching_writer.called is False
+        # Fail-closed wiring guard, not a user-input rejection.
+        assert result.interaction_rejection_reason is None
+
+    def test_in_play_true_cyoa_missing_selection_service_fails_closed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """In-play TRUE_CYOA BRANCH_CHOICE + no selection svc → PIPELINE_ERROR."""
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.IN_PLAY,
+            raw_input="opt_2",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_2", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "selection validation service not wired" in (
+            result.pipeline_error_summary or ""
+        )
+        assert writer.calls == []
+        assert branching_writer.called is False
+        assert result.interaction_rejection_reason is None
+
+    def test_setup_hybrid_missing_selection_service_unchanged(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: setup BRANCH_CHOICE + no selection svc → prose, no error.
+
+        The guard is in-play only, so setup behavior is unchanged: the missing
+        selection service does not fail the turn closed during setup.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(session, [])
+        orch, writer, branching_writer = _make_branching_choice_orch_without_selection(
+            session_factory,
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+            raw_input="opt_1",
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        # Setup routes through the prose Writer, not the branching writer.
+        assert len(writer.calls) == 1
+        assert branching_writer.called is False
+
+    def test_wired_selection_service_invalid_choice_still_rejected(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Positive control: a wired service still returns INTERACTION_REJECTED."""
+        from afterworlds.models.enums import InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.HYBRID,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.INTERACTION_REJECTED
+        assert result.interaction_rejection_reason is not None
+
+    def test_setup_hybrid_wired_selection_service_routes_through_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup HYBRID + classifier BRANCH_CHOICE + wired svc → prose, not rejection.
+
+        Branch-choice validation is an in-play rail.  Same invalid input that the
+        in-play positive control rejects (``test_wired_selection_service_invalid_
+        choice_still_rejected``) must NOT be validated during setup even though
+        the selection service is wired and the classifier emitted BRANCH_CHOICE;
+        the setup row routes through the prose setup-confirmation path instead.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.HYBRID,
+            play_status=BranchingPlayStatus.SETUP,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        # Setup did not run the in-play branch-choice validation rail.
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None
+
+    def test_setup_true_cyoa_wired_selection_service_routes_through_prose(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Setup TRUE_CYOA + classifier BRANCH_CHOICE + wired svc → prose path.
+
+        Same in-play-only invariant as the HYBRID case: a setup TRUE_CYOA row
+        routes through prose setup confirmation rather than branch validation.
+        """
+        from afterworlds.models.enums import BranchingPlayStatus, InteractionStyle
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory,
+            _FakeBranchingWriterService(),
+            "I wander off the map entirely",
+            interaction_style=InteractionStyle.TRUE_CYOA,
+            play_status=BranchingPlayStatus.SETUP,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I wander off the map entirely",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.interaction_rejection_reason is None

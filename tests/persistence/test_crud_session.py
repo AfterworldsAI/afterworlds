@@ -8,7 +8,9 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from afterworlds.models.enums import (
+    BranchCountRange,
     DiceHandling,
+    InteractionStyle,
     PacingStage,
     RpgPlayStatus,
     RpgSessionType,
@@ -27,6 +29,7 @@ from afterworlds.models.session import (
 )
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.session_state import (
+    apply_branching_config_update,
     create_branching_session_state,
     create_rpg_session_state,
     create_writing_session_state,
@@ -34,6 +37,7 @@ from afterworlds.persistence.crud.session_state import (
     delete_rpg_session_state,
     delete_writing_session_state,
     get_branching_session_state,
+    get_branching_session_state_by_story,
     get_rpg_session_state,
     get_writing_session_state,
     update_rpg_session_state,
@@ -474,3 +478,117 @@ def test_branching_current_node_id_fk_enforced(session):  # type: ignore[no-unty
     session.add(row)
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+# ---------------------------------------------------------------------------
+# Fix 3: apply_branching_config_update — clear_branch_count_range semantics
+# ---------------------------------------------------------------------------
+
+
+def _make_branching_state_with_range(
+    story_id: str,
+    interaction_style: InteractionStyle = InteractionStyle.HYBRID,
+    branch_count_range: BranchCountRange = BranchCountRange.TWO_TO_THREE,
+) -> BranchingSessionState:
+    return BranchingSessionState(
+        story_id=UUID(story_id),
+        pacing_stage=PacingStage.ESCALATION,
+        interaction_style=interaction_style,
+        branch_count_range=branch_count_range,
+    )
+
+
+def test_clear_branch_count_range_sets_null(session):  # type: ignore[no-untyped-def]
+    """clear_branch_count_range=True sets branch_count_range to NULL."""
+    from afterworlds.models.enums import StoryMode
+
+    story = make_story(mode=StoryMode.BRANCHING)
+    create_story(session, story)
+    state = _make_branching_state_with_range(str(story.story_id))
+    create_branching_session_state(session, state)
+    session.commit()
+
+    # Confirm it has a range before clearing.
+    before = get_branching_session_state_by_story(session, story.story_id)
+    assert before is not None
+    assert before.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+    apply_branching_config_update(
+        session,
+        story.story_id,
+        clear_branch_count_range=True,
+    )
+    session.commit()
+
+    after = get_branching_session_state_by_story(session, story.story_id)
+    assert after is not None
+    assert after.branch_count_range is None
+
+
+def test_clear_branch_count_range_overrides_value_arg(session):  # type: ignore[no-untyped-def]
+    """clear_branch_count_range=True → NULL even when branch_count_range is also set."""
+    from afterworlds.models.enums import StoryMode
+
+    story = make_story(mode=StoryMode.BRANCHING)
+    create_story(session, story)
+    state = _make_branching_state_with_range(str(story.story_id))
+    create_branching_session_state(session, state)
+    session.commit()
+
+    apply_branching_config_update(
+        session,
+        story.story_id,
+        branch_count_range=BranchCountRange.THREE_TO_FOUR,
+        clear_branch_count_range=True,
+    )
+    session.commit()
+
+    after = get_branching_session_state_by_story(session, story.story_id)
+    assert after is not None
+    assert after.branch_count_range is None
+
+
+def test_default_false_leaves_none_unchanged(session):  # type: ignore[no-untyped-def]
+    """clear_branch_count_range=False (default): None branch_count_range → no change."""
+    from afterworlds.models.enums import StoryMode
+
+    story = make_story(mode=StoryMode.BRANCHING)
+    create_story(session, story)
+    state = _make_branching_state_with_range(str(story.story_id))
+    create_branching_session_state(session, state)
+    session.commit()
+
+    apply_branching_config_update(
+        session,
+        story.story_id,
+        # branch_count_range omitted → no change
+    )
+    session.commit()
+
+    after = get_branching_session_state_by_story(session, story.story_id)
+    assert after is not None
+    assert after.branch_count_range is BranchCountRange.TWO_TO_THREE
+
+
+def test_apply_style_with_range(session):  # type: ignore[no-untyped-def]
+    """Setting style + range together works; row is not left in mismatched config."""
+    from afterworlds.models.enums import StoryMode
+
+    story = make_story(mode=StoryMode.BRANCHING)
+    create_story(session, story)
+    state = _make_branching_state_with_range(str(story.story_id))
+    create_branching_session_state(session, state)
+    session.commit()
+
+    apply_branching_config_update(
+        session,
+        story.story_id,
+        interaction_style=InteractionStyle.TRUE_CYOA,
+        branch_count_range=BranchCountRange.THREE_TO_FOUR,
+    )
+    session.commit()
+
+    after = get_branching_session_state_by_story(session, story.story_id)
+    assert after is not None
+    assert after.interaction_style is InteractionStyle.TRUE_CYOA
+    assert after.branch_count_range is BranchCountRange.THREE_TO_FOUR

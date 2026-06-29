@@ -16,7 +16,12 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, model_validator
 
 from afterworlds.models.enums import (
+    BranchCountRange,
+    BranchingCadence,
+    BranchingPlayStatus,
     DiceHandling,
+    InteractionStyle,
+    LengthPreference,
     PacingStage,
     RpgPlayStatus,
     RpgSessionType,
@@ -127,8 +132,11 @@ class BranchingSessionState(BaseModel):
 
     Distinct structured fields — not fields on Node:
     - ``pacing_stage`` — current position in the five-stage narrative arc
-    - ``branch_tree`` — full branch graph (distinct structured model)
+    - ``branch_tree`` — full branch graph (distinct structured model, dormant)
     - ``plot_thread_tracker`` — unresolved threads queued by the Extractor
+    - ``interaction_style`` — None when setup is not yet complete (never silently
+      freeform_only for backfilled rows per CRD Issue 16 conservative backfill rule)
+    - ``play_status`` — SETUP → IN_PLAY once configuration is finalized
     """
 
     session_id: UUID = Field(default_factory=uuid4)
@@ -137,6 +145,21 @@ class BranchingSessionState(BaseModel):
     branch_tree: BranchTree = Field(default_factory=BranchTree)
     plot_thread_tracker: list[PlotThread] = Field(default_factory=list)
     current_node_id: UUID | None = None
+    # Issue 16: interaction configuration — nullable so existing rows are
+    # never silently backfilled to freeform_only.  None = setup not complete.
+    interaction_style: InteractionStyle | None = None
+    branching_cadence: BranchingCadence | None = None
+    length_preference: LengthPreference | None = None
+    branch_count_range: BranchCountRange | None = None
+    play_status: BranchingPlayStatus = BranchingPlayStatus.SETUP
+    # Optional setup context fields (narrative scaffolding, not mechanical state)
+    world_summary: str | None = None
+    story_seeds: str | None = None
+    character_concept: str | None = None
+    supporting_cast: str | None = None
+    world_constraints: str | None = None
+    pacing_notes: str | None = None
+    acceptable_content: str | None = None
 
 
 # ---------------------------------------------------------------------------

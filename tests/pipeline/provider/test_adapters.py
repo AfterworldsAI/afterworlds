@@ -931,3 +931,108 @@ def test_pass_identifier_rpg_adjudication_mapped() -> None:
 
     result = _pass_id_to_pass_identifier(PipelinePassId.RPG_ADJUDICATION)
     assert result is PassIdentifier.RPG_ADJUDICATION
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 (Round 2, CRD Issue 16): BRANCHING_WRITER and
+# BRANCHING_OOC_CONFIG_EXTRACTOR registered in all provider maps
+# ---------------------------------------------------------------------------
+
+
+def test_model_for_branching_writer_returns_sonnet_model() -> None:
+    """BRANCHING_WRITER must be in _PASS_PROFILE — no KeyError."""
+    profile = AnthropicCapabilityProfile()
+    model = profile.model_for(PipelinePassId.BRANCHING_WRITER)
+    assert "sonnet" in model.lower()
+
+
+def test_tier_for_branching_writer_returns_sonnet() -> None:
+    """BRANCHING_WRITER defaults to SONNET tier."""
+    profile = AnthropicCapabilityProfile()
+    assert profile.tier_for(PipelinePassId.BRANCHING_WRITER) is ModelTier.SONNET
+
+
+def test_model_for_branching_ooc_extractor_returns_haiku_model() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR must be in _PASS_PROFILE — no KeyError."""
+    profile = AnthropicCapabilityProfile()
+    model = profile.model_for(PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR)
+    assert "haiku" in model.lower()
+
+
+def test_tier_for_branching_ooc_extractor_returns_haiku() -> None:
+    """BRANCHING_OOC_CONFIG_EXTRACTOR defaults to HAIKU tier."""
+    profile = AnthropicCapabilityProfile()
+    assert (
+        profile.tier_for(PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR)
+        is ModelTier.HAIKU
+    )
+
+
+def test_pass_identifier_branching_writer_explicitly_mapped() -> None:
+    """_pass_id_to_pass_identifier maps BRANCHING_WRITER to BRANCHING_WRITER
+    (not silently to the PLANNER default)."""
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.provider.adapters._anthropic import (
+        _pass_id_to_pass_identifier,
+    )
+
+    result = _pass_id_to_pass_identifier(PipelinePassId.BRANCHING_WRITER)
+    assert result is PassIdentifier.BRANCHING_WRITER
+
+
+def test_all_pipeline_pass_ids_have_pass_profile_entry() -> None:
+    """Regression: every PipelinePassId must have a _PASS_PROFILE entry so that
+    AnthropicCapabilityProfile.model_for() and tier_for() never raise KeyError."""
+    from afterworlds.pipeline.provider.adapters._anthropic import _PASS_PROFILE
+
+    for pass_id in PipelinePassId:
+        assert pass_id in _PASS_PROFILE, (
+            f"PipelinePassId.{pass_id} is missing from _PASS_PROFILE — "
+            "add it before adding new passes to the pipeline"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Round 6 (CRD Issue 16): BRANCHING_OOC_CONFIG_EXTRACTOR refusal identity.
+# The adapter resolves the PassIdentifier *before* it can build
+# ProviderRefusalError, so an omission raised KeyError inside call(), losing
+# the typed refusal and defeating fallback/refusal logging.
+# ---------------------------------------------------------------------------
+
+
+def test_pass_identifier_branching_ooc_extractor_mapped() -> None:
+    """A refusal on BRANCHING_OOC_CONFIG_EXTRACTOR resolves to its own typed
+    identity (not a KeyError, not the PLANNER fallback)."""
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.provider.adapters._anthropic import (
+        _pass_id_to_pass_identifier,
+    )
+
+    result = _pass_id_to_pass_identifier(PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR)
+    assert result is PassIdentifier.BRANCHING_OOC_CONFIG_EXTRACTOR
+
+
+def test_all_pipeline_pass_ids_have_pass_identifier_mapping() -> None:
+    """Regression: every PipelinePassId an adapter may classify as a refusal must
+    map to a PassIdentifier so the shared _pass_id_to_pass_identifier never raises
+    KeyError mid-refusal.  Both the Anthropic and OpenRouter adapters use this
+    exact function, so this guards refusal identity on both paths."""
+    from afterworlds.pipeline.provider.adapters._anthropic import (
+        _pass_id_to_pass_identifier,
+    )
+
+    for pass_id in PipelinePassId:
+        # Must not raise KeyError.
+        assert _pass_id_to_pass_identifier(pass_id) is not None
+
+
+def test_openrouter_uses_same_pass_identifier_mapper() -> None:
+    """The OpenRouter adapter classifies refusals through the *same* mapper as
+    the Anthropic adapter, so the BRANCHING_OOC_CONFIG_EXTRACTOR identity (and
+    the no-KeyError guarantee) holds equivalently on the OpenRouter path."""
+    from afterworlds.pipeline.provider.adapters import _anthropic, _openrouter
+
+    assert (
+        _openrouter._pass_id_to_pass_identifier
+        is _anthropic._pass_id_to_pass_identifier
+    )

@@ -86,6 +86,11 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
     PipelinePassId.INPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.OUTPUT_SAFETY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.RPG_ADJUDICATION: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
+    PipelinePassId.BRANCHING_WRITER: (_DEFAULT_SONNET_MODEL, ModelTier.SONNET),
+    PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: (
+        _DEFAULT_HAIKU_MODEL,
+        ModelTier.HAIKU,
+    ),
 }
 
 
@@ -400,7 +405,16 @@ class AnthropicDirectAdapter:
 
 
 def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
-    """Map a PipelinePassId to the 12c PassIdentifier for ProviderRefusal."""
+    """Map a PipelinePassId to the 12c PassIdentifier for ProviderRefusal.
+
+    Every provider-backed pass that an adapter may classify as a refusal MUST
+    have an entry here.  The adapter resolves the identity *before* it can
+    construct ``ProviderRefusalError`` (see ``call``), so an omission surfaces
+    as a ``KeyError`` inside the adapter — losing the typed refusal entirely
+    and defeating fallback/refusal logging.  BRANCHING_OOC_CONFIG_EXTRACTOR is
+    included for exactly this reason: the extractor service only wraps refusals
+    *after* the adapter has already attempted this mapping.
+    """
     _MAP: dict[PipelinePassId, PassIdentifier] = {
         PipelinePassId.PLANNER: PassIdentifier.PLANNER,
         PipelinePassId.WRITER: PassIdentifier.WRITER,
@@ -409,8 +423,12 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
         PipelinePassId.INPUT_SAFETY: PassIdentifier.PLANNER,  # Safety→PIPELINE_ERROR
         PipelinePassId.OUTPUT_SAFETY: PassIdentifier.PLANNER,  # see note below
         PipelinePassId.RPG_ADJUDICATION: PassIdentifier.RPG_ADJUDICATION,
+        PipelinePassId.BRANCHING_WRITER: PassIdentifier.BRANCHING_WRITER,
+        PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: (
+            PassIdentifier.BRANCHING_OOC_CONFIG_EXTRACTOR
+        ),
     }
-    return _MAP.get(pass_id, PassIdentifier.PLANNER)
+    return _MAP[pass_id]
 
 
 def _extract_excerpt(response: object) -> str:

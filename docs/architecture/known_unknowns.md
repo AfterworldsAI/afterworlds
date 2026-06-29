@@ -79,13 +79,15 @@ ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRout
 
 ### Mode-specific OOC handler selection and final protocol implementation
 
-**Resolve during:** Issues 16 (Branching), 17 (Writing). **RPG mode resolved during Issue 15.**
+**Resolve during:** Issue 17 (Writing). **RPG mode resolved during Issue 15. Branching mode resolved during Issue 16.**
 
 Issue 12c short-circuits OOC turns away from the ordinary narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The v2 mode prompt contracts now contain OOC sections, but the implementation question remains: how the orchestrator selects or injects the final mode-specific OOC instruction, and whether the placeholder is replaced outright or retained as a generic fallback.
 
 **RPG resolution (Issue 15):** Implemented as a distinct mode-specific handler for RPG mode via `docs/prompts/rpg_ooc_handler.md`. Replaces the 12c placeholder when `StoryMode.RPG` is active. Answers rules, configuration, setup, and clarification questions; advances no story; mutates no canon; routes configuration changes through typed paths. The orchestrator `_run_ooc()` now accepts `story_mode` and selects between `rpg_ooc_handler.md` (RPG mode) and `ooc_handler.md` (other modes). See ADR-015 Decision 11 and `/docs/prompts/rpg_ooc_handler.md`.
 
-**What remaining resolution requires:** Issues 16–17 must finalize the Branching and Writing mode OOC protocol sections via `/docs/prompts/branching_ooc_handler.md` and `/docs/prompts/writing_ooc_handler.md` respectively, and implement mode-aware handler file selection if the orchestrator’s OOC-routing logic needs revision. Document any changes in an ADR if the orchestrator’s handler-selection path changes shape.
+**Branching resolution (Issue 16):** Implemented as a distinct mode-specific handler for Branching mode via `docs/prompts/branching_ooc_handler.md`. When `StoryMode.BRANCHING` is active, the orchestrator `_run_ooc()` now selects `branching_ooc_handler.md`. Handles interaction-style/cadence/length configuration updates (transaction-scoped to `OOC_HANDLED`), Branching Mode platform questions, and True CYOA rejection guidance. See ADR-016 Decisions 4 and the OOC handler Known Unknown section.
+
+**What remaining resolution requires:** Issue 17 must finalize the Writing mode OOC protocol via `/docs/prompts/writing_ooc_handler.md` and implement mode-aware handler selection in `_run_ooc()`. Document any changes in an ADR if the handler-selection path changes shape.
 
 ---
 
@@ -171,6 +173,20 @@ The question is whether Mentors and Peers should be constrained to match or appr
 2. **Scope — Peers only or all personas:** Parity makes clean sense for Peers, who are co-writers. It is murkier for Mentors, whose output is often feedback and craft instruction rather than prose.
 
 **What resolution requires:** Decide on the parity model, the scope, and how Mentor feedback is measured differently from generated prose. If implemented, store the required counters in Writing session state and document how they are updated.
+
+---
+
+### True CYOA intent-classifier precision (ClassificationHints not wired)
+
+**Resolve during:** A future issue after Issue 16 (target: Issue 20 or whichever issue next touches the classifier).
+
+**Surfaced during:** Issue 16.
+
+Issue 16 ships the `INTERACTION_REJECTED` disposition for True CYOA invalid freeform input. The v1 rejection predicate is: reject if `intent_type not in {branch_choice, ooc}`. However, the classifier (CRD Issue 7) does not receive `ClassificationHints` about the current interaction style or presented branch options.
+
+**V1 limitation:** A Sojourner in True CYOA mode who writes "Cross the bridge" — even when "cross the bridge" paraphrases a presented option — will be rejected because the classifier returns `in_character_action`, not `branch_choice`. `branch_choice` is only emitted for explicit selection language ("I choose option 2", "Take the second option", "Option 1"). This is a precision gap, not a correctness gap: the safest behavior in True CYOA is explicit rejection of ambiguous input.
+
+**What resolution requires:** Wire `ClassificationHints` (containing the presented branch-option texts and `interaction_style=TRUE_CYOA`) into the classifier call when `story_mode is BRANCHING`. The classifier uses the hints to detect when freeform input clearly matches an offered option by paraphrase and emits `branch_choice` in that case. Requires owner decision on whether the classifier should do fuzzy matching or only exact/near-exact option-text matching. Document in an ADR or Architecture Notes for the owning issue.
 
 ---
 

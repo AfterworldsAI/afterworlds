@@ -14,7 +14,12 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-from afterworlds.models.enums import IntentType, normalize_legacy_intent_type
+from afterworlds.models.enums import (
+    BranchingCadence,
+    IntentType,
+    InteractionStyle,
+    normalize_legacy_intent_type,
+)
 
 
 class StateDelta(BaseModel):
@@ -44,17 +49,52 @@ class RpgNodeMetadata(BaseModel):
     dice_results: list[int] = Field(default_factory=list)
 
 
-class BranchingNodeMetadata(BaseModel):
-    """Branching-mode beat metadata.
+class PersistedBranchOption(BaseModel):
+    """Branch option as persisted on a Node after delivery.
 
-    ``extra_branch_options`` holds additional Branching-mode detail for this
-    beat.  It does *not* replace ``Node.branching_logic``, which remains the
-    canonical location of next-node pointers.
+    ``option_id`` is the code-assigned sequential identifier (``opt_1``, …).
+    ``action_text`` is the model-proposed label.
+    """
+
+    option_id: str
+    action_text: str
+
+
+class BranchingNodeMetadata(BaseModel):
+    """Branching-mode beat metadata — presentation/config/selection only.
+
+    This model stores what was presented and selected for this beat.  It must
+    never hold canonical graph pointers — those live in ``Node.branching_logic``
+    (a list of next-node UUIDs, populated when edges are realized).
+
+    Issue 16 adds typed output-contract fields so the frontend can render the
+    delivered branch card without re-deriving config from session state.
+
+    ``extra_branch_options`` is retained for backward compatibility but new
+    code should use ``branch_options`` (typed ``PersistedBranchOption`` list).
     """
 
     mode: Literal["branching"] = "branching"
     pacing_stage_at_beat: str | None = None
     extra_branch_options: list[str] = Field(default_factory=list)
+    # Issue 16: typed output-contract fields (None on legacy/setup nodes)
+    interaction_style: InteractionStyle | None = None
+    branching_cadence: BranchingCadence | None = None
+    freeform_available: bool | None = None
+    branch_count_range: str | None = None
+    branch_options: list[PersistedBranchOption] = Field(default_factory=list)
+    branch_presentation_state: str | None = None
+    # Set when the Sojourner resolves their branch selection (Phase G).
+    #
+    # ``selected_option_id`` alone is NOT a stable selection record: option IDs
+    # (``opt_1``, …) are reused every beat, so once this beat's branch_options
+    # are overwritten with the next beat's cards the same ID points at a
+    # different option.  ``selected_action_text`` captures the chosen option's
+    # label independently of ``branch_options`` so the selection stays
+    # reconstructable after the next beat's cards are persisted.
+    selected_option_id: str | None = None
+    selected_action_text: str | None = None
+    selection_annotation: str | None = None
 
 
 class WritingNodeMetadata(BaseModel):
