@@ -1395,6 +1395,14 @@ class OrchestratorService:
                         _sel_node.mode_metadata.selected_option_id = (
                             selected_branch_context.option_id
                         )
+                        # Stable selection record: option_id alone is ambiguous
+                        # because IDs (opt_1, …) are reused every beat. Persist
+                        # the chosen action text so the selection stays
+                        # reconstructable after the next beat's branch_options
+                        # overwrite this metadata.
+                        _sel_node.mode_metadata.selected_action_text = (
+                            selected_branch_context.action_text
+                        )
                         _sel_node.mode_metadata.selection_annotation = (
                             selected_branch_context.annotation
                         )

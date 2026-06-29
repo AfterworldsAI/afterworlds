@@ -7037,6 +7037,99 @@ class TestBranchCardPersistenceFailClosed:
 
 
 # ---------------------------------------------------------------------------
+# Round 16: selection provenance survives the next beat's branch-card overwrite.
+#
+# Option IDs (opt_1, …) are reused every beat.  Once a BRANCH_CHOICE turn
+# persists the *new* beat's branch_options, the bare selected_option_id no
+# longer identifies which option the Sojourner actually chose (a new opt_1 has
+# different action_text).  Phase G therefore persists selected_action_text from
+# the SelectedBranchContext so the prior selection stays reconstructable
+# independently of the current branch_options list.
+# ---------------------------------------------------------------------------
+
+
+class TestSelectionProvenanceSurvivesOverwrite:
+    """Phase G stores stable selected branch context, not just a reused ID."""
+
+    def test_shown_next_beat_preserves_prior_selected_action_text(
+        self, session_factory: object, session: object
+    ) -> None:
+        """New beat reuses opt_1; selected_action_text still names the prior choice."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        # Prior beat: opt_1 = "Open the red door", opt_2 = "Take the stairs".
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Open the red door", "Take the stairs"]
+        )
+        # New beat shows a fresh card set that REUSES opt_1 for a different action.
+        # The trailing "but I sneak past" annotates the selection.
+        writer = _PresentationBranchingWriterService(
+            "shown",
+            options=[("opt_1", "Ask the guard"), ("opt_2", "Patrol the hall")],
+        )
+        orch = _make_branching_choice_orchestrator(
+            session_factory, writer, "opt_1 but I sneak past"
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "opt_1 but I sneak past",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # The new beat's option surface is the next valid choice set …
+        assert [
+            (o.option_id, o.action_text) for o in node.mode_metadata.branch_options
+        ] == [("opt_1", "Ask the guard"), ("opt_2", "Patrol the hall")]
+        # … yet the prior selection remains reconstructable: the stored action
+        # text is the PRIOR opt_1 ("Open the red door"), not the new opt_1.
+        assert node.mode_metadata.selected_option_id == "opt_1"
+        assert node.mode_metadata.selected_action_text == "Open the red door"
+        assert node.mode_metadata.selection_annotation == "I sneak past"
+
+    def test_held_next_beat_clears_options_but_preserves_selection(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A held next beat clears branch_options; selection record still survives."""
+        from afterworlds.models.node import BranchingNodeMetadata
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Open the red door", "Take the stairs"]
+        )
+        # Held beat carries no options (validator forbids non-empty held/omitted).
+        writer = _PresentationBranchingWriterService("held")
+        orch = _make_branching_choice_orchestrator(session_factory, writer, "opt_1")
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert writer.called is True
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, BranchingNodeMetadata)
+        # Stale options cleared and held state recorded …
+        assert node.mode_metadata.branch_options == []
+        assert node.mode_metadata.branch_presentation_state == "held"
+        # … but the selection record (id + action text + annotation) survives.
+        assert node.mode_metadata.selected_option_id == "opt_1"
+        assert node.mode_metadata.selected_action_text == "Open the red door"
+        assert node.mode_metadata.selection_annotation is None
+
+
+# ---------------------------------------------------------------------------
 # Round 10 Finding 1: held/omitted node metadata is authoritative.
 #
 # A HYBRID held/omitted beat must clear any prior beat's branch_options and

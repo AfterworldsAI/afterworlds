@@ -201,9 +201,12 @@ to) is deferred to a future issue.
 - `SelectedBranchContext` is threaded from the validation service to the Writer
   so the narrative can reference the chosen branch.
 - **Phase G (selection edge):** after the Writer and persistence complete,
-  `selected_option_id` and `selection_annotation` are written to
-  `Node.mode_metadata.branching` — recording which option was chosen on this
-  beat for future graph-traversal lookup.
+  stable selected branch context — `selected_option_id`, `selected_action_text`,
+  and `selection_annotation` — is written to `Node.mode_metadata.branching`,
+  recording which option was chosen on this beat for future graph-traversal
+  lookup. `selected_action_text` keeps the selection reconstructable after the
+  next beat overwrites `branch_options`, since option IDs (`opt_1`, …) are
+  reused every beat.
 
 **What is DEFERRED:**
 - `BranchTree` / `BranchNode` activation: they are left structurally present but
@@ -231,11 +234,11 @@ without a schema change. Two problems compound this:
 2. **Missing target:** `target_node_id` does not exist until the next node is
    created via graph traversal — which is itself deferred.
 
-**What Issue 16 implements instead:** Phase G writes `selected_option_id` and
-`selection_annotation` to `Node.mode_metadata.branching` (the JSON sub-document
-field on the same Node). This preserves the selection record for observability and
-future navigation without the schema change required to write labeled edges to
-`branching_logic`.
+**What Issue 16 implements instead:** Phase G writes `selected_option_id`,
+`selected_action_text`, and `selection_annotation` to
+`Node.mode_metadata.branching` (the JSON sub-document field on the same Node).
+This preserves a stable selection record for observability and future navigation
+without the schema change required to write labeled edges to `branching_logic`.
 
 **What remains open:** Full compliance with the `branching_logic` labeled-edge
 requirement needs: (a) a migration to change the field type, (b) graph traversal

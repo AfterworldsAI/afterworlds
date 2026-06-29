@@ -85,7 +85,15 @@ class BranchingNodeMetadata(BaseModel):
     branch_options: list[PersistedBranchOption] = Field(default_factory=list)
     branch_presentation_state: str | None = None
     # Set when the Sojourner resolves their branch selection (Phase G).
+    #
+    # ``selected_option_id`` alone is NOT a stable selection record: option IDs
+    # (``opt_1``, …) are reused every beat, so once this beat's branch_options
+    # are overwritten with the next beat's cards the same ID points at a
+    # different option.  ``selected_action_text`` captures the chosen option's
+    # label independently of ``branch_options`` so the selection stays
+    # reconstructable after the next beat's cards are persisted.
     selected_option_id: str | None = None
+    selected_action_text: str | None = None
     selection_annotation: str | None = None
 
 
