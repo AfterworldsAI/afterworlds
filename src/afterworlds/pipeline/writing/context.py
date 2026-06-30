@@ -83,6 +83,12 @@ def render_writing_system_prompt_appendix(
     if session_state.specific_goals:
         controls.append(f"Session goals: {session_state.specific_goals}")
 
+    if session_state.reading_interests:
+        controls.append(f"Reading interests: {session_state.reading_interests}")
+
+    if session_state.writing_interests:
+        controls.append(f"Writing interests: {session_state.writing_interests}")
+
     if session_state.acceptable_content:
         controls.append(f"Acceptable content: {session_state.acceptable_content}")
 
@@ -95,4 +101,62 @@ def render_writing_system_prompt_appendix(
     return "\n\n".join(parts)
 
 
-__all__ = ["render_writing_system_prompt_appendix"]
+def render_writing_ooc_state_block(session_state: WritingSessionState) -> str:
+    """Return a factual Writing session state summary for OOC context injection.
+
+    Injected into the pass-forward ledger after the OOC system-prompt swap so
+    the OOC handler can answer configuration questions truthfully.
+
+    This block carries NO behavioral persona instructions (no prompt_fragment,
+    no negative_constraints, no registry lookup) — only current config facts.
+    The model must not treat this block as authoritative for durable state;
+    it is read-only context for this turn only.
+    """
+    parts: list[str] = ["## Writing Session State"]
+    parts.append(f"play_status: {session_state.play_status.value}")
+
+    if session_state.persona_id is not None:
+        parts.append(f"persona: {session_state.persona_id}")
+    else:
+        parts.append("persona: not set")
+
+    parts.append(f"critique_intensity: {session_state.critique_intensity.value}")
+    parts.append(f"style_density: {session_state.style_density.value}")
+
+    if session_state.form is not None:
+        form_label = session_state.form_other or session_state.form.value
+        parts.append(f"form: {form_label}")
+
+    if session_state.tense:
+        parts.append(f"tense: {session_state.tense}")
+
+    if session_state.pov:
+        parts.append(f"pov: {session_state.pov}")
+
+    if session_state.dialogue_narration_ratio is not None:
+        parts.append(
+            f"dialogue_narration_ratio: {session_state.dialogue_narration_ratio}%"
+        )
+
+    if session_state.genre_conventions:
+        parts.append(f"genre_conventions: {session_state.genre_conventions}")
+
+    if session_state.reading_interests:
+        parts.append(f"reading_interests: {session_state.reading_interests}")
+
+    if session_state.writing_interests:
+        parts.append(f"writing_interests: {session_state.writing_interests}")
+
+    if session_state.specific_goals:
+        parts.append(f"specific_goals: {session_state.specific_goals}")
+
+    if session_state.acceptable_content:
+        parts.append(f"acceptable_content: {session_state.acceptable_content}")
+
+    if session_state.beat_constraints:
+        parts.append(f"beat_constraints: {'; '.join(session_state.beat_constraints)}")
+
+    return "\n".join(parts)
+
+
+__all__ = ["render_writing_ooc_state_block", "render_writing_system_prompt_appendix"]

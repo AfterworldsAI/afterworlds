@@ -2172,6 +2172,14 @@ class OrchestratorService:
                 )
             if rpg_ooc_state:
                 ooc_ctx.pass_forward_ledger.add("rpg_ooc_state", rpg_ooc_state)
+        elif story_mode is StoryMode.WRITING and pre_writing_state is not None:
+            from afterworlds.pipeline.writing.context import (  # noqa: PLC0415
+                render_writing_ooc_state_block as _writing_ooc_state_fn,
+            )
+
+            _writing_ooc_block = _writing_ooc_state_fn(pre_writing_state)
+            if _writing_ooc_block:
+                ooc_ctx.pass_forward_ledger.add("writing_ooc_state", _writing_ooc_block)
 
         return self._run_with_transaction(
             lambda session: self._ooc_persist(
@@ -2332,6 +2340,12 @@ class OrchestratorService:
         # Appended to the delivery note so the prose cannot imply a switch that
         # did not happen.
         _ooc_persona_noop_note: str | None = None
+        # Set when a requested IN_PLAY transition is suppressed because no
+        # verified Writing persona is present after the update.  Appended to the
+        # delivery note so the prose cannot imply a setup completion that did
+        # not happen.  Can fire together with _ooc_persona_noop_note when the
+        # extractor returns an unrecognised persona_id AND play_status=IN_PLAY.
+        _ooc_play_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2585,6 +2599,41 @@ class OrchestratorService:
                         vp.model_dump(mode="json") for vp in _w_cfg.version_pointers
                     ]
 
+                # Invariant: a Writing session may enter or remain IN_PLAY only
+                # when the resulting persisted state has a verified Writing
+                # persona.  Compute the effective persona after this update:
+                # use the newly-verified persona_id from this update if present,
+                # otherwise fall back to the existing row's persona_id (verified
+                # against the registry).  If neither yields a verified persona,
+                # suppress the IN_PLAY transition and surface a corrective note.
+                _play_status_to_persist = _w_cfg.play_status
+                if _w_cfg.play_status is WritingPlayStatus.IN_PLAY:
+                    _effective_persona_id: str | None = _persona_id_to_persist
+                    if (
+                        _effective_persona_id is None
+                        and writing_session_state is not None
+                        and writing_session_state.persona_id is not None
+                        and self._writing_visible_state_service is not None
+                    ):
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                SupportedMode as _SM_P,
+                            )
+
+                            _reg_p = self._writing_visible_state_service.registry
+                            _reg_p.get_profile(
+                                writing_session_state.persona_id, _SM_P.WRITING
+                            )
+                            _effective_persona_id = writing_session_state.persona_id
+                        except Exception:  # noqa: BLE001
+                            pass
+                    if _effective_persona_id is None:
+                        _play_status_to_persist = None
+                        _ooc_play_noop_note = (
+                            "[Play status not changed: IN_PLAY requires a"
+                            " verified Writing persona to be configured first.]"
+                        )
+
                 _apply_writing_cfg(
                     session,
                     story_id,
@@ -2604,7 +2653,7 @@ class OrchestratorService:
                     acceptable_content=_w_cfg.acceptable_content,
                     beat_constraints=_w_cfg.beat_constraints,
                     version_pointers=_vp_dicts,
-                    play_status=_w_cfg.play_status,
+                    play_status=_play_status_to_persist,
                 )
             except WritingOocExtractionUsageError as _w_usage_exc:
                 _writing_ooc_cfg_result = _w_usage_exc.usage_result
@@ -2612,16 +2661,18 @@ class OrchestratorService:
                 pass  # Best-effort; OOC prose already delivered
 
         _ooc_delivered = writer_result.assistant_output
-        # At most one of the corrective notes is set (they are mutually
-        # exclusive by construction), but compose a single correction block from
-        # whichever are present so the delivered prose can never imply a config
-        # change that persistence did not make.
+        # Compose all suppression notes into one correction block.  Notes are
+        # independent: _ooc_persona_noop_note and _ooc_play_noop_note can both
+        # fire when the extractor requests an unrecognised persona together with
+        # play_status=IN_PLAY.  _ooc_style_noop_note and _ooc_range_noop_note
+        # are mutually exclusive with each other but independent of the others.
         _ooc_config_noop_notes = [
             _note
             for _note in (
                 _ooc_style_noop_note,
                 _ooc_range_noop_note,
                 _ooc_persona_noop_note,
+                _ooc_play_noop_note,
             )
             if _note is not None
         ]

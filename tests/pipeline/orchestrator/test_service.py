@@ -9536,6 +9536,97 @@ def _make_writing_gate_orch(
     )
 
 
+def _seed_writing_story_setup_wss(session: object) -> tuple[UUID, UUID]:
+    """Seed a WRITING-mode Story/Arc/Chapter/Node with a SETUP WritingSessionState.
+
+    No persona set (play_status=SETUP). Returns (story_id, node_id).
+    """
+    from datetime import UTC, datetime
+
+    from afterworlds.models.enums import (
+        CritiqueIntensity,
+        StoryMode,
+        StyleDensity,
+        WritingPlayStatus,
+    )
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        StateDelta,
+    )
+    from afterworlds.models.session import WritingSessionState
+    from afterworlds.models.story import Arc, Chapter, Story
+    from afterworlds.persistence.crud.node import create_node
+    from afterworlds.persistence.crud.session_state import create_writing_session_state
+    from afterworlds.persistence.crud.story import (
+        create_arc,
+        create_chapter,
+        create_story,
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        title="Writing OOC Setup Test",
+        mode=StoryMode.WRITING,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = Arc(story_id=story.story_id, title="Arc 1", order=0)
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chapter = Chapter(arc_id=arc.arc_id, title="Chapter 1", order=0)
+    create_chapter(session, chapter)  # type: ignore[arg-type]
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=now),
+        mode_metadata=BranchingNodeMetadata(),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+    wss = WritingSessionState(
+        story_id=story.story_id,
+        play_status=WritingPlayStatus.SETUP,
+        critique_intensity=CritiqueIntensity.BALANCED,
+        style_density=StyleDensity.BALANCED,
+    )
+    create_writing_session_state(session, wss)  # type: ignore[arg-type]
+    session.commit()  # type: ignore[union-attr]
+    return story.story_id, node.node_id
+
+
+def _make_writing_ooc_orch_custom(
+    session_factory: object,
+    config_update: object,
+    *,
+    writing_resolver: object,
+) -> OrchestratorService:
+    """Build a Writing OOC OrchestratorService with a caller-supplied resolver."""
+    from afterworlds.modes.personas.registry import get_default_registry
+    from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+
+    svc = WritingVisibleStateService(get_default_registry())
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.WRITING),
+        writing_session_resolver=writing_resolver,  # type: ignore[arg-type]
+        writing_ooc_config_extractor=_FakeWritingOocExtractor(config_update),  # type: ignore[arg-type]
+        writing_visible_state_service=svc,
+    )
+
+
 class TestWritingSetupGate:
     """Writing pre-resolve gate: fail closed before Planner/Writer on bad session."""
 
@@ -9714,3 +9805,329 @@ class TestWritingSetupGate:
         assert result.disposition is PipelineDisposition.DELIVERED
         assert planner.calls, "Planner must be called for SETUP turn"
         assert writer.calls, "Writer must be called for SETUP turn"
+
+
+# ---------------------------------------------------------------------------
+# P1 Fix: Writing OOC play_status gate — suppress IN_PLAY without verified persona
+#
+# Invariant: a Writing session may enter or remain IN_PLAY only when the
+# resulting persisted state has a verified Writing persona.  OOC config
+# extraction may update setup/config fields, but a requested play_status=IN_PLAY
+# transition must be suppressed unless the post-update state would satisfy
+# that invariant.
+# ---------------------------------------------------------------------------
+
+
+class TestWritingOocPlayStatusGate:
+    """OOC play_status gate: suppress IN_PLAY when no verified persona results."""
+
+    def _read_wss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_writing_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_writing_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_in_play_without_persona_suppressed_and_noted(
+        self, session_factory: object, session: object
+    ) -> None:
+        """SETUP + no persona + IN_PLAY request → stays SETUP; note appended."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(play_status=WritingPlayStatus.IN_PLAY)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Start my session",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.play_status.value == "setup"
+        assert result.writer_result is not None
+        assert "[Play status not changed:" in result.writer_result.assistant_output
+
+    def test_in_play_with_invalid_persona_both_noted(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Bad persona + IN_PLAY → both persona and play_status notes appended."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(
+            persona_id="no_such_persona_xyz",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use bad persona and go live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        assert result.writer_result is not None
+        output = result.writer_result.assistant_output
+        assert "[Persona not changed:" in output
+        assert "[Play status not changed:" in output
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id is None
+        assert wss.play_status.value == "setup"
+
+    def test_in_play_with_valid_new_persona_transitions(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Valid persona + IN_PLAY → transitions to IN_PLAY; persona persisted."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(
+            persona_id="odin",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use Odin and go live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id == "odin"
+        assert wss.play_status.value == "in_play"
+        assert result.writer_result is not None
+        assert "[Play status not changed:" not in result.writer_result.assistant_output
+
+    def test_in_play_with_existing_verified_persona_transitions(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Existing verified persona + IN_PLAY → transitions using existing persona."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(play_status=WritingPlayStatus.IN_PLAY)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.SETUP,
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "[OOC] Go live now", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.play_status.value == "in_play"
+        assert result.writer_result is not None
+        assert "[Play status not changed:" not in result.writer_result.assistant_output
+
+    def test_other_fields_persist_when_play_status_suppressed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Suppressed IN_PLAY transition does not block other field updates."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(
+            tense="present",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use present tense and go live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.tense == "present"
+        assert wss.play_status.value == "setup"
+
+
+# ---------------------------------------------------------------------------
+# P2 #1 Fix: Writing OOC state injection into pass-forward ledger
+# ---------------------------------------------------------------------------
+
+
+class TestWritingOocStateInjection:
+    """Writing OOC turns must inject writing_ooc_state into the pass-forward ledger."""
+
+    def test_writing_ooc_ledger_contains_state_entry(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Writing OOC Writer call must receive writing_ooc_state in the ledger."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        config_update = WritingConfigUpdate()
+
+        writer = FakeWriterService()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        svc = WritingVisibleStateService(get_default_registry())
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.WRITING),
+            writing_session_resolver=_resolver,  # type: ignore[arg-type]
+            writing_ooc_config_extractor=_FakeWritingOocExtractor(config_update),  # type: ignore[arg-type]
+            writing_visible_state_service=svc,
+        )
+
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my current persona?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert len(writer.calls) == 1
+        ledger = writer.calls[0][0].pass_forward_ledger
+        names = [e.pass_name for e in ledger.entries]
+        assert "writing_ooc_state" in names
+
+    def test_writing_ooc_state_contains_session_fields(
+        self, session_factory: object, session: object
+    ) -> None:
+        """writing_ooc_state payload must include play_status and persona."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        config_update = WritingConfigUpdate()
+
+        writer = FakeWriterService()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        svc = WritingVisibleStateService(get_default_registry())
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=writer,
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.WRITING),
+            writing_session_resolver=_resolver,  # type: ignore[arg-type]
+            writing_ooc_config_extractor=_FakeWritingOocExtractor(config_update),  # type: ignore[arg-type]
+            writing_visible_state_service=svc,
+        )
+
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What is my current persona?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "writing_ooc_state"
+        )
+        assert "play_status" in content
+        assert "chiron" in content
+        assert "in_play" in content

@@ -36,7 +36,10 @@ from afterworlds.modes.personas.registry import (
     SupportedMode,
     get_default_registry,
 )
-from afterworlds.pipeline.writing.context import render_writing_system_prompt_appendix
+from afterworlds.pipeline.writing.context import (
+    render_writing_ooc_state_block,
+    render_writing_system_prompt_appendix,
+)
 from afterworlds.pipeline.writing.models import (
     AuthoringControlsSnapshot,
     WritingConfigUpdate,
@@ -324,6 +327,81 @@ class TestWritingContextRenderer:
             session_state = WritingSessionState(story_id=uuid4(), persona_id=persona_id)
             result = render_writing_system_prompt_appendix(session_state, self.registry)
             assert result, f"Empty appendix for {persona_id}"
+
+    def test_reading_interests_included_when_set(self) -> None:
+        session_state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="chiron",
+            reading_interests="Gothic horror, unreliable narrators",
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Gothic horror" in result
+        assert "Reading interests" in result
+
+    def test_writing_interests_included_when_set(self) -> None:
+        session_state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="chiron",
+            writing_interests="Stream of consciousness, fragmented timelines",
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Stream of consciousness" in result
+        assert "Writing interests" in result
+
+    def test_interests_absent_when_none(self) -> None:
+        session_state = WritingSessionState(story_id=uuid4(), persona_id="chiron")
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Reading interests" not in result
+        assert "Writing interests" not in result
+
+
+# ---------------------------------------------------------------------------
+# WritingOocStateBlock
+# ---------------------------------------------------------------------------
+
+
+class TestWritingOocStateBlock:
+    def test_contains_play_status(self) -> None:
+        state = WritingSessionState(story_id=uuid4())
+        result = render_writing_ooc_state_block(state)
+        assert "play_status" in result
+        assert "setup" in result
+
+    def test_contains_persona_id_when_set(self) -> None:
+        state = WritingSessionState(story_id=uuid4(), persona_id="chiron")
+        result = render_writing_ooc_state_block(state)
+        assert "chiron" in result
+
+    def test_notes_persona_not_set(self) -> None:
+        state = WritingSessionState(story_id=uuid4())
+        result = render_writing_ooc_state_block(state)
+        assert "not set" in result
+
+    def test_contains_reading_interests_when_set(self) -> None:
+        state = WritingSessionState(story_id=uuid4(), reading_interests="Cosmic horror")
+        result = render_writing_ooc_state_block(state)
+        assert "Cosmic horror" in result
+        assert "reading_interests" in result
+
+    def test_contains_writing_interests_when_set(self) -> None:
+        state = WritingSessionState(story_id=uuid4(), writing_interests="Lyric essays")
+        result = render_writing_ooc_state_block(state)
+        assert "Lyric essays" in result
+        assert "writing_interests" in result
+
+    def test_omits_none_optional_fields(self) -> None:
+        state = WritingSessionState(story_id=uuid4())
+        result = render_writing_ooc_state_block(state)
+        assert "reading_interests" not in result
+        assert "writing_interests" not in result
+        assert "tense" not in result
+        assert "pov" not in result
+
+    def test_no_behavioral_persona_instructions(self) -> None:
+        state = WritingSessionState(story_id=uuid4(), persona_id="chiron")
+        result = render_writing_ooc_state_block(state)
+        assert "You are acting as" not in result
+        assert "Avoid:" not in result
 
 
 # ---------------------------------------------------------------------------
