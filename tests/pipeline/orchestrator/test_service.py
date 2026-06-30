@@ -9244,3 +9244,214 @@ class TestBranchChoiceValidationServiceRequired:
 
         assert result.disposition is PipelineDisposition.DELIVERED
         assert result.interaction_rejection_reason is None
+
+
+# ---------------------------------------------------------------------------
+# Writing mode OOC config persistence (CRD Issue 17 / PR #116 remediation)
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass as _w_dataclass  # noqa: E402
+
+
+@_w_dataclass
+class _FakeWritingOocExtractor:
+    """Returns a fixed WritingOocConfigExtractorResult; never calls the provider."""
+
+    config_update: object
+
+    def extract(self, ctx: object, provider: object) -> object:
+        from afterworlds.pipeline.writing.models import WritingOocConfigExtractorResult
+
+        return WritingOocConfigExtractorResult(
+            config_update=self.config_update,  # type: ignore[arg-type]
+            provider="fake",
+            model_identifier="fake-haiku",
+            model_tier="haiku",
+            latency_ms=5,
+            input_token_count=10,
+            output_token_count=5,
+        )
+
+
+def _seed_writing_story_with_wss(
+    session: object,
+    *,
+    persona_id: str = "chiron",
+) -> tuple[UUID, UUID]:
+    """Seed a WRITING-mode Story/Arc/Chapter/Node + WritingSessionState.
+
+    Returns (story_id, node_id).
+    """
+    from datetime import UTC, datetime
+
+    from afterworlds.models.enums import (
+        CritiqueIntensity,
+        StoryMode,
+        StyleDensity,
+        WritingPlayStatus,
+    )
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        StateDelta,
+    )
+    from afterworlds.models.session import WritingSessionState
+    from afterworlds.models.story import Arc, Chapter, Story
+    from afterworlds.persistence.crud.node import create_node
+    from afterworlds.persistence.crud.session_state import create_writing_session_state
+    from afterworlds.persistence.crud.story import (
+        create_arc,
+        create_chapter,
+        create_story,
+    )
+
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    story = Story(
+        title="Writing OOC Test",
+        mode=StoryMode.WRITING,
+        created_at=now,
+        updated_at=now,
+    )
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = Arc(story_id=story.story_id, title="Arc 1", order=0)
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chapter = Chapter(arc_id=arc.arc_id, title="Chapter 1", order=0)
+    create_chapter(session, chapter)  # type: ignore[arg-type]
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=now),
+        mode_metadata=BranchingNodeMetadata(),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+    wss = WritingSessionState(
+        story_id=story.story_id,
+        persona_id=persona_id,
+        persona_registry_version=1,
+        persona_profile_version=1,
+        play_status=WritingPlayStatus.IN_PLAY,
+        critique_intensity=CritiqueIntensity.BALANCED,
+        style_density=StyleDensity.BALANCED,
+    )
+    create_writing_session_state(session, wss)  # type: ignore[arg-type]
+    session.commit()  # type: ignore[union-attr]
+    return story.story_id, node.node_id
+
+
+def _make_writing_ooc_orch(
+    session_factory: object,
+    config_update: object,
+) -> OrchestratorService:
+    """Build an OrchestratorService wired for Writing-mode OOC config extraction."""
+    from afterworlds.models.session import WritingSessionState
+    from afterworlds.modes.personas.registry import get_default_registry
+    from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+
+    def _writing_resolver(sid: UUID) -> WritingSessionState:
+        return WritingSessionState(story_id=sid, persona_id="chiron")
+
+    svc = WritingVisibleStateService(get_default_registry())
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.WRITING),
+        writing_session_resolver=_writing_resolver,  # type: ignore[arg-type]
+        writing_ooc_config_extractor=_FakeWritingOocExtractor(config_update),  # type: ignore[arg-type]
+        writing_visible_state_service=svc,
+    )
+
+
+class TestWritingOocConfigPersistence:
+    """Writing-mode OOC config extractor: unknown persona no-op + field persistence."""
+
+    def _read_wss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_writing_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_writing_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_unknown_persona_not_persisted_other_fields_persist(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Unknown persona slug → persona_id unchanged; other fields still apply."""
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        config_update = WritingConfigUpdate(
+            persona_id="nonexistent_persona_xyz",
+            tense="present",
+        )
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to nonexistent and use present tense",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id == "chiron"  # unchanged — unknown slug not persisted
+        assert wss.tense == "present"  # valid field from same update still applied
+
+    def test_unknown_persona_noop_note_in_delivered_output(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Unknown persona slug → corrective no-op note appended to delivered output."""
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+
+        config_update = WritingConfigUpdate(persona_id="bad_slug_123")
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to bad_slug_123",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.writer_result is not None
+        assert "[Persona not changed:" in result.writer_result.assistant_output
+        assert "bad_slug_123" in result.writer_result.assistant_output
+
+    def test_valid_persona_change_persists(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Valid persona slug in OOC config update → persona_id updated in DB."""
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        config_update = WritingConfigUpdate(persona_id="odin")
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to Odin",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id == "odin"
+        assert wss.persona_registry_version == 1  # provenance recorded

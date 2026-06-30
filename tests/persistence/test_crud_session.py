@@ -607,6 +607,191 @@ def test_clear_branch_count_range_overrides_value_arg(session):  # type: ignore[
     assert after.branch_count_range is None
 
 
+# ---------------------------------------------------------------------------
+# apply_writing_config_update — form, beat_constraints, version_pointers
+# ---------------------------------------------------------------------------
+
+
+def test_apply_writing_config_update_form_and_form_other(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update persists form and form_other together."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.SHORT_STORY,
+        form_other=None,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY
+    assert fetched.form_other is None
+
+
+def test_apply_writing_config_update_form_other_only(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update persists form_other without changing form."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Graphic novel"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="Interactive fiction",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER  # unchanged
+    assert fetched.form_other == "Interactive fiction"
+
+
+def test_apply_writing_config_update_form_OTHER_without_form_other_skips(session):  # type: ignore[no-untyped-def]
+    """form=OTHER without form_other skips form change to prevent an invalid row."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id, form=WritingForm.SHORT_STORY)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.OTHER,
+        form_other=None,  # no form_other and row has none either
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY  # unchanged — form=OTHER skipped
+
+
+def test_apply_writing_config_update_beat_constraints_replaces(session):  # type: ignore[no-untyped-def]
+    """beat_constraints replaces the full list (replace semantics)."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["old constraint A", "old constraint B"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["new constraint only"],
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["new constraint only"]
+
+
+def test_apply_writing_config_update_beat_constraints_empty_list_replaces(session):  # type: ignore[no-untyped-def]
+    """beat_constraints=[] replaces and empties the list."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["keep this"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    apply_writing_config_update(session, story.story_id, beat_constraints=[])
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == []
+
+
+def test_apply_writing_config_update_version_pointers_appended(session):  # type: ignore[no-untyped-def]
+    """version_pointers appends new pointer dicts to existing list."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    ptr_id = str(uuid4())
+    new_pointer = {
+        "schema_version": 1,
+        "pointer_id": ptr_id,
+        "kind": "draft_label",
+        "label": "Chapter 1 draft",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        version_pointers=[new_pointer],
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1
+    assert fetched.version_pointers[0]["pointer_id"] == ptr_id
+
+
+def test_apply_writing_config_update_version_pointers_dedup(session):  # type: ignore[no-untyped-def]
+    """Applying the same pointer_id twice does not grow the list."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    ptr_id = str(uuid4())
+    pointer = {
+        "schema_version": 1,
+        "pointer_id": ptr_id,
+        "kind": "draft_label",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+
+    apply_writing_config_update(session, story.story_id, version_pointers=[pointer])
+    session.commit()
+
+    apply_writing_config_update(session, story.story_id, version_pointers=[pointer])
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1  # deduped — still one entry
+
+
 def test_default_false_leaves_none_unchanged(session):  # type: ignore[no-untyped-def]
     """clear_branch_count_range=False (default): None branch_count_range → no change."""
     from afterworlds.models.enums import StoryMode

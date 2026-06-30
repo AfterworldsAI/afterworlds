@@ -246,6 +246,8 @@ class WritingConfigUpdate(BaseModel):
 
     All fields are optional; only non-None fields are applied.
     ``persona_id`` triggers a registry lookup and provenance snapshot update.
+    ``beat_constraints`` replaces the full constraint list (replace semantics).
+    ``version_pointers`` are appended to the existing list, deduped by pointer_id.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -263,12 +265,23 @@ class WritingConfigUpdate(BaseModel):
     genre_conventions: str | None = None
     specific_goals: str | None = None
     acceptable_content: str | None = None
+    beat_constraints: list[str] | None = None
+    version_pointers: list[WritingVersionPointer] | None = None
 
     @field_validator("dialogue_narration_ratio")
     @classmethod
     def _ratio_range(cls, v: int | None) -> int | None:
         if v is not None and not (0 <= v <= 100):
             raise ValueError("dialogue_narration_ratio must be between 0 and 100")
+        return v
+
+    @field_validator("beat_constraints")
+    @classmethod
+    def _constraints_nonempty(cls, v: list[str] | None) -> list[str] | None:
+        if v is not None:
+            for constraint in v:
+                if not constraint.strip():
+                    raise ValueError("beat_constraints must not contain empty strings")
         return v
 
 

@@ -214,6 +214,81 @@ EXTRACT_WRITING_CONFIG_TOOL_SPEC: dict[str, Any] = {
                 ],
                 "description": "Null if not explicitly requested.",
             },
+            "beat_constraints": {
+                "oneOf": [
+                    {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "Full replacement list of beat constraints the Sojourner"
+                            " explicitly stated (e.g. 'no deus ex machina',"
+                            " 'protagonist must earn every victory')."
+                            " Provide only constraints the Sojourner explicitly"
+                            " named; do not infer structural rules."
+                        ),
+                    },
+                    {"type": "null"},
+                ],
+                "description": (
+                    "Null unless the Sojourner explicitly set or replaced"
+                    " beat constraints."
+                ),
+            },
+            "version_pointers": {
+                "oneOf": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                        "turn",
+                                        "node",
+                                        "draft_label",
+                                        "generated_candidate",
+                                        "working_segment",
+                                    ],
+                                    "description": (
+                                        "The kind of version reference."
+                                        " Use 'draft_label' for named drafts,"
+                                        " 'working_segment' for a named section."
+                                    ),
+                                },
+                                "label": {
+                                    "type": "string",
+                                    "description": (
+                                        "A short human-readable label"
+                                        " (e.g. 'Chapter 1 v2', 'Opening draft')."
+                                    ),
+                                },
+                                "description": {
+                                    "type": "string",
+                                    "description": "Optional longer description.",
+                                },
+                            },
+                            # pointer_id and created_at are NOT in required —
+                            # the DTO default_factory fills them so the model is
+                            # never invited to hallucinate UUIDs (ADR-017 Dec. 10
+                            # v1 boundary: lightweight provenance only).
+                            "required": ["kind", "label"],
+                            "additionalProperties": False,
+                        },
+                        "description": (
+                            "New version pointers to add to this session."
+                            " Append-only; existing pointers are preserved."
+                            " Only include pointers the Sojourner explicitly"
+                            " named or labelled."
+                        ),
+                    },
+                    {"type": "null"},
+                ],
+                "description": (
+                    "Null unless the Sojourner explicitly created a version label"
+                    " or reference."
+                ),
+            },
         },
         "required": [
             "persona_id",
@@ -228,6 +303,8 @@ EXTRACT_WRITING_CONFIG_TOOL_SPEC: dict[str, Any] = {
             "genre_conventions",
             "specific_goals",
             "acceptable_content",
+            "beat_constraints",
+            "version_pointers",
         ],
     },
 }

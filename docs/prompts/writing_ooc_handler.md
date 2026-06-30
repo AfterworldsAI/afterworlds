@@ -27,6 +27,10 @@ session pauses while you answer.
 - Tense, POV, or dialogue-to-narration ratio adjustments.
 - Genre conventions or acceptable content updates.
 - Session goals clarification or updates.
+- Beat constraint updates (e.g., "add a constraint: no deus ex machina",
+  "replace all beat constraints with: protagonist earns every victory").
+- Version reference labelling when the Sojourner explicitly names a draft or
+  working segment (e.g., "mark this as Chapter 1 v2").
 - Readiness to begin (transitioning from setup to in_play).
 
 When the Sojourner requests a configuration change, confirm the change clearly

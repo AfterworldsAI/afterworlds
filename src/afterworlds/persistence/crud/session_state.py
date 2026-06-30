@@ -481,6 +481,8 @@ def apply_writing_config_update(
     persona_profile_version: int | None = None,
     persona_prompt_fingerprint: str | None = None,
     critique_intensity: CritiqueIntensity | None = None,
+    form: WritingForm | None = None,
+    form_other: str | None = None,
     tense: str | None = None,
     pov: str | None = None,
     style_density: StyleDensity | None = None,
@@ -489,12 +491,23 @@ def apply_writing_config_update(
     specific_goals: str | None = None,
     acceptable_content: str | None = None,
     beat_constraints: list[str] | None = None,
+    version_pointers: list[Any] | None = None,
     play_status: WritingPlayStatus | None = None,
 ) -> bool:
     """Apply non-None config fields to the WritingSessionState ORM row for a story.
 
     Only updates fields that are non-None. Returns True when the row was found
     and flushed; False when no row exists for the given story_id.
+
+    ``form``/``form_other`` integrity guard: if the post-update form would be
+    ``other`` but neither the update nor the existing row supplies ``form_other``,
+    the form change is silently skipped to prevent an unreadable row.
+
+    ``beat_constraints`` replaces the full constraint list (replace semantics,
+    consistent with WritingSessionState validator behaviour).
+
+    ``version_pointers`` are appended to the existing list, deduped by
+    ``pointer_id`` so idempotent re-extraction doesn't grow the list unboundedly.
 
     Used by the OOC config extractor — all writes are inside the OOC transaction
     and roll back if OOC_HANDLED does not commit.
@@ -514,6 +527,20 @@ def apply_writing_config_update(
         row.persona_profile_version = persona_profile_version
     if persona_prompt_fingerprint is not None:
         row.persona_prompt_fingerprint = persona_prompt_fingerprint
+
+    # form/form_other integrity: skip form change if it would leave form=OTHER
+    # without a form_other value (which would make the row unreadable).
+    if form is not None:
+        effective_form_other = form_other if form_other is not None else row.form_other
+        if form is WritingForm.OTHER and not effective_form_other:
+            pass  # skip to avoid unreadable row
+        else:
+            row.form = form.value
+            if form_other is not None:
+                row.form_other = form_other
+    elif form_other is not None:
+        row.form_other = form_other
+
     if critique_intensity is not None:
         row.critique_intensity = critique_intensity.value
     if tense is not None:
@@ -532,6 +559,18 @@ def apply_writing_config_update(
         row.acceptable_content = acceptable_content
     if beat_constraints is not None:
         row.beat_constraints = list(beat_constraints)
+    if version_pointers is not None and len(version_pointers) > 0:
+        existing = list(row.version_pointers) if row.version_pointers else []
+        existing_ids = {
+            str(p.get("pointer_id")) for p in existing if isinstance(p, dict)
+        }
+        for ptr in version_pointers:
+            ptr_dict = ptr if isinstance(ptr, dict) else ptr
+            ptr_id = str(ptr_dict.get("pointer_id", ""))
+            if ptr_id and ptr_id not in existing_ids:
+                existing.append(ptr_dict)
+                existing_ids.add(ptr_id)
+        row.version_pointers = existing
     if play_status is not None:
         row.play_status = play_status.value
     session.flush()

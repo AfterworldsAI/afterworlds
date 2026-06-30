@@ -2284,6 +2284,11 @@ class OrchestratorService:
         # persist.  Mutually exclusive with _ooc_style_noop_note to avoid
         # contradictory duplicate corrections.
         _ooc_range_noop_note: str | None = None
+        # Set when the OOC extractor returned a persona_id that is not in the
+        # Writing persona registry, so the persona change was not persisted.
+        # Appended to the delivery note so the prose cannot imply a switch that
+        # did not happen.
+        _ooc_persona_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2495,34 +2500,58 @@ class OrchestratorService:
                 _w_cfg = _w_extract_result.config_update
 
                 # Determine registry provenance if persona_id is changing.
+                # On a registry miss the persona change is a no-op; other fields
+                # in the same update still persist.  A corrective note is recorded
+                # so the delivered prose cannot imply a persona switch that did
+                # not happen.
                 _registry_version: int | None = None
                 _profile_version: int | None = None
                 _prompt_fingerprint: str | None = None
-                if (
-                    _w_cfg.persona_id is not None
-                    and self._writing_visible_state_service is not None
-                ):
-                    try:
-                        from afterworlds.modes.personas.registry import (
-                            SupportedMode as _SM,  # noqa: PLC0415
+                _persona_id_to_persist: str | None = None
+                if _w_cfg.persona_id is not None:
+                    if self._writing_visible_state_service is not None:
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                SupportedMode as _SM,
+                            )
+
+                            _reg = self._writing_visible_state_service.registry
+                            _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
+                            _registry_version = _reg.registry_version
+                            _profile_version = _prof.profile_version
+                            _prompt_fingerprint = _prof.prompt_fingerprint
+                            _persona_id_to_persist = _w_cfg.persona_id
+                        except Exception:  # noqa: BLE001
+                            _ooc_persona_noop_note = (
+                                f"[Persona not changed:"
+                                f" {_w_cfg.persona_id!r} is not a recognized"
+                                f" Writing persona.]"
+                            )
+                    else:
+                        # No registry service wired — treat as no-op for safety.
+                        _ooc_persona_noop_note = (
+                            f"[Persona not changed:"
+                            f" {_w_cfg.persona_id!r} could not be verified"
+                            f" (registry not available).]"
                         )
 
-                        _reg = self._writing_visible_state_service.registry
-                        _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
-                        _registry_version = _reg.registry_version
-                        _profile_version = _prof.profile_version
-                        _prompt_fingerprint = _prof.prompt_fingerprint
-                    except Exception:  # noqa: BLE001
-                        pass  # persona_id persists without provenance on registry miss
+                # Convert version_pointers to plain dicts for CRUD persistence.
+                _vp_dicts: list[dict[str, object]] | None = None
+                if _w_cfg.version_pointers is not None:
+                    _vp_dicts = [
+                        vp.model_dump(mode="json") for vp in _w_cfg.version_pointers
+                    ]
 
                 _apply_writing_cfg(
                     session,
                     story_id,
-                    persona_id=_w_cfg.persona_id,
+                    persona_id=_persona_id_to_persist,
                     persona_registry_version=_registry_version,
                     persona_profile_version=_profile_version,
                     persona_prompt_fingerprint=_prompt_fingerprint,
                     critique_intensity=_w_cfg.critique_intensity,
+                    form=_w_cfg.form,
+                    form_other=_w_cfg.form_other,
                     tense=_w_cfg.tense,
                     pov=_w_cfg.pov,
                     style_density=_w_cfg.style_density,
@@ -2530,6 +2559,8 @@ class OrchestratorService:
                     genre_conventions=_w_cfg.genre_conventions,
                     specific_goals=_w_cfg.specific_goals,
                     acceptable_content=_w_cfg.acceptable_content,
+                    beat_constraints=_w_cfg.beat_constraints,
+                    version_pointers=_vp_dicts,
                     play_status=_w_cfg.play_status,
                 )
             except WritingOocExtractionUsageError as _w_usage_exc:
@@ -2544,7 +2575,11 @@ class OrchestratorService:
         # change that persistence did not make.
         _ooc_config_noop_notes = [
             _note
-            for _note in (_ooc_style_noop_note, _ooc_range_noop_note)
+            for _note in (
+                _ooc_style_noop_note,
+                _ooc_range_noop_note,
+                _ooc_persona_noop_note,
+            )
             if _note is not None
         ]
         if _ooc_config_noop_notes:

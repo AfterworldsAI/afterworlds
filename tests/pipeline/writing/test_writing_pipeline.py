@@ -796,3 +796,145 @@ class TestCanonEligibilitySeam:
         )
 
         mock_sbs.route_extractor_proposals.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# WritingConfigUpdate — new field validators (Decision 10 expansion)
+# ---------------------------------------------------------------------------
+
+
+class TestWritingConfigUpdateNewFields:
+    def test_beat_constraints_empty_string_rejected(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="beat_constraints"):
+            WritingConfigUpdate(beat_constraints=["valid constraint", ""])
+
+    def test_beat_constraints_whitespace_only_rejected(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="beat_constraints"):
+            WritingConfigUpdate(beat_constraints=["   "])
+
+    def test_beat_constraints_valid_list_accepted(self) -> None:
+        update = WritingConfigUpdate(
+            beat_constraints=["no deus ex machina", "protagonist earns every victory"]
+        )
+        assert update.beat_constraints == [
+            "no deus ex machina",
+            "protagonist earns every victory",
+        ]
+
+    def test_beat_constraints_none_is_valid(self) -> None:
+        update = WritingConfigUpdate(beat_constraints=None)
+        assert update.beat_constraints is None
+
+    def test_version_pointers_parsed_from_dicts(self) -> None:
+        update = WritingConfigUpdate(
+            version_pointers=[
+                WritingVersionPointer(
+                    kind=WritingVersionPointerKind.DRAFT_LABEL,
+                    label="Chapter 1 v2",
+                )
+            ]
+        )
+        assert update.version_pointers is not None
+        assert len(update.version_pointers) == 1
+        assert update.version_pointers[0].label == "Chapter 1 v2"
+
+    def test_version_pointers_none_is_valid(self) -> None:
+        update = WritingConfigUpdate(version_pointers=None)
+        assert update.version_pointers is None
+
+
+# ---------------------------------------------------------------------------
+# WritingOocConfigExtractorService — schema accepts beat_constraints / version_pointers
+# ---------------------------------------------------------------------------
+
+
+class TestOocExtractorSchemaNewFields:
+    """OOC extractor handles beat_constraints and version_pointers in tool output."""
+
+    def setup_method(self) -> None:
+        from afterworlds.pipeline.writing.ooc_config_extractor import (
+            WritingOocConfigExtractorService,
+        )
+
+        self.service = WritingOocConfigExtractorService()
+
+    def test_extraction_with_beat_constraints(self) -> None:
+        """Tool output with beat_constraints list → parsed into WritingConfigUpdate."""
+        tool_input = {
+            "persona_id": None,
+            "play_status": None,
+            "critique_intensity": None,
+            "form": None,
+            "form_other": None,
+            "tense": None,
+            "pov": None,
+            "style_density": None,
+            "dialogue_narration_ratio": None,
+            "genre_conventions": None,
+            "specific_goals": None,
+            "acceptable_content": None,
+            "beat_constraints": ["no deus ex machina", "protagonist earns every win"],
+            "version_pointers": None,
+        }
+        ctx = _make_ooc_assembled()
+        provider = _make_ooc_provider(tool_input=tool_input)
+        result = self.service.extract(ctx, provider)  # type: ignore[arg-type]
+        assert result.config_update.beat_constraints == [
+            "no deus ex machina",
+            "protagonist earns every win",
+        ]
+
+    def test_extraction_with_version_pointers(self) -> None:
+        """Tool output with version_pointers → parsed into WritingConfigUpdate."""
+        tool_input = {
+            "persona_id": None,
+            "play_status": None,
+            "critique_intensity": None,
+            "form": None,
+            "form_other": None,
+            "tense": None,
+            "pov": None,
+            "style_density": None,
+            "dialogue_narration_ratio": None,
+            "genre_conventions": None,
+            "specific_goals": None,
+            "acceptable_content": None,
+            "beat_constraints": None,
+            "version_pointers": [{"kind": "draft_label", "label": "Chapter 1 v2"}],
+        }
+        ctx = _make_ooc_assembled()
+        provider = _make_ooc_provider(tool_input=tool_input)
+        result = self.service.extract(ctx, provider)  # type: ignore[arg-type]
+        assert result.config_update.version_pointers is not None
+        assert len(result.config_update.version_pointers) == 1
+        assert result.config_update.version_pointers[0].label == "Chapter 1 v2"
+        # pointer_id auto-generated (not in tool input — default_factory fills it)
+        assert result.config_update.version_pointers[0].pointer_id is not None
+
+    def test_extraction_beat_constraints_null_is_none(self) -> None:
+        """Null beat_constraints from LLM → None in WritingConfigUpdate."""
+        tool_input = {
+            "persona_id": None,
+            "play_status": None,
+            "critique_intensity": None,
+            "form": None,
+            "form_other": None,
+            "tense": None,
+            "pov": None,
+            "style_density": None,
+            "dialogue_narration_ratio": None,
+            "genre_conventions": None,
+            "specific_goals": None,
+            "acceptable_content": None,
+            "beat_constraints": None,
+            "version_pointers": None,
+        }
+        ctx = _make_ooc_assembled()
+        provider = _make_ooc_provider(tool_input=tool_input)
+        result = self.service.extract(ctx, provider)  # type: ignore[arg-type]
+        assert result.config_update.beat_constraints is None
+        assert result.config_update.version_pointers is None
