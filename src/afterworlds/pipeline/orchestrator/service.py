@@ -63,6 +63,7 @@ from afterworlds.models.enums import (
     RpgPlayStatus,
     StoryMode,
     WritingCanonEligibility,
+    WritingPlayStatus,
     WritingWorkProductKind,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
@@ -569,20 +570,62 @@ class OrchestratorService:
                     turn_start,
                     f"writing session resolution failed: {exc}",
                 )
+            if pre_writing_state is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "writing session not found for story;"
+                    " cannot determine play status or inject persona context",
+                )
+            # IN_PLAY turns require a configured persona present in the registry.
+            # SETUP turns have no persona yet; the base mode contract handles setup.
+            # (ADR-017 Decision 9: setup gating is via play_status check in code.)
+            if pre_writing_state.play_status is WritingPlayStatus.IN_PLAY:
+                if pre_writing_state.persona_id is None:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        "writing IN_PLAY session has no persona_id;"
+                        " persona must be configured before Writing output proceeds",
+                    )
+                if self._writing_visible_state_service is None:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        "writing visible state service not wired for IN_PLAY turn;"
+                        " cannot validate persona before Writing output proceeds",
+                    )
+                try:
+                    from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                        SupportedMode as _SM_W,
+                    )
+
+                    self._writing_visible_state_service.registry.get_profile(
+                        pre_writing_state.persona_id, _SM_W.WRITING
+                    )
+                except (KeyError, ValueError) as exc:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"writing IN_PLAY persona_id"
+                        f" {pre_writing_state.persona_id!r}"
+                        f" not found in registry: {exc}",
+                    )
             # Extend stable prefix with persona fragment + authoring controls.
-            # Best-effort: if the service is not wired or the session has no persona
-            # yet (SETUP phase), the base mode contract remains valid unchanged.
-            if (
-                pre_writing_state is not None
-                and self._writing_visible_state_service is not None
-            ):
+            # SETUP turns may have no persona yet; injection is best-effort and
+            # render_context_appendix returns "" when persona_id is None.
+            if self._writing_visible_state_service is not None:
                 try:
                     _svc = self._writing_visible_state_service
                     _appendix = _svc.render_context_appendix(pre_writing_state)
                     if _appendix:
                         ctx = _extend_system_prompt(ctx, _appendix)
                 except Exception:  # noqa: BLE001
-                    pass  # base mode contract remains valid; injection best-effort
+                    pass  # best-effort; IN_PLAY persona was already validated above
 
         # P2-1: when player_reported_total is set in RPG mode the consume path
         # takes precedence over the OOC short-circuit — the player is reporting

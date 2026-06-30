@@ -9496,3 +9496,221 @@ class TestCommitFailurePreservesWritingOocUsage:
         # Delivery is still gated by the PIPELINE_ERROR disposition.
         assert result.delivered_output is None
         assert result.turn_id is None
+
+
+# ---------------------------------------------------------------------------
+# P2 #1 Fix: Writing pre-resolve gate — fail closed on missing/invalid session
+#
+# The orchestrator must fail closed (PIPELINE_ERROR) before Planner/Writer
+# when the Writing resolver returns None, the session is IN_PLAY without a
+# persona_id, or the persona_id is not found in the registry.
+# SETUP turns (no persona yet) are allowed through per ADR-017 Decision 9.
+# ---------------------------------------------------------------------------
+
+
+def _make_writing_gate_orch(
+    session_factory: object,
+    *,
+    writing_resolver: object,
+    planner: FakePlannerService | None = None,
+    writer: FakeWriterService | None = None,
+    visible_state_service: object = None,
+) -> OrchestratorService:
+    """Build an OrchestratorService for Writing-mode narrative gate tests."""
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(
+            make_intent(IntentType.IN_CHARACTER_ACTION, "Write me something.")
+        ),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=planner or FakePlannerService(),
+        writer_service=writer or FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.WRITING),
+        writing_session_resolver=writing_resolver,  # type: ignore[arg-type]
+        writing_visible_state_service=visible_state_service,
+    )
+
+
+class TestWritingSetupGate:
+    """Writing pre-resolve gate: fail closed before Planner/Writer on bad session."""
+
+    def test_resolver_returns_none_is_pipeline_error(
+        self, session_factory: object
+    ) -> None:
+        """Resolver returning None → PIPELINE_ERROR; Planner not called."""
+        planner = FakePlannerService()
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=lambda sid: None,
+            planner=planner,
+        )
+
+        result = orch.orchestrate_turn(
+            uuid4(),
+            uuid4(),
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not found" in (result.pipeline_error_summary or "")
+        assert not planner.calls, "Planner must not be called after gate fires"
+
+    def test_in_play_no_persona_id_is_pipeline_error(
+        self, session_factory: object
+    ) -> None:
+        """IN_PLAY session with persona_id=None → PIPELINE_ERROR; Planner not called."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+
+        planner = FakePlannerService()
+        sid_capture: list[UUID] = []
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            sid_capture.append(sid)
+            return WritingSessionState(
+                story_id=sid,
+                play_status=WritingPlayStatus.IN_PLAY,
+                # persona_id defaults to None
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=planner,
+        )
+
+        result = orch.orchestrate_turn(
+            uuid4(),
+            uuid4(),
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "persona_id" in (result.pipeline_error_summary or "")
+        assert not planner.calls, "Planner must not be called after gate fires"
+
+    def test_in_play_invalid_persona_not_in_registry_is_pipeline_error(
+        self, session_factory: object
+    ) -> None:
+        """IN_PLAY persona_id not in registry → PIPELINE_ERROR; Planner not called."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        planner = FakePlannerService()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="nonexistent_persona_xyz_p2",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        svc = WritingVisibleStateService(get_default_registry())
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=planner,
+            visible_state_service=svc,
+        )
+
+        result = orch.orchestrate_turn(
+            uuid4(),
+            uuid4(),
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "not found in registry" in (result.pipeline_error_summary or "")
+        assert not planner.calls, "Planner must not be called after gate fires"
+
+    def test_in_play_valid_persona_proceeds_to_writer(
+        self, session_factory: object, session: object
+    ) -> None:
+        """IN_PLAY with valid persona injects context and reaches Writer."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        planner = FakePlannerService()
+        writer = FakeWriterService()
+        svc = WritingVisibleStateService(get_default_registry())
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=planner,
+            writer=writer,
+            visible_state_service=svc,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert planner.calls, "Planner must be called for valid IN_PLAY turn"
+        assert writer.calls, "Writer must be called for valid IN_PLAY turn"
+
+    def test_setup_phase_no_persona_allowed_through(
+        self, session_factory: object, session: object
+    ) -> None:
+        """SETUP turn with no persona_id bypasses gate and reaches Planner/Writer."""
+        from afterworlds.models.session import WritingSessionState
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            # persona_id=None, play_status=SETUP (defaults) — legitimate SETUP turn
+            return WritingSessionState(story_id=sid)
+
+        planner = FakePlannerService()
+        writer = FakeWriterService()
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=planner,
+            writer=writer,
+            # no visible_state_service — base mode only; SETUP contract valid
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Set up my writing session.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert planner.calls, "Planner must be called for SETUP turn"
+        assert writer.calls, "Writer must be called for SETUP turn"

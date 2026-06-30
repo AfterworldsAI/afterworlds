@@ -681,6 +681,76 @@ def test_apply_writing_config_update_form_OTHER_without_form_other_skips(session
     assert fetched.form is WritingForm.SHORT_STORY  # unchanged — form=OTHER skipped
 
 
+def test_apply_writing_config_update_form_other_blank_on_other_row_skips(session):  # type: ignore[no-untyped-def]
+    """Blank form_other on form=OTHER row is skipped to keep the row readable."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="essay hybrid"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="",  # blank — must not overwrite valid form_other on OTHER row
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER  # unchanged
+    assert fetched.form_other == "essay hybrid"  # preserved — blank skipped
+
+
+def test_apply_writing_config_update_form_other_valid_on_other_row_updates(session):  # type: ignore[no-untyped-def]
+    """form_other with a valid string on an existing form=OTHER row updates normally."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="essay hybrid"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="memoir fragments",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER
+    assert fetched.form_other == "memoir fragments"
+
+
+def test_apply_writing_config_update_form_other_on_non_other_row_updates(session):  # type: ignore[no-untyped-def]
+    """form_other-only update on a non-OTHER row writes normally (no regression)."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id, form=WritingForm.SHORT_STORY)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="interlude",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY  # form unchanged
+    assert fetched.form_other == "interlude"
+
+
 def test_apply_writing_config_update_beat_constraints_replaces(session):  # type: ignore[no-untyped-def]
     """beat_constraints replaces the full list (replace semantics)."""
     story = make_story()

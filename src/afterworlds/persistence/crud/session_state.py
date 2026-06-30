@@ -539,7 +539,12 @@ def apply_writing_config_update(
             if form_other is not None:
                 row.form_other = form_other
     elif form_other is not None:
-        row.form_other = form_other
+        # Guard: if the persisted row already has form=OTHER, a blank form_other
+        # would make it unreadable on the next CRUD read (_writing_orm_to_model
+        # constructs WritingSessionState whose validator rejects form=OTHER +
+        # falsey form_other).
+        if not (row.form == WritingForm.OTHER.value and not form_other):
+            row.form_other = form_other
 
     if critique_intensity is not None:
         row.critique_intensity = critique_intensity.value
