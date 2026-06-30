@@ -79,15 +79,13 @@ ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRout
 
 ### Mode-specific OOC handler selection and final protocol implementation
 
-**Resolve during:** Issue 17 (Writing). **RPG mode resolved during Issue 15. Branching mode resolved during Issue 16.**
-
-Issue 12c short-circuits OOC turns away from the ordinary narrative passes and routes them through `WriterService` with the thin v1 placeholder at `/docs/prompts/ooc_handler.md`. The v2 mode prompt contracts now contain OOC sections, but the implementation question remains: how the orchestrator selects or injects the final mode-specific OOC instruction, and whether the placeholder is replaced outright or retained as a generic fallback.
+**RESOLVED during Issue 17.** All three modes now have dedicated OOC handlers.
 
 **RPG resolution (Issue 15):** Implemented as a distinct mode-specific handler for RPG mode via `docs/prompts/rpg_ooc_handler.md`. Replaces the 12c placeholder when `StoryMode.RPG` is active. Answers rules, configuration, setup, and clarification questions; advances no story; mutates no canon; routes configuration changes through typed paths. The orchestrator `_run_ooc()` now accepts `story_mode` and selects between `rpg_ooc_handler.md` (RPG mode) and `ooc_handler.md` (other modes). See ADR-015 Decision 11 and `/docs/prompts/rpg_ooc_handler.md`.
 
 **Branching resolution (Issue 16):** Implemented as a distinct mode-specific handler for Branching mode via `docs/prompts/branching_ooc_handler.md`. When `StoryMode.BRANCHING` is active, the orchestrator `_run_ooc()` now selects `branching_ooc_handler.md`. Handles interaction-style/cadence/length configuration updates (transaction-scoped to `OOC_HANDLED`), Branching Mode platform questions, and True CYOA rejection guidance. See ADR-016 Decisions 4 and the OOC handler Known Unknown section.
 
-**What remaining resolution requires:** Issue 17 must finalize the Writing mode OOC protocol via `/docs/prompts/writing_ooc_handler.md` and implement mode-aware handler selection in `_run_ooc()`. Document any changes in an ADR if the handler-selection path changes shape.
+**Writing resolution (Issue 17):** Implemented via `docs/prompts/writing_ooc_handler.md`. When `StoryMode.WRITING` is active, the orchestrator `_run_ooc()` selects `writing_ooc_handler.md`. Handles persona changes, authoring-control updates (critique intensity, style density, form, tense, POV, etc.), platform questions, and Writing Mode config extraction via `WritingOocConfigExtractorService` (transaction-scoped, best-effort). See ADR-017.
 
 ---
 
@@ -155,24 +153,15 @@ The architecture is resolved: hosted credits are provider-neutral, usage-backed 
 
 ### Mentor and Peer persona behavioral implementation details
 
-**Resolve during:** Issue 17.
-
-The high-level Writing-mode structure is resolved: personas are divided into Mentors and Peers, with Chiron, Merlin, Vidura, Odin, Athena, and Thoth as the v1 roster. The v2 prompt contract contains concise persona characteristics, but Issue 17 still owns final prompt-injection behavior, tests, and any companion behavioral briefs needed for implementation.
-
-**What resolution requires:** During Issue 17, write implementation-ready behavioral briefs or prompt fragments for all six personas if the prompt contract alone is insufficient. Each brief should define distinctive voice/register, default opening approach, ambiguity handling, category-specific behavior, and tests/fixtures that distinguish personas without exploding the surface area.
+**RESOLVED during Issue 17.** All six personas have implementation-ready prompt fragments, behavioral briefs, and registry profiles in `src/afterworlds/modes/personas/profiles/writing_personas.v1.json`. Each profile includes `prompt_fragment`, `signature_move`, `opening_question_style`, `negative_constraints`, and `demeanor_tags`. The `WritingContextRenderer` injects the resolved persona fragment into the stable prefix once per turn. See ADR-017 Decision 2.
 
 ---
 
 ### Prose parity constraint for Writing mode
 
-**Resolve during:** Issue 17.
+**DEFERRED — out of scope for Issue 17.** ADR-017 Decision 13 explicitly defers prose parity tracking. The decision record: v1 does not enforce per-turn or running-total prose parity. The persona prompt fragments include guidance that naturally limits AI output scope (e.g., negative constraints, Peer vs. Mentor orientation), but no counter is stored in `WritingSessionState` and no enforcement gate exists in the pipeline. A future issue may revisit if user research indicates AI output volume consistently overwhelms Sojourner authorship.
 
-The question is whether Mentors and Peers should be constrained to match or approximate the user’s prose output volume per turn, to prevent the AI from taking over the writing. Two sub-questions remain open:
-
-1. **Per-turn vs. running-total parity:** Per-turn parity is simpler but can feel mechanical. Running-total parity is more forgiving but requires session-level tracking.
-2. **Scope — Peers only or all personas:** Parity makes clean sense for Peers, who are co-writers. It is murkier for Mentors, whose output is often feedback and craft instruction rather than prose.
-
-**What resolution requires:** Decide on the parity model, the scope, and how Mentor feedback is measured differently from generated prose. If implemented, store the required counters in Writing session state and document how they are updated.
+**What resolution requires if revisited:** Decide parity model (per-turn vs. running-total), scope (Peers only vs. all), and measurement unit. Add counter fields to `WritingSessionState`, update migration, and add enforcement in the orchestrator or context renderer. Requires a new ADR or ADR-017 amendment.
 
 ---
 
