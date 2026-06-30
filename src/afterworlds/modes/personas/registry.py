@@ -106,8 +106,7 @@ class JsonPersonaRegistry:
         raw = json.loads(path.read_text(encoding="utf-8"))
         self._registry_version: int = raw.get("registry_version", REGISTRY_VERSION)
         self._profiles: dict[str, PersonaProfile] = {
-            p["persona_id"]: PersonaProfile.model_validate(p)
-            for p in raw["profiles"]
+            p["persona_id"]: PersonaProfile.model_validate(p) for p in raw["profiles"]
         }
 
     def get_profile(self, persona_id: str, mode: SupportedMode) -> PersonaProfile:
@@ -116,9 +115,7 @@ class JsonPersonaRegistry:
         if profile is None:
             raise KeyError(f"Unknown persona_id: {persona_id!r}")
         if mode not in profile.supported_modes:
-            raise KeyError(
-                f"Persona {persona_id!r} does not support mode {mode!r}"
-            )
+            raise KeyError(f"Persona {persona_id!r} does not support mode {mode!r}")
         return profile
 
     def list_active(self, mode: SupportedMode) -> list[PersonaProfile]:

@@ -119,7 +119,9 @@ class TestWritingTurnRequest:
         req = WritingTurnRequest(
             work_product_kind=WritingWorkProductKind.PROSE_CONTINUATION
         )
-        assert req.effective_canon_eligibility is WritingCanonEligibility.NON_CANON_SUPPORT  # noqa: E501
+        assert (
+            req.effective_canon_eligibility is WritingCanonEligibility.NON_CANON_SUPPORT
+        )  # noqa: E501
 
     def test_no_override_is_non_canon(self) -> None:
         for kind in WritingWorkProductKind:
@@ -139,21 +141,30 @@ class TestWritingTurnRequest:
             work_product_kind=WritingWorkProductKind.PROSE_CONTINUATION,
             canon_eligibility_override=WritingCanonEligibility.EXTRACTOR_ELIGIBLE,
         )
-        assert req.effective_canon_eligibility is WritingCanonEligibility.EXTRACTOR_ELIGIBLE  # noqa: E501
+        assert (
+            req.effective_canon_eligibility
+            is WritingCanonEligibility.EXTRACTOR_ELIGIBLE
+        )  # noqa: E501
 
     def test_draft_prose_can_be_extractor_eligible(self) -> None:
         req = WritingTurnRequest(
             work_product_kind=WritingWorkProductKind.DRAFT_PROSE,
             canon_eligibility_override=WritingCanonEligibility.EXTRACTOR_ELIGIBLE,
         )
-        assert req.effective_canon_eligibility is WritingCanonEligibility.EXTRACTOR_ELIGIBLE  # noqa: E501
+        assert (
+            req.effective_canon_eligibility
+            is WritingCanonEligibility.EXTRACTOR_ELIGIBLE
+        )  # noqa: E501
 
     def test_revision_can_be_extractor_eligible(self) -> None:
         req = WritingTurnRequest(
             work_product_kind=WritingWorkProductKind.REVISION,
             canon_eligibility_override=WritingCanonEligibility.EXTRACTOR_ELIGIBLE,
         )
-        assert req.effective_canon_eligibility is WritingCanonEligibility.EXTRACTOR_ELIGIBLE  # noqa: E501
+        assert (
+            req.effective_canon_eligibility
+            is WritingCanonEligibility.EXTRACTOR_ELIGIBLE
+        )  # noqa: E501
 
     def test_critique_cannot_be_extractor_eligible(self) -> None:
         with pytest.raises(ValidationError, match="EXTRACTOR_ELIGIBLE is not valid"):
@@ -310,9 +321,7 @@ class TestWritingContextRenderer:
 
     def test_all_six_personas_produce_output(self) -> None:
         for persona_id in ("chiron", "merlin", "vidura", "athena", "odin", "thoth"):
-            session_state = WritingSessionState(
-                story_id=uuid4(), persona_id=persona_id
-            )
+            session_state = WritingSessionState(story_id=uuid4(), persona_id=persona_id)
             result = render_writing_system_prompt_appendix(session_state, self.registry)
             assert result, f"Empty appendix for {persona_id}"
 
@@ -482,20 +491,24 @@ def _make_ooc_provider(
             content_parts=[
                 ProviderToolCallPart(
                     tool_name=tool_name,
-                    tool_input=tool_input if tool_input is not None else {
-                        "persona_id": None,
-                        "play_status": None,
-                        "critique_intensity": None,
-                        "form": None,
-                        "form_other": None,
-                        "tense": None,
-                        "pov": None,
-                        "style_density": None,
-                        "dialogue_narration_ratio": None,
-                        "genre_conventions": None,
-                        "specific_goals": None,
-                        "acceptable_content": None,
-                    },
+                    tool_input=(
+                        tool_input
+                        if tool_input is not None
+                        else {
+                            "persona_id": None,
+                            "play_status": None,
+                            "critique_intensity": None,
+                            "form": None,
+                            "form_other": None,
+                            "tense": None,
+                            "pov": None,
+                            "style_density": None,
+                            "dialogue_narration_ratio": None,
+                            "genre_conventions": None,
+                            "specific_goals": None,
+                            "acceptable_content": None,
+                        }
+                    ),
                 )
             ],
             provider_name="fake",

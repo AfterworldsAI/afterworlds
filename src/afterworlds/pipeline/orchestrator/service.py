@@ -350,9 +350,7 @@ class OrchestratorService:
             Callable[[UUID], WritingSessionState | None] | None
         ) = None,
         writing_visible_state_service: WritingVisibleStateService | None = None,
-        writing_ooc_config_extractor: (
-            WritingOocConfigExtractorService | None
-        ) = None,
+        writing_ooc_config_extractor: WritingOocConfigExtractorService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -1657,6 +1655,7 @@ class OrchestratorService:
                             from afterworlds.modes.personas.registry import (  # noqa: PLC0415
                                 SupportedMode as _SM2,
                             )
+
                             _preg = self._writing_visible_state_service.registry
                             _pprof = _preg.get_profile(_wss.persona_id, _SM2.WRITING)
                             _disp_name = _pprof.display_name
@@ -2507,6 +2506,7 @@ class OrchestratorService:
                         from afterworlds.modes.personas.registry import (
                             SupportedMode as _SM,  # noqa: PLC0415
                         )
+
                         _reg = self._writing_visible_state_service.registry
                         _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
                         _registry_version = _reg.registry_version
