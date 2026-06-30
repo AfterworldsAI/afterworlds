@@ -217,7 +217,7 @@ class WritingVisibleState(BaseModel):
     play_status: str
     specific_goals: str
     critique_intensity: CritiqueIntensity
-    form: WritingForm
+    form: WritingForm | None
     tense: str | None
     pov: str | None
     style_density: StyleDensity

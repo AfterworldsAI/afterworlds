@@ -9455,3 +9455,44 @@ class TestWritingOocConfigPersistence:
         assert wss is not None
         assert wss.persona_id == "odin"
         assert wss.persona_registry_version == 1  # provenance recorded
+
+
+class TestCommitFailurePreservesWritingOocUsage:
+    """Commit-failure rebuild preserves Writing OOC-config extractor usage.
+
+    A Writing OOC-config extractor that ran before a failed commit already
+    consumed provider tokens.  The rebuilt PIPELINE_ERROR must keep
+    ``writing_ooc_config_result`` so cost settlement
+    (WRITING_OOC_CONFIG_EXTRACTOR) and audit can reconstruct the spend.
+    """
+
+    def test_writing_ooc_config_result_survives_commit_failure(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Writing OOC extractor success + commit failure → preserved result."""
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        failing_factory = _CommitFailingSessionFactory(
+            session_factory, ConnectionError("simulated DB timeout")
+        )
+        config_update = WritingConfigUpdate(persona_id="odin")
+        orch = _make_writing_ooc_orch(failing_factory, config_update)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to Odin",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "transaction commit failed" in (result.pipeline_error_summary or "")
+        # Provider-usage evidence must survive the commit-failure rebuild.
+        assert result.writing_ooc_config_result is not None
+        assert result.writing_ooc_config_result.input_token_count == 10
+        assert result.writing_ooc_config_result.output_token_count == 5
+        # Delivery is still gated by the PIPELINE_ERROR disposition.
+        assert result.delivered_output is None
+        assert result.turn_id is None

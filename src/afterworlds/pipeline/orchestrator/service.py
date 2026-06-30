@@ -3284,19 +3284,21 @@ class OrchestratorService:
                     extractor_result=inner_result.extractor_result,
                     contradiction_result=inner_result.contradiction_result,
                     rpg_adjudication_result=inner_result.rpg_adjudication_result,
-                    # Preserve usage-carrying Branching pass results.  A
-                    # BranchingWriter or Branching OOC-config extractor that ran
-                    # before the failed commit already consumed provider tokens;
-                    # the disposition changes to PIPELINE_ERROR but that
-                    # successful provider-usage evidence must survive so cost
-                    # settlement (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_
-                    # EXTRACTOR) and audit can reconstruct the spend.  Delivery
-                    # is gated by the PIPELINE_ERROR disposition, not by nulling
-                    # these records.
+                    # Preserve usage-carrying Branching and Writing OOC-config
+                    # pass results.  A BranchingWriter, Branching OOC-config
+                    # extractor, or Writing OOC-config extractor that ran before
+                    # the failed commit already consumed provider tokens; the
+                    # disposition changes to PIPELINE_ERROR but that successful
+                    # provider-usage evidence must survive so cost settlement
+                    # (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_EXTRACTOR /
+                    # WRITING_OOC_CONFIG_EXTRACTOR) and audit can reconstruct
+                    # the spend.  Delivery is gated by the PIPELINE_ERROR
+                    # disposition, not by nulling these records.
                     branching_pass_result=inner_result.branching_pass_result,
                     branching_ooc_config_result=(
                         inner_result.branching_ooc_config_result
                     ),
+                    writing_ooc_config_result=(inner_result.writing_ooc_config_result),
                     pipeline_error_summary=(
                         f"transaction commit failed after "
                         f"{success_disposition.value}: {commit_exc}"

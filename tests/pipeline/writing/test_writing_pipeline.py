@@ -389,8 +389,18 @@ class TestWritingVisibleStateService:
         assert vs.pov == "third limited"
         assert "no deus ex machina" in vs.beat_constraints
 
-    def test_build_form_defaults_to_other_when_none(self) -> None:
+    def test_build_unset_form_remains_none(self) -> None:
         state = WritingSessionState(story_id=uuid4(), persona_id="thoth")
+        vs = self.service.build(state)
+        assert vs.form is None
+
+    def test_build_explicit_other_form_preserved(self) -> None:
+        state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="thoth",
+            form=WritingForm.OTHER,
+            form_other="Haiku",
+        )
         vs = self.service.build(state)
         assert vs.form is WritingForm.OTHER
 
