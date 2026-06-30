@@ -93,7 +93,12 @@ class BranchingSessionStateORM(Base):
 
 
 class WritingSessionStateORM(Base):
-    """Persisted WritingSessionState row — one active row per story."""
+    """Persisted WritingSessionState row — one active row per story.
+
+    Migration 0013 adds all Issue 17 fields. New columns are nullable so
+    existing rows are never silently promoted to a state they were not
+    configured for (conservative backfill rule).
+    """
 
     __tablename__ = "writing_session_states"
     __table_args__ = (
@@ -106,6 +111,50 @@ class WritingSessionStateORM(Base):
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
     )
-    beat_constraints: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
-    version_history_pointers: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
-    persona: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+
+    # Persona provenance (Issue 17) — nullable for pre-17 rows
+    persona_id: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    persona_registry_version: Mapped[int | None] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    persona_profile_version: Mapped[int | None] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    persona_prompt_fingerprint: Mapped[str | None] = mapped_column(
+        sa.String(128), nullable=True
+    )
+
+    # Play status — server_default="setup" so existing rows remain in SETUP
+    play_status: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="setup"
+    )
+
+    # Authoring controls (Issue 17) — all nullable
+    reading_interests: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    writing_interests: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    form: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    form_other: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    specific_goals: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default=""
+    )
+    critique_intensity: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="balanced"
+    )
+    tense: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    pov: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    style_density: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="balanced"
+    )
+    dialogue_narration_ratio: Mapped[int | None] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    genre_conventions: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    acceptable_content: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+
+    # Beat constraints and version pointers (renamed from legacy fields)
+    beat_constraints: Mapped[list[Any]] = mapped_column(
+        sa.JSON, nullable=False, server_default="[]"
+    )
+    version_pointers: Mapped[list[Any]] = mapped_column(
+        sa.JSON, nullable=False, server_default="[]"
+    )

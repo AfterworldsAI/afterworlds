@@ -7,18 +7,20 @@ Architecture invariant enforced here:
   character resources live on ``Dnd5eCharacterSheet`` — not here.
 - Branching session state includes pacing stage, branch tree (distinct
   structured model), and plot thread tracker as separate typed fields.
-- Writing session state holds beat constraints and version history pointers.
+- Writing session state holds persona provenance, authoring controls, beat
+  constraints, and minimal version pointers.
 """
 
-from typing import Self
+from typing import Any, Self
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from afterworlds.models.enums import (
     BranchCountRange,
     BranchingCadence,
     BranchingPlayStatus,
+    CritiqueIntensity,
     DiceHandling,
     InteractionStyle,
     LengthPreference,
@@ -27,7 +29,9 @@ from afterworlds.models.enums import (
     RpgSessionType,
     RpgSetupPhase,
     RpgTone,
-    WritingPersona,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
 )
 
 # ---------------------------------------------------------------------------
@@ -168,10 +172,65 @@ class BranchingSessionState(BaseModel):
 
 
 class WritingSessionState(BaseModel):
-    """Session state for Writing mode."""
+    """Session state for Writing mode.
+
+    persona_id is required at setup; there is no default persona. Registry
+    provenance fields are set when a persona is selected and are provenance-only
+    in v1 (no historical lookup or mismatch handling).
+
+    Conservative backfill rule: all new fields are nullable or have safe
+    defaults. Existing rows without a persona stay in SETUP until setup
+    completes explicitly.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     session_id: UUID = Field(default_factory=uuid4)
     story_id: UUID
+
+    # Persona provenance — set at setup, not duplicated from registry
+    persona_id: str | None = None
+    persona_registry_version: int | None = None
+    persona_profile_version: int | None = None
+    persona_prompt_fingerprint: str | None = None
+
+    play_status: WritingPlayStatus = WritingPlayStatus.SETUP
+
+    # Authoring controls — all nullable; safe defaults on required fields
+    reading_interests: str | None = None
+    writing_interests: str | None = None
+    form: WritingForm | None = None
+    form_other: str | None = None
+    specific_goals: str = ""
+    critique_intensity: CritiqueIntensity = CritiqueIntensity.BALANCED
+
+    tense: str | None = None
+    pov: str | None = None
+    style_density: StyleDensity = StyleDensity.BALANCED
+    dialogue_narration_ratio: int | None = None
+    genre_conventions: str | None = None
+
     beat_constraints: list[str] = Field(default_factory=list)
-    version_history_pointers: list[UUID] = Field(default_factory=list)
-    persona: WritingPersona | None = None
+    version_pointers: list[dict[str, Any]] = Field(default_factory=list)
+    acceptable_content: str | None = None
+
+    @field_validator("dialogue_narration_ratio")
+    @classmethod
+    def _ratio_range(cls, v: int | None) -> int | None:
+        if v is not None and not (0 <= v <= 100):
+            raise ValueError("dialogue_narration_ratio must be between 0 and 100")
+        return v
+
+    @field_validator("beat_constraints")
+    @classmethod
+    def _constraints_nonempty(cls, v: list[str]) -> list[str]:
+        for constraint in v:
+            if not constraint.strip():
+                raise ValueError("beat_constraints must not contain empty strings")
+        return v
+
+    @model_validator(mode="after")
+    def _form_other_required(self) -> Self:
+        if self.form is WritingForm.OTHER and not self.form_other:
+            raise ValueError("form_other is required when form is OTHER")
+        return self

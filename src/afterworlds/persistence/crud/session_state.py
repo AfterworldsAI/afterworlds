@@ -12,6 +12,7 @@ from afterworlds.models.enums import (
     BranchCountRange,
     BranchingCadence,
     BranchingPlayStatus,
+    CritiqueIntensity,
     DiceHandling,
     InteractionStyle,
     LengthPreference,
@@ -19,6 +20,9 @@ from afterworlds.models.enums import (
     RpgSessionType,
     RpgSetupPhase,
     RpgTone,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
 )
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -361,9 +365,25 @@ def _writing_orm_to_model(row: WritingSessionStateORM) -> WritingSessionState:
     return WritingSessionState(
         session_id=UUID(row.session_id),
         story_id=UUID(row.story_id),
+        persona_id=row.persona_id,
+        persona_registry_version=row.persona_registry_version,
+        persona_profile_version=row.persona_profile_version,
+        persona_prompt_fingerprint=row.persona_prompt_fingerprint,
+        play_status=WritingPlayStatus(row.play_status),
+        reading_interests=row.reading_interests,
+        writing_interests=row.writing_interests,
+        form=WritingForm(row.form) if row.form is not None else None,
+        form_other=row.form_other,
+        specific_goals=row.specific_goals or "",
+        critique_intensity=CritiqueIntensity(row.critique_intensity),
+        tense=row.tense,
+        pov=row.pov,
+        style_density=StyleDensity(row.style_density),
+        dialogue_narration_ratio=row.dialogue_narration_ratio,
+        genre_conventions=row.genre_conventions,
         beat_constraints=list(row.beat_constraints),
-        version_history_pointers=[UUID(p) for p in row.version_history_pointers],
-        persona=row.persona,  # type: ignore[arg-type]
+        version_pointers=list(row.version_pointers),
+        acceptable_content=row.acceptable_content,
     )
 
 
@@ -374,9 +394,25 @@ def create_writing_session_state(
     row = WritingSessionStateORM(
         session_id=str(state.session_id),
         story_id=str(state.story_id),
+        persona_id=state.persona_id,
+        persona_registry_version=state.persona_registry_version,
+        persona_profile_version=state.persona_profile_version,
+        persona_prompt_fingerprint=state.persona_prompt_fingerprint,
+        play_status=state.play_status.value,
+        reading_interests=state.reading_interests,
+        writing_interests=state.writing_interests,
+        form=state.form.value if state.form is not None else None,
+        form_other=state.form_other,
+        specific_goals=state.specific_goals,
+        critique_intensity=state.critique_intensity.value,
+        tense=state.tense,
+        pov=state.pov,
+        style_density=state.style_density.value,
+        dialogue_narration_ratio=state.dialogue_narration_ratio,
+        genre_conventions=state.genre_conventions,
         beat_constraints=list(state.beat_constraints),
-        version_history_pointers=[str(p) for p in state.version_history_pointers],
-        persona=state.persona.value if state.persona is not None else None,
+        version_pointers=list(state.version_pointers),
+        acceptable_content=state.acceptable_content,
     )
     session.add(row)
     session.flush()
@@ -414,11 +450,92 @@ def update_writing_session_state(
     row = session.get(WritingSessionStateORM, str(state.session_id))
     if row is None:
         return None
+    row.persona_id = state.persona_id
+    row.persona_registry_version = state.persona_registry_version
+    row.persona_profile_version = state.persona_profile_version
+    row.persona_prompt_fingerprint = state.persona_prompt_fingerprint
+    row.play_status = state.play_status.value
+    row.reading_interests = state.reading_interests
+    row.writing_interests = state.writing_interests
+    row.form = state.form.value if state.form is not None else None
+    row.form_other = state.form_other
+    row.specific_goals = state.specific_goals
+    row.critique_intensity = state.critique_intensity.value
+    row.tense = state.tense
+    row.pov = state.pov
+    row.style_density = state.style_density.value
+    row.dialogue_narration_ratio = state.dialogue_narration_ratio
+    row.genre_conventions = state.genre_conventions
     row.beat_constraints = list(state.beat_constraints)
-    row.version_history_pointers = [str(p) for p in state.version_history_pointers]
-    row.persona = state.persona.value if state.persona is not None else None
+    row.version_pointers = list(state.version_pointers)
+    row.acceptable_content = state.acceptable_content
     session.flush()
     return _writing_orm_to_model(row)
+
+
+def apply_writing_config_update(
+    session: Session,
+    story_id: UUID,
+    persona_id: str | None = None,
+    persona_registry_version: int | None = None,
+    persona_profile_version: int | None = None,
+    persona_prompt_fingerprint: str | None = None,
+    critique_intensity: CritiqueIntensity | None = None,
+    tense: str | None = None,
+    pov: str | None = None,
+    style_density: StyleDensity | None = None,
+    dialogue_narration_ratio: int | None = None,
+    genre_conventions: str | None = None,
+    specific_goals: str | None = None,
+    acceptable_content: str | None = None,
+    beat_constraints: list[str] | None = None,
+    play_status: WritingPlayStatus | None = None,
+) -> bool:
+    """Apply non-None config fields to the WritingSessionState ORM row for a story.
+
+    Only updates fields that are non-None. Returns True when the row was found
+    and flushed; False when no row exists for the given story_id.
+
+    Used by the OOC config extractor — all writes are inside the OOC transaction
+    and roll back if OOC_HANDLED does not commit.
+    """
+    row = session.scalars(
+        select(WritingSessionStateORM).where(
+            WritingSessionStateORM.story_id == str(story_id)
+        )
+    ).first()
+    if row is None:
+        return False
+    if persona_id is not None:
+        row.persona_id = persona_id
+    if persona_registry_version is not None:
+        row.persona_registry_version = persona_registry_version
+    if persona_profile_version is not None:
+        row.persona_profile_version = persona_profile_version
+    if persona_prompt_fingerprint is not None:
+        row.persona_prompt_fingerprint = persona_prompt_fingerprint
+    if critique_intensity is not None:
+        row.critique_intensity = critique_intensity.value
+    if tense is not None:
+        row.tense = tense
+    if pov is not None:
+        row.pov = pov
+    if style_density is not None:
+        row.style_density = style_density.value
+    if dialogue_narration_ratio is not None:
+        row.dialogue_narration_ratio = dialogue_narration_ratio
+    if genre_conventions is not None:
+        row.genre_conventions = genre_conventions
+    if specific_goals is not None:
+        row.specific_goals = specific_goals
+    if acceptable_content is not None:
+        row.acceptable_content = acceptable_content
+    if beat_constraints is not None:
+        row.beat_constraints = list(beat_constraints)
+    if play_status is not None:
+        row.play_status = play_status.value
+    session.flush()
+    return True
 
 
 def delete_writing_session_state(session: Session, session_id: UUID) -> bool:

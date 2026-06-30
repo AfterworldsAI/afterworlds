@@ -129,8 +129,10 @@ def test_node_mode_metadata_writing_round_trip(session):  # type: ignore[no-unty
         content="The scene opens on a rainy night.",
         intent_type=IntentType.AUTHOR_INSTRUCTION,
         mode_metadata=WritingNodeMetadata(
-            beat_constraints=["keep it atmospheric"],
-            version_pointer=ptr,
+            beat_constraints_snapshot=["keep it atmospheric"],
+            version_pointer_refs=[ptr],
+            persona_id="chiron",
+            work_product_kind="prose_continuation",
         ),
     )
     create_node(session, node)
@@ -139,8 +141,9 @@ def test_node_mode_metadata_writing_round_trip(session):  # type: ignore[no-unty
     fetched = get_node(session, node.node_id)
     assert fetched is not None
     assert isinstance(fetched.mode_metadata, WritingNodeMetadata)
-    assert fetched.mode_metadata.version_pointer == ptr
-    assert "keep it atmospheric" in fetched.mode_metadata.beat_constraints
+    assert ptr in fetched.mode_metadata.version_pointer_refs
+    assert "keep it atmospheric" in fetched.mode_metadata.beat_constraints_snapshot
+    assert fetched.mode_metadata.persona_id == "chiron"
 
 
 def test_node_state_delta_round_trip(session):  # type: ignore[no-untyped-def]

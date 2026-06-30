@@ -6525,8 +6525,8 @@ def _make_branching_config_capture_orchestrator(
     ``branching_config`` ledger block (Round 17 Finding 1) can be inspected on
     the injected ``writer_service.calls``.
     """
-    from afterworlds.models.enums import PacingStage
-    from afterworlds.models.session import BranchingSessionState
+    from afterworlds.models.enums import PacingStage, StoryMode
+    from afterworlds.models.session import BranchingSessionState, WritingSessionState
 
     def _branching_resolver(sid: UUID) -> BranchingSessionState:
         return BranchingSessionState(
@@ -6537,6 +6537,11 @@ def _make_branching_config_capture_orchestrator(
             length_preference=length_preference,  # type: ignore[arg-type]
             play_status=play_status,  # type: ignore[arg-type]
         )
+
+    def _writing_resolver(sid: UUID) -> WritingSessionState:
+        return WritingSessionState(story_id=sid)
+
+    writing_resolver = _writing_resolver if mode is StoryMode.WRITING else None
 
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(
@@ -6554,6 +6559,7 @@ def _make_branching_config_capture_orchestrator(
         mode_resolver=fixed_mode_resolver(mode),  # type: ignore[arg-type]
         branching_writer_service=branching_writer,  # type: ignore[arg-type]
         branching_session_resolver=_branching_resolver,
+        writing_session_resolver=writing_resolver,  # type: ignore[arg-type]
     )
 
 

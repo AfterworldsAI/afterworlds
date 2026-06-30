@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from afterworlds.models.enums import (
     BranchCountRange,
+    CritiqueIntensity,
     DiceHandling,
     InteractionStyle,
     PacingStage,
@@ -16,7 +17,9 @@ from afterworlds.models.enums import (
     RpgSessionType,
     RpgSetupPhase,
     RpgTone,
-    WritingPersona,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
 )
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -30,6 +33,7 @@ from afterworlds.models.session import (
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
+    apply_writing_config_update,
     create_branching_session_state,
     create_rpg_session_state,
     create_writing_session_state,
@@ -80,12 +84,16 @@ def _make_branching_state(
 def _make_writing_state(story_id: str) -> WritingSessionState:
     from uuid import UUID
 
-    ptr = uuid4()
     return WritingSessionState(
         story_id=UUID(story_id),
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
         beat_constraints=["no exposition dumps"],
-        version_history_pointers=[ptr],
-        persona=WritingPersona.CHIRON,
+        play_status=WritingPlayStatus.IN_PLAY,
+        critique_intensity=CritiqueIntensity.BALANCED,
+        style_density=StyleDensity.BALANCED,
+        form=WritingForm.SHORT_STORY,
     )
 
 
@@ -258,7 +266,7 @@ def test_delete_branching_session_state(session):  # type: ignore[no-untyped-def
 
 
 def test_writing_session_state_round_trip(session):  # type: ignore[no-untyped-def]
-    """Round-trip WritingSessionState including version_history_pointers."""
+    """Round-trip WritingSessionState with Issue 17 fields."""
     story = make_story()
     create_story(session, story)
     state = _make_writing_state(str(story.story_id))
@@ -267,10 +275,14 @@ def test_writing_session_state_round_trip(session):  # type: ignore[no-untyped-d
 
     fetched = get_writing_session_state(session, created.session_id)
     assert fetched is not None
-    assert fetched.persona == WritingPersona.CHIRON
-    assert len(fetched.version_history_pointers) == 1
-    assert fetched.version_history_pointers[0] == state.version_history_pointers[0]
+    assert fetched.persona_id == "chiron"
+    assert fetched.persona_registry_version == 1
+    assert fetched.persona_profile_version == 1
     assert fetched.beat_constraints == ["no exposition dumps"]
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.critique_intensity is CritiqueIntensity.BALANCED
+    assert fetched.style_density is StyleDensity.BALANCED
+    assert fetched.form is WritingForm.SHORT_STORY
 
 
 def test_writing_session_state_unique_story(session):  # type: ignore[no-untyped-def]
@@ -287,34 +299,43 @@ def test_writing_session_state_unique_story(session):  # type: ignore[no-untyped
         session.flush()
 
 
-def test_writing_persona_nullable(session):  # type: ignore[no-untyped-def]
-    """WritingSessionState with persona=None persists correctly."""
+def test_writing_persona_id_nullable(session):  # type: ignore[no-untyped-def]
+    """WritingSessionState with persona_id=None persists correctly (SETUP state)."""
     story = make_story()
     create_story(session, story)
-    state = WritingSessionState(story_id=story.story_id, persona=None)
+    state = WritingSessionState(story_id=story.story_id)
     create_writing_session_state(session, state)
     session.commit()
 
     fetched = get_writing_session_state(session, state.session_id)
     assert fetched is not None
-    assert fetched.persona is None
+    assert fetched.persona_id is None
+    assert fetched.play_status is WritingPlayStatus.SETUP
 
 
 def test_update_writing_session_state(session):  # type: ignore[no-untyped-def]
-    """update_writing_session_state changes persona."""
+    """update_writing_session_state changes persona_id and authoring controls."""
     story = make_story()
     create_story(session, story)
     state = _make_writing_state(str(story.story_id))
     create_writing_session_state(session, state)
     session.commit()
 
-    updated = state.model_copy(update={"persona": WritingPersona.ODIN})
+    updated = state.model_copy(
+        update={
+            "persona_id": "odin",
+            "critique_intensity": CritiqueIntensity.BLUNT,
+            "style_density": StyleDensity.LUSH,
+        }
+    )
     update_writing_session_state(session, updated)
     session.commit()
 
     fetched = get_writing_session_state(session, state.session_id)
     assert fetched is not None
-    assert fetched.persona == WritingPersona.ODIN
+    assert fetched.persona_id == "odin"
+    assert fetched.critique_intensity is CritiqueIntensity.BLUNT
+    assert fetched.style_density is StyleDensity.LUSH
 
 
 def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
@@ -328,6 +349,44 @@ def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
     assert delete_writing_session_state(session, state.session_id) is True
     session.commit()
     assert get_writing_session_state(session, state.session_id) is None
+
+
+def test_apply_writing_config_update(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update patches non-None fields in place."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        critique_intensity=CritiqueIntensity.RUTHLESS,
+        tense="present",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.critique_intensity is CritiqueIntensity.RUTHLESS
+    assert fetched.tense == "present"
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.pov is None  # untouched
+
+
+def test_apply_writing_config_update_no_row(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update returns False when no row exists."""
+    result = apply_writing_config_update(
+        session,
+        uuid4(),
+        persona_id="chiron",
+    )
+    assert result is False
 
 
 # ---------------------------------------------------------------------------

@@ -392,6 +392,7 @@ class FakeExtractorService:
         *,
         provider: Any = None,
         session: Any = None,
+        skip_story_bible_routing: bool = False,
     ) -> ExtractorResult:
         self.calls.append((built_context, writer_output, story_id, turn_id, session))
         self.thread_observation["extractor"] = threading.get_ident()

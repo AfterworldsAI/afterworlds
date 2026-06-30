@@ -161,6 +161,15 @@ class OrchestrationResult(BaseModel):
     # BranchingOocConfigExtractorResult — declared as Any to avoid import cycle.
     branching_ooc_config_result: Any | None = None
 
+    # Additive Issue 17 fields: Writing-mode visible state and OOC config result.
+    # Parallel to the branching equivalents above. writing_visible_state is
+    # populated on DELIVERED WRITING-mode turns; None otherwise.
+    # writing_ooc_config_result carries provider usage for entitlement settlement
+    # when OOC config extraction runs (best-effort); None if skipped or failed.
+    # Both declared as Any to avoid import cycles.
+    writing_visible_state: Any | None = None
+    writing_ooc_config_result: Any | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -206,6 +215,10 @@ class OrchestrationResult(BaseModel):
             self._forbid(
                 "branching_visible_state absent on non-DELIVERED",
                 self.branching_visible_state is not None,
+            )
+            self._forbid(
+                "writing_visible_state absent on non-DELIVERED",
+                self.writing_visible_state is not None,
             )
 
         if d is PipelineDisposition.DELIVERED:

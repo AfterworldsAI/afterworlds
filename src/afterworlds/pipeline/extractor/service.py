@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
-from afterworlds.models.extractor import ExtractorProposalSet
+from afterworlds.models.extractor import ExtractorProposalSet, ExtractorRoutingSummary
 from afterworlds.pipeline._refusal import ProviderRefusalError
 from afterworlds.pipeline._stable_prefix_renderer import (
     TTL_DEFAULT,
@@ -132,6 +132,7 @@ class ExtractorService:
         *,
         provider: ProviderAdapter,
         session: Session | None = None,
+        skip_story_bible_routing: bool = False,
     ) -> ExtractorResult:
         """Execute one Extractor pass and return a typed result.
 
@@ -149,6 +150,11 @@ class ExtractorService:
                 so the Extractor's writes nest as a SAVEPOINT inside the
                 outer transaction.  When ``None`` the standalone Issue 10
                 behavior is preserved.
+            skip_story_bible_routing: when True (Writing NON_CANON_SUPPORT
+                turns), the LLM call runs and proposals are extracted but
+                ``route_extractor_proposals`` is not called — proposals are
+                discarded and an empty ``ExtractorRoutingSummary`` is returned.
+                Story Bible canon is never mutated for non-canon turns.
 
         Returns:
             ExtractorResult with the validated proposal set, routing summary,
@@ -198,14 +204,23 @@ class ExtractorService:
                 f"Extractor tool input failed schema validation: {exc}"
             ) from exc
 
-        try:
-            routed = self._sbs.route_extractor_proposals(
-                story_id, turn_id, proposal_set, session=session
+        if skip_story_bible_routing:
+            routed = ExtractorRoutingSummary(
+                locked_fact_staged_ids=[],
+                soft_fact_staged_ids=[],
+                transient_state_staged_ids=[],
+                unresolved_thread_staged_ids=[],
+                event_ids=[],
             )
-        except (EntityNotFoundError, ValueError) as exc:
-            raise ExtractorPassError(
-                f"Extractor routing failed — no DB state committed: {exc}"
-            ) from exc
+        else:
+            try:
+                routed = self._sbs.route_extractor_proposals(
+                    story_id, turn_id, proposal_set, session=session
+                )
+            except (EntityNotFoundError, ValueError) as exc:
+                raise ExtractorPassError(
+                    f"Extractor routing failed — no DB state committed: {exc}"
+                ) from exc
 
         return ExtractorResult(
             proposal_set=proposal_set,

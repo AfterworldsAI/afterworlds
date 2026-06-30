@@ -62,6 +62,7 @@ from afterworlds.models.enums import (
     InteractionStyle,
     RpgPlayStatus,
     StoryMode,
+    WritingCanonEligibility,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rules_package import RuleSliceRequest
@@ -78,11 +79,16 @@ from afterworlds.pipeline.branching.models import (
 )
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
+from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
-    from afterworlds.models.session import BranchingSessionState, RpgSessionState
+    from afterworlds.models.session import (
+        BranchingSessionState,
+        RpgSessionState,
+        WritingSessionState,
+    )
     from afterworlds.pipeline.branching.models import (
         SelectedBranchContext,
     )
@@ -101,6 +107,11 @@ if TYPE_CHECKING:
     from afterworlds.pipeline.rpg.pending import PendingRollRequestService
     from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
     from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
+    from afterworlds.pipeline.writing.models import WritingTurnRequest
+    from afterworlds.pipeline.writing.ooc_config_extractor import (
+        WritingOocConfigExtractorService,
+    )
+    from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
     ContradictionResult,
@@ -187,6 +198,12 @@ def load_rpg_ooc_handler_prompt() -> str:
 def load_branching_ooc_handler_prompt() -> str:
     """Load the Branching-mode OOC handler from docs/prompts/branching_ooc_handler.md."""  # noqa: E501
     prompt_path = _PROMPT_DIR / "branching_ooc_handler.md"
+    return prompt_path.read_text(encoding="utf-8")
+
+
+def load_writing_ooc_handler_prompt() -> str:
+    """Load the Writing-mode OOC handler from docs/prompts/writing_ooc_handler.md."""
+    prompt_path = _PROMPT_DIR / "writing_ooc_handler.md"
     return prompt_path.read_text(encoding="utf-8")
 
 
@@ -328,6 +345,13 @@ class OrchestratorService:
         branching_ooc_config_extractor: (
             BranchingOocConfigExtractorService | None
         ) = None,
+        writing_session_resolver: (
+            Callable[[UUID], WritingSessionState | None] | None
+        ) = None,
+        writing_visible_state_service: WritingVisibleStateService | None = None,
+        writing_ooc_config_extractor: (
+            WritingOocConfigExtractorService | None
+        ) = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -352,6 +376,9 @@ class OrchestratorService:
         self._branching_visible_state_service = branching_visible_state_service
         self._branching_selection_service = branching_selection_service
         self._branching_ooc_config_extractor = branching_ooc_config_extractor
+        self._writing_session_resolver = writing_session_resolver
+        self._writing_visible_state_service = writing_visible_state_service
+        self._writing_ooc_config_extractor = writing_ooc_config_extractor
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -367,6 +394,7 @@ class OrchestratorService:
         self._ooc_handler_prompt: str = load_ooc_handler_prompt()
         self._rpg_ooc_handler_prompt: str = load_rpg_ooc_handler_prompt()
         self._branching_ooc_handler_prompt: str = load_branching_ooc_handler_prompt()
+        self._writing_ooc_handler_prompt: str = load_writing_ooc_handler_prompt()
 
     def close(self) -> None:
         """Release the orchestrator-owned executor.
@@ -402,6 +430,7 @@ class OrchestratorService:
         *,
         request_risk_signal: bool = False,
         player_reported_total: int | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         """Run one full Sojourn Turn end-to-end.
 
@@ -519,6 +548,43 @@ class OrchestratorService:
                 intent_result, latency, turn_start, f"context assembly failed: {exc}"
             )
 
+        # 2c. Writing session pre-resolve and stable prefix extension (once per turn).
+        # Must run after context assembly and before any pass so the persona fragment
+        # is in the stable prefix that all passes share (Invariant 7).
+        pre_writing_state: WritingSessionState | None = None
+        if story_mode is StoryMode.WRITING:
+            if self._writing_session_resolver is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "writing session resolver not wired for WRITING turn;"
+                    " cannot determine play status or inject persona context",
+                )
+            try:
+                pre_writing_state = self._writing_session_resolver(story_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"writing session resolution failed: {exc}",
+                )
+            # Extend stable prefix with persona fragment + authoring controls.
+            # Best-effort: if the service is not wired or the session has no persona
+            # yet (SETUP phase), the base mode contract remains valid unchanged.
+            if (
+                pre_writing_state is not None
+                and self._writing_visible_state_service is not None
+            ):
+                try:
+                    _svc = self._writing_visible_state_service
+                    _appendix = _svc.render_context_appendix(pre_writing_state)
+                    if _appendix:
+                        ctx = _extend_system_prompt(ctx, _appendix)
+                except Exception:  # noqa: BLE001
+                    pass  # base mode contract remains valid; injection best-effort
+
         # P2-1: when player_reported_total is set in RPG mode the consume path
         # takes precedence over the OOC short-circuit — the player is reporting
         # the result of their physical roll, not asking an out-of-character
@@ -601,6 +667,7 @@ class OrchestratorService:
                 turn_start,
                 request_risk_signal,
                 story_mode=story_mode,
+                pre_writing_state=pre_writing_state,
             )
 
         # Pending-roll intercept for RPG in-play narrative turns.
@@ -846,6 +913,8 @@ class OrchestratorService:
             _pre_sheet=pre_sheet,
             _pre_branching_state=pre_branching_state,
             _pre_selected_context=pre_selected_context,
+            _pre_writing_state=pre_writing_state,
+            writing_turn_request=writing_turn_request,
         )
 
     # ------------------------------------------------------------------
@@ -871,6 +940,8 @@ class OrchestratorService:
         _pre_sheet: Dnd5eCharacterSheet | None = None,
         _pre_branching_state: BranchingSessionState | None = None,
         _pre_selected_context: SelectedBranchContext | None = None,
+        _pre_writing_state: WritingSessionState | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -1110,6 +1181,8 @@ class OrchestratorService:
                 branching_state=_pre_branching_state,
                 story_mode=story_mode,
                 selected_branch_context=_pre_selected_context,
+                writing_session_state=_pre_writing_state,
+                writing_turn_request=writing_turn_request,
             ),
             intent_result,
             latency,
@@ -1143,6 +1216,8 @@ class OrchestratorService:
         branching_state: BranchingSessionState | None = None,
         story_mode: StoryMode = StoryMode.WRITING,
         selected_branch_context: SelectedBranchContext | None = None,
+        writing_session_state: WritingSessionState | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         # Determine if this is a BRANCHING HYBRID/TRUE_CYOA turn (BranchingWriterService
         # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
@@ -1669,6 +1744,14 @@ class OrchestratorService:
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
+        # For Writing NON_CANON_SUPPORT turns, the Extractor LLM call still runs
+        # but proposals are not routed to the Story Bible (canon-protection seam).
+        _skip_story_bible_routing = (
+            story_mode is StoryMode.WRITING
+            and writing_turn_request is not None
+            and writing_turn_request.effective_canon_eligibility
+            is WritingCanonEligibility.NON_CANON_SUPPORT
+        )
         _scoped_post_writer = ScopedProviderAdapter(
             binding.adapter,  # type: ignore[arg-type]
             sojourner_id,
@@ -1681,7 +1764,12 @@ class OrchestratorService:
                 ext_ms,
                 contr_ms,
             ) = self._run_parallel_sync(
-                ctx, writer_result, story_id, session, _scoped_post_writer
+                ctx,
+                writer_result,
+                story_id,
+                session,
+                _scoped_post_writer,
+                skip_story_bible_routing=_skip_story_bible_routing,
             )
             latency["extractor"] = ext_ms
             latency["contradiction"] = contr_ms
@@ -1785,6 +1873,20 @@ class OrchestratorService:
             except Exception:  # noqa: BLE001
                 branching_visible_state = None
 
+        # Build Writing visible state for WRITING-mode DELIVERED turns.
+        writing_visible_state = None
+        if (
+            story_mode is StoryMode.WRITING
+            and writing_session_state is not None
+            and self._writing_visible_state_service is not None
+        ):
+            try:
+                writing_visible_state = self._writing_visible_state_service.build(
+                    writing_session_state
+                )
+            except Exception:  # noqa: BLE001
+                writing_visible_state = None
+
         # ALLOW → commit Turn + Extractor writes.  Outer transaction context
         # manager will commit on normal exit; no explicit commit needed.
         return self._build_result(
@@ -1802,6 +1904,7 @@ class OrchestratorService:
             rpg_visible_state=rpg_visible_state,
             branching_pass_result=branching_pass_result,
             branching_visible_state=branching_visible_state,
+            writing_visible_state=writing_visible_state,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
         )
@@ -1874,6 +1977,7 @@ class OrchestratorService:
         request_risk_signal: bool,
         *,
         story_mode: StoryMode,
+        pre_writing_state: WritingSessionState | None = None,
     ) -> OrchestrationResult:
         input_safety: SafetyResult | None = None
         preflight_ctx = SafetyPolicyContext(
@@ -1916,11 +2020,13 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                 )
 
-        # Select mode-specific OOC handler; RPG and Branching have dedicated prompts.
+        # Select mode-specific OOC handler; RPG/Branching/Writing each have a prompt.
         if story_mode is StoryMode.RPG:
             ooc_prompt = self._rpg_ooc_handler_prompt
         elif story_mode is StoryMode.BRANCHING:
             ooc_prompt = self._branching_ooc_handler_prompt
+        elif story_mode is StoryMode.WRITING:
+            ooc_prompt = self._writing_ooc_handler_prompt
         else:
             ooc_prompt = self._ooc_handler_prompt
         ooc_ctx = _swap_system_prompt(ctx, ooc_prompt)
@@ -1952,6 +2058,7 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 story_mode=story_mode,
+                writing_session_state=pre_writing_state,
             ),
             intent_result,
             latency,
@@ -1976,6 +2083,7 @@ class OrchestratorService:
         turn_start: float,
         *,
         story_mode: StoryMode,
+        writing_session_state: WritingSessionState | None = None,
     ) -> OrchestrationResult:
         ooc_turn_id = uuid4()
         try:
@@ -2275,6 +2383,73 @@ class OrchestratorService:
             except Exception:  # noqa: BLE001
                 pass  # Best-effort; OOC prose already delivered
 
+        # Phase F (Writing OOC config extraction): for WRITING turns, extract any
+        # session config changes the Sojourner requested and persist them inside
+        # this transaction.  Best-effort — failure skips persistence without
+        # blocking OOC_HANDLED.
+        _writing_ooc_cfg_result: object | None = None
+        if (
+            story_mode is StoryMode.WRITING
+            and self._writing_ooc_config_extractor is not None
+        ):
+            try:
+                from afterworlds.persistence.crud.session_state import (  # noqa: PLC0415
+                    apply_writing_config_update as _apply_writing_cfg,
+                )
+
+                _w_extract_result = self._writing_ooc_config_extractor.extract(
+                    ooc_ctx,
+                    ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=writer_result.turn_id,
+                    ),
+                )
+                _writing_ooc_cfg_result = _w_extract_result
+                _w_cfg = _w_extract_result.config_update
+
+                # Determine registry provenance if persona_id is changing.
+                _registry_version: int | None = None
+                _profile_version: int | None = None
+                _prompt_fingerprint: str | None = None
+                if (
+                    _w_cfg.persona_id is not None
+                    and self._writing_visible_state_service is not None
+                ):
+                    try:
+                        from afterworlds.modes.personas.registry import (
+                            SupportedMode as _SM,  # noqa: PLC0415
+                        )
+                        _reg = self._writing_visible_state_service.registry
+                        _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
+                        _registry_version = _reg.registry_version
+                        _profile_version = _prof.profile_version
+                        _prompt_fingerprint = _prof.prompt_fingerprint
+                    except Exception:  # noqa: BLE001
+                        pass  # persona_id persists without provenance on registry miss
+
+                _apply_writing_cfg(
+                    session,
+                    story_id,
+                    persona_id=_w_cfg.persona_id,
+                    persona_registry_version=_registry_version,
+                    persona_profile_version=_profile_version,
+                    persona_prompt_fingerprint=_prompt_fingerprint,
+                    critique_intensity=_w_cfg.critique_intensity,
+                    tense=_w_cfg.tense,
+                    pov=_w_cfg.pov,
+                    style_density=_w_cfg.style_density,
+                    dialogue_narration_ratio=_w_cfg.dialogue_narration_ratio,
+                    genre_conventions=_w_cfg.genre_conventions,
+                    specific_goals=_w_cfg.specific_goals,
+                    acceptable_content=_w_cfg.acceptable_content,
+                    play_status=_w_cfg.play_status,
+                )
+            except WritingOocExtractionUsageError as _w_usage_exc:
+                _writing_ooc_cfg_result = _w_usage_exc.usage_result
+            except Exception:  # noqa: BLE001
+                pass  # Best-effort; OOC prose already delivered
+
         _ooc_delivered = writer_result.assistant_output
         # At most one of the corrective notes is set (they are mutually
         # exclusive by construction), but compose a single correction block from
@@ -2321,6 +2496,7 @@ class OrchestratorService:
             delivered_output=_ooc_delivered,
             turn_id=writer_result.turn_id,
             branching_ooc_config_result=_ooc_cfg_extractor_result,
+            writing_ooc_config_result=_writing_ooc_cfg_result,
         )
 
     # ------------------------------------------------------------------
@@ -2334,6 +2510,8 @@ class OrchestratorService:
         story_id: UUID,
         session: Session,
         provider: ProviderAdapter,
+        *,
+        skip_story_bible_routing: bool = False,
     ) -> tuple[ExtractorResult, ContradictionResult, int, int]:
         """Run Extractor synchronously and Contradiction on a worker thread.
 
@@ -2403,6 +2581,7 @@ class OrchestratorService:
             ) from exc
 
         # Extractor on this thread, under SAVEPOINT inside the outer txn.
+        _skip_routing = skip_story_bible_routing
         try:
             extractor_result, ext_ms = _timed(
                 lambda: self._extractor_service.extract(
@@ -2412,6 +2591,7 @@ class OrchestratorService:
                     writer_result.turn_id,
                     provider=provider,
                     session=session,
+                    skip_story_bible_routing=_skip_routing,
                 )
             )
         except ProviderRefusalError:
@@ -2758,6 +2938,8 @@ class OrchestratorService:
         branching_pass_result: _BranchingPassResult | None = None,
         branching_visible_state: object | None = None,
         branching_ooc_config_result: object | None = None,
+        writing_visible_state: object | None = None,
+        writing_ooc_config_result: object | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -2772,6 +2954,7 @@ class OrchestratorService:
             # equivalent to planner/writer/extractor for cache observability.
             branching_pass_result,
             branching_ooc_config_result,
+            writing_ooc_config_result,
         )
         return OrchestrationResult(
             disposition=disposition,
@@ -2794,6 +2977,8 @@ class OrchestratorService:
             branching_pass_result=branching_pass_result,
             branching_visible_state=branching_visible_state,
             branching_ooc_config_result=branching_ooc_config_result,
+            writing_visible_state=writing_visible_state,
+            writing_ooc_config_result=writing_ooc_config_result,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
@@ -3071,6 +3256,28 @@ def _serialize_planner(result: PlannerResult) -> str:
     is byte-stable for cache integrity (CRD Item 14 invariant #10).
     """
     return result.plan.model_dump_json()
+
+
+def _extend_system_prompt(ctx: AssembledContext, appendix: str) -> AssembledContext:
+    """Return a derived AssembledContext with ``appendix`` appended to system_prompt.
+
+    Used to inject Writing-mode persona + authoring-controls context into the
+    stable prefix once per turn.  All other stable-prefix fields are preserved.
+    The original ``ctx`` is not mutated.
+    """
+    sp = ctx.stable_prefix
+    new_sp = StablePrefix(
+        system_prompt=sp.system_prompt + "\n\n" + appendix,
+        story_bible_context=sp.story_bible_context,
+        rolling_summary_text=sp.rolling_summary_text,
+        rules_package_slice=sp.rules_package_slice,
+        retrieval_memory=sp.retrieval_memory,
+    )
+    return AssembledContext(
+        stable_prefix=new_sp,
+        volatile_suffix=ctx.volatile_suffix,
+        pass_forward_ledger=ctx.pass_forward_ledger,
+    )
 
 
 def _swap_system_prompt(

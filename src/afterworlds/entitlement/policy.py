@@ -33,6 +33,7 @@ PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
     PipelinePassId.OUTPUT_SAFETY: ModelTier.HAIKU,
     PipelinePassId.BRANCHING_WRITER: ModelTier.SONNET,
     PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: ModelTier.HAIKU,
+    PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR: ModelTier.HAIKU,
 }
 
 _CREDIT_QUANTIZE = Decimal("0.0001")
@@ -352,6 +353,28 @@ class TurnCostPolicy:
                     bocr.model_identifier,
                     provider=bocr.provider,
                     model_tier_str=bocr.model_tier,
+                )
+            )
+
+        if result.writing_ooc_config_result is not None:
+            from afterworlds.pipeline.writing.models import (  # noqa: PLC0415
+                WritingOocConfigExtractorResult,
+            )
+
+            assert isinstance(
+                result.writing_ooc_config_result, WritingOocConfigExtractorResult
+            )
+            wocr = result.writing_ooc_config_result
+            snapshots.append(
+                _require_tokens(
+                    PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR,
+                    wocr.input_token_count,
+                    wocr.output_token_count,
+                    wocr.cache_read_token_count,
+                    wocr.cache_creation_token_count,
+                    wocr.model_identifier,
+                    provider=wocr.provider,
+                    model_tier_str=wocr.model_tier,
                 )
             )
 

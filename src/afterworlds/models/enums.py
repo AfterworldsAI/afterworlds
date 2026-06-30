@@ -214,17 +214,74 @@ class ConditionVisibility(StrEnum):
     HIDDEN = "hidden"
 
 
-class WritingPersona(StrEnum):
-    """Writing-mode persona selected by the Sojourner."""
+class WritingPlayStatus(StrEnum):
+    """Lifecycle phase of a Writing-mode session."""
 
-    # Mentors — teaching through making
-    CHIRON = "chiron"
-    MERLIN = "merlin"
-    VIDURA = "vidura"
-    # Peers — creative collaborators
-    ODIN = "odin"
-    ATHENA = "athena"
-    THOTH = "thoth"
+    SETUP = "setup"
+    IN_PLAY = "in_play"
+
+
+class CritiqueIntensity(StrEnum):
+    """How directly the persona delivers feedback."""
+
+    GENTLE = "gentle"
+    BALANCED = "balanced"
+    BLUNT = "blunt"
+    RUTHLESS = "ruthless"
+
+
+class StyleDensity(StrEnum):
+    """Prose density preference for the writing project."""
+
+    SPARSE = "sparse"
+    BALANCED = "balanced"
+    LUSH = "lush"
+    LITERARY = "literary"
+    PULP = "pulp"
+
+
+class WritingForm(StrEnum):
+    """Primary form of the writing project."""
+
+    SHORT_STORY = "short_story"
+    NOVEL = "novel"
+    NARRATIVE_NONFICTION = "narrative_nonfiction"
+    MEMOIR = "memoir"
+    SCREENPLAY = "screenplay"
+    OTHER = "other"
+
+
+class WritingWorkProductKind(StrEnum):
+    """What the Writer is producing this turn."""
+
+    SETUP_CONFIRMATION = "setup_confirmation"
+    PROSE_CONTINUATION = "prose_continuation"
+    DRAFT_PROSE = "draft_prose"
+    REVISION = "revision"
+    LINE_EDIT = "line_edit"
+    CRITIQUE = "critique"
+    STRUCTURAL_DIAGNOSIS = "structural_diagnosis"
+    BRAINSTORM = "brainstorm"
+    CRAFT_EXERCISE = "craft_exercise"
+    BEAT_PLAN = "beat_plan"
+    OOC_RESPONSE = "ooc_response"
+
+
+class WritingCanonEligibility(StrEnum):
+    """Whether Extractor proposals may route to Story Bible for this turn."""
+
+    EXTRACTOR_ELIGIBLE = "extractor_eligible"
+    NON_CANON_SUPPORT = "non_canon_support"
+
+
+class WritingVersionPointerKind(StrEnum):
+    """What kind of provenance reference a WritingVersionPointer stores."""
+
+    TURN = "turn"
+    NODE = "node"
+    DRAFT_LABEL = "draft_label"
+    GENERATED_CANDIDATE = "generated_candidate"
+    WORKING_SEGMENT = "working_segment"
 
 
 # ---------------------------------------------------------------------------

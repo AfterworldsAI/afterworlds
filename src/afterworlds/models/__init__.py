@@ -19,6 +19,7 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import (
     ConditionVisibility,
+    CritiqueIntensity,
     DiceHandling,
     IntentType,
     PacingStage,
@@ -28,7 +29,12 @@ from afterworlds.models.enums import (
     RpgSetupPhase,
     RpgTone,
     StoryMode,
-    WritingPersona,
+    StyleDensity,
+    WritingCanonEligibility,
+    WritingForm,
+    WritingPlayStatus,
+    WritingVersionPointerKind,
+    WritingWorkProductKind,
 )
 from afterworlds.models.node import (
     BranchingNodeMetadata,
@@ -77,6 +83,7 @@ from afterworlds.models.turn import Turn
 __all__ = [
     # enums
     "ConditionVisibility",
+    "CritiqueIntensity",
     "DiceHandling",
     "IntentType",
     "PacingStage",
@@ -86,7 +93,12 @@ __all__ = [
     "RpgSetupPhase",
     "RpgTone",
     "StoryMode",
-    "WritingPersona",
+    "StyleDensity",
+    "WritingCanonEligibility",
+    "WritingForm",
+    "WritingPlayStatus",
+    "WritingVersionPointerKind",
+    "WritingWorkProductKind",
     # story hierarchy
     "Story",
     "Arc",
