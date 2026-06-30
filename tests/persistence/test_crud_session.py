@@ -635,6 +635,55 @@ def test_apply_writing_config_update_form_and_form_other(session):  # type: igno
     assert fetched.form_other is None
 
 
+def test_apply_writing_config_update_other_to_concrete_clears_form_other(session):  # type: ignore[no-untyped-def]
+    """Switching from OTHER to a concrete form clears the stale custom label."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Lyric essay"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.NOVEL,  # concrete form, no form_other supplied
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.NOVEL
+    assert fetched.form_other is None  # stale label cleared
+
+
+def test_apply_writing_config_update_concrete_form_ignores_supplied_form_other(session):  # type: ignore[no-untyped-def]
+    """A concrete form update clears form_other even if one is supplied."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Lyric essay"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.SCREENPLAY,
+        form_other="stale value",  # concrete form wins; form_other is cleared
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SCREENPLAY
+    assert fetched.form_other is None
+
+
 def test_apply_writing_config_update_form_other_only(session):  # type: ignore[no-untyped-def]
     """apply_writing_config_update persists form_other without changing form."""
     story = make_story()

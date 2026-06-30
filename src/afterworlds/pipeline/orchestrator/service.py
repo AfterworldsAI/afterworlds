@@ -63,6 +63,7 @@ from afterworlds.models.enums import (
     RpgPlayStatus,
     StoryMode,
     WritingCanonEligibility,
+    WritingForm,
     WritingPlayStatus,
     WritingWorkProductKind,
 )
@@ -1659,11 +1660,18 @@ class OrchestratorService:
                     _wtr = writing_turn_request
 
                     # Resolve work_product_kind and canon_eligibility from request.
-                    _wpk = (
-                        _wtr.work_product_kind.value
-                        if _wtr is not None
-                        else WritingWorkProductKind.PROSE_CONTINUATION.value
-                    )
+                    # Setup-provenance invariant (ADR-017 Decision 9): a turn taken
+                    # while the session is still in SETUP is a setup-confirmation
+                    # turn, not ordinary prose continuation.  When no explicit
+                    # writing_turn_request is supplied, default the recorded
+                    # work-product kind from play_status rather than blindly to
+                    # PROSE_CONTINUATION.
+                    if _wtr is not None:
+                        _wpk = _wtr.work_product_kind.value
+                    elif _wss.play_status is WritingPlayStatus.SETUP:
+                        _wpk = WritingWorkProductKind.SETUP_CONFIRMATION.value
+                    else:
+                        _wpk = WritingWorkProductKind.PROSE_CONTINUATION.value
                     _ce = (
                         _wtr.effective_canon_eligibility.value
                         if _wtr is not None
@@ -1677,6 +1685,11 @@ class OrchestratorService:
                             _acs = _ACS(
                                 critique_intensity=_wss.critique_intensity,
                                 form=_wss.form,
+                                form_other=(
+                                    _wss.form_other
+                                    if _wss.form is WritingForm.OTHER
+                                    else None
+                                ),
                                 tense=_wss.tense,
                                 pov=_wss.pov,
                                 style_density=_wss.style_density,

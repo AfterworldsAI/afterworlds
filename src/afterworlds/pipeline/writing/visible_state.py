@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 from typing import TYPE_CHECKING
 
+from afterworlds.models.enums import WritingForm
 from afterworlds.modes.personas.registry import JsonPersonaRegistry, SupportedMode
 from afterworlds.pipeline.writing.context import render_writing_system_prompt_appendix
 from afterworlds.pipeline.writing.models import (
@@ -87,6 +88,11 @@ class WritingVisibleStateService:
             specific_goals=session_state.specific_goals,
             critique_intensity=session_state.critique_intensity,
             form=session_state.form,
+            form_other=(
+                session_state.form_other
+                if session_state.form is WritingForm.OTHER
+                else None
+            ),
             tense=session_state.tense,
             pov=session_state.pov,
             style_density=session_state.style_density,

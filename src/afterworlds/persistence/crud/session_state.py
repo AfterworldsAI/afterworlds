@@ -534,6 +534,13 @@ def apply_writing_config_update(
         effective_form_other = form_other if form_other is not None else row.form_other
         if form is WritingForm.OTHER and not effective_form_other:
             pass  # skip to avoid unreadable row
+        elif form is not WritingForm.OTHER:
+            # Concrete form: ``form_other`` is meaningful only for OTHER, so a
+            # concrete form update clears any stale custom-form label outright —
+            # even when the caller did not pass form_other.  This prevents a stale
+            # label from later governing prompts, OOC state, or metadata snapshots.
+            row.form = form.value
+            row.form_other = None
         else:
             row.form = form.value
             if form_other is not None:

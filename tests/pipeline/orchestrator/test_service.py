@@ -9806,6 +9806,99 @@ class TestWritingSetupGate:
         assert planner.calls, "Planner must be called for SETUP turn"
         assert writer.calls, "Writer must be called for SETUP turn"
 
+    def test_setup_turn_records_setup_confirmation_metadata(
+        self, session_factory: object, session: object
+    ) -> None:
+        """SETUP turn + omitted request → Phase G records SETUP_CONFIRMATION.
+
+        Setup-provenance invariant (ADR-017 Decision 9): a turn taken while the
+        session is still in SETUP is recorded as a setup-confirmation, not
+        ordinary prose continuation, and canon eligibility stays fail-closed.
+        """
+        from afterworlds.models.enums import WritingWorkProductKind
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.persistence.crud.node import get_node
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(story_id=sid)  # SETUP, no persona
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Set up my writing session.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert (
+            node.mode_metadata.work_product_kind
+            == WritingWorkProductKind.SETUP_CONFIRMATION.value
+        )
+        assert node.mode_metadata.canon_eligibility == "non_canon_support"
+
+    def test_in_play_turn_records_prose_continuation_metadata(
+        self, session_factory: object, session: object
+    ) -> None:
+        """IN_PLAY turn + omitted request → Phase G falls back to PROSE_CONTINUATION."""
+        from afterworlds.models.enums import WritingPlayStatus, WritingWorkProductKind
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_node
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert (
+            node.mode_metadata.work_product_kind
+            == WritingWorkProductKind.PROSE_CONTINUATION.value
+        )
+
 
 # ---------------------------------------------------------------------------
 # P1 Fix: Writing OOC play_status gate — suppress IN_PLAY without verified persona

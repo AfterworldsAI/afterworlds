@@ -274,6 +274,23 @@ class TestAuthoringControlsSnapshot:
         )
         assert snap.dialogue_narration_ratio == 0
 
+    def test_form_other_defaults_none(self) -> None:
+        snap = AuthoringControlsSnapshot(
+            critique_intensity=CritiqueIntensity.BALANCED,
+            form=WritingForm.NOVEL,
+            style_density=StyleDensity.BALANCED,
+        )
+        assert snap.form_other is None
+
+    def test_form_other_carried_for_other_form(self) -> None:
+        snap = AuthoringControlsSnapshot(
+            critique_intensity=CritiqueIntensity.BALANCED,
+            form=WritingForm.OTHER,
+            form_other="Epistolary novella",
+            style_density=StyleDensity.BALANCED,
+        )
+        assert snap.form_other == "Epistolary novella"
+
 
 # ---------------------------------------------------------------------------
 # WritingContextRenderer
@@ -354,6 +371,28 @@ class TestWritingContextRenderer:
         assert "Reading interests" not in result
         assert "Writing interests" not in result
 
+    def test_form_other_rendered_only_for_other_form(self) -> None:
+        session_state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="chiron",
+            form=WritingForm.OTHER,
+            form_other="Epistolary novella",
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Form: Epistolary novella" in result
+
+    def test_concrete_form_ignores_stale_form_other(self) -> None:
+        # form != OTHER but a stale form_other lingers: render the concrete form.
+        session_state = WritingSessionState(
+            story_id=uuid4(), persona_id="chiron", form=WritingForm.NOVEL
+        )
+        session_state = session_state.model_copy(
+            update={"form_other": "Epistolary novella"}
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert f"Form: {WritingForm.NOVEL.value}" in result
+        assert "Epistolary novella" not in result
+
 
 # ---------------------------------------------------------------------------
 # WritingOocStateBlock
@@ -402,6 +441,22 @@ class TestWritingOocStateBlock:
         result = render_writing_ooc_state_block(state)
         assert "You are acting as" not in result
         assert "Avoid:" not in result
+
+    def test_form_other_rendered_only_for_other_form(self) -> None:
+        state = WritingSessionState(
+            story_id=uuid4(),
+            form=WritingForm.OTHER,
+            form_other="Epistolary novella",
+        )
+        result = render_writing_ooc_state_block(state)
+        assert "form: Epistolary novella" in result
+
+    def test_concrete_form_ignores_stale_form_other(self) -> None:
+        state = WritingSessionState(story_id=uuid4(), form=WritingForm.NOVEL)
+        state = state.model_copy(update={"form_other": "Epistolary novella"})
+        result = render_writing_ooc_state_block(state)
+        assert f"form: {WritingForm.NOVEL.value}" in result
+        assert "Epistolary novella" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -481,6 +536,17 @@ class TestWritingVisibleStateService:
         )
         vs = self.service.build(state)
         assert vs.form is WritingForm.OTHER
+        assert vs.form_other == "Haiku"
+
+    def test_build_concrete_form_form_other_is_none(self) -> None:
+        # Stale form_other on a concrete form must not surface in visible state.
+        state = self._base_state("thoth")
+        state = state.model_copy(
+            update={"form": WritingForm.NOVEL, "form_other": "Haiku"}
+        )
+        vs = self.service.build(state)
+        assert vs.form is WritingForm.NOVEL
+        assert vs.form_other is None
 
     def test_render_context_appendix_delegates(self) -> None:
         state = self._base_state("merlin")

@@ -12,12 +12,27 @@ returns a string.
 
 from __future__ import annotations
 
+from afterworlds.models.enums import WritingForm
 from afterworlds.models.session import WritingSessionState
 from afterworlds.modes.personas.registry import (
     JsonPersonaRegistry,
     PersonaProfile,
     SupportedMode,
 )
+
+
+def _resolve_form_label(session_state: WritingSessionState) -> str | None:
+    """Return the display label for the configured form, or ``None`` if unset.
+
+    ``form_other`` is meaningful only when ``form is WritingForm.OTHER``.  A stale
+    ``form_other`` left over from a previous OTHER selection must never govern the
+    label of a concrete form; render the concrete form's own value instead.
+    """
+    if session_state.form is None:
+        return None
+    if session_state.form is WritingForm.OTHER:
+        return session_state.form_other or session_state.form.value
+    return session_state.form.value
 
 
 def render_writing_system_prompt_appendix(
@@ -61,8 +76,8 @@ def render_writing_system_prompt_appendix(
     controls.append(f"Critique intensity: {session_state.critique_intensity.value}")
     controls.append(f"Style density: {session_state.style_density.value}")
 
-    if session_state.form is not None:
-        form_label = session_state.form_other or session_state.form.value
+    form_label = _resolve_form_label(session_state)
+    if form_label is not None:
         controls.append(f"Form: {form_label}")
 
     if session_state.tense:
@@ -123,8 +138,8 @@ def render_writing_ooc_state_block(session_state: WritingSessionState) -> str:
     parts.append(f"critique_intensity: {session_state.critique_intensity.value}")
     parts.append(f"style_density: {session_state.style_density.value}")
 
-    if session_state.form is not None:
-        form_label = session_state.form_other or session_state.form.value
+    form_label = _resolve_form_label(session_state)
+    if form_label is not None:
         parts.append(f"form: {form_label}")
 
     if session_state.tense:

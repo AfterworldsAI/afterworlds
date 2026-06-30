@@ -142,6 +142,8 @@ class AuthoringControlsSnapshot(BaseModel):
     schema_version: Literal[1] = 1
     critique_intensity: CritiqueIntensity
     form: WritingForm
+    # Meaningful only when ``form is WritingForm.OTHER``; None for concrete forms.
+    form_other: str | None = None
     tense: str | None = None
     pov: str | None = None
     style_density: StyleDensity
@@ -218,6 +220,8 @@ class WritingVisibleState(BaseModel):
     specific_goals: str
     critique_intensity: CritiqueIntensity
     form: WritingForm | None
+    # Meaningful only when ``form is WritingForm.OTHER``; None for concrete forms.
+    form_other: str | None = None
     tense: str | None
     pov: str | None
     style_density: StyleDensity
