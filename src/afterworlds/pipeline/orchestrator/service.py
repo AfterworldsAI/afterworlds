@@ -63,6 +63,7 @@ from afterworlds.models.enums import (
     RpgPlayStatus,
     StoryMode,
     WritingCanonEligibility,
+    WritingWorkProductKind,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rules_package import RuleSliceRequest
@@ -1594,6 +1595,91 @@ class OrchestratorService:
                     rpg_adjudication_result=adj_result,
                 )
 
+        # 5a-writing: [WRITING only] Phase G — persist WritingNodeMetadata on the
+        # Node (persona snapshot + work_product_kind + canon_eligibility + authoring
+        # controls snapshot) inside the outer transaction.  This is the provenance
+        # record that lets future issues filter non-canon output from Rolling Summary
+        # (ADR-017 Architecture Note).  Best-effort: failure logs but does not abort
+        # the turn (provenance is audit-quality; the turn prose is already persisted).
+        if story_mode is StoryMode.WRITING and writing_session_state is not None:
+            try:
+                from afterworlds.models.node import WritingNodeMetadata as _WNM
+                from afterworlds.persistence.crud.node import get_node as _get_node
+                from afterworlds.persistence.crud.node import (
+                    update_node as _update_node,
+                )
+                from afterworlds.pipeline.writing.models import (
+                    AuthoringControlsSnapshot as _ACS,
+                )
+
+                _w_node = _get_node(session, node_id)
+                if _w_node is not None:
+                    _wss = writing_session_state
+                    _wtr = writing_turn_request
+
+                    # Resolve work_product_kind and canon_eligibility from request.
+                    _wpk = (
+                        _wtr.work_product_kind.value
+                        if _wtr is not None
+                        else WritingWorkProductKind.PROSE_CONTINUATION.value
+                    )
+                    _ce = (
+                        _wtr.effective_canon_eligibility.value
+                        if _wtr is not None
+                        else WritingCanonEligibility.NON_CANON_SUPPORT.value
+                    )
+
+                    # Build authoring-controls snapshot.
+                    _acs: dict[str, object] | None = None
+                    if _wss.form is not None:
+                        try:
+                            _acs = _ACS(
+                                critique_intensity=_wss.critique_intensity,
+                                form=_wss.form,
+                                tense=_wss.tense,
+                                pov=_wss.pov,
+                                style_density=_wss.style_density,
+                                dialogue_narration_ratio=_wss.dialogue_narration_ratio,
+                                genre_conventions=_wss.genre_conventions,
+                                acceptable_content=_wss.acceptable_content,
+                            ).model_dump()
+                        except Exception:  # noqa: BLE001
+                            _acs = None
+
+                    # Resolve persona display_name and orientation from registry.
+                    _disp_name: str | None = None
+                    _orientation: str | None = None
+                    if (
+                        _wss.persona_id is not None
+                        and self._writing_visible_state_service is not None
+                    ):
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                SupportedMode as _SM2,
+                            )
+                            _preg = self._writing_visible_state_service.registry
+                            _pprof = _preg.get_profile(_wss.persona_id, _SM2.WRITING)
+                            _disp_name = _pprof.display_name
+                            _orientation = _pprof.orientation.value
+                        except Exception:  # noqa: BLE001
+                            pass
+
+                    _w_node.mode_metadata = _WNM(
+                        persona_id=_wss.persona_id,
+                        persona_display_name=_disp_name,
+                        relationship_orientation=_orientation,
+                        persona_registry_version=_wss.persona_registry_version,
+                        persona_profile_version=_wss.persona_profile_version,
+                        persona_prompt_fingerprint=_wss.persona_prompt_fingerprint,
+                        work_product_kind=_wpk,
+                        canon_eligibility=_ce,
+                        beat_constraints_snapshot=list(_wss.beat_constraints),
+                        authoring_controls_snapshot=_acs,
+                    )
+                    _update_node(session, _w_node)
+            except Exception:  # noqa: BLE001
+                pass  # Provenance failure does not abort the turn
+
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
         # roll, inside the outer transaction (Fork B→B1).  Runs only when
         # adjudication produced a result; skipped on non-RPG and no-proposal turns.
@@ -1744,12 +1830,13 @@ class OrchestratorService:
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
-        # For Writing NON_CANON_SUPPORT turns, the Extractor LLM call still runs
-        # but proposals are not routed to the Story Bible (canon-protection seam).
-        _skip_story_bible_routing = (
-            story_mode is StoryMode.WRITING
-            and writing_turn_request is not None
-            and writing_turn_request.effective_canon_eligibility
+        # Canon is suppressed by default on all Writing turns (NON_CANON_SUPPORT).
+        # Proposals only reach the Story Bible when the caller explicitly promotes
+        # the turn to EXTRACTOR_ELIGIBLE via WritingTurnRequest. Fail closed: a
+        # missing turn request is treated as NON_CANON_SUPPORT, not as promotion.
+        _skip_story_bible_routing = story_mode is StoryMode.WRITING and (
+            writing_turn_request is None
+            or writing_turn_request.effective_canon_eligibility
             is WritingCanonEligibility.NON_CANON_SUPPORT
         )
         _scoped_post_writer = ScopedProviderAdapter(
