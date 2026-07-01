@@ -10299,6 +10299,97 @@ class TestWritingSetupGate:
         assert isinstance(node.mode_metadata, WritingNodeMetadata)
         assert node.mode_metadata.version_pointer_refs == []
 
+    def test_two_turns_same_node_retain_distinct_writing_metadata(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Two Writing turns on the same Node keep independent Turn metadata.
+
+        P2 regression: NodeORM.turns is a list, so a later Writing turn on
+        the same Node overwrites Node.mode_metadata — that's expected and
+        documented — but each Turn must retain its OWN durable snapshot via
+        Turn.mode_metadata, not just whatever the Node's single field
+        currently holds.
+        """
+        from afterworlds.models.enums import (
+            WritingCanonEligibility,
+            WritingPlayStatus,
+            WritingWorkProductKind,
+        )
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_turn
+        from afterworlds.pipeline.writing.models import WritingTurnRequest
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                specific_goals="Write something compelling.",
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        first_result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Draft the opening scene.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+            writing_turn_request=WritingTurnRequest(
+                work_product_kind=WritingWorkProductKind.DRAFT_PROSE,
+                canon_eligibility_override=WritingCanonEligibility.EXTRACTOR_ELIGIBLE,
+            ),
+        )
+        second_result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Now continue from there.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert first_result.disposition is PipelineDisposition.DELIVERED
+        assert second_result.disposition is PipelineDisposition.DELIVERED
+        assert first_result.turn_id is not None
+        assert second_result.turn_id is not None
+        assert first_result.turn_id != second_result.turn_id
+
+        with session_factory() as read_session:  # type: ignore[operator]
+            first_turn = get_turn(read_session, first_result.turn_id)
+            second_turn = get_turn(read_session, second_result.turn_id)
+
+        assert first_turn is not None
+        assert second_turn is not None
+        assert isinstance(first_turn.mode_metadata, WritingNodeMetadata)
+        assert isinstance(second_turn.mode_metadata, WritingNodeMetadata)
+        # The first (earlier) turn's snapshot must survive the second
+        # (later) turn's delivery on the same Node — not be overwritten.
+        assert (
+            first_turn.mode_metadata.work_product_kind
+            == WritingWorkProductKind.DRAFT_PROSE.value
+        )
+        assert (
+            first_turn.mode_metadata.canon_eligibility
+            == WritingCanonEligibility.EXTRACTOR_ELIGIBLE.value
+        )
+        assert (
+            second_turn.mode_metadata.work_product_kind
+            == WritingWorkProductKind.PROSE_CONTINUATION.value
+        )
+
 
 # ---------------------------------------------------------------------------
 # P1 Fix: Writing OOC play_status gate — suppress IN_PLAY without verified persona
@@ -10641,6 +10732,99 @@ class TestWritingOocPlayStatusGate:
         assert wss is not None
         assert wss.play_status.value == "in_play"
         assert wss.specific_goals == "Write something compelling."
+        # Confirmation/persistence parity: the suppression must be surfaced,
+        # not silent — the prose cannot imply the goal was cleared.
+        assert result.writer_result is not None
+        assert (
+            "[Immediate goal not changed: IN_PLAY requires a nonblank"
+            " immediate writing goal. Switch back to setup before clearing"
+            " it.]" in result.writer_result.assistant_output
+        )
+
+    def test_in_play_blank_goal_reaffirmed_in_play_noted(
+        self, session_factory: object, session: object
+    ) -> None:
+        """IN_PLAY + blank goal + explicit IN_PLAY reaffirmation → noted, readable."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        config_update = WritingConfigUpdate(
+            specific_goals="   ",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                specific_goals="Write something compelling.",
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Confirm I'm still live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.play_status.value == "in_play"
+        # Row stays readable — original goal preserved, not blanked.
+        assert wss.specific_goals == "Write something compelling."
+        assert result.writer_result is not None
+        assert "[Immediate goal not changed:" in result.writer_result.assistant_output
+
+    def test_blank_goal_with_setup_transition_allowed_no_note(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Blank goal + explicit SETUP transition → allowed, no goal no-op note."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        config_update = WritingConfigUpdate(
+            specific_goals="",
+            play_status=WritingPlayStatus.SETUP,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                specific_goals="Write something compelling.",
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Go back to setup and clear my goal",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.play_status.value == "setup"
+        assert wss.specific_goals == ""  # blank goal allowed alongside SETUP
+        assert result.writer_result is not None
+        assert (
+            "[Immediate goal not changed:" not in result.writer_result.assistant_output
+        )
 
 
 # ---------------------------------------------------------------------------

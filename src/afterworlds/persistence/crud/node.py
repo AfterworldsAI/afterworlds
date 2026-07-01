@@ -62,6 +62,9 @@ def _turn_orm_to_model(row: TurnORM) -> Turn:
         icr = IntentClassificationResult.model_validate(
             row.intent_classification_result
         )
+    mm: ModeMetadata | None = None
+    if row.mode_metadata is not None:
+        mm = _mode_metadata_from_dict(row.mode_metadata)
     return Turn(
         turn_id=UUID(row.turn_id),
         node_id=UUID(row.node_id) if row.node_id is not None else None,
@@ -70,6 +73,7 @@ def _turn_orm_to_model(row: TurnORM) -> Turn:
         timestamp=row.timestamp,  # type: ignore[arg-type]
         intent_classification=row.intent_classification,  # type: ignore[arg-type]
         intent_classification_result=icr,
+        mode_metadata=mm,
     )
 
 
@@ -145,6 +149,9 @@ def create_turn(session: Session, turn: Turn) -> Turn:
     icr_dict: dict[str, Any] | None = None
     if turn.intent_classification_result is not None:
         icr_dict = turn.intent_classification_result.model_dump(mode="json")
+    mm_dict: dict[str, Any] | None = None
+    if turn.mode_metadata is not None:
+        mm_dict = _mode_metadata_to_dict(turn.mode_metadata)
     row = TurnORM(
         turn_id=str(turn.turn_id),
         node_id=str(turn.node_id) if turn.node_id is not None else None,
@@ -153,6 +160,7 @@ def create_turn(session: Session, turn: Turn) -> Turn:
         timestamp=turn.timestamp.isoformat(),
         intent_classification=turn.intent_classification.value,
         intent_classification_result=icr_dict,
+        mode_metadata=mm_dict,
     )
     session.add(row)
     session.flush()
@@ -187,6 +195,28 @@ def update_turn_assistant_output(
     if row is None:
         return False
     row.assistant_output = assistant_output
+    return True
+
+
+def update_turn_mode_metadata(
+    session: Session, turn_id: UUID, mode_metadata: ModeMetadata
+) -> bool:
+    """Persist a mode-specific provenance snapshot on an existing Turn.
+
+    Distinct from Node.mode_metadata: NodeORM.turns is a list, so multiple
+    Turns can link to the same Node.  Writing only to Node.mode_metadata means
+    a later turn on the same Node overwrites an earlier turn's snapshot
+    (work_product_kind, canon_eligibility, version pointer refs, authoring
+    controls) — this helper gives each Turn its own durable record so that
+    provenance survives multiple turns per Node (ADR-017 Architecture Note).
+
+    Returns True when the Turn was found and updated; False otherwise.
+    """
+    row = session.get(TurnORM, str(turn_id))
+    if row is None:
+        return False
+    row.mode_metadata = _mode_metadata_to_dict(mode_metadata)
+    session.flush()
     return True
 
 

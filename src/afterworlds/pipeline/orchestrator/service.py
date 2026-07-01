@@ -1637,18 +1637,26 @@ class OrchestratorService:
                     rpg_adjudication_result=adj_result,
                 )
 
-        # 5a-writing: [WRITING only] Phase G — persist WritingNodeMetadata on the
-        # Node (persona snapshot + work_product_kind + canon_eligibility + authoring
-        # controls snapshot) inside the outer transaction.  This is the provenance
-        # record that lets future issues filter non-canon output from Rolling Summary
-        # (ADR-017 Architecture Note).  Best-effort: failure logs but does not abort
-        # the turn (provenance is audit-quality; the turn prose is already persisted).
+        # 5a-writing: [WRITING only] Phase G — persist WritingNodeMetadata (persona
+        # snapshot + work_product_kind + canon_eligibility + authoring controls
+        # snapshot + version pointer refs) inside the outer transaction, on BOTH
+        # the delivered Turn (per-turn durable provenance — NodeORM.turns is a
+        # list, so multiple Turns can share a Node, and only a per-Turn record
+        # survives a later Writing turn on the same Node) and the Node (a
+        # Node-level compatibility/summary snapshot, not itself per-turn durable).
+        # This is the provenance record that lets future issues filter non-canon
+        # output from Rolling Summary (ADR-017 Architecture Note).  Best-effort:
+        # failure logs but does not abort the turn (provenance is audit-quality;
+        # the turn prose is already persisted).
         if story_mode is StoryMode.WRITING and writing_session_state is not None:
             try:
                 from afterworlds.models.node import WritingNodeMetadata as _WNM
                 from afterworlds.persistence.crud.node import get_node as _get_node
                 from afterworlds.persistence.crud.node import (
                     update_node as _update_node,
+                )
+                from afterworlds.persistence.crud.node import (
+                    update_turn_mode_metadata as _update_turn_mode_metadata,
                 )
                 from afterworlds.pipeline.writing.models import (
                     AuthoringControlsSnapshot as _ACS,
@@ -1733,7 +1741,7 @@ class OrchestratorService:
                         except Exception:  # noqa: BLE001
                             pass
 
-                    _w_node.mode_metadata = _WNM(
+                    _writing_metadata = _WNM(
                         persona_id=_wss.persona_id,
                         persona_display_name=_disp_name,
                         relationship_orientation=_orientation,
@@ -1746,7 +1754,17 @@ class OrchestratorService:
                         version_pointer_refs=_version_pointer_refs,
                         authoring_controls_snapshot=_acs,
                     )
+                    # Node.mode_metadata: kept for Node-level compatibility/
+                    # summary (e.g. "what governed the most recent turn on
+                    # this Node").  NOT per-turn durable — NodeORM.turns is a
+                    # list, so a later Writing turn on the same Node
+                    # overwrites this.  The per-Turn write below is the
+                    # durable provenance record ADR-017 relies on.
+                    _w_node.mode_metadata = _writing_metadata
                     _update_node(session, _w_node)
+                    _update_turn_mode_metadata(
+                        session, writer_turn_id, _writing_metadata
+                    )
             except Exception:  # noqa: BLE001
                 pass  # Provenance failure does not abort the turn
 
@@ -2380,6 +2398,14 @@ class OrchestratorService:
         # form change to avoid an unreadable row; surfaced here so the prose
         # cannot imply the form changed when it did not persist.
         _ooc_form_noop_note: str | None = None
+        # Set when a requested blank/whitespace specific_goals update is
+        # suppressed because the effective post-update play_status is (or
+        # remains) IN_PLAY.  Confirmation/persistence parity: the CRUD guard
+        # silently keeps the existing goal to avoid an unreadable row;
+        # surfaced here so the prose cannot imply the goal was cleared when it
+        # was not.  Blank goals remain allowed when the same update
+        # transitions the session to SETUP (no note in that case).
+        _ooc_goal_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2743,6 +2769,39 @@ class OrchestratorService:
                                 " immediate writing goal.]"
                             )
 
+                # Confirmation/persistence parity (mirrors the form/form_other
+                # and persona/play-status notes above): a blank/whitespace
+                # specific_goals update would be silently kept-as-is by the
+                # CRUD guard when the effective post-update play_status is (or
+                # remains) IN_PLAY, to avoid an unreadable row.  Compute the
+                # effective status the same way CRUD does — the requested
+                # play_status if this update supplies one, else the existing
+                # row's current value — and surface the suppression so the
+                # prose cannot imply the goal was cleared when it was not.  A
+                # blank goal paired with an explicit transition to SETUP is
+                # unaffected (no note; CRUD allows it).
+                _goals_to_persist = _w_cfg.specific_goals
+                if (
+                    _w_cfg.specific_goals is not None
+                    and not _w_cfg.specific_goals.strip()
+                ):
+                    _effective_status_for_goal_note = (
+                        _play_status_to_persist
+                        if _play_status_to_persist is not None
+                        else (
+                            writing_session_state.play_status
+                            if writing_session_state is not None
+                            else None
+                        )
+                    )
+                    if _effective_status_for_goal_note is WritingPlayStatus.IN_PLAY:
+                        _goals_to_persist = None
+                        _ooc_goal_noop_note = (
+                            "[Immediate goal not changed: IN_PLAY requires a"
+                            " nonblank immediate writing goal. Switch back to"
+                            " setup before clearing it.]"
+                        )
+
                 _apply_writing_cfg(
                     session,
                     story_id,
@@ -2758,7 +2817,7 @@ class OrchestratorService:
                     style_density=_w_cfg.style_density,
                     dialogue_narration_ratio=_w_cfg.dialogue_narration_ratio,
                     genre_conventions=_w_cfg.genre_conventions,
-                    specific_goals=_w_cfg.specific_goals,
+                    specific_goals=_goals_to_persist,
                     acceptable_content=_w_cfg.acceptable_content,
                     beat_constraints=_w_cfg.beat_constraints,
                     version_pointers=_vp_dicts,
@@ -2783,6 +2842,7 @@ class OrchestratorService:
                 _ooc_persona_noop_note,
                 _ooc_play_noop_note,
                 _ooc_form_noop_note,
+                _ooc_goal_noop_note,
             )
             if _note is not None
         ]

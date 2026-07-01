@@ -26,6 +26,7 @@ from afterworlds.persistence.crud.node import (
     get_node,
     get_turn,
     update_node,
+    update_turn_mode_metadata,
 )
 from afterworlds.persistence.crud.story import (
     create_arc,
@@ -298,6 +299,155 @@ def test_delete_node_preserves_turns_with_null_node_id(session):  # type: ignore
     assert (
         fetched_turn.node_id is None
     ), "Turn.node_id should be NULL after node deletion"
+
+
+def test_turn_mode_metadata_round_trip(session):  # type: ignore[no-untyped-def]
+    """Turn.mode_metadata serialises/deserialises correctly at creation."""
+    turn = Turn(
+        user_input="Continue the scene",
+        assistant_output="Rain streaks the window.",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+        intent_classification=IntentType.AUTHOR_INSTRUCTION,
+        mode_metadata=WritingNodeMetadata(
+            persona_id="chiron", work_product_kind="prose_continuation"
+        ),
+    )
+    create_turn(session, turn)
+    session.commit()
+
+    fetched = get_turn(session, turn.turn_id)
+    assert fetched is not None
+    assert isinstance(fetched.mode_metadata, WritingNodeMetadata)
+    assert fetched.mode_metadata.persona_id == "chiron"
+    assert fetched.mode_metadata.work_product_kind == "prose_continuation"
+
+
+def test_turn_mode_metadata_defaults_none(session):  # type: ignore[no-untyped-def]
+    """Turn.mode_metadata is None when not supplied at creation."""
+    turn = Turn(
+        user_input="x",
+        assistant_output="y",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+        intent_classification=IntentType.DIALOGUE,
+    )
+    create_turn(session, turn)
+    session.commit()
+
+    fetched = get_turn(session, turn.turn_id)
+    assert fetched is not None
+    assert fetched.mode_metadata is None
+
+
+def test_update_turn_mode_metadata(session):  # type: ignore[no-untyped-def]
+    """update_turn_mode_metadata persists a snapshot on an existing Turn."""
+    turn = Turn(
+        user_input="Continue",
+        assistant_output="The scene continues.",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+        intent_classification=IntentType.AUTHOR_INSTRUCTION,
+    )
+    create_turn(session, turn)
+    session.commit()
+
+    ptr = uuid4()
+    result = update_turn_mode_metadata(
+        session,
+        turn.turn_id,
+        WritingNodeMetadata(
+            persona_id="odin",
+            work_product_kind="prose_continuation",
+            version_pointer_refs=[ptr],
+        ),
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_turn(session, turn.turn_id)
+    assert fetched is not None
+    assert isinstance(fetched.mode_metadata, WritingNodeMetadata)
+    assert fetched.mode_metadata.persona_id == "odin"
+    assert ptr in fetched.mode_metadata.version_pointer_refs
+
+
+def test_update_turn_mode_metadata_no_row_returns_false(session):  # type: ignore[no-untyped-def]
+    """update_turn_mode_metadata returns False when no Turn exists."""
+    result = update_turn_mode_metadata(
+        session, uuid4(), WritingNodeMetadata(work_product_kind="prose_continuation")
+    )
+    assert result is False
+
+
+def test_two_turns_same_node_retain_distinct_mode_metadata(session):  # type: ignore[no-untyped-def]
+    """Two Turns linked to the same Node keep independent Writing metadata.
+
+    P2 regression: NodeORM.turns is a list — multiple Turns can link to the
+    same Node — so a Node-level mode_metadata field alone lets a later
+    Writing turn's snapshot overwrite an earlier turn's.  Per-Turn
+    mode_metadata must survive independently of whatever the Node's own
+    mode_metadata currently holds.
+    """
+    chapter = _setup_chapter(session)
+    node = _make_node(str(chapter.chapter_id))
+    create_node(session, node)
+    session.commit()
+
+    first_turn = Turn(
+        user_input="Start the scene",
+        assistant_output="The scene begins.",
+        timestamp=datetime(2026, 1, 1, tzinfo=UTC),
+        intent_classification=IntentType.AUTHOR_INSTRUCTION,
+        node_id=node.node_id,
+    )
+    second_turn = Turn(
+        user_input="Continue the scene",
+        assistant_output="The scene continues.",
+        timestamp=datetime(2026, 1, 1, 0, 5, tzinfo=UTC),
+        intent_classification=IntentType.AUTHOR_INSTRUCTION,
+        node_id=node.node_id,
+    )
+    create_turn(session, first_turn)
+    create_turn(session, second_turn)
+    session.commit()
+
+    first_metadata = WritingNodeMetadata(
+        persona_id="chiron", work_product_kind="setup_confirmation"
+    )
+    second_metadata = WritingNodeMetadata(
+        persona_id="odin", work_product_kind="prose_continuation"
+    )
+
+    # First turn is delivered and its metadata snapshotted...
+    update_turn_mode_metadata(session, first_turn.turn_id, first_metadata)
+    session.commit()
+
+    # ...then a later turn on the SAME Node is delivered and snapshotted,
+    # simulating Phase G's Node.mode_metadata overwrite behavior alongside
+    # the per-Turn write.
+    update_turn_mode_metadata(session, second_turn.turn_id, second_metadata)
+    node_updated = node.model_copy(update={"mode_metadata": second_metadata})
+    update_node(session, node_updated)
+    session.commit()
+
+    # Each Turn must still carry ITS OWN snapshot — the second turn's update
+    # must not have destroyed the first turn's provenance.
+    fetched_first = get_turn(session, first_turn.turn_id)
+    fetched_second = get_turn(session, second_turn.turn_id)
+    assert fetched_first is not None
+    assert fetched_second is not None
+    assert isinstance(fetched_first.mode_metadata, WritingNodeMetadata)
+    assert isinstance(fetched_second.mode_metadata, WritingNodeMetadata)
+    assert fetched_first.mode_metadata.persona_id == "chiron"
+    assert fetched_first.mode_metadata.work_product_kind == "setup_confirmation"
+    assert fetched_second.mode_metadata.persona_id == "odin"
+    assert fetched_second.mode_metadata.work_product_kind == "prose_continuation"
+
+    # The Node's own mode_metadata reflects only the latest turn (documented,
+    # non-per-turn-durable compatibility snapshot) — this is expected and is
+    # exactly why the per-Turn record above is the durable provenance source.
+    fetched_node = get_node(session, node.node_id)
+    assert fetched_node is not None
+    assert isinstance(fetched_node.mode_metadata, WritingNodeMetadata)
+    assert fetched_node.mode_metadata.persona_id == "odin"
 
 
 def test_node_metadata_timestamp_round_trip(session):  # type: ignore[no-untyped-def]
