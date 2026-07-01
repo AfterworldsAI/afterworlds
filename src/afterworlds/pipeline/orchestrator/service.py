@@ -1653,6 +1653,9 @@ class OrchestratorService:
                 from afterworlds.pipeline.writing.models import (
                     AuthoringControlsSnapshot as _ACS,
                 )
+                from afterworlds.pipeline.writing.models import (
+                    WritingVersionPointer as _WVP,
+                )
 
                 _w_node = _get_node(session, node_id)
                 if _w_node is not None:
@@ -1700,6 +1703,17 @@ class OrchestratorService:
                         except Exception:  # noqa: BLE001
                             _acs = None
 
+                    # Snapshot version-pointer references (minimal v1 provenance —
+                    # signposts only, no diff/restore/branch semantics).  Skip
+                    # malformed entries individually rather than aborting the
+                    # whole turn's provenance record.
+                    _version_pointer_refs: list[UUID] = []
+                    for _raw_vp in _wss.version_pointers:
+                        with suppress(Exception):
+                            _version_pointer_refs.append(
+                                _WVP.model_validate(_raw_vp).pointer_id
+                            )
+
                     # Resolve persona display_name and orientation from registry.
                     _disp_name: str | None = None
                     _orientation: str | None = None
@@ -1729,6 +1743,7 @@ class OrchestratorService:
                         work_product_kind=_wpk,
                         canon_eligibility=_ce,
                         beat_constraints_snapshot=list(_wss.beat_constraints),
+                        version_pointer_refs=_version_pointer_refs,
                         authoring_controls_snapshot=_acs,
                     )
                     _update_node(session, _w_node)

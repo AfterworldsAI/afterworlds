@@ -19,6 +19,24 @@ from afterworlds.modes.personas.registry import (
     PersonaProfile,
     SupportedMode,
 )
+from afterworlds.pipeline.writing.models import WritingVersionPointer
+
+
+def _parse_version_pointers(
+    session_state: WritingSessionState,
+) -> list[WritingVersionPointer]:
+    """Return valid, parsed version pointers from the raw persisted dicts.
+
+    Malformed entries are skipped rather than raised — this renderer must stay
+    pure and never fail the turn over a provenance-reference formatting issue.
+    """
+    parsed: list[WritingVersionPointer] = []
+    for raw in session_state.version_pointers:
+        try:
+            parsed.append(WritingVersionPointer.model_validate(raw))
+        except Exception:  # noqa: BLE001
+            continue
+    return parsed
 
 
 def _resolve_form_label(session_state: WritingSessionState) -> str | None:
@@ -113,6 +131,21 @@ def render_writing_system_prompt_appendix(
 
     parts.append("\n".join(f"- {c}" for c in controls))
 
+    version_pointers = _parse_version_pointers(session_state)
+    if version_pointers:
+        parts.append("## Version References")
+        parts.append(
+            "These are signposts for orientation only — not editable branches"
+            " or restore points."
+        )
+        vp_lines = []
+        for vp in version_pointers:
+            line = f"- {vp.kind.value}: {vp.label}"
+            if vp.description:
+                line += f" — {vp.description}"
+            vp_lines.append(line)
+        parts.append("\n".join(vp_lines))
+
     return "\n\n".join(parts)
 
 
@@ -170,6 +203,16 @@ def render_writing_ooc_state_block(session_state: WritingSessionState) -> str:
 
     if session_state.beat_constraints:
         parts.append(f"beat_constraints: {'; '.join(session_state.beat_constraints)}")
+
+    version_pointers = _parse_version_pointers(session_state)
+    if version_pointers:
+        vp_summaries = []
+        for vp in version_pointers:
+            summary = f"{vp.kind.value}: {vp.label}"
+            if vp.description:
+                summary += f" — {vp.description}"
+            vp_summaries.append(summary)
+        parts.append("version_pointers: " + "; ".join(vp_summaries))
 
     return "\n".join(parts)
 

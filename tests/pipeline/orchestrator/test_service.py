@@ -9973,6 +9973,252 @@ class TestWritingSetupGate:
             == WritingWorkProductKind.PROSE_CONTINUATION.value
         )
 
+    def test_single_version_pointer_snapshotted_in_metadata(
+        self, session_factory: object, session: object
+    ) -> None:
+        """One valid version pointer → its ID lands in version_pointer_refs."""
+        from uuid import uuid4 as _uuid4
+
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_node
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        ptr_id = _uuid4()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                version_pointers=[
+                    {
+                        "schema_version": 1,
+                        "pointer_id": str(ptr_id),
+                        "kind": "draft_label",
+                        "label": "Chapter 1 v2",
+                        "description": None,
+                        "source_turn_id": None,
+                        "source_node_id": None,
+                        "created_at": "2026-06-29T00:00:00+00:00",
+                    }
+                ],
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert node.mode_metadata.version_pointer_refs == [ptr_id]
+
+    def test_multiple_version_pointers_all_snapshotted(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Multiple valid version pointers → all IDs land in version_pointer_refs."""
+        from uuid import uuid4 as _uuid4
+
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_node
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        ptr_id_1, ptr_id_2 = _uuid4(), _uuid4()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                version_pointers=[
+                    {
+                        "schema_version": 1,
+                        "pointer_id": str(ptr_id_1),
+                        "kind": "draft_label",
+                        "label": "Chapter 1 v2",
+                        "description": None,
+                        "source_turn_id": None,
+                        "source_node_id": None,
+                        "created_at": "2026-06-29T00:00:00+00:00",
+                    },
+                    {
+                        "schema_version": 1,
+                        "pointer_id": str(ptr_id_2),
+                        "kind": "working_segment",
+                        "label": "Opening scene",
+                        "description": None,
+                        "source_turn_id": None,
+                        "source_node_id": None,
+                        "created_at": "2026-06-29T00:00:00+00:00",
+                    },
+                ],
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert set(node.mode_metadata.version_pointer_refs) == {ptr_id_1, ptr_id_2}
+
+    def test_malformed_version_pointer_skipped_without_aborting_turn(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A malformed pointer entry is skipped; valid siblings still snapshot."""
+        from uuid import uuid4 as _uuid4
+
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_node
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        ptr_id = _uuid4()
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                version_pointers=[
+                    {
+                        "schema_version": 1,
+                        "pointer_id": str(ptr_id),
+                        "kind": "draft_label",
+                        "label": "Chapter 1 v2",
+                        "description": None,
+                        "source_turn_id": None,
+                        "source_node_id": None,
+                        "created_at": "2026-06-29T00:00:00+00:00",
+                    },
+                    {
+                        # Malformed: invalid kind enum value → fails validation.
+                        "schema_version": 1,
+                        "pointer_id": str(_uuid4()),
+                        "kind": "not_a_real_kind",
+                        "label": "Broken pointer",
+                        "description": None,
+                        "source_turn_id": None,
+                        "source_node_id": None,
+                        "created_at": "2026-06-29T00:00:00+00:00",
+                    },
+                ],
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert node.mode_metadata.version_pointer_refs == [ptr_id]
+
+    def test_no_version_pointers_yields_empty_refs(
+        self, session_factory: object, session: object
+    ) -> None:
+        """No version pointers on the session → version_pointer_refs == []."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.node import WritingNodeMetadata
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import get_default_registry
+        from afterworlds.persistence.crud.node import get_node
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+            )
+
+        orch = _make_writing_gate_orch(
+            session_factory,
+            writing_resolver=_resolver,
+            planner=FakePlannerService(),
+            writer=FakeWriterService(),
+            visible_state_service=WritingVisibleStateService(get_default_registry()),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "Write me something.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        with session_factory() as read_session:  # type: ignore[operator]
+            node = get_node(read_session, node_id)
+        assert node is not None
+        assert isinstance(node.mode_metadata, WritingNodeMetadata)
+        assert node.mode_metadata.version_pointer_refs == []
+
 
 # ---------------------------------------------------------------------------
 # P1 Fix: Writing OOC play_status gate — suppress IN_PLAY without verified persona

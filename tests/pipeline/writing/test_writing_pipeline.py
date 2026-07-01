@@ -393,6 +393,53 @@ class TestWritingContextRenderer:
         assert f"Form: {WritingForm.NOVEL.value}" in result
         assert "Epistolary novella" not in result
 
+    def test_version_pointer_label_and_kind_rendered(self) -> None:
+        session_state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="chiron",
+            version_pointers=[
+                {
+                    "schema_version": 1,
+                    "pointer_id": str(uuid4()),
+                    "kind": "draft_label",
+                    "label": "Chapter 1 v2",
+                    "description": None,
+                    "source_turn_id": None,
+                    "source_node_id": None,
+                    "created_at": "2026-06-29T00:00:00+00:00",
+                }
+            ],
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Version References" in result
+        assert "draft_label" in result
+        assert "Chapter 1 v2" in result
+
+    def test_version_pointer_description_rendered_when_present(self) -> None:
+        session_state = WritingSessionState(
+            story_id=uuid4(),
+            persona_id="chiron",
+            version_pointers=[
+                {
+                    "schema_version": 1,
+                    "pointer_id": str(uuid4()),
+                    "kind": "working_segment",
+                    "label": "Opening scene",
+                    "description": "The version before the tone shift.",
+                    "source_turn_id": None,
+                    "source_node_id": None,
+                    "created_at": "2026-06-29T00:00:00+00:00",
+                }
+            ],
+        )
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "The version before the tone shift." in result
+
+    def test_version_references_section_omitted_when_none(self) -> None:
+        session_state = WritingSessionState(story_id=uuid4(), persona_id="chiron")
+        result = render_writing_system_prompt_appendix(session_state, self.registry)
+        assert "Version References" not in result
+
 
 # ---------------------------------------------------------------------------
 # WritingOocStateBlock
@@ -457,6 +504,32 @@ class TestWritingOocStateBlock:
         result = render_writing_ooc_state_block(state)
         assert f"form: {WritingForm.NOVEL.value}" in result
         assert "Epistolary novella" not in result
+
+    def test_version_pointer_label_and_kind_rendered(self) -> None:
+        state = WritingSessionState(
+            story_id=uuid4(),
+            version_pointers=[
+                {
+                    "schema_version": 1,
+                    "pointer_id": str(uuid4()),
+                    "kind": "draft_label",
+                    "label": "Chapter 1 v2",
+                    "description": None,
+                    "source_turn_id": None,
+                    "source_node_id": None,
+                    "created_at": "2026-06-29T00:00:00+00:00",
+                }
+            ],
+        )
+        result = render_writing_ooc_state_block(state)
+        assert "version_pointers" in result
+        assert "draft_label" in result
+        assert "Chapter 1 v2" in result
+
+    def test_version_pointers_omitted_when_none(self) -> None:
+        state = WritingSessionState(story_id=uuid4())
+        result = render_writing_ooc_state_block(state)
+        assert "version_pointers" not in result
 
 
 # ---------------------------------------------------------------------------
