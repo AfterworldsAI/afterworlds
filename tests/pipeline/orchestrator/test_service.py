@@ -10971,6 +10971,112 @@ class TestWritingOocPersonaAvailability:
         )
         assert "test_deprecated" not in result.writer_result.assistant_output
 
+    def test_hidden_persona_with_in_play_request_does_not_promote(
+        self, session_factory: object, session: object, tmp_path: object
+    ) -> None:
+        """HIDDEN persona + IN_PLAY in the same request → stays SETUP, both noted.
+
+        Registry-aware selectability is enforced at this orchestrator entry
+        point (not at the WritingSessionState/CRUD boundary — see the
+        boundary comments there): a HIDDEN slug must never reach IN_PLAY even
+        when the same OOC request also asks to go live.
+        """
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_hidden", availability="hidden"
+        )
+        config_update = WritingConfigUpdate(
+            persona_id="test_hidden",
+            specific_goals="Write a dark fantasy opening.",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory,
+            config_update,
+            writing_resolver=_resolver,
+            registry=registry,
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use the hidden test persona and go live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id is None
+        assert wss.play_status.value == "setup"
+        assert result.writer_result is not None
+        output = result.writer_result.assistant_output
+        assert (
+            "[Persona not changed: requested persona is not currently"
+            " available for selection.]" in output
+        )
+        assert "[Play status not changed:" in output
+        assert "test_hidden" not in output
+
+    def test_deprecated_persona_with_in_play_request_does_not_promote(
+        self, session_factory: object, session: object, tmp_path: object
+    ) -> None:
+        """DEPRECATED persona + IN_PLAY in same request → stays SETUP, both noted."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_deprecated", availability="deprecated"
+        )
+        config_update = WritingConfigUpdate(
+            persona_id="test_deprecated",
+            specific_goals="Write a dark fantasy opening.",
+            play_status=WritingPlayStatus.IN_PLAY,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory,
+            config_update,
+            writing_resolver=_resolver,
+            registry=registry,
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use the deprecated test persona and go live",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id is None
+        assert wss.play_status.value == "setup"
+        assert result.writer_result is not None
+        output = result.writer_result.assistant_output
+        assert (
+            "[Persona not changed: requested persona is not currently"
+            " available for selection.]" in output
+        )
+        assert "[Play status not changed:" in output
+        assert "test_deprecated" not in output
+
     def test_hidden_persona_still_resolvable_for_historical_context(
         self, tmp_path: object
     ) -> None:

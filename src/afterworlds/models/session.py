@@ -235,6 +235,21 @@ class WritingSessionState(BaseModel):
             raise ValueError("form_other is required when form is OTHER")
         return self
 
+    # Boundary (PR #116 remediation, owner decision): the two IN_PLAY
+    # validators below enforce local persisted-state *shape* only — nonblank
+    # presence of persona_id/specific_goals.  They deliberately do NOT verify
+    # that persona_id names an active/selectable Writing persona; that check
+    # requires the persona registry, which is a registry-aware service
+    # concern, not a core-model concern.  Importing the registry here would
+    # couple this Pydantic model to a mode-specific registry and blur
+    # ownership.  Registry-aware validity/selectability (unknown, hidden, and
+    # deprecated slugs must all be rejected before IN_PLAY) is enforced at
+    # registry-aware service entry points — currently the orchestrator's OOC
+    # persona-selection path (``_ooc_persist`` in
+    # ``pipeline/orchestrator/service.py``).  Any future setup/API/import
+    # entry point that can select or promote a Writing persona to IN_PLAY
+    # must perform that registry check itself before constructing/persisting
+    # this state with play_status=IN_PLAY.
     @model_validator(mode="after")
     def _in_play_requires_persona(self) -> Self:
         if self.play_status is WritingPlayStatus.IN_PLAY and not self.persona_id:

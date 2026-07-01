@@ -584,13 +584,19 @@ def apply_writing_config_update(
                 existing_ids.add(ptr_id)
         row.version_pointers = existing
     if play_status is not None:
-        # Minimal persisted-state integrity: a Writing state must not persist
-        # play_status=IN_PLAY with persona_id=None or a blank specific_goals.
-        # This is a non-null/non-blank check only — full registry verification
-        # and the "immediate writing goal" judgment call remain the
-        # orchestrator's responsibility, applied before this call.  ``row``
-        # here reflects the effective values after any persona_id/
-        # specific_goals updates above.
+        # Boundary (PR #116 remediation, owner decision): this generic CRUD
+        # helper enforces local persisted-state *shape* only — nonblank
+        # persona_id and nonblank specific_goals — never registry-aware
+        # validity/selectability.  It has no persona registry dependency and
+        # must not gain one: this module is generic persistence, not a
+        # registry-aware service, and importing the registry here would
+        # couple low-level CRUD to a mode-specific registry.  A caller could
+        # in principle pass an unknown/hidden/deprecated persona_id here and
+        # this guard would not catch it — registry verification is the
+        # responsibility of the caller (currently the orchestrator's OOC
+        # persona-selection path), applied before this call.  ``row`` here
+        # reflects the effective values after any persona_id/specific_goals
+        # updates above.
         if play_status is WritingPlayStatus.IN_PLAY and (
             not row.persona_id or not (row.specific_goals or "").strip()
         ):
