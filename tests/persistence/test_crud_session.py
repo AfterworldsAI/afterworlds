@@ -94,6 +94,7 @@ def _make_writing_state(story_id: str) -> WritingSessionState:
         critique_intensity=CritiqueIntensity.BALANCED,
         style_density=StyleDensity.BALANCED,
         form=WritingForm.SHORT_STORY,
+        specific_goals="Write a dark fantasy opening.",
     )
 
 
@@ -365,6 +366,7 @@ def test_apply_writing_config_update(session):  # type: ignore[no-untyped-def]
         persona_id="athena",
         critique_intensity=CritiqueIntensity.RUTHLESS,
         tense="present",
+        specific_goals="Write a dark fantasy opening.",
         play_status=WritingPlayStatus.IN_PLAY,
     )
     session.commit()
@@ -423,6 +425,7 @@ def test_apply_writing_config_update_in_play_with_persona_persists(session):  # 
         session,
         story.story_id,
         persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
         play_status=WritingPlayStatus.IN_PLAY,
     )
     session.commit()
@@ -438,7 +441,84 @@ def test_apply_writing_config_update_in_play_with_existing_persona_persists(sess
     """play_status=IN_PLAY persists when the row already has a persona_id."""
     story = make_story()
     create_story(session, story)
-    state = WritingSessionState(story_id=story.story_id, persona_id="merlin")
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="merlin",
+        specific_goals="Write a dark fantasy opening.",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+
+
+def test_apply_writing_config_update_in_play_blank_goal_skipped(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY is not persisted when specific_goals is blank."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona/goal
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP  # unchanged
+    assert fetched.persona_id == "chiron"  # persona still persists
+    assert fetched.specific_goals == ""
+
+
+def test_apply_writing_config_update_in_play_with_persona_and_goal_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when persona_id and specific_goals both present."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona/goal
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_with_existing_goal_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists using an already-persisted specific_goals."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="merlin",
+        specific_goals="Write a dark fantasy opening.",
+    )
     create_writing_session_state(session, state)
     session.commit()
 

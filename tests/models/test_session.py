@@ -271,9 +271,36 @@ class TestWritingSessionState:
         assert state.persona_id is None
 
     def test_in_play_with_persona_id_valid(self) -> None:
-        state = self._make(play_status=WritingPlayStatus.IN_PLAY, persona_id="chiron")
+        state = self._make(
+            play_status=WritingPlayStatus.IN_PLAY,
+            persona_id="chiron",
+            specific_goals="Write a dark fantasy opening.",
+        )
         assert state.play_status is WritingPlayStatus.IN_PLAY
         assert state.persona_id == "chiron"
+
+    def test_in_play_without_specific_goals_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(
+                play_status=WritingPlayStatus.IN_PLAY,
+                persona_id="chiron",
+                specific_goals="",
+            )
+
+    def test_in_play_with_whitespace_only_goals_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(
+                play_status=WritingPlayStatus.IN_PLAY,
+                persona_id="chiron",
+                specific_goals="   ",
+            )
+
+    def test_setup_with_blank_goals_valid(self) -> None:
+        state = self._make(
+            play_status=WritingPlayStatus.SETUP, persona_id=None, specific_goals=""
+        )
+        assert state.play_status is WritingPlayStatus.SETUP
+        assert state.specific_goals == ""
 
     def test_session_id_auto_generated(self) -> None:
         s1 = self._make()

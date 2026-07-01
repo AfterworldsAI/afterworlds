@@ -240,3 +240,12 @@ class WritingSessionState(BaseModel):
         if self.play_status is WritingPlayStatus.IN_PLAY and not self.persona_id:
             raise ValueError("persona_id is required when play_status is IN_PLAY")
         return self
+
+    @model_validator(mode="after")
+    def _in_play_requires_goal(self) -> Self:
+        if (
+            self.play_status is WritingPlayStatus.IN_PLAY
+            and not self.specific_goals.strip()
+        ):
+            raise ValueError("specific_goals is required when play_status is IN_PLAY")
+        return self

@@ -2620,10 +2620,16 @@ class OrchestratorService:
                             # non-ACTIVE profile's version/fingerprint never
                             # lands on the row while persona_id stays unchanged.
                             if _prof.availability is not _PA.ACTIVE:
+                                # Never echo the raw requested persona_id here:
+                                # WritingConfigUpdate.persona_id is an
+                                # extractor/user-supplied free string, and this
+                                # note is appended to delivered/persisted OOC
+                                # output *after* the output safety audit has
+                                # already run — an unsanitized echo would let
+                                # arbitrary text bypass that audit.
                                 _ooc_persona_noop_note = (
-                                    f"[Persona not changed:"
-                                    f" {_w_cfg.persona_id!r} is not currently"
-                                    f" available for selection.]"
+                                    "[Persona not changed: requested persona is"
+                                    " not currently available for selection.]"
                                 )
                             else:
                                 _registry_version = _reg.registry_version
@@ -2632,16 +2638,14 @@ class OrchestratorService:
                                 _persona_id_to_persist = _w_cfg.persona_id
                         except Exception:  # noqa: BLE001
                             _ooc_persona_noop_note = (
-                                f"[Persona not changed:"
-                                f" {_w_cfg.persona_id!r} is not a recognized"
-                                f" Writing persona.]"
+                                "[Persona not changed: requested persona is not"
+                                " recognized as an available Writing persona.]"
                             )
                     else:
                         # No registry service wired — treat as no-op for safety.
                         _ooc_persona_noop_note = (
-                            f"[Persona not changed:"
-                            f" {_w_cfg.persona_id!r} could not be verified"
-                            f" (registry not available).]"
+                            "[Persona not changed: requested persona could not"
+                            " be verified (registry not available).]"
                         )
 
                 # Convert version_pointers to plain dicts for CRUD persistence.
@@ -2716,6 +2720,28 @@ class OrchestratorService:
                             "[Play status not changed: IN_PLAY requires a"
                             " verified Writing persona to be configured first.]"
                         )
+                    else:
+                        # Setup-completion rule (owner decision, PR #116 remediation):
+                        # IN_PLAY also requires an immediate writing goal.  Effective
+                        # goal is the new value from this update if supplied,
+                        # otherwise the existing session state's specific_goals,
+                        # trimmed.  writing_interests describes broader project/taste
+                        # and does not satisfy this immediate-work gate.
+                        _effective_goal = (
+                            _w_cfg.specific_goals
+                            if _w_cfg.specific_goals is not None
+                            else (
+                                writing_session_state.specific_goals
+                                if writing_session_state is not None
+                                else ""
+                            )
+                        )
+                        if not _effective_goal.strip():
+                            _play_status_to_persist = None
+                            _ooc_play_noop_note = (
+                                "[Play status not changed: IN_PLAY requires an"
+                                " immediate writing goal.]"
+                            )
 
                 _apply_writing_cfg(
                     session,
