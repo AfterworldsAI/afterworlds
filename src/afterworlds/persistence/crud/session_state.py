@@ -584,7 +584,15 @@ def apply_writing_config_update(
                 existing_ids.add(ptr_id)
         row.version_pointers = existing
     if play_status is not None:
-        row.play_status = play_status.value
+        # Minimal persisted-state integrity: a Writing state must not persist
+        # play_status=IN_PLAY with persona_id=None.  This is a non-null check
+        # only — full registry verification is the orchestrator's
+        # responsibility, applied before this call.  ``row.persona_id`` here
+        # reflects the effective value after any persona_id update above.
+        if play_status is WritingPlayStatus.IN_PLAY and not row.persona_id:
+            pass  # skip: cannot enter IN_PLAY without persona_id
+        else:
+            row.play_status = play_status.value
     session.flush()
     return True
 

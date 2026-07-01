@@ -218,6 +218,8 @@ class WritingVisibleState(BaseModel):
 
     play_status: str
     specific_goals: str
+    reading_interests: str | None = None
+    writing_interests: str | None = None
     critique_intensity: CritiqueIntensity
     form: WritingForm | None
     # Meaningful only when ``form is WritingForm.OTHER``; None for concrete forms.

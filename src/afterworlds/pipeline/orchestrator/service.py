@@ -2359,6 +2359,12 @@ class OrchestratorService:
         # not happen.  Can fire together with _ooc_persona_noop_note when the
         # extractor returns an unrecognised persona_id AND play_status=IN_PLAY.
         _ooc_play_noop_note: str | None = None
+        # Set when a requested form=OTHER lacks a valid effective form_other (no
+        # nonblank new value, and the existing row is not already form=OTHER
+        # with a valid custom description).  The CRUD guard silently skips this
+        # form change to avoid an unreadable row; surfaced here so the prose
+        # cannot imply the form changed when it did not persist.
+        _ooc_form_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2582,15 +2588,33 @@ class OrchestratorService:
                     if self._writing_visible_state_service is not None:
                         try:
                             from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                PersonaAvailability as _PA,
+                            )
+                            from afterworlds.modes.personas.registry import (
                                 SupportedMode as _SM,
                             )
 
                             _reg = self._writing_visible_state_service.registry
                             _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
-                            _registry_version = _reg.registry_version
-                            _profile_version = _prof.profile_version
-                            _prompt_fingerprint = _prof.prompt_fingerprint
-                            _persona_id_to_persist = _w_cfg.persona_id
+                            # Registry contract distinguishes resolvable (any
+                            # availability) from selectable (ACTIVE only).
+                            # Hidden/deprecated profiles may still resolve for
+                            # existing persisted sessions but must not be newly
+                            # selected via OOC config updates.  Gate ALL
+                            # provenance fields on this check together so a
+                            # non-ACTIVE profile's version/fingerprint never
+                            # lands on the row while persona_id stays unchanged.
+                            if _prof.availability is not _PA.ACTIVE:
+                                _ooc_persona_noop_note = (
+                                    f"[Persona not changed:"
+                                    f" {_w_cfg.persona_id!r} is not currently"
+                                    f" available for selection.]"
+                                )
+                            else:
+                                _registry_version = _reg.registry_version
+                                _profile_version = _prof.profile_version
+                                _prompt_fingerprint = _prof.prompt_fingerprint
+                                _persona_id_to_persist = _w_cfg.persona_id
                         except Exception:  # noqa: BLE001
                             _ooc_persona_noop_note = (
                                 f"[Persona not changed:"
@@ -2611,6 +2635,37 @@ class OrchestratorService:
                     _vp_dicts = [
                         vp.model_dump(mode="json") for vp in _w_cfg.version_pointers
                     ]
+
+                # Form/custom-form invariant: form_other is meaningful only when
+                # form is OTHER.  A requested form=OTHER without a valid
+                # effective form_other would be silently skipped by the CRUD
+                # guard (to avoid an unreadable row) while the OOC turn is still
+                # returned as handled.  Surface that suppression here so the
+                # prose cannot imply a form change that did not persist.  A
+                # stale form_other on a row whose *current* form is not already
+                # OTHER must never satisfy this requirement.
+                _form_to_persist: WritingForm | None = _w_cfg.form
+                _form_other_to_persist: str | None = _w_cfg.form_other
+                if _w_cfg.form is WritingForm.OTHER:
+                    _new_form_other = (
+                        _w_cfg.form_other if (_w_cfg.form_other or "").strip() else None
+                    )
+                    _existing_form_other = (
+                        writing_session_state.form_other
+                        if (
+                            writing_session_state is not None
+                            and writing_session_state.form is WritingForm.OTHER
+                            and writing_session_state.form_other
+                        )
+                        else None
+                    )
+                    if _new_form_other is None and _existing_form_other is None:
+                        _form_to_persist = None
+                        _form_other_to_persist = None
+                        _ooc_form_noop_note = (
+                            "[Form not changed:"
+                            ' "other" requires a custom form description.]'
+                        )
 
                 # Invariant: a Writing session may enter or remain IN_PLAY only
                 # when the resulting persisted state has a verified Writing
@@ -2655,8 +2710,8 @@ class OrchestratorService:
                     persona_profile_version=_profile_version,
                     persona_prompt_fingerprint=_prompt_fingerprint,
                     critique_intensity=_w_cfg.critique_intensity,
-                    form=_w_cfg.form,
-                    form_other=_w_cfg.form_other,
+                    form=_form_to_persist,
+                    form_other=_form_other_to_persist,
                     tense=_w_cfg.tense,
                     pov=_w_cfg.pov,
                     style_density=_w_cfg.style_density,
@@ -2686,6 +2741,7 @@ class OrchestratorService:
                 _ooc_range_noop_note,
                 _ooc_persona_noop_note,
                 _ooc_play_noop_note,
+                _ooc_form_noop_note,
             )
             if _note is not None
         ]

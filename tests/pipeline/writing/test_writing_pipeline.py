@@ -522,6 +522,24 @@ class TestWritingVisibleStateService:
         assert vs.pov == "third limited"
         assert "no deus ex machina" in vs.beat_constraints
 
+    def test_build_populates_reading_and_writing_interests(self) -> None:
+        state = self._base_state("vidura")
+        state = state.model_copy(
+            update={
+                "reading_interests": "Gothic horror, unreliable narrators",
+                "writing_interests": "Stream of consciousness",
+            }
+        )
+        vs = self.service.build(state)
+        assert vs.reading_interests == "Gothic horror, unreliable narrators"
+        assert vs.writing_interests == "Stream of consciousness"
+
+    def test_build_interests_default_none(self) -> None:
+        state = self._base_state("vidura")
+        vs = self.service.build(state)
+        assert vs.reading_interests is None
+        assert vs.writing_interests is None
+
     def test_build_unset_form_remains_none(self) -> None:
         state = WritingSessionState(story_id=uuid4(), persona_id="thoth")
         vs = self.service.build(state)

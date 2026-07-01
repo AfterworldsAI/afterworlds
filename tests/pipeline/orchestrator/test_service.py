@@ -9598,17 +9598,60 @@ def _seed_writing_story_setup_wss(session: object) -> tuple[UUID, UUID]:
     return story.story_id, node.node_id
 
 
+def _make_registry_with_profile(
+    tmp_path: object, *, persona_id: str, availability: str
+) -> object:
+    """Build a JsonPersonaRegistry from a temp JSON file with one custom profile.
+
+    Used to test HIDDEN/DEPRECATED persona handling — the shipped registry's
+    six personas are all ACTIVE, so availability-gating tests need a
+    fixture-backed profile with a non-ACTIVE status.
+    """
+    import json as _json
+
+    from afterworlds.modes.personas.registry import JsonPersonaRegistry
+
+    profile = {
+        "schema_version": 1,
+        "persona_id": persona_id,
+        "display_name": "Test Persona",
+        "orientation": "peer",
+        "availability": availability,
+        "supported_modes": ["writing"],
+        "source_tradition": "test",
+        "source_anchors": ["test anchor"],
+        "ui_short_description": "test short description",
+        "ui_long_description": "test long description",
+        "demeanor_tags": ["calm"],
+        "signature_move": "test move",
+        "opening_question_style": "test style",
+        "prompt_fragment": "test prompt fragment",
+        "negative_constraints": [],
+        "profile_version": 1,
+    }
+    data = {"registry_version": 1, "profiles": [profile]}
+    path = tmp_path / f"test_registry_{persona_id}.json"  # type: ignore[operator]
+    path.write_text(_json.dumps(data), encoding="utf-8")
+    return JsonPersonaRegistry(path=path)
+
+
 def _make_writing_ooc_orch_custom(
     session_factory: object,
     config_update: object,
     *,
     writing_resolver: object,
+    registry: object = None,
 ) -> OrchestratorService:
-    """Build a Writing OOC OrchestratorService with a caller-supplied resolver."""
+    """Build a Writing OOC OrchestratorService with a caller-supplied resolver.
+
+    ``registry`` lets callers substitute a custom persona registry (e.g. one
+    with a HIDDEN/DEPRECATED test profile); defaults to the real registry.
+    """
     from afterworlds.modes.personas.registry import get_default_registry
     from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 
-    svc = WritingVisibleStateService(get_default_registry())
+    _registry = registry if registry is not None else get_default_registry()
+    svc = WritingVisibleStateService(_registry)  # type: ignore[arg-type]
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(make_intent(IntentType.OOC)),
         context_builder=FakeContextBuilder(),
@@ -9656,8 +9699,21 @@ class TestWritingSetupGate:
     def test_in_play_no_persona_id_is_pipeline_error(
         self, session_factory: object
     ) -> None:
-        """IN_PLAY session with persona_id=None → PIPELINE_ERROR; Planner not called."""
-        from afterworlds.models.enums import WritingPlayStatus
+        """IN_PLAY + persona_id=None → PIPELINE_ERROR; Planner not called.
+
+        A normally-constructed WritingSessionState can no longer hold this
+        combination (model validator added for the model/CRUD non-null
+        invariant), so this exercises the orchestrator's own gate at the
+        writing-session pre-resolve step as defense-in-depth against a
+        pre-existing/legacy row that bypasses model validation (e.g. a raw
+        ORM read or a resolver stub), rather than relying on construction to
+        raise the way ordinary callers would encounter it.
+        """
+        from afterworlds.models.enums import (
+            CritiqueIntensity,
+            StyleDensity,
+            WritingPlayStatus,
+        )
         from afterworlds.models.session import WritingSessionState
 
         planner = FakePlannerService()
@@ -9665,10 +9721,28 @@ class TestWritingSetupGate:
 
         def _resolver(sid: UUID) -> WritingSessionState:
             sid_capture.append(sid)
-            return WritingSessionState(
+            return WritingSessionState.model_construct(
+                session_id=uuid4(),
                 story_id=sid,
+                persona_id=None,
+                persona_registry_version=None,
+                persona_profile_version=None,
+                persona_prompt_fingerprint=None,
                 play_status=WritingPlayStatus.IN_PLAY,
-                # persona_id defaults to None
+                reading_interests=None,
+                writing_interests=None,
+                form=None,
+                form_other=None,
+                specific_goals="",
+                critique_intensity=CritiqueIntensity.BALANCED,
+                tense=None,
+                pov=None,
+                style_density=StyleDensity.BALANCED,
+                dialogue_narration_ratio=None,
+                genre_conventions=None,
+                beat_constraints=[],
+                version_pointers=[],
+                acceptable_content=None,
             )
 
         orch = _make_writing_gate_orch(
@@ -10040,9 +10114,17 @@ class TestWritingOocPlayStatusGate:
         """Existing verified persona + IN_PLAY → transitions using existing persona."""
         from afterworlds.models.enums import WritingPlayStatus
         from afterworlds.models.session import WritingSessionState
+        from afterworlds.persistence.crud.session_state import (
+            apply_writing_config_update,
+        )
         from afterworlds.pipeline.writing.models import WritingConfigUpdate
 
         story_id, node_id = _seed_writing_story_setup_wss(session)
+        # The persisted row (not just the resolver's returned view) must already
+        # carry the verified persona — the CRUD-level IN_PLAY/persona_id
+        # invariant now enforces this against the actual row, not the resolver.
+        apply_writing_config_update(session, story_id, persona_id="chiron")
+        session.commit()
         config_update = WritingConfigUpdate(play_status=WritingPlayStatus.IN_PLAY)
 
         def _resolver(sid: UUID) -> WritingSessionState:
@@ -10100,6 +10182,406 @@ class TestWritingOocPlayStatusGate:
         assert wss is not None
         assert wss.tense == "present"
         assert wss.play_status.value == "setup"
+
+
+# ---------------------------------------------------------------------------
+# P2 Fix: Surface skipped custom-form updates
+#
+# form_other is meaningful only when form is OTHER.  A requested form=OTHER
+# without a valid effective form_other must not be silently skipped while the
+# OOC turn is returned as handled — the suppression must be surfaced as a
+# corrective note, and other valid fields in the same update must still
+# persist.
+# ---------------------------------------------------------------------------
+
+
+class TestWritingOocFormInvariant:
+    """OOC form=OTHER updates: surface suppression; never trust stale form_other."""
+
+    def _read_wss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_writing_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_writing_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_other_without_form_other_suppressed_and_noted(
+        self, session_factory: object, session: object
+    ) -> None:
+        """form=OTHER, no form_other, row not already OTHER → suppressed + noted."""
+        from afterworlds.models.enums import WritingForm, WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(form=WritingForm.OTHER)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Change my form to something else",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.form is None
+        assert result.writer_result is not None
+        assert (
+            '[Form not changed: "other" requires a custom form description.]'
+            in result.writer_result.assistant_output
+        )
+
+    def test_other_fields_persist_when_form_suppressed(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Suppressed form=OTHER update does not block other field updates."""
+        from afterworlds.models.enums import (
+            CritiqueIntensity,
+            WritingForm,
+            WritingPlayStatus,
+        )
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(
+            form=WritingForm.OTHER,
+            tense="present",
+            critique_intensity=CritiqueIntensity.RUTHLESS,
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Present tense, ruthless critique, and a custom form",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.form is None
+        assert wss.tense == "present"
+        assert wss.critique_intensity is CritiqueIntensity.RUTHLESS
+
+    def test_other_with_form_other_persists_no_note(
+        self, session_factory: object, session: object
+    ) -> None:
+        """form=OTHER with a nonblank form_other persists; no corrective note."""
+        from afterworlds.models.enums import WritingForm, WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(
+            form=WritingForm.OTHER, form_other="lyric essay"
+        )
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] I'm writing a lyric essay",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.form is WritingForm.OTHER
+        assert wss.form_other == "lyric essay"
+        assert result.writer_result is not None
+        assert "[Form not changed:" not in result.writer_result.assistant_output
+
+    def test_existing_other_row_form_other_unchanged_stays_valid(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Existing OTHER row + form=OTHER update with no form_other → stays valid."""
+        from afterworlds.models.enums import (
+            CritiqueIntensity,
+            StyleDensity,
+            WritingForm,
+            WritingPlayStatus,
+        )
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        config_update = WritingConfigUpdate(form=WritingForm.OTHER)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                play_status=WritingPlayStatus.SETUP,
+                form=WritingForm.OTHER,
+                form_other="essay hybrid",
+                critique_intensity=CritiqueIntensity.BALANCED,
+                style_density=StyleDensity.BALANCED,
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Keep my custom form as-is",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.writer_result is not None
+        assert "[Form not changed:" not in result.writer_result.assistant_output
+
+    def test_stale_form_other_on_concrete_form_does_not_satisfy_new_other(
+        self, session_factory: object, session: object
+    ) -> None:
+        """A stale form_other from a concrete-form row never satisfies OTHER."""
+        from afterworlds.models.enums import WritingForm, WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.persistence.crud.session_state import (
+            apply_writing_config_update,
+        )
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        # The persisted row (not just the resolver's returned view) must already
+        # carry the concrete form the assertions below check against.
+        apply_writing_config_update(session, story_id, form=WritingForm.NOVEL)
+        session.commit()
+        config_update = WritingConfigUpdate(form=WritingForm.OTHER)
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            # Concrete form with a form_other value that should never be
+            # trusted as the custom description for a *new* OTHER request.
+            state = WritingSessionState(
+                story_id=sid,
+                play_status=WritingPlayStatus.SETUP,
+                form=WritingForm.NOVEL,
+            )
+            return state.model_copy(update={"form_other": "stale leftover text"})
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Switch to a custom form",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.form is WritingForm.NOVEL  # unchanged — stale value not trusted
+        assert result.writer_result is not None
+        assert (
+            '[Form not changed: "other" requires a custom form description.]'
+            in result.writer_result.assistant_output
+        )
+
+
+# ---------------------------------------------------------------------------
+# P2 Fix: Reject unavailable personas during OOC selection
+#
+# OOC persona changes may select only ACTIVE Writing personas.  Hidden and
+# deprecated profiles may still resolve for existing persisted sessions but
+# must not be newly selected via OOC config updates.
+# ---------------------------------------------------------------------------
+
+
+class TestWritingOocPersonaAvailability:
+    """OOC persona selection: ACTIVE-only, distinct from merely resolvable."""
+
+    def _read_wss(self, session: object, story_id: UUID) -> object:
+        from afterworlds.persistence.crud.session_state import (
+            get_writing_session_state_by_story,
+        )
+
+        session.expire_all()  # type: ignore[union-attr]
+        return get_writing_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+
+    def test_active_persona_persists_slug_and_provenance(
+        self, session_factory: object, session: object, tmp_path: object
+    ) -> None:
+        """An ACTIVE persona persists persona_id and registry provenance."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_active", availability="active"
+        )
+        config_update = WritingConfigUpdate(persona_id="test_active")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory,
+            config_update,
+            writing_resolver=_resolver,
+            registry=registry,
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use the test persona",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id == "test_active"
+        assert wss.persona_registry_version == 1
+        assert result.writer_result is not None
+        assert "[Persona not changed:" not in result.writer_result.assistant_output
+
+    def test_hidden_persona_resolves_but_not_persisted(
+        self, session_factory: object, session: object, tmp_path: object
+    ) -> None:
+        """A HIDDEN persona resolves but is not selected; note appended."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_hidden", availability="hidden"
+        )
+        config_update = WritingConfigUpdate(persona_id="test_hidden")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory,
+            config_update,
+            writing_resolver=_resolver,
+            registry=registry,
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use the hidden test persona",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id is None
+        assert wss.persona_registry_version is None
+        assert result.writer_result is not None
+        assert (
+            "[Persona not changed: 'test_hidden' is not currently available"
+            " for selection.]" in result.writer_result.assistant_output
+        )
+
+    def test_deprecated_persona_resolves_but_not_persisted(
+        self, session_factory: object, session: object, tmp_path: object
+    ) -> None:
+        """A DEPRECATED persona resolves but is not selected; note appended."""
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_setup_wss(session)
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_deprecated", availability="deprecated"
+        )
+        config_update = WritingConfigUpdate(persona_id="test_deprecated")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid, play_status=WritingPlayStatus.SETUP
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory,
+            config_update,
+            writing_resolver=_resolver,
+            registry=registry,
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] Use the deprecated test persona",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.persona_id is None
+        assert result.writer_result is not None
+        assert (
+            "[Persona not changed: 'test_deprecated' is not currently available"
+            " for selection.]" in result.writer_result.assistant_output
+        )
+
+    def test_hidden_persona_still_resolvable_for_historical_context(
+        self, tmp_path: object
+    ) -> None:
+        """A HIDDEN persona still resolves for existing persisted sessions.
+
+        Availability gating applies only to new OOC selection (this class);
+        an already-persisted session referencing a hidden persona must still
+        be able to resolve/render it for historical context.
+        """
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.modes.personas.registry import SupportedMode
+        from afterworlds.pipeline.writing.visible_state import (
+            WritingVisibleStateService,
+        )
+
+        registry = _make_registry_with_profile(
+            tmp_path, persona_id="test_hidden_legacy", availability="hidden"
+        )
+        profile = registry.get_profile(  # type: ignore[attr-defined]
+            "test_hidden_legacy", SupportedMode.WRITING
+        )
+        assert profile.persona_id == "test_hidden_legacy"
+
+        svc = WritingVisibleStateService(registry)  # type: ignore[arg-type]
+        result = svc.render_context_appendix(
+            WritingSessionState(story_id=uuid4(), persona_id="test_hidden_legacy")
+        )
+        assert result  # still renders — resolvable for historical sessions
 
 
 # ---------------------------------------------------------------------------

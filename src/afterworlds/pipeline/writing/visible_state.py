@@ -86,6 +86,8 @@ class WritingVisibleStateService:
             demeanor_tags=profile.demeanor_tags,
             play_status=session_state.play_status.value,
             specific_goals=session_state.specific_goals,
+            reading_interests=session_state.reading_interests,
+            writing_interests=session_state.writing_interests,
             critique_intensity=session_state.critique_intensity,
             form=session_state.form,
             form_other=(

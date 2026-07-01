@@ -261,6 +261,20 @@ class TestWritingSessionState:
         assert state.form is WritingForm.OTHER
         assert state.form_other == "epic poem"
 
+    def test_in_play_without_persona_id_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(play_status=WritingPlayStatus.IN_PLAY, persona_id=None)
+
+    def test_setup_without_persona_id_valid(self) -> None:
+        state = self._make(play_status=WritingPlayStatus.SETUP, persona_id=None)
+        assert state.play_status is WritingPlayStatus.SETUP
+        assert state.persona_id is None
+
+    def test_in_play_with_persona_id_valid(self) -> None:
+        state = self._make(play_status=WritingPlayStatus.IN_PLAY, persona_id="chiron")
+        assert state.play_status is WritingPlayStatus.IN_PLAY
+        assert state.persona_id == "chiron"
+
     def test_session_id_auto_generated(self) -> None:
         s1 = self._make()
         s2 = self._make()

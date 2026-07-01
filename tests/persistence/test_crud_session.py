@@ -389,6 +389,72 @@ def test_apply_writing_config_update_no_row(session):  # type: ignore[no-untyped
     assert result is False
 
 
+def test_apply_writing_config_update_in_play_without_persona_skipped(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY is not persisted when no persona_id is present."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP  # unchanged
+    assert fetched.persona_id is None
+
+
+def test_apply_writing_config_update_in_play_with_persona_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when persona_id is present in the same update."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.persona_id == "chiron"
+
+
+def test_apply_writing_config_update_in_play_with_existing_persona_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when the row already has a persona_id."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id, persona_id="merlin")
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+
+
 # ---------------------------------------------------------------------------
 # RpgSessionState — new field round-trips (Fix 2, CRD Issue 15 remediation)
 # ---------------------------------------------------------------------------
