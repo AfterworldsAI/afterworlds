@@ -536,6 +536,150 @@ def test_apply_writing_config_update_in_play_with_existing_goal_persists(session
 
 
 # ---------------------------------------------------------------------------
+# apply_writing_config_update — blank specific_goals must never persist while
+# the row is (or is becoming) IN_PLAY (P1: unreadable-row regression)
+# ---------------------------------------------------------------------------
+
+
+def test_apply_writing_config_update_in_play_blank_goal_only_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + blank specific_goals + no play_status change → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    # Original goal preserved — the row remains readable (constructible).
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_whitespace_goal_only_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + whitespace-only specific_goals → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="   ",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_blank_goal_reaffirmed_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + blank goal + explicit play_status=IN_PLAY → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_setup_transition_allows_blank_goal(session):  # type: ignore[no-untyped-def]
+    """Transitioning to SETUP with a blank specific_goals is allowed."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+        play_status=WritingPlayStatus.SETUP,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP
+    assert fetched.specific_goals == ""
+
+
+def test_apply_writing_config_update_in_play_row_nonblank_goal_update_persists(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + nonblank specific_goals update → persists normally."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="Write a lighthearted romance instead.",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a lighthearted romance instead."
+
+
+# ---------------------------------------------------------------------------
 # RpgSessionState — new field round-trips (Fix 2, CRD Issue 15 remediation)
 # ---------------------------------------------------------------------------
 

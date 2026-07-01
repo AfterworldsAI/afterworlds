@@ -10596,6 +10596,52 @@ class TestWritingOocPlayStatusGate:
         assert wss.critique_intensity is CritiqueIntensity.RUTHLESS
         assert wss.play_status.value == "setup"
 
+    def test_in_play_row_blank_extracted_goal_leaves_row_readable(
+        self, session_factory: object, session: object
+    ) -> None:
+        """OOC extraction of blank specific_goals on an IN_PLAY row stays readable.
+
+        P1 regression: apply_writing_config_update used to write
+        specific_goals unconditionally.  If the extractor ever surfaces a
+        blank specific_goals for a session already IN_PLAY (no play_status
+        change requested), the row must not end up IN_PLAY with a blank
+        goal — that combination fails WritingSessionState's IN_PLAY
+        construction invariant on the very next read.
+        """
+        from afterworlds.models.enums import WritingPlayStatus
+        from afterworlds.models.session import WritingSessionState
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session, persona_id="chiron")
+        config_update = WritingConfigUpdate(specific_goals="")
+
+        def _resolver(sid: UUID) -> WritingSessionState:
+            return WritingSessionState(
+                story_id=sid,
+                persona_id="chiron",
+                play_status=WritingPlayStatus.IN_PLAY,
+                specific_goals="Write something compelling.",
+            )
+
+        orch = _make_writing_ooc_orch_custom(
+            session_factory, config_update, writing_resolver=_resolver
+        )
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What's my current setup?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        # The row must still be readable — constructing WritingSessionState
+        # from the persisted row must not raise.
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.play_status.value == "in_play"
+        assert wss.specific_goals == "Write something compelling."
+
 
 # ---------------------------------------------------------------------------
 # P2 Fix: Surface skipped custom-form updates

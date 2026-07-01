@@ -503,8 +503,20 @@ def apply_writing_config_update(
     ``other`` but neither the update nor the existing row supplies ``form_other``,
     the form change is silently skipped to prevent an unreadable row.
 
+    ``specific_goals``/``play_status`` integrity guard: if the post-update
+    play_status is (or remains) ``IN_PLAY`` but the new ``specific_goals``
+    value is blank/whitespace, the goals write is silently skipped to prevent
+    an unreadable row (mirrors the form/form_other guard; also complements the
+    play_status guard below, which independently prevents *newly persisting*
+    IN_PLAY without nonblank persona_id/specific_goals).
+
     ``beat_constraints`` replaces the full constraint list (replace semantics,
-    consistent with WritingSessionState validator behaviour).
+    consistent with WritingSessionState validator behaviour).  Unlike
+    ``form``/``form_other`` and ``specific_goals``/``play_status``,
+    ``beat_constraints`` and ``dialogue_narration_ratio`` validity does not
+    depend on another field or on existing row state — ``WritingConfigUpdate``
+    (the only production caller's DTO) fully validates both at construction
+    time, so no CRUD-level guard is needed for them.
 
     ``version_pointers`` are appended to the existing list, deduped by
     ``pointer_id`` so idempotent re-extraction doesn't grow the list unboundedly.
@@ -566,7 +578,28 @@ def apply_writing_config_update(
     if genre_conventions is not None:
         row.genre_conventions = genre_conventions
     if specific_goals is not None:
-        row.specific_goals = specific_goals
+        # Cross-field integrity guard (mirrors the form/form_other guard
+        # above): specific_goals validity depends on play_status, a
+        # different field, and the *existing* row's play_status when this
+        # call does not touch play_status.  A row already IN_PLAY — or one
+        # this same call is promoting to IN_PLAY — must never end up with a
+        # blank specific_goals; that violates WritingSessionState's IN_PLAY
+        # construction invariant and makes the row unreadable on the next
+        # fetch.  Effective play_status is the requested value if supplied,
+        # else the row's current value.  A goal-clearing update paired with
+        # an explicit transition to SETUP is unaffected.
+        _effective_status_for_goal = (
+            play_status
+            if play_status is not None
+            else WritingPlayStatus(row.play_status)
+        )
+        if (
+            _effective_status_for_goal is WritingPlayStatus.IN_PLAY
+            and not specific_goals.strip()
+        ):
+            pass  # skip: cannot blank specific_goals while (or becoming) IN_PLAY
+        else:
+            row.specific_goals = specific_goals
     if acceptable_content is not None:
         row.acceptable_content = acceptable_content
     if beat_constraints is not None:
