@@ -252,8 +252,12 @@ class WritingConfigUpdate(BaseModel):
 
     All fields are optional; only non-None fields are applied.
     ``persona_id`` triggers a registry lookup and provenance snapshot update.
-    ``beat_constraints`` replaces the full constraint list (replace semantics).
-    ``version_pointers`` are appended to the existing list, deduped by pointer_id.
+    ``beat_constraints`` is applied per ``beat_constraints_mode``: "replace"
+    (default when ``beat_constraints`` is set but mode is omitted) swaps the
+    full list; "append" adds the given constraints to the existing list,
+    deduped.
+    ``version_pointers`` are appended to the existing list, deduped by
+    pointer_id and by semantic reference (kind/label/source/description).
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -272,6 +276,7 @@ class WritingConfigUpdate(BaseModel):
     specific_goals: str | None = None
     acceptable_content: str | None = None
     beat_constraints: list[str] | None = None
+    beat_constraints_mode: Literal["append", "replace"] | None = None
     version_pointers: list[WritingVersionPointer] | None = None
 
     @field_validator("dialogue_narration_ratio")

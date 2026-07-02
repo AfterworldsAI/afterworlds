@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -473,6 +473,38 @@ def update_writing_session_state(
     return _writing_orm_to_model(row)
 
 
+def _normalize_version_pointer_text(value: Any) -> str | None:
+    """Strip, collapse internal whitespace, and casefold text for semantic dedup.
+
+    Returns None for missing/blank text so absent fields compare equal to each
+    other without colliding with an empty-string field.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = " ".join(value.split()).strip().casefold()
+    return normalized or None
+
+
+def _version_pointer_semantic_key(p: dict[str, Any]) -> tuple[Any, ...]:
+    """Build a semantic identity key for a version pointer dict.
+
+    Used to dedupe extractor-generated pointers that reference the same
+    real-world draft/turn/node but carry a freshly generated ``pointer_id``
+    (the extractor tool intentionally omits ``pointer_id`` so the model is
+    never invited to hallucinate a UUID; the DTO's ``default_factory`` fills
+    a new one on every extraction pass).  ``kind``/``source_turn_id``/
+    ``source_node_id`` are compared exactly; ``label``/``description`` are
+    normalized so trivial formatting differences don't defeat the dedup.
+    """
+    return (
+        p.get("kind"),
+        _normalize_version_pointer_text(p.get("label")),
+        p.get("source_turn_id"),
+        p.get("source_node_id"),
+        _normalize_version_pointer_text(p.get("description")),
+    )
+
+
 def apply_writing_config_update(
     session: Session,
     story_id: UUID,
@@ -491,6 +523,7 @@ def apply_writing_config_update(
     specific_goals: str | None = None,
     acceptable_content: str | None = None,
     beat_constraints: list[str] | None = None,
+    beat_constraints_mode: Literal["append", "replace"] | None = None,
     version_pointers: list[Any] | None = None,
     play_status: WritingPlayStatus | None = None,
 ) -> bool:
@@ -510,16 +543,22 @@ def apply_writing_config_update(
     play_status guard below, which independently prevents *newly persisting*
     IN_PLAY without nonblank persona_id/specific_goals).
 
-    ``beat_constraints`` replaces the full constraint list (replace semantics,
-    consistent with WritingSessionState validator behaviour).  Unlike
-    ``form``/``form_other`` and ``specific_goals``/``play_status``,
-    ``beat_constraints`` and ``dialogue_narration_ratio`` validity does not
-    depend on another field or on existing row state — ``WritingConfigUpdate``
-    (the only production caller's DTO) fully validates both at construction
-    time, so no CRUD-level guard is needed for them.
+    ``beat_constraints`` is applied per ``beat_constraints_mode``: "replace"
+    (the default when ``beat_constraints`` is set but mode is omitted) swaps
+    the full list, consistent with WritingSessionState validator behaviour;
+    "append" adds the given constraints to the existing list, deduped by
+    exact string match so a repeated add does not duplicate.
+    ``dialogue_narration_ratio`` validity does not depend on another field or
+    on existing row state — ``WritingConfigUpdate`` (the only production
+    caller's DTO) fully validates it at construction time, so no CRUD-level
+    guard is needed for it.
 
-    ``version_pointers`` are appended to the existing list, deduped by
-    ``pointer_id`` so idempotent re-extraction doesn't grow the list unboundedly.
+    ``version_pointers`` are appended to the existing list, deduped both by
+    ``pointer_id`` (stable identity once a pointer exists) and by a semantic
+    key — (kind, normalized label, source_turn_id, source_node_id, normalized
+    description) — so idempotent re-extraction with a freshly generated
+    pointer_id (the extractor tool never supplies pointer_id) doesn't grow the
+    list unboundedly.
 
     Used by the OOC config extractor — all writes are inside the OOC transaction
     and roll back if OOC_HANDLED does not commit.
@@ -603,18 +642,38 @@ def apply_writing_config_update(
     if acceptable_content is not None:
         row.acceptable_content = acceptable_content
     if beat_constraints is not None:
-        row.beat_constraints = list(beat_constraints)
+        if beat_constraints_mode == "append":
+            existing_constraints = (
+                list(row.beat_constraints) if row.beat_constraints else []
+            )
+            existing_constraint_set = set(existing_constraints)
+            for constraint in beat_constraints:
+                if constraint not in existing_constraint_set:
+                    existing_constraints.append(constraint)
+                    existing_constraint_set.add(constraint)
+            row.beat_constraints = existing_constraints
+        else:
+            row.beat_constraints = list(beat_constraints)
     if version_pointers is not None and len(version_pointers) > 0:
         existing = list(row.version_pointers) if row.version_pointers else []
         existing_ids = {
             str(p.get("pointer_id")) for p in existing if isinstance(p, dict)
         }
+        existing_semantic_keys = {
+            _version_pointer_semantic_key(p) for p in existing if isinstance(p, dict)
+        }
         for ptr in version_pointers:
             ptr_dict = ptr if isinstance(ptr, dict) else ptr
             ptr_id = str(ptr_dict.get("pointer_id", ""))
-            if ptr_id and ptr_id not in existing_ids:
-                existing.append(ptr_dict)
+            if ptr_id and ptr_id in existing_ids:
+                continue  # exact pointer_id already present
+            semantic_key = _version_pointer_semantic_key(ptr_dict)
+            if semantic_key in existing_semantic_keys:
+                continue  # same kind/label/source/description already present
+            existing.append(ptr_dict)
+            if ptr_id:
                 existing_ids.add(ptr_id)
+            existing_semantic_keys.add(semantic_key)
         row.version_pointers = existing
     if play_status is not None:
         # Boundary (PR #116 remediation, owner decision): this generic CRUD

@@ -220,18 +220,46 @@ EXTRACT_WRITING_CONFIG_TOOL_SPEC: dict[str, Any] = {
                         "type": "array",
                         "items": {"type": "string"},
                         "description": (
-                            "Full replacement list of beat constraints the Sojourner"
-                            " explicitly stated (e.g. 'no deus ex machina',"
+                            "Beat constraints the Sojourner explicitly stated"
+                            " (e.g. 'no deus ex machina',"
                             " 'protagonist must earn every victory')."
                             " Provide only constraints the Sojourner explicitly"
                             " named; do not infer structural rules."
+                            " If the Sojourner asked to ADD a constraint (e.g."
+                            " 'add a constraint: no deus ex machina'), list ONLY"
+                            " the new constraint(s) being added, and set"
+                            " beat_constraints_mode to 'append'."
+                            " If the Sojourner asked to REPLACE constraints"
+                            " (e.g. 'replace all beat constraints with:"
+                            " protagonist earns every victory'), list the FULL"
+                            " replacement set, and set beat_constraints_mode"
+                            " to 'replace'."
                         ),
                     },
                     {"type": "null"},
                 ],
                 "description": (
-                    "Null unless the Sojourner explicitly set or replaced"
-                    " beat constraints."
+                    "Null unless the Sojourner explicitly added or replaced"
+                    " beat constraints. Must be paired with beat_constraints_mode."
+                ),
+            },
+            "beat_constraints_mode": {
+                "oneOf": [
+                    {
+                        "type": "string",
+                        "enum": ["append", "replace"],
+                        "description": (
+                            "'append' when the Sojourner asked to add"
+                            " constraint(s) to the existing list;"
+                            " 'replace' when the Sojourner asked to replace"
+                            " all beat constraints."
+                        ),
+                    },
+                    {"type": "null"},
+                ],
+                "description": (
+                    "Null unless beat_constraints is non-null; otherwise"
+                    " 'append' or 'replace' as described above."
                 ),
             },
             "version_pointers": {
@@ -304,6 +332,7 @@ EXTRACT_WRITING_CONFIG_TOOL_SPEC: dict[str, Any] = {
             "specific_goals",
             "acceptable_content",
             "beat_constraints",
+            "beat_constraints_mode",
             "version_pointers",
         ],
     },

@@ -1091,6 +1091,33 @@ class TestWritingConfigUpdateNewFields:
         update = WritingConfigUpdate(version_pointers=None)
         assert update.version_pointers is None
 
+    def test_beat_constraints_mode_append_accepted(self) -> None:
+        update = WritingConfigUpdate(
+            beat_constraints=["no deus ex machina"],
+            beat_constraints_mode="append",
+        )
+        assert update.beat_constraints_mode == "append"
+
+    def test_beat_constraints_mode_replace_accepted(self) -> None:
+        update = WritingConfigUpdate(
+            beat_constraints=["protagonist earns every victory"],
+            beat_constraints_mode="replace",
+        )
+        assert update.beat_constraints_mode == "replace"
+
+    def test_beat_constraints_mode_none_is_valid(self) -> None:
+        update = WritingConfigUpdate(beat_constraints=None)
+        assert update.beat_constraints_mode is None
+
+    def test_beat_constraints_mode_invalid_value_rejected(self) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match="beat_constraints_mode"):
+            WritingConfigUpdate(
+                beat_constraints=["no deus ex machina"],
+                beat_constraints_mode="delete",  # type: ignore[arg-type]
+            )
+
 
 # ---------------------------------------------------------------------------
 # WritingOocConfigExtractorService — schema accepts beat_constraints / version_pointers
@@ -1106,6 +1133,17 @@ class TestOocExtractorSchemaNewFields:
         )
 
         self.service = WritingOocConfigExtractorService()
+
+    def test_tool_schema_declares_beat_constraints_mode(self) -> None:
+        """The forced-tool schema exposes beat_constraints_mode as required."""
+        from afterworlds.pipeline.writing.ooc_config_extractor import (
+            EXTRACT_WRITING_CONFIG_TOOL_SPEC,
+        )
+
+        props = EXTRACT_WRITING_CONFIG_TOOL_SPEC["input_schema"]["properties"]
+        required = EXTRACT_WRITING_CONFIG_TOOL_SPEC["input_schema"]["required"]
+        assert "beat_constraints_mode" in props
+        assert "beat_constraints_mode" in required
 
     def test_extraction_with_beat_constraints(self) -> None:
         """Tool output with beat_constraints list → parsed into WritingConfigUpdate."""
@@ -1123,6 +1161,7 @@ class TestOocExtractorSchemaNewFields:
             "specific_goals": None,
             "acceptable_content": None,
             "beat_constraints": ["no deus ex machina", "protagonist earns every win"],
+            "beat_constraints_mode": "replace",
             "version_pointers": None,
         }
         ctx = _make_ooc_assembled()
@@ -1132,6 +1171,32 @@ class TestOocExtractorSchemaNewFields:
             "no deus ex machina",
             "protagonist earns every win",
         ]
+        assert result.config_update.beat_constraints_mode == "replace"
+
+    def test_extraction_with_beat_constraints_append_mode(self) -> None:
+        """Tool output requesting an add → mode='append' with only the new item."""
+        tool_input = {
+            "persona_id": None,
+            "play_status": None,
+            "critique_intensity": None,
+            "form": None,
+            "form_other": None,
+            "tense": None,
+            "pov": None,
+            "style_density": None,
+            "dialogue_narration_ratio": None,
+            "genre_conventions": None,
+            "specific_goals": None,
+            "acceptable_content": None,
+            "beat_constraints": ["no deus ex machina"],
+            "beat_constraints_mode": "append",
+            "version_pointers": None,
+        }
+        ctx = _make_ooc_assembled()
+        provider = _make_ooc_provider(tool_input=tool_input)
+        result = self.service.extract(ctx, provider)  # type: ignore[arg-type]
+        assert result.config_update.beat_constraints == ["no deus ex machina"]
+        assert result.config_update.beat_constraints_mode == "append"
 
     def test_extraction_with_version_pointers(self) -> None:
         """Tool output with version_pointers → parsed into WritingConfigUpdate."""
@@ -1149,6 +1214,7 @@ class TestOocExtractorSchemaNewFields:
             "specific_goals": None,
             "acceptable_content": None,
             "beat_constraints": None,
+            "beat_constraints_mode": None,
             "version_pointers": [{"kind": "draft_label", "label": "Chapter 1 v2"}],
         }
         ctx = _make_ooc_assembled()
@@ -1176,10 +1242,12 @@ class TestOocExtractorSchemaNewFields:
             "specific_goals": None,
             "acceptable_content": None,
             "beat_constraints": None,
+            "beat_constraints_mode": None,
             "version_pointers": None,
         }
         ctx = _make_ooc_assembled()
         provider = _make_ooc_provider(tool_input=tool_input)
         result = self.service.extract(ctx, provider)  # type: ignore[arg-type]
         assert result.config_update.beat_constraints is None
+        assert result.config_update.beat_constraints_mode is None
         assert result.config_update.version_pointers is None

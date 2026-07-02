@@ -9524,6 +9524,111 @@ class TestWritingOocConfigPersistence:
         assert wss.persona_id == "odin"
         assert wss.persona_registry_version == 1  # provenance recorded
 
+    def test_beat_constraints_append_preserves_existing_and_delivered_truthful(
+        self, session_factory: object, session: object
+    ) -> None:
+        """'add a constraint' OOC request appends without discarding existing ones."""
+        from afterworlds.persistence.crud.session_state import (
+            apply_writing_config_update,
+        )
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+        apply_writing_config_update(
+            session, story_id, beat_constraints=["no deus ex machina"]
+        )
+        session.commit()  # type: ignore[union-attr]
+
+        config_update = WritingConfigUpdate(
+            beat_constraints=["protagonist earns every victory"],
+            beat_constraints_mode="append",
+        )
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] add a constraint: protagonist earns every victory",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.beat_constraints == [
+            "no deus ex machina",
+            "protagonist earns every victory",
+        ]
+        # No corrective note is warranted — the append succeeded as requested,
+        # so the delivered output must remain the plain writer output.
+        assert result.writer_result is not None
+        assert "not changed" not in result.writer_result.assistant_output.lower()
+
+    def test_beat_constraints_append_duplicate_does_not_duplicate(
+        self, session_factory: object, session: object
+    ) -> None:
+        """Adding a constraint that already exists does not duplicate it."""
+        from afterworlds.persistence.crud.session_state import (
+            apply_writing_config_update,
+        )
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+        apply_writing_config_update(
+            session, story_id, beat_constraints=["no deus ex machina"]
+        )
+        session.commit()  # type: ignore[union-attr]
+
+        config_update = WritingConfigUpdate(
+            beat_constraints=["no deus ex machina"],
+            beat_constraints_mode="append",
+        )
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] add a constraint: no deus ex machina",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.beat_constraints == ["no deus ex machina"]
+
+    def test_beat_constraints_explicit_replace_still_replaces(
+        self, session_factory: object, session: object
+    ) -> None:
+        """'replace all beat constraints with...' still replaces the whole list."""
+        from afterworlds.persistence.crud.session_state import (
+            apply_writing_config_update,
+        )
+        from afterworlds.pipeline.writing.models import WritingConfigUpdate
+
+        story_id, node_id = _seed_writing_story_with_wss(session)
+        apply_writing_config_update(
+            session,
+            story_id,
+            beat_constraints=["old constraint A", "old constraint B"],
+        )
+        session.commit()  # type: ignore[union-attr]
+
+        config_update = WritingConfigUpdate(
+            beat_constraints=["protagonist earns every victory"],
+            beat_constraints_mode="replace",
+        )
+        orch = _make_writing_ooc_orch(session_factory, config_update)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] replace all beat constraints with: protagonist earns every victory",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        wss = self._read_wss(session, story_id)
+        assert wss is not None
+        assert wss.beat_constraints == ["protagonist earns every victory"]
+
 
 class TestCommitFailurePreservesWritingOocUsage:
     """Commit-failure rebuild preserves Writing OOC-config extractor usage.

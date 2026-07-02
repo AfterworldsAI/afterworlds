@@ -1201,6 +1201,177 @@ def test_apply_writing_config_update_version_pointers_dedup(session):  # type: i
     assert len(fetched.version_pointers) == 1  # deduped — still one entry
 
 
+def test_apply_writing_config_update_beat_constraints_append_adds(session):  # type: ignore[no-untyped-def]
+    """beat_constraints_mode='append' preserves existing and adds the new one."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["no deus ex machina"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["protagonist earns every victory"],
+        beat_constraints_mode="append",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == [
+        "no deus ex machina",
+        "protagonist earns every victory",
+    ]
+
+
+def test_apply_writing_config_update_beat_constraints_append_dedupes(session):  # type: ignore[no-untyped-def]
+    """Appending a constraint that already exists does not duplicate it."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["no deus ex machina"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["no deus ex machina"],
+        beat_constraints_mode="append",
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["no deus ex machina"]
+
+
+def test_apply_writing_config_update_beat_constraints_explicit_replace(session):  # type: ignore[no-untyped-def]
+    """beat_constraints_mode='replace' replaces the whole list, not just appends."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["old constraint A", "old constraint B"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["protagonist earns every victory"],
+        beat_constraints_mode="replace",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["protagonist earns every victory"]
+
+
+def test_apply_writing_config_update_version_pointers_semantic_dedup(session):  # type: ignore[no-untyped-def]
+    """Repeating the same draft label dedupes despite a fresh generated pointer_id."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    first_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "Chapter 1 v2",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[first_pointer]
+    )
+    session.commit()
+
+    # Simulate a repeated extraction pass: same real-world reference, but a
+    # freshly generated pointer_id (the extractor tool never supplies one)
+    # and trivially different label formatting (extra whitespace, case).
+    repeat_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "  chapter 1  v2 ",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:05:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[repeat_pointer]
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1  # semantic duplicate — not appended
+    assert fetched.version_pointers[0]["pointer_id"] == first_pointer["pointer_id"]
+
+
+def test_apply_writing_config_update_version_pointers_distinct_kind(session):  # type: ignore[no-untyped-def]
+    """Same label with a different kind is a distinct reference, not a duplicate."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    draft_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[draft_pointer]
+    )
+    session.commit()
+
+    segment_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "working_segment",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:05:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[segment_pointer]
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 2  # distinct kind — both preserved
+
+
 def test_default_false_leaves_none_unchanged(session):  # type: ignore[no-untyped-def]
     """clear_branch_count_range=False (default): None branch_count_range → no change."""
     from afterworlds.models.enums import StoryMode

@@ -2820,6 +2820,7 @@ class OrchestratorService:
                     specific_goals=_goals_to_persist,
                     acceptable_content=_w_cfg.acceptable_content,
                     beat_constraints=_w_cfg.beat_constraints,
+                    beat_constraints_mode=_w_cfg.beat_constraints_mode,
                     version_pointers=_vp_dicts,
                     play_status=_play_status_to_persist,
                 )
