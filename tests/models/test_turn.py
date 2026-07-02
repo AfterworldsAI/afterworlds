@@ -79,13 +79,36 @@ class TestTurn:
         assert hasattr(turn, "node_id")
 
     def test_turn_does_not_have_node_fields(self) -> None:
-        """Turn must not absorb Node fields — they remain distinct."""
+        """Turn must not absorb Node's structural fields — they remain distinct.
+
+        ``mode_metadata`` is intentionally excluded from this check (PR #116
+        remediation): Turn owns its own ``mode_metadata`` as a distinct
+        per-turn provenance snapshot, not a copy of Node's field.  See
+        ``test_mode_metadata_defaults_none`` / ``test_mode_metadata_settable``.
+        """
         turn = _make_turn()
         assert not hasattr(turn, "content")
         assert not hasattr(turn, "state_delta")
         assert not hasattr(turn, "branching_logic")
-        assert not hasattr(turn, "mode_metadata")
         assert not hasattr(turn, "chapter_id")
+
+    def test_mode_metadata_defaults_none(self) -> None:
+        turn = _make_turn()
+        assert turn.mode_metadata is None
+
+    def test_mode_metadata_settable_independent_of_node(self) -> None:
+        """Turn.mode_metadata is its own field — a per-turn provenance snapshot.
+
+        Distinct from Node.mode_metadata: NodeORM.turns is a list, so many
+        Turns can share one Node.  This field lets each Turn carry its own
+        durable snapshot rather than relying solely on the Node's single
+        (overwritable) mode_metadata.
+        """
+        from afterworlds.models.node import WritingNodeMetadata
+
+        wnm = WritingNodeMetadata(work_product_kind="prose_continuation")
+        turn = _make_turn(mode_metadata=wnm)
+        assert turn.mode_metadata is wnm
 
     def test_all_intent_types_valid(self) -> None:
         for intent in IntentType:

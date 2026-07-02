@@ -12,7 +12,14 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from afterworlds.models.enums import DiceHandling, PacingStage, WritingPersona
+from afterworlds.models.enums import (
+    CritiqueIntensity,
+    DiceHandling,
+    PacingStage,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
+)
 from afterworlds.models.node import Node
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -213,36 +220,93 @@ class TestWritingSessionState:
     def test_instantiation_valid(self) -> None:
         state = self._make()
         assert state.beat_constraints == []
-        assert state.version_history_pointers == []
-        assert state.persona is None
+        assert state.version_pointers == []
+        assert state.persona_id is None
+        assert state.play_status is WritingPlayStatus.SETUP
+        assert state.critique_intensity is CritiqueIntensity.BALANCED
+        assert state.style_density is StyleDensity.BALANCED
 
     def test_with_beat_constraints(self) -> None:
         state = self._make(beat_constraints=["protagonist learns the truth"])
         assert "protagonist learns the truth" in state.beat_constraints
 
-    def test_with_version_pointers(self) -> None:
-        uid = uuid4()
-        state = self._make(version_history_pointers=[uid])
-        assert uid in state.version_history_pointers
-
-    def test_persona_optional(self) -> None:
-        state = self._make(persona=None)
-        assert state.persona is None
-
-    def test_persona_set(self) -> None:
-        state = self._make(persona=WritingPersona.CHIRON)
-        assert state.persona == WritingPersona.CHIRON
-
-    def test_all_personas_valid(self) -> None:
-        for persona in WritingPersona:
-            s = self._make(persona=persona)
-            assert s.persona == persona
-
-    def test_invalid_persona(self) -> None:
+    def test_empty_beat_constraint_rejected(self) -> None:
         with pytest.raises(ValidationError):
-            self._make(persona="unknown_persona")  # type: ignore[arg-type]
+            self._make(beat_constraints=[""])
+
+    def test_persona_id_string_slug(self) -> None:
+        state = self._make(persona_id="chiron")
+        assert state.persona_id == "chiron"
+
+    def test_persona_id_optional(self) -> None:
+        state = self._make(persona_id=None)
+        assert state.persona_id is None
+
+    def test_dialogue_narration_ratio_valid(self) -> None:
+        state = self._make(dialogue_narration_ratio=50)
+        assert state.dialogue_narration_ratio == 50
+
+    def test_dialogue_narration_ratio_out_of_range_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(dialogue_narration_ratio=101)
+        with pytest.raises(ValidationError):
+            self._make(dialogue_narration_ratio=-1)
+
+    def test_form_other_required_when_other(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(form=WritingForm.OTHER)
+
+    def test_form_other_with_form_other_passes(self) -> None:
+        state = self._make(form=WritingForm.OTHER, form_other="epic poem")
+        assert state.form is WritingForm.OTHER
+        assert state.form_other == "epic poem"
+
+    def test_in_play_without_persona_id_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(play_status=WritingPlayStatus.IN_PLAY, persona_id=None)
+
+    def test_setup_without_persona_id_valid(self) -> None:
+        state = self._make(play_status=WritingPlayStatus.SETUP, persona_id=None)
+        assert state.play_status is WritingPlayStatus.SETUP
+        assert state.persona_id is None
+
+    def test_in_play_with_persona_id_valid(self) -> None:
+        state = self._make(
+            play_status=WritingPlayStatus.IN_PLAY,
+            persona_id="chiron",
+            specific_goals="Write a dark fantasy opening.",
+        )
+        assert state.play_status is WritingPlayStatus.IN_PLAY
+        assert state.persona_id == "chiron"
+
+    def test_in_play_without_specific_goals_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(
+                play_status=WritingPlayStatus.IN_PLAY,
+                persona_id="chiron",
+                specific_goals="",
+            )
+
+    def test_in_play_with_whitespace_only_goals_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(
+                play_status=WritingPlayStatus.IN_PLAY,
+                persona_id="chiron",
+                specific_goals="   ",
+            )
+
+    def test_setup_with_blank_goals_valid(self) -> None:
+        state = self._make(
+            play_status=WritingPlayStatus.SETUP, persona_id=None, specific_goals=""
+        )
+        assert state.play_status is WritingPlayStatus.SETUP
+        assert state.specific_goals == ""
 
     def test_session_id_auto_generated(self) -> None:
         s1 = self._make()
         s2 = self._make()
         assert s1.session_id != s2.session_id
+
+    def test_extra_fields_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            self._make(nonexistent_field="value")  # type: ignore[arg-type]

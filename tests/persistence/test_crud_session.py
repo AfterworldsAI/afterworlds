@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from afterworlds.models.enums import (
     BranchCountRange,
+    CritiqueIntensity,
     DiceHandling,
     InteractionStyle,
     PacingStage,
@@ -16,7 +17,9 @@ from afterworlds.models.enums import (
     RpgSessionType,
     RpgSetupPhase,
     RpgTone,
-    WritingPersona,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
 )
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -30,6 +33,7 @@ from afterworlds.models.session import (
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
+    apply_writing_config_update,
     create_branching_session_state,
     create_rpg_session_state,
     create_writing_session_state,
@@ -80,12 +84,17 @@ def _make_branching_state(
 def _make_writing_state(story_id: str) -> WritingSessionState:
     from uuid import UUID
 
-    ptr = uuid4()
     return WritingSessionState(
         story_id=UUID(story_id),
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
         beat_constraints=["no exposition dumps"],
-        version_history_pointers=[ptr],
-        persona=WritingPersona.CHIRON,
+        play_status=WritingPlayStatus.IN_PLAY,
+        critique_intensity=CritiqueIntensity.BALANCED,
+        style_density=StyleDensity.BALANCED,
+        form=WritingForm.SHORT_STORY,
+        specific_goals="Write a dark fantasy opening.",
     )
 
 
@@ -258,7 +267,7 @@ def test_delete_branching_session_state(session):  # type: ignore[no-untyped-def
 
 
 def test_writing_session_state_round_trip(session):  # type: ignore[no-untyped-def]
-    """Round-trip WritingSessionState including version_history_pointers."""
+    """Round-trip WritingSessionState with Issue 17 fields."""
     story = make_story()
     create_story(session, story)
     state = _make_writing_state(str(story.story_id))
@@ -267,10 +276,14 @@ def test_writing_session_state_round_trip(session):  # type: ignore[no-untyped-d
 
     fetched = get_writing_session_state(session, created.session_id)
     assert fetched is not None
-    assert fetched.persona == WritingPersona.CHIRON
-    assert len(fetched.version_history_pointers) == 1
-    assert fetched.version_history_pointers[0] == state.version_history_pointers[0]
+    assert fetched.persona_id == "chiron"
+    assert fetched.persona_registry_version == 1
+    assert fetched.persona_profile_version == 1
     assert fetched.beat_constraints == ["no exposition dumps"]
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.critique_intensity is CritiqueIntensity.BALANCED
+    assert fetched.style_density is StyleDensity.BALANCED
+    assert fetched.form is WritingForm.SHORT_STORY
 
 
 def test_writing_session_state_unique_story(session):  # type: ignore[no-untyped-def]
@@ -287,34 +300,43 @@ def test_writing_session_state_unique_story(session):  # type: ignore[no-untyped
         session.flush()
 
 
-def test_writing_persona_nullable(session):  # type: ignore[no-untyped-def]
-    """WritingSessionState with persona=None persists correctly."""
+def test_writing_persona_id_nullable(session):  # type: ignore[no-untyped-def]
+    """WritingSessionState with persona_id=None persists correctly (SETUP state)."""
     story = make_story()
     create_story(session, story)
-    state = WritingSessionState(story_id=story.story_id, persona=None)
+    state = WritingSessionState(story_id=story.story_id)
     create_writing_session_state(session, state)
     session.commit()
 
     fetched = get_writing_session_state(session, state.session_id)
     assert fetched is not None
-    assert fetched.persona is None
+    assert fetched.persona_id is None
+    assert fetched.play_status is WritingPlayStatus.SETUP
 
 
 def test_update_writing_session_state(session):  # type: ignore[no-untyped-def]
-    """update_writing_session_state changes persona."""
+    """update_writing_session_state changes persona_id and authoring controls."""
     story = make_story()
     create_story(session, story)
     state = _make_writing_state(str(story.story_id))
     create_writing_session_state(session, state)
     session.commit()
 
-    updated = state.model_copy(update={"persona": WritingPersona.ODIN})
+    updated = state.model_copy(
+        update={
+            "persona_id": "odin",
+            "critique_intensity": CritiqueIntensity.BLUNT,
+            "style_density": StyleDensity.LUSH,
+        }
+    )
     update_writing_session_state(session, updated)
     session.commit()
 
     fetched = get_writing_session_state(session, state.session_id)
     assert fetched is not None
-    assert fetched.persona == WritingPersona.ODIN
+    assert fetched.persona_id == "odin"
+    assert fetched.critique_intensity is CritiqueIntensity.BLUNT
+    assert fetched.style_density is StyleDensity.LUSH
 
 
 def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
@@ -328,6 +350,427 @@ def test_delete_writing_session_state(session):  # type: ignore[no-untyped-def]
     assert delete_writing_session_state(session, state.session_id) is True
     session.commit()
     assert get_writing_session_state(session, state.session_id) is None
+
+
+def test_apply_writing_config_update(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update patches non-None fields in place."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        critique_intensity=CritiqueIntensity.RUTHLESS,
+        tense="present",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.critique_intensity is CritiqueIntensity.RUTHLESS
+    assert fetched.tense == "present"
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.pov is None  # untouched
+
+
+def test_apply_writing_config_update_no_row(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update returns False when no row exists."""
+    result = apply_writing_config_update(
+        session,
+        uuid4(),
+        persona_id="chiron",
+    )
+    assert result is False
+
+
+def test_apply_writing_config_update_persona_change_clears_stale_fingerprint(session):  # type: ignore[no-untyped-def]
+    """New persona with prompt_fingerprint=None clears the old persona's fingerprint."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        persona_registry_version=2,
+        persona_profile_version=3,
+        persona_prompt_fingerprint=None,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.persona_registry_version == 2
+    assert fetched.persona_profile_version == 3
+    assert fetched.persona_prompt_fingerprint is None
+
+
+def test_apply_writing_config_update_persona_change_sets_new_fingerprint(session):  # type: ignore[no-untyped-def]
+    """New persona with a non-None prompt_fingerprint still sets the new value."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        persona_registry_version=2,
+        persona_profile_version=3,
+        persona_prompt_fingerprint="new-fingerprint",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.persona_prompt_fingerprint == "new-fingerprint"
+
+
+def test_apply_writing_config_update_no_persona_id_leaves_provenance(session):  # type: ignore[no-untyped-def]
+    """persona_id=None (rejected/unknown persona) never touches provenance fields."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        tense="present",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "chiron"
+    assert fetched.persona_registry_version == 1
+    assert fetched.persona_profile_version == 1
+    assert fetched.persona_prompt_fingerprint == "old-fingerprint"
+
+
+def test_apply_writing_config_update_in_play_without_persona_skipped(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY is not persisted when no persona_id is present."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP  # unchanged
+    assert fetched.persona_id is None
+
+
+def test_apply_writing_config_update_in_play_with_persona_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when persona_id is present in the same update."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.persona_id == "chiron"
+
+
+def test_apply_writing_config_update_in_play_with_existing_persona_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when the row already has a persona_id."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="merlin",
+        specific_goals="Write a dark fantasy opening.",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+
+
+def test_apply_writing_config_update_in_play_blank_goal_skipped(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY is not persisted when specific_goals is blank."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona/goal
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP  # unchanged
+    assert fetched.persona_id == "chiron"  # persona still persists
+    assert fetched.specific_goals == ""
+
+
+def test_apply_writing_config_update_in_play_with_persona_and_goal_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists when persona_id and specific_goals both present."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)  # SETUP, no persona/goal
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_with_existing_goal_persists(session):  # type: ignore[no-untyped-def]
+    """play_status=IN_PLAY persists using an already-persisted specific_goals."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="merlin",
+        specific_goals="Write a dark fantasy opening.",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+
+
+# ---------------------------------------------------------------------------
+# apply_writing_config_update — blank specific_goals must never persist while
+# the row is (or is becoming) IN_PLAY (P1: unreadable-row regression)
+# ---------------------------------------------------------------------------
+
+
+def test_apply_writing_config_update_in_play_blank_goal_only_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + blank specific_goals + no play_status change → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    # Original goal preserved — the row remains readable (constructible).
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_whitespace_goal_only_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + whitespace-only specific_goals → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="   ",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_in_play_blank_goal_reaffirmed_skipped(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + blank goal + explicit play_status=IN_PLAY → skipped."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a dark fantasy opening."
+
+
+def test_apply_writing_config_update_setup_transition_allows_blank_goal(session):  # type: ignore[no-untyped-def]
+    """Transitioning to SETUP with a blank specific_goals is allowed."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="",
+        play_status=WritingPlayStatus.SETUP,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.SETUP
+    assert fetched.specific_goals == ""
+
+
+def test_apply_writing_config_update_in_play_row_nonblank_goal_update_persists(session):  # type: ignore[no-untyped-def]
+    """Already-IN_PLAY row + nonblank specific_goals update → persists normally."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        specific_goals="Write a dark fantasy opening.",
+        play_status=WritingPlayStatus.IN_PLAY,
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        specific_goals="Write a lighthearted romance instead.",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.play_status is WritingPlayStatus.IN_PLAY
+    assert fetched.specific_goals == "Write a lighthearted romance instead."
 
 
 # ---------------------------------------------------------------------------
@@ -546,6 +989,481 @@ def test_clear_branch_count_range_overrides_value_arg(session):  # type: ignore[
     after = get_branching_session_state_by_story(session, story.story_id)
     assert after is not None
     assert after.branch_count_range is None
+
+
+# ---------------------------------------------------------------------------
+# apply_writing_config_update — form, beat_constraints, version_pointers
+# ---------------------------------------------------------------------------
+
+
+def test_apply_writing_config_update_form_and_form_other(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update persists form and form_other together."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.SHORT_STORY,
+        form_other=None,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY
+    assert fetched.form_other is None
+
+
+def test_apply_writing_config_update_other_to_concrete_clears_form_other(session):  # type: ignore[no-untyped-def]
+    """Switching from OTHER to a concrete form clears the stale custom label."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Lyric essay"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.NOVEL,  # concrete form, no form_other supplied
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.NOVEL
+    assert fetched.form_other is None  # stale label cleared
+
+
+def test_apply_writing_config_update_concrete_form_ignores_supplied_form_other(session):  # type: ignore[no-untyped-def]
+    """A concrete form update clears form_other even if one is supplied."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Lyric essay"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.SCREENPLAY,
+        form_other="stale value",  # concrete form wins; form_other is cleared
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SCREENPLAY
+    assert fetched.form_other is None
+
+
+def test_apply_writing_config_update_form_other_only(session):  # type: ignore[no-untyped-def]
+    """apply_writing_config_update persists form_other without changing form."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="Graphic novel"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="Interactive fiction",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER  # unchanged
+    assert fetched.form_other == "Interactive fiction"
+
+
+def test_apply_writing_config_update_form_OTHER_without_form_other_skips(session):  # type: ignore[no-untyped-def]
+    """form=OTHER without form_other skips form change to prevent an invalid row."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id, form=WritingForm.SHORT_STORY)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form=WritingForm.OTHER,
+        form_other=None,  # no form_other and row has none either
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY  # unchanged — form=OTHER skipped
+
+
+def test_apply_writing_config_update_form_other_blank_on_other_row_skips(session):  # type: ignore[no-untyped-def]
+    """Blank form_other on form=OTHER row is skipped to keep the row readable."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="essay hybrid"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="",  # blank — must not overwrite valid form_other on OTHER row
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER  # unchanged
+    assert fetched.form_other == "essay hybrid"  # preserved — blank skipped
+
+
+def test_apply_writing_config_update_form_other_valid_on_other_row_updates(session):  # type: ignore[no-untyped-def]
+    """form_other with a valid string on an existing form=OTHER row updates normally."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id, form=WritingForm.OTHER, form_other="essay hybrid"
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="memoir fragments",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.OTHER
+    assert fetched.form_other == "memoir fragments"
+
+
+def test_apply_writing_config_update_form_other_on_non_other_row_updates(session):  # type: ignore[no-untyped-def]
+    """form_other-only update on a non-OTHER row writes normally (no regression)."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id, form=WritingForm.SHORT_STORY)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        form_other="interlude",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.form is WritingForm.SHORT_STORY  # form unchanged
+    assert fetched.form_other == "interlude"
+
+
+def test_apply_writing_config_update_beat_constraints_replaces(session):  # type: ignore[no-untyped-def]
+    """beat_constraints replaces the full list (replace semantics)."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["old constraint A", "old constraint B"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["new constraint only"],
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["new constraint only"]
+
+
+def test_apply_writing_config_update_beat_constraints_empty_list_replaces(session):  # type: ignore[no-untyped-def]
+    """beat_constraints=[] replaces and empties the list."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["keep this"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    apply_writing_config_update(session, story.story_id, beat_constraints=[])
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == []
+
+
+def test_apply_writing_config_update_version_pointers_appended(session):  # type: ignore[no-untyped-def]
+    """version_pointers appends new pointer dicts to existing list."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    ptr_id = str(uuid4())
+    new_pointer = {
+        "schema_version": 1,
+        "pointer_id": ptr_id,
+        "kind": "draft_label",
+        "label": "Chapter 1 draft",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        version_pointers=[new_pointer],
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1
+    assert fetched.version_pointers[0]["pointer_id"] == ptr_id
+
+
+def test_apply_writing_config_update_version_pointers_dedup(session):  # type: ignore[no-untyped-def]
+    """Applying the same pointer_id twice does not grow the list."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    ptr_id = str(uuid4())
+    pointer = {
+        "schema_version": 1,
+        "pointer_id": ptr_id,
+        "kind": "draft_label",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+
+    apply_writing_config_update(session, story.story_id, version_pointers=[pointer])
+    session.commit()
+
+    apply_writing_config_update(session, story.story_id, version_pointers=[pointer])
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1  # deduped — still one entry
+
+
+def test_apply_writing_config_update_beat_constraints_append_adds(session):  # type: ignore[no-untyped-def]
+    """beat_constraints_mode='append' preserves existing and adds the new one."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["no deus ex machina"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["protagonist earns every victory"],
+        beat_constraints_mode="append",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == [
+        "no deus ex machina",
+        "protagonist earns every victory",
+    ]
+
+
+def test_apply_writing_config_update_beat_constraints_append_dedupes(session):  # type: ignore[no-untyped-def]
+    """Appending a constraint that already exists does not duplicate it."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["no deus ex machina"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["no deus ex machina"],
+        beat_constraints_mode="append",
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["no deus ex machina"]
+
+
+def test_apply_writing_config_update_beat_constraints_explicit_replace(session):  # type: ignore[no-untyped-def]
+    """beat_constraints_mode='replace' replaces the whole list, not just appends."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        beat_constraints=["old constraint A", "old constraint B"],
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        beat_constraints=["protagonist earns every victory"],
+        beat_constraints_mode="replace",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.beat_constraints == ["protagonist earns every victory"]
+
+
+def test_apply_writing_config_update_version_pointers_semantic_dedup(session):  # type: ignore[no-untyped-def]
+    """Repeating the same draft label dedupes despite a fresh generated pointer_id."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    first_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "Chapter 1 v2",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[first_pointer]
+    )
+    session.commit()
+
+    # Simulate a repeated extraction pass: same real-world reference, but a
+    # freshly generated pointer_id (the extractor tool never supplies one)
+    # and trivially different label formatting (extra whitespace, case).
+    repeat_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "  chapter 1  v2 ",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:05:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[repeat_pointer]
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 1  # semantic duplicate — not appended
+    assert fetched.version_pointers[0]["pointer_id"] == first_pointer["pointer_id"]
+
+
+def test_apply_writing_config_update_version_pointers_distinct_kind(session):  # type: ignore[no-untyped-def]
+    """Same label with a different kind is a distinct reference, not a duplicate."""
+    from uuid import uuid4
+
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(story_id=story.story_id)
+    create_writing_session_state(session, state)
+    session.commit()
+
+    draft_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "draft_label",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:00:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[draft_pointer]
+    )
+    session.commit()
+
+    segment_pointer = {
+        "schema_version": 1,
+        "pointer_id": str(uuid4()),
+        "kind": "working_segment",
+        "label": "Chapter 1",
+        "description": None,
+        "source_turn_id": None,
+        "source_node_id": None,
+        "created_at": "2026-06-29T00:05:00+00:00",
+    }
+    apply_writing_config_update(
+        session, story.story_id, version_pointers=[segment_pointer]
+    )
+    session.commit()
+
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert len(fetched.version_pointers) == 2  # distinct kind — both preserved
 
 
 def test_default_false_leaves_none_unchanged(session):  # type: ignore[no-untyped-def]

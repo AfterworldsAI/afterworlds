@@ -1,0 +1,1 @@
+recursive-include src/afterworlds/modes/personas/profiles *.json

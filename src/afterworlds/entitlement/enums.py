@@ -62,6 +62,7 @@ class PipelinePassId(StrEnum):
     RPG_ADJUDICATION = "rpg_adjudication"
     BRANCHING_WRITER = "branching_writer"
     BRANCHING_OOC_CONFIG_EXTRACTOR = "branching_ooc_config_extractor"
+    WRITING_OOC_CONFIG_EXTRACTOR = "writing_ooc_config_extractor"
     WRITER = "writer"
     OUTPUT_SAFETY = "output_safety"
     EXTRACTOR = "extractor"

@@ -91,6 +91,10 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
         _DEFAULT_HAIKU_MODEL,
         ModelTier.HAIKU,
     ),
+    PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR: (
+        _DEFAULT_HAIKU_MODEL,
+        ModelTier.HAIKU,
+    ),
 }
 
 
@@ -426,6 +430,9 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
         PipelinePassId.BRANCHING_WRITER: PassIdentifier.BRANCHING_WRITER,
         PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: (
             PassIdentifier.BRANCHING_OOC_CONFIG_EXTRACTOR
+        ),
+        PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR: (
+            PassIdentifier.WRITING_OOC_CONFIG_EXTRACTOR
         ),
     }
     return _MAP[pass_id]

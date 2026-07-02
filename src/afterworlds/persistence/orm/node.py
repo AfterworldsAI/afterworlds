@@ -56,6 +56,7 @@ class TurnORM(Base):
     intent_classification_result: Mapped[dict[str, Any] | None] = mapped_column(
         sa.JSON, nullable=True
     )
+    mode_metadata: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
 
     node: Mapped[NodeORM | None] = relationship("NodeORM", back_populates="turns")
 

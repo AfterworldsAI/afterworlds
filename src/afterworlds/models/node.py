@@ -9,7 +9,7 @@ Key invariants enforced here:
 """
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
@@ -98,11 +98,32 @@ class BranchingNodeMetadata(BaseModel):
 
 
 class WritingNodeMetadata(BaseModel):
-    """Writing-mode beat metadata — beat constraints and version pointers."""
+    """Writing-mode beat metadata — persona snapshot, work-product kind, eligibility.
+
+    Records what governed the turn. Session-state row is the authoritative source
+    of durable configuration; this metadata is the historical snapshot.
+    """
 
     mode: Literal["writing"] = "writing"
-    beat_constraints: list[str] = Field(default_factory=list)
-    version_pointer: UUID | None = None
+
+    # Persona snapshot at turn time
+    persona_id: str | None = None
+    persona_display_name: str | None = None
+    relationship_orientation: str | None = None
+    persona_registry_version: int | None = None
+    persona_profile_version: int | None = None
+    persona_prompt_fingerprint: str | None = None
+
+    # Turn classification
+    work_product_kind: str | None = None
+    canon_eligibility: str | None = None
+
+    # Beat and version provenance
+    beat_constraints_snapshot: list[str] = Field(default_factory=list)
+    version_pointer_refs: list[UUID] = Field(default_factory=list)
+
+    # Authoring controls snapshot (stored as dict; validated by service)
+    authoring_controls_snapshot: dict[str, Any] | None = None
 
 
 ModeMetadata = Annotated[

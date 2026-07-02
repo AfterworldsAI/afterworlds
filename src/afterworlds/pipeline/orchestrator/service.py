@@ -62,6 +62,10 @@ from afterworlds.models.enums import (
     InteractionStyle,
     RpgPlayStatus,
     StoryMode,
+    WritingCanonEligibility,
+    WritingForm,
+    WritingPlayStatus,
+    WritingWorkProductKind,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rules_package import RuleSliceRequest
@@ -78,11 +82,16 @@ from afterworlds.pipeline.branching.models import (
 )
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
+from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
-    from afterworlds.models.session import BranchingSessionState, RpgSessionState
+    from afterworlds.models.session import (
+        BranchingSessionState,
+        RpgSessionState,
+        WritingSessionState,
+    )
     from afterworlds.pipeline.branching.models import (
         SelectedBranchContext,
     )
@@ -101,6 +110,11 @@ if TYPE_CHECKING:
     from afterworlds.pipeline.rpg.pending import PendingRollRequestService
     from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
     from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
+    from afterworlds.pipeline.writing.models import WritingTurnRequest
+    from afterworlds.pipeline.writing.ooc_config_extractor import (
+        WritingOocConfigExtractorService,
+    )
+    from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
     ContradictionResult,
@@ -187,6 +201,12 @@ def load_rpg_ooc_handler_prompt() -> str:
 def load_branching_ooc_handler_prompt() -> str:
     """Load the Branching-mode OOC handler from docs/prompts/branching_ooc_handler.md."""  # noqa: E501
     prompt_path = _PROMPT_DIR / "branching_ooc_handler.md"
+    return prompt_path.read_text(encoding="utf-8")
+
+
+def load_writing_ooc_handler_prompt() -> str:
+    """Load the Writing-mode OOC handler from docs/prompts/writing_ooc_handler.md."""
+    prompt_path = _PROMPT_DIR / "writing_ooc_handler.md"
     return prompt_path.read_text(encoding="utf-8")
 
 
@@ -328,6 +348,11 @@ class OrchestratorService:
         branching_ooc_config_extractor: (
             BranchingOocConfigExtractorService | None
         ) = None,
+        writing_session_resolver: (
+            Callable[[UUID], WritingSessionState | None] | None
+        ) = None,
+        writing_visible_state_service: WritingVisibleStateService | None = None,
+        writing_ooc_config_extractor: WritingOocConfigExtractorService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -352,6 +377,9 @@ class OrchestratorService:
         self._branching_visible_state_service = branching_visible_state_service
         self._branching_selection_service = branching_selection_service
         self._branching_ooc_config_extractor = branching_ooc_config_extractor
+        self._writing_session_resolver = writing_session_resolver
+        self._writing_visible_state_service = writing_visible_state_service
+        self._writing_ooc_config_extractor = writing_ooc_config_extractor
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -367,6 +395,7 @@ class OrchestratorService:
         self._ooc_handler_prompt: str = load_ooc_handler_prompt()
         self._rpg_ooc_handler_prompt: str = load_rpg_ooc_handler_prompt()
         self._branching_ooc_handler_prompt: str = load_branching_ooc_handler_prompt()
+        self._writing_ooc_handler_prompt: str = load_writing_ooc_handler_prompt()
 
     def close(self) -> None:
         """Release the orchestrator-owned executor.
@@ -402,6 +431,7 @@ class OrchestratorService:
         *,
         request_risk_signal: bool = False,
         player_reported_total: int | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         """Run one full Sojourn Turn end-to-end.
 
@@ -519,6 +549,85 @@ class OrchestratorService:
                 intent_result, latency, turn_start, f"context assembly failed: {exc}"
             )
 
+        # 2c. Writing session pre-resolve and stable prefix extension (once per turn).
+        # Must run after context assembly and before any pass so the persona fragment
+        # is in the stable prefix that all passes share (Invariant 7).
+        pre_writing_state: WritingSessionState | None = None
+        if story_mode is StoryMode.WRITING:
+            if self._writing_session_resolver is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "writing session resolver not wired for WRITING turn;"
+                    " cannot determine play status or inject persona context",
+                )
+            try:
+                pre_writing_state = self._writing_session_resolver(story_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"writing session resolution failed: {exc}",
+                )
+            if pre_writing_state is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "writing session not found for story;"
+                    " cannot determine play status or inject persona context",
+                )
+            # IN_PLAY turns require a configured persona present in the registry.
+            # SETUP turns have no persona yet; the base mode contract handles setup.
+            # (ADR-017 Decision 9: setup gating is via play_status check in code.)
+            if pre_writing_state.play_status is WritingPlayStatus.IN_PLAY:
+                if pre_writing_state.persona_id is None:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        "writing IN_PLAY session has no persona_id;"
+                        " persona must be configured before Writing output proceeds",
+                    )
+                if self._writing_visible_state_service is None:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        "writing visible state service not wired for IN_PLAY turn;"
+                        " cannot validate persona before Writing output proceeds",
+                    )
+                try:
+                    from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                        SupportedMode as _SM_W,
+                    )
+
+                    self._writing_visible_state_service.registry.get_profile(
+                        pre_writing_state.persona_id, _SM_W.WRITING
+                    )
+                except (KeyError, ValueError) as exc:
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"writing IN_PLAY persona_id"
+                        f" {pre_writing_state.persona_id!r}"
+                        f" not found in registry: {exc}",
+                    )
+            # Extend stable prefix with persona fragment + authoring controls.
+            # SETUP turns may have no persona yet; injection is best-effort and
+            # render_context_appendix returns "" when persona_id is None.
+            if self._writing_visible_state_service is not None:
+                try:
+                    _svc = self._writing_visible_state_service
+                    _appendix = _svc.render_context_appendix(pre_writing_state)
+                    if _appendix:
+                        ctx = _extend_system_prompt(ctx, _appendix)
+                except Exception:  # noqa: BLE001
+                    pass  # best-effort; IN_PLAY persona was already validated above
+
         # P2-1: when player_reported_total is set in RPG mode the consume path
         # takes precedence over the OOC short-circuit — the player is reporting
         # the result of their physical roll, not asking an out-of-character
@@ -601,6 +710,7 @@ class OrchestratorService:
                 turn_start,
                 request_risk_signal,
                 story_mode=story_mode,
+                pre_writing_state=pre_writing_state,
             )
 
         # Pending-roll intercept for RPG in-play narrative turns.
@@ -846,6 +956,8 @@ class OrchestratorService:
             _pre_sheet=pre_sheet,
             _pre_branching_state=pre_branching_state,
             _pre_selected_context=pre_selected_context,
+            _pre_writing_state=pre_writing_state,
+            writing_turn_request=writing_turn_request,
         )
 
     # ------------------------------------------------------------------
@@ -871,6 +983,8 @@ class OrchestratorService:
         _pre_sheet: Dnd5eCharacterSheet | None = None,
         _pre_branching_state: BranchingSessionState | None = None,
         _pre_selected_context: SelectedBranchContext | None = None,
+        _pre_writing_state: WritingSessionState | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -1110,6 +1224,8 @@ class OrchestratorService:
                 branching_state=_pre_branching_state,
                 story_mode=story_mode,
                 selected_branch_context=_pre_selected_context,
+                writing_session_state=_pre_writing_state,
+                writing_turn_request=writing_turn_request,
             ),
             intent_result,
             latency,
@@ -1143,6 +1259,8 @@ class OrchestratorService:
         branching_state: BranchingSessionState | None = None,
         story_mode: StoryMode = StoryMode.WRITING,
         selected_branch_context: SelectedBranchContext | None = None,
+        writing_session_state: WritingSessionState | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
     ) -> OrchestrationResult:
         # Determine if this is a BRANCHING HYBRID/TRUE_CYOA turn (BranchingWriterService
         # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
@@ -1519,6 +1637,137 @@ class OrchestratorService:
                     rpg_adjudication_result=adj_result,
                 )
 
+        # 5a-writing: [WRITING only] Phase G — persist WritingNodeMetadata (persona
+        # snapshot + work_product_kind + canon_eligibility + authoring controls
+        # snapshot + version pointer refs) inside the outer transaction, on BOTH
+        # the delivered Turn (per-turn durable provenance — NodeORM.turns is a
+        # list, so multiple Turns can share a Node, and only a per-Turn record
+        # survives a later Writing turn on the same Node) and the Node (a
+        # Node-level compatibility/summary snapshot, not itself per-turn durable).
+        # This is the provenance record that lets future issues filter non-canon
+        # output from Rolling Summary (ADR-017 Architecture Note).  Best-effort:
+        # failure logs but does not abort the turn (provenance is audit-quality;
+        # the turn prose is already persisted).
+        if story_mode is StoryMode.WRITING and writing_session_state is not None:
+            try:
+                from afterworlds.models.node import WritingNodeMetadata as _WNM
+                from afterworlds.persistence.crud.node import get_node as _get_node
+                from afterworlds.persistence.crud.node import (
+                    update_node as _update_node,
+                )
+                from afterworlds.persistence.crud.node import (
+                    update_turn_mode_metadata as _update_turn_mode_metadata,
+                )
+                from afterworlds.pipeline.writing.models import (
+                    AuthoringControlsSnapshot as _ACS,
+                )
+                from afterworlds.pipeline.writing.models import (
+                    WritingVersionPointer as _WVP,
+                )
+
+                _w_node = _get_node(session, node_id)
+                if _w_node is not None:
+                    _wss = writing_session_state
+                    _wtr = writing_turn_request
+
+                    # Resolve work_product_kind and canon_eligibility from request.
+                    # Setup-provenance invariant (ADR-017 Decision 9): a turn taken
+                    # while the session is still in SETUP is a setup-confirmation
+                    # turn, not ordinary prose continuation.  When no explicit
+                    # writing_turn_request is supplied, default the recorded
+                    # work-product kind from play_status rather than blindly to
+                    # PROSE_CONTINUATION.
+                    if _wtr is not None:
+                        _wpk = _wtr.work_product_kind.value
+                    elif _wss.play_status is WritingPlayStatus.SETUP:
+                        _wpk = WritingWorkProductKind.SETUP_CONFIRMATION.value
+                    else:
+                        _wpk = WritingWorkProductKind.PROSE_CONTINUATION.value
+                    _ce = (
+                        _wtr.effective_canon_eligibility.value
+                        if _wtr is not None
+                        else WritingCanonEligibility.NON_CANON_SUPPORT.value
+                    )
+
+                    # Build authoring-controls snapshot.
+                    _acs: dict[str, object] | None = None
+                    if _wss.form is not None:
+                        try:
+                            _acs = _ACS(
+                                critique_intensity=_wss.critique_intensity,
+                                form=_wss.form,
+                                form_other=(
+                                    _wss.form_other
+                                    if _wss.form is WritingForm.OTHER
+                                    else None
+                                ),
+                                tense=_wss.tense,
+                                pov=_wss.pov,
+                                style_density=_wss.style_density,
+                                dialogue_narration_ratio=_wss.dialogue_narration_ratio,
+                                genre_conventions=_wss.genre_conventions,
+                                acceptable_content=_wss.acceptable_content,
+                            ).model_dump()
+                        except Exception:  # noqa: BLE001
+                            _acs = None
+
+                    # Snapshot version-pointer references (minimal v1 provenance —
+                    # signposts only, no diff/restore/branch semantics).  Skip
+                    # malformed entries individually rather than aborting the
+                    # whole turn's provenance record.
+                    _version_pointer_refs: list[UUID] = []
+                    for _raw_vp in _wss.version_pointers:
+                        with suppress(Exception):
+                            _version_pointer_refs.append(
+                                _WVP.model_validate(_raw_vp).pointer_id
+                            )
+
+                    # Resolve persona display_name and orientation from registry.
+                    _disp_name: str | None = None
+                    _orientation: str | None = None
+                    if (
+                        _wss.persona_id is not None
+                        and self._writing_visible_state_service is not None
+                    ):
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                SupportedMode as _SM2,
+                            )
+
+                            _preg = self._writing_visible_state_service.registry
+                            _pprof = _preg.get_profile(_wss.persona_id, _SM2.WRITING)
+                            _disp_name = _pprof.display_name
+                            _orientation = _pprof.orientation.value
+                        except Exception:  # noqa: BLE001
+                            pass
+
+                    _writing_metadata = _WNM(
+                        persona_id=_wss.persona_id,
+                        persona_display_name=_disp_name,
+                        relationship_orientation=_orientation,
+                        persona_registry_version=_wss.persona_registry_version,
+                        persona_profile_version=_wss.persona_profile_version,
+                        persona_prompt_fingerprint=_wss.persona_prompt_fingerprint,
+                        work_product_kind=_wpk,
+                        canon_eligibility=_ce,
+                        beat_constraints_snapshot=list(_wss.beat_constraints),
+                        version_pointer_refs=_version_pointer_refs,
+                        authoring_controls_snapshot=_acs,
+                    )
+                    # Node.mode_metadata: kept for Node-level compatibility/
+                    # summary (e.g. "what governed the most recent turn on
+                    # this Node").  NOT per-turn durable — NodeORM.turns is a
+                    # list, so a later Writing turn on the same Node
+                    # overwrites this.  The per-Turn write below is the
+                    # durable provenance record ADR-017 relies on.
+                    _w_node.mode_metadata = _writing_metadata
+                    _update_node(session, _w_node)
+                    _update_turn_mode_metadata(
+                        session, writer_turn_id, _writing_metadata
+                    )
+            except Exception:  # noqa: BLE001
+                pass  # Provenance failure does not abort the turn
+
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
         # roll, inside the outer transaction (Fork B→B1).  Runs only when
         # adjudication produced a result; skipped on non-RPG and no-proposal turns.
@@ -1669,6 +1918,15 @@ class OrchestratorService:
                 )
 
         # 7. Extractor || Contradiction (parallel sync, asymmetric).
+        # Canon is suppressed by default on all Writing turns (NON_CANON_SUPPORT).
+        # Proposals only reach the Story Bible when the caller explicitly promotes
+        # the turn to EXTRACTOR_ELIGIBLE via WritingTurnRequest. Fail closed: a
+        # missing turn request is treated as NON_CANON_SUPPORT, not as promotion.
+        _skip_story_bible_routing = story_mode is StoryMode.WRITING and (
+            writing_turn_request is None
+            or writing_turn_request.effective_canon_eligibility
+            is WritingCanonEligibility.NON_CANON_SUPPORT
+        )
         _scoped_post_writer = ScopedProviderAdapter(
             binding.adapter,  # type: ignore[arg-type]
             sojourner_id,
@@ -1681,7 +1939,12 @@ class OrchestratorService:
                 ext_ms,
                 contr_ms,
             ) = self._run_parallel_sync(
-                ctx, writer_result, story_id, session, _scoped_post_writer
+                ctx,
+                writer_result,
+                story_id,
+                session,
+                _scoped_post_writer,
+                skip_story_bible_routing=_skip_story_bible_routing,
             )
             latency["extractor"] = ext_ms
             latency["contradiction"] = contr_ms
@@ -1785,6 +2048,20 @@ class OrchestratorService:
             except Exception:  # noqa: BLE001
                 branching_visible_state = None
 
+        # Build Writing visible state for WRITING-mode DELIVERED turns.
+        writing_visible_state = None
+        if (
+            story_mode is StoryMode.WRITING
+            and writing_session_state is not None
+            and self._writing_visible_state_service is not None
+        ):
+            try:
+                writing_visible_state = self._writing_visible_state_service.build(
+                    writing_session_state
+                )
+            except Exception:  # noqa: BLE001
+                writing_visible_state = None
+
         # ALLOW → commit Turn + Extractor writes.  Outer transaction context
         # manager will commit on normal exit; no explicit commit needed.
         return self._build_result(
@@ -1802,6 +2079,7 @@ class OrchestratorService:
             rpg_visible_state=rpg_visible_state,
             branching_pass_result=branching_pass_result,
             branching_visible_state=branching_visible_state,
+            writing_visible_state=writing_visible_state,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
         )
@@ -1874,6 +2152,7 @@ class OrchestratorService:
         request_risk_signal: bool,
         *,
         story_mode: StoryMode,
+        pre_writing_state: WritingSessionState | None = None,
     ) -> OrchestrationResult:
         input_safety: SafetyResult | None = None
         preflight_ctx = SafetyPolicyContext(
@@ -1916,11 +2195,13 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                 )
 
-        # Select mode-specific OOC handler; RPG and Branching have dedicated prompts.
+        # Select mode-specific OOC handler; RPG/Branching/Writing each have a prompt.
         if story_mode is StoryMode.RPG:
             ooc_prompt = self._rpg_ooc_handler_prompt
         elif story_mode is StoryMode.BRANCHING:
             ooc_prompt = self._branching_ooc_handler_prompt
+        elif story_mode is StoryMode.WRITING:
+            ooc_prompt = self._writing_ooc_handler_prompt
         else:
             ooc_prompt = self._ooc_handler_prompt
         ooc_ctx = _swap_system_prompt(ctx, ooc_prompt)
@@ -1937,6 +2218,14 @@ class OrchestratorService:
                 )
             if rpg_ooc_state:
                 ooc_ctx.pass_forward_ledger.add("rpg_ooc_state", rpg_ooc_state)
+        elif story_mode is StoryMode.WRITING and pre_writing_state is not None:
+            from afterworlds.pipeline.writing.context import (  # noqa: PLC0415
+                render_writing_ooc_state_block as _writing_ooc_state_fn,
+            )
+
+            _writing_ooc_block = _writing_ooc_state_fn(pre_writing_state)
+            if _writing_ooc_block:
+                ooc_ctx.pass_forward_ledger.add("writing_ooc_state", _writing_ooc_block)
 
         return self._run_with_transaction(
             lambda session: self._ooc_persist(
@@ -1952,6 +2241,7 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 story_mode=story_mode,
+                writing_session_state=pre_writing_state,
             ),
             intent_result,
             latency,
@@ -1976,6 +2266,7 @@ class OrchestratorService:
         turn_start: float,
         *,
         story_mode: StoryMode,
+        writing_session_state: WritingSessionState | None = None,
     ) -> OrchestrationResult:
         ooc_turn_id = uuid4()
         try:
@@ -2090,6 +2381,31 @@ class OrchestratorService:
         # persist.  Mutually exclusive with _ooc_style_noop_note to avoid
         # contradictory duplicate corrections.
         _ooc_range_noop_note: str | None = None
+        # Set when the OOC extractor returned a persona_id that is not in the
+        # Writing persona registry, so the persona change was not persisted.
+        # Appended to the delivery note so the prose cannot imply a switch that
+        # did not happen.
+        _ooc_persona_noop_note: str | None = None
+        # Set when a requested IN_PLAY transition is suppressed because no
+        # verified Writing persona is present after the update.  Appended to the
+        # delivery note so the prose cannot imply a setup completion that did
+        # not happen.  Can fire together with _ooc_persona_noop_note when the
+        # extractor returns an unrecognised persona_id AND play_status=IN_PLAY.
+        _ooc_play_noop_note: str | None = None
+        # Set when a requested form=OTHER lacks a valid effective form_other (no
+        # nonblank new value, and the existing row is not already form=OTHER
+        # with a valid custom description).  The CRUD guard silently skips this
+        # form change to avoid an unreadable row; surfaced here so the prose
+        # cannot imply the form changed when it did not persist.
+        _ooc_form_noop_note: str | None = None
+        # Set when a requested blank/whitespace specific_goals update is
+        # suppressed because the effective post-update play_status is (or
+        # remains) IN_PLAY.  Confirmation/persistence parity: the CRUD guard
+        # silently keeps the existing goal to avoid an unreadable row;
+        # surfaced here so the prose cannot imply the goal was cleared when it
+        # was not.  Blank goals remain allowed when the same update
+        # transitions the session to SETUP (no note in that case).
+        _ooc_goal_noop_note: str | None = None
         if (
             story_mode is StoryMode.BRANCHING
             and self._branching_ooc_config_extractor is not None
@@ -2275,14 +2591,260 @@ class OrchestratorService:
             except Exception:  # noqa: BLE001
                 pass  # Best-effort; OOC prose already delivered
 
+        # Phase F (Writing OOC config extraction): for WRITING turns, extract any
+        # session config changes the Sojourner requested and persist them inside
+        # this transaction.  Best-effort — failure skips persistence without
+        # blocking OOC_HANDLED.
+        _writing_ooc_cfg_result: object | None = None
+        if (
+            story_mode is StoryMode.WRITING
+            and self._writing_ooc_config_extractor is not None
+        ):
+            try:
+                from afterworlds.persistence.crud.session_state import (  # noqa: PLC0415
+                    apply_writing_config_update as _apply_writing_cfg,
+                )
+
+                _w_extract_result = self._writing_ooc_config_extractor.extract(
+                    ooc_ctx,
+                    ScopedProviderAdapter(
+                        binding.adapter,  # type: ignore[arg-type]
+                        sojourner_id,
+                        turn_id=writer_result.turn_id,
+                    ),
+                )
+                _writing_ooc_cfg_result = _w_extract_result
+                _w_cfg = _w_extract_result.config_update
+
+                # Determine registry provenance if persona_id is changing.
+                # On a registry miss the persona change is a no-op; other fields
+                # in the same update still persist.  A corrective note is recorded
+                # so the delivered prose cannot imply a persona switch that did
+                # not happen.
+                _registry_version: int | None = None
+                _profile_version: int | None = None
+                _prompt_fingerprint: str | None = None
+                _persona_id_to_persist: str | None = None
+                if _w_cfg.persona_id is not None:
+                    if self._writing_visible_state_service is not None:
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                PersonaAvailability as _PA,
+                            )
+                            from afterworlds.modes.personas.registry import (
+                                SupportedMode as _SM,
+                            )
+
+                            _reg = self._writing_visible_state_service.registry
+                            _prof = _reg.get_profile(_w_cfg.persona_id, _SM.WRITING)
+                            # Registry contract distinguishes resolvable (any
+                            # availability) from selectable (ACTIVE only).
+                            # Hidden/deprecated profiles may still resolve for
+                            # existing persisted sessions but must not be newly
+                            # selected via OOC config updates.  Gate ALL
+                            # provenance fields on this check together so a
+                            # non-ACTIVE profile's version/fingerprint never
+                            # lands on the row while persona_id stays unchanged.
+                            if _prof.availability is not _PA.ACTIVE:
+                                # Never echo the raw requested persona_id here:
+                                # WritingConfigUpdate.persona_id is an
+                                # extractor/user-supplied free string, and this
+                                # note is appended to delivered/persisted OOC
+                                # output *after* the output safety audit has
+                                # already run — an unsanitized echo would let
+                                # arbitrary text bypass that audit.
+                                _ooc_persona_noop_note = (
+                                    "[Persona not changed: requested persona is"
+                                    " not currently available for selection.]"
+                                )
+                            else:
+                                _registry_version = _reg.registry_version
+                                _profile_version = _prof.profile_version
+                                _prompt_fingerprint = _prof.prompt_fingerprint
+                                _persona_id_to_persist = _w_cfg.persona_id
+                        except Exception:  # noqa: BLE001
+                            _ooc_persona_noop_note = (
+                                "[Persona not changed: requested persona is not"
+                                " recognized as an available Writing persona.]"
+                            )
+                    else:
+                        # No registry service wired — treat as no-op for safety.
+                        _ooc_persona_noop_note = (
+                            "[Persona not changed: requested persona could not"
+                            " be verified (registry not available).]"
+                        )
+
+                # Convert version_pointers to plain dicts for CRUD persistence.
+                _vp_dicts: list[dict[str, object]] | None = None
+                if _w_cfg.version_pointers is not None:
+                    _vp_dicts = [
+                        vp.model_dump(mode="json") for vp in _w_cfg.version_pointers
+                    ]
+
+                # Form/custom-form invariant: form_other is meaningful only when
+                # form is OTHER.  A requested form=OTHER without a valid
+                # effective form_other would be silently skipped by the CRUD
+                # guard (to avoid an unreadable row) while the OOC turn is still
+                # returned as handled.  Surface that suppression here so the
+                # prose cannot imply a form change that did not persist.  A
+                # stale form_other on a row whose *current* form is not already
+                # OTHER must never satisfy this requirement.
+                _form_to_persist: WritingForm | None = _w_cfg.form
+                _form_other_to_persist: str | None = _w_cfg.form_other
+                if _w_cfg.form is WritingForm.OTHER:
+                    _new_form_other = (
+                        _w_cfg.form_other if (_w_cfg.form_other or "").strip() else None
+                    )
+                    _existing_form_other = (
+                        writing_session_state.form_other
+                        if (
+                            writing_session_state is not None
+                            and writing_session_state.form is WritingForm.OTHER
+                            and writing_session_state.form_other
+                        )
+                        else None
+                    )
+                    if _new_form_other is None and _existing_form_other is None:
+                        _form_to_persist = None
+                        _form_other_to_persist = None
+                        _ooc_form_noop_note = (
+                            "[Form not changed:"
+                            ' "other" requires a custom form description.]'
+                        )
+
+                # Invariant: a Writing session may enter or remain IN_PLAY only
+                # when the resulting persisted state has a verified Writing
+                # persona.  Compute the effective persona after this update:
+                # use the newly-verified persona_id from this update if present,
+                # otherwise fall back to the existing row's persona_id (verified
+                # against the registry).  If neither yields a verified persona,
+                # suppress the IN_PLAY transition and surface a corrective note.
+                _play_status_to_persist = _w_cfg.play_status
+                if _w_cfg.play_status is WritingPlayStatus.IN_PLAY:
+                    _effective_persona_id: str | None = _persona_id_to_persist
+                    if (
+                        _effective_persona_id is None
+                        and writing_session_state is not None
+                        and writing_session_state.persona_id is not None
+                        and self._writing_visible_state_service is not None
+                    ):
+                        try:
+                            from afterworlds.modes.personas.registry import (  # noqa: PLC0415
+                                SupportedMode as _SM_P,
+                            )
+
+                            _reg_p = self._writing_visible_state_service.registry
+                            _reg_p.get_profile(
+                                writing_session_state.persona_id, _SM_P.WRITING
+                            )
+                            _effective_persona_id = writing_session_state.persona_id
+                        except Exception:  # noqa: BLE001
+                            pass
+                    if _effective_persona_id is None:
+                        _play_status_to_persist = None
+                        _ooc_play_noop_note = (
+                            "[Play status not changed: IN_PLAY requires a"
+                            " verified Writing persona to be configured first.]"
+                        )
+                    else:
+                        # Setup-completion rule (owner decision, PR #116 remediation):
+                        # IN_PLAY also requires an immediate writing goal.  Effective
+                        # goal is the new value from this update if supplied,
+                        # otherwise the existing session state's specific_goals,
+                        # trimmed.  writing_interests describes broader project/taste
+                        # and does not satisfy this immediate-work gate.
+                        _effective_goal = (
+                            _w_cfg.specific_goals
+                            if _w_cfg.specific_goals is not None
+                            else (
+                                writing_session_state.specific_goals
+                                if writing_session_state is not None
+                                else ""
+                            )
+                        )
+                        if not _effective_goal.strip():
+                            _play_status_to_persist = None
+                            _ooc_play_noop_note = (
+                                "[Play status not changed: IN_PLAY requires an"
+                                " immediate writing goal.]"
+                            )
+
+                # Confirmation/persistence parity (mirrors the form/form_other
+                # and persona/play-status notes above): a blank/whitespace
+                # specific_goals update would be silently kept-as-is by the
+                # CRUD guard when the effective post-update play_status is (or
+                # remains) IN_PLAY, to avoid an unreadable row.  Compute the
+                # effective status the same way CRUD does — the requested
+                # play_status if this update supplies one, else the existing
+                # row's current value — and surface the suppression so the
+                # prose cannot imply the goal was cleared when it was not.  A
+                # blank goal paired with an explicit transition to SETUP is
+                # unaffected (no note; CRUD allows it).
+                _goals_to_persist = _w_cfg.specific_goals
+                if (
+                    _w_cfg.specific_goals is not None
+                    and not _w_cfg.specific_goals.strip()
+                ):
+                    _effective_status_for_goal_note = (
+                        _play_status_to_persist
+                        if _play_status_to_persist is not None
+                        else (
+                            writing_session_state.play_status
+                            if writing_session_state is not None
+                            else None
+                        )
+                    )
+                    if _effective_status_for_goal_note is WritingPlayStatus.IN_PLAY:
+                        _goals_to_persist = None
+                        _ooc_goal_noop_note = (
+                            "[Immediate goal not changed: IN_PLAY requires a"
+                            " nonblank immediate writing goal. Switch back to"
+                            " setup before clearing it.]"
+                        )
+
+                _apply_writing_cfg(
+                    session,
+                    story_id,
+                    persona_id=_persona_id_to_persist,
+                    persona_registry_version=_registry_version,
+                    persona_profile_version=_profile_version,
+                    persona_prompt_fingerprint=_prompt_fingerprint,
+                    critique_intensity=_w_cfg.critique_intensity,
+                    form=_form_to_persist,
+                    form_other=_form_other_to_persist,
+                    tense=_w_cfg.tense,
+                    pov=_w_cfg.pov,
+                    style_density=_w_cfg.style_density,
+                    dialogue_narration_ratio=_w_cfg.dialogue_narration_ratio,
+                    genre_conventions=_w_cfg.genre_conventions,
+                    specific_goals=_goals_to_persist,
+                    acceptable_content=_w_cfg.acceptable_content,
+                    beat_constraints=_w_cfg.beat_constraints,
+                    beat_constraints_mode=_w_cfg.beat_constraints_mode,
+                    version_pointers=_vp_dicts,
+                    play_status=_play_status_to_persist,
+                )
+            except WritingOocExtractionUsageError as _w_usage_exc:
+                _writing_ooc_cfg_result = _w_usage_exc.usage_result
+            except Exception:  # noqa: BLE001
+                pass  # Best-effort; OOC prose already delivered
+
         _ooc_delivered = writer_result.assistant_output
-        # At most one of the corrective notes is set (they are mutually
-        # exclusive by construction), but compose a single correction block from
-        # whichever are present so the delivered prose can never imply a config
-        # change that persistence did not make.
+        # Compose all suppression notes into one correction block.  Notes are
+        # independent: _ooc_persona_noop_note and _ooc_play_noop_note can both
+        # fire when the extractor requests an unrecognised persona together with
+        # play_status=IN_PLAY.  _ooc_style_noop_note and _ooc_range_noop_note
+        # are mutually exclusive with each other but independent of the others.
         _ooc_config_noop_notes = [
             _note
-            for _note in (_ooc_style_noop_note, _ooc_range_noop_note)
+            for _note in (
+                _ooc_style_noop_note,
+                _ooc_range_noop_note,
+                _ooc_persona_noop_note,
+                _ooc_play_noop_note,
+                _ooc_form_noop_note,
+                _ooc_goal_noop_note,
+            )
             if _note is not None
         ]
         if _ooc_config_noop_notes:
@@ -2321,6 +2883,7 @@ class OrchestratorService:
             delivered_output=_ooc_delivered,
             turn_id=writer_result.turn_id,
             branching_ooc_config_result=_ooc_cfg_extractor_result,
+            writing_ooc_config_result=_writing_ooc_cfg_result,
         )
 
     # ------------------------------------------------------------------
@@ -2334,6 +2897,8 @@ class OrchestratorService:
         story_id: UUID,
         session: Session,
         provider: ProviderAdapter,
+        *,
+        skip_story_bible_routing: bool = False,
     ) -> tuple[ExtractorResult, ContradictionResult, int, int]:
         """Run Extractor synchronously and Contradiction on a worker thread.
 
@@ -2403,6 +2968,7 @@ class OrchestratorService:
             ) from exc
 
         # Extractor on this thread, under SAVEPOINT inside the outer txn.
+        _skip_routing = skip_story_bible_routing
         try:
             extractor_result, ext_ms = _timed(
                 lambda: self._extractor_service.extract(
@@ -2412,6 +2978,7 @@ class OrchestratorService:
                     writer_result.turn_id,
                     provider=provider,
                     session=session,
+                    skip_story_bible_routing=_skip_routing,
                 )
             )
         except ProviderRefusalError:
@@ -2758,6 +3325,8 @@ class OrchestratorService:
         branching_pass_result: _BranchingPassResult | None = None,
         branching_visible_state: object | None = None,
         branching_ooc_config_result: object | None = None,
+        writing_visible_state: object | None = None,
+        writing_ooc_config_result: object | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -2772,6 +3341,7 @@ class OrchestratorService:
             # equivalent to planner/writer/extractor for cache observability.
             branching_pass_result,
             branching_ooc_config_result,
+            writing_ooc_config_result,
         )
         return OrchestrationResult(
             disposition=disposition,
@@ -2794,6 +3364,8 @@ class OrchestratorService:
             branching_pass_result=branching_pass_result,
             branching_visible_state=branching_visible_state,
             branching_ooc_config_result=branching_ooc_config_result,
+            writing_visible_state=writing_visible_state,
+            writing_ooc_config_result=writing_ooc_config_result,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
@@ -2977,19 +3549,21 @@ class OrchestratorService:
                     extractor_result=inner_result.extractor_result,
                     contradiction_result=inner_result.contradiction_result,
                     rpg_adjudication_result=inner_result.rpg_adjudication_result,
-                    # Preserve usage-carrying Branching pass results.  A
-                    # BranchingWriter or Branching OOC-config extractor that ran
-                    # before the failed commit already consumed provider tokens;
-                    # the disposition changes to PIPELINE_ERROR but that
-                    # successful provider-usage evidence must survive so cost
-                    # settlement (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_
-                    # EXTRACTOR) and audit can reconstruct the spend.  Delivery
-                    # is gated by the PIPELINE_ERROR disposition, not by nulling
-                    # these records.
+                    # Preserve usage-carrying Branching and Writing OOC-config
+                    # pass results.  A BranchingWriter, Branching OOC-config
+                    # extractor, or Writing OOC-config extractor that ran before
+                    # the failed commit already consumed provider tokens; the
+                    # disposition changes to PIPELINE_ERROR but that successful
+                    # provider-usage evidence must survive so cost settlement
+                    # (BRANCHING_WRITER / BRANCHING_OOC_CONFIG_EXTRACTOR /
+                    # WRITING_OOC_CONFIG_EXTRACTOR) and audit can reconstruct
+                    # the spend.  Delivery is gated by the PIPELINE_ERROR
+                    # disposition, not by nulling these records.
                     branching_pass_result=inner_result.branching_pass_result,
                     branching_ooc_config_result=(
                         inner_result.branching_ooc_config_result
                     ),
+                    writing_ooc_config_result=(inner_result.writing_ooc_config_result),
                     pipeline_error_summary=(
                         f"transaction commit failed after "
                         f"{success_disposition.value}: {commit_exc}"
@@ -3071,6 +3645,28 @@ def _serialize_planner(result: PlannerResult) -> str:
     is byte-stable for cache integrity (CRD Item 14 invariant #10).
     """
     return result.plan.model_dump_json()
+
+
+def _extend_system_prompt(ctx: AssembledContext, appendix: str) -> AssembledContext:
+    """Return a derived AssembledContext with ``appendix`` appended to system_prompt.
+
+    Used to inject Writing-mode persona + authoring-controls context into the
+    stable prefix once per turn.  All other stable-prefix fields are preserved.
+    The original ``ctx`` is not mutated.
+    """
+    sp = ctx.stable_prefix
+    new_sp = StablePrefix(
+        system_prompt=sp.system_prompt + "\n\n" + appendix,
+        story_bible_context=sp.story_bible_context,
+        rolling_summary_text=sp.rolling_summary_text,
+        rules_package_slice=sp.rules_package_slice,
+        retrieval_memory=sp.retrieval_memory,
+    )
+    return AssembledContext(
+        stable_prefix=new_sp,
+        volatile_suffix=ctx.volatile_suffix,
+        pass_forward_ledger=ctx.pass_forward_ledger,
+    )
 
 
 def _swap_system_prompt(

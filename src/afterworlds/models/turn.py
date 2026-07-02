@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from afterworlds.models.enums import IntentType, normalize_legacy_intent_type
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.node import ModeMetadata
 
 
 class Turn(BaseModel):
@@ -29,6 +30,13 @@ class Turn(BaseModel):
       Turns written before the Writer existed.
     - ``node_id`` — optional link to the associated Node (may be None when the
       Turn does not yet correspond to a persisted Node, e.g. during pre-play)
+    - ``mode_metadata`` — per-turn mode-specific provenance snapshot (e.g.
+      WritingNodeMetadata: persona, work_product_kind, canon_eligibility,
+      authoring controls, version pointer refs).  Distinct from
+      ``Node.mode_metadata``: a Node can have many Turns (``NodeORM.turns`` is
+      a list; ``Turn.node_id`` is only a link), so a per-Node field alone
+      would let a later Turn's snapshot overwrite an earlier Turn's on the
+      same Node.  This field gives each Turn its own durable record.
     """
 
     turn_id: UUID = Field(default_factory=uuid4)
@@ -38,6 +46,7 @@ class Turn(BaseModel):
     intent_classification: IntentType
     node_id: UUID | None = None
     intent_classification_result: IntentClassificationResult | None = None
+    mode_metadata: ModeMetadata | None = None
 
     @field_validator("intent_classification", mode="before")
     @classmethod

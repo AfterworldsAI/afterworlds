@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import select
@@ -12,6 +12,7 @@ from afterworlds.models.enums import (
     BranchCountRange,
     BranchingCadence,
     BranchingPlayStatus,
+    CritiqueIntensity,
     DiceHandling,
     InteractionStyle,
     LengthPreference,
@@ -19,6 +20,9 @@ from afterworlds.models.enums import (
     RpgSessionType,
     RpgSetupPhase,
     RpgTone,
+    StyleDensity,
+    WritingForm,
+    WritingPlayStatus,
 )
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -361,9 +365,25 @@ def _writing_orm_to_model(row: WritingSessionStateORM) -> WritingSessionState:
     return WritingSessionState(
         session_id=UUID(row.session_id),
         story_id=UUID(row.story_id),
+        persona_id=row.persona_id,
+        persona_registry_version=row.persona_registry_version,
+        persona_profile_version=row.persona_profile_version,
+        persona_prompt_fingerprint=row.persona_prompt_fingerprint,
+        play_status=WritingPlayStatus(row.play_status),
+        reading_interests=row.reading_interests,
+        writing_interests=row.writing_interests,
+        form=WritingForm(row.form) if row.form is not None else None,
+        form_other=row.form_other,
+        specific_goals=row.specific_goals or "",
+        critique_intensity=CritiqueIntensity(row.critique_intensity),
+        tense=row.tense,
+        pov=row.pov,
+        style_density=StyleDensity(row.style_density),
+        dialogue_narration_ratio=row.dialogue_narration_ratio,
+        genre_conventions=row.genre_conventions,
         beat_constraints=list(row.beat_constraints),
-        version_history_pointers=[UUID(p) for p in row.version_history_pointers],
-        persona=row.persona,  # type: ignore[arg-type]
+        version_pointers=list(row.version_pointers),
+        acceptable_content=row.acceptable_content,
     )
 
 
@@ -374,9 +394,25 @@ def create_writing_session_state(
     row = WritingSessionStateORM(
         session_id=str(state.session_id),
         story_id=str(state.story_id),
+        persona_id=state.persona_id,
+        persona_registry_version=state.persona_registry_version,
+        persona_profile_version=state.persona_profile_version,
+        persona_prompt_fingerprint=state.persona_prompt_fingerprint,
+        play_status=state.play_status.value,
+        reading_interests=state.reading_interests,
+        writing_interests=state.writing_interests,
+        form=state.form.value if state.form is not None else None,
+        form_other=state.form_other,
+        specific_goals=state.specific_goals,
+        critique_intensity=state.critique_intensity.value,
+        tense=state.tense,
+        pov=state.pov,
+        style_density=state.style_density.value,
+        dialogue_narration_ratio=state.dialogue_narration_ratio,
+        genre_conventions=state.genre_conventions,
         beat_constraints=list(state.beat_constraints),
-        version_history_pointers=[str(p) for p in state.version_history_pointers],
-        persona=state.persona.value if state.persona is not None else None,
+        version_pointers=list(state.version_pointers),
+        acceptable_content=state.acceptable_content,
     )
     session.add(row)
     session.flush()
@@ -414,11 +450,268 @@ def update_writing_session_state(
     row = session.get(WritingSessionStateORM, str(state.session_id))
     if row is None:
         return None
+    row.persona_id = state.persona_id
+    row.persona_registry_version = state.persona_registry_version
+    row.persona_profile_version = state.persona_profile_version
+    row.persona_prompt_fingerprint = state.persona_prompt_fingerprint
+    row.play_status = state.play_status.value
+    row.reading_interests = state.reading_interests
+    row.writing_interests = state.writing_interests
+    row.form = state.form.value if state.form is not None else None
+    row.form_other = state.form_other
+    row.specific_goals = state.specific_goals
+    row.critique_intensity = state.critique_intensity.value
+    row.tense = state.tense
+    row.pov = state.pov
+    row.style_density = state.style_density.value
+    row.dialogue_narration_ratio = state.dialogue_narration_ratio
+    row.genre_conventions = state.genre_conventions
     row.beat_constraints = list(state.beat_constraints)
-    row.version_history_pointers = [str(p) for p in state.version_history_pointers]
-    row.persona = state.persona.value if state.persona is not None else None
+    row.version_pointers = list(state.version_pointers)
+    row.acceptable_content = state.acceptable_content
     session.flush()
     return _writing_orm_to_model(row)
+
+
+def _normalize_version_pointer_text(value: Any) -> str | None:
+    """Strip, collapse internal whitespace, and casefold text for semantic dedup.
+
+    Returns None for missing/blank text so absent fields compare equal to each
+    other without colliding with an empty-string field.
+    """
+    if not isinstance(value, str):
+        return None
+    normalized = " ".join(value.split()).strip().casefold()
+    return normalized or None
+
+
+def _version_pointer_semantic_key(p: dict[str, Any]) -> tuple[Any, ...]:
+    """Build a semantic identity key for a version pointer dict.
+
+    Used to dedupe extractor-generated pointers that reference the same
+    real-world draft/turn/node but carry a freshly generated ``pointer_id``
+    (the extractor tool intentionally omits ``pointer_id`` so the model is
+    never invited to hallucinate a UUID; the DTO's ``default_factory`` fills
+    a new one on every extraction pass).  ``kind``/``source_turn_id``/
+    ``source_node_id`` are compared exactly; ``label``/``description`` are
+    normalized so trivial formatting differences don't defeat the dedup.
+    """
+    return (
+        p.get("kind"),
+        _normalize_version_pointer_text(p.get("label")),
+        p.get("source_turn_id"),
+        p.get("source_node_id"),
+        _normalize_version_pointer_text(p.get("description")),
+    )
+
+
+def apply_writing_config_update(
+    session: Session,
+    story_id: UUID,
+    persona_id: str | None = None,
+    persona_registry_version: int | None = None,
+    persona_profile_version: int | None = None,
+    persona_prompt_fingerprint: str | None = None,
+    critique_intensity: CritiqueIntensity | None = None,
+    form: WritingForm | None = None,
+    form_other: str | None = None,
+    tense: str | None = None,
+    pov: str | None = None,
+    style_density: StyleDensity | None = None,
+    dialogue_narration_ratio: int | None = None,
+    genre_conventions: str | None = None,
+    specific_goals: str | None = None,
+    acceptable_content: str | None = None,
+    beat_constraints: list[str] | None = None,
+    beat_constraints_mode: Literal["append", "replace"] | None = None,
+    version_pointers: list[Any] | None = None,
+    play_status: WritingPlayStatus | None = None,
+) -> bool:
+    """Apply non-None config fields to the WritingSessionState ORM row for a story.
+
+    Only updates fields that are non-None. Returns True when the row was found
+    and flushed; False when no row exists for the given story_id.
+
+    Persona provenance bundle: when ``persona_id`` is non-None,
+    ``persona_registry_version``, ``persona_profile_version``, and
+    ``persona_prompt_fingerprint`` are all assigned unconditionally alongside
+    it (including ``None``, which clears a stale value from the previous
+    persona) — a persona change must never leave mismatched provenance on the
+    row. When ``persona_id`` is None, the other three fields are left
+    untouched regardless of their value.
+
+    ``form``/``form_other`` integrity guard: if the post-update form would be
+    ``other`` but neither the update nor the existing row supplies ``form_other``,
+    the form change is silently skipped to prevent an unreadable row.
+
+    ``specific_goals``/``play_status`` integrity guard: if the post-update
+    play_status is (or remains) ``IN_PLAY`` but the new ``specific_goals``
+    value is blank/whitespace, the goals write is silently skipped to prevent
+    an unreadable row (mirrors the form/form_other guard; also complements the
+    play_status guard below, which independently prevents *newly persisting*
+    IN_PLAY without nonblank persona_id/specific_goals).
+
+    ``beat_constraints`` is applied per ``beat_constraints_mode``: "replace"
+    (the default when ``beat_constraints`` is set but mode is omitted) swaps
+    the full list, consistent with WritingSessionState validator behaviour;
+    "append" adds the given constraints to the existing list, deduped by
+    exact string match so a repeated add does not duplicate.
+    ``dialogue_narration_ratio`` validity does not depend on another field or
+    on existing row state — ``WritingConfigUpdate`` (the only production
+    caller's DTO) fully validates it at construction time, so no CRUD-level
+    guard is needed for it.
+
+    ``version_pointers`` are appended to the existing list, deduped both by
+    ``pointer_id`` (stable identity once a pointer exists) and by a semantic
+    key — (kind, normalized label, source_turn_id, source_node_id, normalized
+    description) — so idempotent re-extraction with a freshly generated
+    pointer_id (the extractor tool never supplies pointer_id) doesn't grow the
+    list unboundedly.
+
+    Used by the OOC config extractor — all writes are inside the OOC transaction
+    and roll back if OOC_HANDLED does not commit.
+    """
+    row = session.scalars(
+        select(WritingSessionStateORM).where(
+            WritingSessionStateORM.story_id == str(story_id)
+        )
+    ).first()
+    if row is None:
+        return False
+    if persona_id is not None:
+        # Persona provenance is an atomic bundle keyed on persona_id changing:
+        # the sole production caller (orchestrator OOC persona-selection path)
+        # always computes registry_version/profile_version/prompt_fingerprint
+        # together with persona_id in the same registry lookup.  Assign all
+        # four unconditionally here — including a None prompt_fingerprint,
+        # which some persona profiles legitimately have — so a new persona
+        # never retains the *previous* persona's stale fingerprint.  Gating
+        # prompt_fingerprint on "is not None" (as the other three fields
+        # still are, for updates that leave persona_id unchanged) would skip
+        # the clear and corrupt the bundle.
+        row.persona_id = persona_id
+        row.persona_registry_version = persona_registry_version
+        row.persona_profile_version = persona_profile_version
+        row.persona_prompt_fingerprint = persona_prompt_fingerprint
+
+    # form/form_other integrity: skip form change if it would leave form=OTHER
+    # without a form_other value (which would make the row unreadable).
+    if form is not None:
+        effective_form_other = form_other if form_other is not None else row.form_other
+        if form is WritingForm.OTHER and not effective_form_other:
+            pass  # skip to avoid unreadable row
+        elif form is not WritingForm.OTHER:
+            # Concrete form: ``form_other`` is meaningful only for OTHER, so a
+            # concrete form update clears any stale custom-form label outright —
+            # even when the caller did not pass form_other.  This prevents a stale
+            # label from later governing prompts, OOC state, or metadata snapshots.
+            row.form = form.value
+            row.form_other = None
+        else:
+            row.form = form.value
+            if form_other is not None:
+                row.form_other = form_other
+    elif form_other is not None:
+        # Guard: if the persisted row already has form=OTHER, a blank form_other
+        # would make it unreadable on the next CRUD read (_writing_orm_to_model
+        # constructs WritingSessionState whose validator rejects form=OTHER +
+        # falsey form_other).
+        if not (row.form == WritingForm.OTHER.value and not form_other):
+            row.form_other = form_other
+
+    if critique_intensity is not None:
+        row.critique_intensity = critique_intensity.value
+    if tense is not None:
+        row.tense = tense
+    if pov is not None:
+        row.pov = pov
+    if style_density is not None:
+        row.style_density = style_density.value
+    if dialogue_narration_ratio is not None:
+        row.dialogue_narration_ratio = dialogue_narration_ratio
+    if genre_conventions is not None:
+        row.genre_conventions = genre_conventions
+    if specific_goals is not None:
+        # Cross-field integrity guard (mirrors the form/form_other guard
+        # above): specific_goals validity depends on play_status, a
+        # different field, and the *existing* row's play_status when this
+        # call does not touch play_status.  A row already IN_PLAY — or one
+        # this same call is promoting to IN_PLAY — must never end up with a
+        # blank specific_goals; that violates WritingSessionState's IN_PLAY
+        # construction invariant and makes the row unreadable on the next
+        # fetch.  Effective play_status is the requested value if supplied,
+        # else the row's current value.  A goal-clearing update paired with
+        # an explicit transition to SETUP is unaffected.
+        _effective_status_for_goal = (
+            play_status
+            if play_status is not None
+            else WritingPlayStatus(row.play_status)
+        )
+        if (
+            _effective_status_for_goal is WritingPlayStatus.IN_PLAY
+            and not specific_goals.strip()
+        ):
+            pass  # skip: cannot blank specific_goals while (or becoming) IN_PLAY
+        else:
+            row.specific_goals = specific_goals
+    if acceptable_content is not None:
+        row.acceptable_content = acceptable_content
+    if beat_constraints is not None:
+        if beat_constraints_mode == "append":
+            existing_constraints = (
+                list(row.beat_constraints) if row.beat_constraints else []
+            )
+            existing_constraint_set = set(existing_constraints)
+            for constraint in beat_constraints:
+                if constraint not in existing_constraint_set:
+                    existing_constraints.append(constraint)
+                    existing_constraint_set.add(constraint)
+            row.beat_constraints = existing_constraints
+        else:
+            row.beat_constraints = list(beat_constraints)
+    if version_pointers is not None and len(version_pointers) > 0:
+        existing = list(row.version_pointers) if row.version_pointers else []
+        existing_ids = {
+            str(p.get("pointer_id")) for p in existing if isinstance(p, dict)
+        }
+        existing_semantic_keys = {
+            _version_pointer_semantic_key(p) for p in existing if isinstance(p, dict)
+        }
+        for ptr in version_pointers:
+            ptr_dict = ptr if isinstance(ptr, dict) else ptr
+            ptr_id = str(ptr_dict.get("pointer_id", ""))
+            if ptr_id and ptr_id in existing_ids:
+                continue  # exact pointer_id already present
+            semantic_key = _version_pointer_semantic_key(ptr_dict)
+            if semantic_key in existing_semantic_keys:
+                continue  # same kind/label/source/description already present
+            existing.append(ptr_dict)
+            if ptr_id:
+                existing_ids.add(ptr_id)
+            existing_semantic_keys.add(semantic_key)
+        row.version_pointers = existing
+    if play_status is not None:
+        # Boundary (PR #116 remediation, owner decision): this generic CRUD
+        # helper enforces local persisted-state *shape* only — nonblank
+        # persona_id and nonblank specific_goals — never registry-aware
+        # validity/selectability.  It has no persona registry dependency and
+        # must not gain one: this module is generic persistence, not a
+        # registry-aware service, and importing the registry here would
+        # couple low-level CRUD to a mode-specific registry.  A caller could
+        # in principle pass an unknown/hidden/deprecated persona_id here and
+        # this guard would not catch it — registry verification is the
+        # responsibility of the caller (currently the orchestrator's OOC
+        # persona-selection path), applied before this call.  ``row`` here
+        # reflects the effective values after any persona_id/specific_goals
+        # updates above.
+        if play_status is WritingPlayStatus.IN_PLAY and (
+            not row.persona_id or not (row.specific_goals or "").strip()
+        ):
+            pass  # skip: cannot enter IN_PLAY without persona_id + a goal
+        else:
+            row.play_status = play_status.value
+    session.flush()
+    return True
 
 
 def delete_writing_session_state(session: Session, session_id: UUID) -> bool:
