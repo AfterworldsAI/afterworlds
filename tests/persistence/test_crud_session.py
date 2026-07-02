@@ -391,6 +391,100 @@ def test_apply_writing_config_update_no_row(session):  # type: ignore[no-untyped
     assert result is False
 
 
+def test_apply_writing_config_update_persona_change_clears_stale_fingerprint(session):  # type: ignore[no-untyped-def]
+    """New persona with prompt_fingerprint=None clears the old persona's fingerprint."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        persona_registry_version=2,
+        persona_profile_version=3,
+        persona_prompt_fingerprint=None,
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.persona_registry_version == 2
+    assert fetched.persona_profile_version == 3
+    assert fetched.persona_prompt_fingerprint is None
+
+
+def test_apply_writing_config_update_persona_change_sets_new_fingerprint(session):  # type: ignore[no-untyped-def]
+    """New persona with a non-None prompt_fingerprint still sets the new value."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        persona_id="athena",
+        persona_registry_version=2,
+        persona_profile_version=3,
+        persona_prompt_fingerprint="new-fingerprint",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "athena"
+    assert fetched.persona_prompt_fingerprint == "new-fingerprint"
+
+
+def test_apply_writing_config_update_no_persona_id_leaves_provenance(session):  # type: ignore[no-untyped-def]
+    """persona_id=None (rejected/unknown persona) never touches provenance fields."""
+    story = make_story()
+    create_story(session, story)
+    state = WritingSessionState(
+        story_id=story.story_id,
+        persona_id="chiron",
+        persona_registry_version=1,
+        persona_profile_version=1,
+        persona_prompt_fingerprint="old-fingerprint",
+    )
+    create_writing_session_state(session, state)
+    session.commit()
+
+    result = apply_writing_config_update(
+        session,
+        story.story_id,
+        tense="present",
+    )
+    session.commit()
+
+    assert result is True
+    fetched = get_writing_session_state(session, state.session_id)
+    assert fetched is not None
+    assert fetched.persona_id == "chiron"
+    assert fetched.persona_registry_version == 1
+    assert fetched.persona_profile_version == 1
+    assert fetched.persona_prompt_fingerprint == "old-fingerprint"
+
+
 def test_apply_writing_config_update_in_play_without_persona_skipped(session):  # type: ignore[no-untyped-def]
     """play_status=IN_PLAY is not persisted when no persona_id is present."""
     story = make_story()

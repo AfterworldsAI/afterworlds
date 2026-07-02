@@ -532,6 +532,14 @@ def apply_writing_config_update(
     Only updates fields that are non-None. Returns True when the row was found
     and flushed; False when no row exists for the given story_id.
 
+    Persona provenance bundle: when ``persona_id`` is non-None,
+    ``persona_registry_version``, ``persona_profile_version``, and
+    ``persona_prompt_fingerprint`` are all assigned unconditionally alongside
+    it (including ``None``, which clears a stale value from the previous
+    persona) — a persona change must never leave mismatched provenance on the
+    row. When ``persona_id`` is None, the other three fields are left
+    untouched regardless of their value.
+
     ``form``/``form_other`` integrity guard: if the post-update form would be
     ``other`` but neither the update nor the existing row supplies ``form_other``,
     the form change is silently skipped to prevent an unreadable row.
@@ -571,12 +579,19 @@ def apply_writing_config_update(
     if row is None:
         return False
     if persona_id is not None:
+        # Persona provenance is an atomic bundle keyed on persona_id changing:
+        # the sole production caller (orchestrator OOC persona-selection path)
+        # always computes registry_version/profile_version/prompt_fingerprint
+        # together with persona_id in the same registry lookup.  Assign all
+        # four unconditionally here — including a None prompt_fingerprint,
+        # which some persona profiles legitimately have — so a new persona
+        # never retains the *previous* persona's stale fingerprint.  Gating
+        # prompt_fingerprint on "is not None" (as the other three fields
+        # still are, for updates that leave persona_id unchanged) would skip
+        # the clear and corrupt the bundle.
         row.persona_id = persona_id
-    if persona_registry_version is not None:
         row.persona_registry_version = persona_registry_version
-    if persona_profile_version is not None:
         row.persona_profile_version = persona_profile_version
-    if persona_prompt_fingerprint is not None:
         row.persona_prompt_fingerprint = persona_prompt_fingerprint
 
     # form/form_other integrity: skip form change if it would leave form=OTHER
