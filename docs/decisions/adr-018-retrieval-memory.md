@@ -1,0 +1,349 @@
+# ADR-018 — Retrieval Memory: ChromaDB Schema, Eligibility, and Cache-Boundary Reconciliation
+
+**Date:** 2026-07-03
+**Issue:** CRD Issue 18 / GitHub #117 — ChromaDB Retrieval Memory: ADR Gate, Vector Service, and
+Context Builder Integration
+**Status:** Proposed — pending explicit owner acceptance on the Phase 1 PR (`feature/issue-18-adr`).
+Per the CRD Issue 18 gate, silence, CI green, or Codex approval alone do not constitute acceptance.
+Implementation (Phase 2, `feature/issue-18-retrieval-memory`) does not begin until an explicit owner
+comment ("ADR-018 accepted" or "accepted with the following edits") is posted on the Phase 1 PR and
+that PR is merged.
+
+---
+
+## Central Invariant
+
+> **ChromaDB is a rebuildable projection of SQLite-authoritative content. It is never the sole home
+> of any data, never an authority over narrative or mechanical canon, and never receives material
+> that was not delivery-cleared.**
+
+SQLite remains the source of truth for turns, canon, and session state. Every vector record must be
+reconstructable from SQLite via reindex. Vector retrieval of rules content is a discovery aid only —
+`get_active_rule_slice` (Issue 5a) remains the sole deterministic mechanical authority (CLAUDE.md
+invariant 8). Prose blocked by Safety, Contradiction, provider refusal, or pipeline error is never
+written as ordinary retrieval memory.
+
+## Context
+
+Issue 8 reserved the seam: a `RetrievalMemoryProvider` protocol, a no-op default
+(`NullRetrievalMemoryProvider`), and a named `retrieval_memory` field on `StablePrefix`. ADR-0010
+Decision 4 explicitly deferred *real placement* of query-dependent retrieval results to Issue 18 and
+flagged the cache-boundary tension this ADR resolves (see Decision 9 below). Issue 5b shipped an
+interim rules-chunk vector path flagged for revision here. Issues 15–17 defined what a delivered turn
+*is* per mode, including Writing's `WritingCanonEligibility` and RPG's `PendingRollRequest`.
+
+Issue 18 is the one CRD issue with a mandatory ADR / owner checkpoint inside it. This document
+resolves Decision Items D1–D11 from the CRD Issue 18 spec, plus the Owner Decision on the RPG
+turn-category marker, per the spec's Phase 1 documentation-only scope. No implementation code,
+dependency, or migration accompanies this PR.
+
+## Two-Phase Gate Record
+
+- **Phase 1 (this PR):** `/docs/decisions/adr-018-retrieval-memory.md` (this document) plus the
+  `known_unknowns.md` edit resolving the ChromaDB collection-schema entry. No code.
+- **Acceptance:** owner comment on the Phase 1 PR — `<link to be added when posted>` — followed by
+  merge of that PR.
+- **Phase 2:** `feature/issue-18-retrieval-memory`, opened only after Phase 1 merges, implementing
+  exactly what is accepted here. Any deviation discovered mid-implementation is a stop-and-flag event
+  in that PR's Architecture Notes, not a silent amendment.
+- **Split escape hatch:** not exercised. Nothing surfaced during Phase 1 review that the ADR could not
+  settle; the default of one gated issue holds.
+
+---
+
+## Decision 1 (D1) — Collection Topology
+
+**Decision:** One shared `story_memory` collection with a mandatory `story_id` metadata filter on
+every query, plus one `rules_corpus` collection per published Rules Package, absorbing/reindexing the
+Issue 5b interim collection. Story memory and rules corpus are never mixed in one collection — that
+separation is a spec constraint (narrative vs. mechanical canon authority), not an ADR choice.
+
+**Rationale:** Per-story collections multiply Chroma overhead and make cross-story leakage a
+*topology* property that silently degrades if any code path selects the wrong collection. A single
+mandatory filter, enforced by one query-gate function every read path traverses, is testable in one
+place rather than N.
+
+## Decision 2 (D2) — Metadata Schema
+
+**Decision:** Story-memory chunks carry `schema_version`, `story_id`, `node_id`, `turn_id`, `mode`,
+`chunk_kind`, `chunk_index`, `chunk_count`, `created_at`, `content_hash`, `embedding_model_id`.
+Rules-corpus chunks carry the Issue 5a provenance fields (`source_document`, `source_locator_type`,
+`source_locator_value`) plus `rules_package_id`, `subsystem`, `embedding_model_id`, `schema_version`.
+`chunk_kind` is a typed enum (`SCENE_PROSE` in v1; extensible to `STORY_BIBLE_ENTRY`, `CANON_PACK`
+later without schema migration).
+
+## Decision 3 (D3) — Chunking Policy
+
+**Decision:** One chunk per delivered turn's prose when under a configured character ceiling
+(starting value ~4,000 characters, held in `RetrievalMemoryConfig`); above it, split on paragraph
+boundaries with `chunk_index`/`chunk_count`. No semantic chunker, no overlap windows in v1.
+
+## Decision 4 (D4) — Embedding Strategy
+
+**Decision:** A local, deterministic embedding function (ChromaDB's default ONNX MiniLM path) behind
+an injectable `EmbeddingFunction` seam. Embedding requires no hosted or provider credentials — BYOK
+and local-first paths embed identically. `embedding_model_id` is recorded in collection metadata and
+per chunk. Changing the embedding model requires a full reindex; mixed-model collections are a
+defect. Default CI injects a deterministic fake embedding function; the real model runs behind the
+existing opt-in integration flag.
+
+## Decision 5 (D5) — Retrieval Defaults
+
+**Decision:** `top_k` (starting value: 4) and a minimum-similarity threshold, both in
+`RetrievalMemoryConfig`, not code constants. An empty or fully-filtered result set returns the
+existing empty typed payload, which the Issue 12c renderer already omits — no placeholder block, no
+cache-key pollution.
+
+## Decision 6 (D6) — Write Triggers and Eligibility
+
+**Decision:** The write trigger fires post-commit for `DELIVERED` narrative turns only. Excluded
+structurally (the trigger sits after commit, so nothing rolled back can reach it): every
+blocked/refused/error disposition. Excluded by rule: `OOC_HANDLED` turns (`RecentTurnReader` already
+excludes them from narrative windows) and `INTERACTION_REJECTED` (no Turn exists).
+
+**Writing mode is affirmative, not exclusion-based:** a Writing-mode turn is eligible only when its
+effective `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`. Per Issue 17,
+`WritingTurnRequest.canon_eligibility_override` is the only v1 carrier that can promote a turn — Writer
+prose, classifier heuristics, prompt text, or `work_product_kind` alone never make a Writing turn
+retrieval-indexable. `SETUP_CONFIRMATION` cannot carry `EXTRACTOR_ELIGIBLE`, so Writing setup
+confirmations are excluded structurally without a second check.
+
+**RPG roll-request and setup-confirmation turns** are `DELIVERED` but largely procedural. Only
+`delivered_output` prose is indexed — never internal records (`ResolvedAdjudicationRecord`, audit
+rows, sheet state, unselected branch options) — so hidden-roll information cannot leak into retrieval
+beyond what the delivered prose already said. The limiting rule: such turns are eligible only to the
+extent their delivered output is story-facing or durable narrative setup prose; purely procedural
+prompts ("roll a Dexterity saving throw," "choose your dice mode," "confirm this setting") are not
+indexed as scene memory. Both exclusions are realized through typed, turn-time-persisted signals and
+are wholesale in v1:
+
+- **Roll-request turns** are identified by `PendingRollRequest.originating_turn_id` — an existing
+  turn-time SQLite record (confirmed at `src/afterworlds/models/rpg.py:212`, ORM table
+  `pending_roll_requests` at `src/afterworlds/persistence/orm/rpg.py:86-90`, non-nullable FK to
+  `turns.turn_id`, written on the announce turn inside the existing outer transaction). This is
+  already replay-safe at any later reindex; no new carrier is needed for this exclusion.
+- **RPG setup-confirmation exclusion** must be derived from turn-time persisted metadata or another
+  SQLite-reconstructable signal, and must **not** infer historical setup status from current
+  `RpgSessionState.play_status`, because reindex/backfill may run after the story has moved to
+  `in_play`, at which point old setup turns become unidentifiable from current state.
+
+**Phase 1 source-inspection outcome (required by the spec):** *No existing signal; owner-authorized
+marker sidecar shipped.* Inspection findings, with citations:
+
+- `Turn` (`src/afterworlds/models/turn.py:19-49`) carries no `turn_kind`/`turn_category`/phase field.
+  `mode_metadata` is a typed discriminated union (`RpgNodeMetadata | BranchingNodeMetadata |
+  WritingNodeMetadata`, `src/afterworlds/models/node.py:129-132`), not a raw JSON blob.
+- `RpgNodeMetadata` (`src/afterworlds/models/node.py:44-49`) carries exactly `mechanical_notes` and
+  `dice_results` — no kind/category/phase field — and has zero constructor call sites anywhere in
+  `src/`; it is defined but never instantiated.
+- No `TurnKind`, `TurnCategory`, `RpgTurnPhase`, `SetupPhase`, or equivalent symbol exists anywhere in
+  `src/` or `docs/` for RPG turns.
+- The exact pattern this exclusion needs *does* exist, but only for Writing mode: ADR-017 Decision 9
+  and `src/afterworlds/pipeline/orchestrator/service.py:1651-1767` persist
+  `WritingWorkProductKind.SETUP_CONFIRMATION` on a per-Turn `WritingNodeMetadata` record specifically
+  because `NodeORM.turns` is a list and only a per-Turn record survives later turns on the same Node.
+  RPG has no analogous hook: the only RPG setup-related logic
+  (`service.py:526-534`) skips building a `RuleSliceRequest` when
+  `pre_session_state.play_status is RpgPlayStatus.SETUP` but stamps nothing durable on the Turn.
+- `RpgPlayStatus` and `RpgSetupPhase` live only on `RpgSessionState` (session-level, mutable; ADR-015
+  §"play_status transitions"). This is precisely the signal the spec disqualifies for backfill use,
+  confirmed by inspection: it mutates from `setup` to `in_play` in place, with no historical trace of
+  which turns occurred under which status.
+
+Because no qualifying signal exists, Issue 18 adds the narrow RPG-only carrier described in the Owner
+Decision below.
+
+**RPG turn-category marker (Owner Decision):**
+
+- A **sidecar table**, `rpg_turn_retrieval_markers` (do not add columns to the core `turns` table),
+  one row per RPG turn, unique FK on `turn_id`, written at turn creation time inside the existing
+  Issue 12c outer transaction — mirroring the Writing-mode pattern at `service.py:1651-1767` (a
+  Phase-G-style block gated on `story_mode is StoryMode.RPG`) — so a blocked/refused/errored turn's
+  marker rolls back with the turn. No orphan markers for never-delivered turns.
+- A typed category enum with exactly `ORDINARY_NARRATIVE`, `ROLL_REQUEST`, and `SETUP_CONFIRMATION`.
+  No general cross-mode turn taxonomy, no new dispositions, no new passes, no prose heuristics, no
+  UI/API surface.
+- Rows are written once and never updated; deletion follows turn deletion.
+- Consumed only by the Issue 18 retrieval eligibility predicate. No other reader in v1.
+- **Forward-only.** Markers exist for turns created after the marker ships. Historical RPG turns are
+  left unclassified rather than guessed — no retroactive classification from prose or current state.
+
+**Era-boundary mechanism (pre-marker vs. post-marker), deterministic:**
+
+| Turn era | Marker row | `PendingRollRequest.originating_turn_id` | Eligibility predicate outcome |
+|---|---|---|---|
+| Post-marker, ordinary narrative | `ORDINARY_NARRATIVE` | absent | Eligible |
+| Post-marker, roll-request | present (any category) or absent | present | Excluded (roll-request rule governs regardless of marker) |
+| Post-marker, setup confirmation | `SETUP_CONFIRMATION` | absent | Excluded |
+| Pre-marker (no row exists) | absent (table did not exist / turn predates it) | absent | **Treated as `ORDINARY_NARRATIVE` — eligible** |
+| Pre-marker roll-request | absent | present | Excluded (`PendingRollRequest` alone is sufficient and pre-dates the marker) |
+
+**Predicate precedence:** `PendingRollRequest.originating_turn_id` governs roll-request exclusion
+regardless of marker presence. The marker governs setup-confirmation exclusion. An RPG turn with
+neither signal — i.e., a pre-marker historical turn — is treated as `ORDINARY_NARRATIVE` and is
+eligible.
+
+**Rationale (ADR-ratified as a D6 sub-decision):** excluding unclassified turns would silently erase
+retrieval memory for every pre-marker RPG story; including them admits at worst a bounded set of early
+procedural chunks. A consistency test asserts marker category and `PendingRollRequest` presence never
+disagree for post-marker turns.
+
+This exclusion applies specifically to **RPG** setup confirmations, not all mode setup turns:
+Branching setup confirmations remain eligible as ordinary story-architect narrative turns (Issue 16),
+and Writing setup confirmations are already excluded structurally as described above. The consumed-roll
+turn that narrates the outcome is the narrative record and is indexed normally. If RPG setup narration
+proves worth indexing later, that requires a typed carrier, not prose inspection — a future D6
+sub-decision.
+
+## Decision 7 (D7) — Write-Failure Semantics
+
+**Decision:** A Chroma write failure after a committed turn is logged with story/turn identifiers and
+swallowed — delivery is never blocked, reversed, or errored by retrieval ingestion. Because IDs are
+deterministic and upserts idempotent, recovery is a re-run: v1 ships an idempotent manual backfill
+command (reindex a story from SQLite) rather than an automatic retry queue.
+
+## Decision 8 (D8) — Query Construction
+
+**Decision:** Query construction is orchestration-owned and deterministic — a `RetrievalQueryBuilder`
+composes the query text from the current Sojourner input and classified intent (optionally a bounded
+recent-turn tail), mirroring the Issue 15 `RuleSliceRequest` precedent. The Context Builder gains no
+inference logic; it must not infer retrieval-query contents itself. The `StablePrefix` envelope shape
+does not change. Query-context discipline: the query builder applies the same narrative/OOC filtering
+as recent-turn handling (`RecentTurnReader` exclusion semantics), so OOC, config, and support turns
+never leak into retrieval-query context.
+
+**Phase 1 source-inspection finding:** the live `RetrievalMemoryProvider.retrieve(story_id: UUID,
+query: str)` protocol (`src/afterworlds/services/context_builder.py:150-163`) already accepts a
+`query: str` parameter. `NullRetrievalMemoryProvider.retrieve()` (lines 194-202) ignores both
+arguments and returns an empty payload, and `build_stable_prefix()` (lines 395-404) never calls
+`self._retrieval_memory.retrieve(...)` at all — it always constructs `RetrievalMemoryPayload()`
+literally. **The existing protocol signature already carries a query string; no additive parameter is
+needed at the protocol level.** What Phase 2 must add is the call site (the orchestrator/Context
+Builder actually invoking `retrieve()` with a built query) and, per the Issue 15 precedent, an
+orchestrator-constructed request object analogous to `RuleSliceRequest`
+(`src/afterworlds/models/rules_package.py:407-417`, built at
+`src/afterworlds/pipeline/orchestrator/service.py:531` and threaded through `_build_context` /
+`ContextBuilderService.assemble()` as an additional keyword parameter). This finding resolves the
+spec's stated fork ("existing signature sufficed vs. additive pass-through") in favor of **existing
+signature sufficed**, at the protocol level; the exact shape of the orchestrator-side request object
+and its threading through `assemble()`/`build_stable_prefix()` remains Phase 2 implementation detail,
+not an owner decision, per the spec's own framing of D8 as "repo-state-resolved at implementation
+time."
+
+## Decision 9 (D9) — Cache Interaction: Resolving ADR-0010 Decision 4
+
+**Background:** ADR-0010 Decision 4 ("Retrieval Memory Cache Boundary Reconciliation") identified that
+materializing query-dependent retrieval results inside the cacheable stable prefix is a
+**cache-boundary violation**: stable-prefix cost economics assume a ~88% cache hit rate under extended
+TTL, and a per-turn-varying retrieval block would collapse cross-turn cache reuse for every turn that
+retrieves anything. ADR-0010 deliberately did **not** decide where retrieval belongs — it listed the
+volatile suffix, a separate (non-cacheable) retrieval block, or "elsewhere" as candidate placements
+and explicitly deferred the real decision to Issue 18: *"Issue 18 owns retrieval implementation and
+cache-boundary reconciliation."*
+
+**Phase 1 source-inspection finding:** the Issue 12c shared renderer places the cache breakpoint on
+the **last block** in canonical stable-prefix order (Story Bible → Rolling Summary → Rules Slice →
+Retrieval Memory), not a fixed position
+(`src/afterworlds/pipeline/_stable_prefix_renderer.py:96-161`). Retrieval memory is last in that
+order, so once Issue 18 populates a non-empty payload, it becomes the final block and **inherits the
+cache breakpoint** — i.e., retrieval memory sits inside the cached/TTL'd stable prefix rather than
+after it.
+
+**Decision:** This ADR resolves the placement question ADR-0010 Decision 4 deferred, choosing to keep
+retrieval memory inside the existing `StablePrefix` envelope, under the existing breakpoint, rather
+than the volatile suffix or a second, separately-cached block. The other two candidates are rejected:
+a volatile-suffix placement would require the Extractor/Contradiction passes (which consume the
+volatile suffix) to also reason about retrieval content, which is out of scope and unnecessary since
+retrieval is context for the Writer only; a second cache breakpoint would violate CLAUDE.md invariant
+7 (stable prefix assembled once per turn and reused across provider-backed passes) by splitting
+stable-prefix rendering into two cached regions, adding provider-adapter complexity for no proven
+benefit at v1 scale.
+
+**Consequence, stated plainly:** a populated retrieval block varies per turn and **will reduce
+cross-turn cache reuse** for any turn that retrieves non-empty results, working against the ~88% hit
+rate the CRD cost model assumes for those turns specifically. Issue 18 accepts this consequence as the
+cost of the simpler envelope. What is preserved is **intra-turn** stable-prefix reuse across the
+provider-backed passes within a single turn — the economy the once-per-turn invariant (CLAUDE.md
+invariant 7) actually guarantees, and which is orthogonal to cross-turn cache-hit economics. The Issue
+12c structural-identity test must be extended to prove byte-identical rendering with a *populated*
+retrieval block. Issue 18 does not move the breakpoint, add a second breakpoint, split stable-prefix
+rendering, or change provider-adapter behavior. Any future optimization of breakpoint placement or
+cache strategy (e.g., moving retrieval below a second breakpoint to restore cross-turn reuse for the
+non-retrieval portion) is Issue 14-adjacent provider/cache work, not retrieval-memory implementation,
+and would need its own ADR amendment.
+
+## Decision 10 (D10) — Rules-Corpus Vector Use
+
+**Decision:** Issue 18 finalizes the rules collection schema, reindexes the Issue 5b interim
+collection into it, and exposes a typed semantic rules-lookup method that is internal/admin diagnostic
+or discovery support only in v1. No Context Builder, RPG adjudication loop, Writer, Planner, pass
+service, or runtime mechanical decision may consume semantic rules retrieval as authority. Runtime
+rule inclusion remains exclusively through `get_active_rule_slice`. Wiring semantic rules discovery
+into any runtime path — even as a "hint" — is a future issue plus ADR.
+
+## Decision 11 (D11) — Update/Delete/Reindex Semantics
+
+**Decision:** In-place re-upsert keyed by deterministic IDs, with orphan sweep by `story_id` filter,
+over a rebuild-into-fresh-then-swap strategy. See the mutation table below.
+
+| Operation | Semantics |
+|---|---|
+| Turn ingested | Upsert by deterministic ID; re-ingesting the same turn replaces byte-identically — zero duplicates. |
+| Turn re-ingested after prose correction (future) | Upsert replaces document and its metadata bundle atomically. |
+| Turn deleted | Delete all chunks whose IDs derive from that `turn_id`. |
+| Story deleted / Issue 22 deletion request | Delete by `story_id` metadata filter across story-memory collections; a post-delete count-zero verification is part of the operation's contract. |
+| Reindex (story or corpus) | Rebuild from SQLite-authoritative content; embedding-model change forces reindex. |
+| Retrieval config change (top_k, threshold) | Configuration only; no vector mutation. |
+| Rules package republished | Issue 5b re-ingestion remains idempotent; Issue 18 reindex refreshes the rules collection without mutating Issue 5a source records. |
+| RPG turn-category marker written | Insert-once at turn creation inside the outer transaction; never updated; rolls back with a blocked turn. |
+| RPG turn deleted | Marker row deleted with its turn; no orphaned markers. |
+| Historical pre-marker RPG turn | No-op — never retroactively classified; predicate treats it as `ORDINARY_NARRATIVE`. |
+
+**Idempotence keys are semantic, never generated.** Story-memory chunk ID:
+`story:{story_id}:turn:{turn_id}:chunk:{index}`. Rules-corpus chunk ID derives from
+`rules_package_id` + the Issue 5a chunk identity. Random UUIDs are prohibited as dedupe keys anywhere
+in this issue.
+
+---
+
+## Confirmation of Unchanged Structure
+
+Core pipeline ordering, gating, dispositions, outer-transaction scope, and the `PipelineDisposition`
+set are unchanged. The write trigger runs strictly after commit; it is not a pass, not a disposition,
+and can neither block nor reverse delivery. A post-commit hook seam already exists structurally
+(`post_transaction_fn` on the `_run_with_transaction` binding, `src/afterworlds/pipeline/orchestrator/service.py:3402-3483`,
+currently used for the entitlement/credit proxy flush) — Phase 2 attaches the retrieval-memory
+ingestion write and the conditional RPG marker write to this existing seam rather than inventing a new
+one. `StablePrefix` envelope shape, the Issue 12c renderer's omission behavior for empty payloads, and
+breakpoint placement (aside from what Decision 9 above already resolves) are unchanged.
+
+## `known_unknowns.md` Resolution Text
+
+The **ChromaDB collection schema** entry moves from Open to Resolved: *"Collection topology, metadata
+schema, chunking, embedding, retrieval defaults, eligibility/write-trigger rules, and
+update/delete/reindex semantics are resolved by ADR-018 (this document). RPG setup-confirmation
+turn-time classification required a new narrow sidecar carrier (`rpg_turn_retrieval_markers`) per the
+Owner Decision recorded in ADR-018, since no existing signal qualified. Implementation proceeds only
+after explicit owner acceptance of ADR-018 (Phase 2, CRD Issue 18)."*
+
+The **stale FastAPI route-shape entry** the CRD Issue 18 spec asked Phase 1 to correct
+("resolve before Issue 18 (or whenever the first route is needed)") no longer exists in
+`known_unknowns.md` — it was already corrected in a prior commit
+(`a076cc8`, predating this ADR) to read "Resolve during: Issue 19, before route implementation" with
+no Issue 18 reference. No edit is made for this item; it is recorded here per CLAUDE.md's instruction
+not to resolve or silently no-op a drift between the spec and current repository state.
+
+---
+
+## Consequences
+
+- ChromaDB is added as a dependency in Phase 2 through normal dependency/pip-audit lanes; no dependency
+  change accompanies this ADR.
+- The cross-turn cache-hit-rate regression accepted in Decision 9 is a measurable, monitorable cost;
+  Phase 2 or a follow-on provider/cache issue may revisit breakpoint placement if empirical cache
+  metrics (Issue 14-adjacent) show the regression is unacceptable in practice.
+- The RPG turn-category marker is the one schema addition Phase 2 makes to core RPG turn persistence;
+  it is deliberately narrow (three values, one sidecar table, forward-only) to avoid becoming a
+  general cross-mode turn taxonomy.
+- Semantic rules retrieval remains non-authoritative in v1 (Decision 10); wiring it into any runtime
+  decision path requires a future ADR, not a Phase 2 extension.

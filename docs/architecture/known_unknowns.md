@@ -51,6 +51,7 @@ These were open questions during design or early construction. Decisions are rec
 | API ownership | Issue 19 owns the minimal FastAPI API surface needed by the frontend | Exact route shapes remain an Issue 19 implementation design item, but ownership is no longer open. |
 | Billing-platform issue placement | Issue 23 — Billing Platform / Payment Integration | Created after Issue 21 and before public launch. It is a commercial launch blocker, not a spine-demo prerequisite. |
 | Retrieval-memory ownership and gate | Issue 18 owns ChromaDB retrieval-memory design and implementation, beginning with a mandatory ADR / owner checkpoint before implementation code proceeds | Exact collection schema and retrieval parameters remain open until the Issue 18 ADR is accepted. |
+| ChromaDB collection schema | Collection topology, metadata schema, chunking, embedding, retrieval defaults, eligibility/write-trigger rules, and update/delete/reindex semantics resolved by ADR-018. RPG setup-confirmation turn-time classification required a new narrow sidecar carrier (`rpg_turn_retrieval_markers`) per the Owner Decision recorded in ADR-018, since no existing signal qualified. | Resolved during Issue 18 Phase 1; see `/docs/decisions/adr-018-retrieval-memory.md`. Implementation (Phase 2) proceeds only after explicit owner acceptance of ADR-018. |
 | OOC narrative effect | OOC does not advance story or canon unless a later mode-specific contract defines a safe typed configuration update | The UI provides explicit OOC affordance; manual `[OOC]` remains valid. Branching interaction-style/cadence changes are examples of safe typed config updates. |
 | Credit deduction timing | Hosted credits deducted only for `DELIVERED` and `OOC_HANDLED` turns. Safety blocks, contradiction blocks, provider refusals, and pipeline errors do not deduct. | Resolved during Issue 13; see ADR-013. Owner Decision #1. |
 | Safety-policy provider whitelist | Anthropic direct: always WHITELISTED + capable via AFTERWORLDS_VERIFIED profile. OpenRouter: whitelist + capability evaluated per-model via `OpenRouterCapabilityRegistry`. Implemented in `CapabilityProfileAwareSafetyPolicy` via `EligibleModelRoute.whitelist_status` and `supports_required_capabilities`. | Resolved during Issue 14a/14b; see adr-014a, adr-014b. |
@@ -101,13 +102,14 @@ ADR-014a Decision 4 and the `_openrouter.py` module docstring note that OpenRout
 
 ### Exact ChromaDB collection schema and retrieval-memory ADR
 
-**Resolve during:** Issue 18, before implementation code proceeds.
+**RESOLVED (Phase 1) during Issue 18.** ADR-018 defines collection topology, metadata schema,
+chunking policy, embedding strategy, retrieval defaults, write-trigger/eligibility rules (including
+the RPG turn-category marker Owner Decision), mutation/reindex semantics, and the D9 cache-boundary
+resolution of ADR-0010 Decision 4. See `/docs/decisions/adr-018-retrieval-memory.md`. Implementation
+(Phase 2) proceeds only after explicit owner acceptance of ADR-018 on the Phase 1 PR.
 
-ChromaDB is committed for v1 and Issue 18 owns retrieval-memory design and implementation. The exact collection design remains open: one collection per story vs. shared collections with metadata filtering, embedding model choice, chunking strategy, metadata schema, write triggers, update/delete/reindex behavior, and query construction.
-
-**What resolution requires:** The Issue 18 ADR must define collection naming, metadata fields, chunking policy, embedding strategy/configuration, retrieval defaults, filtering rules, empty-result behavior, write triggers, update/delete/reindex semantics, non-cross-story leakage prevention, and how results enter `RetrievalMemoryProvider` / `StablePrefix.retrieval_memory`. The ADR requires explicit owner approval before implementation code proceeds.
-
-**Constraint:** Context Builder already exposes the retrieval-memory seam. Do not hard-code ChromaDB assumptions into earlier issues.
+**Constraint (still binding):** Context Builder already exposes the retrieval-memory seam. Do not
+hard-code ChromaDB assumptions into earlier issues.
 
 ---
 
