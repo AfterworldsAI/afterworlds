@@ -48,6 +48,14 @@ dependency, or migration accompanies this PR.
   in that PR's Architecture Notes, not a silent amendment.
 - **Split escape hatch:** not exercised. Nothing surfaced during Phase 1 review that the ADR could not
   settle; the default of one gated issue holds.
+- **What this ADR fixes vs. what it leaves to Phase 2:** ADR-018 defines invariants, required
+  metadata, eligibility gates, coverage rules, and the set of allowed implementation mechanisms (e.g.
+  the two bounded ingestion-gate mechanisms in "Confirmation of Unchanged Structure" below). Phase 2
+  chooses concrete helper names, callback names, module layout, and other local factoring so long as
+  the accepted invariants hold — the ADR does not prescribe those. A review comment about exact helper
+  placement, naming, or factoring inside an already-accepted mechanism is Phase 2 implementation review,
+  not a Phase 1 ADR defect, unless it exposes an actual contradiction between two parts of this
+  document or between this document and the CRD Issue 18 spec.
 
 ---
 
@@ -66,11 +74,23 @@ place rather than N.
 ## Decision 2 (D2) — Metadata Schema
 
 **Decision:** Story-memory chunks carry `schema_version`, `story_id`, `node_id`, `turn_id`, `mode`,
-`chunk_kind`, `chunk_index`, `chunk_count`, `created_at`, `content_hash`, `embedding_model_id`.
-Rules-corpus chunks carry the Issue 5a provenance fields (`source_document`, `source_locator_type`,
-`source_locator_value`) plus `rules_package_id`, `subsystem`, `embedding_model_id`, `schema_version`.
-`chunk_kind` is a typed enum (`SCENE_PROSE` in v1; extensible to `STORY_BIBLE_ENTRY`, `CANON_PACK`
-later without schema migration).
+`source_type`, `chunk_kind`, `chunk_index`, `chunk_count`, `created_at`, `content_hash`,
+`embedding_model_id`. Rules-corpus chunks carry the Issue 5a provenance fields (`source_document`,
+`source_locator_type`, `source_locator_value`) plus `rules_package_id`, `subsystem`,
+`embedding_model_id`, `schema_version`.
+
+`source_type` and `chunk_kind` are distinct typed fields and must not be collapsed into one:
+
+- `source_type` is the provenance/origin class of the record — *where the content came from*. Typed
+  enum, `DELIVERED_TURN_PROSE` in v1 (the only source Issue 18 ingests); extensible later to
+  `STORY_BIBLE_ENTRY`, `CANON_PACK`, or other approved retrieval sources if and when those are scoped
+  by a future issue, without schema migration. This field is reserved now so a future source-type
+  addition is additive, not a schema change.
+- `chunk_kind` is the semantic kind of chunk *within* that source — typed enum, `SCENE_PROSE` in v1
+  (the only chunk kind Issue 18 produces, per Decision 3's one-chunk-per-turn-prose policy).
+
+Reserving `source_type` now does not authorize ingesting any source beyond delivered turn prose in v1;
+it is a typed field with one populated value, not new ingestion behavior.
 
 ## Decision 3 (D3) — Chunking Policy
 
@@ -160,13 +180,27 @@ Decision below.
 **RPG turn-category marker (Owner Decision):**
 
 - A **sidecar table**, `rpg_turn_retrieval_markers` (do not add columns to the core `turns` table),
-  one row per RPG turn, unique FK on `turn_id`, written at turn creation time inside the existing
-  Issue 12c outer transaction — mirroring the Writing-mode pattern at `service.py:1651-1767` (a
-  Phase-G-style block gated on `story_mode is StoryMode.RPG`) — so a blocked/refused/errored turn's
-  marker rolls back with the turn. No orphan markers for never-delivered turns.
-- A typed category enum with exactly `ORDINARY_NARRATIVE`, `ROLL_REQUEST`, and `SETUP_CONFIRMATION`.
-  No general cross-mode turn taxonomy, no new dispositions, no new passes, no prose heuristics, no
-  UI/API surface.
+  written inside the existing Issue 12c outer transaction when the **narrative-path** Turn row is
+  persisted — mirroring the Writing-mode pattern at `service.py:1651-1767` (a Phase-G-style block
+  inside `_narrative_persist`, `service.py:1238`, gated on `story_mode is StoryMode.RPG`) — so a
+  blocked/refused/errored narrative-path turn's marker rolls back with the turn. No orphan markers for
+  never-delivered turns. **This write happens only on the narrative persist path, never on the OOC
+  persist path (`_run_ooc()` / `_ooc_persist()`, `service.py:2142` / `service.py:2254`) — the two are
+  separate persist functions, so the marker write is structurally absent for OOC turns, not merely
+  unpopulated for them.**
+- **Coverage is narrower than "every RPG turn."** The sidecar covers one row per **post-marker RPG
+  narrative-path `DELIVERED` turn that reaches retrieval-eligibility classification** — i.e., the same
+  turns Decision 6's write trigger considers for story-memory ingestion. RPG `OOC_HANDLED` turns are
+  real persisted Turns, but they are persisted through `_ooc_persist()`, not `_narrative_persist()`, so
+  they never reach the marker-writing block at all — the same D6 disposition/path gating that already
+  excludes all `OOC_HANDLED` turns from retrieval (`RecentTurnReader` exclusion semantics) corresponds
+  directly to which persist function runs. A missing marker on an RPG `OOC_HANDLED` turn is expected
+  and is not an error; a missing marker on a post-marker RPG narrative-path `DELIVERED` turn that
+  requires retrieval classification is an error (see the coverage invariant below).
+- A typed category enum with exactly `ORDINARY_NARRATIVE`, `ROLL_REQUEST`, and `SETUP_CONFIRMATION` —
+  unchanged; no OOC/non-indexed category is added. OOC turns do not need a fourth category because they
+  are filtered out before marker classification, not classified into it.  No general cross-mode turn
+  taxonomy, no new dispositions, no new passes, no prose heuristics, no UI/API surface.
 - Rows are written once and never updated; deletion follows turn deletion.
 - Consumed only by the Issue 18 retrieval eligibility predicate. No other reader in v1.
 - **Forward-only.** Markers exist for turns created after the marker ships. Historical RPG turns are
@@ -179,39 +213,50 @@ Decision below.
 | Post-marker, ordinary narrative | `ORDINARY_NARRATIVE` | absent | Eligible |
 | Post-marker, roll-request | `ROLL_REQUEST` | present | Excluded |
 | Post-marker, setup confirmation | `SETUP_CONFIRMATION` | absent | Excluded |
+| Post-marker, `OOC_HANDLED` | none (excluded before marker classification) | absent | Excluded (D6 disposition/path gating; never reaches marker lookup) |
 | Pre-marker (no row exists) | absent (table did not exist / turn predates it) | absent | **Treated as `ORDINARY_NARRATIVE` — eligible** |
 | Pre-marker roll-request | absent | present | Excluded (`PendingRollRequest` alone is sufficient and pre-dates the marker) |
 
-Every post-marker RPG turn gets exactly one marker row — this is the sidecar coverage rule stated
-above (one row per RPG turn, written at turn creation inside the outer transaction), and it applies
-uniformly across all three categories, roll-request included. A post-marker roll-request turn is never
-markerless: it carries `ROLL_REQUEST` in `rpg_turn_retrieval_markers` *and* a `PendingRollRequest` row.
-These two signals are written independently (the marker at turn creation, `PendingRollRequest` on the
-announce turn) but must agree for every post-marker turn — that agreement is a coverage invariant, not
-an eligibility mechanism.
+Every post-marker RPG **narrative-path `DELIVERED` turn that reaches retrieval-eligibility
+classification** gets exactly one marker row — this is the narrowed sidecar coverage rule stated
+above — and it applies uniformly across all three categories, roll-request included. A post-marker
+roll-request turn is never markerless: it carries `ROLL_REQUEST` in `rpg_turn_retrieval_markers` *and*
+a `PendingRollRequest` row. These two signals are written independently (the marker at turn creation,
+`PendingRollRequest` on the announce turn) but must agree for every such turn — that agreement is a
+coverage invariant, not an eligibility mechanism. RPG `OOC_HANDLED` turns are outside this coverage
+rule entirely: D6's disposition/path gating excludes them before marker classification is ever
+reached, so they carry no marker row and none is required — this is not a gap in the sidecar, it is
+the sidecar's scope.
 
 **Predicate precedence vs. coverage invariant — two different things:**
 
 - **Eligibility precedence:** `PendingRollRequest.originating_turn_id` is what the eligibility
   predicate actually checks to exclude roll-request turns, and it governs regardless of marker
-  category. The marker governs setup-confirmation exclusion. An RPG turn with neither signal — i.e., a
-  pre-marker historical turn — is treated as `ORDINARY_NARRATIVE` and is eligible.
-- **Coverage invariant (post-marker only):** independent of which signal the predicate consults, every
-  post-marker RPG turn must have exactly one marker row, and a post-marker roll-request turn's marker
-  category must be `ROLL_REQUEST`. Marker coverage is a Phase 2 write-time obligation the eligibility
-  predicate does not itself enforce; the predicate reads `PendingRollRequest` for its exclusion
-  decision, but Phase 2 must not skip the sidecar write for roll-request turns on the theory that
-  `PendingRollRequest` alone already gets the correct eligibility outcome. A pre-marker roll-request
-  turn is the only case where marker absence is expected and correct — it predates the sidecar
-  entirely, so `PendingRollRequest` alone governs, per the era-boundary table above.
+  category. The marker governs setup-confirmation exclusion. `OOC_HANDLED` turns are excluded upstream
+  of both signals by D6 disposition/path gating. An RPG turn with neither signal — i.e., a pre-marker
+  historical turn — is treated as `ORDINARY_NARRATIVE` and is eligible.
+- **Coverage invariant (post-marker, narrative-path `DELIVERED` turns only):** independent of which
+  signal the predicate consults, every such turn must have exactly one marker row, and a post-marker
+  roll-request turn's marker category must be `ROLL_REQUEST`. Marker coverage is a Phase 2 write-time
+  obligation the eligibility predicate does not itself enforce; the predicate reads `PendingRollRequest`
+  for its exclusion decision, but Phase 2 must not skip the sidecar write for roll-request turns on the
+  theory that `PendingRollRequest` alone already gets the correct eligibility outcome. A pre-marker
+  roll-request turn is the only case where marker absence is expected and correct for a narrative-path
+  turn — it predates the sidecar entirely, so `PendingRollRequest` alone governs, per the era-boundary
+  table above. RPG `OOC_HANDLED` turns are outside the coverage invariant's scope at every era, marker
+  or no marker, because D6 gating removes them before classification, not because the sidecar failed to
+  cover them.
 
 **Rationale (ADR-ratified as a D6 sub-decision):** excluding unclassified turns would silently erase
 retrieval memory for every pre-marker RPG story; including them admits at worst a bounded set of early
-procedural chunks. Phase 2's consistency test must assert, for every post-marker RPG turn: (1) exactly
-one marker row exists; (2) a marker of category `ROLL_REQUEST` has a corresponding `PendingRollRequest`
-row, and vice versa; (3) marker category and `PendingRollRequest` presence never disagree. Pre-marker
-turns are exempt from (1)–(3) by definition — the sidecar did not exist yet — and remain governed
-solely by the era-boundary table's pre-marker rows.
+procedural chunks. Phase 2's consistency test must assert: (1) every post-marker RPG narrative-path
+`DELIVERED` turn that reaches retrieval classification has exactly one marker row; (2) RPG
+`OOC_HANDLED` turns do not require and do not receive marker rows, and are excluded before marker
+lookup by D6 disposition/path gating rather than by an absent or mismatched marker; (3) for post-marker
+narrative-path turns, a marker of category `ROLL_REQUEST` has a corresponding `PendingRollRequest` row
+and vice versa, and marker category and `PendingRollRequest` presence never disagree. Pre-marker turns
+are exempt from (1) and (3) by definition — the sidecar did not exist yet — and remain governed solely
+by the era-boundary table's pre-marker rows.
 
 This exclusion applies specifically to **RPG** setup confirmations, not all mode setup turns:
 Branching setup confirmations remain eligible as ordinary story-architect narrative turns (Issue 16),
