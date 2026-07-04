@@ -251,13 +251,45 @@ after it.
 
 **Decision:** This ADR resolves the placement question ADR-0010 Decision 4 deferred, choosing to keep
 retrieval memory inside the existing `StablePrefix` envelope, under the existing breakpoint, rather
-than the volatile suffix or a second, separately-cached block. The other two candidates are rejected:
-a volatile-suffix placement would require the Extractor/Contradiction passes (which consume the
-volatile suffix) to also reason about retrieval content, which is out of scope and unnecessary since
-retrieval is context for the Writer only; a second cache breakpoint would violate CLAUDE.md invariant
-7 (stable prefix assembled once per turn and reused across provider-backed passes) by splitting
-stable-prefix rendering into two cached regions, adding provider-adapter complexity for no proven
-benefit at v1 scale.
+than the volatile suffix or a second, separately-cached block.
+
+**Owner Decision — retrieval pass scope:** Retrieval Memory is shared stable-prefix context, available
+to every provider-backed pass that renders the stable prefix — Planner, Writer, Input Safety, Output
+Safety, Extractor, and Contradiction. It is **not** Writer-only in v1; all-pass visibility is
+intentional, not an unreviewed side effect of choosing `StablePrefix` placement. Phase 2 must not
+create a separate Writer-only retrieval placement or channel. Concretely:
+
+- Contradiction may use retrieval memory as part of continuity checking when Issue 18 supplies it, the
+  same way it already reasons over the rest of the stable prefix (Story Bible, Rolling Summary, Rules
+  Slice).
+- Safety (Input Preflight and Output Audit) receives retrieval memory as context whenever its renderer
+  includes the stable prefix, exactly as it already receives the rest of stable-prefix content. The
+  Safety **target** text being evaluated remains the explicit input or output text under audit;
+  retrieval content is contextual background for that evaluation, never itself the audited target.
+- Planner and Extractor consume it as ordinary stable-prefix context, consistent with how they already
+  consume the rest of `StablePrefix`.
+
+**Rationale for `StablePrefix` over the volatile suffix or a second breakpoint:** the volatile suffix
+and a second cache breakpoint are both rejected, but not on the grounds that retrieval is Writer-only
+context — that rationale is incoherent once `StablePrefix` placement (and the all-pass visibility it
+carries) is accepted. Instead:
+
+- Issue 8 reserved the `StablePrefix.retrieval_memory` seam; this ADR fills the reserved seam rather
+  than inventing a new one.
+- Issue 12c already has one shared stable-prefix renderer that every provider-backed pass calls; a
+  volatile-suffix or pass-specific placement would require a second, differently-scoped context channel
+  duplicating that renderer's job.
+- Keeping retrieval in `StablePrefix` avoids introducing a new pass-specific, Writer-only context
+  channel — unnecessary once all-pass visibility is the accepted v1 design.
+- The cross-turn cache-hit-rate degradation for populated retrieval (stated plainly below) is accepted
+  explicitly as a cost of this placement, not disguised as a reason to restrict which passes see it.
+- A second cache breakpoint is rejected on separate grounds: it would violate CLAUDE.md invariant 7
+  (stable prefix assembled once per turn and reused across provider-backed passes) by splitting
+  stable-prefix rendering into two cached regions, adding provider-adapter complexity for no proven
+  benefit at v1 scale.
+- Any future optimization of breakpoint placement or pass-specific retrieval visibility (e.g., a
+  Writer-only fast path, or moving retrieval below a second breakpoint) is later ADR/provider-cache/
+  routing work — Issue 14-adjacent — not Phase 2 implementation license.
 
 **Consequence, stated plainly:** a populated retrieval block varies per turn and **will reduce
 cross-turn cache reuse** for any turn that retrieves non-empty results, working against the ~88% hit
@@ -309,13 +341,23 @@ in this issue.
 ## Confirmation of Unchanged Structure
 
 Core pipeline ordering, gating, dispositions, outer-transaction scope, and the `PipelineDisposition`
-set are unchanged. The write trigger runs strictly after commit; it is not a pass, not a disposition,
-and can neither block nor reverse delivery. A post-commit hook seam already exists structurally
-(`post_transaction_fn` on the `_run_with_transaction` binding, `src/afterworlds/pipeline/orchestrator/service.py:3402-3483`,
-currently used for the entitlement/credit proxy flush) — Phase 2 attaches the retrieval-memory
-ingestion write and the conditional RPG marker write to this existing seam rather than inventing a new
-one. `StablePrefix` envelope shape, the Issue 12c renderer's omission behavior for empty payloads, and
-breakpoint placement (aside from what Decision 9 above already resolves) are unchanged.
+set are unchanged. The Chroma retrieval-memory ingestion write runs strictly after commit; it is not a
+pass, not a disposition, and can neither block nor reverse delivery. A post-commit hook seam already
+exists structurally (`post_transaction_fn` on the `_run_with_transaction` binding,
+`src/afterworlds/pipeline/orchestrator/service.py:3402-3483`, currently used for the entitlement/credit
+proxy flush) — Phase 2 attaches **only** the Chroma ingestion write to this existing seam.
+
+**The RPG turn-category marker is not Chroma ingestion and is not the retrieval write trigger; it does
+not use the post-commit seam.** Per Decision 6 above, the marker row is written at Turn creation time
+inside the existing Issue 12c outer transaction — the same unit of work as the provisional/surviving
+Turn — so a blocked/refused/errored Turn rolls back its marker with the Turn. A post-marker RPG
+narrative-path Turn that requires retrieval classification must not commit markerless. Chroma
+ingestion is failure-isolated by design (Decision 7: logged and swallowed, never blocking or reversing
+delivery); the marker write is deliberately **not** failure-isolated in that sense — it lives inside
+the Turn's own transaction and fails or commits with it. The post-commit hook seam described above is
+for Chroma ingestion only, never for marker writes. `StablePrefix` envelope shape, the Issue 12c
+renderer's omission behavior for empty payloads, and breakpoint placement (aside from what Decision 9
+above already resolves) are unchanged.
 
 ## `known_unknowns.md` Resolution Text
 
