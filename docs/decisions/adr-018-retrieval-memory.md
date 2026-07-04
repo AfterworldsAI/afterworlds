@@ -332,10 +332,21 @@ retrieval memory inside the existing `StablePrefix` envelope, under the existing
 than the volatile suffix or a second, separately-cached block.
 
 **Owner Decision — retrieval pass scope:** Retrieval Memory is shared stable-prefix context, available
-to every provider-backed pass that renders the stable prefix — Planner, Writer, Input Safety, Output
-Safety, Extractor, and Contradiction. It is **not** Writer-only in v1; all-pass visibility is
-intentional, not an unreviewed side effect of choosing `StablePrefix` placement. Phase 2 must not
-create a separate Writer-only retrieval placement or channel. Concretely:
+to **all provider-backed passes that render `StablePrefix`** — this is a structural rule keyed on
+"does this pass render `StablePrefix`," not an enumerated allowlist of pass names, so it automatically
+covers both base pipeline passes and mode-specific provider-backed passes. It is **not** Writer-only in
+v1; all-pass visibility is intentional, not an unreviewed side effect of choosing `StablePrefix`
+placement. Phase 2 must not create a separate Writer-only retrieval placement, nor any pass-specific
+retrieval-visibility exclusion, without a later owner/ADR decision. Current known consumers of
+`StablePrefix` (`render_stable_prefix_blocks(built_context.stable_prefix, ttl)`), and therefore of
+Retrieval Memory once populated, include: Planner, Writer, Input Safety, Output Safety, Extractor,
+Contradiction, **RPG Adjudication** (`RpgAdjudicationService._render`,
+`src/afterworlds/pipeline/rpg/service.py:402-411`), and **Branching Writer**
+(`BranchingWriterService._render`, `src/afterworlds/pipeline/branching/service.py:355-357`). This list
+is illustrative of the rule's current reach, not the rule itself — if a future provider-backed pass is
+added and renders `StablePrefix`, it receives Retrieval Memory under this same rule without requiring
+an ADR amendment; a pass being *excluded* from retrieval is what requires a later owner/ADR decision.
+Concretely:
 
 - Contradiction may use retrieval memory as part of continuity checking when Issue 18 supplies it, the
   same way it already reasons over the rest of the stable prefix (Story Bible, Rolling Summary, Rules
@@ -346,6 +357,13 @@ create a separate Writer-only retrieval placement or channel. Concretely:
   retrieval content is contextual background for that evaluation, never itself the audited target.
 - Planner and Extractor consume it as ordinary stable-prefix context, consistent with how they already
   consume the rest of `StablePrefix`.
+- **RPG Adjudication and Branching Writer receive Retrieval Memory only as ordinary stable-prefix story
+  context** — the same way they already receive Story Bible, Rolling Summary, and Rules Slice context
+  today. This does not authorize a new RPG mechanical-memory channel, a dice-rule mutation path, a
+  Branching graph feature, or any mode-specific retrieval policy; Decision 10's prohibition on semantic
+  retrieval as mechanical authority is unaffected, and RPG adjudication's dice/rule mechanics remain
+  governed exclusively by `get_active_rule_slice` and the code-owned adjudication rails (CLAUDE.md
+  invariants 8, 10), never by retrieved narrative prose.
 
 **Rationale for `StablePrefix` over the volatile suffix or a second breakpoint:** the volatile suffix
 and a second cache breakpoint are both rejected, but not on the grounds that retrieval is Writer-only
@@ -368,6 +386,14 @@ carries) is accepted. Instead:
 - Any future optimization of breakpoint placement or pass-specific retrieval visibility (e.g., a
   Writer-only fast path, or moving retrieval below a second breakpoint) is later ADR/provider-cache/
   routing work — Issue 14-adjacent — not Phase 2 implementation license.
+
+**Phase 2 obligation (stable-prefix consumer inventory):** because the retrieval-visibility rule is
+structural (every pass that renders `StablePrefix`) rather than an enumerated list, Phase 2 must
+inspect all current `render_stable_prefix_blocks()` callsites when wiring retrieval — not just the
+callsites named above — and document/test that Retrieval Memory visibility follows this rule
+uniformly across all of them, base and mode-specific alike. If a future need arises for a pass to
+*not* receive retrieval despite rendering `StablePrefix`, that is a contradiction of this accepted D9
+placement rule and requires a later owner/ADR decision; it is not a Phase 2 implementation choice.
 
 **Consequence, stated plainly:** a populated retrieval block varies per turn and **will reduce
 cross-turn cache reuse** for any turn that retrieves non-empty results, working against the ~88% hit
