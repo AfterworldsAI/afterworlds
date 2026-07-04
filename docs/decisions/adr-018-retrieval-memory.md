@@ -96,10 +96,14 @@ cache-key pollution.
 
 ## Decision 6 (D6) — Write Triggers and Eligibility
 
-**Decision:** The write trigger fires post-commit for `DELIVERED` narrative turns only. Excluded
-structurally (the trigger sits after commit, so nothing rolled back can reach it): every
-blocked/refused/error disposition. Excluded by rule: `OOC_HANDLED` turns (`RecentTurnReader` already
-excludes them from narrative windows) and `INTERACTION_REJECTED` (no Turn exists).
+**Decision:** The write trigger fires only after the outer transaction has committed successfully, for
+`DELIVERED` narrative turns only — reaching the post-transaction lifecycle point is not itself proof of
+commit success; see the ingestion gate in "Confirmation of Unchanged Structure" below for the mechanism
+Phase 2 must use to guarantee this, since the existing orchestration seam does not guarantee it
+unmodified. Excluded: every blocked/refused/error disposition and any rolled-back turn (the ingestion
+gate keeps these from ever reaching a Chroma write attempt). Excluded by rule: `OOC_HANDLED` turns
+(`RecentTurnReader` already excludes them from narrative windows) and `INTERACTION_REJECTED` (no Turn
+exists).
 
 **Writing mode is affirmative, not exclusion-based:** a Writing-mode turn is eligible only when its
 effective `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`. Per Issue 17,
@@ -218,10 +222,18 @@ sub-decision.
 
 ## Decision 7 (D7) — Write-Failure Semantics
 
-**Decision:** A Chroma write failure after a committed turn is logged with story/turn identifiers and
-swallowed — delivery is never blocked, reversed, or errored by retrieval ingestion. Because IDs are
-deterministic and upserts idempotent, recovery is a re-run: v1 ships an idempotent manual backfill
-command (reindex a story from SQLite) rather than an automatic retry queue.
+**Decision:** A Chroma write failure is logged with story/turn identifiers and swallowed — delivery is
+never blocked, reversed, or errored by retrieval ingestion. This applies strictly to a write attempted
+*after* the ingestion gate in "Confirmation of Unchanged Structure" above has already confirmed a
+successful commit and a delivery-cleared, D6-eligible disposition. The gate check itself is not a
+"write" and is not covered by this swallow rule: a turn that fails the gate (rolled back, blocked,
+refused, pipeline error, or D6-ineligible) must never reach a Chroma write attempt at all, so there is
+nothing to swallow for it. "Swallowed" describes the failure mode of the Chroma client/write path for
+an already-eligible, already-committed turn (e.g., the vector store is unreachable) — it is not a
+substitute for gate enforcement, and must never be read as license to attempt ingestion for rolled-back
+or undelivered prose and rely on the swallow to hide it. Because IDs are deterministic and upserts
+idempotent, recovery is a re-run: v1 ships an idempotent manual backfill command (reindex a story from
+SQLite) rather than an automatic retry queue.
 
 ## Decision 8 (D8) — Query Construction
 
@@ -362,23 +374,73 @@ in this issue.
 ## Confirmation of Unchanged Structure
 
 Core pipeline ordering, gating, dispositions, outer-transaction scope, and the `PipelineDisposition`
-set are unchanged. The Chroma retrieval-memory ingestion write runs strictly after commit; it is not a
-pass, not a disposition, and can neither block nor reverse delivery. A post-commit hook seam already
-exists structurally (`post_transaction_fn` on the `_run_with_transaction` binding,
-`src/afterworlds/pipeline/orchestrator/service.py:3402-3483`, currently used for the entitlement/credit
-proxy flush) — Phase 2 attaches **only** the Chroma ingestion write to this existing seam.
+set are unchanged. Chroma retrieval-memory ingestion must run only after the outer transaction has
+committed successfully, for a delivery-cleared disposition eligible under Decision 6 — it is not a
+pass, not a disposition, and can neither block nor reverse delivery.
+
+**Phase 1 correction: the existing `post_transaction_fn` seam, as it exists today, is not sufficient
+as the retrieval-ingestion boundary.** `_run_with_transaction` invokes `post_transaction_fn()` from a
+`finally` block, *after* `_finalize_transaction()` has already decided commit-vs-rollback and after
+`session.close()` (`src/afterworlds/pipeline/orchestrator/service.py:3402-3483`). That `finally` fires
+unconditionally — on successful commit, on rollback, on commit failure (mapped to `PIPELINE_ERROR`),
+and even on the earlier `session.begin()` failure path before any turn exists — and the hook's own
+exceptions are suppressed. It is a cleanup guarantee, not a commit-success / delivery-cleared boundary.
+Its one current caller (the entitlement/credit proxy flush) tolerates this because a flush attempt
+after a rolled-back turn is an accepted no-op for that use case; retrieval ingestion cannot tolerate
+it, because ingesting rolled-back or blocked/refused prose as ordinary retrieval memory would violate
+the Central Invariant above (delivery-cleared content only). An earlier Phase 1 draft of this ADR
+stated Phase 2 could attach Chroma ingestion to this seam as-is; that statement is withdrawn.
+
+**Ingestion gate (replaces the withdrawn "attach to `post_transaction_fn` as-is" language):** Chroma
+retrieval-memory ingestion may be invoked only when all of the following hold:
+
+- The outer transaction backing the turn has committed successfully — reaching the post-transaction
+  `finally` block is not itself evidence of this.
+- The committed result carries a delivery-cleared disposition eligible under Decision 6 — for v1
+  story-memory ingestion, `DELIVERED` narrative turns only, further filtered by D6's mode-specific
+  eligibility rules (Writing's `EXTRACTOR_ELIGIBLE` gate; RPG's roll-request and setup-confirmation
+  marker/`PendingRollRequest` exclusions).
+- Ingestion must never fire for `OOC_HANDLED`, `INTERACTION_REJECTED`, `BLOCKED_INPUT_SAFETY`,
+  `BLOCKED_OUTPUT_SAFETY`, `BLOCKED_CONTRADICTION`, `REFUSED_BY_PROVIDER`, `PIPELINE_ERROR`, a commit
+  failure, or any rolled-back turn.
+- The `turn_id` used to build ingestion IDs must be the **surviving** `OrchestrationResult.turn_id`
+  returned after successful commit. A provisional `WriterResult.turn_id` is not sufficient — a
+  provisional turn can still roll back before `_finalize_transaction` completes.
+
+**Phase 2 implementation latitude, precisely bounded:** Phase 2 may satisfy this gate through either of
+two mechanisms, and must not rely on the current `finally`-based `post_transaction_fn` unless its
+semantics are changed to be success-only:
+
+1. Introduce, or repurpose, a true after-commit / success-only orchestration callback that the
+   orchestrator invokes conditionally — only once `_finalize_transaction()` has confirmed a commit and
+   produced a delivery-cleared `OrchestrationResult` — rather than unconditionally from `finally`; or
+2. Keep the existing post-transaction seam's timing, but gate the ingestion call inside it explicitly:
+   inspect the final `OrchestrationResult` returned by `_finalize_transaction()` for the success
+   disposition and a surviving `turn_id` before calling `retrieve`/upsert, and no-op otherwise.
+
+Either mechanism must perform the gate check against the **post-finalization** result, never the
+pre-transaction or provisional one. The current `post_transaction_fn`, unmodified, does not satisfy
+either option on its own — it has no return-value inspection today and runs regardless of outcome.
+
+**Phase 2 test obligation (ingestion gate), in addition to the Decision 6 marker-consistency test
+above:** Phase 2 must add tests proving: (1) blocked/refused/error/rollback/commit-failure outcomes
+never call retrieval ingestion; (2) `OOC_HANDLED` and `INTERACTION_REJECTED` turns never call
+retrieval ingestion; (3) `DELIVERED` turns that are D6-ineligible (Writing turns without
+`EXTRACTOR_ELIGIBLE`; RPG roll-request or setup-confirmation turns) never call retrieval ingestion; (4)
+eligible, committed `DELIVERED` narrative turns call ingestion exactly once.
 
 **The RPG turn-category marker is not Chroma ingestion and is not the retrieval write trigger; it does
-not use the post-commit seam.** Per Decision 6 above, the marker row is written at Turn creation time
-inside the existing Issue 12c outer transaction — the same unit of work as the provisional/surviving
-Turn — so a blocked/refused/errored Turn rolls back its marker with the Turn. A post-marker RPG
-narrative-path Turn that requires retrieval classification must not commit markerless. Chroma
-ingestion is failure-isolated by design (Decision 7: logged and swallowed, never blocking or reversing
-delivery); the marker write is deliberately **not** failure-isolated in that sense — it lives inside
-the Turn's own transaction and fails or commits with it. The post-commit hook seam described above is
-for Chroma ingestion only, never for marker writes. `StablePrefix` envelope shape, the Issue 12c
-renderer's omission behavior for empty payloads, and breakpoint placement (aside from what Decision 9
-above already resolves) are unchanged.
+not use the post-commit seam or the ingestion gate above.** Per Decision 6 above, the marker row is
+written at Turn creation time inside the existing Issue 12c outer transaction — the same unit of work
+as the provisional/surviving Turn — so a blocked/refused/errored Turn rolls back its marker with the
+Turn. A post-marker RPG narrative-path Turn that requires retrieval classification must not commit
+markerless. Chroma ingestion is failure-isolated by design (Decision 7: logged and swallowed, never
+blocking or reversing delivery) once past the ingestion gate; the marker write is deliberately **not**
+failure-isolated in that sense — it lives inside the Turn's own transaction and fails or commits with
+it. The ingestion gate described above governs Chroma ingestion only, never marker writes — these
+remain two separate mechanisms. `StablePrefix` envelope shape, the Issue 12c renderer's omission
+behavior for empty payloads, and breakpoint placement (aside from what Decision 9 above already
+resolves) are unchanged.
 
 ## `known_unknowns.md` Resolution Text
 
