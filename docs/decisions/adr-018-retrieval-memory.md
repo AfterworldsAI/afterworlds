@@ -286,9 +286,32 @@ SQLite) rather than an automatic retry queue.
 composes the query text from the current Sojourner input and classified intent (optionally a bounded
 recent-turn tail), mirroring the Issue 15 `RuleSliceRequest` precedent. The Context Builder gains no
 inference logic; it must not infer retrieval-query contents itself. The `StablePrefix` envelope shape
-does not change. Query-context discipline: the query builder applies the same narrative/OOC filtering
-as recent-turn handling (`RecentTurnReader` exclusion semantics), so OOC, config, and support turns
-never leak into retrieval-query context.
+does not change. This ownership rule is unaffected by the query-context discipline fix below: query
+construction stays orchestration-owned, the existing `RetrievalMemoryProvider.retrieve(story_id: UUID,
+query: str)` protocol shape does not change, and Phase 2 adds only the call site and request
+construction (see the Phase 1 source-inspection finding below).
+
+**Query-context discipline (corrected — `RecentTurnReader` OOC exclusion alone is not sufficient):**
+when the query builder includes the optional bounded recent-turn tail, each candidate tail entry must
+pass **retrieval-query eligibility**, not merely OOC exclusion. The live `RecentTurnReader`-style
+filter (`exclude_ooc`, `src/afterworlds/services/context_builder.py:242-268`) excludes only
+`IntentType.OOC` turns — it does not exclude Writing turns whose per-turn metadata is
+`WritingCanonEligibility.NON_CANON_SUPPORT`, and D6 above already establishes that Writing retrieval
+eligibility is affirmative (only effective `EXTRACTOR_ELIGIBLE` is eligible), not exclusion-based.
+Treating `exclude_ooc=True` as sufficient filtering for retrieval-query context would let
+critique/brainstorm/config support turns steer story-memory query text even though D6 says those turns
+never leak into retrieval. The rule:
+
+- Retrieval-query tail entries must exclude OOC, config, support, non-canon, and D6-ineligible turns —
+  the same eligibility rule D6 already applies to *ingestion*, applied here to *query construction*.
+- For Writing mode, a prior turn may enter the retrieval-query tail only if its effective
+  `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`; `NON_CANON_SUPPORT` turns (critique, brainstorm,
+  config, and any other support-turn kind) are excluded from the tail regardless of `exclude_ooc`.
+- Equivalent mode-specific support/config markers (present or future, for RPG or Branching) must be
+  excluded before query composition, following the same D6-eligibility-not-OOC-alone principle.
+- Existing `RecentTurnReader` behavior may be reused for ordering/window mechanics (recency, limit,
+  story scoping) — Phase 2 is not required to build a new reader from scratch — but must add the
+  missing eligibility filter on top of it; `exclude_ooc=True` alone does not satisfy this Decision.
 
 **Phase 1 source-inspection finding:** the live `RetrievalMemoryProvider.retrieve(story_id: UUID,
 query: str)` protocol (`src/afterworlds/services/context_builder.py:150-163`) already accepts a
@@ -307,6 +330,16 @@ signature sufficed**, at the protocol level; the exact shape of the orchestrator
 and its threading through `assemble()`/`build_stable_prefix()` remains Phase 2 implementation detail,
 not an owner decision, per the spec's own framing of D8 as "repo-state-resolved at implementation
 time."
+
+**Phase 2 test obligation (retrieval-query-tail eligibility):** Phase 2 must add tests proving: (1)
+Writing `NON_CANON_SUPPORT` turns — critique, brainstorm, config, and any other support-turn kind — do
+not appear in retrieval-query tail text; (2) Writing turns with effective
+`WritingCanonEligibility == EXTRACTOR_ELIGIBLE` may appear in the tail, subject to the bounded
+recent-window rule; (3) OOC turns and mode-specific support/config turns (RPG, Branching) are excluded
+from query-tail construction; (4) a test must fail if `exclude_ooc=True` alone is treated as sufficient
+filtering for retrieval-query context — i.e., a fixture with a non-OOC, D6-ineligible support turn in
+the recent window must prove that turn is absent from the composed query text, not merely that OOC
+turns are absent.
 
 ## Decision 9 (D9) — Cache Interaction: Resolving ADR-0010 Decision 4
 
