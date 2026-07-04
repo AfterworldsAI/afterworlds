@@ -72,6 +72,26 @@ separation is a spec constraint (narrative vs. mechanical canon authority), not 
 mandatory filter, enforced by one query-gate function every read path traverses, is testable in one
 place rather than N.
 
+**Phase 2 test obligation (leakage and integration, ties D1, D2, and D5 together):** "testable in one
+place" above is a design property, not a substitute for the tests themselves — Phase 2 must add tests
+proving:
+
+- Seed at least two stories with similar or overlapping retrieval-memory content (e.g., near-duplicate
+  or thematically similar prose across both), then prove a query scoped to Story A **never** returns
+  Story B's chunks, and vice versa.
+- The mandatory `story_id` query-gate filter (D1) is applied on **all** public read paths — every
+  entry point that can query `story_memory`, not just the primary retrieval call — so no code path can
+  bypass the gate function.
+- D2's metadata filtering is honored **together with** D5's relevance/similarity scoring — a result
+  must pass both the `story_id` filter and the configured similarity threshold, not one in place of the
+  other.
+- A populated retrieval-memory result enters `StablePrefix.retrieval_memory` through the existing
+  Context Builder / `RetrievalMemoryProvider` seam (Issue 8) **without changing the envelope shape** —
+  proving the seam is used as reserved, not replaced or bypassed.
+- An empty or fully-filtered-out result renders as the **existing omitted/empty payload behavior**
+  (D5) — no placeholder block, no cache-key pollution, consistent with the Issue 12c renderer's
+  existing omission behavior for empty payloads.
+
 ## Decision 2 (D2) — Metadata Schema
 
 **Decision:** Story-memory chunks carry `schema_version`, `story_id`, `node_id`, `turn_id`, `mode`,
@@ -723,8 +743,27 @@ not to resolve or silently no-op a drift between the spec and current repository
 
 ## Consequences
 
-- ChromaDB is added as a dependency in Phase 2 through normal dependency/pip-audit lanes; no dependency
-  change accompanies this ADR.
+- **Correction: ChromaDB is not a new Phase 2 dependency — it is already a mandatory dependency today,
+  with an open CVE gate Phase 2 must close.** `chromadb>=0.5` is already listed in `pyproject.toml`'s
+  `[project].dependencies`, servicing the existing Issue 5b interim rules-chunk vector path
+  (`src/afterworlds/ingestion/vector_writer.py`, `ingestion_service.py`). `.github/workflows/ci.yml`'s
+  `pip-audit` step currently carries `--ignore-vuln CVE-2026-45829` for ChromaDB, with a comment
+  recording an owner decision (2026-06-05) that explicitly defers this CVE to CRD Issue 18: *"CRD Issue
+  18, which owns the chromadb dependency design and will resolve it — either by upgrading to a patched
+  release or by scoping chromadb as an optional dependency with a defined safe deployment path. Remove
+  this `--ignore-vuln` only when Issue 18 closes this out."* Phase 2 must close this gate as part of
+  CRD Issue 18 completion — it may not be silently left open or deferred again. Phase 2 must do one of:
+  - Upgrade to a patched ChromaDB release (if one exists by Phase 2 implementation time) and remove the
+    `--ignore-vuln CVE-2026-45829` entry from the `pip-audit` step; or
+  - Move/scope ChromaDB behind an optional dependency, or an otherwise documented safe deployment path,
+    with the audit ignore removed or explicitly re-justified according to the chosen path.
+
+  If no patched release exists at Phase 2 implementation time, Phase 2 must record the owner-approved
+  safe-deployment/optional-dependency decision in that PR's Architecture Notes rather than silently
+  preserving the ignore. **CRD Issue 18 must not be considered complete while this CVE ignore remains
+  unresolved or unaddressed.** This Phase 1 ADR does not resolve the dependency/security posture itself
+  — it records the existing repo-state contradiction (this ADR previously said ChromaDB "is added...in
+  Phase 2," which was incorrect) and the Phase 2 obligation to close it.
 - The cross-turn cache-hit-rate regression accepted in Decision 9 is a measurable, monitorable cost;
   Phase 2 or a follow-on provider/cache issue may revisit breakpoint placement if empirical cache
   metrics (Issue 14-adjacent) show the regression is unacceptable in practice.
