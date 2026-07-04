@@ -54,8 +54,9 @@ dependency, or migration accompanies this PR.
   chooses concrete helper names, callback names, module layout, and other local factoring so long as
   the accepted invariants hold — the ADR does not prescribe those. A review comment about exact helper
   placement, naming, or factoring inside an already-accepted mechanism is Phase 2 implementation review,
-  not a Phase 1 ADR defect, unless it exposes an actual contradiction between two parts of this
-  document or between this document and the CRD Issue 18 spec.
+  not a Phase 1 ADR defect, unless it exposes a **materially new architectural contradiction** — a
+  break in an accepted invariant, gate, or coverage rule stated elsewhere in this document, or a
+  conflict with the CRD Issue 18 spec — rather than a naming, factoring, or helper-placement preference.
 
 ---
 
@@ -127,10 +128,37 @@ exists).
 
 **Writing mode is affirmative, not exclusion-based:** a Writing-mode turn is eligible only when its
 effective `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`. Per Issue 17,
-`WritingTurnRequest.canon_eligibility_override` is the only v1 carrier that can promote a turn — Writer
-prose, classifier heuristics, prompt text, or `work_product_kind` alone never make a Writing turn
-retrieval-indexable. `SETUP_CONFIRMATION` cannot carry `EXTRACTOR_ELIGIBLE`, so Writing setup
-confirmations are excluded structurally without a second check.
+`WritingTurnRequest.canon_eligibility_override` is the only v1 input that can *request* promotion of a
+turn — Writer prose, classifier heuristics, prompt text, or `work_product_kind` alone never make a
+Writing turn retrieval-indexable. `SETUP_CONFIRMATION` cannot carry `EXTRACTOR_ELIGIBLE`, so Writing
+setup confirmations are excluded structurally without a second check.
+
+**Durable-carrier rule (the eligibility check reads SQLite, never the transient request):**
+`WritingTurnRequest` is an in-memory, per-call object — it is not itself SQLite-authoritative and does
+not survive past the turn that constructed it. The durable carrier is the per-turn `WritingNodeMetadata`
+record committed inside the outer transaction (`_narrative_persist`,
+`src/afterworlds/pipeline/orchestrator/service.py:1640-1769`). Source inspection confirms this write is
+**best-effort**: the entire block is wrapped in a bare `except Exception: pass` (`service.py:1768-1769`)
+that logs nothing and does not abort the turn if the metadata write fails, so a committed, delivered
+Writing turn can exist in SQLite without its `WritingNodeMetadata` row. For ingestion, retrieval-query-
+tail inclusion, and reindex/backfill alike:
+
+- Writing eligibility must be read from the **committed per-turn `WritingNodeMetadata`** in SQLite, not
+  from the transient `WritingTurnRequest` that produced it. `canon_eligibility_override` may request
+  promotion at turn time, but Phase 2 may index (or include in a retrieval-query tail) a Writing turn
+  only after that requested eligibility has been durably recorded on the committed Turn — a request
+  that was never persisted is not sufficient on its own.
+- If the per-turn Writing metadata is **absent, malformed, or does not read `canon_eligibility ==
+  EXTRACTOR_ELIGIBLE`**, the turn is treated as retrieval-ineligible — this is the safe default for the
+  best-effort write's failure mode, and it holds regardless of what the original request asked for.
+- Phase 2 must not ingest a Writing turn, or admit it to a retrieval-query tail, based solely on the
+  transient request object having requested `EXTRACTOR_ELIGIBLE`.
+- Phase 2 has two ways to satisfy this: either read committed per-turn metadata as the sole
+  eligibility source (as required above), or make the `WritingNodeMetadata` write mandatory (not
+  best-effort) for turns that request promotion, before the ingestion gate can admit them — either
+  approach preserves the Central Invariant that every Chroma record is reconstructable from SQLite
+  alone. Which of these two Phase 2 chooses is implementation detail, not an owner decision, so long as
+  a turn is never indexed on the strength of a request that SQLite cannot later reproduce.
 
 **RPG roll-request and setup-confirmation turns** are `DELIVERED` but largely procedural. Only
 `delivered_output` prose is indexed — never internal records (`ResolvedAdjudicationRecord`, audit
@@ -181,13 +209,20 @@ Decision below.
 
 - A **sidecar table**, `rpg_turn_retrieval_markers` (do not add columns to the core `turns` table),
   written inside the existing Issue 12c outer transaction when the **narrative-path** Turn row is
-  persisted — mirroring the Writing-mode pattern at `service.py:1651-1767` (a Phase-G-style block
-  inside `_narrative_persist`, `service.py:1238`, gated on `story_mode is StoryMode.RPG`) — so a
-  blocked/refused/errored narrative-path turn's marker rolls back with the turn. No orphan markers for
-  never-delivered turns. **This write happens only on the narrative persist path, never on the OOC
-  persist path (`_run_ooc()` / `_ooc_persist()`, `service.py:2142` / `service.py:2254`) — the two are
-  separate persist functions, so the marker write is structurally absent for OOC turns, not merely
-  unpopulated for them.**
+  persisted — at the same location and transaction-scoping as the Writing-mode block at
+  `service.py:1651-1767` (a Phase-G-style block inside `_narrative_persist`, `service.py:1238`, gated
+  on `story_mode is StoryMode.RPG`). **The marker import from that Writing-mode block is location and
+  transaction-scoping only — explicitly *not* its swallow behavior.** The Writing block at
+  `service.py:1651-1767` is best-effort (see D6's Writing durable-carrier rule below: the whole block is
+  wrapped in `except Exception: pass`, `service.py:1768-1769`); the RPG marker write must **not** follow
+  that pattern. The marker write is mandatory: if it fails, the failure must propagate so the outer
+  transaction rolls back the narrative-path Turn along with it — a blocked/refused/errored turn's
+  marker rolls back with the turn, and a marker-write failure on an otherwise-deliverable turn must
+  itself cause that turn to roll back and become `PIPELINE_ERROR`, never commit markerless. No orphan
+  markers for never-delivered turns. **This write happens only on the narrative persist path, never on
+  the OOC persist path (`_run_ooc()` / `_ooc_persist()`, `service.py:2142` / `service.py:2254`) — the
+  two are separate persist functions, so the marker write is structurally absent for OOC turns, not
+  merely unpopulated for them.**
 - **Coverage is narrower than "every RPG turn."** The sidecar covers one row per **post-marker RPG
   narrative-path `DELIVERED` turn that reaches retrieval-eligibility classification** — i.e., the same
   turns Decision 6's write trigger considers for story-memory ingestion. RPG `OOC_HANDLED` turns are
@@ -306,7 +341,10 @@ never leak into retrieval. The rule:
   the same eligibility rule D6 already applies to *ingestion*, applied here to *query construction*.
 - For Writing mode, a prior turn may enter the retrieval-query tail only if its effective
   `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`; `NON_CANON_SUPPORT` turns (critique, brainstorm,
-  config, and any other support-turn kind) are excluded from the tail regardless of `exclude_ooc`.
+  config, and any other support-turn kind) are excluded from the tail regardless of `exclude_ooc`. Per
+  D6's durable-carrier rule above, this check reads the **committed per-turn `WritingNodeMetadata`** in
+  SQLite, never the transient `WritingTurnRequest` — a prior turn whose request asked for
+  `EXTRACTOR_ELIGIBLE` but whose metadata write did not durably record it is not tail-eligible.
 - Equivalent mode-specific support/config markers (present or future, for RPG or Branching) must be
   excluded before query composition, following the same D6-eligibility-not-OOC-alone principle.
 - Existing `RecentTurnReader` behavior may be reused for ordering/window mechanics (recency, limit,
@@ -340,6 +378,17 @@ from query-tail construction; (4) a test must fail if `exclude_ooc=True` alone i
 filtering for retrieval-query context — i.e., a fixture with a non-OOC, D6-ineligible support turn in
 the recent window must prove that turn is absent from the composed query text, not merely that OOC
 turns are absent.
+
+**Phase 2 test obligation (Writing durable-carrier rule, D6 above):** Phase 2 must add tests proving:
+(1) a Writing turn with committed per-turn `WritingNodeMetadata.canon_eligibility ==
+EXTRACTOR_ELIGIBLE` may be ingested and may be retrieval-query-tail eligible, subject to the other D6
+gates above; (2) a Writing turn with committed `NON_CANON_SUPPORT` metadata is not ingested and does
+not enter the retrieval-query tail; (3) a Writing turn whose per-turn `WritingNodeMetadata` is missing
+or malformed (simulating the best-effort write's failure mode) is treated as retrieval-ineligible for
+both ingestion and query-tail purposes, regardless of what the originating `WritingTurnRequest`
+requested; (4) reindex/backfill reaches the same eligibility decision from SQLite alone, without access
+to the original `WritingTurnRequest` — proving the Central Invariant's rebuildability holds for Writing
+eligibility specifically, not just for chunk content.
 
 ## Decision 9 (D9) — Cache Interaction: Resolving ADR-0010 Decision 4
 
