@@ -173,20 +173,41 @@ Decision below.
 | Turn era | Marker row | `PendingRollRequest.originating_turn_id` | Eligibility predicate outcome |
 |---|---|---|---|
 | Post-marker, ordinary narrative | `ORDINARY_NARRATIVE` | absent | Eligible |
-| Post-marker, roll-request | present (any category) or absent | present | Excluded (roll-request rule governs regardless of marker) |
+| Post-marker, roll-request | `ROLL_REQUEST` | present | Excluded |
 | Post-marker, setup confirmation | `SETUP_CONFIRMATION` | absent | Excluded |
 | Pre-marker (no row exists) | absent (table did not exist / turn predates it) | absent | **Treated as `ORDINARY_NARRATIVE` — eligible** |
 | Pre-marker roll-request | absent | present | Excluded (`PendingRollRequest` alone is sufficient and pre-dates the marker) |
 
-**Predicate precedence:** `PendingRollRequest.originating_turn_id` governs roll-request exclusion
-regardless of marker presence. The marker governs setup-confirmation exclusion. An RPG turn with
-neither signal — i.e., a pre-marker historical turn — is treated as `ORDINARY_NARRATIVE` and is
-eligible.
+Every post-marker RPG turn gets exactly one marker row — this is the sidecar coverage rule stated
+above (one row per RPG turn, written at turn creation inside the outer transaction), and it applies
+uniformly across all three categories, roll-request included. A post-marker roll-request turn is never
+markerless: it carries `ROLL_REQUEST` in `rpg_turn_retrieval_markers` *and* a `PendingRollRequest` row.
+These two signals are written independently (the marker at turn creation, `PendingRollRequest` on the
+announce turn) but must agree for every post-marker turn — that agreement is a coverage invariant, not
+an eligibility mechanism.
+
+**Predicate precedence vs. coverage invariant — two different things:**
+
+- **Eligibility precedence:** `PendingRollRequest.originating_turn_id` is what the eligibility
+  predicate actually checks to exclude roll-request turns, and it governs regardless of marker
+  category. The marker governs setup-confirmation exclusion. An RPG turn with neither signal — i.e., a
+  pre-marker historical turn — is treated as `ORDINARY_NARRATIVE` and is eligible.
+- **Coverage invariant (post-marker only):** independent of which signal the predicate consults, every
+  post-marker RPG turn must have exactly one marker row, and a post-marker roll-request turn's marker
+  category must be `ROLL_REQUEST`. Marker coverage is a Phase 2 write-time obligation the eligibility
+  predicate does not itself enforce; the predicate reads `PendingRollRequest` for its exclusion
+  decision, but Phase 2 must not skip the sidecar write for roll-request turns on the theory that
+  `PendingRollRequest` alone already gets the correct eligibility outcome. A pre-marker roll-request
+  turn is the only case where marker absence is expected and correct — it predates the sidecar
+  entirely, so `PendingRollRequest` alone governs, per the era-boundary table above.
 
 **Rationale (ADR-ratified as a D6 sub-decision):** excluding unclassified turns would silently erase
 retrieval memory for every pre-marker RPG story; including them admits at worst a bounded set of early
-procedural chunks. A consistency test asserts marker category and `PendingRollRequest` presence never
-disagree for post-marker turns.
+procedural chunks. Phase 2's consistency test must assert, for every post-marker RPG turn: (1) exactly
+one marker row exists; (2) a marker of category `ROLL_REQUEST` has a corresponding `PendingRollRequest`
+row, and vice versa; (3) marker category and `PendingRollRequest` presence never disagree. Pre-marker
+turns are exempt from (1)–(3) by definition — the sidecar did not exist yet — and remain governed
+solely by the era-boundary table's pre-marker rows.
 
 This exclusion applies specifically to **RPG** setup confirmations, not all mode setup turns:
 Branching setup confirmations remain eligible as ordinary story-architect narrative turns (Issue 16),
