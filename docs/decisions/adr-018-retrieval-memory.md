@@ -130,8 +130,35 @@ exists).
 effective `WritingCanonEligibility == EXTRACTOR_ELIGIBLE`. Per Issue 17,
 `WritingTurnRequest.canon_eligibility_override` is the only v1 input that can *request* promotion of a
 turn — Writer prose, classifier heuristics, prompt text, or `work_product_kind` alone never make a
-Writing turn retrieval-indexable. `SETUP_CONFIRMATION` cannot carry `EXTRACTOR_ELIGIBLE`, so Writing
-setup confirmations are excluded structurally without a second check.
+Writing turn retrieval-indexable.
+
+**Writing setup turns are not retrieval-indexable in v1, and this requires an explicit durable guard,
+not just the request-validator check.** `WritingTurnRequest`'s own validator rejects `EXTRACTOR_ELIGIBLE`
+for non-prose `work_product_kind`s (e.g. `SETUP_CONFIRMATION`), but that check has no knowledge of
+`WritingPlayStatus.SETUP` — a caller can construct a request with a prose-like `work_product_kind`
+(`DRAFT_PROSE`, `PROSE_CONTINUATION`, `REVISION`) and `canon_eligibility_override=EXTRACTOR_ELIGIBLE`
+*while the Writing session is still in `SETUP`*, and the validator has no basis to reject it — request
+shape alone cannot detect this, because the request object carries no play-status field. Per D6's
+durable-carrier rule below, `_narrative_persist` takes `work_product_kind`/`effective_canon_eligibility`
+directly from a supplied `WritingTurnRequest` without itself checking `play_status is
+WritingPlayStatus.SETUP` (`service.py:1680-1689`) — that `SETUP`-aware defaulting applies only when no
+request is supplied. So a setup-session turn with prose-like request metadata could be durably recorded
+as `EXTRACTOR_ELIGIBLE`, violating ADR-017's setup-turn invariant, unless Phase 2 adds an explicit
+guard. Phase 2 must ensure a Writing turn taken while the Writing session is still in setup cannot be
+ingested or included in a retrieval-query tail even if the transient request supplied prose-like
+`work_product_kind` and `EXTRACTOR_ELIGIBLE` — a setup-session turn must not become retrieval-eligible
+solely because committed metadata says `canon_eligibility == EXTRACTOR_ELIGIBLE`, if a durable
+SQLite-reconstructable setup signal says it was taken during setup. Phase 2 may satisfy this either by:
+
+- making the persisted per-turn `WritingNodeMetadata` write itself enforce setup/non-canon (i.e., force
+  `NON_CANON_SUPPORT` when `play_status is WritingPlayStatus.SETUP`, regardless of what the request
+  supplied) before eligibility is ever evaluated; or
+- adding an explicit durable setup-turn guard/carrier, readable from SQLite by both the live eligibility
+  check and reindex/backfill, that overrides a request-supplied `EXTRACTOR_ELIGIBLE` for turns taken
+  during setup.
+
+Either mechanism is Phase 2 implementation detail, not an owner decision, so long as a setup-session
+Writing turn is never retrieval-eligible on the strength of transient request shape alone.
 
 **Durable-carrier rule (the eligibility check reads SQLite, never the transient request):**
 `WritingTurnRequest` is an in-memory, per-call object — it is not itself SQLite-authoritative and does
@@ -159,6 +186,14 @@ tail inclusion, and reindex/backfill alike:
   approach preserves the Central Invariant that every Chroma record is reconstructable from SQLite
   alone. Which of these two Phase 2 chooses is implementation detail, not an owner decision, so long as
   a turn is never indexed on the strength of a request that SQLite cannot later reproduce.
+
+**Phase 2 test obligation (Writing setup-turn guard):** Phase 2 must add tests proving: (1) a Writing
+turn taken while the Writing session is in `SETUP`, whose transient request supplied a prose-like
+`work_product_kind` and `canon_eligibility_override=EXTRACTOR_ELIGIBLE`, is not ingested and does not
+enter a retrieval-query tail — regardless of which of the two guard mechanisms above Phase 2 chose; (2)
+reindex/backfill reaches the same exclusion decision from SQLite alone, without access to the original
+`WritingTurnRequest`, using whichever durable signal (enforced metadata or explicit setup-turn carrier)
+Phase 2 implemented.
 
 **RPG roll-request and setup-confirmation turns** are `DELIVERED` but largely procedural. Only
 `delivered_output` prose is indexed — never internal records (`ResolvedAdjudicationRecord`, audit
@@ -215,10 +250,18 @@ Decision below.
   transaction-scoping only — explicitly *not* its swallow behavior.** The Writing block at
   `service.py:1651-1767` is best-effort (see D6's Writing durable-carrier rule below: the whole block is
   wrapped in `except Exception: pass`, `service.py:1768-1769`); the RPG marker write must **not** follow
-  that pattern. The marker write is mandatory: if it fails, the failure must propagate so the outer
-  transaction rolls back the narrative-path Turn along with it — a blocked/refused/errored turn's
-  marker rolls back with the turn, and a marker-write failure on an otherwise-deliverable turn must
-  itself cause that turn to roll back and become `PIPELINE_ERROR`, never commit markerless. No orphan
+  that pattern. The marker write is mandatory: if it fails, the failure must be **caught within the
+  narrative-persist code path and mapped to a typed `PIPELINE_ERROR` `OrchestrationResult`** — the same
+  way other in-pass exceptions in this codebase are already mapped to typed terminal results — so that
+  `_finalize_transaction` receives a typed result and rolls back the transaction through its normal
+  commit/rollback decision. The marker-write failure must **not** be left to escape as a raw exception
+  from `inner(session)`: `_run_with_transaction`'s `except BaseException` handler
+  (`service.py:3464-3470`) only rolls back and reraises — it does not itself produce a typed
+  `PIPELINE_ERROR` result — so an uncaught marker-write exception would surface from
+  `orchestrate_turn` as a raw exception rather than satisfying the exhaustive typed-terminal-state
+  contract. A blocked/refused/errored turn's marker rolls back with the turn, and a marker-write
+  failure on an otherwise-deliverable turn must itself cause that turn to become a typed
+  `PIPELINE_ERROR` and roll back, never commit markerless. No orphan
   markers for never-delivered turns. **This write happens only on the narrative persist path, never on
   the OOC persist path (`_run_ooc()` / `_ooc_persist()`, `service.py:2142` / `service.py:2254`) — the
   two are separate persist functions, so the marker write is structurally absent for OOC turns, not
@@ -332,10 +375,12 @@ solely by the era-boundary table's pre-boundary rows.
 
 This exclusion applies specifically to **RPG** setup confirmations, not all mode setup turns:
 Branching setup confirmations remain eligible as ordinary story-architect narrative turns (Issue 16),
-and Writing setup confirmations are already excluded structurally as described above. The consumed-roll
-turn that narrates the outcome is the narrative record and is indexed normally. If RPG setup narration
-proves worth indexing later, that requires a typed carrier, not prose inspection — a future D6
-sub-decision.
+and Writing setup confirmations are excluded via D6's Writing setup-turn guard as described above —
+not by structural exclusion alone, since a request-supplied prose-like `work_product_kind` and
+`EXTRACTOR_ELIGIBLE` during setup requires the explicit durable guard, not just the request-validator
+check, to keep the turn out of retrieval. The consumed-roll turn that narrates the outcome is the
+narrative record and is indexed normally. If RPG setup narration proves worth indexing later, that
+requires a typed carrier, not prose inspection — a future D6 sub-decision.
 
 ## Decision 7 (D7) — Write-Failure Semantics
 
@@ -381,7 +426,10 @@ never leak into retrieval. The rule:
   config, and any other support-turn kind) are excluded from the tail regardless of `exclude_ooc`. Per
   D6's durable-carrier rule above, this check reads the **committed per-turn `WritingNodeMetadata`** in
   SQLite, never the transient `WritingTurnRequest` — a prior turn whose request asked for
-  `EXTRACTOR_ELIGIBLE` but whose metadata write did not durably record it is not tail-eligible.
+  `EXTRACTOR_ELIGIBLE` but whose metadata write did not durably record it is not tail-eligible. This
+  includes D6's setup-turn guard: a turn taken while the Writing session was in `SETUP` is not
+  tail-eligible even if its request-supplied `work_product_kind`/`EXTRACTOR_ELIGIBLE` looked
+  prose-like, per whichever of D6's two guard mechanisms Phase 2 implements.
 - Equivalent mode-specific support/config markers (present or future, for RPG or Branching) must be
   excluded before query composition, following the same D6-eligibility-not-OOC-alone principle.
 - Existing `RecentTurnReader` behavior may be reused for ordering/window mechanics (recency, limit,
