@@ -223,38 +223,68 @@ Decision below.
   the OOC persist path (`_run_ooc()` / `_ooc_persist()`, `service.py:2142` / `service.py:2254`) — the
   two are separate persist functions, so the marker write is structurally absent for OOC turns, not
   merely unpopulated for them.**
-- **Coverage is narrower than "every RPG turn."** The sidecar covers one row per **post-marker RPG
+- **Coverage is narrower than "every RPG turn."** The sidecar covers one row per **post-boundary RPG
   narrative-path `DELIVERED` turn that reaches retrieval-eligibility classification** — i.e., the same
-  turns Decision 6's write trigger considers for story-memory ingestion. RPG `OOC_HANDLED` turns are
-  real persisted Turns, but they are persisted through `_ooc_persist()`, not `_narrative_persist()`, so
-  they never reach the marker-writing block at all — the same D6 disposition/path gating that already
-  excludes all `OOC_HANDLED` turns from retrieval (`RecentTurnReader` exclusion semantics) corresponds
-  directly to which persist function runs. A missing marker on an RPG `OOC_HANDLED` turn is expected
-  and is not an error; a missing marker on a post-marker RPG narrative-path `DELIVERED` turn that
-  requires retrieval classification is an error (see the coverage invariant below).
+  turns Decision 6's write trigger considers for story-memory ingestion, from the persisted marker-era
+  boundary defined below onward. RPG `OOC_HANDLED` turns are real persisted Turns, but they are
+  persisted through `_ooc_persist()`, not `_narrative_persist()`, so they never reach the
+  marker-writing block at all — the same D6 disposition/path gating that already excludes all
+  `OOC_HANDLED` turns from retrieval (`RecentTurnReader` exclusion semantics) corresponds directly to
+  which persist function runs. A missing marker on an RPG `OOC_HANDLED` turn is expected and is not an
+  error; a missing marker on a post-boundary RPG narrative-path `DELIVERED` turn that requires
+  retrieval classification is an error (see the coverage invariant below).
 - A typed category enum with exactly `ORDINARY_NARRATIVE`, `ROLL_REQUEST`, and `SETUP_CONFIRMATION` —
   unchanged; no OOC/non-indexed category is added. OOC turns do not need a fourth category because they
   are filtered out before marker classification, not classified into it.  No general cross-mode turn
   taxonomy, no new dispositions, no new passes, no prose heuristics, no UI/API surface.
 - Rows are written once and never updated; deletion follows turn deletion.
 - Consumed only by the Issue 18 retrieval eligibility predicate. No other reader in v1.
-- **Forward-only.** Markers exist for turns created after the marker ships. Historical RPG turns are
-  left unclassified rather than guessed — no retroactive classification from prose or current state.
+- **Forward-only, with a persisted, SQLite-authoritative marker-era boundary.** Markers exist for turns
+  created after the marker ships; historical RPG turns are left unclassified rather than guessed — no
+  retroactive classification from prose or current state. This alone is not enough to make "no marker
+  row" safe to interpret during reindex: a post-boundary marker-write bug leaves exactly the same
+  SQLite shape as a legitimate legacy pre-marker turn (no marker row, no `PendingRollRequest`), so
+  Phase 2 **must persist, in SQLite, the marker-era boundary itself** — a migration/epoch record,
+  sentinel row, schema-version record, or equivalent SQLite-authoritative cutoff marking the point
+  from which `rpg_turn_retrieval_markers` coverage became mandatory for RPG narrative-path `DELIVERED`
+  turns. This boundary must be reconstructable during reindex/backfill, not inferred from application
+  state or timing. With it persisted:
+  - A markerless RPG narrative-path `DELIVERED` turn created **before** the persisted boundary is
+    legacy/pre-marker and governed by the pre-boundary rows in the era-boundary table below (treated
+    as `ORDINARY_NARRATIVE`, eligible) — unchanged from the original forward-only design.
+  - A markerless RPG narrative-path `DELIVERED` turn created **at or after** the persisted boundary is
+    a **data-integrity error**, not a legacy turn — the mandatory in-transaction marker write above
+    should have prevented this shape from existing at all. Reindex/backfill must detect and flag (or
+    exclude) such a turn rather than silently falling through to `ORDINARY_NARRATIVE` eligibility.
 
-**Era-boundary mechanism (pre-marker vs. post-marker), deterministic:**
+**Era-boundary mechanism (pre-boundary legacy vs. post-boundary mandatory-coverage), deterministic:**
 
 | Turn era | Marker row | `PendingRollRequest.originating_turn_id` | Eligibility predicate outcome |
 |---|---|---|---|
-| Post-marker, ordinary narrative | `ORDINARY_NARRATIVE` | absent | Eligible |
-| Post-marker, roll-request | `ROLL_REQUEST` | present | Excluded |
-| Post-marker, setup confirmation | `SETUP_CONFIRMATION` | absent | Excluded |
-| Post-marker, `OOC_HANDLED` | none (excluded before marker classification) | absent | Excluded (D6 disposition/path gating; never reaches marker lookup) |
-| Pre-marker (no row exists) | absent (table did not exist / turn predates it) | absent | **Treated as `ORDINARY_NARRATIVE` — eligible** |
-| Pre-marker roll-request | absent | present | Excluded (`PendingRollRequest` alone is sufficient and pre-dates the marker) |
+| At/after persisted boundary, ordinary narrative | `ORDINARY_NARRATIVE` | absent | Eligible |
+| At/after persisted boundary, roll-request | `ROLL_REQUEST` | present | Excluded |
+| At/after persisted boundary, setup confirmation | `SETUP_CONFIRMATION` | absent | Excluded |
+| At/after persisted boundary, `OOC_HANDLED` | none (excluded before marker classification) | absent | Excluded (D6 disposition/path gating; never reaches marker lookup) |
+| **At/after persisted boundary, narrative-path `DELIVERED`, marker row absent** | absent | absent | **Data-integrity error — ineligible; must not fall through to `ORDINARY_NARRATIVE`** |
+| Before persisted boundary (legacy/pre-marker) | absent (turn predates the persisted boundary) | absent | **Treated as `ORDINARY_NARRATIVE` — eligible** |
+| Before persisted boundary, roll-request | absent | present | Excluded (`PendingRollRequest` alone is sufficient and predates the boundary) |
 
-Every post-marker RPG **narrative-path `DELIVERED` turn that reaches retrieval-eligibility
+The eligibility predicate must consult the persisted boundary **before** applying the marker/
+`PendingRollRequest` signals below: a markerless narrative-path `DELIVERED` turn's era (before vs.
+at/after the boundary) determines whether "no marker" means legacy-eligible or data-integrity-error,
+and that determination is not derivable from the marker table alone without the boundary record.
+**Narrative-path vs. `OOC_HANDLED` classification at reindex time is itself SQLite-reconstructable, not
+inferred:** both dispositions leave a committed `Turn` row, and `Turn.intent_classification`
+(`src/afterworlds/models/turn.py:46`) is persisted per-turn and already queried this way elsewhere
+(`TurnORM.intent_classification != IntentType.OOC`, `src/afterworlds/services/context_builder.py:268`).
+Reindex/backfill classifies a markerless committed RPG turn as the legitimately-markerless `OOC_HANDLED`
+case when `intent_classification is IntentType.OOC`, and as the narrative-path data-integrity-error case
+otherwise — this is the same signal the live codebase already uses to distinguish the two, not a new
+inference the ADR invents.
+
+Every post-boundary RPG **narrative-path `DELIVERED` turn that reaches retrieval-eligibility
 classification** gets exactly one marker row — this is the narrowed sidecar coverage rule stated
-above — and it applies uniformly across all three categories, roll-request included. A post-marker
+above — and it applies uniformly across all three categories, roll-request included. A post-boundary
 roll-request turn is never markerless: it carries `ROLL_REQUEST` in `rpg_turn_retrieval_markers` *and*
 a `PendingRollRequest` row. These two signals are written independently (the marker at turn creation,
 `PendingRollRequest` on the announce turn) but must agree for every such turn — that agreement is a
@@ -265,33 +295,40 @@ the sidecar's scope.
 
 **Predicate precedence vs. coverage invariant — two different things:**
 
-- **Eligibility precedence:** `PendingRollRequest.originating_turn_id` is what the eligibility
+- **Eligibility precedence:** the persisted marker-era boundary is checked first to establish turn era;
+  within a post-boundary turn, `PendingRollRequest.originating_turn_id` is what the eligibility
   predicate actually checks to exclude roll-request turns, and it governs regardless of marker
   category. The marker governs setup-confirmation exclusion. `OOC_HANDLED` turns are excluded upstream
-  of both signals by D6 disposition/path gating. An RPG turn with neither signal — i.e., a pre-marker
-  historical turn — is treated as `ORDINARY_NARRATIVE` and is eligible.
-- **Coverage invariant (post-marker, narrative-path `DELIVERED` turns only):** independent of which
-  signal the predicate consults, every such turn must have exactly one marker row, and a post-marker
+  of both signals by D6 disposition/path gating. An RPG turn with neither signal, era-checked as
+  pre-boundary, is treated as `ORDINARY_NARRATIVE` and is eligible; the same shape at/after the boundary
+  is a data-integrity error, not an eligibility outcome.
+- **Coverage invariant (post-boundary, narrative-path `DELIVERED` turns only):** independent of which
+  signal the predicate consults, every such turn must have exactly one marker row, and a post-boundary
   roll-request turn's marker category must be `ROLL_REQUEST`. Marker coverage is a Phase 2 write-time
   obligation the eligibility predicate does not itself enforce; the predicate reads `PendingRollRequest`
   for its exclusion decision, but Phase 2 must not skip the sidecar write for roll-request turns on the
-  theory that `PendingRollRequest` alone already gets the correct eligibility outcome. A pre-marker
+  theory that `PendingRollRequest` alone already gets the correct eligibility outcome. A pre-boundary
   roll-request turn is the only case where marker absence is expected and correct for a narrative-path
-  turn — it predates the sidecar entirely, so `PendingRollRequest` alone governs, per the era-boundary
-  table above. RPG `OOC_HANDLED` turns are outside the coverage invariant's scope at every era, marker
-  or no marker, because D6 gating removes them before classification, not because the sidecar failed to
-  cover them.
+  turn — it predates the persisted boundary entirely, so `PendingRollRequest` alone governs, per the
+  era-boundary table above. RPG `OOC_HANDLED` turns are outside the coverage invariant's scope at every
+  era, marker or no marker, because D6 gating removes them before classification, not because the
+  sidecar failed to cover them.
 
 **Rationale (ADR-ratified as a D6 sub-decision):** excluding unclassified turns would silently erase
-retrieval memory for every pre-marker RPG story; including them admits at worst a bounded set of early
-procedural chunks. Phase 2's consistency test must assert: (1) every post-marker RPG narrative-path
-`DELIVERED` turn that reaches retrieval classification has exactly one marker row; (2) RPG
-`OOC_HANDLED` turns do not require and do not receive marker rows, and are excluded before marker
-lookup by D6 disposition/path gating rather than by an absent or mismatched marker; (3) for post-marker
-narrative-path turns, a marker of category `ROLL_REQUEST` has a corresponding `PendingRollRequest` row
-and vice versa, and marker category and `PendingRollRequest` presence never disagree. Pre-marker turns
-are exempt from (1) and (3) by definition — the sidecar did not exist yet — and remain governed solely
-by the era-boundary table's pre-marker rows.
+retrieval memory for every pre-boundary RPG story; including them admits at worst a bounded set of
+early procedural chunks. Without a persisted boundary, however, that same tolerance would also mask
+post-boundary marker-write regressions as ordinary legacy turns — which is why the boundary itself,
+not just the marker table, must be SQLite-authoritative. Phase 2's consistency test must assert: (1)
+every post-boundary RPG narrative-path `DELIVERED` turn that reaches retrieval classification has
+exactly one marker row; (2) RPG `OOC_HANDLED` turns do not require and do not receive marker rows, and
+are excluded before marker lookup by D6 disposition/path gating rather than by an absent or mismatched
+marker; (3) for post-boundary narrative-path turns, a marker of category `ROLL_REQUEST` has a
+corresponding `PendingRollRequest` row and vice versa, and marker category and `PendingRollRequest`
+presence never disagree; (4) a markerless RPG narrative-path `DELIVERED` turn created **at or after**
+the persisted boundary is detected as a data-integrity error / treated as ineligible during
+reindex/backfill, and is never silently treated as legacy `ORDINARY_NARRATIVE`. Pre-boundary turns are
+exempt from (1), (3), and (4) by definition — the sidecar did not exist yet — and remain governed
+solely by the era-boundary table's pre-boundary rows.
 
 This exclusion applies specifically to **RPG** setup confirmations, not all mode setup turns:
 Branching setup confirmations remain eligible as ordinary story-architect narrative turns (Issue 16),
@@ -502,12 +539,23 @@ into any runtime path — even as a "hint" — is a future issue plus ADR.
 ## Decision 11 (D11) — Update/Delete/Reindex Semantics
 
 **Decision:** In-place re-upsert keyed by deterministic IDs, with orphan sweep by `story_id` filter,
-over a rebuild-into-fresh-then-swap strategy. See the mutation table below.
+over a rebuild-into-fresh-then-swap strategy for story/corpus-level reindex. **Turn-level replacement is
+a distinct case and does not get the same "upsert alone suffices" treatment:** deterministic chunk IDs
+only overwrite the indexes that still exist in the new chunk set. If a prose correction, a
+chunking-ceiling change, or any other operation that replaces a turn's vector representation reduces
+that turn from *N* chunks to fewer, the old higher-index chunks are not addressed by the new upsert and
+remain in Chroma, retrievable, unless explicitly deleted. Re-upsert alone is sufficient only when the
+new chunk cardinality is identical to or greater than the old one, and this ADR must not rely on that
+being true. **Turn-level replacement rule:** before writing a turn's current chunk set, Phase 2 must
+first **delete all existing vector chunks for that `turn_id`**, then write the current chunk set —
+delete-then-write, not upsert-only, for any operation that replaces a turn's vector representation.
+Story-level reindex and the `story_id`-filtered orphan sweep are unaffected by this and remain as
+already specified. See the mutation table below.
 
 | Operation | Semantics |
 |---|---|
-| Turn ingested | Upsert by deterministic ID; re-ingesting the same turn replaces byte-identically — zero duplicates. |
-| Turn re-ingested after prose correction (future) | Upsert replaces document and its metadata bundle atomically. |
+| Turn ingested (first time) | Upsert by deterministic ID; re-ingesting the same turn replaces byte-identically — zero duplicates. |
+| Turn re-ingested after prose correction, re-chunking, or any chunk-set-replacing operation (future) | **Delete all existing chunks for that `turn_id` first, then write the current chunk set** — not upsert-only. Required even when the new chunk count is unchanged, and mandatory when it is smaller, so old higher-index chunks from a prior, larger chunk set never survive. |
 | Turn deleted | Delete all chunks whose IDs derive from that `turn_id`. |
 | Story deleted / Issue 22 deletion request | Delete by `story_id` metadata filter across story-memory collections; a post-delete count-zero verification is part of the operation's contract. |
 | Reindex (story or corpus) | Rebuild from SQLite-authoritative content; embedding-model change forces reindex. |
@@ -515,7 +563,12 @@ over a rebuild-into-fresh-then-swap strategy. See the mutation table below.
 | Rules package republished | Issue 5b re-ingestion remains idempotent; Issue 18 reindex refreshes the rules collection without mutating Issue 5a source records. |
 | RPG turn-category marker written | Insert-once at turn creation inside the outer transaction; never updated; rolls back with a blocked turn. |
 | RPG turn deleted | Marker row deleted with its turn; no orphaned markers. |
-| Historical pre-marker RPG turn | No-op — never retroactively classified; predicate treats it as `ORDINARY_NARRATIVE`. |
+| Historical pre-boundary RPG turn | No-op — never retroactively classified; predicate treats it as `ORDINARY_NARRATIVE`. |
+
+**Phase 2 test obligation (turn-level replacement):** Phase 2 must add a test proving that when a
+turn's chunk count is reduced by re-ingestion (e.g., a corrected/shorter version of the same prose that
+now fits in fewer chunks than the original), the old higher-index chunks are **absent** from the
+collection after re-ingestion — not merely that the surviving lower-index chunks were overwritten.
 
 **Idempotence keys are semantic, never generated.** Story-memory chunk ID:
 `story:{story_id}:turn:{turn_id}:chunk:{index}`. Rules-corpus chunk ID derives from
@@ -554,8 +607,14 @@ retrieval-memory ingestion may be invoked only when all of the following hold:
   eligibility rules (Writing's `EXTRACTOR_ELIGIBLE` gate; RPG's roll-request and setup-confirmation
   marker/`PendingRollRequest` exclusions).
 - Ingestion must never fire for `OOC_HANDLED`, `INTERACTION_REJECTED`, `BLOCKED_INPUT_SAFETY`,
-  `BLOCKED_OUTPUT_SAFETY`, `BLOCKED_CONTRADICTION`, `REFUSED_BY_PROVIDER`, `PIPELINE_ERROR`, a commit
-  failure, or any rolled-back turn.
+  `BLOCKED_OUTPUT_SAFETY`, `BLOCKED_CONTRADICTION`, `BLOCKED_PENDING_ROLL`, `REFUSED_BY_PROVIDER`,
+  `PIPELINE_ERROR`, a commit failure, or any rolled-back turn. `BLOCKED_PENDING_ROLL`
+  (`src/afterworlds/pipeline/orchestrator/models.py:68`) is a pre-turn redirect returned before any
+  Turn is persisted when the Sojourner owes a pending roll (`service.py:733-744`) — no Turn exists to
+  ingest, the same structural reason `INTERACTION_REJECTED` is excluded. This is a disposition-deny-list
+  completeness fix, not a change to the RPG roll-request marker rule above: a *delivered* roll-request
+  announce turn (which does reach `_narrative_persist` and does get a `ROLL_REQUEST` marker) is a
+  different case from this pre-turn redirect, and the two must not be conflated.
 - The `turn_id` used to build ingestion IDs must be the **surviving** `OrchestrationResult.turn_id`
   returned after successful commit. A provisional `WriterResult.turn_id` is not sufficient — a
   provisional turn can still roll back before `_finalize_transaction` completes.
@@ -576,17 +635,18 @@ pre-transaction or provisional one. The current `post_transaction_fn`, unmodifie
 either option on its own — it has no return-value inspection today and runs regardless of outcome.
 
 **Phase 2 test obligation (ingestion gate), in addition to the Decision 6 marker-consistency test
-above:** Phase 2 must add tests proving: (1) blocked/refused/error/rollback/commit-failure outcomes
-never call retrieval ingestion; (2) `OOC_HANDLED` and `INTERACTION_REJECTED` turns never call
-retrieval ingestion; (3) `DELIVERED` turns that are D6-ineligible (Writing turns without
-`EXTRACTOR_ELIGIBLE`; RPG roll-request or setup-confirmation turns) never call retrieval ingestion; (4)
-eligible, committed `DELIVERED` narrative turns call ingestion exactly once.
+above:** Phase 2 must add tests proving: (1) blocked/refused/error/rollback/commit-failure outcomes —
+explicitly including `BLOCKED_PENDING_ROLL`, a pre-turn redirect with no Turn to ingest — never call
+retrieval ingestion; (2) `OOC_HANDLED` and `INTERACTION_REJECTED` turns never call retrieval ingestion;
+(3) `DELIVERED` turns that are D6-ineligible (Writing turns without `EXTRACTOR_ELIGIBLE`; RPG
+roll-request or setup-confirmation turns) never call retrieval ingestion; (4) eligible, committed
+`DELIVERED` narrative turns call ingestion exactly once.
 
 **The RPG turn-category marker is not Chroma ingestion and is not the retrieval write trigger; it does
 not use the post-commit seam or the ingestion gate above.** Per Decision 6 above, the marker row is
 written at Turn creation time inside the existing Issue 12c outer transaction — the same unit of work
 as the provisional/surviving Turn — so a blocked/refused/errored Turn rolls back its marker with the
-Turn. A post-marker RPG narrative-path Turn that requires retrieval classification must not commit
+Turn. A post-boundary RPG narrative-path Turn that requires retrieval classification must not commit
 markerless. Chroma ingestion is failure-isolated by design (Decision 7: logged and swallowed, never
 blocking or reversing delivery) once past the ingestion gate; the marker write is deliberately **not**
 failure-isolated in that sense — it lives inside the Turn's own transaction and fails or commits with
