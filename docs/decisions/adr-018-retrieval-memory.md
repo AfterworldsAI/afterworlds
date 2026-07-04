@@ -3,11 +3,10 @@
 **Date:** 2026-07-03
 **Issue:** CRD Issue 18 / GitHub #117 — ChromaDB Retrieval Memory: ADR Gate, Vector Service, and
 Context Builder Integration
-**Status:** Proposed — pending explicit owner acceptance on the Phase 1 PR (`feature/issue-18-adr`).
-Per the CRD Issue 18 gate, silence, CI green, or Codex approval alone do not constitute acceptance.
-Implementation (Phase 2, `feature/issue-18-retrieval-memory`) does not begin until an explicit owner
-comment ("ADR-018 accepted" or "accepted with the following edits") is posted on the Phase 1 PR and
-that PR is merged.
+**Status:** Accepted — owner acceptance posted on the Phase 1 PR (`feature/issue-18-adr`),
+https://github.com/AfterworldsAI/afterworlds/pull/118#issuecomment-4883951215. Acceptance is for the
+Phase 1 ADR/documentation gate only; Phase 2 implementation (`feature/issue-18-retrieval-memory`) may
+begin only after this Phase 1 PR is merged.
 
 ---
 
@@ -41,8 +40,9 @@ dependency, or migration accompanies this PR.
 
 - **Phase 1 (this PR):** `/docs/decisions/adr-018-retrieval-memory.md` (this document) plus the
   `known_unknowns.md` edit resolving the ChromaDB collection-schema entry. No code.
-- **Acceptance:** owner comment on the Phase 1 PR — `<link to be added when posted>` — followed by
-  merge of that PR.
+- **Acceptance:** owner comment posted on the Phase 1 PR —
+  https://github.com/AfterworldsAI/afterworlds/pull/118#issuecomment-4883951215 — merge of that PR
+  follows.
 - **Phase 2:** `feature/issue-18-retrieval-memory`, opened only after Phase 1 merges, implementing
   exactly what is accepted here. Any deviation discovered mid-implementation is a stop-and-flag event
   in that PR's Architecture Notes, not a silent amendment.
