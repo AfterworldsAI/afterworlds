@@ -44,13 +44,25 @@ jobs:
         # auditing, so we are temporarily ignoring this CVE to keep the audit gate
         # usable. Remove this ignore once pip ships a fixed release and CI is pinned
         # or upgraded to that version.
-        # CVE-2026-45829: vulnerability in chromadb 1.5.9. pip-audit currently reports
-        # no fix version — no patched ChromaDB release exists upstream as of 2026-06-05.
-        # ChromaDB is actively used by the ingestion subsystem (ingestion_service.py,
-        # vector_writer.py); removing it from [project].dependencies now would break
-        # those imports and the ingestion test suite. Owner decision (2026-06-05):
-        # defer this CVE to CRD Issue 18, which owns the chromadb dependency design
-        # and will resolve it — either by upgrading to a patched release or by scoping
-        # chromadb as an optional dependency with a defined safe deployment path.
-        # Remove this --ignore-vuln only when Issue 18 closes this out.
+        # CVE-2026-45829 / PYSEC-2026-311 / GHSA-f4j7-r4q5-qw2c: pre-auth code-injection
+        # in chromadb's HTTP server component — an unauthenticated attacker can run
+        # arbitrary code via a malicious model repository with trust_remote_code=True
+        # on the `/api/v2/tenants/{tenant}/databases/{db}/collections` endpoint. No
+        # patched release exists upstream as of 2026-07-05 (affects every chromadb
+        # release 1.0.0-1.5.9 inclusive).
+        #
+        # CRD Issue 18 / ADR-018 resolution (safe-deployment-path, dependency kept —
+        # not scoped optional, since Retrieval Memory is a first-class memory layer
+        # required on every access path per CLAUDE.md invariant 2 / the BYOK-parity
+        # business invariant): the vulnerable surface is chromadb's standalone HTTP
+        # server (`chromadb run` / `HttpClient`) plus trust_remote_code=True on an
+        # embedding function. Afterworlds never runs that server process and never
+        # sets trust_remote_code=True anywhere — every client is constructed via
+        # `pipeline/retrieval/client.py::build_chroma_client`, which only ever
+        # returns an embedded `PersistentClient`/`EphemeralClient`. See that module
+        # and `pipeline/retrieval/config.py::RetrievalMemoryConfig` for the enforced
+        # boundary, and this PR's Architecture Notes for the full write-up. Re-justified
+        # (not silently preserved) per ADR-018's Phase 2 CVE-closure requirement.
+        # Revisit if chromadb ships a patched release, or if a server-mode deployment
+        # is ever proposed (which would require a new safe-deployment review).
         run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-45829
