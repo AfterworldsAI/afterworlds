@@ -20,6 +20,7 @@ import pytest
 # Ensure all ORM models populate Base.metadata.
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.retrieval  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
@@ -225,6 +226,7 @@ class FakeContextBuilder:
         current_input: str,
         classified_intent: IntentClassificationResult,
         rule_slice_request: Any = None,
+        retrieval_query_request: Any = None,
     ) -> AssembledContext:
         self.calls.append((story_id, mode, current_input))
         if story_id not in self.contexts:

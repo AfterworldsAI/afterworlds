@@ -423,9 +423,16 @@ def test_build_stable_prefix_called_once_per_turn() -> None:
         mode: StoryMode,
         intent_classification: IntentClassificationResult,
         rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: object = None,
     ) -> StablePrefix:
         call_count[0] += 1
-        return original_build(story_id, mode, intent_classification, rule_slice_request)  # type: ignore[arg-type]
+        return original_build(  # type: ignore[arg-type]
+            story_id,
+            mode,
+            intent_classification,
+            rule_slice_request,
+            retrieval_query_request,
+        )
 
     service.build_stable_prefix = counting_build  # type: ignore[method-assign]
 

@@ -5788,10 +5788,16 @@ class _SpyContextBuilder:
         current_input: object,
         classified_intent: object,
         rule_slice_request: object = None,
+        retrieval_query_request: object = None,
     ) -> object:
         self.rule_slice_requests.append(rule_slice_request)
         return self._inner.assemble(  # type: ignore[arg-type]
-            story_id, mode, current_input, classified_intent, rule_slice_request
+            story_id,
+            mode,
+            current_input,
+            classified_intent,
+            rule_slice_request,
+            retrieval_query_request,
         )
 
 

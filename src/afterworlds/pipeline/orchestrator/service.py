@@ -38,13 +38,14 @@ import them without dragging the service in.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from collections.abc import Callable
 from concurrent.futures import CancelledError, Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
@@ -68,6 +69,7 @@ from afterworlds.models.enums import (
     WritingWorkProductKind,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.pipeline._refusal import (
     ProviderRefusal,
@@ -149,6 +151,8 @@ from afterworlds.pipeline.writer.service import WriterService
 from afterworlds.services.context_builder import ContextBuilderService
 from afterworlds.services.intent_classifier import IntentClassifierService
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -222,6 +226,39 @@ ModeResolver = Callable[[UUID], "Any"]
 
 def _noop_fn() -> None:
     pass
+
+
+# ---------------------------------------------------------------------------
+# Retrieval Memory ingestion seam (CRD Issue 18 / ADR-018 D6/D7)
+# ---------------------------------------------------------------------------
+
+
+class RetrievalIngestionServiceLike(Protocol):
+    """Narrow protocol for the retrieval-memory write path.
+
+    The orchestrator depends only on this shape, not on
+    ``RetrievalMemoryWriteService`` or ChromaDB directly — mirrors the
+    ``_RulesPackageServiceLike``-style narrow protocols in
+    ``services/context_builder.py``.
+    """
+
+    def ingest_turn(
+        self,
+        story_id: UUID,
+        turn_id: UUID,
+        node_id: UUID | None,
+        mode: str,
+        delivered_output: str,
+        created_at: str,
+    ) -> None: ...
+
+
+class RetrievalQueryBuilderLike(Protocol):
+    """Narrow protocol for ``pipeline.retrieval.query_builder.RetrievalQueryBuilder``."""  # noqa: E501
+
+    def build_query_request(
+        self, story_id: UUID, current_input: str, story_mode: StoryMode
+    ) -> RetrievalQueryRequest: ...
 
 
 # ---------------------------------------------------------------------------
@@ -353,6 +390,8 @@ class OrchestratorService:
         ) = None,
         writing_visible_state_service: WritingVisibleStateService | None = None,
         writing_ooc_config_extractor: WritingOocConfigExtractorService | None = None,
+        retrieval_write_service: RetrievalIngestionServiceLike | None = None,
+        retrieval_query_builder: RetrievalQueryBuilderLike | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -380,6 +419,8 @@ class OrchestratorService:
         self._writing_session_resolver = writing_session_resolver
         self._writing_visible_state_service = writing_visible_state_service
         self._writing_ooc_config_extractor = writing_ooc_config_extractor
+        self._retrieval_write_service = retrieval_write_service
+        self._retrieval_query_builder = retrieval_query_builder
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -534,6 +575,26 @@ class OrchestratorService:
                     # proceeds without a rule slice and produces "undetermined".
                     rule_slice_request = None
 
+        # 2a-retrieval. Build the retrieval query request before context
+        # assembly (ADR-018 D8) — orchestrator-owned and deterministic,
+        # mirroring the RuleSliceRequest pattern above. Best-effort: a
+        # query-build failure must not fail the turn, only omit retrieval
+        # memory for it (same as the Null-provider empty-payload behavior).
+        retrieval_query_request: RetrievalQueryRequest | None = None
+        if self._retrieval_query_builder is not None:
+            try:
+                retrieval_query_request = (
+                    self._retrieval_query_builder.build_query_request(
+                        story_id, user_input, story_mode
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "retrieval query build failed for story_id=%s: %s",
+                    story_id,
+                    exc,
+                )
+
         # 2b. Context assembly (once per turn).
         try:
             ctx, _, ctx_ms = self._build_context(
@@ -542,6 +603,7 @@ class OrchestratorService:
                 intent_result,
                 mode=story_mode,
                 rule_slice_request=rule_slice_request,
+                retrieval_query_request=retrieval_query_request,
             )
             latency["context"] = ctx_ms
         except Exception as exc:  # noqa: BLE001
@@ -1075,6 +1137,12 @@ class OrchestratorService:
         rpg_session_id: UUID | None = None
         rpg_character_id: UUID | None = None
         rpg_sheet: Dnd5eCharacterSheet | None = None
+        # Threaded to _narrative_persist for the RPG turn-retrieval-marker
+        # classification (ADR-018 D6). None only when RPG adjudication is
+        # not wired for an RPG-mode story; the marker-write block treats
+        # that as IN_PLAY/ORDINARY_NARRATIVE (the common case) rather than
+        # failing closed, since adjudication wiring is a separate concern.
+        rpg_play_status: RpgPlayStatus | None = None
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -1112,6 +1180,7 @@ class OrchestratorService:
             rpg_session_id = session_state.session_id
             rpg_character_id = sheet.sheet_id
             rpg_sheet = sheet
+            rpg_play_status = session_state.play_status
             # Gate: skip adjudication for setup turns and for sheets that
             # aren't fully configured.  play_status SETUP covers character
             # creation and world-setup turns that flow through _run_narrative
@@ -1201,7 +1270,7 @@ class OrchestratorService:
         # drift, and so every raw exception in that lifecycle is mapped to a
         # typed terminal state per the orchestrator's exhaustive
         # terminal-state contract (Issue 12c).
-        return self._run_with_transaction(
+        result = self._run_with_transaction(
             lambda session: self._narrative_persist(
                 session,
                 ctx,
@@ -1226,6 +1295,7 @@ class OrchestratorService:
                 selected_branch_context=_pre_selected_context,
                 writing_session_state=_pre_writing_state,
                 writing_turn_request=writing_turn_request,
+                rpg_play_status=rpg_play_status,
             ),
             intent_result,
             latency,
@@ -1234,6 +1304,17 @@ class OrchestratorService:
             pre_transaction_fn=binding.pre_transaction_fn,
             post_transaction_fn=binding.post_transaction_fn,
         )
+        # Retrieval Memory ingestion gate (ADR-018 §6): fires only after the
+        # outer transaction has committed successfully, on the post-
+        # finalization result — a returned DELIVERED disposition already IS
+        # proof of commit (commit failure maps to PIPELINE_ERROR inside
+        # _finalize_transaction). Session is closed by now; ingestion opens
+        # its own short-lived read, matching the backfill/reindex path.
+        # Best-effort and swallowed (D7) — the opposite of the mandatory RPG
+        # marker write above: a Chroma failure here must never change
+        # `result` or escape this method.
+        self._maybe_ingest_retrieval_memory(result, story_id, story_mode)
+        return result
 
     def _narrative_persist(
         self,
@@ -1261,6 +1342,7 @@ class OrchestratorService:
         selected_branch_context: SelectedBranchContext | None = None,
         writing_session_state: WritingSessionState | None = None,
         writing_turn_request: WritingTurnRequest | None = None,
+        rpg_play_status: RpgPlayStatus | None = None,
     ) -> OrchestrationResult:
         # Determine if this is a BRANCHING HYBRID/TRUE_CYOA turn (BranchingWriterService
         # replaces WriterService for these modes; FREEFORM_ONLY stays on prose Writer).
@@ -1677,17 +1759,26 @@ class OrchestratorService:
                     # writing_turn_request is supplied, default the recorded
                     # work-product kind from play_status rather than blindly to
                     # PROSE_CONTINUATION.
-                    if _wtr is not None:
-                        _wpk = _wtr.work_product_kind.value
-                    elif _wss.play_status is WritingPlayStatus.SETUP:
+                    # Durable setup-turn guard (ADR-018 D6, corrected from
+                    # Issue #117's withdrawn "structurally excluded" claim):
+                    # WritingTurnRequest carries no play-status field, so its
+                    # validator cannot reject a prose-like work_product_kind
+                    # + canon_eligibility_override=EXTRACTOR_ELIGIBLE request
+                    # constructed while the session is still in SETUP. Force
+                    # both fields on the persisted, durable per-turn record
+                    # whenever play_status is SETUP, regardless of what the
+                    # request carries — this is the record retrieval
+                    # eligibility reads, so it must never expose a
+                    # request-supplied override during setup.
+                    if _wss.play_status is WritingPlayStatus.SETUP:
                         _wpk = WritingWorkProductKind.SETUP_CONFIRMATION.value
+                        _ce = WritingCanonEligibility.NON_CANON_SUPPORT.value
+                    elif _wtr is not None:
+                        _wpk = _wtr.work_product_kind.value
+                        _ce = _wtr.effective_canon_eligibility.value
                     else:
                         _wpk = WritingWorkProductKind.PROSE_CONTINUATION.value
-                    _ce = (
-                        _wtr.effective_canon_eligibility.value
-                        if _wtr is not None
-                        else WritingCanonEligibility.NON_CANON_SUPPORT.value
-                    )
+                        _ce = WritingCanonEligibility.NON_CANON_SUPPORT.value
 
                     # Build authoring-controls snapshot.
                     _acs: dict[str, object] | None = None
@@ -1767,6 +1858,51 @@ class OrchestratorService:
                     )
             except Exception:  # noqa: BLE001
                 pass  # Provenance failure does not abort the turn
+
+        # 5a-rpg: [RPG only] Write the turn-category retrieval marker
+        # (ADR-018 D6) inside the outer transaction — same location/
+        # transaction-scoping as the Writing-mode block above, but NOT its
+        # best-effort swallow behavior. This write is mandatory: a
+        # marker-write failure on an otherwise-deliverable turn must map to
+        # a typed PIPELINE_ERROR and roll back with the turn (never commit
+        # markerless). Runs only on the narrative-persist path — the OOC
+        # persist path (_ooc_persist) structurally never reaches this block.
+        if story_mode is StoryMode.RPG:
+            from datetime import UTC, datetime  # noqa: PLC0415
+
+            from afterworlds.models.enums import (  # noqa: PLC0415
+                RpgTurnRetrievalCategory as _RTRC,
+            )
+            from afterworlds.persistence.crud.retrieval import (  # noqa: PLC0415
+                create_rpg_turn_retrieval_marker as _create_marker,
+            )
+
+            if rpg_play_status is RpgPlayStatus.SETUP:
+                _marker_category = _RTRC.SETUP_CONFIRMATION
+            elif adj_result is not None and adj_result.pending_roll_request is not None:
+                _marker_category = _RTRC.ROLL_REQUEST
+            else:
+                _marker_category = _RTRC.ORDINARY_NARRATIVE
+            try:
+                _create_marker(
+                    session,
+                    turn_id=writer_turn_id,
+                    story_id=story_id,
+                    category=_marker_category,
+                    created_at=datetime.now(UTC).isoformat(),
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg turn retrieval marker write failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
+                )
 
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
         # roll, inside the outer transaction (Fork B→B1).  Runs only when
@@ -3285,6 +3421,7 @@ class OrchestratorService:
         *,
         mode: StoryMode | None = None,
         rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: RetrievalQueryRequest | None = None,
     ) -> tuple[AssembledContext, StoryMode, int]:
         resolved_mode: StoryMode = (
             mode if mode is not None else self._mode_resolver(story_id)
@@ -3296,6 +3433,7 @@ class OrchestratorService:
                 current_input=user_input,
                 classified_intent=intent_result,
                 rule_slice_request=rule_slice_request,
+                retrieval_query_request=retrieval_query_request,
             )
         )
         return ctx, resolved_mode, ms
@@ -3575,6 +3713,63 @@ class OrchestratorService:
             with suppress(Exception):
                 session.rollback()
         return inner_result
+
+    def _maybe_ingest_retrieval_memory(
+        self, result: OrchestrationResult, story_id: UUID, story_mode: StoryMode
+    ) -> None:
+        """Fire the Retrieval Memory ingestion gate (ADR-018 §6/D6/D7).
+
+        Gates on the post-finalization ``OrchestrationResult`` — never a
+        provisional ``WriterResult.turn_id``, which can still roll back
+        before ``_finalize_transaction`` completes. Deny-list dispositions
+        (``BLOCKED_PENDING_ROLL``, ``INTERACTION_REJECTED``, all Safety/
+        Contradiction blocks, refusals, ``PIPELINE_ERROR``, any rolled-back
+        turn) never reach this method's body because they never produce a
+        ``DELIVERED`` disposition here.
+
+        Best-effort and swallowed (D7): a failure anywhere in this method
+        — including a D6-ineligible turn correctly declining to ingest —
+        must never change ``result`` or raise out of this method. This is
+        the deliberate opposite of the RPG marker write's mandatory,
+        typed-PIPELINE_ERROR semantics inside ``_narrative_persist``.
+        """
+        if self._retrieval_write_service is None:
+            return
+        if (
+            result.disposition is not PipelineDisposition.DELIVERED
+            or result.turn_id is None
+        ):
+            return
+        try:
+            from afterworlds.persistence.crud.node import get_turn
+            from afterworlds.pipeline.retrieval.eligibility import (
+                gather_turn_eligibility_for_turn,
+            )
+
+            session = self._session_factory()
+            try:
+                turn = get_turn(session, result.turn_id)
+                if turn is None:
+                    return
+                decision = gather_turn_eligibility_for_turn(session, turn, story_mode)
+                if not decision.eligible:
+                    return
+                self._retrieval_write_service.ingest_turn(
+                    story_id=story_id,
+                    turn_id=turn.turn_id,
+                    node_id=turn.node_id,
+                    mode=story_mode.value,
+                    delivered_output=turn.assistant_output,
+                    created_at=turn.timestamp.isoformat(),
+                )
+            finally:
+                session.close()
+        except Exception as exc:  # noqa: BLE001 — D7: log and swallow, never raise
+            logger.error(
+                "retrieval memory ingestion failed for turn_id=%s: %s",
+                result.turn_id,
+                exc,
+            )
 
 
 # ---------------------------------------------------------------------------
