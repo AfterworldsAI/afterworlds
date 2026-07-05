@@ -8,6 +8,7 @@ import pytest
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.retrieval  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 
