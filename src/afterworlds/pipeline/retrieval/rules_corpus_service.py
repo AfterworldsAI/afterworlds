@@ -1,0 +1,138 @@
+"""RulesCorpusService — CRD Issue 18 / ADR-018 D10/D11.
+
+Finalizes the rules-corpus Chroma schema and reindexes the CRD Issue 5b
+interim collection (``rp_chunks_interim_{package_id_hex}``,
+``ingestion/vector_writer.py``) into the finalized per-Rules-Package
+``rules_corpus_{package_id_hex}`` collection, rebuilt from the SQLite
+``rp_chunks`` ground truth — never from the interim Chroma collection
+itself (Central Invariant: Chroma is a rebuildable SQLite-derived
+projection).
+
+The diagnostic query exposed here is internal/admin-only in v1 (D10): no
+Context Builder, RPG adjudication loop, Writer, Planner, pass service, or
+runtime mechanical decision may consume it. Runtime rule inclusion remains
+exclusively ``get_active_rule_slice`` (CLAUDE.md invariant 8).
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from contextlib import suppress
+from uuid import UUID
+
+from chromadb.api import ClientAPI
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from afterworlds.models.enums import SourceLocatorTypeEnum
+from afterworlds.models.retrieval import (
+    RulesCorpusChunkMetadata,
+    build_rules_corpus_chunk_id,
+    rules_corpus_collection_name,
+)
+from afterworlds.persistence.orm.rules_package import RuleChunkORM
+from afterworlds.pipeline.retrieval.collections import get_rules_corpus_collection
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
+
+
+class RulesCorpusService:
+    """Reindex/diagnostic-query path for the finalized rules_corpus collections."""
+
+    def __init__(
+        self,
+        client: ClientAPI,
+        config: RetrievalMemoryConfig,
+        embedding_function: RetrievalEmbeddingFunction | None = None,
+    ) -> None:
+        self._client = client
+        self._config = config
+        self._embedding_function = embedding_function
+
+    def reindex_from_sql(self, session: Session, rules_package_id: UUID) -> int:
+        """Rebuild the finalized rules_corpus collection from SQL ground truth.
+
+        Wipes the collection first (surplus removal) then re-upserts every
+        enabled ``RuleChunk`` row for *rules_package_id*. This absorbs the
+        CRD Issue 5b interim collection without mutating any 5a source
+        record. Returns the number of chunks written.
+        """
+        collection_name = rules_corpus_collection_name(rules_package_id)
+        with suppress(Exception):  # collection may not exist yet
+            self._client.delete_collection(collection_name)
+        collection = get_rules_corpus_collection(
+            self._client, collection_name, self._config, self._embedding_function
+        )
+
+        rows = (
+            session.execute(
+                select(RuleChunkORM)
+                .where(RuleChunkORM.rules_package_id == str(rules_package_id))
+                .where(RuleChunkORM.is_enabled.is_(True))
+            )
+            .scalars()
+            .all()
+        )
+        if not rows:
+            return 0
+
+        ids: list[str] = []
+        documents: list[str] = []
+        metadatas: list[Mapping[str, str | int | float | bool | None]] = []
+        # Chunk index is per (source_locator_type, source_locator_value) pair
+        # so the deterministic ID matches the CRD Issue 5a chunk identity
+        # (ADR-018 D11) even when a locator produced multiple chunks.
+        locator_seen: dict[tuple[str, str], int] = {}
+        for row in rows:
+            locator_key = (row.source_locator_type, row.source_locator_value)
+            index = locator_seen.get(locator_key, 0)
+            locator_seen[locator_key] = index + 1
+            locator_type = SourceLocatorTypeEnum(row.source_locator_type)
+            metadata = RulesCorpusChunkMetadata(
+                rules_package_id=rules_package_id,
+                subsystem=row.subsystem,
+                source_document=row.source_document,
+                source_locator_type=locator_type,
+                source_locator_value=row.source_locator_value,
+                embedding_model_id=self._config.embedding_model_id,
+            )
+            ids.append(
+                build_rules_corpus_chunk_id(
+                    rules_package_id,
+                    locator_type,
+                    row.source_locator_value,
+                    index,
+                )
+            )
+            documents.append(row.content)
+            metadatas.append(metadata.model_dump(mode="json"))
+
+        collection.upsert(
+            documents=documents,
+            metadatas=metadatas,  # type: ignore[arg-type]
+            ids=ids,
+        )
+        return len(rows)
+
+    def diagnostic_query(
+        self, rules_package_id: UUID, query_text: str, n_results: int = 5
+    ) -> list[str]:
+        """Internal/admin-only semantic lookup. Never consumed by a runtime pass.
+
+        Returns raw matched documents with no threshold filtering — this is
+        a discovery/diagnostic surface, not a retrieval-eligibility path.
+        """
+        collection_name = rules_corpus_collection_name(rules_package_id)
+        collection = get_rules_corpus_collection(
+            self._client, collection_name, self._config, self._embedding_function
+        )
+        count = collection.count()
+        if count == 0:
+            return []
+        results = collection.query(
+            query_texts=[query_text], n_results=min(n_results, count)
+        )
+        documents_lists = results.get("documents") or []
+        if not documents_lists or not documents_lists[0]:
+            return []
+        return [str(d) for d in documents_lists[0]]
