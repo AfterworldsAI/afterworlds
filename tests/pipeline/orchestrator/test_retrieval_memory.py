@@ -50,7 +50,9 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
 )
 from tests.pipeline.orchestrator.test_service import (
+    _FakePendingRollService,
     _make_orchestrator_with_adjudication,
+    _make_rpg_session_and_sheet,
     _seed_writing_story_setup_wss,
 )
 
@@ -209,6 +211,126 @@ class TestIngestionGateBranching:
         assert fake_retrieval.calls == []
 
 
+def _make_pending_roll_request_for_sheet(
+    story_id: UUID, sheet_id: UUID, originating_turn_id: UUID
+) -> object:
+    """Build a PendingRollRequest whose story_id/character_id satisfy the
+    pending_roll_requests table's FKs to stories/rpg_character_sheet_bases —
+    the announce path writes this row directly via ``session.add``, unlike
+    the mark_consumed path which goes through the injected service."""
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from afterworlds.models.enums import RollVisibility
+    from afterworlds.models.rpg import PendingRollRequest
+
+    return PendingRollRequest(
+        request_id=uuid4(),
+        story_id=story_id,
+        session_id=uuid4(),
+        character_id=sheet_id,
+        check_label="Stealth Check",
+        player_facing_instruction="Roll a Stealth Check and report the total!",
+        expected_value_shape="d20",
+        visibility=RollVisibility.PLAYER,
+        source_proposal_ref="roll_0",
+        originating_turn_id=originating_turn_id,
+        created_at=datetime.now(tz=UTC),
+        roll_expression="1d20+5",
+    )
+
+
+class _AdjServiceAnnouncingPending:
+    """Fake adjudication service that always announces a new pending roll
+    for a specific, already-persisted (story_id, sheet_id) pair."""
+
+    def __init__(self, story_id: UUID, sheet_id: UUID) -> None:
+        self._story_id = story_id
+        self._sheet_id = sheet_id
+
+    def is_adjudicable(self, sheet: object) -> bool:
+        return True
+
+    def adjudicate(self, *args: object, **kwargs: object) -> object:
+        from uuid import uuid4
+
+        from afterworlds.pipeline.rpg.models import AdjudicationPassResult
+
+        return AdjudicationPassResult(
+            proposals=(),
+            writer_views=(),
+            pending_roll_request=_make_pending_roll_request_for_sheet(
+                self._story_id, self._sheet_id, uuid4()
+            ),
+        )
+
+
+def _seed_character_sheet(session_factory: object, story_id: UUID) -> object:
+    """Persist a real RpgCharacterSheetBase + Dnd5eCharacterSheet row pair
+    for *story_id* and return the (session_state, sheet) pair to hand to the
+    orchestrator. The announce path's FK to rpg_character_sheet_bases has
+    never been exercised by an existing fixture — every prior test either
+    reads an existing DB-less fake pending or never reaches the INSERT."""
+    from afterworlds.models.enums import DiceHandling, RpgPlayStatus
+    from afterworlds.models.session import RpgSessionState
+    from afterworlds.persistence.crud.character_sheet import (
+        create_dnd5e_sheet,
+        create_rpg_base_sheet,
+    )
+
+    _, sheet = _make_rpg_session_and_sheet()
+    sheet = sheet.model_copy(update={"story_id": story_id})  # type: ignore[attr-defined]
+    session = session_factory()  # type: ignore[operator]
+    try:
+        create_rpg_base_sheet(session, sheet)  # type: ignore[arg-type]
+        create_dnd5e_sheet(session, sheet)  # type: ignore[arg-type]
+        session.commit()
+    finally:
+        session.close()
+
+    session_state = RpgSessionState(
+        story_id=story_id,
+        character_sheet_id=sheet.sheet_id,  # type: ignore[attr-defined]
+        dice_handling=DiceHandling.AI_ROLLS,
+        play_status=RpgPlayStatus.IN_PLAY,
+    )
+    return session_state, sheet
+
+
+def _make_rpg_orch_announcing_pending_with_svc(
+    session_factory: object,
+    story_id: UUID,
+    retrieval_write_service: _FakeRetrievalWriteService,
+) -> OrchestratorService:
+    """RPG orchestrator: adjudication announces a pending roll and the
+    lifecycle service IS wired — the turn completes DELIVERED, unlike the
+    no-service-wired guard case covered by TestRpgPendingRollServiceGuard."""
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    session_state, sheet = _seed_character_sheet(session_factory, story_id)
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent()),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_adjudication_service=_AdjServiceAnnouncingPending(  # type: ignore[arg-type]
+            story_id, sheet.sheet_id  # type: ignore[attr-defined]
+        ),
+        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+        rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
+        rpg_pending_roll_service=_FakePendingRollService(pending=None),  # type: ignore[arg-type]
+        retrieval_write_service=retrieval_write_service,
+    )
+
+
 class TestRpgTurnRetrievalMarker:
     def test_ordinary_narrative_turn_gets_marker_and_is_ingested(
         self, session_factory, seeded_story
@@ -256,6 +378,35 @@ class TestRpgTurnRetrievalMarker:
         with session_factory() as read_session:  # type: ignore[operator]
             category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
         assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION
+        assert fake_retrieval.calls == []
+
+    def test_pending_roll_announced_gets_roll_request_marker_and_is_not_ingested(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """ADR-018 D6: a turn on which adjudication announces a new pending
+        roll must be marked ROLL_REQUEST (not ORDINARY_NARRATIVE) and must
+        never enter Retrieval Memory — the marker⟺PendingRollRequest
+        correspondence the ADR requires, exercised end-to-end rather than
+        only at the pure-predicate level (see test_eligibility.py)."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_rpg_orch_announcing_pending_with_svc(
+            session_factory, story_id, fake_retrieval
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.turn_id is not None
+        with session_factory() as read_session:  # type: ignore[operator]
+            category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
+        assert category is RpgTurnRetrievalCategory.ROLL_REQUEST
         assert fake_retrieval.calls == []
 
     def test_marker_write_failure_is_mandatory_pipeline_error(

@@ -47,6 +47,7 @@ from afterworlds.models.enums import (
     StoryMode,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.rolling_summary import RollingSummary
 from afterworlds.models.rules_package import ActiveRuleSlice, RuleSliceRequest
 from afterworlds.models.story import Story
@@ -149,6 +150,24 @@ class _CountingRetrievalMemoryProvider:
         self.call_count += 1
         self.last_query = query
         return RetrievalMemoryPayload()
+
+
+class _SentinelRetrievalMemoryProvider:
+    """Stub that always returns a fixed non-empty payload."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+        self.last_story_id: UUID | None = None
+        self.last_query: str | None = None
+        self.last_payload = RetrievalMemoryPayload(
+            passages=("RETRIEVAL_WIRE_THROUGH_SENTINEL",)
+        )
+
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+        self.call_count += 1
+        self.last_story_id = story_id
+        self.last_query = query
+        return self.last_payload
 
 
 # ---------------------------------------------------------------------------
@@ -935,6 +954,39 @@ def test_stable_prefix_retrieval_memory_always_empty_regardless_of_provider() ->
     )
     assert assembled.stable_prefix.retrieval_memory.passages == ()
     assert "SHOULD_NOT_APPEAR" not in assembled.stable_prefix.render()
+
+
+def test_retrieval_query_request_populates_stable_prefix() -> None:
+    """CRD Issue 18 / ADR-018 D8/D9 read-path wire-through.
+
+    When the orchestrator supplies a ``retrieval_query_request``,
+    ``build_stable_prefix`` must call the injected provider with the
+    request's ``story_id``/``query_text`` and surface its result on
+    ``StablePrefix.retrieval_memory`` — the one seam Issue 18 actually
+    added to this service, distinct from the Issue 8 always-empty default
+    exercised above.
+    """
+    retrieval = _SentinelRetrievalMemoryProvider()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=retrieval,
+    )
+    request = RetrievalQueryRequest(story_id=_STORY_ID, query_text="a past scene")
+
+    prefix = service.build_stable_prefix(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        intent_classification=_make_classified_intent(),
+        retrieval_query_request=request,
+    )
+
+    assert retrieval.call_count == 1
+    assert retrieval.last_story_id == _STORY_ID
+    assert retrieval.last_query == "a past scene"
+    assert prefix.retrieval_memory.passages == retrieval.last_payload.passages
+    assert "RETRIEVAL_WIRE_THROUGH_SENTINEL" in prefix.render()
 
 
 # ===========================================================================
