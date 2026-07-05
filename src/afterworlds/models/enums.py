@@ -511,3 +511,47 @@ class SourceLocatorTypeEnum(StrEnum):
     HEADING_ANCHOR = "heading_anchor"
     SECTION_PATH = "section_path"
     RANGE = "range"
+
+
+# ---------------------------------------------------------------------------
+# Retrieval Memory enums — CRD Issue 18 / ADR-018
+# ---------------------------------------------------------------------------
+
+
+class RetrievalSourceType(StrEnum):
+    """Provenance/origin class of a story-memory chunk (ADR-018 D2).
+
+    Distinct from ``RetrievalChunkKind`` — this is *where the content came
+    from*, not its semantic shape.  ``DELIVERED_TURN_PROSE`` is the only
+    source type Issue 18 ingests.  The enum is reserved for future extension
+    (``STORY_BIBLE_ENTRY``, ``CANON_PACK``) so a later issue can add a new
+    source without a schema migration; reserving the field now does NOT
+    authorize ingesting anything beyond delivered turn prose in v1.
+    """
+
+    DELIVERED_TURN_PROSE = "delivered_turn_prose"
+
+
+class RetrievalChunkKind(StrEnum):
+    """Semantic kind of a story-memory chunk within its source (ADR-018 D2).
+
+    ``SCENE_PROSE`` is the only chunk kind Issue 18 produces (one chunk per
+    delivered turn's prose, per D3's one-chunk-per-turn policy).
+    """
+
+    SCENE_PROSE = "scene_prose"
+
+
+class RpgTurnRetrievalCategory(StrEnum):
+    """Typed category recorded per-turn in ``rpg_turn_retrieval_markers``.
+
+    Written once, at turn-creation time, inside the narrative-persist outer
+    transaction, for post-boundary RPG narrative-path DELIVERED turns only
+    (ADR-018 D6). There is deliberately no OOC category — RPG OOC_HANDLED
+    turns are persisted via a structurally separate path (``_ooc_persist``)
+    and never reach the marker-writing block.
+    """
+
+    ORDINARY_NARRATIVE = "ordinary_narrative"
+    ROLL_REQUEST = "roll_request"
+    SETUP_CONFIRMATION = "setup_confirmation"
