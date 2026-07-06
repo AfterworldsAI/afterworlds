@@ -17,6 +17,7 @@ import pytest
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
     RetrievalCollectionReindexRequiredError,
+    delete_collection_ignoring_absence,
     get_existing_story_memory_collection_for_delete,
     get_rules_corpus_collection,
     get_story_memory_collection,
@@ -115,6 +116,37 @@ class TestGetExistingStoryMemoryCollectionForDelete:
 
         with pytest.raises(RuntimeError, match="store locked"):
             get_existing_story_memory_collection_for_delete(client)
+
+
+class TestDeleteCollectionIgnoringAbsence:
+    """Codex review (PR #119) round 7: the shared wipe-then-rebuild helper
+    used by both story-memory and rules-corpus reindex paths."""
+
+    def test_absent_collection_is_a_noop(self, tmp_path: Path) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        delete_collection_ignoring_absence(client, "story_memory")  # must not raise
+
+    def test_existing_collection_is_deleted(self, tmp_path: Path) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        get_story_memory_collection(client, RetrievalMemoryConfig(), ef)
+
+        delete_collection_ignoring_absence(client, "story_memory")
+
+        assert client.list_collections() == []
+
+    def test_operational_error_propagates(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "delete_collection", _boom)
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            delete_collection_ignoring_absence(client, "story_memory")
 
 
 class TestRulesCorpusCollectionEmbeddingModelGuard:

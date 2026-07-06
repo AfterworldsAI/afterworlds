@@ -305,3 +305,32 @@ class TestDeleteBypassesEmbeddingModelGuard:
 
         with pytest.raises(RuntimeError, match="store locked"):
             service.delete_story(uuid4())
+
+
+class TestWipeCollectionPropagatesOperationalFailure:
+    """Codex review (PR #119) round 7: wipe_collection() must ignore only a
+    genuinely absent collection -- an operational Chroma failure must
+    propagate rather than leave an operator believing the wipe succeeded."""
+
+    def test_absent_collection_is_a_noop(self, tmp_path: Path) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        service = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(), DeterministicFakeEmbeddingFunction()
+        )
+        service.wipe_collection()  # must not raise
+
+    def test_operational_error_propagates(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        service = RetrievalMemoryWriteService(client, RetrievalMemoryConfig(), ef)
+        service.ingest_turn(uuid4(), uuid4(), None, "rpg", "Some prose.", "t1")
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "delete_collection", _boom)
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            service.wipe_collection()

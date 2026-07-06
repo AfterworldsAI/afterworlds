@@ -17,7 +17,6 @@ exclusively ``get_active_rule_slice`` (CLAUDE.md invariant 8).
 from __future__ import annotations
 
 from collections.abc import Mapping
-from contextlib import suppress
 from uuid import UUID
 
 from chromadb.api import ClientAPI
@@ -31,7 +30,10 @@ from afterworlds.models.retrieval import (
     rules_corpus_collection_name,
 )
 from afterworlds.persistence.orm.rules_package import RuleChunkORM
-from afterworlds.pipeline.retrieval.collections import get_rules_corpus_collection
+from afterworlds.pipeline.retrieval.collections import (
+    delete_collection_ignoring_absence,
+    get_rules_corpus_collection,
+)
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
 
@@ -56,10 +58,17 @@ class RulesCorpusService:
         enabled ``RuleChunk`` row for *rules_package_id*. This absorbs the
         CRD Issue 5b interim collection without mutating any 5a source
         record. Returns the number of chunks written.
+
+        Raises:
+            Whatever ``delete_collection_ignoring_absence`` propagates (any
+                operational Chroma failure besides a genuinely absent
+                collection) — rebuild must never proceed past a wipe that
+                may not have actually happened (Codex review, PR #119 round
+                7), since stale disabled/deleted chunks would then remain
+                silently retrievable through the diagnostic query.
         """
         collection_name = rules_corpus_collection_name(rules_package_id)
-        with suppress(Exception):  # collection may not exist yet
-            self._client.delete_collection(collection_name)
+        delete_collection_ignoring_absence(self._client, collection_name)
         collection = get_rules_corpus_collection(
             self._client, collection_name, self._config, self._embedding_function
         )

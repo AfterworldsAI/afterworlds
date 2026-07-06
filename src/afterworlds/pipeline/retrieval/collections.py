@@ -7,6 +7,8 @@ see ``eligibility.py`` and the query/write services, never bypassed here).
 
 from __future__ import annotations
 
+from contextlib import suppress
+
 from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
 from chromadb.errors import NotFoundError
@@ -144,6 +146,22 @@ def get_existing_story_memory_collection_for_delete(
         return client.get_collection(name=STORY_MEMORY_COLLECTION_NAME)
     except NotFoundError:
         return None
+
+
+def delete_collection_ignoring_absence(client: ClientAPI, collection_name: str) -> None:
+    """Delete *collection_name* if it exists; a genuinely absent collection is
+    a no-op.
+
+    Only ``chromadb.errors.NotFoundError`` is swallowed — the same narrow
+    exception type used by :func:`get_existing_story_memory_collection_for_delete`.
+    Any other Chroma/operational failure (locked store, corrupt store,
+    permission failure, client failure) propagates: a wipe-then-rebuild
+    caller must never proceed to recreate the collection or upsert on top of
+    a delete that may not have actually happened, since stale chunks would
+    then remain silently retrievable (Codex review, PR #119 round 7).
+    """
+    with suppress(NotFoundError):
+        client.delete_collection(collection_name)
 
 
 def get_rules_corpus_collection(

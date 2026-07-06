@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from contextlib import suppress
 from uuid import UUID
 
 from chromadb.api import ClientAPI
@@ -28,6 +27,7 @@ from afterworlds.models.retrieval import (
 )
 from afterworlds.pipeline.retrieval.chunking import chunk_turn_prose
 from afterworlds.pipeline.retrieval.collections import (
+    delete_collection_ignoring_absence,
     get_existing_story_memory_collection_for_delete,
     get_story_memory_collection,
 )
@@ -168,6 +168,14 @@ class RetrievalMemoryWriteService:
         return len(result.get("ids") or [])
 
     def wipe_collection(self) -> None:
-        """Delete and recreate the entire story_memory collection (full reindex)."""
-        with suppress(Exception):  # collection may not exist yet
-            self._client.delete_collection(STORY_MEMORY_COLLECTION_NAME)
+        """Delete the entire story_memory collection (full reindex, operator-driven).
+
+        Only "collection genuinely absent" is treated as a no-op; any other
+        operational Chroma failure propagates rather than being swallowed —
+        an operator who believes this wipe succeeded and proceeds to
+        backfill every story must not silently write on top of a collection
+        that was never actually cleared (Codex review, PR #119 round 7).
+        Recreated lazily on next :func:`get_story_memory_collection` call,
+        not here.
+        """
+        delete_collection_ignoring_absence(self._client, STORY_MEMORY_COLLECTION_NAME)

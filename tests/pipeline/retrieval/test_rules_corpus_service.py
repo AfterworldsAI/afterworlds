@@ -232,6 +232,112 @@ class TestReindexFromSql:
         assert results == ["Only surviving chunk."]
 
 
+class TestReindexPropagatesWipeFailure:
+    """Codex review (PR #119) round 7: reindex_from_sql() must ignore only a
+    genuinely absent collection when wiping -- an operational Chroma
+    failure (locked/corrupt store, permission error) must propagate and
+    must abort before get_rules_corpus_collection()/upsert() ever runs, so
+    stale disabled/deleted chunks can never remain silently retrievable
+    after a supposed rebuild."""
+
+    def test_operational_delete_failure_propagates(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["Some content."])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+        service.reindex_from_sql(session, package_id)  # creates the collection
+
+        def _boom(name: str) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "delete_collection", _boom)
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            service.reindex_from_sql(session, package_id)
+
+    def test_operational_delete_failure_skips_get_collection_and_upsert(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["Some content."])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        def _boom(name: str) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "delete_collection", _boom)
+
+        import afterworlds.pipeline.retrieval.rules_corpus_service as rcs_module
+
+        get_collection_calls: list[object] = []
+        monkeypatch.setattr(
+            rcs_module,
+            "get_rules_corpus_collection",
+            lambda *a, **k: get_collection_calls.append(1),
+        )
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            service.reindex_from_sql(session, package_id)
+
+        assert get_collection_calls == []
+
+    def test_stale_chunks_remain_visible_not_silently_hidden_after_failed_wipe(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["Stale content."])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+        service.reindex_from_sql(session, package_id)
+
+        def _boom(name: str) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "delete_collection", _boom)
+        with pytest.raises(RuntimeError, match="store locked"):
+            service.reindex_from_sql(session, package_id)
+
+        # The old collection is untouched -- the failure is loud (an
+        # exception), not a silently-empty or silently-stale "success".
+        results = service.diagnostic_query(package_id, "Stale content.", n_results=1)
+        assert results == ["Stale content."]
+
+    def test_absent_collection_is_ignored_and_reindex_rebuilds_normally(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """The expected no-op case: no prior collection exists at all."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["Fresh content."])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        written = service.reindex_from_sql(session, package_id)
+
+        assert written == 1
+        assert service.diagnostic_query(package_id, "Fresh content.", n_results=1) == [
+            "Fresh content."
+        ]
+
+
 class TestRulesCorpusIdStability:
     """Codex review (PR #119) round 4: rules-corpus Chroma IDs must derive
     from RuleChunkORM.chunk_id (durable SQL identity), not a per-run
