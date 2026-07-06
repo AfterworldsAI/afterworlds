@@ -26,15 +26,42 @@ from afterworlds.persistence.crud.retrieval import (
     create_rpg_turn_retrieval_marker,
     get_era_boundary_timestamp,
     get_rpg_turn_retrieval_marker,
+    get_turn_for_eligibility,
     has_pending_roll_request_originating_from_turn,
     is_post_boundary,
 )
 from afterworlds.persistence.crud.story import create_story
 from afterworlds.persistence.database import create_session_factory
+from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.persistence.orm.retrieval import RetrievalMarkerEraBoundaryORM
 from afterworlds.persistence.orm.rpg import PendingRollRequestORM
-from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility_for_turn
+from afterworlds.pipeline.retrieval.eligibility import (
+    gather_turn_eligibility,
+    gather_turn_eligibility_for_turn,
+)
 from tests.persistence.conftest import make_story
+
+
+def _insert_malformed_mode_metadata_turn(
+    session, turn_id, malformed_metadata  # type: ignore[no-untyped-def]
+) -> None:
+    """Insert a Turn row whose mode_metadata JSON fails ModeMetadata
+    validation -- bypasses create_turn() (which validates via the Turn
+    pydantic model before persisting) to simulate a corrupted/schema-drifted
+    committed row."""
+    session.add(
+        TurnORM(
+            turn_id=str(turn_id),
+            node_id=None,
+            user_input="prior input",
+            assistant_output="Some delivered prose.",
+            timestamp=_NOW.isoformat(),
+            intent_classification=IntentType.DIALOGUE.value,
+            mode_metadata=malformed_metadata,
+        )
+    )
+    session.commit()
+
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -292,3 +319,71 @@ class TestGatherEligibilityDbIntegrated:
 
         decision = gather_turn_eligibility_for_turn(session, turn, StoryMode.RPG)
         assert decision.eligible is True
+
+
+class TestMalformedModeMetadataDoesNotAbort:
+    """Codex review (PR #119): a Writing turn with malformed persisted
+    mode_metadata must resolve to eligible=False, not raise -- and this must
+    not affect RPG eligibility, which never reads mode_metadata at all."""
+
+    def test_malformed_writing_metadata_returns_ineligible_not_raise(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        story = make_story(mode=StoryMode.WRITING)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        # persona_registry_version expects int | None -- a string fails
+        # WritingNodeMetadata validation.
+        _insert_malformed_mode_metadata_turn(
+            session,
+            turn_id,
+            {"mode": "writing", "persona_registry_version": "not-a-number"},
+        )
+
+        decision = gather_turn_eligibility(session, turn_id, StoryMode.WRITING)
+
+        assert decision.eligible is False
+        assert decision.data_integrity_error is False
+
+    def test_get_turn_for_eligibility_does_not_raise_on_malformed_metadata(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        story = make_story(mode=StoryMode.WRITING)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        _insert_malformed_mode_metadata_turn(
+            session, turn_id, {"mode": "writing", "persona_registry_version": "bad"}
+        )
+
+        turn = get_turn_for_eligibility(session, turn_id)
+
+        assert turn is not None
+        assert turn.mode_metadata is None
+        assert turn.assistant_output == "Some delivered prose."
+
+    def test_malformed_rpg_mode_metadata_does_not_affect_rpg_eligibility(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        """RPG eligibility never reads mode_metadata (it reads the marker
+        table + era boundary + PendingRollRequest) -- a malformed
+        mode_metadata row on an RPG turn must not change the outcome an
+        ORDINARY_NARRATIVE marker would otherwise produce."""
+        story = make_story(mode=StoryMode.RPG)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        _insert_malformed_mode_metadata_turn(
+            session, turn_id, {"mode": "rpg", "dice_results": "not-a-list-of-int"}
+        )
+        create_rpg_turn_retrieval_marker(
+            session,
+            turn_id=turn_id,
+            story_id=story.story_id,
+            category=RpgTurnRetrievalCategory.ORDINARY_NARRATIVE,
+            created_at=_NOW.isoformat(),
+        )
+        session.commit()
+
+        decision = gather_turn_eligibility(session, turn_id, StoryMode.RPG)
+
+        assert decision.eligible is True
+        assert decision.data_integrity_error is False

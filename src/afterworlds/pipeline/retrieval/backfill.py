@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import StoryMode
-from afterworlds.persistence.crud.node import get_turn
+from afterworlds.persistence.crud.retrieval import get_turn_for_eligibility
 from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility_for_turn
@@ -70,7 +70,12 @@ def backfill_story(
     skipped = 0
     integrity_errors: list[UUID] = []
     for turn_id in turn_ids:
-        turn = get_turn(session, turn_id)
+        # get_turn_for_eligibility (not the general-purpose get_turn) so a
+        # single Writing turn with malformed persisted mode_metadata cannot
+        # abort the whole story's backfill/reindex run (Codex review, PR
+        # #119) -- ADR-018 D6 already defines that shape as ineligible, not
+        # a fatal error.
+        turn = get_turn_for_eligibility(session, turn_id)
         if turn is None:
             continue
         decision = gather_turn_eligibility_for_turn(session, turn, story_mode)

@@ -373,7 +373,10 @@ class ContextBuilderService:
         Raises:
             UnknownModeError: if no prompt file exists for the given mode.
             ValueError: if a qualifying RPG rule_slice_request is provided but
-                rules_package_service was not injected.
+                rules_package_service was not injected, or if
+                retrieval_query_request.story_id does not match story_id
+                (ADR-018 D1 mandatory story_id gate — never query another
+                story's Retrieval Memory).
         """
         # 1. Load mode contract.
         system_prompt = load_mode_contract(mode)
@@ -410,8 +413,16 @@ class ContextBuilderService:
         # rendering, same cache-key neutrality).
         retrieval_memory = RetrievalMemoryPayload()
         if retrieval_query_request is not None:
+            if retrieval_query_request.story_id != story_id:
+                raise ValueError(
+                    f"retrieval_query_request.story_id "
+                    f"({retrieval_query_request.story_id}) does not match the "
+                    f"active story_id ({story_id}) being assembled; refusing to "
+                    "query another story's Retrieval Memory (ADR-018 D1 mandatory "
+                    "story_id gate)."
+                )
             retrieval_memory = self._retrieval_memory.retrieve(
-                retrieval_query_request.story_id, retrieval_query_request.query_text
+                story_id, retrieval_query_request.query_text
             )
 
         return StablePrefix(
@@ -497,7 +508,9 @@ class ContextBuilderService:
         Raises:
             UnknownModeError: if no prompt file exists for the given mode.
             ValueError: if a qualifying RPG rule_slice_request is provided but
-                rules_package_service was not injected.
+                rules_package_service was not injected, or if
+                retrieval_query_request.story_id does not match story_id
+                (ADR-018 D1 mandatory story_id gate).
         """
         stable_prefix = self.build_stable_prefix(
             story_id,

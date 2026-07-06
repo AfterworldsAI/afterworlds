@@ -13,11 +13,13 @@ from uuid import uuid4
 
 import pytest
 
-from afterworlds.models.enums import IntentType, StoryMode
+from afterworlds.models.enums import IntentType, StoryMode, WritingCanonEligibility
+from afterworlds.models.node import WritingNodeMetadata
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.node import create_node, create_turn
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.persistence.database import create_session_factory
+from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.pipeline.retrieval.backfill import backfill_story, reindex_story
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -72,6 +74,68 @@ def _seed_story_with_turns(session, mode: StoryMode, count: int):  # type: ignor
     return story.story_id, turn_ids
 
 
+def _seed_writing_story_with_malformed_and_valid_turn(session):  # type: ignore[no-untyped-def]
+    """One valid EXTRACTOR_ELIGIBLE turn + one turn with malformed
+    persisted mode_metadata (inserted directly, bypassing the Turn pydantic
+    model's validation, to simulate a corrupted/schema-drifted row).
+
+    Both turns are attached to a real Node -- _all_turn_ids_for_story joins
+    Turn -> Node -> Chapter -> Arc -> Story, so a null node_id would make
+    the turn invisible to backfill regardless of this test's intent.
+    """
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        StateDelta,
+    )
+
+    story = make_story(mode=StoryMode.WRITING)
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = make_arc(str(story.story_id))
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chapter = make_chapter(str(arc.arc_id))
+    create_chapter(session, chapter)  # type: ignore[arg-type]
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=_NOW),
+        mode_metadata=BranchingNodeMetadata(),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+
+    valid_metadata = WritingNodeMetadata(
+        canon_eligibility=WritingCanonEligibility.EXTRACTOR_ELIGIBLE.value
+    )
+    valid_turn = Turn(
+        user_input="prior input",
+        assistant_output="Kestrel drew her blade in the moonlight.",
+        timestamp=_NOW,
+        intent_classification=IntentType.DIALOGUE,
+        node_id=node.node_id,
+        mode_metadata=valid_metadata,
+    )
+    create_turn(session, valid_turn)  # type: ignore[arg-type]
+
+    malformed_turn_id = uuid4()
+    session.add(
+        TurnORM(
+            turn_id=str(malformed_turn_id),
+            node_id=str(node.node_id),
+            user_input="prior input",
+            assistant_output="This turn has corrupted metadata.",
+            timestamp=_NOW.isoformat(),
+            intent_classification=IntentType.DIALOGUE.value,
+            mode_metadata={"mode": "writing", "persona_registry_version": "bad"},
+        )
+    )
+    session.commit()
+    return story.story_id, valid_turn.turn_id, malformed_turn_id
+
+
 class TestBackfillStory:
     def test_backfill_ingests_eligible_turns(
         self, session_factory, tmp_path: Path
@@ -112,6 +176,31 @@ class TestBackfillStory:
         count_after_second = write_service.count_for_story(story_id)
 
         assert count_after_first == count_after_second == 2
+
+    def test_malformed_writing_metadata_is_skipped_not_aborting(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119): a single Writing turn with malformed
+        persisted mode_metadata must not abort the whole story's backfill --
+        the valid EXTRACTOR_ELIGIBLE turn must still be ingested."""
+        session = session_factory()
+        story_id, valid_turn_id, malformed_turn_id = (
+            _seed_writing_story_with_malformed_and_valid_turn(session)
+        )
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        report = backfill_story(session, write_service, story_id, StoryMode.WRITING)
+
+        assert report.turns_scanned == 2
+        assert report.turns_ingested == 1
+        assert report.turns_skipped_ineligible == 1
+        assert report.data_integrity_errors == ()
+        assert write_service.count_for_story(story_id) == 1
 
 
 class TestReindexStory:

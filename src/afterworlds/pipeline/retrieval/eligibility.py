@@ -24,10 +24,10 @@ from afterworlds.models.enums import (
 )
 from afterworlds.models.node import ModeMetadata, WritingNodeMetadata
 from afterworlds.models.turn import Turn
-from afterworlds.persistence.crud.node import get_turn
 from afterworlds.persistence.crud.retrieval import (
     get_era_boundary_timestamp,
     get_rpg_turn_retrieval_marker,
+    get_turn_for_eligibility,
     has_pending_roll_request_originating_from_turn,
 )
 from afterworlds.persistence.crud.retrieval import is_post_boundary as _is_post_boundary
@@ -161,8 +161,15 @@ def gather_turn_eligibility(
     Returns ``eligible=False`` with a reason when the turn does not exist
     (e.g. already deleted) rather than raising, since callers (backfill,
     reindex) iterate turn IDs that may no longer be present.
+
+    Uses :func:`get_turn_for_eligibility` rather than the general-purpose
+    ``get_turn`` (Codex review, PR #119): a Writing turn with malformed
+    persisted ``mode_metadata`` must resolve to ``eligible=False``, not
+    abort this read with a deserialization error — a single corrupted row
+    must not stop query-tail building, backfill, or reindex for the rest of
+    a story.
     """
-    turn = get_turn(session, turn_id)
+    turn = get_turn_for_eligibility(session, turn_id)
     if turn is None:
         return EligibilityDecision(eligible=False, reason="turn not found")
     return gather_turn_eligibility_for_turn(session, turn, story_mode)

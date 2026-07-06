@@ -101,6 +101,68 @@ def _block_safety(target: SafetyTarget) -> SafetyResult:
     )
 
 
+def _make_rpg_orch_without_adjudication(
+    session_factory: object,
+    retrieval_write_service: _FakeRetrievalWriteService | None = None,
+    *,
+    play_status_setup: bool = False,
+) -> OrchestratorService:
+    """RPG orchestrator with a session/sheet resolver wired but NO RPG
+    adjudication service -- the exact shape Codex #119 P2 flagged: a story
+    can have Retrieval Memory enabled before adjudication is wired, and the
+    mandatory turn-retrieval-marker classification must still resolve
+    rpg_play_status correctly rather than defaulting to ORDINARY_NARRATIVE."""
+    from afterworlds.models.enums import DiceHandling, RpgPlayStatus
+    from afterworlds.models.session import RpgSessionState
+
+    session_state, sheet = _make_rpg_session_and_sheet()
+    if play_status_setup:
+        session_state = RpgSessionState(
+            story_id=session_state.story_id,
+            character_sheet_id=session_state.character_sheet_id,
+            dice_handling=DiceHandling.AI_ROLLS,
+            play_status=RpgPlayStatus.SETUP,
+        )
+
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent()),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+        # rpg_adjudication_service intentionally absent.
+        retrieval_write_service=retrieval_write_service,
+    )
+
+
+def _make_rpg_orch_with_neither_adjudication_nor_resolver(
+    session_factory: object,
+) -> OrchestratorService:
+    """RPG mode active, but nothing can resolve rpg_play_status at all --
+    the marker-classification fail-closed case (Codex #119 P2)."""
+    return OrchestratorService(
+        intent_classifier=FakeIntentClassifier(make_intent()),
+        context_builder=FakeContextBuilder(),
+        safety_service=FakeSafetyService(),
+        planner_service=FakePlannerService(),
+        writer_service=FakeWriterService(),
+        extractor_service=FakeExtractorService(),
+        contradiction_service=FakeContradictionService(),
+        session_factory=session_factory,  # type: ignore[arg-type]
+        safety_policy=CapabilityProfileAwareSafetyPolicy(),
+        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+        # Neither rpg_adjudication_service nor rpg_session_sheet_resolver wired.
+    )
+
+
 class _FakeRetrievalWriteService:
     def __init__(self) -> None:
         self.calls: list[tuple[object, ...]] = []
@@ -437,6 +499,104 @@ class TestRpgTurnRetrievalMarker:
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.turn_id is None
         assert result.delivered_output is None
+
+    def test_setup_confirmation_marker_without_adjudication_wired(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) P2: rpg_play_status must resolve from the
+        session/sheet resolver directly, independent of RPG adjudication
+        wiring -- a story can have Retrieval Memory enabled before
+        adjudication is wired. A SETUP turn must still get
+        SETUP_CONFIRMATION, not fall through to ORDINARY_NARRATIVE."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_rpg_orch_without_adjudication(
+            session_factory, fake_retrieval, play_status_setup=True
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I roll up my character.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.turn_id is not None
+        with session_factory() as read_session:  # type: ignore[operator]
+            category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
+        assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION
+        assert fake_retrieval.calls == []
+
+    def test_ordinary_narrative_marker_without_adjudication_wired(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Same independence proof as above, for the IN_PLAY/non-SETUP case:
+        rpg_play_status resolves to IN_PLAY without adjudication wired, and
+        the turn is marked ORDINARY_NARRATIVE (and ingested) exactly as it
+        would be with adjudication wired."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_rpg_orch_without_adjudication(session_factory, fake_retrieval)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.turn_id is not None
+        with session_factory() as read_session:  # type: ignore[operator]
+            category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
+        assert category is RpgTurnRetrievalCategory.ORDINARY_NARRATIVE
+        assert len(fake_retrieval.calls) == 1
+
+    def test_unresolvable_play_status_fails_closed_not_ordinary_narrative(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) P2: when RPG mode is active but nothing
+        can resolve rpg_play_status at all (no adjudication service, no
+        session/sheet resolver), marker classification must fail closed --
+        a typed PIPELINE_ERROR and rollback, never a silently-written
+        ORDINARY_NARRATIVE marker for an unclassified turn."""
+        story_id, node_id = seeded_story
+        orch = _make_rpg_orch_with_neither_adjudication_nor_resolver(session_factory)
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.turn_id is None
+        assert result.delivered_output is None
+        with session_factory() as read_session:  # type: ignore[operator]
+            # No marker row at all -- never a fallback ORDINARY_NARRATIVE.
+            from sqlalchemy import select
+
+            from afterworlds.persistence.orm.node import NodeORM, TurnORM
+            from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+            existing_turn_ids = (
+                read_session.execute(
+                    select(TurnORM.turn_id)
+                    .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+                    .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+                    .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+                    .where(ArcORM.story_id == str(story_id))
+                )
+                .scalars()
+                .all()
+            )
+        # Rolled back: no Turn row was committed for this failed attempt.
+        assert existing_turn_ids == []
 
 
 class TestWritingSetupTurnGuard:

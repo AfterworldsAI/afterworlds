@@ -198,6 +198,26 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         )
         create_turn(session, turn)  # type: ignore[arg-type]
 
+    def _persist_malformed_writing_turn(
+        self, session: Session, node_id: object, assistant_output: str
+    ) -> None:
+        """Insert a Turn row whose mode_metadata JSON fails ModeMetadata
+        validation -- bypasses create_turn()'s pydantic validation to
+        simulate a corrupted/schema-drifted committed row (Codex #119 P2)."""
+        from afterworlds.persistence.orm.node import TurnORM
+
+        session.add(
+            TurnORM(
+                turn_id=str(uuid4()),
+                node_id=str(node_id),
+                user_input="prior input",
+                assistant_output=assistant_output,
+                timestamp=_NOW.isoformat(),
+                intent_classification=IntentType.DIALOGUE.value,
+                mode_metadata={"mode": "writing", "persona_registry_version": "bad"},
+            )
+        )
+
     def test_extractor_eligible_prose_turn_appears_in_query_tail(
         self, session_factory
     ) -> None:  # type: ignore[no-untyped-def]
@@ -322,3 +342,37 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         assert "Kestrel drew her blade" in request.query_text
         assert "brainstorm" not in request.query_text
         assert "sequel" not in request.query_text
+
+    def test_malformed_writing_metadata_turn_is_skipped_not_aborting(
+        self, session_factory
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119): a malformed-metadata Writing turn in the
+        tail window must not abort query composition -- it is simply
+        excluded, and the query still builds from the other eligible tail
+        turn plus current input."""
+        session = session_factory()
+        story_id, node_id = self._seed_writing_story(session)
+        extractor_eligible_metadata = WritingNodeMetadata(
+            canon_eligibility=WritingCanonEligibility.EXTRACTOR_ELIGIBLE.value
+        )
+        self._persist_malformed_writing_turn(
+            session, node_id, "This turn has corrupted metadata."
+        )
+        self._persist_writing_turn(
+            session,
+            node_id,
+            "Kestrel drew her blade in the moonlight.",
+            extractor_eligible_metadata,
+        )
+        session.commit()
+
+        provider = SQLiteRecentTurnsProvider(session)
+        builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
+
+        request = builder.build_query_request(
+            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+        )
+
+        assert "Kestrel drew her blade" in request.query_text
+        assert "corrupted metadata" not in request.query_text
+        assert "What happens next?" in request.query_text

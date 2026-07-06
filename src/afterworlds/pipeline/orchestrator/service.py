@@ -1138,10 +1138,13 @@ class OrchestratorService:
         rpg_character_id: UUID | None = None
         rpg_sheet: Dnd5eCharacterSheet | None = None
         # Threaded to _narrative_persist for the RPG turn-retrieval-marker
-        # classification (ADR-018 D6). None only when RPG adjudication is
-        # not wired for an RPG-mode story; the marker-write block treats
-        # that as IN_PLAY/ORDINARY_NARRATIVE (the common case) rather than
-        # failing closed, since adjudication wiring is a separate concern.
+        # classification (ADR-018 D6). Resolved independently of adjudication
+        # wiring below (Codex #119 P2) — a story can have Retrieval Memory
+        # enabled before RPG adjudication is wired, and marker classification
+        # must not silently default an unresolved SETUP turn to
+        # ORDINARY_NARRATIVE. Remains None only when no session/sheet
+        # resolver is wired at all, or resolution fails; the marker-write
+        # block below fails closed (typed PIPELINE_ERROR) in that case.
         rpg_play_status: RpgPlayStatus | None = None
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
@@ -1262,6 +1265,20 @@ class OrchestratorService:
                         planner_result=planner_result,
                         rpg_adjudication_result=adj_result,
                     )
+        elif story_mode == StoryMode.RPG:
+            # RPG adjudication is not wired for this story, but the mandatory
+            # turn-retrieval-marker write in _narrative_persist still needs
+            # rpg_play_status (ADR-018 D6) — resolved here directly from the
+            # session/sheet resolver, independent of adjudication wiring.
+            # Reads only the durable session record; never infers from
+            # Writer prose. Left None (fails closed at marker-write time) if
+            # no resolver is wired or resolution fails.
+            if self._rpg_session_sheet_resolver is not None:
+                try:
+                    _pre_ss, _ = self._rpg_session_sheet_resolver(story_id)
+                    rpg_play_status = _pre_ss.play_status
+                except Exception:  # noqa: BLE001
+                    rpg_play_status = None
         # -------------------------------------------------------------------------
 
         # Open outer transaction now: Writer is about to persist a Turn.
@@ -1879,10 +1896,33 @@ class OrchestratorService:
 
             if rpg_play_status is RpgPlayStatus.SETUP:
                 _marker_category = _RTRC.SETUP_CONFIRMATION
-            elif adj_result is not None and adj_result.pending_roll_request is not None:
-                _marker_category = _RTRC.ROLL_REQUEST
+            elif rpg_play_status is RpgPlayStatus.IN_PLAY:
+                if (
+                    adj_result is not None
+                    and adj_result.pending_roll_request is not None
+                ):
+                    _marker_category = _RTRC.ROLL_REQUEST
+                else:
+                    _marker_category = _RTRC.ORDINARY_NARRATIVE
             else:
-                _marker_category = _RTRC.ORDINARY_NARRATIVE
+                # RpgPlayStatus is a two-value enum (SETUP, IN_PLAY); None
+                # here means it could not be resolved at all -- no
+                # session/sheet resolver wired, or resolution failed. Fail
+                # closed rather than writing a misleading ORDINARY_NARRATIVE
+                # marker for an unclassified RPG turn (Codex #119 P2).
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "RPG turn retrieval marker classification requires"
+                    " rpg_play_status, but it could not be resolved (no RPG"
+                    " session/sheet resolver wired, or resolution failed)",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
+                )
             try:
                 _create_marker(
                     session,
@@ -3741,14 +3781,21 @@ class OrchestratorService:
         ):
             return
         try:
-            from afterworlds.persistence.crud.node import get_turn
+            from afterworlds.persistence.crud.retrieval import (
+                get_turn_for_eligibility,
+            )
             from afterworlds.pipeline.retrieval.eligibility import (
                 gather_turn_eligibility_for_turn,
             )
 
             session = self._session_factory()
             try:
-                turn = get_turn(session, result.turn_id)
+                # get_turn_for_eligibility (not the general-purpose get_turn)
+                # so a Writing turn with malformed persisted mode_metadata
+                # resolves cleanly to ineligible/not-ingested instead of
+                # raising here and being masked by this method's outer D7
+                # best-effort swallow (Codex review, PR #119).
+                turn = get_turn_for_eligibility(session, result.turn_id)
                 if turn is None:
                     return
                 decision = gather_turn_eligibility_for_turn(session, turn, story_mode)

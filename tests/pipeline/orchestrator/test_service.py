@@ -4613,6 +4613,15 @@ def _make_orchestrator_with_pending(
         make_intent,
     )
 
+    # RPG turns that reach _narrative_persist need rpg_play_status resolved
+    # (ADR-018 D6 turn-retrieval-marker classification, Codex #119 P2) even
+    # when RPG adjudication itself is not wired for this fixture -- an
+    # IN_PLAY session/sheet resolver here keeps this CRD Issue 15
+    # pending-roll-intercept fixture realistic rather than relying on the
+    # since-removed "unresolved play_status defaults to ORDINARY_NARRATIVE"
+    # behavior.
+    session_state, sheet = _make_rpg_session_and_sheet()
+
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
         context_builder=FakeContextBuilder(),
@@ -4624,6 +4633,7 @@ def _make_orchestrator_with_pending(
         session_factory=session_factory,  # type: ignore[arg-type]
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         mode_resolver=mode_resolver or fixed_mode_resolver(StoryMode.RPG),
         rpg_pending_roll_service=pending_roll_svc,  # type: ignore[arg-type]
     )
