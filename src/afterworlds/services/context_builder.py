@@ -14,13 +14,14 @@ Key constraints from the issue spec:
     (IN_CHARACTER_ACTION | DIALOGUE | LORE_QUESTION) + request → retrieve;
     all other cases → omit.
   - RecentTurnsProvider and RetrievalMemoryProvider are Protocol seams.
-    Neither is hard-coded to a concrete implementation.  ChromaDB integration
-    lands in Issue 18.
-  - StablePrefix.retrieval_memory is a reserved typed placeholder.  Issue 8
-    preserves the injectable seam and typed contract but does NOT materialize
-    query-dependent retrieval results inside the cacheable stable block.  Real
-    retrieval placement is deferred to Issue 18 (ADR-0010 Decision 4).
-  - NullRetrievalMemoryProvider is the default until Issue 18.
+    Neither is hard-coded to a concrete implementation.
+  - StablePrefix.retrieval_memory is populated only when the caller supplies
+    a ``retrieval_query_request`` (CRD Issue 18 / ADR-018 D8); the Context
+    Builder performs no query composition or eligibility inference itself.
+    It sits inside the existing cacheable stable block, under the existing
+    breakpoint (ADR-018 D9 resolves ADR-0010 Decision 4).
+  - NullRetrievalMemoryProvider is the default when no real provider is
+    injected (e.g. tests, or ChromaDB not configured).
   - No pipeline calls, no Writer invocation, no Story Bible writes.
 """
 
@@ -49,6 +50,7 @@ from afterworlds.models.enums import (
     normalize_legacy_intent_type,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.rolling_summary import RollingSummary
 from afterworlds.models.rules_package import ActiveRuleSlice, RuleSliceRequest
 from afterworlds.models.story_bible import StoryBibleContext
@@ -334,6 +336,7 @@ class ContextBuilderService:
         mode: StoryMode,
         intent_classification: IntentClassificationResult,
         rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: RetrievalQueryRequest | None = None,
     ) -> StablePrefix:
         """Assemble the stable prefix for one pipeline turn.
 
@@ -342,9 +345,13 @@ class ContextBuilderService:
           2. story_bible_context — ratified Story Bible canon
           3. rolling_summary_text — compressed narrative history (if present)
           4. rules_package_slice — RPG rule slice (mode×intent policy gate)
-          5. retrieval_memory — reserved typed placeholder; always empty in
-             Issue 8.  Query-dependent retrieval must not enter the cacheable
-             stable block (ADR-0010 Decision 4).  Issue 18 owns placement.
+          5. retrieval_memory — vector retrieval payload (CRD Issue 18 /
+             ADR-018). Populated only when ``retrieval_query_request`` is
+             supplied; empty otherwise. Retrieval memory sits inside the
+             existing StablePrefix envelope, under the existing cache
+             breakpoint (ADR-018 D9) — shared, unmodified, by every
+             provider-backed pass that renders this StablePrefix, not
+             Writer-only.
 
         Args:
             story_id: UUID of the story this turn belongs to.
@@ -354,6 +361,11 @@ class ContextBuilderService:
                 Used for mode×intent rule slice gate.
             rule_slice_request: optional parameter bundle for RPG rule slice.
                 Only honoured when mode is RPG and intent qualifies.
+            retrieval_query_request: optional orchestrator-constructed
+                request (``RetrievalQueryBuilder``, ADR-018 D8). The Context
+                Builder performs no query composition or eligibility
+                inference itself — it only forwards ``story_id``/
+                ``query_text`` to the injected ``RetrievalMemoryProvider``.
 
         Returns:
             Frozen StablePrefix ready to share across all pipeline passes.
@@ -361,7 +373,10 @@ class ContextBuilderService:
         Raises:
             UnknownModeError: if no prompt file exists for the given mode.
             ValueError: if a qualifying RPG rule_slice_request is provided but
-                rules_package_service was not injected.
+                rules_package_service was not injected, or if
+                retrieval_query_request.story_id does not match story_id
+                (ADR-018 D1 mandatory story_id gate — never query another
+                story's Retrieval Memory).
         """
         # 1. Load mode contract.
         system_prompt = load_mode_contract(mode)
@@ -392,16 +407,30 @@ class ContextBuilderService:
                 include_non_published=rule_slice_request.include_non_published,
             )
 
-        # 5. Retrieval memory — reserved placeholder; not materialized in Issue 8.
-        # Query-dependent retrieval must not enter the cacheable stable block
-        # (ADR-0010 Decision 4).  self._retrieval_memory seam is injected for
-        # Issue 18 to wire without changing the constructor signature.
+        # 5. Retrieval memory (CRD Issue 18 / ADR-018 D8). Empty when no
+        # request is supplied (mirrors the pre-Issue-18 placeholder
+        # behavior exactly — same empty typed payload, same omitted
+        # rendering, same cache-key neutrality).
+        retrieval_memory = RetrievalMemoryPayload()
+        if retrieval_query_request is not None:
+            if retrieval_query_request.story_id != story_id:
+                raise ValueError(
+                    f"retrieval_query_request.story_id "
+                    f"({retrieval_query_request.story_id}) does not match the "
+                    f"active story_id ({story_id}) being assembled; refusing to "
+                    "query another story's Retrieval Memory (ADR-018 D1 mandatory "
+                    "story_id gate)."
+                )
+            retrieval_memory = self._retrieval_memory.retrieve(
+                story_id, retrieval_query_request.query_text
+            )
+
         return StablePrefix(
             system_prompt=system_prompt,
             story_bible_context=bible_context,
             rolling_summary_text=rolling_summary_text,
             rules_package_slice=rules_package_slice,
-            retrieval_memory=RetrievalMemoryPayload(),
+            retrieval_memory=retrieval_memory,
         )
 
     def build_volatile_suffix(
@@ -455,6 +484,7 @@ class ContextBuilderService:
         current_input: str,
         classified_intent: IntentClassificationResult,
         rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: RetrievalQueryRequest | None = None,
     ) -> AssembledContext:
         """Assemble the full context payload for one pipeline turn.
 
@@ -468,6 +498,8 @@ class ContextBuilderService:
             current_input: raw player input string for this turn.
             classified_intent: typed result from IntentClassifierService.
             rule_slice_request: optional parameter bundle for RPG rule slice.
+            retrieval_query_request: optional orchestrator-constructed
+                retrieval query request (ADR-018 D8).
 
         Returns:
             AssembledContext with stable prefix, volatile suffix, and an empty
@@ -476,10 +508,16 @@ class ContextBuilderService:
         Raises:
             UnknownModeError: if no prompt file exists for the given mode.
             ValueError: if a qualifying RPG rule_slice_request is provided but
-                rules_package_service was not injected.
+                rules_package_service was not injected, or if
+                retrieval_query_request.story_id does not match story_id
+                (ADR-018 D1 mandatory story_id gate).
         """
         stable_prefix = self.build_stable_prefix(
-            story_id, mode, classified_intent, rule_slice_request
+            story_id,
+            mode,
+            classified_intent,
+            rule_slice_request,
+            retrieval_query_request,
         )
         volatile_suffix = self.build_volatile_suffix(
             story_id, current_input, classified_intent

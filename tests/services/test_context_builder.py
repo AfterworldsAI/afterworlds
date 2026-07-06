@@ -47,6 +47,7 @@ from afterworlds.models.enums import (
     StoryMode,
 )
 from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.rolling_summary import RollingSummary
 from afterworlds.models.rules_package import ActiveRuleSlice, RuleSliceRequest
 from afterworlds.models.story import Story
@@ -149,6 +150,24 @@ class _CountingRetrievalMemoryProvider:
         self.call_count += 1
         self.last_query = query
         return RetrievalMemoryPayload()
+
+
+class _SentinelRetrievalMemoryProvider:
+    """Stub that always returns a fixed non-empty payload."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+        self.last_story_id: UUID | None = None
+        self.last_query: str | None = None
+        self.last_payload = RetrievalMemoryPayload(
+            passages=("RETRIEVAL_WIRE_THROUGH_SENTINEL",)
+        )
+
+    def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+        self.call_count += 1
+        self.last_story_id = story_id
+        self.last_query = query
+        return self.last_payload
 
 
 # ---------------------------------------------------------------------------
@@ -423,9 +442,16 @@ def test_build_stable_prefix_called_once_per_turn() -> None:
         mode: StoryMode,
         intent_classification: IntentClassificationResult,
         rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: object = None,
     ) -> StablePrefix:
         call_count[0] += 1
-        return original_build(story_id, mode, intent_classification, rule_slice_request)  # type: ignore[arg-type]
+        return original_build(  # type: ignore[arg-type]
+            story_id,
+            mode,
+            intent_classification,
+            rule_slice_request,
+            retrieval_query_request,
+        )
 
     service.build_stable_prefix = counting_build  # type: ignore[method-assign]
 
@@ -928,6 +954,119 @@ def test_stable_prefix_retrieval_memory_always_empty_regardless_of_provider() ->
     )
     assert assembled.stable_prefix.retrieval_memory.passages == ()
     assert "SHOULD_NOT_APPEAR" not in assembled.stable_prefix.render()
+
+
+def test_retrieval_query_request_populates_stable_prefix() -> None:
+    """CRD Issue 18 / ADR-018 D8/D9 read-path wire-through.
+
+    When the orchestrator supplies a ``retrieval_query_request``,
+    ``build_stable_prefix`` must call the injected provider with the
+    request's ``story_id``/``query_text`` and surface its result on
+    ``StablePrefix.retrieval_memory`` — the one seam Issue 18 actually
+    added to this service, distinct from the Issue 8 always-empty default
+    exercised above.
+    """
+    retrieval = _SentinelRetrievalMemoryProvider()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=retrieval,
+    )
+    request = RetrievalQueryRequest(story_id=_STORY_ID, query_text="a past scene")
+
+    prefix = service.build_stable_prefix(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        intent_classification=_make_classified_intent(),
+        retrieval_query_request=request,
+    )
+
+    assert retrieval.call_count == 1
+    assert retrieval.last_story_id == _STORY_ID
+    assert retrieval.last_query == "a past scene"
+    assert prefix.retrieval_memory.passages == retrieval.last_payload.passages
+    assert "RETRIEVAL_WIRE_THROUGH_SENTINEL" in prefix.render()
+
+
+def test_retrieval_query_request_matching_story_id_retrieves_normally() -> None:
+    """Baseline for the mismatch-guard tests below: a request whose
+    story_id equals the active story_id must retrieve exactly as before."""
+    retrieval = _SentinelRetrievalMemoryProvider()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=retrieval,
+    )
+    request = RetrievalQueryRequest(story_id=_STORY_ID, query_text="a past scene")
+
+    prefix = service.build_stable_prefix(
+        story_id=_STORY_ID,
+        mode=StoryMode.RPG,
+        intent_classification=_make_classified_intent(),
+        retrieval_query_request=request,
+    )
+
+    assert retrieval.call_count == 1
+    assert prefix.retrieval_memory.passages == retrieval.last_payload.passages
+
+
+def test_mismatched_retrieval_query_request_story_id_raises_before_querying() -> None:
+    """Codex review (PR #119): a RetrievalQueryRequest.story_id that does
+    not match the active story_id being assembled must never reach the
+    provider -- ADR-018 D1's mandatory story_id gate must not be
+    bypassable via a caller bug that constructs a mismatched request."""
+    other_story_id = uuid4()
+    retrieval = _SentinelRetrievalMemoryProvider()
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=retrieval,
+    )
+    mismatched_request = RetrievalQueryRequest(
+        story_id=other_story_id, query_text="a past scene"
+    )
+
+    with pytest.raises(ValueError, match="does not match"):
+        service.build_stable_prefix(
+            story_id=_STORY_ID,
+            mode=StoryMode.RPG,
+            intent_classification=_make_classified_intent(),
+            retrieval_query_request=mismatched_request,
+        )
+
+    assert retrieval.call_count == 0
+
+
+def test_mismatched_retrieval_query_request_cannot_leak_cross_story_chunks() -> None:
+    """No cross-story chunks can enter StablePrefix.retrieval_memory through
+    a malformed request: the raise happens before StablePrefix construction,
+    so no StablePrefix carrying another story's data is ever returned."""
+    other_story_id = uuid4()
+
+    class _AlwaysReturnsForeignStoryChunks:
+        def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
+            return RetrievalMemoryPayload(passages=("FOREIGN_STORY_CHUNK",))
+
+    service = ContextBuilderService(
+        story_bible_service=_FixedStoryBibleService(_minimal_bible()),
+        rolling_summary_service=_FixedRollingSummaryService(),
+        recent_turns_provider=_CountingRecentTurnsProvider(),
+        retrieval_memory=_AlwaysReturnsForeignStoryChunks(),
+    )
+    mismatched_request = RetrievalQueryRequest(
+        story_id=other_story_id, query_text="a past scene"
+    )
+
+    with pytest.raises(ValueError):
+        service.build_stable_prefix(
+            story_id=_STORY_ID,
+            mode=StoryMode.RPG,
+            intent_classification=_make_classified_intent(),
+            retrieval_query_request=mismatched_request,
+        )
 
 
 # ===========================================================================
