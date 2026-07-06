@@ -79,14 +79,7 @@ class RulesCorpusService:
         ids: list[str] = []
         documents: list[str] = []
         metadatas: list[Mapping[str, str | int | float | bool | None]] = []
-        # Chunk index is per (source_locator_type, source_locator_value) pair
-        # so the deterministic ID matches the CRD Issue 5a chunk identity
-        # (ADR-018 D11) even when a locator produced multiple chunks.
-        locator_seen: dict[tuple[str, str], int] = {}
         for row in rows:
-            locator_key = (row.source_locator_type, row.source_locator_value)
-            index = locator_seen.get(locator_key, 0)
-            locator_seen[locator_key] = index + 1
             locator_type = SourceLocatorTypeEnum(row.source_locator_type)
             metadata = RulesCorpusChunkMetadata(
                 rules_package_id=rules_package_id,
@@ -96,13 +89,12 @@ class RulesCorpusService:
                 source_locator_value=row.source_locator_value,
                 embedding_model_id=self._config.embedding_model_id,
             )
+            # ID derives from RuleChunkORM.chunk_id -- the row's own durable
+            # primary key -- not a per-run occurrence index (Codex review,
+            # PR #119 round 4): stable regardless of SQL row-iteration order
+            # or how many chunks share the same source locator.
             ids.append(
-                build_rules_corpus_chunk_id(
-                    rules_package_id,
-                    locator_type,
-                    row.source_locator_value,
-                    index,
-                )
+                build_rules_corpus_chunk_id(rules_package_id, UUID(row.chunk_id))
             )
             documents.append(row.content)
             metadatas.append(metadata.model_dump(mode="json"))

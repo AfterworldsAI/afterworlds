@@ -181,11 +181,31 @@ class _FakeRetrievalWriteService:
         )
 
 
+class _SpyRetrievalQueryBuilder:
+    """Records the args OrchestratorService passes to build_query_request."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[object, ...]] = []
+
+    def build_query_request(
+        self,
+        story_id: UUID,
+        current_input: str,
+        story_mode: StoryMode,
+        classified_intent: object,
+    ) -> object:
+        from afterworlds.models.retrieval import RetrievalQueryRequest
+
+        self.calls.append((story_id, current_input, story_mode, classified_intent))
+        return RetrievalQueryRequest(story_id=story_id, query_text=current_input)
+
+
 def _make_branching_orch_with_retrieval(
     session_factory: object,
     retrieval_write_service: _FakeRetrievalWriteService,
     *,
     safety_output: SafetyResult | None = None,
+    retrieval_query_builder: object | None = None,
 ) -> OrchestratorService:
     from afterworlds.models.enums import InteractionStyle, PacingStage
     from afterworlds.models.session import BranchingPlayStatus, BranchingSessionState
@@ -214,6 +234,7 @@ def _make_branching_orch_with_retrieval(
         mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
         branching_session_resolver=_branching_resolver,
         retrieval_write_service=retrieval_write_service,
+        retrieval_query_builder=retrieval_query_builder,  # type: ignore[arg-type]
     )
 
 
@@ -271,6 +292,38 @@ class TestIngestionGateBranching:
         assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
         assert result.turn_id is None
         assert fake_retrieval.calls == []
+
+
+class TestOrchestratorPassesClassifiedIntentToQueryBuilder:
+    """Codex review (PR #119) round 4: the orchestrator must thread the
+    real, already-computed IntentClassificationResult into
+    RetrievalQueryBuilder.build_query_request -- not omit it, and not
+    synthesize a separate one."""
+
+    def test_real_classified_intent_is_passed(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        spy_query_builder = _SpyRetrievalQueryBuilder()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            fake_retrieval,
+            retrieval_query_builder=spy_query_builder,
+        )
+
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert len(spy_query_builder.calls) == 1
+        called_story_id, called_input, called_mode, called_intent = (
+            spy_query_builder.calls[0]
+        )
+        assert called_story_id == story_id
+        assert called_input == "I open the door."
+        assert called_mode is StoryMode.BRANCHING
+        assert called_intent.intent_type is IntentType.IN_CHARACTER_ACTION
 
 
 def _make_pending_roll_request_for_sheet(

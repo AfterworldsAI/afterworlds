@@ -51,21 +51,22 @@ def build_story_memory_chunk_id_prefix(story_id: UUID, turn_id: UUID) -> str:
     return f"story:{story_id}:turn:{turn_id}:chunk:"
 
 
-def build_rules_corpus_chunk_id(
-    rules_package_id: UUID,
-    source_locator_type: SourceLocatorTypeEnum,
-    source_locator_value: str,
-    chunk_index: int,
-) -> str:
+def build_rules_corpus_chunk_id(rules_package_id: UUID, chunk_id: UUID) -> str:
     """Deterministic chunk ID for a rules-corpus chunk.
 
-    Derives from ``rules_package_id`` + the CRD Issue 5a chunk identity
-    (source locator type/value) + chunk index, per ADR-018 D11.
+    Derives from ``rules_package_id`` + the durable CRD Issue 5a
+    ``RuleChunkORM.chunk_id`` primary key, per ADR-018 D11.
+
+    Codex review (PR #119) round 4: an earlier version derived this ID from
+    (source locator type/value, per-run occurrence index) — a per-locator
+    ordinal assigned by SQL row-iteration order, not any durable property of
+    the row. Since ``RuleChunkORM.chunk_id`` is already the row's own
+    immutable primary key (assigned once, at CRD Issue 5a ingestion time),
+    it is what makes reindex idempotent and stable regardless of row order
+    or how many chunks share the same source locator — no synthetic
+    per-locator index is needed or safe to reconstruct at reindex time.
     """
-    return (
-        f"rules:{rules_package_id}:loc:{source_locator_type.value}"
-        f":{source_locator_value}:chunk:{chunk_index}"
-    )
+    return f"rules:{rules_package_id}:chunk:{chunk_id}"
 
 
 # ---------------------------------------------------------------------------

@@ -257,7 +257,11 @@ class RetrievalQueryBuilderLike(Protocol):
     """Narrow protocol for ``pipeline.retrieval.query_builder.RetrievalQueryBuilder``."""  # noqa: E501
 
     def build_query_request(
-        self, story_id: UUID, current_input: str, story_mode: StoryMode
+        self,
+        story_id: UUID,
+        current_input: str,
+        story_mode: StoryMode,
+        classified_intent: IntentClassificationResult,
     ) -> RetrievalQueryRequest: ...
 
 
@@ -585,7 +589,7 @@ class OrchestratorService:
             try:
                 retrieval_query_request = (
                     self._retrieval_query_builder.build_query_request(
-                        story_id, user_input, story_mode
+                        story_id, user_input, story_mode, intent_result
                     )
                 )
             except Exception as exc:  # noqa: BLE001

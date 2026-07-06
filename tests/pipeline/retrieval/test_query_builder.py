@@ -21,6 +21,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import IntentType, StoryMode, WritingCanonEligibility
+from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.node import (
     BranchingNodeMetadata,
     Node,
@@ -37,6 +38,19 @@ from afterworlds.services.context_builder import SQLiteRecentTurnsProvider
 from tests.persistence.conftest import make_arc, make_chapter, make_story
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _make_classified_intent(
+    intent: IntentType = IntentType.IN_CHARACTER_ACTION,
+    raw_input: str = "test input",
+) -> IntentClassificationResult:
+    return IntentClassificationResult(
+        intent_type=intent,
+        confidence=0.95,
+        raw_input=raw_input,
+        ambiguous=False,
+        secondary_intent=None,
+    )
 
 
 class _FakeRecentTurnsProvider:
@@ -98,7 +112,7 @@ class TestQueryTailEligibilityFiltering:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            uuid4(), "What happens next?", StoryMode.WRITING
+            uuid4(), "What happens next?", StoryMode.WRITING, _make_classified_intent()
         )
 
         assert "brainstorm" not in request.query_text
@@ -118,10 +132,10 @@ class TestQueryTailEligibilityFiltering:
         builder = RetrievalQueryBuilder(provider, session_factory)
 
         request = builder.build_query_request(
-            uuid4(), "current input", StoryMode.WRITING
+            uuid4(), "current input", StoryMode.WRITING, _make_classified_intent()
         )
 
-        assert request.query_text == "current input"
+        assert request.query_text == "current input\n\nintent_type=in_character_action"
 
     def test_empty_tail_uses_current_input_only(
         self, session_factory
@@ -130,10 +144,10 @@ class TestQueryTailEligibilityFiltering:
         builder = RetrievalQueryBuilder(provider, session_factory)
 
         request = builder.build_query_request(
-            uuid4(), "current input", StoryMode.BRANCHING
+            uuid4(), "current input", StoryMode.BRANCHING, _make_classified_intent()
         )
 
-        assert request.query_text == "current input"
+        assert request.query_text == "current input\n\nintent_type=in_character_action"
 
     def test_branching_tail_turns_are_eligible_by_default(
         self, session_factory
@@ -145,7 +159,7 @@ class TestQueryTailEligibilityFiltering:
         builder = RetrievalQueryBuilder(provider, session_factory)
 
         request = builder.build_query_request(
-            uuid4(), "current input", StoryMode.BRANCHING
+            uuid4(), "current input", StoryMode.BRANCHING, _make_classified_intent()
         )
 
         assert "The party chooses the left path." in request.query_text
@@ -238,7 +252,10 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+            story_id,  # type: ignore[arg-type]
+            "What happens next?",
+            StoryMode.WRITING,
+            _make_classified_intent(),
         )
 
         assert "Kestrel drew her blade" in request.query_text
@@ -263,11 +280,17 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+            story_id,  # type: ignore[arg-type]
+            "What happens next?",
+            StoryMode.WRITING,
+            _make_classified_intent(),
         )
 
         assert "brainstorm" not in request.query_text
-        assert request.query_text == "What happens next?"
+        assert (
+            request.query_text
+            == "What happens next?\n\nintent_type=in_character_action"
+        )
 
     def test_ooc_turn_does_not_leak_into_query_tail(
         self, session_factory
@@ -290,11 +313,17 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+            story_id,  # type: ignore[arg-type]
+            "What happens next?",
+            StoryMode.WRITING,
+            _make_classified_intent(),
         )
 
         assert "sequel" not in request.query_text
-        assert request.query_text == "What happens next?"
+        assert (
+            request.query_text
+            == "What happens next?\n\nintent_type=in_character_action"
+        )
 
     def test_mixed_tail_only_extractor_eligible_survives(
         self, session_factory
@@ -336,7 +365,10 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+            story_id,  # type: ignore[arg-type]
+            "What happens next?",
+            StoryMode.WRITING,
+            _make_classified_intent(),
         )
 
         assert "Kestrel drew her blade" in request.query_text
@@ -370,9 +402,88 @@ class TestQueryTailWithProductionRecentTurnsProvider:
         builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
 
         request = builder.build_query_request(
-            story_id, "What happens next?", StoryMode.WRITING  # type: ignore[arg-type]
+            story_id,  # type: ignore[arg-type]
+            "What happens next?",
+            StoryMode.WRITING,
+            _make_classified_intent(),
         )
 
         assert "Kestrel drew her blade" in request.query_text
         assert "corrupted metadata" not in request.query_text
         assert "What happens next?" in request.query_text
+
+
+class TestClassifiedIntentInQueryText:
+    """Codex review (PR #119) round 4: ADR-018 D8 requires query text to be
+    composed from current input AND classified intent, not current input
+    alone. RetrievalQueryBuilder previously never received/used intent at
+    all."""
+
+    def test_build_query_request_includes_classified_intent(
+        self, session_factory
+    ) -> None:  # type: ignore[no-untyped-def]
+        provider = _FakeRecentTurnsProvider([])
+        builder = RetrievalQueryBuilder(provider, session_factory)
+
+        request = builder.build_query_request(
+            uuid4(),
+            "current input",
+            StoryMode.BRANCHING,
+            _make_classified_intent(intent=IntentType.DIALOGUE),
+        )
+
+        assert "intent_type=dialogue" in request.query_text
+
+    def test_different_intents_produce_distinguishable_query_text(
+        self, session_factory
+    ) -> None:  # type: ignore[no-untyped-def]
+        provider = _FakeRecentTurnsProvider([])
+        builder = RetrievalQueryBuilder(provider, session_factory)
+
+        request_a = builder.build_query_request(
+            uuid4(),
+            "current input",
+            StoryMode.BRANCHING,
+            _make_classified_intent(intent=IntentType.DIALOGUE),
+        )
+        request_b = builder.build_query_request(
+            uuid4(),
+            "current input",
+            StoryMode.BRANCHING,
+            _make_classified_intent(intent=IntentType.IN_CHARACTER_ACTION),
+        )
+
+        assert request_a.query_text != request_b.query_text
+        assert "intent_type=dialogue" in request_a.query_text
+        assert "intent_type=in_character_action" in request_b.query_text
+
+    def test_tail_eligibility_behavior_unaffected_by_intent_fragment(
+        self, session_factory
+    ) -> None:  # type: ignore[no-untyped-def]
+        """The intent fragment is additive -- D6/D8 tail-eligibility
+        filtering (eligible tail included, OOC/support tail excluded) must
+        keep working exactly as before."""
+        session = session_factory()
+        non_canon_metadata = WritingNodeMetadata(
+            canon_eligibility=WritingCanonEligibility.NON_CANON_SUPPORT.value
+        )
+        extractor_eligible_metadata = WritingNodeMetadata(
+            canon_eligibility=WritingCanonEligibility.EXTRACTOR_ELIGIBLE.value
+        )
+        support_turn = _persist_turn(
+            session, "Let's brainstorm names.", non_canon_metadata
+        )
+        canon_turn = _persist_turn(
+            session, "Kestrel drew her blade.", extractor_eligible_metadata
+        )
+        session.commit()
+        provider = _FakeRecentTurnsProvider([support_turn, canon_turn])
+        builder = RetrievalQueryBuilder(provider, session_factory, tail_window=3)
+
+        request = builder.build_query_request(
+            uuid4(), "What happens next?", StoryMode.WRITING, _make_classified_intent()
+        )
+
+        assert "brainstorm" not in request.query_text
+        assert "Kestrel drew her blade" in request.query_text
+        assert "intent_type=in_character_action" in request.query_text

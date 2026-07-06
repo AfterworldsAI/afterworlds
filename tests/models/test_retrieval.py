@@ -66,20 +66,40 @@ class TestStoryMemoryChunkId:
 
 
 class TestRulesCorpusChunkId:
+    """CRD Issue 18 / ADR-018 D11, Codex review round 4: rules-corpus chunk
+    IDs derive from RuleChunkORM.chunk_id -- the row's own durable primary
+    key -- not a per-run occurrence index over (locator_type, locator_value)
+    pairs, which depended on SQL row-iteration order."""
+
     def test_deterministic(self) -> None:
         package_id = uuid4()
-        args = (package_id, SourceLocatorTypeEnum.PAGE, "p. 72", 0)
-        assert build_rules_corpus_chunk_id(*args) == build_rules_corpus_chunk_id(*args)
+        chunk_id = uuid4()
+        assert build_rules_corpus_chunk_id(
+            package_id, chunk_id
+        ) == build_rules_corpus_chunk_id(package_id, chunk_id)
 
-    def test_distinct_per_locator_value(self) -> None:
+    def test_distinct_per_chunk_id(self) -> None:
+        """Two chunks that happen to share a source locator still get
+        distinct, stable IDs -- keyed on chunk_id, not locator occurrence."""
         package_id = uuid4()
-        a = build_rules_corpus_chunk_id(
-            package_id, SourceLocatorTypeEnum.PAGE, "p. 72", 0
-        )
-        b = build_rules_corpus_chunk_id(
-            package_id, SourceLocatorTypeEnum.PAGE, "p. 73", 0
-        )
+        a = build_rules_corpus_chunk_id(package_id, uuid4())
+        b = build_rules_corpus_chunk_id(package_id, uuid4())
         assert a != b
+
+    def test_distinct_per_package(self) -> None:
+        chunk_id = uuid4()
+        assert build_rules_corpus_chunk_id(
+            uuid4(), chunk_id
+        ) != build_rules_corpus_chunk_id(uuid4(), chunk_id)
+
+    def test_not_a_random_uuid_relative_to_chunk_identity(self) -> None:
+        """ADR-018 D11: the ID must be derived from the durable chunk_id,
+        not a freshly generated random UUID unrelated to it."""
+        package_id = uuid4()
+        chunk_id = uuid4()
+        result = build_rules_corpus_chunk_id(package_id, chunk_id)
+        assert str(package_id) in result
+        assert str(chunk_id) in result
 
     def test_collection_name_derives_from_package_id(self) -> None:
         package_id = uuid4()
