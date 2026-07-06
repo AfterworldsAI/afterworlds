@@ -137,3 +137,148 @@ class TestEmbeddingModelMismatchSurfaces:
 
         with pytest.raises(RetrievalCollectionReindexRequiredError):
             service_b.ingest_turn(uuid4(), uuid4(), None, "rpg", "More prose.", "t2")
+
+
+class TestDeleteBypassesEmbeddingModelGuard:
+    """Codex review (PR #119) round 5: delete_turn()/delete_story() are
+    metadata-filtered operations that never invoke the embedding function,
+    so they must still work against a collection whose recorded
+    embedding_model_id no longer matches config -- an operator must be able
+    to scrub stale/mismatched chunks ahead of a full reindex. Normal
+    ingest/query paths must stay strict (proved above)."""
+
+    def test_delete_story_removes_chunks_from_mismatched_collection(
+        self, tmp_path: Path
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        story_id = uuid4()
+        service_a = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        )
+        service_a.ingest_turn(story_id, uuid4(), None, "rpg", "Stale prose.", "t1")
+
+        service_b = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+
+        remaining = service_b.delete_story(story_id)
+
+        assert remaining == 0
+
+    def test_delete_turn_removes_chunks_from_mismatched_collection(
+        self, tmp_path: Path
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        story_id, turn_id = uuid4(), uuid4()
+        service_a = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        )
+        service_a.ingest_turn(story_id, turn_id, None, "rpg", "Stale prose.", "t1")
+
+        service_b = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+        # Must not raise despite the mismatch.
+        service_b.delete_turn(story_id, turn_id)
+
+        # Verify via the delete-only accessor directly (avoids re-raising
+        # the guard through a strict collection fetch).
+        from afterworlds.pipeline.retrieval.collections import (
+            get_existing_story_memory_collection_for_delete,
+        )
+
+        collection = get_existing_story_memory_collection_for_delete(client)
+        assert collection is not None
+        result = collection.get(where={"story_id": str(story_id)})
+        assert result["ids"] == []
+
+    def test_delete_works_on_legacy_collection_missing_embedding_model_id(
+        self, tmp_path: Path
+    ) -> None:
+        """A collection created before the embedding-model guard existed has
+        no embedding_model_id key at all -- delete must still work."""
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        story_id = uuid4()
+        # Simulate a legacy pre-guard collection directly against the raw
+        # client, bypassing get_story_memory_collection entirely.
+        legacy_collection = client.get_or_create_collection(
+            name="story_memory",
+            metadata={"hnsw:space": "cosine"},
+            embedding_function=ef,  # type: ignore[arg-type]
+        )
+        legacy_collection.upsert(
+            documents=["Legacy prose."],
+            metadatas=[{"story_id": str(story_id)}],
+            ids=["legacy-chunk-1"],
+        )
+
+        service = RetrievalMemoryWriteService(client, RetrievalMemoryConfig(), ef)
+        remaining = service.delete_story(story_id)
+
+        assert remaining == 0
+
+    def test_delete_on_missing_collection_is_noop_and_creates_nothing(
+        self, tmp_path: Path
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        service = RetrievalMemoryWriteService(client, RetrievalMemoryConfig(), ef)
+
+        remaining = service.delete_story(uuid4())
+        service.delete_turn(uuid4(), uuid4())
+
+        assert remaining == 0
+        assert client.list_collections() == []
+
+    def test_delete_story_never_calls_upsert(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        story_id = uuid4()
+        service_a = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        )
+        service_a.ingest_turn(story_id, uuid4(), None, "rpg", "Stale prose.", "t1")
+
+        from afterworlds.pipeline.retrieval.collections import (
+            get_existing_story_memory_collection_for_delete as real_getter,
+        )
+
+        class _UpsertSpyCollectionWrapper:
+            def __init__(self, wrapped: object) -> None:
+                self._wrapped = wrapped
+                self.upsert_called = False
+
+            def __getattr__(self, name: str) -> object:
+                return getattr(self._wrapped, name)
+
+            def upsert(self, *args: object, **kwargs: object) -> None:
+                self.upsert_called = True
+                raise AssertionError("delete-only path must never call upsert()")
+
+        spy_holder: dict[str, _UpsertSpyCollectionWrapper] = {}
+
+        def _spy_getter(client_arg: object):  # type: ignore[no-untyped-def]
+            real = real_getter(client_arg)
+            if real is None:
+                return None
+            wrapper = _UpsertSpyCollectionWrapper(real)
+            spy_holder["wrapper"] = wrapper
+            return wrapper
+
+        monkeypatch.setattr(
+            "afterworlds.pipeline.retrieval.write_service."
+            "get_existing_story_memory_collection_for_delete",
+            _spy_getter,
+        )
+
+        service_b = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+        service_b.delete_story(story_id)
+
+        assert spy_holder["wrapper"].upsert_called is False

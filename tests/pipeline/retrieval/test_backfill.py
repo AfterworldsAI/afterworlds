@@ -258,3 +258,43 @@ class TestEmbeddingModelMismatchSurfacesThroughBackfill:
             backfill_story(
                 session, mismatched_write_service, story_id, StoryMode.BRANCHING
             )
+
+    def test_reindex_story_deletes_stale_entries_then_fails_clearly_on_mismatch(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) round 5: story_memory is shared across all
+        stories (ADR-018 D1), so a single story's reindex_story() cannot
+        repair a collection-level embedding-model mismatch on its own. It
+        may safely delete this story's stale entries (metadata-only, never
+        gated by the model guard) but must fail with the same clear typed
+        error rather than silently upserting into the still-incompatible
+        collection -- never "pretend" the story-level reindex fixed it."""
+        session = session_factory()
+        story_id, _turn_ids = _seed_story_with_turns(session, StoryMode.BRANCHING, 2)
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        # Create the shared collection under model-a, ingest this story's
+        # own (now-stale) chunks under that model too.
+        write_service_a = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        )
+        for turn_id in _turn_ids:
+            write_service_a.ingest_turn(
+                story_id, turn_id, None, "branching", "Stale prose.", "t"
+            )
+        assert write_service_a.count_for_story(story_id) == 2
+
+        mismatched_write_service = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+
+        with pytest.raises(RetrievalCollectionReindexRequiredError, match="shared"):
+            reindex_story(
+                session, mismatched_write_service, story_id, StoryMode.BRANCHING
+            )
+
+        # The delete-only phase ran safely (metadata delete never gated by
+        # the model guard) -- this story's stale entries are gone even
+        # though the collection-level mismatch blocked the rebuild.
+        assert write_service_a.count_for_story(story_id) == 0

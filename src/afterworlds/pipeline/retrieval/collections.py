@@ -48,14 +48,35 @@ def _require_matching_embedding_model(
         if collection.metadata
         else None
     )
-    if existing != config.embedding_model_id:
-        raise RetrievalCollectionReindexRequiredError(
-            f"Collection {collection_name!r} was created with embedding_model_id "
-            f"{existing!r} but the configured embedding_model_id is "
-            f"{config.embedding_model_id!r}. Mixed-model collections are a "
-            "defect (ADR-018 D4) — run a full reindex for this "
-            "story/rules-package before writing or querying again."
+    if existing == config.embedding_model_id:
+        return
+
+    if collection_name == STORY_MEMORY_COLLECTION_NAME:
+        # Shared across every story (ADR-018 D1) -- a single story's
+        # reindex_story() cannot repair a collection-level mismatch, since
+        # other stories' chunks in this same collection are still recorded
+        # under the old model. Do not let a caller believe a story-scoped
+        # operation fixed this; direct them to the explicit full-collection
+        # wipe (Codex review, PR #119).
+        guidance = (
+            "story_memory is shared across all stories -- a single story's "
+            "reindex cannot repair this collection-level mismatch. Wipe and "
+            "rebuild the entire collection "
+            "(RetrievalMemoryWriteService.wipe_collection(), then backfill "
+            "every story) before writing or querying again."
         )
+    else:
+        guidance = (
+            "run a full reindex for this rules package "
+            "(RulesCorpusService.reindex_from_sql) before writing or "
+            "querying again."
+        )
+    raise RetrievalCollectionReindexRequiredError(
+        f"Collection {collection_name!r} was created with embedding_model_id "
+        f"{existing!r} but the configured embedding_model_id is "
+        f"{config.embedding_model_id!r}. Mixed-model collections are a "
+        f"defect (ADR-018 D4) — {guidance}"
+    )
 
 
 def get_story_memory_collection(
@@ -89,6 +110,33 @@ def get_story_memory_collection(
     )
     _require_matching_embedding_model(collection, config, STORY_MEMORY_COLLECTION_NAME)
     return collection
+
+
+def get_existing_story_memory_collection_for_delete(
+    client: ClientAPI,
+) -> Collection | None:
+    """Open the existing ``story_memory`` collection for a metadata-only
+    delete operation, bypassing the ``embedding_model_id`` compatibility
+    guard entirely.
+
+    Returns ``None`` if the collection does not exist — callers must treat
+    "nothing to delete" as a no-op and must never create a collection as a
+    side effect of a delete-only operation (unlike
+    :func:`get_story_memory_collection`, which creates on first use).
+
+    This handle must only be used for metadata-filtered ``.get()``/
+    ``.delete()`` calls — never ``.upsert()`` or a semantic ``.query()``.
+    Deletion by ``story_id``/``turn_id`` metadata filter never invokes the
+    embedding function at all (verified against chromadb: ``.get()``/
+    ``.delete()`` with a ``where=`` filter and no embedding function bound
+    both work), so embedding-model compatibility is irrelevant to a delete
+    and must not block an operator from scrubbing a mismatched collection's
+    story-scoped chunks ahead of a full reindex (Codex review, PR #119).
+    """
+    try:
+        return client.get_collection(name=STORY_MEMORY_COLLECTION_NAME)
+    except Exception:  # noqa: BLE001 — chromadb's not-found error, no collection yet
+        return None
 
 
 def get_rules_corpus_collection(

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import replace
 from pathlib import Path
 from uuid import UUID
 
@@ -61,9 +62,34 @@ def parse_args() -> argparse.Namespace:
         "reindex: wipe and rebuild from SQLite ground truth. "
         "delete: remove all chunks for the story (no rebuild).",
     )
-    parser.add_argument("--chroma-path", default=".chroma_data")
+    parser.add_argument(
+        "--chroma-path",
+        default=None,
+        help="Override persist_directory. Defaults to the same "
+        "environment-derived config the application uses "
+        "(AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY), so this only needs to "
+        "be passed to deliberately point at a different Chroma directory.",
+    )
     parser.add_argument("--db-url", default="sqlite:///afterworlds.db")
     return parser.parse_args()
+
+
+def build_effective_config(chroma_path: str | None) -> RetrievalMemoryConfig:
+    """Build the config this script uses for every mode (backfill/reindex/delete).
+
+    Starts from ``RetrievalMemoryConfig.from_env()`` -- the same
+    environment-derived config the running application uses -- rather than
+    dataclass defaults (Codex review, PR #119): a recovery script that
+    silently rebuilt with default ``embedding_model_id``/
+    ``chunk_char_ceiling``/etc. instead of the env-configured values could
+    recreate the exact mismatch it was meant to fix.
+    ``chroma_path`` overrides only ``persist_directory``, and only when
+    explicitly provided (``None`` leaves the env-derived value untouched).
+    """
+    config = RetrievalMemoryConfig.from_env()
+    if chroma_path is not None:
+        config = replace(config, persist_directory=chroma_path)
+    return config
 
 
 def main() -> None:
@@ -72,7 +98,7 @@ def main() -> None:
 
     engine = create_engine(args.db_url)
     session_factory = create_session_factory(engine)
-    config = RetrievalMemoryConfig(persist_directory=args.chroma_path)
+    config = build_effective_config(args.chroma_path)
     client = build_chroma_client(config)
     write_service = RetrievalMemoryWriteService(client, config)
 

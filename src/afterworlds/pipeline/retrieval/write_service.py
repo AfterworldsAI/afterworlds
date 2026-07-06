@@ -27,7 +27,10 @@ from afterworlds.models.retrieval import (
     build_story_memory_chunk_id,
 )
 from afterworlds.pipeline.retrieval.chunking import chunk_turn_prose
-from afterworlds.pipeline.retrieval.collections import get_story_memory_collection
+from afterworlds.pipeline.retrieval.collections import (
+    get_existing_story_memory_collection_for_delete,
+    get_story_memory_collection,
+)
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import (
     RetrievalEmbeddingFunction,
@@ -120,12 +123,30 @@ class RetrievalMemoryWriteService:
             collection.delete(ids=ids)
 
     def delete_turn(self, story_id: UUID, turn_id: UUID) -> None:
-        """Delete all chunks for *turn_id* (turn deletion)."""
-        self._delete_turn_chunks(self._collection(), story_id, turn_id)
+        """Delete all chunks for *turn_id* (turn deletion).
+
+        Uses the delete-only collection handle (Codex review, PR #119):
+        deletion is metadata-filtered and never invokes the embedding
+        function, so an operator must be able to scrub a mismatched/legacy
+        collection's chunks even while it fails the strict
+        ``embedding_model_id`` guard on every other path. A missing
+        collection means nothing to delete — a no-op, never created here.
+        """
+        collection = get_existing_story_memory_collection_for_delete(self._client)
+        if collection is None:
+            return
+        self._delete_turn_chunks(collection, story_id, turn_id)
 
     def delete_story(self, story_id: UUID) -> int:
-        """Delete all chunks for *story_id*; returns remaining count (must be 0)."""
-        collection = self._collection()
+        """Delete all chunks for *story_id*; returns remaining count (must be 0).
+
+        Uses the delete-only collection handle for the same reason as
+        :meth:`delete_turn`. A missing collection means zero chunks exist
+        for any story — return 0 without creating one.
+        """
+        collection = get_existing_story_memory_collection_for_delete(self._client)
+        if collection is None:
+            return 0
         existing = collection.get(where={"story_id": str(story_id)})
         ids = existing.get("ids") or []
         if ids:
