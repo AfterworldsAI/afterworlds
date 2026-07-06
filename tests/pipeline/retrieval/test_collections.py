@@ -17,6 +17,7 @@ import pytest
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
     RetrievalCollectionReindexRequiredError,
+    get_existing_story_memory_collection_for_delete,
     get_rules_corpus_collection,
     get_story_memory_collection,
 )
@@ -80,6 +81,40 @@ class TestStoryMemoryCollectionEmbeddingModelGuard:
             get_story_memory_collection(
                 client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
             )
+
+
+class TestGetExistingStoryMemoryCollectionForDelete:
+    """Codex review (PR #119) round 6: the delete-only accessor must treat
+    only a genuinely-absent collection as "nothing to delete" -- an
+    operational error (locked store, permission failure, etc.) must
+    propagate rather than being silently reported as missing."""
+
+    def test_absent_collection_returns_none(self, tmp_path: Path) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        assert get_existing_story_memory_collection_for_delete(client) is None
+
+    def test_existing_collection_is_returned(self, tmp_path: Path) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        get_story_memory_collection(client, RetrievalMemoryConfig(), ef)
+
+        collection = get_existing_story_memory_collection_for_delete(client)
+
+        assert collection is not None
+        assert collection.name == "story_memory"
+
+    def test_operational_error_propagates(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+
+        def _boom(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(client, "get_collection", _boom)
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            get_existing_story_memory_collection_for_delete(client)
 
 
 class TestRulesCorpusCollectionEmbeddingModelGuard:

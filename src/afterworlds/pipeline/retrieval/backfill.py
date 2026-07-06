@@ -24,6 +24,16 @@ from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility_f
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
 
 
+class RetrievalReindexWipeIncompleteError(RuntimeError):
+    """Raised when reindex_story()'s delete-before-rebuild phase leaves
+    chunks behind (ADR-018 D11). Rebuilding on top of an incomplete wipe
+    would leave stale chunks alongside the rebuilt set, so backfill must
+    never run in that case — this is distinct from a data-integrity error
+    (a per-turn marker/SQLite defect reported in ``BackfillReport``): this
+    is an operational failure of the delete phase itself.
+    """
+
+
 @dataclass(frozen=True)
 class BackfillReport:
     """Outcome of a backfill or reindex run for one story."""
@@ -116,6 +126,17 @@ def reindex_story(
     reflected (no stray chunks survive from a chunk-set that has since
     shrunk for reasons outside a single turn's re-ingestion, e.g. a turn
     deletion that predates this reindex run).
+
+    Raises:
+        RetrievalReindexWipeIncompleteError: if the delete phase leaves any
+            chunks behind — rebuild never runs on top of an incomplete wipe
+            (Codex review, PR #119 round 6).
     """
-    write_service.delete_story(story_id)
+    remaining = write_service.delete_story(story_id)
+    if remaining != 0:
+        raise RetrievalReindexWipeIncompleteError(
+            f"reindex aborted for story {story_id}: delete_story left"
+            f" {remaining} chunk(s) behind; refusing to rebuild on top of an"
+            " incomplete wipe"
+        )
     return backfill_story(session, write_service, story_id, story_mode)

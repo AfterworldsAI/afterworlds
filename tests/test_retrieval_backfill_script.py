@@ -16,11 +16,23 @@ from uuid import uuid4
 
 import pytest
 
+import afterworlds.persistence.orm.character_sheet  # noqa: F401
+import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.retrieval  # noqa: F401
+import afterworlds.persistence.orm.rules_package  # noqa: F401
+import afterworlds.persistence.orm.session_state  # noqa: F401
+import afterworlds.persistence.orm.state  # noqa: F401
+import afterworlds.persistence.orm.story  # noqa: F401
+import afterworlds.persistence.orm.story_bible  # noqa: F401
+from afterworlds.persistence.crud.story import create_story
+from afterworlds.persistence.database import create_engine, create_session_factory
+from afterworlds.persistence.orm.base import Base
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.collections import get_story_memory_collection
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
+from tests.persistence.conftest import make_story
 
 _SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "retrieval_backfill.py"
 
@@ -127,3 +139,95 @@ class TestEnvConfiguredReindexMatchesAppConfig:
         app_collection = get_story_memory_collection(client, app_config, ef)
 
         assert app_collection.metadata.get("embedding_model_id") == "shared-env-model"
+
+
+def _seed_story_db(tmp_path: Path) -> tuple[str, object]:
+    """Create a file-backed SQLite DB with one story, for driving the
+    script's main() end-to-end (a separate engine connection, like the CLI
+    creates, needs a real file rather than an in-memory ``sqlite://`` URL)."""
+    db_url = f"sqlite:///{tmp_path / 'test.db'}"
+    engine = create_engine(db_url)
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    story = make_story()
+    create_story(session, story)  # type: ignore[arg-type]
+    session.commit()
+    session.close()
+    return db_url, story.story_id
+
+
+class TestCliExitCodes:
+    """Codex review (PR #119) round 6: operational failures during delete/
+    reindex must exit nonzero and must not print a success-looking report."""
+
+    def test_delete_mode_raises_on_operational_open_failure(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        script = _load_script()
+        db_url, story_id = _seed_story_db(tmp_path)
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma")
+        )
+
+        def _boom(self: object, story_id: object) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(RetrievalMemoryWriteService, "delete_story", _boom)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "retrieval_backfill.py",
+                "--story-id",
+                str(story_id),
+                "--mode",
+                "delete",
+                "--db-url",
+                db_url,
+            ],
+        )
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            script.main()
+
+        assert "deleted story chunks" not in capsys.readouterr().out
+
+    def test_reindex_mode_exits_nonzero_on_incomplete_wipe(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        script = _load_script()
+        db_url, story_id = _seed_story_db(tmp_path)
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma")
+        )
+        monkeypatch.setattr(
+            RetrievalMemoryWriteService, "delete_story", lambda self, story_id: 3
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "retrieval_backfill.py",
+                "--story-id",
+                str(story_id),
+                "--mode",
+                "reindex",
+                "--db-url",
+                db_url,
+            ],
+        )
+
+        from afterworlds.pipeline.retrieval.backfill import (
+            RetrievalReindexWipeIncompleteError,
+        )
+
+        with pytest.raises(RetrievalReindexWipeIncompleteError):
+            script.main()
+
+        assert "scanned=" not in capsys.readouterr().out

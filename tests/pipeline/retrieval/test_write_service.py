@@ -282,3 +282,26 @@ class TestDeleteBypassesEmbeddingModelGuard:
         service_b.delete_story(story_id)
 
         assert spy_holder["wrapper"].upsert_called is False
+
+    def test_delete_story_propagates_operational_error_not_remaining_zero(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Codex review (PR #119) round 6: an operational failure opening the
+        collection (locked store, permission error, etc.) must propagate --
+        delete_story() must never report remaining=0 in that case, since
+        that would look like a successful (empty) delete."""
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        service = RetrievalMemoryWriteService(client, RetrievalMemoryConfig(), ef)
+
+        def _boom(client_arg: object) -> None:
+            raise RuntimeError("store locked")
+
+        monkeypatch.setattr(
+            "afterworlds.pipeline.retrieval.write_service."
+            "get_existing_story_memory_collection_for_delete",
+            _boom,
+        )
+
+        with pytest.raises(RuntimeError, match="store locked"):
+            service.delete_story(uuid4())

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
+from chromadb.errors import NotFoundError
 
 from afterworlds.models.retrieval import STORY_MEMORY_COLLECTION_NAME
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -132,10 +133,16 @@ def get_existing_story_memory_collection_for_delete(
     both work), so embedding-model compatibility is irrelevant to a delete
     and must not block an operator from scrubbing a mismatched collection's
     story-scoped chunks ahead of a full reindex (Codex review, PR #119).
+
+    Only ``chromadb.errors.NotFoundError`` (collection genuinely absent) is
+    treated as "nothing to delete" — a locked store, corrupt store,
+    permission failure, or other operational error must propagate rather
+    than being silently reported as a missing collection (Codex review, PR
+    #119 round 6).
     """
     try:
         return client.get_collection(name=STORY_MEMORY_COLLECTION_NAME)
-    except Exception:  # noqa: BLE001 — chromadb's not-found error, no collection yet
+    except NotFoundError:
         return None
 
 

@@ -60,15 +60,18 @@ def decide_turn_eligibility(
         exists and its ``canon_eligibility`` reads ``EXTRACTOR_ELIGIBLE``.
         Missing/malformed metadata (the Writing block's best-effort write
         can fail silently) is treated as ineligible, never as eligible.
-      - RPG: ``has_pending_roll_request`` (a persisted ``PendingRollRequest``
-        row whose ``originating_turn_id`` matches this turn) is checked
-        before marker classification and governs regardless of marker
-        category — this is what excludes a legacy pre-marker roll-request
-        turn, since it predates the marker sidecar entirely and carries no
-        marker row (ADR-018 D6 era-boundary table). Otherwise, eligible only
-        for ``ORDINARY_NARRATIVE`` markers. A markerless post-boundary turn
-        is a data-integrity error (ineligible, flagged); a markerless
-        pre-boundary (legacy) turn with no pending-roll row is eligible.
+      - RPG, pre-boundary (legacy): ``has_pending_roll_request`` alone
+        governs — a legacy pre-marker roll-request turn predates the marker
+        sidecar entirely and carries no marker row (ADR-018 D6 era-boundary
+        table), so it is excluded without a data-integrity flag; markerless
+        with no pending-roll row is eligible as legacy ``ORDINARY_NARRATIVE``.
+      - RPG, post-boundary: marker coverage is mandatory (ADR-018 D6 coverage
+        invariant) and must agree with ``has_pending_roll_request`` — a
+        disagreement between the two signals is a data-integrity error, not
+        an eligibility outcome. A missing marker, a ``PendingRollRequest``
+        row whose marker is not ``ROLL_REQUEST``, or a ``ROLL_REQUEST``
+        marker with no matching ``PendingRollRequest`` row are all flagged.
+        Otherwise eligible only for ``ORDINARY_NARRATIVE`` markers.
       - Branching (and any other mode): eligible by default once the OOC
         filter above is applied — Branching setup confirmations remain
         eligible as ordinary narrative turns (CRD Issue 16).
@@ -94,22 +97,58 @@ def decide_turn_eligibility(
         return EligibilityDecision(eligible=True)
 
     if story_mode is StoryMode.RPG:
+        if not is_post_boundary:
+            # Pre-boundary (legacy) turns predate the marker sidecar and are
+            # exempt from the coverage invariant -- PendingRollRequest alone
+            # governs, per the era-boundary table (ADR-018 D6).
+            if has_pending_roll_request:
+                return EligibilityDecision(
+                    eligible=False,
+                    reason="PendingRollRequest.originating_turn_id matches this"
+                    " turn (roll-request procedural output)",
+                )
+            return EligibilityDecision(
+                eligible=True,
+                reason="pre-boundary legacy turn treated as ORDINARY_NARRATIVE",
+            )
+
+        # Post-boundary: marker row is mandatory and must agree with
+        # has_pending_roll_request (ADR-018 D6 coverage invariant) -- any
+        # disagreement is a data-integrity error, not an eligibility outcome.
         if has_pending_roll_request:
+            if rpg_marker_category is None:
+                return EligibilityDecision(
+                    eligible=False,
+                    data_integrity_error=True,
+                    reason="post-boundary PendingRollRequest present but marker"
+                    " row missing (coverage invariant violated)",
+                )
+            if rpg_marker_category is not RpgTurnRetrievalCategory.ROLL_REQUEST:
+                return EligibilityDecision(
+                    eligible=False,
+                    data_integrity_error=True,
+                    reason="post-boundary PendingRollRequest present but marker"
+                    f" category={rpg_marker_category.value} (expected"
+                    " roll_request; coverage invariant violated)",
+                )
             return EligibilityDecision(
                 eligible=False,
                 reason="PendingRollRequest.originating_turn_id matches this turn"
                 " (roll-request procedural output)",
             )
         if rpg_marker_category is None:
-            if is_post_boundary:
-                return EligibilityDecision(
-                    eligible=False,
-                    data_integrity_error=True,
-                    reason="post-boundary RPG narrative-path turn missing marker row",
-                )
             return EligibilityDecision(
-                eligible=True,
-                reason="pre-boundary legacy turn treated as ORDINARY_NARRATIVE",
+                eligible=False,
+                data_integrity_error=True,
+                reason="post-boundary RPG narrative-path turn missing marker row",
+            )
+        if rpg_marker_category is RpgTurnRetrievalCategory.ROLL_REQUEST:
+            return EligibilityDecision(
+                eligible=False,
+                data_integrity_error=True,
+                reason="post-boundary marker category=roll_request but no"
+                " matching PendingRollRequest row (coverage invariant"
+                " violated)",
             )
         if rpg_marker_category is RpgTurnRetrievalCategory.ORDINARY_NARRATIVE:
             return EligibilityDecision(eligible=True)

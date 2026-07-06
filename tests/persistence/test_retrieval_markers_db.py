@@ -300,6 +300,32 @@ class TestGatherEligibilityDbIntegrated:
         assert decision.eligible is False
         assert decision.data_integrity_error is False
 
+    def test_post_boundary_pending_roll_with_mismatched_marker_is_data_integrity_error(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) round 6: a post-boundary PendingRollRequest
+        row whose marker is not ROLL_REQUEST (here: ORDINARY_NARRATIVE) is a
+        coverage-invariant violation (ADR-018 D6) and must be surfaced as a
+        data-integrity error, not silently treated as plain ineligible."""
+        story = make_story(mode=StoryMode.RPG)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn = _make_turn()
+        create_turn(session, turn)  # type: ignore[arg-type]
+        session.commit()
+        create_rpg_turn_retrieval_marker(
+            session,
+            turn_id=turn.turn_id,
+            story_id=story.story_id,
+            category=RpgTurnRetrievalCategory.ORDINARY_NARRATIVE,
+            created_at=_NOW.isoformat(),
+        )
+        session.commit()
+        _seed_pending_roll_request(session, story.story_id, turn.turn_id)
+
+        decision = gather_turn_eligibility_for_turn(session, turn, StoryMode.RPG)
+        assert decision.eligible is False
+        assert decision.data_integrity_error is True
+
     def test_rpg_turn_with_ordinary_narrative_marker_is_eligible(
         self, session
     ) -> None:  # type: ignore[no-untyped-def]

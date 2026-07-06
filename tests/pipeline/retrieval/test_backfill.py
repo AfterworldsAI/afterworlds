@@ -13,14 +13,28 @@ from uuid import uuid4
 
 import pytest
 
-from afterworlds.models.enums import IntentType, StoryMode, WritingCanonEligibility
+from afterworlds.models.character_sheet import RpgCharacterSheetBase
+from afterworlds.models.enums import (
+    IntentType,
+    RollVisibility,
+    RpgTurnRetrievalCategory,
+    StoryMode,
+    WritingCanonEligibility,
+)
 from afterworlds.models.node import WritingNodeMetadata
 from afterworlds.models.turn import Turn
+from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.node import create_node, create_turn
+from afterworlds.persistence.crud.retrieval import create_rpg_turn_retrieval_marker
 from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
 from afterworlds.persistence.database import create_session_factory
 from afterworlds.persistence.orm.node import TurnORM
-from afterworlds.pipeline.retrieval.backfill import backfill_story, reindex_story
+from afterworlds.persistence.orm.rpg import PendingRollRequestORM
+from afterworlds.pipeline.retrieval.backfill import (
+    RetrievalReindexWipeIncompleteError,
+    backfill_story,
+    reindex_story,
+)
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.collections import (
     RetrievalCollectionReindexRequiredError,
@@ -139,6 +153,78 @@ def _seed_writing_story_with_malformed_and_valid_turn(session):  # type: ignore[
     return story.story_id, valid_turn.turn_id, malformed_turn_id
 
 
+def _seed_rpg_story_with_marker_mismatch_turn(session):  # type: ignore[no-untyped-def]
+    """One RPG turn with a PendingRollRequest row but an ORDINARY_NARRATIVE
+    marker -- a coverage-invariant violation (ADR-018 D6) that backfill must
+    report as a data-integrity error, not silently ingest or skip."""
+    from afterworlds.models.node import (
+        BranchingNodeMetadata,
+        Node,
+        NodeMetadata,
+        StateDelta,
+    )
+
+    story = make_story(mode=StoryMode.RPG)
+    create_story(session, story)  # type: ignore[arg-type]
+    arc = make_arc(str(story.story_id))
+    create_arc(session, arc)  # type: ignore[arg-type]
+    chapter = make_chapter(str(arc.arc_id))
+    create_chapter(session, chapter)  # type: ignore[arg-type]
+    node = Node(
+        chapter_id=chapter.chapter_id,
+        content="",
+        state_delta=StateDelta(),
+        branching_logic=[],
+        intent_type=IntentType.IN_CHARACTER_ACTION,
+        metadata=NodeMetadata(timestamp=_NOW),
+        mode_metadata=BranchingNodeMetadata(),
+    )
+    create_node(session, node)  # type: ignore[arg-type]
+    turn = Turn(
+        user_input="swing my sword",
+        assistant_output="The blade connects.",
+        timestamp=_NOW,
+        intent_classification=IntentType.IN_CHARACTER_ACTION,
+        node_id=node.node_id,
+    )
+    create_turn(session, turn)  # type: ignore[arg-type]
+    create_rpg_turn_retrieval_marker(
+        session,
+        turn_id=turn.turn_id,
+        story_id=story.story_id,
+        category=RpgTurnRetrievalCategory.ORDINARY_NARRATIVE,
+        created_at=_NOW.isoformat(),
+    )
+    sheet = RpgCharacterSheetBase(
+        story_id=story.story_id,
+        rules_package_id="dnd5e-v1",
+        character_name="Test Character",
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+    create_rpg_base_sheet(session, sheet)
+    session.add(
+        PendingRollRequestORM(
+            request_id=str(uuid4()),
+            story_id=str(story.story_id),
+            session_id=str(uuid4()),
+            character_id=str(sheet.sheet_id),
+            originating_turn_id=str(turn.turn_id),
+            check_label="Stealth Check",
+            player_facing_instruction="Roll a Stealth Check and report the total!",
+            expected_value_shape="d20",
+            visibility=RollVisibility.PLAYER.value,
+            source_proposal_ref="roll_0",
+            status="pending",
+            created_at=_NOW.isoformat(),
+            schema_version=1,
+            roll_expression="1d20+5",
+        )
+    )
+    session.commit()
+    return story.story_id, turn.turn_id
+
+
 class TestBackfillStory:
     def test_backfill_ingests_eligible_turns(
         self, session_factory, tmp_path: Path
@@ -205,6 +291,28 @@ class TestBackfillStory:
         assert report.data_integrity_errors == ()
         assert write_service.count_for_story(story_id) == 1
 
+    def test_rpg_marker_pending_roll_mismatch_is_reported_as_data_integrity_error(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) round 6: backfill must report the turn ID
+        of a post-boundary marker/PendingRollRequest mismatch as a
+        data-integrity error, not ingest it and not silently skip it."""
+        session = session_factory()
+        story_id, turn_id = _seed_rpg_story_with_marker_mismatch_turn(session)
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        report = backfill_story(session, write_service, story_id, StoryMode.RPG)
+
+        assert report.turns_scanned == 1
+        assert report.turns_ingested == 0
+        assert report.data_integrity_errors == (turn_id,)
+        assert write_service.count_for_story(story_id) == 0
+
 
 class TestReindexStory:
     def test_reindex_wipes_then_rebuilds(
@@ -230,6 +338,52 @@ class TestReindexStory:
 
         assert report.turns_ingested == 2
         assert write_service.count_for_story(story_id) == 2
+
+
+class TestReindexAbortsOnIncompleteWipe:
+    """Codex review (PR #119) round 6: reindex_story() must never rebuild on
+    top of an incomplete delete_story() wipe -- that would leave stale
+    chunks alongside the freshly rebuilt set."""
+
+    def test_reindex_aborts_and_skips_backfill_when_delete_leaves_chunks(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        story_id, _turn_ids = _seed_story_with_turns(session, StoryMode.BRANCHING, 2)
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+        monkeypatch.setattr(write_service, "delete_story", lambda story_id: 3)
+
+        backfill_calls = []
+        monkeypatch.setattr(
+            "afterworlds.pipeline.retrieval.backfill.backfill_story",
+            lambda *a, **k: backfill_calls.append((a, k)),
+        )
+
+        with pytest.raises(RetrievalReindexWipeIncompleteError):
+            reindex_story(session, write_service, story_id, StoryMode.BRANCHING)
+
+        assert backfill_calls == []
+
+    def test_reindex_rebuilds_when_delete_returns_zero(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        story_id, _turn_ids = _seed_story_with_turns(session, StoryMode.BRANCHING, 2)
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        report = reindex_story(session, write_service, story_id, StoryMode.BRANCHING)
+
+        assert report.turns_ingested == 2
 
 
 class TestEmbeddingModelMismatchSurfacesThroughBackfill:

@@ -151,11 +151,13 @@ class TestRpgEligibility:
         assert decision.eligible is False  # type: ignore[attr-defined]
         assert decision.data_integrity_error is True  # type: ignore[attr-defined]
 
-    def test_pending_roll_request_governs_regardless_of_marker_category(self) -> None:
-        """ADR-018 D6: PendingRollRequest.originating_turn_id governs the
-        exclusion decision regardless of marker category — verified here
-        against an ORDINARY_NARRATIVE marker, which would otherwise be
-        eligible."""
+    def test_post_boundary_pending_roll_ordinary_narrative_marker_is_defect(
+        self,
+    ) -> None:
+        """Codex review (PR #119) round 6: post-boundary, the two signals
+        must agree (ADR-018 D6 coverage invariant) — PendingRollRequest
+        present but an ORDINARY_NARRATIVE marker is a mismatch and must be
+        flagged, not silently treated as plain ineligible."""
         decision = _decide(
             story_mode=StoryMode.RPG,
             rpg_marker_category=RpgTurnRetrievalCategory.ORDINARY_NARRATIVE,
@@ -163,6 +165,59 @@ class TestRpgEligibility:
             has_pending_roll_request=True,
         )
         assert decision.eligible is False  # type: ignore[attr-defined]
+        assert decision.data_integrity_error is True  # type: ignore[attr-defined]
+
+    def test_post_boundary_pending_roll_setup_confirmation_marker_is_defect(
+        self,
+    ) -> None:
+        decision = _decide(
+            story_mode=StoryMode.RPG,
+            rpg_marker_category=RpgTurnRetrievalCategory.SETUP_CONFIRMATION,
+            is_post_boundary=True,
+            has_pending_roll_request=True,
+        )
+        assert decision.eligible is False  # type: ignore[attr-defined]
+        assert decision.data_integrity_error is True  # type: ignore[attr-defined]
+
+    def test_post_boundary_pending_roll_with_missing_marker_is_data_integrity_error(
+        self,
+    ) -> None:
+        decision = _decide(
+            story_mode=StoryMode.RPG,
+            rpg_marker_category=None,
+            is_post_boundary=True,
+            has_pending_roll_request=True,
+        )
+        assert decision.eligible is False  # type: ignore[attr-defined]
+        assert decision.data_integrity_error is True  # type: ignore[attr-defined]
+
+    def test_post_boundary_pending_roll_with_roll_request_marker_is_normal_ineligible(
+        self,
+    ) -> None:
+        """The agreeing shape (both signals present) is the expected,
+        non-defect case — ineligible, but not a data-integrity error."""
+        decision = _decide(
+            story_mode=StoryMode.RPG,
+            rpg_marker_category=RpgTurnRetrievalCategory.ROLL_REQUEST,
+            is_post_boundary=True,
+            has_pending_roll_request=True,
+        )
+        assert decision.eligible is False  # type: ignore[attr-defined]
+        assert decision.data_integrity_error is False  # type: ignore[attr-defined]
+
+    def test_post_boundary_roll_request_marker_without_pending_roll_is_defect(
+        self,
+    ) -> None:
+        """The inverse mismatch: a ROLL_REQUEST marker with no matching
+        PendingRollRequest row also violates the coverage invariant."""
+        decision = _decide(
+            story_mode=StoryMode.RPG,
+            rpg_marker_category=RpgTurnRetrievalCategory.ROLL_REQUEST,
+            is_post_boundary=True,
+            has_pending_roll_request=False,
+        )
+        assert decision.eligible is False  # type: ignore[attr-defined]
+        assert decision.data_integrity_error is True  # type: ignore[attr-defined]
 
 
 class TestBranchingEligibility:
