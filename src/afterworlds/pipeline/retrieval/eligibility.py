@@ -28,6 +28,7 @@ from afterworlds.persistence.crud.node import get_turn
 from afterworlds.persistence.crud.retrieval import (
     get_era_boundary_timestamp,
     get_rpg_turn_retrieval_marker,
+    has_pending_roll_request_originating_from_turn,
 )
 from afterworlds.persistence.crud.retrieval import is_post_boundary as _is_post_boundary
 from afterworlds.persistence.orm.node import TurnORM
@@ -49,6 +50,7 @@ def decide_turn_eligibility(
     mode_metadata: ModeMetadata | None,
     rpg_marker_category: RpgTurnRetrievalCategory | None,
     is_post_boundary: bool,
+    has_pending_roll_request: bool = False,
 ) -> EligibilityDecision:
     """Pure decision function — no I/O. See module docstring for callers.
 
@@ -58,9 +60,15 @@ def decide_turn_eligibility(
         exists and its ``canon_eligibility`` reads ``EXTRACTOR_ELIGIBLE``.
         Missing/malformed metadata (the Writing block's best-effort write
         can fail silently) is treated as ineligible, never as eligible.
-      - RPG: eligible only for ``ORDINARY_NARRATIVE`` markers. A markerless
-        post-boundary turn is a data-integrity error (ineligible, flagged);
-        a markerless pre-boundary (legacy) turn is eligible.
+      - RPG: ``has_pending_roll_request`` (a persisted ``PendingRollRequest``
+        row whose ``originating_turn_id`` matches this turn) is checked
+        before marker classification and governs regardless of marker
+        category — this is what excludes a legacy pre-marker roll-request
+        turn, since it predates the marker sidecar entirely and carries no
+        marker row (ADR-018 D6 era-boundary table). Otherwise, eligible only
+        for ``ORDINARY_NARRATIVE`` markers. A markerless post-boundary turn
+        is a data-integrity error (ineligible, flagged); a markerless
+        pre-boundary (legacy) turn with no pending-roll row is eligible.
       - Branching (and any other mode): eligible by default once the OOC
         filter above is applied — Branching setup confirmations remain
         eligible as ordinary narrative turns (CRD Issue 16).
@@ -86,6 +94,12 @@ def decide_turn_eligibility(
         return EligibilityDecision(eligible=True)
 
     if story_mode is StoryMode.RPG:
+        if has_pending_roll_request:
+            return EligibilityDecision(
+                eligible=False,
+                reason="PendingRollRequest.originating_turn_id matches this turn"
+                " (roll-request procedural output)",
+            )
         if rpg_marker_category is None:
             if is_post_boundary:
                 return EligibilityDecision(
@@ -118,12 +132,16 @@ def gather_turn_eligibility_for_turn(
     """
     marker_category: RpgTurnRetrievalCategory | None = None
     post_boundary = True
+    has_pending_roll_request = False
     if story_mode is StoryMode.RPG:
         marker_category = get_rpg_turn_retrieval_marker(session, turn.turn_id)
         raw_row = session.get(TurnORM, str(turn.turn_id))
         assert raw_row is not None  # noqa: S101 — caller-supplied turn exists
         boundary = get_era_boundary_timestamp(session)
         post_boundary = _is_post_boundary(raw_row.timestamp, boundary)
+        has_pending_roll_request = has_pending_roll_request_originating_from_turn(
+            session, turn.turn_id
+        )
 
     return decide_turn_eligibility(
         story_mode=story_mode,
@@ -131,6 +149,7 @@ def gather_turn_eligibility_for_turn(
         mode_metadata=turn.mode_metadata,
         rpg_marker_category=marker_category,
         is_post_boundary=post_boundary,
+        has_pending_roll_request=has_pending_roll_request,
     )
 
 

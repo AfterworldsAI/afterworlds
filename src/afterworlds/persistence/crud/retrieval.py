@@ -17,6 +17,7 @@ from afterworlds.persistence.orm.retrieval import (
     RetrievalMarkerEraBoundaryORM,
     RpgTurnRetrievalMarkerORM,
 )
+from afterworlds.persistence.orm.rpg import PendingRollRequestORM
 
 
 def create_rpg_turn_retrieval_marker(
@@ -80,3 +81,24 @@ def is_post_boundary(turn_timestamp: str, boundary_timestamp: str | None) -> boo
     if boundary_timestamp is None:
         return True
     return turn_timestamp > boundary_timestamp
+
+
+def has_pending_roll_request_originating_from_turn(
+    session: Session, turn_id: UUID
+) -> bool:
+    """Return True if a ``PendingRollRequest`` row's ``originating_turn_id``
+    equals *turn_id* (any status).
+
+    Codex review (PR #119): a legacy pre-marker RPG turn that announced a
+    roll must still be excluded from retrieval eligibility even though it
+    predates the marker sidecar entirely and carries no marker row — the
+    era-boundary table (ADR-018 D6) makes ``PendingRollRequest`` the sole
+    signal for that shape. This reads only the persisted row; it never
+    inspects prose or ``RpgSessionState.play_status``.
+    """
+    return (
+        session.query(PendingRollRequestORM)
+        .filter_by(originating_turn_id=str(turn_id))
+        .first()
+        is not None
+    )

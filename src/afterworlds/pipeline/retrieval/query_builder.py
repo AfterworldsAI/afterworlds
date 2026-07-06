@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from afterworlds.models.enums import StoryMode
 from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.turn import Turn
-from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility_for_turn
+from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility
 
 #: Default number of eligible recent turns folded into the query text.
 DEFAULT_TAIL_WINDOW = 3
@@ -69,8 +69,14 @@ class RetrievalQueryBuilder:
             session: Session = self._session_factory()  # type: ignore[operator]
             try:
                 for turn in tail_turns:
-                    decision = gather_turn_eligibility_for_turn(
-                        session, turn, story_mode
+                    # Reload the full committed turn rather than trusting
+                    # this projection's mode_metadata: production recent-turn
+                    # providers (e.g. SQLiteRecentTurnsProvider) may return a
+                    # lean Turn projection that omits mode_metadata, which
+                    # would otherwise make an eligible EXTRACTOR_ELIGIBLE
+                    # Writing turn look like missing metadata (Codex #119).
+                    decision = gather_turn_eligibility(
+                        session, turn.turn_id, story_mode
                     )
                     if decision.eligible:
                         eligible_texts.append(turn.assistant_output)

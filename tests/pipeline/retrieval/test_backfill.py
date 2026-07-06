@@ -21,6 +21,7 @@ from afterworlds.persistence.database import create_session_factory
 from afterworlds.pipeline.retrieval.backfill import backfill_story, reindex_story
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
 from tests.persistence.conftest import make_arc, make_chapter, make_story
 
@@ -80,7 +81,9 @@ class TestBackfillStory:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        write_service = RetrievalMemoryWriteService(client, config)
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
 
         report = backfill_story(session, write_service, story_id, StoryMode.BRANCHING)
 
@@ -98,7 +101,9 @@ class TestBackfillStory:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        write_service = RetrievalMemoryWriteService(client, config)
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
 
         backfill_story(session, write_service, story_id, StoryMode.BRANCHING)
         count_after_first = write_service.count_for_story(story_id)
@@ -118,7 +123,9 @@ class TestReindexStory:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        write_service = RetrievalMemoryWriteService(client, config)
+        write_service = RetrievalMemoryWriteService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
         backfill_story(session, write_service, story_id, StoryMode.BRANCHING)
 
         # Simulate stray drift: an extra chunk not backed by SQL ground truth.

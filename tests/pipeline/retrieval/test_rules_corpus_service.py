@@ -24,6 +24,7 @@ from afterworlds.persistence.orm.rules_package import (
 )
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.rules_corpus_service import RulesCorpusService
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC).isoformat()
@@ -93,7 +94,9 @@ class TestReindexFromSql:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        service = RulesCorpusService(client, config)
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
 
         written = service.reindex_from_sql(session, package_id)
 
@@ -128,7 +131,9 @@ class TestReindexFromSql:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        service = RulesCorpusService(client, config)
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
 
         written = service.reindex_from_sql(session, package_id)
         assert written == 1
@@ -140,7 +145,9 @@ class TestReindexFromSql:
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        service = RulesCorpusService(client, config)
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
         service.reindex_from_sql(session, package_id)
 
         # Simulate a chunk being removed from SQL ground truth, then reindex.

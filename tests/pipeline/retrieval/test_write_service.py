@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
 
 
@@ -18,7 +19,9 @@ def _make_service(
 ) -> RetrievalMemoryWriteService:
     client = build_isolated_test_chroma_client(str(tmp_path))
     config = RetrievalMemoryConfig(chunk_char_ceiling=chunk_char_ceiling)
-    return RetrievalMemoryWriteService(client, config)
+    return RetrievalMemoryWriteService(
+        client, config, DeterministicFakeEmbeddingFunction()
+    )
 
 
 class TestIngestIdempotence:

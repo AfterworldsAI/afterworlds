@@ -1,16 +1,17 @@
 """Embedding function seam for Retrieval Memory — CRD Issue 18 / ADR-018 D4.
 
-Local deterministic embedding behind an injectable ``EmbeddingFunction`` seam.
-No hosted/provider credentials required — BYOK and local-first embed
-identically (CLAUDE.md Business invariant: BYOK preserves full pipeline
-parity). Real-model CI runs stay behind an opt-in integration flag so the
-default test suite never needs network access or a downloaded model.
+Local deterministic embedding (ChromaDB's default ONNX MiniLM path) behind an
+injectable ``EmbeddingFunction`` seam. No hosted/provider credentials
+required — BYOK and local-first embed identically (CLAUDE.md Business
+invariant: BYOK preserves full pipeline parity). The real embedding function
+is the production default; the deterministic fake below exists solely for
+tests/CI to run offline and must always be injected explicitly by the
+caller — it is never selected implicitly by omission.
 """
 
 from __future__ import annotations
 
 import hashlib
-import os
 from typing import Protocol, runtime_checkable
 
 #: Fixed vector dimensionality for the deterministic fake embedding function.
@@ -18,9 +19,15 @@ from typing import Protocol, runtime_checkable
 #: within one Chroma collection.
 _FAKE_EMBEDDING_DIM = 32
 
-#: Opt-in flag gating the real ONNX MiniLM embedding function. Off by
-#: default so the standard test suite and CI run fully offline.
-REAL_EMBEDDING_FUNCTION_ENV = "AFTERWORLDS_RETRIEVAL_REAL_EMBEDDINGS"
+
+class RetrievalEmbeddingUnavailableError(RuntimeError):
+    """Raised when the real default embedding function cannot initialize.
+
+    Production/default code must fail clearly here rather than silently
+    substituting the deterministic fake — a fake-embedding fallback would
+    mean indexing/querying arbitrary hash vectors instead of semantic
+    embeddings (ADR-018 D4).
+    """
 
 
 @runtime_checkable
@@ -39,7 +46,9 @@ class DeterministicFakeEmbeddingFunction:
 
     Hashes each input string to a fixed-dimension float vector. Same input
     always produces the same vector; no model download, no network access.
-    Never used in production — see ``resolve_default_embedding_function``.
+    Never selected by default — callers (tests, offline fixtures) must
+    construct and inject this explicitly. See
+    ``resolve_default_embedding_function`` for the production default.
     """
 
     def __call__(self, input: list[str]) -> list[list[float]]:
@@ -67,23 +76,37 @@ class DeterministicFakeEmbeddingFunction:
 def resolve_default_embedding_function() -> RetrievalEmbeddingFunction:
     """Return the embedding function to use when none is injected.
 
-    Defaults to the deterministic fake unless the opt-in real-embeddings
-    integration flag is set, matching the existing pattern for other
-    provider-backed integration tests in this repo.
+    Always the real local ONNX MiniLM default (ADR-018 D4) — this is the
+    production default, not an opt-in. The deterministic fake is never
+    selected here; tests that need to run offline must construct
+    ``DeterministicFakeEmbeddingFunction()`` and inject it explicitly via
+    each call site's ``embedding_function`` parameter.
 
     Security note (ADR-018 CVE-2026-45829 resolution): whichever function is
     returned, callers must construct the Chroma client as an embedded
     ``PersistentClient``/``EphemeralClient`` — never ``HttpClient`` — and
     must never set ``trust_remote_code=True``. See
     ``pipeline/retrieval/config.py`` and this PR's Architecture Notes.
+
+    Raises:
+        RetrievalEmbeddingUnavailableError: if the real embedding function
+            cannot be constructed (e.g. the optional ONNX model dependency
+            failed to initialize). Callers must not fall back to the fake.
     """
-    if os.environ.get(REAL_EMBEDDING_FUNCTION_ENV, "").lower() in ("1", "true", "yes"):
+    try:
         from chromadb.utils.embedding_functions import (  # noqa: PLC0415
             DefaultEmbeddingFunction,
         )
 
         return DefaultEmbeddingFunction()  # type: ignore[return-value]
-    return DeterministicFakeEmbeddingFunction()
+    except Exception as exc:  # noqa: BLE001
+        raise RetrievalEmbeddingUnavailableError(
+            "Failed to initialize the real default embedding function "
+            "(ADR-018 D4 local ONNX MiniLM path). Retrieval Memory requires "
+            "a real embedding function in production; inject "
+            "DeterministicFakeEmbeddingFunction() explicitly only for "
+            "offline tests."
+        ) from exc
 
 
 def content_hash(text: str) -> str:

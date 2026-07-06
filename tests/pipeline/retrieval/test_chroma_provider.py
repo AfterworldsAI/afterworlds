@@ -13,6 +13,7 @@ from uuid import uuid4
 from afterworlds.pipeline.retrieval.chroma_provider import ChromaRetrievalMemoryProvider
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
 
 
@@ -44,8 +45,9 @@ class TestMandatoryStoryIdFilter:
     def test_cross_story_leakage_never_occurs(self, tmp_path: Path) -> None:
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig(minimum_similarity_threshold=0.0, top_k=10)
-        write_service = RetrievalMemoryWriteService(client, config)
-        provider = ChromaRetrievalMemoryProvider(client, config)
+        ef = DeterministicFakeEmbeddingFunction()
+        write_service = RetrievalMemoryWriteService(client, config, ef)
+        provider = ChromaRetrievalMemoryProvider(client, config, ef)
 
         story_a, story_b = uuid4(), uuid4()
         # Identical/overlapping content across both stories.
@@ -69,8 +71,9 @@ class TestMandatoryStoryIdFilter:
     def test_query_for_story_with_no_chunks_is_empty(self, tmp_path: Path) -> None:
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        write_service = RetrievalMemoryWriteService(client, config)
-        provider = ChromaRetrievalMemoryProvider(client, config)
+        ef = DeterministicFakeEmbeddingFunction()
+        write_service = RetrievalMemoryWriteService(client, config, ef)
+        provider = ChromaRetrievalMemoryProvider(client, config, ef)
 
         story_a, story_b = uuid4(), uuid4()
         write_service.ingest_turn(story_a, uuid4(), None, "rpg", "Some prose.", "t1")
@@ -81,7 +84,9 @@ class TestMandatoryStoryIdFilter:
     def test_empty_query_returns_empty_payload(self, tmp_path: Path) -> None:
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()
-        provider = ChromaRetrievalMemoryProvider(client, config)
+        provider = ChromaRetrievalMemoryProvider(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
         result = provider.retrieve(uuid4(), "")
         assert result.passages == ()
 
