@@ -581,9 +581,14 @@ class OrchestratorService:
 
         # 2a-retrieval. Build the retrieval query request before context
         # assembly (ADR-018 D8) — orchestrator-owned and deterministic,
-        # mirroring the RuleSliceRequest pattern above. Best-effort: a
-        # query-build failure must not fail the turn, only omit retrieval
-        # memory for it (same as the Null-provider empty-payload behavior).
+        # mirroring the RuleSliceRequest pattern above. This is a pre-context
+        # read/query-construction step, not the post-commit Chroma
+        # ingestion/write path (ADR-018 D7's best-effort swallow applies only
+        # to that write path) -- a query-build failure here is a
+        # context-assembly failure and must fail the turn with a typed
+        # PIPELINE_ERROR, not silently proceed with retrieval memory omitted
+        # (Codex review, PR #119 round 8). No configured builder at all
+        # (``None``) remains a valid no-retrieval turn.
         retrieval_query_request: RetrievalQueryRequest | None = None
         if self._retrieval_query_builder is not None:
             try:
@@ -593,10 +598,11 @@ class OrchestratorService:
                     )
                 )
             except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "retrieval query build failed for story_id=%s: %s",
-                    story_id,
-                    exc,
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"retrieval query construction failed: {exc}",
                 )
 
         # 2b. Context assembly (once per turn).

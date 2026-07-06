@@ -326,6 +326,147 @@ class TestOrchestratorPassesClassifiedIntentToQueryBuilder:
         assert called_intent.intent_type is IntentType.IN_CHARACTER_ACTION
 
 
+class _RaisingRetrievalQueryBuilder:
+    """Simulates a configured RetrievalQueryBuilder whose query construction
+    fails (Codex review, PR #119 round 8) -- a pre-context read/construction
+    failure, distinct from the post-commit ingestion write path."""
+
+    def build_query_request(
+        self,
+        story_id: UUID,
+        current_input: str,
+        story_mode: StoryMode,
+        classified_intent: object,
+    ) -> object:
+        raise RuntimeError("chroma unreachable")
+
+
+class TestRetrievalQueryConstructionFailureFailsClosed:
+    """Codex review (PR #119) round 8: a configured RetrievalQueryBuilder
+    that raises must fail the turn with a typed PIPELINE_ERROR, not silently
+    proceed with retrieval_query_request=None (ADR-018 D7's best-effort
+    swallow applies only to the post-commit ingestion/write path, not to
+    this pre-context query-construction step)."""
+
+    def test_query_build_failure_returns_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            fake_retrieval,
+            retrieval_query_builder=_RaisingRetrievalQueryBuilder(),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "retrieval query construction failed" in result.pipeline_error_summary
+
+    def test_writer_not_called_after_query_build_failure(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            fake_retrieval,
+            retrieval_query_builder=_RaisingRetrievalQueryBuilder(),
+        )
+
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert orch._writer_service.calls == []  # type: ignore[attr-defined]
+
+    def test_context_builder_not_called_after_query_build_failure(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Not merely 'not called with retrieval_query_request=None' --
+        _build_context() must never run at all once query construction has
+        already failed for this turn."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            fake_retrieval,
+            retrieval_query_builder=_RaisingRetrievalQueryBuilder(),
+        )
+
+        orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert orch._context_builder.calls == []  # type: ignore[attr-defined]
+
+    def test_no_configured_query_builder_still_delivers_normally(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """The Null-builder case (no retrieval query builder wired at all)
+        remains a valid no-retrieval turn -- distinct from a configured
+        builder that raises."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory, fake_retrieval, retrieval_query_builder=None
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+
+    def test_query_builder_returning_empty_request_still_delivers_normally(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """A configured builder that succeeds (even with an effectively empty
+        retrieval query) is not an error -- only a raised exception is."""
+        story_id, node_id = seeded_story
+        fake_retrieval = _FakeRetrievalWriteService()
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            fake_retrieval,
+            retrieval_query_builder=_SpyRetrievalQueryBuilder(),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+
+    def test_post_commit_ingestion_failure_remains_swallowed(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Sibling contrast: a post-commit retrieval-ingestion failure (D7)
+        must still be best-effort and swallowed -- unaffected by this
+        round's read-path fix, which only tightens pre-context query
+        construction."""
+
+        class _RaisingRetrievalWriteService:
+            def ingest_turn(self, *args: object, **kwargs: object) -> None:
+                raise RuntimeError("chroma write failed")
+
+        story_id, node_id = seeded_story
+        orch = _make_branching_orch_with_retrieval(
+            session_factory,
+            _RaisingRetrievalWriteService(),  # type: ignore[arg-type]
+            retrieval_query_builder=_SpyRetrievalQueryBuilder(),
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+
+
 def _make_pending_roll_request_for_sheet(
     story_id: UUID, sheet_id: UUID, originating_turn_id: UUID
 ) -> object:
