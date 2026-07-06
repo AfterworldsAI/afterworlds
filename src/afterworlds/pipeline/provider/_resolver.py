@@ -35,6 +35,10 @@ from uuid import UUID
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.pipeline.provider._errors import ProviderConfigError
+from afterworlds.pipeline.provider._readiness import (
+    _collect_available_byok_keys,
+    _fetch_openrouter_preferred_model,
+)
 from afterworlds.pipeline.provider._registry import (
     OpenRouterCapabilityRegistry,
     make_anthropic_capability_profile,
@@ -208,42 +212,6 @@ def _build_refusal_log_fn(session_factory: object) -> RefusalLogProxy:
     return RefusalLogProxy(session_factory)
 
 
-def _is_credential_eligible(
-    session_factory: object, sojourner_id: UUID, provider_name: str
-) -> bool:
-    """Return True iff the credential row exists, is active, and is not INVALID/ERROR.
-
-    VALID and UNTESTED are eligible (permissive default for unchecked keys).
-    INVALID and ERROR are excluded to prevent routing to known-bad credentials.
-    Absent row or is_active=False both return False.
-    """
-    from sqlalchemy import select
-    from sqlalchemy.orm import Session
-
-    from afterworlds.pipeline.provider.credentials._metadata import (
-        ProviderCredentialMetadata,
-        ValidationStatus,
-    )
-
-    _factory = session_factory
-    assert callable(_factory)
-    session_obj = _factory()
-    assert isinstance(session_obj, Session)
-    with session_obj as session:
-        stmt = select(ProviderCredentialMetadata).where(
-            ProviderCredentialMetadata.sojourner_id == str(sojourner_id),
-            ProviderCredentialMetadata.provider_name == provider_name,
-            ProviderCredentialMetadata.is_active.is_(True),
-        )
-        row = session.execute(stmt).scalar_one_or_none()
-    if row is None:
-        return False
-    return row.validation_status not in (
-        ValidationStatus.INVALID,
-        ValidationStatus.ERROR,
-    )
-
-
 # ---------------------------------------------------------------------------
 # ProviderResolver
 # ---------------------------------------------------------------------------
@@ -372,8 +340,6 @@ class ProviderResolver:
     # -----------------------------------------------------------------------
 
     def _resolve_byok(self, sojourner_id: UUID) -> TurnProviderBinding:
-        from afterworlds.pipeline.provider._route_config import ProviderRouteConfigORM
-
         if self._session_factory is None:
             raise ProviderConfigError(
                 "ProviderResolver: session_factory is required for refusal logging"
@@ -382,12 +348,11 @@ class ProviderResolver:
 
         # Build available pool: requires both active credential metadata row
         # AND retrievable key.  Keys for inactive providers are not fetched.
-        available_keys: dict[str, str] = {}
-        for _pname in ("anthropic", "openrouter"):
-            if _is_credential_eligible(self._session_factory, sojourner_id, _pname):
-                _key = self._credential_store.get(sojourner_id, _pname)
-                if _key:
-                    available_keys[_pname] = _key
+        # Shared with `ByokCredentialReadinessProvider.is_byok_runnable` — see
+        # `_readiness.py`; do not reimplement this gathering logic here.
+        available_keys = _collect_available_byok_keys(
+            self._credential_store, self._session_factory, sojourner_id
+        )
 
         anthropic_key: str | None = available_keys.get("anthropic")
         openrouter_key: str | None = available_keys.get("openrouter")
@@ -423,32 +388,12 @@ class ProviderResolver:
             return adapter, route
 
         def _get_openrouter_model(sojourner_id: UUID) -> str:
-            if self._session_factory is None:
-                raise ProviderConfigError(
-                    "BYOK OpenRouter: session_factory required to read"
-                    " ProviderRouteConfig"
-                )
-            from sqlalchemy import select
-            from sqlalchemy.orm import Session
-
-            _factory = self._session_factory
-            assert callable(_factory)
-            session_obj = _factory()
-            assert isinstance(session_obj, Session)
-            with session_obj as session:
-                stmt = select(ProviderRouteConfigORM).where(
-                    ProviderRouteConfigORM.sojourner_id == str(sojourner_id),
-                    ProviderRouteConfigORM.provider_name == "openrouter",
-                    ProviderRouteConfigORM.is_active.is_(True),
-                )
-                row = session.execute(stmt).scalar_one_or_none()
-            if row is None:
-                raise ProviderConfigError(
-                    f"BYOK OpenRouter: no preferred_model_identifier configured "
-                    f"for Sojourner {sojourner_id} — fail closed"
-                )
-            model = (row.preferred_model_identifier or "").strip()
-            if not model:
+            # Shared with `ByokCredentialReadinessProvider.is_byok_runnable` —
+            # see `_readiness.py`; do not reimplement this lookup here.
+            model = _fetch_openrouter_preferred_model(
+                self._session_factory, sojourner_id
+            )
+            if model is None:
                 raise ProviderConfigError(
                     f"BYOK OpenRouter: no preferred_model_identifier configured "
                     f"for Sojourner {sojourner_id} — fail closed"

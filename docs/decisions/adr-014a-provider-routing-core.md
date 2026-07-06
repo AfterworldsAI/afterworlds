@@ -202,6 +202,47 @@ has explicitly deactivated it.
 
 ---
 
+## Decision 13: BYOK readiness seam formalized ahead of Issue 19 (GH #122)
+
+**Decision:** The Decision 12 runnability predicate (eligible credential
+metadata + retrievable key +, when OpenRouter is in the pool, a usable,
+non-dynamic-alias `ProviderRouteConfig` model id) is extracted into
+`_readiness.py` as `_compute_byok_runnable`, and exposed read-only via
+`ByokCredentialReadinessProvider.is_byok_runnable(sojourner_id) -> bool`.
+`ProviderResolver._resolve_byok` and `is_byok_runnable` both call the same
+`_collect_available_byok_keys` / `_fetch_openrouter_preferred_model` helpers,
+and the dynamic-alias check reuses `adapters/_openrouter.py::_is_dynamic_alias`
+(the same guard `OpenRouterAdapter.__init__` enforces) rather than
+re-implementing it — there is exactly one implementation of each check, not two.
+
+**Residual gap, documented not closed:** `is_byok_runnable` does not evaluate
+14b `OpenRouterCapabilityRegistry` admission (whitelist/capability rejection in
+`_resolve_openrouter_route`). No production `ProviderResolver` construction
+wires a `capability_registry` today, so this path is currently inert; if that
+changes, a registry-admitted-but-rejected model could report runnable=True and
+still fail at `resolve_for_turn`. Folding 14b capability policy into this 14a
+seam was rejected as scope creep (requirement: no provider-routing-policy
+changes); this is flagged for Issue 19 to re-check if/when 14b registries are
+wired into production.
+
+**Rationale:** Issue 19 Rev3 DoR-E requires access-path selection to compute
+*runnable* paths, not merely *licensed* ones. BYOK runnable = Issue 13's
+`byok_turn_available` AND this seam. Before this change, 14a exposed no public
+readiness read, so Issue 19 could select BYOK on entitlement/license state
+alone and then hit `resolve_for_turn` raising `ProviderConfigError` — an
+operational pipeline error where a typed `BYOK_CREDENTIALS_REQUIRED` preflight
+response belongs instead. This seam lets Issue 19 ask the readiness question up
+front without reaching into `_resolver.py` privates or re-deriving
+`ProviderResolver` policy.
+
+**Consequence:** `is_byok_runnable` returns a plain `bool` — no key material,
+provider secrets, or route internals cross the boundary. This is a seam
+formalization of existing Decision 12 behavior, not a new access-path policy;
+it changes no entitlement, routing, or fallback behavior. Issue 19's own
+preflight response type and wiring are out of scope here.
+
+---
+
 ## Architecture Notes
 
 No drift from the core design principles. The safety envelope (conditional
@@ -222,6 +263,13 @@ serialize prompt text from `system_blocks`/`rendered_blocks` or any key-containi
 field into `coarse_metadata_json` or any other column. Enforcement is by policy in
 the calling code, not by the router itself. This constraint is verified by
 `tests/pipeline/provider/test_refusal_log_writer.py::test_log_row_excludes_prompt_text_and_raw_excerpt`.
+
+**Decision 13: `ByokCredentialReadinessProvider` (`_readiness.py`) is a seam
+formalization, not a new access-path policy.** It is the pre-Issue-19 (GH #122)
+follow-up to Decision 12: the same runnability predicate, exposed read-only so
+Issue 19 DoR-E can compute a runnable BYOK path without reaching into
+`_resolver.py` privates or duplicating `ProviderResolver` policy. See Decision
+13 above for the full rationale.
 
 **Decision 10: `session_factory` is required for `ProviderResolver.resolve_for_turn`.**
 `_resolve_hosted` and `_resolve_byok` raise `ProviderConfigError` when

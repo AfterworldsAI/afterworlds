@@ -20,6 +20,7 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolDefinition,
 )
 from afterworlds.pipeline.provider._protocol import ProviderAdapter
+from afterworlds.pipeline.provider._readiness import ByokCredentialReadinessProvider
 from afterworlds.pipeline.provider._registry import (
     OpenRouterCapabilityRegistry,
     WhitelistConfig,
@@ -53,6 +54,7 @@ __all__ = [
     "AnthropicCapabilityProfile",
     "AnthropicDirectAdapter",
     "AnthropicNormalizationFactorProvider",
+    "ByokCredentialReadinessProvider",
     "CapabilityEvidenceSource",
     "CapabilityProfileAwareSafetyPolicy",
     "CredentialValidationError",
