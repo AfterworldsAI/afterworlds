@@ -22,6 +22,9 @@ from afterworlds.persistence.database import create_session_factory
 from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.pipeline.retrieval.backfill import backfill_story, reindex_story
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
+from afterworlds.pipeline.retrieval.collections import (
+    RetrievalCollectionReindexRequiredError,
+)
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
@@ -227,3 +230,31 @@ class TestReindexStory:
 
         assert report.turns_ingested == 2
         assert write_service.count_for_story(story_id) == 2
+
+
+class TestEmbeddingModelMismatchSurfacesThroughBackfill:
+    """Codex review (PR #119) round 3: backfill/reindex must surface the
+    typed reindex-required error clearly rather than continuing to upsert
+    into a collection whose recorded embedding model differs from config."""
+
+    def test_backfill_raises_on_embedding_model_mismatch(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        story_id, _turn_ids = _seed_story_with_turns(session, StoryMode.BRANCHING, 2)
+
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        # Create the shared collection under model-a first.
+        RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        ).ingest_turn(uuid4(), uuid4(), None, "branching", "Unrelated seed.", "t0")
+
+        mismatched_write_service = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+
+        with pytest.raises(RetrievalCollectionReindexRequiredError):
+            backfill_story(
+                session, mismatched_write_service, story_id, StoryMode.BRANCHING
+            )

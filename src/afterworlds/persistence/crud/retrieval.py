@@ -114,15 +114,22 @@ def get_turn_for_eligibility(session: Session, turn_id: UUID) -> Turn | None:
 
     Codex review (PR #119): ``persistence.crud.node.get_turn`` raises when a
     row's ``mode_metadata`` JSON cannot be validated into a ``ModeMetadata``
-    subtype (a corrupted or schema-drifted row). For Writing turns, ADR-018
-    D6 already defines that outcome as retrieval-*ineligible*, not a fatal
-    error — so a single malformed row must not abort query-tail building,
-    backfill, or reindex for an entire story. This read returns
-    ``mode_metadata=None`` when deserialization fails instead of raising;
-    the shared eligibility predicate already treats missing/non-Writing
-    ``mode_metadata`` as ineligible for Writing turns (see
-    ``decide_turn_eligibility``) and never reads ``mode_metadata`` at all
-    for RPG/Branching, so this is inert for those modes.
+    subtype (a corrupted or schema-drifted row) -- including a non-object
+    JSON value (list, string, number), which raises ``AttributeError`` from
+    ``.get("mode")`` before pydantic ever runs, not just a dict that fails
+    field validation (``ValueError``/pydantic ``ValidationError``). For
+    Writing turns, ADR-018 D6 already defines that outcome as
+    retrieval-*ineligible*, not a fatal error — so a single malformed row
+    must not abort query-tail building, backfill, or reindex for an entire
+    story. This read returns ``mode_metadata=None`` when deserialization
+    fails in either of those ways instead of raising; the shared eligibility
+    predicate already treats missing/non-Writing ``mode_metadata`` as
+    ineligible for Writing turns (see ``decide_turn_eligibility``) and never
+    reads ``mode_metadata`` at all for RPG/Branching, so this is inert for
+    those modes. ``intent_classification_result`` deserialization is
+    deliberately NOT covered by this tolerance -- a malformed row there is
+    unrelated data corruption outside ADR-018's Writing-metadata rule and
+    must still raise, same as a database access error.
 
     This is a retrieval-domain-local, tolerant read — it must never replace
     ``get_turn`` for any other caller (Writer, Extractor, general node CRUD
@@ -145,7 +152,13 @@ def get_turn_for_eligibility(session: Session, turn_id: UUID) -> Turn | None:
     if row.mode_metadata is not None:
         try:
             mode_metadata = _mode_metadata_from_dict(row.mode_metadata)
-        except ValueError:
+        except (ValueError, AttributeError):
+            # ValueError covers an unknown/missing "mode" key and pydantic's
+            # ValidationError (a ValueError subclass) for a malformed-but-
+            # dict-shaped row. AttributeError covers a non-object JSON value
+            # (e.g. mode_metadata stored as a list, string, or number) --
+            # `.get("mode")` on a non-dict raises AttributeError before
+            # pydantic ever runs (Codex review, PR #119 round 3).
             mode_metadata = None
 
     return Turn(

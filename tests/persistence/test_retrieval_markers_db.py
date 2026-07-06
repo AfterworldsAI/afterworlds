@@ -361,6 +361,61 @@ class TestMalformedModeMetadataDoesNotAbort:
         assert turn.mode_metadata is None
         assert turn.assistant_output == "Some delivered prose."
 
+    @pytest.mark.parametrize(
+        "non_object_metadata",
+        [
+            pytest.param([], id="empty-list"),
+            pytest.param("junk", id="bare-string"),
+            pytest.param(123, id="bare-int"),
+        ],
+    )
+    def test_non_object_mode_metadata_does_not_raise_attribute_error(
+        self, session, non_object_metadata: object
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Codex review (PR #119) round 3: malformed SQLite JSON is not
+        guaranteed to be an object. ``.get("mode")`` on a list/string/int
+        raises AttributeError, not ValueError -- get_turn_for_eligibility
+        must catch that too, not just pydantic's ValidationError."""
+        story = make_story(mode=StoryMode.WRITING)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        _insert_malformed_mode_metadata_turn(session, turn_id, non_object_metadata)
+
+        turn = get_turn_for_eligibility(session, turn_id)
+        assert turn is not None
+        assert turn.mode_metadata is None
+
+        decision = gather_turn_eligibility(session, turn_id, StoryMode.WRITING)
+        assert decision.eligible is False
+        assert decision.data_integrity_error is False
+
+    def test_non_object_rpg_mode_metadata_does_not_affect_rpg_eligibility(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Same non-object-JSON shape as above, but for RPG: since RPG
+        eligibility never reads mode_metadata, a non-object value there must
+        be just as inert as a malformed-but-dict-shaped one."""
+        story = make_story(mode=StoryMode.RPG)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        _insert_malformed_mode_metadata_turn(session, turn_id, [])
+        create_rpg_turn_retrieval_marker(
+            session,
+            turn_id=turn_id,
+            story_id=story.story_id,
+            category=RpgTurnRetrievalCategory.ORDINARY_NARRATIVE,
+            created_at=_NOW.isoformat(),
+        )
+        session.commit()
+
+        turn = get_turn_for_eligibility(session, turn_id)
+        assert turn is not None
+        assert turn.mode_metadata is None
+
+        decision = gather_turn_eligibility(session, turn_id, StoryMode.RPG)
+        assert decision.eligible is True
+        assert decision.data_integrity_error is False
+
     def test_malformed_rpg_mode_metadata_does_not_affect_rpg_eligibility(
         self, session
     ) -> None:  # type: ignore[no-untyped-def]
@@ -387,3 +442,31 @@ class TestMalformedModeMetadataDoesNotAbort:
 
         assert decision.eligible is True
         assert decision.data_integrity_error is False
+
+    def test_malformed_intent_classification_result_still_raises(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        """get_turn_for_eligibility's tolerance is scoped to mode_metadata
+        only (ADR-018's Writing-ineligibility rule). A malformed
+        intent_classification_result is unrelated data corruption and must
+        still raise, exactly like a database error -- it must not be
+        silently reclassified as an eligibility outcome."""
+        story = make_story(mode=StoryMode.WRITING)
+        create_story(session, story)  # type: ignore[arg-type]
+        turn_id = uuid4()
+        session.add(
+            TurnORM(
+                turn_id=str(turn_id),
+                node_id=None,
+                user_input="prior input",
+                assistant_output="Some delivered prose.",
+                timestamp=_NOW.isoformat(),
+                intent_classification=IntentType.DIALOGUE.value,
+                # Missing required fields (confidence, raw_input, ambiguous).
+                intent_classification_result={"intent_type": "dialogue"},
+            )
+        )
+        session.commit()
+
+        with pytest.raises(Exception, match="validation error"):
+            get_turn_for_eligibility(session, turn_id)

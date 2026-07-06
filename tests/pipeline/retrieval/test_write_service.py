@@ -8,7 +8,12 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
+
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
+from afterworlds.pipeline.retrieval.collections import (
+    RetrievalCollectionReindexRequiredError,
+)
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
@@ -109,3 +114,26 @@ class TestDeletion:
         assert remaining == 0
         assert service.count_for_story(story_a) == 0
         assert service.count_for_story(story_b) == 1
+
+
+class TestEmbeddingModelMismatchSurfaces:
+    """Codex review (PR #119) round 3: the write service must surface the
+    typed reindex-required error clearly rather than continuing to upsert
+    into a collection whose recorded embedding model differs from config."""
+
+    def test_ingest_turn_raises_on_embedding_model_mismatch(
+        self, tmp_path: Path
+    ) -> None:
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        ef = DeterministicFakeEmbeddingFunction()
+        service_a = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-a"), ef
+        )
+        service_a.ingest_turn(uuid4(), uuid4(), None, "rpg", "Some prose.", "t1")
+
+        service_b = RetrievalMemoryWriteService(
+            client, RetrievalMemoryConfig(embedding_model_id="model-b"), ef
+        )
+
+        with pytest.raises(RetrievalCollectionReindexRequiredError):
+            service_b.ingest_turn(uuid4(), uuid4(), None, "rpg", "More prose.", "t2")
