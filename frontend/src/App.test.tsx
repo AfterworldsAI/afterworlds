@@ -5,9 +5,17 @@ import App from "./App";
 
 describe("App", () => {
   beforeEach(() => {
+    localStorage.clear();
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.resolve(new Response(null, { status: 200 }))),
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify({ stories: [], schema_version: 1 }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      ),
     );
   });
 
@@ -15,11 +23,11 @@ describe("App", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders and reports API health", async () => {
+  it("renders the story list by default", async () => {
     render(<App />);
     expect(screen.getByText("Afterworlds")).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByTestId("health-status")).toHaveTextContent("ok"),
+      expect(screen.getByText("Your stories")).toBeInTheDocument(),
     );
   });
 });

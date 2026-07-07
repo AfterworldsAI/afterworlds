@@ -1,29 +1,34 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-type HealthStatus = "checking" | "ok" | "error";
+import StoryList from "./StoryList";
+import StoryView from "./StoryView";
+import { localStorageState } from "./localStorage";
 
 export default function App() {
-  const [health, setHealth] = useState<HealthStatus>("checking");
+  const [storyId, setStoryId] = useState<string | null>(() =>
+    localStorageState.getLastStoryId(),
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/health")
-      .then((res) => (res.ok ? setHealth2("ok") : setHealth2("error")))
-      .catch(() => setHealth2("error"));
-
-    function setHealth2(status: HealthStatus): void {
-      if (!cancelled) setHealth(status);
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  function selectStory(id: string) {
+    localStorageState.setLastStoryId(id);
+    setStoryId(id);
+  }
 
   return (
     <main>
-      <h1>Afterworlds</h1>
-      <p data-testid="health-status">API status: {health}</p>
+      <header>
+        <h1>Afterworlds</h1>
+        {storyId && (
+          <button type="button" onClick={() => setStoryId(null)}>
+            Back to stories
+          </button>
+        )}
+      </header>
+      {storyId ? (
+        <StoryView storyId={storyId} />
+      ) : (
+        <StoryList onSelect={selectStory} />
+      )}
     </main>
   );
 }

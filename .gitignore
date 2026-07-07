@@ -211,4 +211,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/openapi.json
 afterworlds.db
+*.db-shm
+*.db-wal
+_manual_smoke*
 .chroma_data/

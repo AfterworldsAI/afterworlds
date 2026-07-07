@@ -1,0 +1,229 @@
+import { useEffect, useState } from "react";
+
+import { api } from "./api/client";
+import type { PersonaGallery, SetupRequest, StoryDetail } from "./api/client";
+
+export default function SetupForm({
+  story,
+  onComplete,
+}: {
+  story: StoryDetail;
+  onComplete: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(body: SetupRequest) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.submitSetup(story.story_id, body);
+      onComplete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Setup failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (story.mode === "rpg") {
+    return (
+      <RpgSetupForm submitting={submitting} error={error} onSubmit={submit} />
+    );
+  }
+  if (story.mode === "branching") {
+    return (
+      <BranchingSetupForm
+        submitting={submitting}
+        error={error}
+        onSubmit={submit}
+      />
+    );
+  }
+  return (
+    <WritingSetupForm submitting={submitting} error={error} onSubmit={submit} />
+  );
+}
+
+type FormProps = {
+  submitting: boolean;
+  error: string | null;
+  onSubmit: (body: SetupRequest) => void;
+};
+
+function RpgSetupForm({ submitting, error, onSubmit }: FormProps) {
+  const [diceHandling, setDiceHandling] = useState<"player_rolls" | "ai_rolls">(
+    "ai_rolls",
+  );
+  const [tone, setTone] = useState<
+    "gritty" | "balanced" | "forgiving" | "danger_free"
+  >("balanced");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({ mode: "rpg", dice_handling: diceHandling, tone });
+      }}
+    >
+      <h2>RPG setup</h2>
+      <label>
+        Dice handling
+        <select
+          value={diceHandling}
+          onChange={(e) =>
+            setDiceHandling(e.target.value as typeof diceHandling)
+          }
+        >
+          <option value="ai_rolls">AI rolls</option>
+          <option value="player_rolls">Player rolls</option>
+        </select>
+      </label>
+      <label>
+        Tone
+        <select
+          value={tone}
+          onChange={(e) => setTone(e.target.value as typeof tone)}
+        >
+          <option value="gritty">Gritty</option>
+          <option value="balanced">Balanced</option>
+          <option value="forgiving">Forgiving</option>
+          <option value="danger_free">Danger-free</option>
+        </select>
+      </label>
+      {error && <p className="form-error">{error}</p>}
+      <button type="submit" disabled={submitting}>
+        Save setup
+      </button>
+    </form>
+  );
+}
+
+function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
+  const [interactionStyle, setInteractionStyle] = useState<
+    "freeform_only" | "hybrid" | "true_cyoa"
+  >("hybrid");
+  const [cadence, setCadence] = useState<
+    "interactive" | "balanced" | "immersive"
+  >("balanced");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({
+          mode: "branching",
+          interaction_style: interactionStyle,
+          branching_cadence: cadence,
+          clear_branch_count_range: false,
+        });
+      }}
+    >
+      <h2>Branching setup</h2>
+      <label>
+        Interaction style
+        <select
+          value={interactionStyle}
+          onChange={(e) =>
+            setInteractionStyle(e.target.value as typeof interactionStyle)
+          }
+        >
+          <option value="freeform_only">Freeform only</option>
+          <option value="hybrid">Hybrid (freeform + branch cards)</option>
+          <option value="true_cyoa">True CYOA (choices only)</option>
+        </select>
+      </label>
+      <label>
+        Cadence
+        <select
+          value={cadence}
+          onChange={(e) => setCadence(e.target.value as typeof cadence)}
+        >
+          <option value="interactive">Interactive</option>
+          <option value="balanced">Balanced</option>
+          <option value="immersive">Immersive</option>
+        </select>
+      </label>
+      {error && <p className="form-error">{error}</p>}
+      <button type="submit" disabled={submitting}>
+        Save setup
+      </button>
+    </form>
+  );
+}
+
+function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
+  const [personas, setPersonas] = useState<PersonaGallery | null>(null);
+  const [personaId, setPersonaId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .listPersonas()
+      .then(setPersonas)
+      .catch(() => setPersonas(null));
+  }, []);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!personaId) return;
+        onSubmit({ mode: "writing", persona_id: personaId });
+      }}
+    >
+      <h2>Choose your Writing companion</h2>
+      {personas && (
+        <div className="persona-gallery">
+          <section>
+            <h3>Mentors</h3>
+            {personas.mentors.map((p) => (
+              <PersonaCard
+                key={p.persona_id}
+                persona={p}
+                selected={personaId === p.persona_id}
+                onSelect={() => setPersonaId(p.persona_id)}
+              />
+            ))}
+          </section>
+          <section>
+            <h3>Peers</h3>
+            {personas.peers.map((p) => (
+              <PersonaCard
+                key={p.persona_id}
+                persona={p}
+                selected={personaId === p.persona_id}
+                onSelect={() => setPersonaId(p.persona_id)}
+              />
+            ))}
+          </section>
+        </div>
+      )}
+      {error && <p className="form-error">{error}</p>}
+      <button type="submit" disabled={submitting || !personaId}>
+        Save setup
+      </button>
+    </form>
+  );
+}
+
+function PersonaCard({
+  persona,
+  selected,
+  onSelect,
+}: {
+  persona: PersonaGallery["mentors"][number];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="persona-card"
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
+      <strong>{persona.display_name}</strong>
+      <p>{persona.ui_short_description}</p>
+    </button>
+  );
+}
