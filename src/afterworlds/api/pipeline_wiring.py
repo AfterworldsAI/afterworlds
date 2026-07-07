@@ -4,11 +4,17 @@ This is assembly of already-shipped seams (Issues 3-14a), not new
 orchestration/provider/entitlement policy: every constructor call below uses
 an existing typed class with its own ``.from_env()`` / factory function.
 
-Mode-specific pass services (RPG adjudication, Branching writer, Writing OOC
+Mode-specific pass SERVICES (RPG adjudication, Branching writer, Writing OOC
 extractors) are wired in Phase 3 alongside the mode surfaces they serve --
 ``OrchestratorService`` already treats them as optional and falls back to the
-generic prose Writer path when absent (ADR-016 Decision 3), so turn
-submission is fully exercisable without them.
+generic prose Writer path when absent (ADR-016 Decision 3). The three session
+RESOLVER callables (rpg_session_sheet_resolver, branching_session_resolver,
+writing_session_resolver) are a different thing -- plain typed reads of
+already-persisted session state via existing CRUD, not new pass logic -- and
+are wired here because the orchestrator hard-requires them per mode (a real
+E2E smoke test surfaced this: an unwired writing_session_resolver produces
+PIPELINE_ERROR "cannot determine play status or inject persona context" for
+every WRITING turn, not a graceful degrade).
 
 The one net-new piece is ``_default_intent_model_caller``: the Issue 7
 classifier's ``ModelCallerT`` (``Callable[[str], str]``) is a deliberately
@@ -22,9 +28,23 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from afterworlds.api.fake_pipeline import FakeProviderResolver, fake_intent_model_caller
+from afterworlds.models.character_sheet import Dnd5eCharacterSheet
+from afterworlds.models.session import (
+    BranchingSessionState,
+    RpgSessionState,
+    WritingSessionState,
+)
+from afterworlds.persistence.crud.character_sheet import get_dnd5e_sheet
+from afterworlds.persistence.crud.session_state import (
+    get_branching_session_state_by_story,
+    get_rpg_session_state_by_story,
+    get_writing_session_state_by_story,
+)
 from afterworlds.pipeline.contradiction.config import ContradictionConfig
 from afterworlds.pipeline.contradiction.service import ContradictionService
 from afterworlds.pipeline.extractor.config import ExtractorConfig
@@ -87,9 +107,79 @@ def _default_intent_model_caller() -> Callable[[str], str]:
     return _call
 
 
+def _fake_provider_enabled() -> bool:
+    """DoR-B: "faked provider passes, no real provider calls in default CI".
+
+    Env-gated, never true in the product/dev path -- only the E2E CI job
+    (frontend/playwright.config.ts) and equivalent test harnesses set this.
+    """
+    return os.environ.get("AFTERWORLDS_FAKE_PROVIDER", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
+def _make_writing_session_resolver(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], WritingSessionState | None]:
+    def _resolve(story_id: UUID) -> WritingSessionState | None:
+        session = session_factory()
+        try:
+            return get_writing_session_state_by_story(session, story_id)
+        finally:
+            session.close()
+
+    return _resolve
+
+
+def _make_branching_session_resolver(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], BranchingSessionState | None]:
+    def _resolve(story_id: UUID) -> BranchingSessionState | None:
+        session = session_factory()
+        try:
+            return get_branching_session_state_by_story(session, story_id)
+        finally:
+            session.close()
+
+    return _resolve
+
+
+def _make_rpg_session_sheet_resolver(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]]:
+    def _resolve(story_id: UUID) -> tuple[RpgSessionState, Dnd5eCharacterSheet]:
+        session = session_factory()
+        try:
+            state = get_rpg_session_state_by_story(session, story_id)
+            if state is None:
+                raise ValueError(f"no RpgSessionState for story {story_id}")
+            sheet = get_dnd5e_sheet(session, state.character_sheet_id)
+            if sheet is None:
+                # Expected during RPG setup, before Issue 15's conversational
+                # character-creation pipeline has produced a full sheet --
+                # the orchestrator catches this and returns a typed
+                # PIPELINE_ERROR rather than crashing.
+                raise ValueError(
+                    f"no Dnd5eCharacterSheet yet for story {story_id}"
+                    " (character creation not complete)"
+                )
+            return state, sheet
+        finally:
+            session.close()
+
+    return _resolve
+
+
 def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorService:
     """Assemble the real OrchestratorService from existing typed seams."""
-    intent_classifier = IntentClassifierService(_default_intent_model_caller())
+    use_fake_provider = _fake_provider_enabled()
+    intent_classifier = IntentClassifierService(
+        fake_intent_model_caller
+        if use_fake_provider
+        else _default_intent_model_caller()
+    )
 
     retrieval_config = RetrievalMemoryConfig.from_env()
     retrieval_memory = ChromaRetrievalMemoryProvider(
@@ -120,15 +210,19 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         rules_package_service=_rules_package_service(context_session),
     )
 
-    hosted_config = HostedRoutingConfig(
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
-        openrouter_api_key=os.environ.get("OPENROUTER_API_KEY"),
-    )
-    provider_resolver = ProviderResolver(
-        credential_store=make_credential_store(),
-        hosted_config=hosted_config,
-        session_factory=session_factory,
-    )
+    provider_resolver: ProviderResolver | FakeProviderResolver
+    if use_fake_provider:
+        provider_resolver = FakeProviderResolver()
+    else:
+        hosted_config = HostedRoutingConfig(
+            anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+            openrouter_api_key=os.environ.get("OPENROUTER_API_KEY"),
+        )
+        provider_resolver = ProviderResolver(
+            credential_store=make_credential_store(),
+            hosted_config=hosted_config,
+            session_factory=session_factory,
+        )
 
     # WriterService/ExtractorService require a Session at construction, but
     # the orchestrator always passes its own per-turn outer-transaction
@@ -151,7 +245,13 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         contradiction_service=ContradictionService(ContradictionConfig.from_env()),
         session_factory=session_factory,
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
-        provider_resolver=provider_resolver,
+        # FakeProviderResolver duck-types resolve_for_turn only (E2E/CI-only,
+        # gated by AFTERWORLDS_FAKE_PROVIDER) -- not a ProviderResolver
+        # subclass, so this is a deliberate, narrow protocol substitution.
+        provider_resolver=provider_resolver,  # type: ignore[arg-type]
+        rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
+        branching_session_resolver=_make_branching_session_resolver(session_factory),
+        writing_session_resolver=_make_writing_session_resolver(session_factory),
     )
 
 

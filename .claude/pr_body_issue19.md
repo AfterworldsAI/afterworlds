@@ -62,3 +62,41 @@ E2E, packaging) in progress.
   it never writes turns and never advances `play_status`/`setup_phase` itself. RPG conversational
   setup and Branching's confirmation pass (ADR-016 Decision 3) remain ordinary turns through
   `POST .../turns`.
+- Manual browser verification against the real `create_app()` (no test doubles) surfaced two real
+  bugs before they shipped:
+  - Discovered per ADR-016 Decision 3 / ADR-017 Decision 9 that Branching/Writing setup
+    "confirmation" is itself an ordinary narrative turn processed by the orchestrator, not
+    something the structured `/setup` endpoint completes — `play_status` only flips server-side
+    once that turn lands. The frontend's gating on `story.status === "setup"` alone left the user
+    stuck on the setup screen forever (structured fields saved, but status never changes without a
+    turn). Fixed by letting the frontend proceed to the play view once structured fields are saved
+    locally, without asserting any backend fact the server hasn't recorded (a client-local
+    view-routing decision, not a shadow source of truth).
+  - Turn-submission failures were replacing the entire play view (losing transcript, visible
+    state, and the draft) instead of surfacing inline — violated Binding Decision 6. Fixed by
+    separating page-load errors from turn-submission errors so the play view and draft survive
+    every turn-submission failure class (typed error, transport failure, etc.).
+- DoR-B faked-provider path (`api/fake_pipeline.py`, env-gated by `AFTERWORLDS_FAKE_PROVIDER`,
+  never true in the product/dev path): a `FakeProviderAdapter` returning canned, schema-valid
+  responses per `pass_id` so each real pass service's OWN parsing/validation logic
+  (`PlannerService`, `WriterService`, `ExtractorService`, `ContradictionService`, `SafetyService`)
+  runs end-to-end against deterministic data — nothing about those services themselves is
+  mocked, only the model call underneath them. A `FakeProviderResolver` duck-types
+  `resolve_for_turn` only (documented, narrow protocol substitution, not a `ProviderResolver`
+  subclass). Verified against the real orchestrator: a full turn (intent classification -> planner
+  -> writer -> extractor -> contradiction) returns `DELIVERED` with the fake output.
+- A second real gap the fake-provider smoke test surfaced: `OrchestratorService` hard-requires
+  three session-resolver callables (`rpg_session_sheet_resolver`, `branching_session_resolver`,
+  `writing_session_resolver`) per mode — an unwired `writing_session_resolver` produced
+  `PIPELINE_ERROR` for every WRITING turn, not a graceful degrade. These are plain typed reads of
+  already-persisted session state via existing CRUD (not new pass logic, unlike the mode-specific
+  pass SERVICES which remain out of scope) and are now wired in `pipeline_wiring.py`.
+- Known, flagged gap (not silently worked around): the spec's E2E scenario "INTERACTION_REJECTED
+  rendering in True CYOA" is not exercised by the current E2E spine. Verified empirically that
+  True CYOA's rejection logic lives inside `BranchingWriterService`'s own pass
+  (`BranchSelectionValidationService`), which is a mode-specific pass service Issue 19 deliberately
+  left unwired — without it, every Branching turn falls back to the generic prose Writer path and
+  returns `DELIVERED` regardless of `interaction_style`. The E2E spine's Branching test covers
+  setup + a delivered turn instead; `INTERACTION_REJECTED` E2E coverage requires wiring
+  `BranchingWriterService` first, which is Phase 3-adjacent mode-specific work Issue 19 scoped out
+  (see the "Mode-specific pass services... out of scope" note above).

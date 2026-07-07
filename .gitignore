@@ -214,4 +214,9 @@ afterworlds.db
 *.db-shm
 *.db-wal
 _manual_smoke*
+_e2e.db*
+_e2e_chroma/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 .chroma_data/
