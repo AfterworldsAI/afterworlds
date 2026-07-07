@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError } from "./api/client";
-import type { StoryDetail, TurnSubmissionResponse } from "./api/client";
+import type {
+  StoryDetail,
+  TurnSubmissionResponse,
+  VisibleState,
+} from "./api/client";
 import StoryView from "./StoryView";
 
 const baseStory: StoryDetail = {
@@ -32,6 +36,46 @@ function deliveredResponse(): TurnSubmissionResponse {
   };
 }
 
+function branchingVisibleState(): VisibleState {
+  return {
+    schema_version: 1,
+    interaction_style: "hybrid",
+    branching_cadence: "balanced",
+    branch_count_range: null,
+    freeform_available: true,
+    length_preference: null,
+  };
+}
+
+function writingVisibleState(): VisibleState {
+  return {
+    schema_version: 1,
+    story_id: "11111111-1111-1111-1111-111111111111",
+    persona_id: "chiron",
+    persona_display_name: "Chiron",
+    relationship_orientation: "mentor",
+    ui_short_description: "Patient mentor.",
+    ui_long_description: "Chiron approaches every project methodically.",
+    signature_move: "Progressive challenge",
+    demeanor_tags: ["patient"],
+    play_status: "setup",
+    specific_goals: "",
+    reading_interests: null,
+    writing_interests: null,
+    critique_intensity: "balanced",
+    form: null,
+    form_other: null,
+    tense: null,
+    pov: null,
+    style_density: "balanced",
+    dialogue_narration_ratio: null,
+    genre_conventions: null,
+    beat_constraints: [],
+    version_pointers: [],
+    acceptable_content: null,
+  };
+}
+
 function pipelineErrorResponse(): TurnSubmissionResponse {
   return {
     disposition: "pipeline_error",
@@ -54,6 +98,7 @@ const mocks = vi.hoisted(() => ({
   getTranscript: vi.fn(),
   getVisibleState: vi.fn(),
   submitTurn: vi.fn(),
+  submitSetup: vi.fn(),
 }));
 
 vi.mock("./api/client", async () => {
@@ -66,6 +111,7 @@ vi.mock("./api/client", async () => {
       getTranscript: mocks.getTranscript,
       getVisibleState: mocks.getVisibleState,
       submitTurn: mocks.submitTurn,
+      submitSetup: mocks.submitSetup,
     },
   };
 });
@@ -120,5 +166,110 @@ describe("StoryView draft preservation (Binding Decision 6)", () => {
     // The play view itself -- not a full-page error screen -- stays up.
     expect(textarea).toHaveValue("hello there");
     expect(screen.getByPlaceholderText("What do you do?")).toBeInTheDocument();
+  });
+});
+
+describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getTranscript.mockResolvedValue([]);
+    mocks.submitSetup.mockResolvedValue({});
+  });
+
+  it("shows the play view (not SetupForm) for a Writing story with status=setup and persisted visible state", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "writing",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(writingVisibleState());
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByPlaceholderText("What do you do?");
+    expect(
+      screen.queryByRole("heading", { name: "Choose your Writing companion" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the play view (not SetupForm) for a Branching story with status=setup and persisted visible state", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(branchingVisibleState());
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByPlaceholderText("What do you do?");
+    expect(
+      screen.queryByRole("heading", { name: "Branching setup" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still shows SetupForm for an RPG story with status=setup and null visible state", async () => {
+    // RPG visible state stays null until a concrete character sheet exists
+    // -- unlike Writing/Branching, RPG must not skip its own setup screen
+    // just because visible state happens to be non-null-checkable here.
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(null);
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    expect(
+      screen.queryByPlaceholderText("What do you do?"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the play view immediately after saving Branching structured setup, before any confirmation turn", async () => {
+    // Saved setup does not change story.status server-side (ADR-016
+    // Decision 3 -- confirmation is an ordinary turn), so getVisibleState
+    // still resolves null until onComplete's refresh() re-fetches it. The
+    // immediate handoff must rely on the in-memory structuredSetupSaved
+    // flag for this instant, not the persisted-visible-state signal alone.
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(null);
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Branching setup" });
+    mocks.getVisibleState.mockResolvedValue(branchingVisibleState());
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await screen.findByPlaceholderText("What do you do?");
+  });
+});
+
+describe("StoryView load-error retry (PR #126 round 3)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+  });
+
+  it("clears the stale error screen and shows the story after a successful retry", async () => {
+    mocks.getStory.mockRejectedValueOnce(new Error("network blip"));
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByText("network blip");
+
+    mocks.getStory.mockResolvedValue(baseStory);
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    await screen.findByPlaceholderText("What do you do?");
+    expect(screen.queryByText("network blip")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /retry/i }),
+    ).not.toBeInTheDocument();
   });
 });

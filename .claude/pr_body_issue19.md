@@ -302,3 +302,21 @@ Decision 7.
 - No client-supplied Writing trust-boundary fields were added in this remediation round. Codex's
   round-2 findings did not include the Writing-provenance defect again (already logged as
   `[OWNER DECISION]` above); this section only fixes the two new findings.
+
+## Remediation round 3
+
+- RPG setup turns no longer require a completed `Dnd5eCharacterSheet`. A fresh RPG story only has
+  `RpgCharacterSheetBase` bootstrapped at creation; `OrchestratorService` gained a new
+  `rpg_session_resolver` seam (session-state-only, no sheet lookup) that the mandatory RPG
+  turn-retrieval-marker classification now prefers, falling back to the existing
+  session+sheet resolver only when the newer one is not wired. Sheet-dependent paths
+  (adjudication, pending-roll consume) are unaffected and remain unreachable in this PR since RPG
+  adjudication stays unwired.
+- Branching/Writing setup handoff now survives reload/resume: `StoryView` derives a
+  `structuredSetupPersisted` signal from the fetched visible state (non-null once structured
+  fields are configured) in addition to the in-memory `structuredSetupSaved` flag, so a reload
+  between saving setup and submitting the confirmation turn no longer bounces the Sojourner back
+  to the setup form. RPG is excluded from this signal (its visible state stays null until a
+  concrete sheet exists).
+- Retry after a failed initial story load now clears the stale error screen on success: the
+  initial `useEffect` load and the Retry button share one `loadStory()` function.

@@ -53,6 +53,22 @@ and ``api/routes/personas.py`` already use. RPG/Branching mode-specific pass
 SERVICES (adjudication, BranchingWriterService) remain deliberately unwired
 per the module docstring above -- this is required product wiring for
 already-optional-but-load-bearing dependencies, not new mode policy.
+
+``_make_rpg_session_resolver`` / ``rpg_session_resolver`` (P1 remediation, PR
+#126 round 3): ``_make_rpg_session_sheet_resolver`` requires a completed
+``Dnd5eCharacterSheet``, which does not exist yet during RPG setup (only
+``RpgCharacterSheetBase`` is bootstrapped at story creation) -- wiring it as
+the *only* RPG session resolver made every RPG setup turn's mandatory
+retrieval-marker classification fail closed as ``PIPELINE_ERROR``, since the
+orchestrator only needs ``play_status`` for that classification, not a
+sheet. ``_make_rpg_session_resolver`` is a session-state-only sibling of the
+existing Writing/Branching session resolvers above (same pattern, no new
+CRUD); the orchestrator now prefers it for play-status resolution and falls
+back to the sheet resolver only when the newer one is not wired (see its
+docstring in ``pipeline/orchestrator/service.py``). The sheet resolver is
+still wired and still required for genuinely sheet-dependent paths
+(adjudication, pending-roll consume) -- none of which are reachable through
+Issue 19's product wiring today, since RPG adjudication remains unwired.
 """
 
 from __future__ import annotations
@@ -188,6 +204,33 @@ def _make_branching_session_resolver(
     return _resolve
 
 
+def _make_rpg_session_resolver(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], RpgSessionState | None]:
+    """Session-state-only RPG resolver -- never requires a concrete sheet.
+
+    P1 remediation (PR #126 round 3): the orchestrator's mandatory RPG
+    turn-retrieval-marker classification needs only ``RpgSessionState.
+    play_status``, not a completed ``Dnd5eCharacterSheet``. During RPG setup
+    (before Issue 15's conversational character-creation pipeline completes),
+    only ``RpgCharacterSheetBase`` exists -- ``_make_rpg_session_sheet_resolver``
+    below correctly raises in that state for its own (sheet-requiring)
+    callers, but wiring that resolver for play-status resolution made every
+    RPG setup turn fail closed as PIPELINE_ERROR. This resolver is wired into
+    ``rpg_session_resolver`` instead, which the orchestrator now prefers for
+    that purpose (see its docstring in ``pipeline/orchestrator/service.py``).
+    """
+
+    def _resolve(story_id: UUID) -> RpgSessionState | None:
+        session = session_factory()
+        try:
+            return get_rpg_session_state_by_story(session, story_id)
+        finally:
+            session.close()
+
+    return _resolve
+
+
 def _make_rpg_session_sheet_resolver(
     session_factory: sessionmaker[Session],
 ) -> Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]]:
@@ -201,8 +244,10 @@ def _make_rpg_session_sheet_resolver(
             if sheet is None:
                 # Expected during RPG setup, before Issue 15's conversational
                 # character-creation pipeline has produced a full sheet --
-                # the orchestrator catches this and returns a typed
-                # PIPELINE_ERROR rather than crashing.
+                # callers of THIS resolver (adjudication/pending-roll/sheet-
+                # dependent paths) correctly need a concrete sheet and fail
+                # closed here. Play-status-only resolution no longer uses
+                # this resolver -- see _make_rpg_session_resolver above.
                 raise ValueError(
                     f"no Dnd5eCharacterSheet yet for story {story_id}"
                     " (character creation not complete)"
@@ -382,6 +427,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         # subclass, so this is a deliberate, narrow protocol substitution.
         provider_resolver=provider_resolver,  # type: ignore[arg-type]
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
+        rpg_session_resolver=_make_rpg_session_resolver(session_factory),
         branching_session_resolver=_make_branching_session_resolver(session_factory),
         writing_session_resolver=_make_writing_session_resolver(session_factory),
         writing_visible_state_service=writing_visible_state_service,

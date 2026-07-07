@@ -47,13 +47,23 @@ export default function StoryView({ storyId }: { storyId: string }) {
     setVisibleState(v);
   }
 
-  useEffect(() => {
+  // Shared by the initial load and the Retry button so the two paths can't
+  // drift apart again (P2 remediation, PR #126 round 3): a retry that only
+  // called refresh() left loadError truthy even after a successful refresh,
+  // since refresh() never touches loadError itself.
+  async function loadStory() {
     setLoadError(null);
-    refresh().catch((err) =>
+    try {
+      await refresh();
+    } catch (err) {
       setLoadError(
         err instanceof Error ? err.message : "Failed to load story.",
-      ),
-    );
+      );
+    }
+  }
+
+  useEffect(() => {
+    loadStory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId]);
 
@@ -99,7 +109,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
     return (
       <div className="story-view-error" role="alert">
         <p>{loadError}</p>
-        <button type="button" onClick={() => refresh()}>
+        <button type="button" onClick={() => loadStory()}>
           Retry
         </button>
       </div>
@@ -110,7 +120,26 @@ export default function StoryView({ storyId }: { storyId: string }) {
     return <p>Loading...</p>;
   }
 
-  if (story.status === "setup" && !structuredSetupSaved) {
+  // Branching/Writing setup handoff must survive reload/resume (P2
+  // remediation, PR #126 round 3): structuredSetupSaved is in-memory only
+  // and resets to false on every reload, while story.status legitimately
+  // stays "setup" until the confirmation turn lands (ADR-016 Decision 3 /
+  // ADR-017 Decision 9). Persisted visible state (non-null once
+  // interaction_style+branching_cadence, or persona_id, are configured) is
+  // a server-derived signal that survives reload. RPG visible state stays
+  // null until a concrete character sheet exists, so RPG must not use this
+  // signal to skip its own setup screen -- this is still only a client-
+  // local view-routing decision, not an assertion about backend play_status.
+  const structuredSetupPersisted =
+    story.status === "setup" &&
+    (story.mode === "branching" || story.mode === "writing") &&
+    visibleState !== null;
+
+  if (
+    story.status === "setup" &&
+    !structuredSetupSaved &&
+    !structuredSetupPersisted
+  ) {
     return (
       <SetupForm
         story={story}

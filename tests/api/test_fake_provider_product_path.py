@@ -27,8 +27,13 @@ from afterworlds.entitlement.payloads import (
     SubscriptionCreditGrantPayload,
 )
 from afterworlds.entitlement.service import EntitlementService
-from afterworlds.models.enums import StoryMode, WritingPlayStatus
+from afterworlds.models.enums import (
+    RpgTurnRetrievalCategory,
+    StoryMode,
+    WritingPlayStatus,
+)
 from afterworlds.models.story import Story
+from afterworlds.persistence.crud.retrieval import get_rpg_turn_retrieval_marker
 from afterworlds.persistence.crud.session_state import apply_writing_config_update
 from afterworlds.persistence.crud.story import create_story
 
@@ -198,3 +203,41 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
     body = resp.json()
     assert body["disposition"] == "delivered", body
     assert body["pipeline_error_summary"] is None
+
+
+def test_rpg_setup_turn_does_not_require_completed_character_sheet(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """P1 regression (PR #126 review round 3): a newly created RPG story
+    only has ``RpgCharacterSheetBase`` bootstrapped at creation time -- the
+    concrete ``Dnd5eCharacterSheet`` does not exist until Issue 15's
+    conversational character-creation flow completes. ``POST /turns`` for
+    the RPG setup conversation must still reach the prose Writer path
+    (ordinary turns, per this PR's own notes), not fail as PIPELINE_ERROR
+    solely because the concrete sheet is missing.
+    """
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+
+    resp = client.post(
+        "/api/stories",
+        json={"title": "New RPG Story", "mode": "rpg", "character_name": "Zed"},
+    )
+    assert resp.status_code == 201, resp.text
+    story_id = resp.json()["story_id"]
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns",
+        json={"user_input": "I want to play a half-elf ranger."},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered", body
+    assert body["pipeline_error_summary"] is None
+
+    session = client.app.state.session_factory()
+    try:
+        category = get_rpg_turn_retrieval_marker(session, UUID(body["turn_id"]))
+    finally:
+        session.close()
+    assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION

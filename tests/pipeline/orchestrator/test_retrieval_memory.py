@@ -13,12 +13,15 @@ import pytest
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.models.enums import (
+    DiceHandling,
     IntentType,
+    RpgPlayStatus,
     RpgTurnRetrievalCategory,
     StoryMode,
     WritingCanonEligibility,
     WritingWorkProductKind,
 )
+from afterworlds.models.session import RpgSessionState
 from afterworlds.persistence.crud.node import get_turn
 from afterworlds.persistence.crud.retrieval import get_rpg_turn_retrieval_marker
 from afterworlds.pipeline.orchestrator.models import (
@@ -791,6 +794,111 @@ class TestRpgTurnRetrievalMarker:
             )
         # Rolled back: no Turn row was committed for this failed attempt.
         assert existing_turn_ids == []
+
+
+class TestRpgSessionResolverSetupWithoutSheet:
+    """P1 remediation (PR #126 review round 3): RPG setup turns must not
+    require a completed Dnd5eCharacterSheet. Only RpgCharacterSheetBase
+    exists during RPG setup (Issue 15's conversational character-creation
+    pipeline has not produced a full sheet yet), so a resolver that requires
+    one raises and incorrectly failed the mandatory turn-retrieval-marker
+    classification closed. rpg_session_resolver (session-state-only)
+    resolves play_status without ever consulting the sheet-requiring
+    resolver."""
+
+    def test_setup_marker_resolves_without_sheet_lookup(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        story_id, node_id = seeded_story
+        session_state, _sheet = _make_rpg_session_and_sheet()
+        setup_state = RpgSessionState(
+            story_id=session_state.story_id,
+            character_sheet_id=session_state.character_sheet_id,
+            dice_handling=DiceHandling.AI_ROLLS,
+            play_status=RpgPlayStatus.SETUP,
+        )
+
+        sheet_resolver_calls: list[UUID] = []
+
+        def _raising_sheet_resolver(sid: UUID) -> tuple[object, object]:
+            # Mirrors the real production resolver
+            # (api/pipeline_wiring.py::_make_rpg_session_sheet_resolver),
+            # which raises when no concrete Dnd5eCharacterSheet exists yet
+            # -- exactly the state every RPG story is in during setup.
+            sheet_resolver_calls.append(sid)
+            raise ValueError(
+                "no Dnd5eCharacterSheet yet (character creation not complete)"
+            )
+
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent()),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+            rpg_session_sheet_resolver=_raising_sheet_resolver,  # type: ignore[arg-type]
+            rpg_session_resolver=lambda _sid: setup_state,
+            # rpg_adjudication_service intentionally absent -- setup turns
+            # never require it (Codex P1, PR #126 round 3).
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I roll up my character.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.turn_id is not None
+        with session_factory() as read_session:  # type: ignore[operator]
+            category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
+        assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION
+        assert sheet_resolver_calls == [], (
+            "rpg_session_sheet_resolver must not be consulted for play-status"
+            " resolution once rpg_session_resolver is wired"
+        )
+
+    def test_missing_session_state_row_still_fails_closed(
+        self, session_factory, seeded_story
+    ) -> None:  # type: ignore[no-untyped-def]
+        """rpg_session_resolver returning None (no RpgSessionState row) must
+        still fail closed, exactly like the pre-existing no-resolver-at-all
+        case -- this fix must not silently default missing session state to
+        SETUP."""
+        story_id, node_id = seeded_story
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(make_intent()),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.RPG),
+            rpg_session_resolver=lambda _sid: None,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.turn_id is None
 
 
 class TestWritingSetupTurnGuard:

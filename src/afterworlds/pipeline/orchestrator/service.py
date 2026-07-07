@@ -377,6 +377,7 @@ class OrchestratorService:
         rpg_session_sheet_resolver: (
             Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]] | None
         ) = None,
+        rpg_session_resolver: Callable[[UUID], RpgSessionState | None] | None = None,
         rpg_dice_service: DiceService | None = None,
         rpg_pending_roll_service: PendingRollRequestService | None = None,
         rpg_visible_state_service: RpgVisibleStateService | None = None,
@@ -412,6 +413,7 @@ class OrchestratorService:
         )
         self._rpg_adjudication_service = rpg_adjudication_service
         self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
+        self._rpg_session_resolver = rpg_session_resolver
         self._rpg_dice_service = rpg_dice_service
         self._rpg_pending_roll_service = rpg_pending_roll_service
         self._rpg_visible_state_service = rpg_visible_state_service
@@ -1278,15 +1280,32 @@ class OrchestratorService:
         elif story_mode == StoryMode.RPG:
             # RPG adjudication is not wired for this story, but the mandatory
             # turn-retrieval-marker write in _narrative_persist still needs
-            # rpg_play_status (ADR-018 D6) — resolved here directly from the
-            # session/sheet resolver, independent of adjudication wiring.
-            # Reads only the durable session record; never infers from
-            # Writer prose. Left None (fails closed at marker-write time) if
-            # no resolver is wired or resolution fails.
-            if self._rpg_session_sheet_resolver is not None:
+            # rpg_play_status (ADR-018 D6), independent of adjudication
+            # wiring. Reads only the durable session record; never infers
+            # from Writer prose. Left None (fails closed at marker-write
+            # time) if no resolver is wired or resolution fails.
+            #
+            # Prefers rpg_session_resolver (session-state-only) over
+            # rpg_session_sheet_resolver (session+sheet): a concrete
+            # Dnd5eCharacterSheet does not exist yet during RPG setup (only
+            # RpgCharacterSheetBase is bootstrapped at story creation), so a
+            # sheet-requiring resolver raises on every setup turn and
+            # incorrectly fails this classification closed (Codex P1, PR
+            # #126 round 3). rpg_session_sheet_resolver remains the fallback
+            # for callers that only wire the sheet-requiring resolver (its
+            # tuple's play_status half is still valid session data).
+            if self._rpg_session_resolver is not None:
                 try:
-                    _pre_ss, _ = self._rpg_session_sheet_resolver(story_id)
-                    rpg_play_status = _pre_ss.play_status
+                    _pre_ss = self._rpg_session_resolver(story_id)
+                    rpg_play_status = (
+                        _pre_ss.play_status if _pre_ss is not None else None
+                    )
+                except Exception:  # noqa: BLE001
+                    rpg_play_status = None
+            elif self._rpg_session_sheet_resolver is not None:
+                try:
+                    _pre_ss2, _ = self._rpg_session_sheet_resolver(story_id)
+                    rpg_play_status = _pre_ss2.play_status
                 except Exception:  # noqa: BLE001
                     rpg_play_status = None
         # -------------------------------------------------------------------------
