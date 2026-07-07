@@ -28,10 +28,14 @@ import afterworlds.persistence.orm.story  # noqa: F401
 from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.api.pipeline_wiring import build_orchestrator
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.stories import router as stories_router
+from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
+from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
+from afterworlds.pipeline.provider.credentials import make_credential_store
 
 logger = logging.getLogger("afterworlds.api")
 
@@ -56,9 +60,17 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     # choke point created once here, not per-request.
     story_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
     app.state.story_locks = story_locks
+    app.state.orchestrator = build_orchestrator(session_factory)
+    # DoR-E: the readiness seam is constructed once here and consumed only
+    # inside the access-path selection helper (api/access_path.py callers) --
+    # never in a route handler directly.
+    app.state.byok_readiness_provider = ByokCredentialReadinessProvider(
+        make_credential_store(), session_factory
+    )
 
     app.include_router(health_router)
     app.include_router(stories_router)
+    app.include_router(turns_router)
 
     @app.exception_handler(ApiErrorResponse)
     async def _api_error_handler(

@@ -1,9 +1,12 @@
 """Binding Decision 2: route handlers translate HTTP <-> typed service calls only.
 
-No orchestration, provider, entitlement, mode, intent, or option-resolution
-policy may live in route modules. This is enforced by asserting route
-modules import no symbols from the disallowed subpackages except through the
-narrow, named allowlist (helpers Issue 19 itself owns).
+Binding Decision 4 explicitly requires the turns route to call
+``OrchestratorService.orchestrate_turn`` and the ``EntitlementService`` gate/
+settle methods directly ("Issue 19 makes these calls") -- so those two
+packages are NOT banned here. What must never leak into route modules is
+mode-specific pipeline internals (only the orchestrator itself may invoke
+RPG/Branching/Writing pass services) and intent classification (no parallel
+intent inference per Binding Decision 3).
 """
 
 from __future__ import annotations
@@ -16,11 +19,9 @@ _ROUTES_DIR = (
 )
 
 _DISALLOWED_MODULE_PREFIXES = (
-    "afterworlds.pipeline.orchestrator",
     "afterworlds.pipeline.rpg",
     "afterworlds.pipeline.branching",
     "afterworlds.pipeline.writing",
-    "afterworlds.entitlement",
     "afterworlds.services.intent_classifier",
 )
 
@@ -51,3 +52,24 @@ def test_route_modules_import_no_disallowed_policy_symbols() -> None:
                     "seam module (api/access_path.py, api/story_bootstrap.py, "
                     "etc.), not the pipeline/entitlement package directly"
                 )
+
+
+# DoR-E single-choke-point: route modules must never re-derive runnable-path
+# status themselves -- only ``api/access_path.py::select_access_path`` reads
+# these two fields. A route touching them directly would be reimplementing
+# the matrix instead of calling the one tested helper.
+_ACCESS_PATH_STATUS_FIELDS = ("hosted_turn_available", "byok_turn_available")
+
+
+def test_route_modules_never_read_raw_entitlement_status_fields() -> None:
+    route_files = sorted(_ROUTES_DIR.glob("*.py"))
+    for path in route_files:
+        if path.name == "__init__.py":
+            continue
+        source = path.read_text(encoding="utf-8")
+        for field in _ACCESS_PATH_STATUS_FIELDS:
+            assert field not in source, (
+                f"{path.name} references AccessPathStatus.{field} directly; "
+                "the DoR-E runnable-path matrix lives only in "
+                "api/access_path.py::select_access_path (single choke point)"
+            )
