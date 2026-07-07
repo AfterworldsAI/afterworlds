@@ -9,12 +9,25 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from afterworlds.models.enums import InteractionRejectionReason, StoryMode
+from afterworlds.models.enums import (
+    BranchCountRange,
+    BranchingCadence,
+    CritiqueIntensity,
+    DiceHandling,
+    InteractionRejectionReason,
+    InteractionStyle,
+    LengthPreference,
+    RpgSessionType,
+    RpgTone,
+    StoryMode,
+    StyleDensity,
+    WritingForm,
+)
 from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.pipeline.branching.models import BranchingVisibleState
 from afterworlds.pipeline.orchestrator.models import PipelineDisposition
@@ -111,11 +124,107 @@ class TurnSubmissionResponse(BaseModel):
     provider_refusal: ProviderRefusalSummaryDTO | None = None
     pending_roll_redirect_message: str | None = None
     settlement_warning: str | None = None
-    # Refreshed visible-state for the story's mode, from this same turn's
-    # result -- a single fetch, avoiding a read race after commit. Populated
-    # starting Phase 3 (mode surfaces); None until then and whenever the
-    # owning mode service has nothing to report yet (e.g. setup not started).
+    # Refreshed visible-state for the story's mode: one fetch in the same
+    # session/transaction as the turn, before commit -- avoids a client-side
+    # read race after this turn's writes land. None whenever the owning mode
+    # service has nothing to report yet (e.g. setup not started).
     visible_state: (
         RpgVisibleState | BranchingVisibleState | WritingVisibleState | None
     ) = None
+    schema_version: Literal[1] = 1
+
+
+class RpgSetupRequest(BaseModel):
+    """RPG play-config form fields. Conversational setup (character creation,
+    world-building) goes through ordinary turn submission, not this route --
+    Issue 15's own pipeline owns setup_phase/play_status progression."""
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["rpg"]
+    dice_handling: DiceHandling | None = None
+    gm_cheating: bool | None = None
+    tone: RpgTone | None = None
+    session_type: RpgSessionType | None = None
+    genre_flavor: str | None = None
+    house_rules: str | None = None
+    acceptable_content: str | None = None
+
+
+class BranchingSetupRequest(BaseModel):
+    """Branching structured setup fields. The confirmation pass itself is an
+    ordinary DELIVERED turn (ADR-016 Decision 3) -- submit it via
+    POST .../turns after this call, not through this route."""
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["branching"]
+    interaction_style: InteractionStyle | None = None
+    branching_cadence: BranchingCadence | None = None
+    branch_count_range: BranchCountRange | None = None
+    length_preference: LengthPreference | None = None
+    clear_branch_count_range: bool = False
+
+
+class WritingSetupRequest(BaseModel):
+    """Writing setup fields. ``persona_id`` is required -- no default persona."""
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["writing"]
+    persona_id: str
+    critique_intensity: CritiqueIntensity | None = None
+    form: WritingForm | None = None
+    form_other: str | None = None
+    tense: str | None = None
+    pov: str | None = None
+    style_density: StyleDensity | None = None
+    dialogue_narration_ratio: int | None = None
+    genre_conventions: str | None = None
+    specific_goals: str | None = None
+    acceptable_content: str | None = None
+    beat_constraints: list[str] | None = None
+
+
+SetupRequest = Annotated[
+    RpgSetupRequest | BranchingSetupRequest | WritingSetupRequest,
+    Field(discriminator="mode"),
+]
+
+
+class SetupResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    visible_state: (
+        RpgVisibleState | BranchingVisibleState | WritingVisibleState | None
+    ) = None
+    schema_version: Literal[1] = 1
+
+
+class VisibleStateResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    visible_state: (
+        RpgVisibleState | BranchingVisibleState | WritingVisibleState | None
+    ) = None
+    schema_version: Literal[1] = 1
+
+
+class PersonaDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    persona_id: str
+    display_name: str
+    orientation: str
+    ui_short_description: str
+    ui_long_description: str
+    demeanor_tags: list[str]
+    signature_move: str
+
+
+class PersonaGalleryResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    mentors: list[PersonaDTO]
+    peers: list[PersonaDTO]
     schema_version: Literal[1] = 1

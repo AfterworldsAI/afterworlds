@@ -30,6 +30,7 @@ from afterworlds.api.dto import (
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.story_bootstrap import ensure_story_turn_anchor_node
+from afterworlds.api.visible_state import build_visible_state
 from afterworlds.entitlement.errors import EntitlementSettlementError
 from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
@@ -139,6 +140,15 @@ def _submit_turn_sync(
             else None
         )
 
+        # Single fetch, same session, before commit -- avoids a client-side
+        # read race after this turn's writes land (spec: "refreshed
+        # visible-state payload ... single fetch, avoids a read race after
+        # commit"). Not reused from OrchestrationResult's own visible-state
+        # fields: those are forbidden on every non-DELIVERED disposition,
+        # including OOC_HANDLED, which is exactly where config most often
+        # changes.
+        visible_state = build_visible_state(session, story.story_id, story.mode)
+
         session.commit()
         return TurnSubmissionResponse(
             disposition=result.disposition,
@@ -151,7 +161,7 @@ def _submit_turn_sync(
             provider_refusal=provider_refusal_dto,
             pending_roll_redirect_message=result.pending_roll_redirect_message,
             settlement_warning=settlement_warning,
-            visible_state=None,
+            visible_state=visible_state,
         )
     finally:
         session.close()

@@ -30,8 +30,11 @@ from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.pipeline_wiring import build_orchestrator
 from afterworlds.api.routes.health import router as health_router
+from afterworlds.api.routes.personas import router as personas_router
+from afterworlds.api.routes.setup import router as setup_router
 from afterworlds.api.routes.stories import router as stories_router
 from afterworlds.api.routes.turns import router as turns_router
+from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
@@ -71,6 +74,9 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(stories_router)
     app.include_router(turns_router)
+    app.include_router(visible_state_router)
+    app.include_router(setup_router)
+    app.include_router(personas_router)
 
     @app.exception_handler(ApiErrorResponse)
     async def _api_error_handler(

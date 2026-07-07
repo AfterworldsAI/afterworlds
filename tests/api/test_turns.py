@@ -153,6 +153,21 @@ def test_settlement_failure_survives_turn_and_surfaces_warning(client) -> None: 
         session.close()
 
 
+def test_delivered_turn_envelope_carries_refreshed_visible_state(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "persona_id": "chiron"},
+    )
+    stub = _StubOrchestrator(make_delivered_result)
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["visible_state"]["persona_id"] == "chiron"
+
+
 def test_pipeline_error_result_returns_200_with_envelope(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client)
     _seed_hosted(client)
