@@ -1,11 +1,52 @@
 ## Summary
 
-CRD Issue 19 (#124) — React/Vite frontend shell + minimal FastAPI API surface. Phases 1-3
-implement the API side: `create_app()` factory, DoR-A Sojourner identity, story CRUD exposure,
-turn submission wired through entitlement + the DoR-E access-path selection helper + the
-Binding Decision 8 per-story lock, and the three mode surfaces (visible-state dispatch,
-structured setup, personas gallery). Phase 4 (frontend shell, generated TS types, Playwright
-E2E, packaging) in progress.
+CRD Issue 19 (#124) — React/Vite frontend shell + minimal FastAPI API surface. `create_app()`
+factory, DoR-A Sojourner identity, story CRUD + paged transcript exposure, turn submission wired
+through entitlement + the DoR-E access-path selection helper + the Binding Decision 8 per-story
+lock, the three mode surfaces (visible-state dispatch, structured setup, personas gallery), a
+React/Vite/TS frontend shell (story flow, setup forms, transcript, turn submission, visible-state
+sidebars, exhaustive disposition rendering), generated/drift-gated OpenAPI TS types, and a
+Playwright minimal-spine E2E suite running against the built app with faked provider passes
+(DoR-B). All four phases complete.
+
+## Acceptance criteria coverage
+
+1. Route handlers thin (Binding Decision 2); CRD Item 12 invariant test exists and passes —
+   `tests/api/test_handler_thinness.py`.
+2. Story creation → mode selection → minimal setup → turn submission → delivered output,
+   transcript, mode visible state, all through existing services only — verified via the
+   Playwright E2E spine and manual browser testing against the real (un-mocked) `create_app()`.
+3. Entitlement wiring exact per Binding Decision 4; DoR-E full runnable-path matrix in one tested
+   helper (`api/access_path.py`); no-runnable-path turns never reach the orchestrator; settlement
+   only on hosted DELIVERED/OOC_HANDLED; settlement failure survives the turn (DoR-D) —
+   `tests/api/test_access_path.py`, `tests/api/test_turns.py`.
+4. Disposition handling exhaustive against the merged 9-value enum in both languages — backend
+   `OrchestrationResult`'s own construction-time validator plus the turn route's pass-through;
+   frontend `DispositionBanner`'s TS `never`-check (`DispositionBanner.test.tsx`).
+5. Confirmation/persistence parity: transcript renders only from `GET .../turns` (persisted rows
+   with a surviving `turn_id`); no optimistic rendering anywhere in the frontend.
+6. No client-supplied trust-boundary field honored; `sojourner_id`/`access_path` server-derived;
+   Binding Decision 8 lock tests (concurrent-same-story one-call-one-409, concurrent-different-
+   stories no serialization, release on every path) all pass — `tests/api/test_turns.py`,
+   `tests/api/test_identity.py`.
+7. All API DTOs `extra="forbid"` + `schema_version`; TS types generated and drift-gated in CI
+   (`check-api-types-drift`); mypy strict and `tsc --noEmit` both clean.
+8. Read/bootstrap failures fail closed with typed errors; the only broad catch is the single
+   top-level exception-to-envelope translator in `create_app()`.
+9. One `create_app()` factory, one entry point (`main.py`), one frontend API client
+   (`api/client.ts`), one config source (`ApiSettings`) shared by app and entry point.
+10. Built frontend serves from FastAPI in the product configuration (`StaticFiles`, verified
+    manually and by the E2E suite running against it); packaging/build rules cover the Node
+    toolchain (`.nvmrc`/`engines`), generated types, and the persona registry JSON (already
+    packaged via existing `pyproject.toml` `package-data`); E2E spine passes against the built app.
+11. No Next.js/SSR/Node-app-server/Electron; no new orchestration/mode/entitlement/provider
+    *policy* — the fake-provider path and session resolvers added in Phase 4 are assembly of
+    already-shipped seams (see Architecture Notes), not new behavior; no Issue 20–23 scope
+    absorbed (RPG dice UI explicitly deferred to Issue 19b).
+12. `known_unknowns.md` pre-flight verified (React/Svelte entry already correctly resolved; the
+    Issue 18 chromadb pip-audit ignore survives onto this branch, flagged not retired). Interim-path
+    fencing: no pre-19 dev harness, script, or demo entry point exercising `orchestrate_turn`
+    outside tests was found anywhere in the repository — nothing to fence or dispose of.
 
 ## Architecture Notes
 
