@@ -22,6 +22,7 @@ node-advancement policy, a story-graph engine, or new mode behavior:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -68,9 +69,23 @@ _MODE_METADATA_FACTORY = {
 }
 
 
+@dataclass(frozen=True)
+class StoryTurnAnchorResult:
+    """Result of :func:`ensure_story_turn_anchor_node`.
+
+    ``created`` tells the caller whether a brand-new anchor was just
+    flushed in *this* session (and is therefore invisible to any other
+    session, e.g. the orchestrator's, until this session commits) versus an
+    already-persisted anchor being reused (safe to read from any session).
+    """
+
+    node_id: UUID
+    created: bool
+
+
 def ensure_story_turn_anchor_node(
     session: Session, story_id: UUID, mode: StoryMode
-) -> UUID:
+) -> StoryTurnAnchorResult:
     """Return the story's turn-anchor node id, creating it if absent.
 
     Idempotent: if the story already has an anchor (any node belonging to
@@ -87,7 +102,7 @@ def ensure_story_turn_anchor_node(
         .first()
     )
     if existing is not None:
-        return UUID(existing[0])
+        return StoryTurnAnchorResult(node_id=UUID(existing[0]), created=False)
 
     now = datetime.now(UTC)
     arc = create_arc(session, Arc(story_id=story_id, title=_ANCHOR_ARC_TITLE, order=0))
@@ -107,7 +122,7 @@ def ensure_story_turn_anchor_node(
         ),
     )
     assert node_belongs_to_story(session, node.node_id, story_id)
-    return node.node_id
+    return StoryTurnAnchorResult(node_id=node.node_id, created=True)
 
 
 def ensure_mode_session_state(

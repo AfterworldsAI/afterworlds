@@ -98,11 +98,24 @@ def _submit_turn_sync(
                 ),
             )
 
-        node_id = ensure_story_turn_anchor_node(session, story.story_id, story.mode)
+        anchor = ensure_story_turn_anchor_node(session, story.story_id, story.mode)
+        if anchor.created:
+            # Pre-turn commit for durable story-bootstrap state only (not
+            # turn output/canon/settlement -- none exists yet). The
+            # orchestrator opens its own session immediately below, and
+            # WriterService validates node_belongs_to_story there; a
+            # just-flushed anchor is invisible to that separate session
+            # until this one commits. Without this commit, the first turn
+            # for a legacy/pre-API story (created before this anchor
+            # existed) fails as PIPELINE_ERROR and only then persists the
+            # anchor on retry. The anchor is idempotent v1 bootstrap state,
+            # not narrative output -- it may legitimately survive a later
+            # PIPELINE_ERROR from this same request.
+            session.commit()
 
         result: OrchestrationResult = orchestrator.orchestrate_turn(
             story.story_id,
-            node_id,
+            anchor.node_id,
             user_input,
             sojourner_id,
             selection.access_path,

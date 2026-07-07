@@ -31,6 +31,28 @@ Decision 8). It now opens one short-lived session per ``assemble()`` call,
 mirroring the per-call session pattern the mode session resolvers already
 use below. This is wiring/lifecycle correction, not a change to Context
 Builder semantics -- stable-prefix-once-per-turn is unaffected.
+
+Retrieval query/write services and ``writing_visible_state_service`` (P1
+remediation, PR #126 review round 2): these were left at their ``None``
+defaults, so production turns silently ran without the Issue 18 Retrieval
+Memory layer and any Writing story already in ``IN_PLAY`` returned
+``PIPELINE_ERROR`` (``writing_visible_state_service`` is a hard persona-
+validation gate for IN_PLAY Writing turns, unlike ``rpg_visible_state_service``/
+``branching_visible_state_service``, which the orchestrator treats as
+optional enrichment -- see the ``is not None`` guards around each in
+``pipeline/orchestrator/service.py``). All three are existing Issue 17/18
+classes, wired here exactly as they already exist:
+``RetrievalMemoryWriteService`` and ``ChromaRetrievalMemoryProvider`` share
+one Chroma client/config; ``RetrievalQueryBuilder`` needs a session-bound
+``SQLiteRecentTurnsProvider``, so it gets the same per-call-session
+treatment as ``_PerTurnContextBuilder`` (a shared, app-lifetime session here
+would reintroduce the identical cross-story-concurrency defect); and
+``WritingVisibleStateService`` is constructed from the existing
+``get_default_registry()`` singleton, the same factory ``api/visible_state.py``
+and ``api/routes/personas.py`` already use. RPG/Branching mode-specific pass
+SERVICES (adjudication, BranchingWriterService) remain deliberately unwired
+per the module docstring above -- this is required product wiring for
+already-optional-but-load-bearing dependencies, not new mode policy.
 """
 
 from __future__ import annotations
@@ -53,6 +75,8 @@ from afterworlds.models.session import (
     RpgSessionState,
     WritingSessionState,
 )
+from afterworlds.models.turn import Turn
+from afterworlds.modes.personas.registry import get_default_registry
 from afterworlds.persistence.crud.character_sheet import get_dnd5e_sheet
 from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
@@ -75,10 +99,13 @@ from afterworlds.pipeline.provider.credentials import make_credential_store
 from afterworlds.pipeline.retrieval.chroma_provider import ChromaRetrievalMemoryProvider
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.query_builder import RetrievalQueryBuilder
+from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.config import WriterConfig
 from afterworlds.pipeline.writer.service import WriterService
+from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 from afterworlds.services.context_builder import (
     ContextBuilderService,
     RetrievalMemoryProvider,
@@ -252,6 +279,34 @@ class _PerTurnContextBuilder:
             session.close()
 
 
+class _PerTurnRecentTurnsProvider:
+    """``get_recent_turns()`` duck-type opening a fresh Session per call.
+
+    ``RetrievalQueryBuilder`` is constructed once at app-lifetime, but its
+    ``recent_turns_provider`` dependency (``SQLiteRecentTurnsProvider``)
+    requires a session-bound instance. Binding a single shared session to it
+    here would reintroduce the exact cross-story-concurrency defect
+    ``_PerTurnContextBuilder`` above already fixes. Mirrors that class's
+    pattern instead: open, delegate, close, once per ``get_recent_turns()``
+    call. ``RetrievalQueryBuilder.build_query_request()`` calls this exactly
+    once per turn, before context assembly.
+    """
+
+    def __init__(self, session_factory: sessionmaker[Session]) -> None:
+        self._session_factory = session_factory
+
+    def get_recent_turns(
+        self, story_id: UUID, limit: int, *, exclude_ooc: bool = True
+    ) -> list[Turn]:
+        session = self._session_factory()
+        try:
+            return SQLiteRecentTurnsProvider(session).get_recent_turns(
+                story_id, limit, exclude_ooc=exclude_ooc
+            )
+        finally:
+            session.close()
+
+
 def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorService:
     """Assemble the real OrchestratorService from existing typed seams."""
     use_fake_provider = _fake_provider_enabled()
@@ -262,14 +317,26 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
     )
 
     retrieval_config = RetrievalMemoryConfig.from_env()
+    # One Chroma client shared by the read (ChromaRetrievalMemoryProvider) and
+    # write (RetrievalMemoryWriteService) sides of Retrieval Memory -- both
+    # operate on the same story_memory collection under the same config.
+    chroma_client = build_chroma_client(retrieval_config)
     retrieval_memory = ChromaRetrievalMemoryProvider(
-        client=build_chroma_client(retrieval_config), config=retrieval_config
+        client=chroma_client, config=retrieval_config
+    )
+    retrieval_write_service = RetrievalMemoryWriteService(
+        client=chroma_client, config=retrieval_config
+    )
+    retrieval_query_builder = RetrievalQueryBuilder(
+        recent_turns_provider=_PerTurnRecentTurnsProvider(session_factory),
+        session_factory=session_factory,
     )
 
     def _story_bible_service(session: Session) -> StoryBibleService:
         return StoryBibleService(session)
 
     context_builder = _PerTurnContextBuilder(session_factory, retrieval_memory)
+    writing_visible_state_service = WritingVisibleStateService(get_default_registry())
 
     provider_resolver: ProviderResolver | FakeProviderResolver
     if use_fake_provider:
@@ -317,6 +384,9 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
         branching_session_resolver=_make_branching_session_resolver(session_factory),
         writing_session_resolver=_make_writing_session_resolver(session_factory),
+        writing_visible_state_service=writing_visible_state_service,
+        retrieval_write_service=retrieval_write_service,
+        retrieval_query_builder=retrieval_query_builder,
     )
 
 

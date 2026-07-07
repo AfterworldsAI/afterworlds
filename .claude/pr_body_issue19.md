@@ -223,3 +223,82 @@ Decision 7.
   larger Issue-17/mode-service question the owner should settle rather than have HTTP-layer code
   guess at. Deferred pending an owner decision: either wire an existing Issue 17 derivation seam if
   one already exists, or open a follow-on issue. Not resolved silently, not patched around.
+
+## Remediation round 2 (new Codex findings on `abd6b7a` → this head)
+
+- **Retrieval query/write services now wired into the real product orchestrator (P1).**
+  `build_orchestrator()` constructed `RetrievalMemoryConfig`/`ChromaRetrievalMemoryProvider` but
+  never passed `retrieval_query_builder`/`retrieval_write_service` to `OrchestratorService`, so
+  production turns silently ran with no Issue 18 Retrieval Memory query and no post-commit
+  ingestion — both stayed at their `None` defaults with no error, a silent capability loss, not a
+  crash. Fixed by wiring the existing `RetrievalQueryBuilder` and `RetrievalMemoryWriteService`
+  exactly as they already exist, sharing one Chroma client/config with the existing
+  `ChromaRetrievalMemoryProvider`. `RetrievalQueryBuilder` needs a session-bound
+  `SQLiteRecentTurnsProvider`; since it is constructed once at app-lifetime like the context
+  builder, a shared session would reintroduce the same cross-story-concurrency defect round 1
+  fixed for `ContextBuilderService` — so it gets an identical per-call-session wrapper
+  (`_PerTurnRecentTurnsProvider`). No new eligibility predicate, ID builder, or query-gate logic
+  was added; the orchestrator's own existing post-commit ingestion gate
+  (`pipeline/orchestrator/service.py`) already owns eligibility/session lifecycle for the write
+  path untouched. Regression coverage: `tests/api/test_pipeline_wiring.py` (constructor-spy
+  proving `build_orchestrator()` passes non-None, correctly-typed instances; a session-safety
+  proof for `_PerTurnRecentTurnsProvider` mirroring the round-1 context-builder test) and
+  `tests/api/test_fake_provider_product_path.py` (two real delivered turns through the actual
+  `create_app()` wiring with the fake provider, proving the query/write path runs end-to-end
+  without crashing — including a second turn where the query builder has a real prior committed
+  turn in its eligibility window).
+- **`WritingVisibleStateService` now wired (P1, same finding).** Writing IN_PLAY turns hard-require
+  `writing_visible_state_service` to validate the session's `persona_id` against the registry
+  before Writing output proceeds (`pipeline/orchestrator/service.py` line ~666) — unlike
+  `rpg_visible_state_service`/`branching_visible_state_service`, which the orchestrator treats as
+  optional enrichment via `is not None` guards. Left unwired, every Writing story already IN_PLAY
+  returned `PIPELINE_ERROR` ("writing visible state service not wired for IN_PLAY turn"). Fixed by
+  constructing `WritingVisibleStateService(get_default_registry())` — the exact same
+  `get_default_registry()` singleton `api/visible_state.py` and `api/routes/personas.py` already
+  use, not a new registry instance or provider. Regression coverage:
+  `tests/api/test_fake_provider_product_path.py::test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service`.
+  Note: nothing in Issue 19's product HTTP path currently promotes a Writing story's `play_status`
+  from SETUP to IN_PLAY — that write only happens via the Writing OOC config extractor pass
+  SERVICE (`self._writing_ooc_config_extractor`), which is deliberately unwired per this file's
+  existing "mode-specific pass SERVICES... out of scope" note. The regression test promotes
+  `play_status` directly via the same typed CRUD the orchestrator itself would eventually call, to
+  construct the IN_PLAY-with-valid-persona precondition without adding new mode policy.
+  - *Sibling audit* (constructor dependencies required for a real product path vs. deliberately
+    unwired mode-specific pass services): every other `OrchestratorService` optional parameter was
+    checked against its usage in `pipeline/orchestrator/service.py`. `rpg_visible_state_service`/
+    `branching_visible_state_service` — **already safe**, optional enrichment (`is not None`
+    guards), not a hard gate like Writing's. `rpg_adjudication_service`, `branching_writer_service`,
+    `branching_selection_service`, `branching_ooc_config_extractor`, `writing_ooc_config_extractor`
+    — **out of scope**, genuine mode-specific pass SERVICES per this file's existing docstring, not
+    touched. `rpg_dice_service`, `rpg_pending_roll_service` — **already safe / unreachable**: both
+    hard-gates live behind `player_reported_total is not None` (the RPG dice-consume path) or
+    `rpg_adjudication_service is not None`, and neither is reachable through Issue 19's
+    `TurnSubmissionRequest` (no `player_reported_total` field exists on it — the RPG dice UI and
+    consume adapter are explicitly deferred to Issue 19b per this file's existing note above).
+    `mode_resolver`, `executor`, `parallel_pass_timeout_seconds`, `parallel_pass_max_workers` —
+    **already safe**, sensible internal defaults, no product requirement to override them here.
+- **Legacy/pre-API anchor bootstrap now commits before orchestration (P2).**
+  `ensure_story_turn_anchor_node` now returns a typed `StoryTurnAnchorResult(node_id, created)`
+  instead of a bare `UUID`. In `_submit_turn_sync` (`api/routes/turns.py`), when `created=True` the
+  route session commits immediately, before calling `orchestrate_turn`. Without this, a story
+  created before this anchor-bootstrap concept existed (or by any path other than `POST /stories`)
+  would have its anchor only flushed, not committed, in the route's session; `orchestrate_turn`
+  opens its own separate session immediately afterward, and `WriterService`'s
+  `node_belongs_to_story` check in that second session could not see the just-flushed row — the
+  first turn failed as `PIPELINE_ERROR`, and only a retried turn (after the eventual end-of-request
+  commit) would succeed. The commit is scoped to bootstrap state only: it fires before entitlement
+  settlement and before any turn output exists, so it cannot accidentally commit settlement or
+  turn-result state. When an anchor already exists (`created=False`, the common case for every
+  story created through this API), no extra commit happens. The anchor is idempotent v1 bootstrap
+  state, not narrative output, canon, or a delivered Turn — it may legitimately survive a later
+  `PIPELINE_ERROR` from the same request. Regression coverage:
+  `tests/api/test_fake_provider_product_path.py::test_first_turn_for_anchor_less_legacy_story_does_not_fail`
+  (constructs a story via CRUD only, bypassing `POST /stories`'s own anchor-creation call, to
+  reproduce the pre-anchor-bootstrap shape; verified with a negative control that the test fails
+  without the commit fix and passes with it restored). Existing story-created-through-`POST
+  /stories` tests remain green (that path already committed the anchor as part of its own
+  single-transaction creation flow, so `created=True` there was already safe; unaffected either
+  way).
+- No client-supplied Writing trust-boundary fields were added in this remediation round. Codex's
+  round-2 findings did not include the Writing-provenance defect again (already logged as
+  `[OWNER DECISION]` above); this section only fixes the two new findings.

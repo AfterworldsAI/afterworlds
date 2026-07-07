@@ -117,3 +117,76 @@ def test_concurrent_stories_get_independent_sessions(_spying_session_factory) ->
     assert len(created) == 2
     assert created[0] is not created[1]
     assert set(closed) == set(created)
+
+
+# ---------------------------------------------------------------------------
+# P1 regression (PR #126 review round 2): retrieval query/write services and
+# WritingVisibleStateService must actually reach OrchestratorService in the
+# real build_orchestrator() path -- previously left at their None defaults,
+# so production turns silently ran without Retrieval Memory and any Writing
+# story already IN_PLAY returned PIPELINE_ERROR.
+# ---------------------------------------------------------------------------
+
+
+def test_build_orchestrator_wires_retrieval_and_writing_visible_state(
+    tmp_path,  # type: ignore[no-untyped-def]
+    monkeypatch,  # type: ignore[no-untyped-def]
+) -> None:
+    """Constructor-spy: capture the kwargs the real build_orchestrator() path
+    passes to OrchestratorService, without needing a live provider/model call.
+    """
+    import afterworlds.api.pipeline_wiring as wiring_module
+    from afterworlds.pipeline.retrieval.query_builder import RetrievalQueryBuilder
+    from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
+    from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+
+    monkeypatch.setenv(
+        "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma_data")
+    )
+
+    captured_kwargs: dict[str, object] = {}
+
+    class _CapturingOrchestrator:
+        def __init__(self, **kwargs: object) -> None:
+            captured_kwargs.update(kwargs)
+
+    monkeypatch.setattr(wiring_module, "OrchestratorService", _CapturingOrchestrator)
+
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    try:
+        session_factory = create_session_factory(engine)
+        wiring_module.build_orchestrator(session_factory)
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+    assert isinstance(
+        captured_kwargs.get("retrieval_query_builder"), RetrievalQueryBuilder
+    )
+    assert isinstance(
+        captured_kwargs.get("retrieval_write_service"), RetrievalMemoryWriteService
+    )
+    assert isinstance(
+        captured_kwargs.get("writing_visible_state_service"), WritingVisibleStateService
+    )
+
+
+def test_per_turn_recent_turns_provider_opens_fresh_session_per_call(
+    _spying_session_factory,  # type: ignore[no-untyped-def]
+) -> None:
+    """Mirrors _PerTurnContextBuilder's session-safety proof: the retrieval
+    query builder's recent-turns dependency must not bind one shared Session
+    across turns/stories either."""
+    from afterworlds.api.pipeline_wiring import _PerTurnRecentTurnsProvider
+
+    factory, created, closed = _spying_session_factory
+    provider = _PerTurnRecentTurnsProvider(factory)
+
+    story_id = uuid4()
+    provider.get_recent_turns(story_id, 3)
+    provider.get_recent_turns(story_id, 3)
+
+    assert len(created) == 2
+    assert created[0] is not created[1]
+    assert set(closed) == set(created)
