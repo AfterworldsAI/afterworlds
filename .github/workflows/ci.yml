@@ -66,3 +66,41 @@ jobs:
         # Revisit if chromadb ships a patched release, or if a server-mode deployment
         # is ever proposed (which would require a new safe-deployment review).
         run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-45829
+
+  frontend:
+    name: Frontend — Typecheck, Lint, Format, Test, Audit, Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node (pinned LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type checking — tsc --noEmit
+        run: npm run typecheck
+
+      - name: Linting — ESLint
+        run: npm run lint
+
+      - name: Formatting — Prettier
+        run: npm run format:check
+
+      - name: Tests — Vitest
+        run: npm run test
+
+      - name: Dependency audit — npm audit
+        run: npm audit --audit-level=high
+
+      - name: Production build
+        run: npm run build
