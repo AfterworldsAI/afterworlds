@@ -249,3 +249,28 @@ def node_belongs_to_story(session: Session, node_id: UUID, story_id: UUID) -> bo
         .first()
     )
     return result is not None
+
+
+def list_turns_by_story(
+    session: Session, story_id: UUID, *, limit: int, offset: int = 0
+) -> list[Turn]:
+    """Return Turns for a story in persisted (timestamp) order, paged.
+
+    Walks Turn → Node → Chapter → Arc and filters on Arc.story_id, mirroring
+    ``node_belongs_to_story`` -- correct regardless of how many Nodes a story
+    ends up owning, not coupled to the v1 single-turn-anchor-node shape.
+    """
+    from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+    rows = (
+        session.query(TurnORM)
+        .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+        .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+        .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+        .filter(ArcORM.story_id == str(story_id))
+        .order_by(TurnORM.timestamp.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return [_turn_orm_to_model(row) for row in rows]

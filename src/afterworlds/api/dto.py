@@ -19,6 +19,7 @@ from afterworlds.models.enums import (
     BranchingCadence,
     CritiqueIntensity,
     DiceHandling,
+    IntentType,
     InteractionRejectionReason,
     InteractionStyle,
     LengthPreference,
@@ -227,4 +228,21 @@ class PersonaGalleryResponse(BaseModel):
 
     mentors: list[PersonaDTO]
     peers: list[PersonaDTO]
+    schema_version: Literal[1] = 1
+
+
+class TranscriptTurnDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    turn_id: UUID
+    user_input: str
+    assistant_output: str
+    timestamp: datetime
+    intent_classification: IntentType
+
+
+class TranscriptResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    turns: list[TranscriptTurnDTO]
     schema_version: Literal[1] = 1

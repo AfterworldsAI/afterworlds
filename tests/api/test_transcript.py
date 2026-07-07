@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
+
+from afterworlds.models.enums import IntentType
+from afterworlds.models.turn import Turn
+from afterworlds.persistence.crud.node import create_turn
+from afterworlds.persistence.crud.story import get_story
+
+
+def _create_story(client) -> str:  # type: ignore[no-untyped-def]
+    resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+    assert resp.status_code == 201, resp.text
+    return resp.json()["story_id"]  # type: ignore[no-any-return]
+
+
+def _seed_turn(
+    client,  # type: ignore[no-untyped-def]
+    story_id: str,
+    *,
+    when: datetime,
+    intent: IntentType = IntentType.IN_CHARACTER_ACTION,
+) -> UUID:
+    """Insert a Turn directly via CRUD, tied to the story's turn-anchor node.
+
+    Turn submission's actual DB write is the real orchestrator's job
+    (covered by tests/pipeline/orchestrator/); this route only reads
+    whatever turns already exist, so seeding directly (not through a
+    stubbed-orchestrator POST, which writes nothing) is the correct test
+    boundary for the transcript GET.
+    """
+    session = client.app.state.session_factory()
+    try:
+        story = get_story(session, UUID(story_id))
+        assert story is not None
+        # The anchor node was created at story-creation time (Phase 1).
+        from afterworlds.persistence.orm.node import NodeORM
+        from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+        node_id = (
+            session.query(NodeORM.node_id)
+            .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+            .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+            .filter(ArcORM.story_id == story_id)
+            .scalar()
+        )
+        assert node_id is not None
+        turn = Turn(
+            user_input="input",
+            assistant_output="output",
+            timestamp=when,
+            intent_classification=intent,
+            node_id=UUID(node_id),
+        )
+        create_turn(session, turn)
+        session.commit()
+        return turn.turn_id
+    finally:
+        session.close()
+
+
+def test_transcript_empty_for_new_story(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client)
+    resp = client.get(f"/api/stories/{story_id}/turns")
+    assert resp.status_code == 200
+    assert resp.json()["turns"] == []
+
+
+def test_transcript_reflects_seeded_turns_in_persisted_order(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client)
+    turn_id_1 = _seed_turn(client, story_id, when=datetime(2026, 1, 1, tzinfo=UTC))
+    turn_id_2 = _seed_turn(
+        client,
+        story_id,
+        when=datetime(2026, 1, 2, tzinfo=UTC),
+        intent=IntentType.OOC,
+    )
+
+    resp = client.get(f"/api/stories/{story_id}/turns")
+    assert resp.status_code == 200
+    turns = resp.json()["turns"]
+    assert [t["turn_id"] for t in turns] == [str(turn_id_1), str(turn_id_2)]
+    assert turns[1]["intent_classification"] == "ooc"
+
+
+def test_transcript_missing_story_404(client) -> None:  # type: ignore[no-untyped-def]
+    resp = client.get(f"/api/stories/{uuid4()}/turns")
+    assert resp.status_code == 404
+
+
+def test_transcript_rejects_invalid_limit(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client)
+    resp = client.get(f"/api/stories/{story_id}/turns", params={"limit": 0})
+    assert resp.status_code == 422

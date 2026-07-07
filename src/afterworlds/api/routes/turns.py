@@ -20,11 +20,14 @@ from afterworlds.api.access_path import select_access_path
 from afterworlds.api.deps import (
     get_byok_readiness_provider,
     get_orchestrator,
+    get_session,
     get_sojourner_id,
     get_story_lock,
 )
 from afterworlds.api.dto import (
     ProviderRefusalSummaryDTO,
+    TranscriptResponse,
+    TranscriptTurnDTO,
     TurnSubmissionRequest,
     TurnSubmissionResponse,
 )
@@ -34,6 +37,7 @@ from afterworlds.api.visible_state import build_visible_state
 from afterworlds.entitlement.errors import EntitlementSettlementError
 from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
+from afterworlds.persistence.crud.node import list_turns_by_story
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.pipeline.orchestrator.models import (
     OrchestrationResult,
@@ -198,3 +202,44 @@ async def submit_turn(
         )
     finally:
         lock.release()
+
+
+_MAX_PAGE_SIZE = 200
+
+
+@router.get("/{story_id}/turns", response_model=TranscriptResponse)
+def get_transcript(
+    story_id: UUID,
+    session: Session = Depends(get_session),
+    limit: int = 50,
+    offset: int = 0,
+) -> TranscriptResponse:
+    story = get_story(session, story_id)
+    if story is None:
+        raise ApiErrorResponse(
+            404, ApiErrorCode.NOT_FOUND, f"Story {story_id} not found"
+        )
+    if not 1 <= limit <= _MAX_PAGE_SIZE:
+        raise ApiErrorResponse(
+            422,
+            ApiErrorCode.VALIDATION_FAILED,
+            f"limit must be between 1 and {_MAX_PAGE_SIZE}",
+        )
+    if offset < 0:
+        raise ApiErrorResponse(
+            422, ApiErrorCode.VALIDATION_FAILED, "offset must be >= 0"
+        )
+
+    turns = list_turns_by_story(session, story_id, limit=limit, offset=offset)
+    return TranscriptResponse(
+        turns=[
+            TranscriptTurnDTO(
+                turn_id=t.turn_id,
+                user_input=t.user_input,
+                assistant_output=t.assistant_output,
+                timestamp=t.timestamp,
+                intent_classification=t.intent_classification,
+            )
+            for t in turns
+        ]
+    )
