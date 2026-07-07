@@ -22,6 +22,15 @@ minimal seam with no ``PipelinePassId`` of its own -- it does not go through
 ``ProviderResolver``/``ProviderAdapter`` like the other passes. Wiring it to
 a real (lightweight) Anthropic call is narrow, mechanical assembly, not a
 routing/entitlement/safety decision.
+
+``_PerTurnContextBuilder`` (P1 remediation, PR #126 review round 1): the
+context builder previously shared one app-lifetime SQLAlchemy Session across
+every turn and every story, which is unsafe once real turns run in
+``asyncio.to_thread`` with cross-story concurrency permitted (Binding
+Decision 8). It now opens one short-lived session per ``assemble()`` call,
+mirroring the per-call session pattern the mode session resolvers already
+use below. This is wiring/lifecycle correction, not a change to Context
+Builder semantics -- stable-prefix-once-per-turn is unaffected.
 """
 
 from __future__ import annotations
@@ -34,6 +43,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.fake_pipeline import FakeProviderResolver, fake_intent_model_caller
 from afterworlds.models.character_sheet import Dnd5eCharacterSheet
+from afterworlds.models.context import AssembledContext
+from afterworlds.models.enums import StoryMode
+from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.retrieval import RetrievalQueryRequest
+from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.models.session import (
     BranchingSessionState,
     RpgSessionState,
@@ -67,6 +81,7 @@ from afterworlds.pipeline.writer.config import WriterConfig
 from afterworlds.pipeline.writer.service import WriterService
 from afterworlds.services.context_builder import (
     ContextBuilderService,
+    RetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
 )
 from afterworlds.services.intent_classifier import IntentClassifierService
@@ -172,6 +187,71 @@ def _make_rpg_session_sheet_resolver(
     return _resolve
 
 
+class _PerTurnContextBuilder:
+    """Assembles context via a fresh SQLAlchemy Session per ``assemble()`` call.
+
+    ``ContextBuilderService`` itself takes already-session-bound service
+    instances at construction time. The orchestrator is app-lifetime and
+    ``POST /turns`` runs real turn work in ``asyncio.to_thread``; Binding
+    Decision 8 deliberately permits concurrent turns for *different* stories
+    to run without serializing against each other. A single shared
+    SQLAlchemy ``Session`` is not thread-safe and can also hold a stale
+    SQLite read snapshot across turns. This wrapper opens one short-lived
+    session per call, builds a throwaway session-bound ``ContextBuilderService``
+    from it, delegates immediately, and closes the session -- mirroring the
+    per-call session pattern already used by the mode session resolvers
+    below. Stable-prefix-once-per-turn is unaffected: ``assemble()`` still
+    calls ``build_stable_prefix``/``build_volatile_suffix`` exactly once per
+    invocation, and the orchestrator calls ``assemble()`` exactly once per
+    turn (see ``_build_context`` in ``pipeline/orchestrator/service.py``).
+
+    Not a ``ContextBuilderService`` subclass -- a narrow, duck-typed
+    ``assemble()`` substitution (the same pattern already used for
+    ``FakeProviderResolver`` below), passed with a documented
+    ``# type: ignore[arg-type]``.
+    """
+
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        retrieval_memory: RetrievalMemoryProvider,
+    ) -> None:
+        self._session_factory = session_factory
+        self._retrieval_memory = retrieval_memory
+
+    def assemble(
+        self,
+        story_id: UUID,
+        mode: StoryMode,
+        current_input: str,
+        classified_intent: IntentClassificationResult,
+        rule_slice_request: RuleSliceRequest | None = None,
+        retrieval_query_request: RetrievalQueryRequest | None = None,
+    ) -> AssembledContext:
+        session = self._session_factory()
+        try:
+            per_turn_builder = ContextBuilderService(
+                story_bible_service=StoryBibleService(session),
+                rolling_summary_service=RollingSummaryService(
+                    session,
+                    generator=lambda _prior, _texts: "",
+                ),
+                recent_turns_provider=SQLiteRecentTurnsProvider(session),
+                retrieval_memory=self._retrieval_memory,
+                rules_package_service=RulesPackageService(session),
+            )
+            return per_turn_builder.assemble(
+                story_id,
+                mode,
+                current_input,
+                classified_intent,
+                rule_slice_request,
+                retrieval_query_request,
+            )
+        finally:
+            session.close()
+
+
 def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorService:
     """Assemble the real OrchestratorService from existing typed seams."""
     use_fake_provider = _fake_provider_enabled()
@@ -189,26 +269,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
     def _story_bible_service(session: Session) -> StoryBibleService:
         return StoryBibleService(session)
 
-    def _rolling_summary_service(session: Session) -> RollingSummaryService:
-        return RollingSummaryService(
-            session,
-            generator=lambda _prior, _texts: "",
-        )
-
-    def _rules_package_service(session: Session) -> RulesPackageService:
-        return RulesPackageService(session)
-
-    def _recent_turns_provider(session: Session) -> SQLiteRecentTurnsProvider:
-        return SQLiteRecentTurnsProvider(session)
-
-    context_session = session_factory()
-    context_builder = ContextBuilderService(
-        story_bible_service=_story_bible_service(context_session),
-        rolling_summary_service=_rolling_summary_service(context_session),
-        recent_turns_provider=_recent_turns_provider(context_session),
-        retrieval_memory=retrieval_memory,
-        rules_package_service=_rules_package_service(context_session),
-    )
+    context_builder = _PerTurnContextBuilder(session_factory, retrieval_memory)
 
     provider_resolver: ProviderResolver | FakeProviderResolver
     if use_fake_provider:
@@ -233,7 +294,11 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
 
     return OrchestratorService(
         intent_classifier=intent_classifier,
-        context_builder=context_builder,
+        # _PerTurnContextBuilder duck-types assemble() only (fresh Session per
+        # call, see its docstring) -- not a ContextBuilderService subclass, a
+        # deliberate, narrow protocol substitution mirroring the
+        # FakeProviderResolver pattern below.
+        context_builder=context_builder,  # type: ignore[arg-type]
         safety_service=SafetyService(SafetyConfig.from_env()),
         planner_service=PlannerService(PlannerConfig.from_env()),
         writer_service=WriterService(placeholder_session, WriterConfig.from_env()),

@@ -141,3 +141,85 @@ Playwright minimal-spine E2E suite running against the built app with faked prov
   setup + a delivered turn instead; `INTERACTION_REJECTED` E2E coverage requires wiring
   `BranchingWriterService` first, which is Phase 3-adjacent mode-specific work Issue 19 scoped out
   (see the "Mode-specific pass services... out of scope" note above).
+
+## Remediation (review round 1, head `acc95cf591` → this head)
+
+Codex posted 2×P1 + 2×P2 against `acc95cf591`; the classification summary judged two in-scope
+merge-blocking defects and two boundary/owner-decision items. Fixes below address the two
+defects plus the review's third P1 (startup schema bootstrap), which the owner elected to fix in
+this PR rather than defer. The Writing-provenance P2 is explicitly *not* fixed, per Binding
+Decision 7.
+
+- **Per-turn context Session ownership (P1).** `build_orchestrator()` previously opened one
+  `context_session = session_factory()` at app-construction time and shared it — captured inside
+  `StoryBibleService`, `RollingSummaryService`, `SQLiteRecentTurnsProvider`, and
+  `RulesPackageService` — across every turn, every story, for the app's entire lifetime. Real
+  turns run inside `asyncio.to_thread`, and Binding Decision 8 deliberately permits concurrent
+  turns for *different* stories to run without serializing, so two cross-story turns could drive
+  the same non-thread-safe SQLAlchemy `Session` from separate worker threads; the same long-lived
+  session also never committed/rolled back, so it could hold a stale SQLite read snapshot even
+  single-threaded. Fixed with `_PerTurnContextBuilder` (`api/pipeline_wiring.py`): a narrow,
+  duck-typed `assemble()` substitution (same pattern as `FakeProviderResolver`, passed with a
+  documented `# type: ignore[arg-type]`) that opens one short-lived session per call, builds a
+  throwaway session-bound `ContextBuilderService`, delegates, and closes the session — mirroring
+  the per-call session pattern the mode session resolvers already used. Stable-prefix-once-per-turn
+  is unaffected: `assemble()` still builds it exactly once per call, and the orchestrator calls
+  `assemble()` exactly once per turn. `ChromaRetrievalMemoryProvider` continues to be shared (it
+  wraps a `chromadb.PersistentClient`, not a SQLAlchemy `Session` — verified by reading
+  `pipeline/retrieval/client.py` and `chroma_provider.py` before reusing it). Regression coverage:
+  `tests/api/test_pipeline_wiring.py` (fresh session per call, session closed even when `assemble()`
+  raises, independent sessions across concurrent stories).
+  - *Sibling audit* (same defect family: a captured/shared session or a session used across an
+    unsafe boundary): `placeholder_session` used to construct `WriterService`/`ExtractorService` in
+    the same function — **already safe**, verified against `pipeline/orchestrator/service.py`'s
+    call sites, which pass `session=` explicitly at every `writer_service.write(...)` and
+    `extractor_service.extract(...)` call; the constructor-time session is never touched for real
+    turn processing. `ProviderResolver` — **already safe**, constructed with `session_factory`, not
+    a session. The three mode session resolvers (`_make_rpg_session_sheet_resolver`,
+    `_make_branching_session_resolver`, `_make_writing_session_resolver`) — **already safe**, each
+    already opens a fresh session per call (the pattern this fix now mirrors).
+    `ByokCredentialReadinessProvider` (`app.py`) — **already safe**, constructed with
+    `session_factory`. `deps.py`'s `get_session` (per-request FastAPI dependency) and
+    `provision_sojourner_id` (one-shot at `create_app()` construction, session closed immediately,
+    single-uvicorn-worker per Binding Decision 8) — **already safe**.
+- **Migration-based schema bootstrap (P1).** `create_app()` called
+  `Base.metadata.create_all(engine)` against whatever ORM modules `app.py` happened to import at
+  module scope. That silently skipped every Alembic-only DDL statement — including the
+  append-only audit triggers on `entitlement_event`, `provider_refusal_log`, and `rpg_roll_audit`
+  — and, verified by diffing `app.py`'s import list against `alembic/env.py`'s, omitted several
+  tables entirely on a fresh database (`entitlement.orm`, `pipeline.provider._refusal_log`,
+  `persistence.orm.story_bible`, `persistence.orm.rules_package`,
+  `persistence.orm.rolling_summary`, `pipeline.provider._route_config`,
+  `pipeline.provider.credentials._metadata` were never imported by `app.py`). This is a real
+  Architecture Invariant 11 (auditability / money-adjacent event logs) gap. Fixed with
+  `api/db_bootstrap.py::upgrade_to_head()`, which runs the repo's real Alembic migrations against
+  `settings.database_url` (idempotent — a no-op against an already-current database) before
+  `create_session_factory()`. The now-redundant ORM mass-import block in `app.py` was removed;
+  removing it did not break mapper configuration or any test (full suite green), since CRUD
+  modules already import their own ORM classes and Alembic's `env.py` imports the complete set
+  independently. No new migrations were added — the existing migrations already define the full
+  schema and triggers; this was a wiring gap, not a missing-migration gap. Regression coverage:
+  `tests/api/test_db_bootstrap.py` (real `create_app()` reaches Alembic head; all previously-missing
+  tables now exist; the append-only triggers exist in `sqlite_master` and a direct UPDATE/DELETE on
+  `entitlement_event` is rejected by the DB layer, not just by application code).
+- **`RequestValidationError` → single error envelope (P2).** FastAPI/Pydantic validation failures
+  (an `extra="forbid"` rejection, an invalid setup enum, a malformed UUID path parameter, a
+  non-integer transcript `limit`) previously fell through to FastAPI's default `{"detail": [...]}`
+  422 body instead of the `ApiError` envelope, violating Binding Decision 10 and silently skipping
+  the frontend's typed `ApiRequestError` branch. Fixed with a `RequestValidationError` handler in
+  `create_app()` returning `ApiErrorCode.VALIDATION_FAILED` at 422; `detail` carries only the
+  dotted field path and message per offending field, never `exc.errors()`'s raw `"input"` value
+  (which can echo client-supplied data). Regression coverage: `tests/api/test_validation_envelope.py`
+  (all four representative cases, asserting the actual envelope shape, not just the status code).
+- **Writing-mode turn provenance (`work_product_kind`) — deliberately not fixed here
+  `[OWNER DECISION]`.** Codex correctly identified that every Writing turn is recorded with default
+  non-canon eligibility because `TurnSubmissionRequest` never carries `work_product_kind`/canon
+  eligibility, suppressing extractor/Story Bible/retrieval-memory routing that should apply to
+  eligible prose. Codex's proposed remedy — add these fields to the HTTP request contract — was not
+  implemented: Binding Decision 7 explicitly forbids the API from accepting client-supplied
+  `work_product_kind`/canon-eligibility metadata (a browser-supplied value would become the canon
+  trust boundary) and directs this to be derived server-side through the owning mode service, or
+  stopped and flagged. This PR does not attempt a server-side derivation seam, since that is a
+  larger Issue-17/mode-service question the owner should settle rather than have HTTP-layer code
+  guess at. Deferred pending an owner decision: either wire an existing Issue 17 derivation seam if
+  one already exists, or open a follow-on issue. Not resolved silently, not patched around.
