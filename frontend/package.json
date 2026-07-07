@@ -13,7 +13,8 @@
     "lint": "eslint . --max-warnings=0",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "generate-api-types": "openapi-typescript http://127.0.0.1:8000/openapi.json -o src/api/schema.ts"
+    "generate-api-types": "python ../scripts/dump_openapi_schema.py --out openapi.json && openapi-typescript openapi.json -o src/api/schema.ts && rm -f openapi.json",
+    "check-api-types-drift": "npm run generate-api-types && git diff --exit-code -- src/api/schema.ts"
   },
   "dependencies": {
     "react": "^18.3.1",
