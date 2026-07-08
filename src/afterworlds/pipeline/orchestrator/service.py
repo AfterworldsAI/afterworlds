@@ -50,7 +50,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
-from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.entitlement.enums import PipelinePassId, RuntimeAccessPath
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -68,7 +68,10 @@ from afterworlds.models.enums import (
     WritingPlayStatus,
     WritingWorkProductKind,
 )
-from afterworlds.models.intent_classification import IntentClassificationResult
+from afterworlds.models.intent_classification import (
+    IntentClassificationError,
+    IntentClassificationResult,
+)
 from afterworlds.models.retrieval import RetrievalQueryRequest
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.pipeline._refusal import (
@@ -117,6 +120,7 @@ if TYPE_CHECKING:
         WritingOocConfigExtractorService,
     )
     from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
     ContradictionResult,
@@ -135,6 +139,10 @@ from afterworlds.pipeline.planner.models import (
     PlannerResult,
 )
 from afterworlds.pipeline.planner.service import PlannerService
+from afterworlds.pipeline.provider._models import (
+    ProviderCallRequest,
+    ProviderTextPart,
+)
 from afterworlds.pipeline.provider._protocol import ProviderAdapter
 from afterworlds.pipeline.provider._resolver import ProviderResolver
 from afterworlds.pipeline.provider._routing import TurnProviderBinding
@@ -511,16 +519,27 @@ class OrchestratorService:
 
         # 1. Intent classification.
         #
-        # `IntentClassifierService.classify` may raise the typed
-        # `IntentClassificationError` (parse / validation failure) OR any
-        # untyped runtime failure from the injected model caller (transport
-        # error, provider hiccup, etc.).  Both must produce a typed
-        # PIPELINE_ERROR result rather than escaping `orchestrate_turn` as
-        # a raw exception — the orchestrator's terminal-state contract is
-        # exhaustive (Issue 12c).
+        # Round 6 remediation (PR #126 P1): classification is routed through
+        # `binding.adapter` (resolved in step 0), the same selected
+        # hosted/BYOK access path every other pass uses -- not a standalone
+        # process-hosted key. `IntentClassifierService.classify` may raise
+        # the typed `IntentClassificationError` (parse / validation failure)
+        # OR any untyped runtime failure from the model caller (transport
+        # error, provider refusal, provider hiccup, etc.). Both must produce
+        # a typed PIPELINE_ERROR result rather than escaping
+        # `orchestrate_turn` as a raw exception — the orchestrator's
+        # terminal-state contract is exhaustive (Issue 12c). No
+        # classifier-specific refusal routing exists; a `ProviderRefusalError`
+        # here falls into this same fail-closed PIPELINE_ERROR path.
         try:
+            intent_caller = _make_intent_classifier_caller(
+                binding.adapter,  # type: ignore[arg-type]
+                sojourner_id,
+            )
             intent_result, classify_ms = _timed(
-                lambda: self._intent_classifier.classify(user_input, story_id)
+                lambda: self._intent_classifier.classify(
+                    user_input, story_id, model_caller=intent_caller
+                )
             )
             latency["intent"] = classify_ms
         except Exception as exc:  # noqa: BLE001
@@ -3980,6 +3999,46 @@ def _synthesize_intent(user_input: str) -> IntentClassificationResult:
         raw_input=user_input,
         ambiguous=False,
     )
+
+
+_INTENT_CLASSIFIER_MAX_TOKENS = 256
+
+
+def _make_intent_classifier_caller(
+    adapter: ProviderAdapter, sojourner_id: UUID
+) -> Callable[[str], str]:
+    """Build a ``ModelCallerT`` that routes Intent Classification through the
+    turn's already-resolved provider adapter.
+
+    Architecture Note (Round 6 remediation, PR #126 P1): Intent Classification
+    is a model call, so it must be mediated by the selected access path like
+    every other pass -- a standalone process-hosted key bypassing
+    ``TurnProviderBinding`` would let a BYOK turn silently spend a
+    hosted/server key outside the Sojourner's BYOK pool. ``ScopedProviderAdapter``
+    fills sojourner_id (Issue 14a refusal-log scoping) exactly as the other
+    passes do; no second, hidden provider resolver is created here.
+    """
+    scoped = ScopedProviderAdapter(adapter, sojourner_id)
+
+    def _call(prompt: str) -> str:
+        request = ProviderCallRequest(
+            pass_id=PipelinePassId.INTENT_CLASSIFIER,
+            rendered_blocks=[RenderedBlock(text=prompt)],
+            max_output_tokens=_INTENT_CLASSIFIER_MAX_TOKENS,
+        )
+        result = scoped.call(request)
+        text_parts = [
+            part.text
+            for part in result.content_parts
+            if isinstance(part, ProviderTextPart)
+        ]
+        if not text_parts:
+            raise IntentClassificationError(
+                "Provider returned no text content for intent classification"
+            )
+        return text_parts[0]
+
+    return _call
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:

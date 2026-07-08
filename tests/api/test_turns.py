@@ -13,7 +13,15 @@ import threading
 import time
 from uuid import UUID, uuid4
 
+import pytest
+
 from afterworlds.api.deps import get_orchestrator
+from afterworlds.entitlement.errors import (
+    EntitlementConcurrencyError,
+    EntitlementIdempotencyConflictError,
+    EntitlementSettlementConflictError,
+    EntitlementSettlementError,
+)
 from afterworlds.entitlement.service import EntitlementService
 from tests.api._fixtures import make_delivered_result, make_pipeline_error_result
 from tests.entitlement.conftest import (
@@ -172,6 +180,92 @@ def test_settlement_failure_survives_turn_and_surfaces_warning(client) -> None: 
         assert events == []
     finally:
         session.close()
+
+
+@pytest.mark.parametrize(
+    "error_class",
+    [
+        EntitlementSettlementError,
+        EntitlementSettlementConflictError,
+        EntitlementIdempotencyConflictError,
+        EntitlementConcurrencyError,
+    ],
+)
+def test_each_settlement_write_failure_survives_turn(
+    client,  # type: ignore[no-untyped-def]
+    monkeypatch,  # type: ignore[no-untyped-def]
+    error_class,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 6 P2: settle_hosted_turn_cost() can raise any of four
+    settlement write failures, not just EntitlementSettlementError -- all
+    four must preserve the delivered turn and surface settlement_warning
+    (Binding Decision 5 / DoR-D). Logging is asserted by spying on the
+    route module's logger directly rather than via caplog, since
+    TestClient dispatches the handler on a worker thread and caplog's
+    handler attachment is not reliably observed across that boundary."""
+    from afterworlds.api.routes import turns as turns_module
+
+    def _raise(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise error_class("forced for test")
+
+    monkeypatch.setattr(EntitlementService, "settle_hosted_turn_cost", _raise)
+
+    logged: list[tuple] = []
+    original_error = turns_module.logger.error
+
+    def _spy_error(*args, **kwargs):  # type: ignore[no-untyped-def]
+        logged.append((args, kwargs))
+        return original_error(*args, **kwargs)
+
+    monkeypatch.setattr(turns_module.logger, "error", _spy_error)
+
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    turn_id = uuid4()
+    stub = _StubOrchestrator(lambda: make_delivered_result(turn_id))
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered"
+    assert body["turn_id"] == str(turn_id)
+    assert body["settlement_warning"] is not None
+    assert len(logged) == 1
+    _, kwargs = logged[0]
+    assert kwargs["extra"]["error_class"] == error_class.__name__
+
+
+def test_non_settlement_exception_still_surfaces_as_internal_error(
+    client,  # type: ignore[no-untyped-def]
+    monkeypatch,  # type: ignore[no-untyped-def]
+) -> None:
+    """Only the four named settlement write failures are caught -- an
+    unrelated exception from settle_hosted_turn_cost() must still surface
+    as an internal error, not be silently absorbed into a warning.
+
+    Uses a second TestClient (raise_server_exceptions=False) on the same
+    app: the default client re-raises unhandled exceptions instead of
+    returning app.py's registered Exception handler's 500 response, since
+    Starlette's ServerErrorMiddleware re-raises after building that
+    response so ASGI servers/test clients can still observe it."""
+    from fastapi.testclient import TestClient
+
+    def _raise(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise RuntimeError("unrelated failure")
+
+    monkeypatch.setattr(EntitlementService, "settle_hosted_turn_cost", _raise)
+
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    stub = _StubOrchestrator(lambda: make_delivered_result(uuid4()))
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+
+    lenient_client = TestClient(client.app, raise_server_exceptions=False)
+    resp = lenient_client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "hello"}
+    )
+    assert resp.status_code == 500
 
 
 def test_delivered_turn_envelope_carries_refreshed_visible_state(client) -> None:  # type: ignore[no-untyped-def]

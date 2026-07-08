@@ -79,6 +79,7 @@ _DEFAULT_SONNET_MODEL: str = "claude-sonnet-4-5"
 #: Extractor is Sonnet per PASS_TIER_DEFAULTS (the ExtractorConfig default of
 #: Haiku is a known discrepancy flagged in Architecture Notes).
 _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
+    PipelinePassId.INTENT_CLASSIFIER: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.PLANNER: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
     PipelinePassId.WRITER: (_DEFAULT_SONNET_MODEL, ModelTier.SONNET),
     PipelinePassId.EXTRACTOR: (_DEFAULT_SONNET_MODEL, ModelTier.SONNET),
@@ -420,6 +421,7 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
     *after* the adapter has already attempted this mapping.
     """
     _MAP: dict[PipelinePassId, PassIdentifier] = {
+        PipelinePassId.INTENT_CLASSIFIER: PassIdentifier.INTENT_CLASSIFIER,
         PipelinePassId.PLANNER: PassIdentifier.PLANNER,
         PipelinePassId.WRITER: PassIdentifier.WRITER,
         PipelinePassId.EXTRACTOR: PassIdentifier.EXTRACTOR,

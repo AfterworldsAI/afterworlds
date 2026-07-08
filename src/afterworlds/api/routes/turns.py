@@ -37,7 +37,12 @@ from afterworlds.api.story_bootstrap import (
     ensure_story_turn_anchor_node,
 )
 from afterworlds.api.visible_state import build_visible_state
-from afterworlds.entitlement.errors import EntitlementSettlementError
+from afterworlds.entitlement.errors import (
+    EntitlementConcurrencyError,
+    EntitlementIdempotencyConflictError,
+    EntitlementSettlementConflictError,
+    EntitlementSettlementError,
+)
 from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
 from afterworlds.persistence.crud.node import list_turns_by_story
@@ -56,6 +61,17 @@ router = APIRouter(prefix="/api/stories", tags=["turns"])
 _BILLABLE_DISPOSITIONS = (
     PipelineDisposition.DELIVERED,
     PipelineDisposition.OOC_HANDLED,
+)
+
+# All settlement write failures that must survive a delivered/OOC turn
+# (Binding Decision 5 / DoR-D). Deliberately not the AfterworldsError base --
+# that would also swallow replay/payload-version errors that
+# settle_hosted_turn_cost() cannot actually raise.
+SETTLEMENT_WARNING_ERRORS = (
+    EntitlementSettlementError,
+    EntitlementSettlementConflictError,
+    EntitlementIdempotencyConflictError,
+    EntitlementConcurrencyError,
 )
 
 
@@ -148,7 +164,7 @@ def _submit_turn_sync(
                     policy=TurnCostPolicy(),
                     access_path=selection.access_path,
                 )
-            except EntitlementSettlementError as exc:
+            except SETTLEMENT_WARNING_ERRORS as exc:
                 # Never rolls back or hides the delivered turn (Binding
                 # Decision 5 / DoR-D) -- surfaced as a structured log entry
                 # + non-blocking warning field, never silently swallowed.

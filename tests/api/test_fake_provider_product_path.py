@@ -314,6 +314,29 @@ def test_writing_turn_with_missing_session_state_does_not_invent_provenance(
     assert resp.status_code == 200, resp.text
 
 
+def test_fake_provider_path_classifies_without_anthropic_api_key(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+    monkeypatch,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 6 remediation (PR #126 P1) test: fake-provider CI mode must
+    still classify (via FakeProviderAdapter's "intent_classifier" branch,
+    reusing fake_intent_model_caller's canned response) with no
+    ANTHROPIC_API_KEY set at all -- proving this path makes no real/external
+    provider calls end-to-end through the actual product wiring."""
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+    story_id = _create_writing_story_with_persona(client)
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered", body
+    assert body["pipeline_error_summary"] is None
+
+
 def test_rpg_setup_turn_does_not_require_completed_character_sheet(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:

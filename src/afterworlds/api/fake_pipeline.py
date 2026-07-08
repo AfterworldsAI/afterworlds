@@ -42,7 +42,16 @@ class FakeProviderAdapter:
     def call(self, request: ProviderCallRequest) -> ProviderCallResult:
         pass_id = request.pass_id.value
         content: list[ProviderContentPart]
-        if pass_id == "planner":
+        if pass_id == "intent_classifier":
+            # Round 6 remediation (PR #126 P1): classification is now
+            # provider-routed in the product path, so fake mode's
+            # FakeProviderResolver-supplied adapter must answer this pass_id
+            # too. Reuses fake_intent_model_caller's canned JSON body rather
+            # than duplicating it -- "fake-provider CI mode may continue to
+            # use fake_intent_model_caller".
+            prompt = "\n".join(block.text for block in request.rendered_blocks)
+            content = [ProviderTextPart(text=fake_intent_model_caller(prompt))]
+        elif pass_id == "planner":
             content = [
                 ProviderToolCallPart(
                     tool_name="produce_plan",

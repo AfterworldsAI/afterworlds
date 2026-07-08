@@ -57,6 +57,7 @@ class EntitlementEventType(StrEnum):
 
 
 class PipelinePassId(StrEnum):
+    INTENT_CLASSIFIER = "intent_classifier"
     INPUT_SAFETY = "input_safety"
     PLANNER = "planner"
     RPG_ADJUDICATION = "rpg_adjudication"

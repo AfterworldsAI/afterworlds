@@ -488,3 +488,172 @@ setup" in both tests. The other three Writing-mode E2E tests only assert the set
 and never click "Save setup", so they were unaffected. Verified by running the full Playwright
 suite locally against a fresh build (`npx playwright test`) -- all 6 tests pass, including both
 previously-timing-out tests.
+
+## Remediation round 6
+
+Boundary note honored per the reviewer's own framing: this round again touches
+`pipeline_wiring.py`/`routes/turns.py`, but each comment named a concrete, distinct defect, not a
+repeat of a prior finding, so all three were implemented directly (no owner escalation needed this
+round).
+
+- **Intent Classification routed through the selected access path (P1) -- architectural fix, not a
+  patch.** `_default_intent_model_caller()` read process-level `ANTHROPIC_API_KEY` and called
+  Anthropic directly, bypassing `TurnProviderBinding`/`ProviderResolver` entirely. For BYOK turns
+  this either failed outright (no hosted key set) or -- worse -- would have silently spent a
+  hosted/server key outside the Sojourner's BYOK pool had one been present, crossing the
+  hosted/BYOK boundary the entitlement model exists to enforce.
+  - **Architecture Note (per the reviewer's explicit instruction):** Intent Classification is a
+    model call and is now routed through the selected access path in the product path, exactly
+    like Planner/Writer/Extractor/Contradiction/Safety. It is no longer a standalone seam outside
+    `ProviderResolver`/`ProviderAdapter`.
+  - Added `PipelinePassId.INTENT_CLASSIFIER` (`entitlement/enums.py`) and
+    `PassIdentifier.INTENT_CLASSIFIER` (`pipeline/_refusal.py`), registered in the Anthropic
+    adapter's `_PASS_PROFILE` (Haiku tier) and `_pass_id_to_pass_identifier` map, and in
+    `entitlement/policy.py::PASS_TIER_DEFAULTS` for the documented "MUST agree" invariant between
+    those two dicts -- both regression-tested by the existing exhaustive
+    `test_all_pipeline_pass_ids_have_pass_profile_entry` / `..._pass_identifier_mapping` tests,
+    which now cover this pass id for free.
+  - `IntentClassifierService.classify()` gained a small, typed protocol widening: an optional
+    `*, model_caller: ModelCallerT | None = None` per-call override, falling back to the
+    constructor-injected caller when omitted. This is backward compatible with every existing
+    `tests/services/test_intent_classifier.py` test (all construct the service with a caller and
+    call `classify()` with no override).
+  - `orchestrate_turn()`'s step 1 now builds a provider-routed caller from the `binding` already
+    resolved in step 0 (`_make_intent_classifier_caller`, `pipeline/orchestrator/service.py`) and
+    passes it as that per-call override on every classification. The caller wraps the prompt in a
+    `ProviderCallRequest(pass_id=INTENT_CLASSIFIER, ...)`, delegates to
+    `ScopedProviderAdapter(binding.adapter, sojourner_id).call(...)` -- the same wrapper every other
+    pass uses for refusal-log scoping -- and extracts the returned `ProviderTextPart`. No second,
+    hidden provider resolver is created. Hosted turns get hosted credentials via `ProviderResolver`;
+    BYOK turns get only Sojourner-configured BYOK credentials -- both simply follow from reusing the
+    same `binding` step 0 already resolved.
+  - `build_orchestrator()` (`api/pipeline_wiring.py`) now constructs `IntentClassifierService`
+    uniformly in both fake and real provider mode with `_unrouted_intent_caller`, a
+    constructor-required placeholder that raises loudly if ever actually invoked -- the orchestrator
+    always supplies the provider-routed override, so this placeholder proves a missing override
+    fails loudly instead of silently reading process credentials or returning a wrong response.
+    `_default_intent_model_caller()` is deleted, not deprecated.
+  - Fake-provider CI mode continues to use `fake_intent_model_caller`'s canned response, per the
+    reviewer's explicit allowance -- but now reached uniformly through `FakeProviderAdapter`'s new
+    `"intent_classifier"` branch (`api/fake_pipeline.py`), which extracts the prompt from
+    `request.rendered_blocks` and returns `fake_intent_model_caller(prompt)` wrapped in a
+    `ProviderTextPart`. `FakeProviderResolver` already resolved to `FakeProviderAdapter`
+    unconditionally, so this required no resolver changes.
+  - No classifier-specific refusal routing was added: a `ProviderRefusalError` (or any other
+    exception) raised during classification is still caught by `orchestrate_turn()`'s existing
+    step-1 broad `except Exception`, preserving the current fail-closed `PIPELINE_ERROR` behavior --
+    exactly the reviewer's fallback instruction when no classifier-specific refusal result exists.
+  - **Known scope boundary, named rather than silently absorbed:** `IntentClassificationResult`
+    still carries no token/telemetry fields, so no `PassUsageSnapshot` is ever built for this pass
+    and `TurnCostPolicy.compute_deduction()` never consumes the new `PASS_TIER_DEFAULTS` entry --
+    classification's token cost is not yet included in hosted settlement. Widening
+    `IntentClassificationResult` to carry usage was out of scope per the reviewer's own "avoid
+    broad rewrites of Issue 7" guidance; flagged here for a future round rather than done silently.
+  - Tests (`tests/pipeline/orchestrator/test_intent_classifier_routing.py`, new): classification
+    uses the per-call override, never the constructor-default guard caller; the request carries
+    `pass_id=INTENT_CLASSIFIER`; a BYOK-selected turn classifies successfully with
+    `ANTHROPIC_API_KEY` unset (regression, monkeypatched absent); the BYOK-resolved adapter (not a
+    hidden hosted one) receives the call; a hosted-selected turn still classifies via hosted
+    resolver config; a provider refusal during classification still fails closed as
+    `PIPELINE_ERROR`. `tests/api/test_fake_provider_product_path.py` gained an end-to-end test
+    (real `create_app()` -> `build_orchestrator()` wiring, fake provider, `ANTHROPIC_API_KEY`
+    unset) proving the fake-provider CI path classifies and delivers with no external calls.
+    `tests/pipeline/orchestrator/conftest.py`'s `FakeIntentClassifier` test double widened to accept
+    (and ignore) the new `model_caller` kwarg -- every orchestrator test using it would otherwise
+    raise `TypeError` now that the orchestrator always passes it.
+
+- **Settlement write failures preserve the delivered turn on every error class, not just one
+  (P2).** `routes/turns.py` caught only `EntitlementSettlementError`, but
+  `settle_hosted_turn_cost()` can also raise `EntitlementSettlementConflictError` (same `turn_id`,
+  different deduction amount) and `EntitlementConcurrencyError` (optimistic-concurrency retries
+  exhausted) -- either would have escaped as an uncaught exception, surfacing as an HTTP 500 and
+  hiding an already-committed, delivered turn (a direct violation of "settlement failure survives
+  the turn," Binding Decision 5 / DoR-D). `EntitlementIdempotencyConflictError` is also now caught:
+  investigation confirmed it is not currently reachable from this call path (`settle_hosted_turn_cost`'s
+  tail call to `receive_entitlement_event()` does not pass `idempotency_key`, and that error is only
+  raised when one is supplied) -- included anyway as cheap, explicit forward-looking defense on the
+  same settlement write path, per the reviewer's explicit "at minimum catch" list. Replay/payload-version
+  errors were deliberately *not* added to the catch, since `settle_hosted_turn_cost()` cannot raise
+  them.
+  - Added a local `SETTLEMENT_WARNING_ERRORS` tuple alias (`routes/turns.py`) so future sibling
+    catches are explicit, not implicit in a single `except` clause.
+  - Behavior preserved exactly: structured error log (including `error_class`), non-blocking
+    `settlement_warning` field, the successful `TurnSubmissionResponse` still returned, the
+    delivered/OOC turn never rolled back or hidden.
+  - Tests (`tests/api/test_turns.py`): each of the four error classes forced from a mocked
+    `settle_hosted_turn_cost` (parametrized), verifying the HTTP response stays 200 with
+    `settlement_warning` set and `turn_id`/disposition preserved, and that the structured log call
+    includes the correct `error_class`. A separate test confirms an unrelated exception
+    (`RuntimeError`) still surfaces as an internal error, not silently absorbed -- using a second
+    `TestClient(raise_server_exceptions=False)` on the same app, since the default test client
+    re-raises exceptions that `app.py`'s registered `Exception` handler already turned into a 500
+    response (Starlette's `ServerErrorMiddleware` re-raises after building the handler response so
+    ASGI servers/test clients can still observe it).
+
+- **Packaged (wheel) launch no longer silently serves an API-only server while claiming to serve
+  the frontend (P2) -- fail-loud deferral, not full asset packaging.** `_DEFAULT_FRONTEND_DIST`
+  (`api/config.py`) is a repo-relative path (`parents[3]`) that does not exist under a
+  site-packages install, and `app.py`'s mount is a bare `if dist.is_dir(): mount(...)` with no
+  `else` -- a packaged `python -m afterworlds.main` would previously boot successfully with no
+  warning while never actually serving the Issue 19 product UI.
+  - **Direction chosen:** of the two reviewer-sanctioned options, fail loudly at launch rather than
+    package frontend assets under the Python package this round. Full asset packaging needs a build/
+    release-pipeline change (copying `frontend/dist` into `src/afterworlds/static/frontend/`,
+    `pyproject.toml` package-data, `importlib.resources.files()` wiring), which is a larger,
+    separable piece of work; more importantly, the sibling audit below found that packaging the
+    frontend alone would not make a wheel install actually work, so partial packaging this round
+    would have been misleading. Tracked as a follow-up, not silently deferred.
+  - `load_settings()` (`api/config.py`) now raises a clear `RuntimeError` when
+    `AFTERWORLDS_FRONTEND_DIST` is unset AND the default repo-relative path does not exist. An
+    explicit override is always trusted as-is, even if that path doesn't exist yet at load time --
+    an operator who sets it made a deliberate choice.
+  - **Scoped to the production launch path only**, per explicit design intent: `create_app()`'s
+    `settings.frontend_dist_dir.is_dir()` mount check and `ApiSettings`'s direct construction are
+    both untouched. `main.py`'s bare `create_app()` (no settings passed) is the only real caller of
+    `load_settings()` -- every test fixture and `scripts/dump_openapi_schema.py` already construct
+    `ApiSettings` directly with a throwaway/nonexistent dist dir (by design, to avoid needing a
+    real frontend build for backend-only tests), so none of them call `load_settings()` and none
+    were affected.
+  - Tests (`tests/api/test_config.py`, new): default resolves to the (mocked) default path when it
+    exists; an explicit override is trusted even when that path is missing; missing default + no
+    override raises `RuntimeError` mentioning `AFTERWORLDS_FRONTEND_DIST`; `create_app()` still
+    mounts and serves `index.html` when the configured dist genuinely exists.
+
+- **Sibling audit (CLAUDE.md gate, run before closing this round):**
+  - *Direct model SDK calls in the product turn path* -- searched all `import anthropic`/
+    `import openai` sites. `pipeline/provider/adapters/_anthropic.py` and `_openrouter.py` are the
+    `ProviderAdapter` implementations themselves (legitimate). `pipeline/provider/credentials/
+    _validator.py` validates a BYOK key's liveness at credential-save time, not a turn-path model
+    call (legitimate, different concern). **Found and flagged, not touched:**
+    `pipeline/{planner,contradiction,extractor,safety}/caller.py` each define an
+    `Anthropic*Caller` class (`AnthropicPlannerCaller`, etc.) that constructs its own
+    `anthropic.Anthropic()` client directly -- but grepping every reference to each class name
+    confirms none is imported anywhere outside its own defining file, in `src/`, `tests/`, or
+    `scripts/`. These four classes are dead code left over from before the Issue 14a
+    `ProviderAdapter` refactor (each service's real product method only imports tool-name/tool-spec
+    *constants* from the same `caller.py`, not the caller class). Not a live sibling of the
+    classifier bypass -- it was never wired into the product path -- so `patched` does not apply;
+    disposition: `out of scope` (dead-code removal is a separate, non-blocking cleanup, not part of
+    this remediation round).
+  - *Settlement exception catches* -- grepped every call site of `settle_hosted_turn_cost()`:
+    `routes/turns.py` is the only caller. Disposition: `patched` (this round's P2 fix above).
+  - *Other repo-relative runtime defaults that break in wheel installs* -- grepped all
+    `Path(__file__).parents[N]` uses in `src/`. Beyond `api/config.py` (`patched` above), found:
+    `api/db_bootstrap.py`'s `_REPO_ROOT` (locates `alembic.ini`/`alembic/` to run migrations -- would
+    raise a clear file-not-found error under a wheel install, not silently misbehave, so lower
+    severity than the frontend-dist defect but still repo-relative); and a `_PROMPT_DIR =
+    Path(__file__).parents[N] / "docs" / "prompts"` pattern repeated in `services/context_builder.py`
+    and `pipeline/{extractor,planner,orchestrator,contradiction,rpg,safety}/service.py` (seven
+    files). Disposition for all of these: `out of scope` / `Known Unknown` -- fixing wheel
+    packaging properly needs a single coherent packaging decision (bundle `docs/prompts` and
+    `alembic/` as package data, or resolve them via `importlib.resources` like the deferred frontend
+    packaging option above), not seven independent one-off patches. Recommended as a dedicated
+    follow-up issue: "package Afterworlds for a proper wheel/pip install," scoped to cover the
+    frontend dist, prompt files, and Alembic migration directory together.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2283 passed, 10 skipped, 91.88% coverage) for Python; `eslint --max-warnings=0`,
+  `tsc --noEmit`, `vitest run` (22 passed), production `vite build` for the frontend (unaffected --
+  no frontend files changed this round; run for gate completeness). `pip-audit` findings are
+  pre-existing and unrelated to this round's changes (no dependencies added or changed). No API
+  schema changes in this round, so no OpenAPI/TS regeneration was needed.

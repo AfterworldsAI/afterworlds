@@ -16,12 +16,26 @@ E2E smoke test surfaced this: an unwired writing_session_resolver produces
 PIPELINE_ERROR "cannot determine play status or inject persona context" for
 every WRITING turn, not a graceful degrade).
 
-The one net-new piece is ``_default_intent_model_caller``: the Issue 7
-classifier's ``ModelCallerT`` (``Callable[[str], str]``) is a deliberately
-minimal seam with no ``PipelinePassId`` of its own -- it does not go through
-``ProviderResolver``/``ProviderAdapter`` like the other passes. Wiring it to
-a real (lightweight) Anthropic call is narrow, mechanical assembly, not a
-routing/entitlement/safety decision.
+Architecture Note (Round 6 remediation, PR #126 P1): Intent Classification is
+a model call and is routed through the selected access path in the product
+path, exactly like Planner/Writer/Extractor/Contradiction. Earlier revisions
+wired ``IntentClassifierService`` to a standalone ``_default_intent_model_caller``
+that read ``ANTHROPIC_API_KEY`` directly and called Anthropic outside
+``ProviderResolver`` -- for BYOK turns this either failed (no hosted key) or
+silently spent a hosted/server key outside the Sojourner's BYOK pool,
+crossing the hosted/BYOK boundary. ``IntentClassifierService`` here is
+constructed with ``_unrouted_intent_caller`` only as a constructor-required
+placeholder that is never actually invoked: the orchestrator resolves
+``TurnProviderBinding`` once per turn (step 0 of ``orchestrate_turn``) and
+supplies a provider-routed caller built from ``binding.adapter`` as a
+per-call override on every ``classify()`` call (see
+``_make_intent_classifier_caller`` in ``pipeline/orchestrator/service.py``),
+uniformly in both fake and real provider mode -- fake mode's
+``FakeProviderResolver`` already resolves to ``FakeProviderAdapter``, which
+now has an ``"intent_classifier"`` branch reusing ``fake_intent_model_caller``'s
+canned response. If ``_unrouted_intent_caller`` is ever actually called, that
+is itself a defect (a missing per-call override), so it fails loudly rather
+than silently reading process credentials or returning a fake response.
 
 ``_PerTurnContextBuilder`` (P1 remediation, PR #126 review round 1): the
 context builder previously shared one app-lifetime SQLAlchemy Session across
@@ -79,7 +93,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.api.fake_pipeline import FakeProviderResolver, fake_intent_model_caller
+from afterworlds.api.fake_pipeline import FakeProviderResolver
 from afterworlds.models.character_sheet import Dnd5eCharacterSheet
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import StoryMode
@@ -133,36 +147,21 @@ from afterworlds.services.rules_package import RulesPackageService
 from afterworlds.services.story_bible import StoryBibleService
 
 
-def _default_intent_model_caller() -> Callable[[str], str]:
-    """A minimal, standalone model caller for the Issue 7 classifier.
+def _unrouted_intent_caller(prompt: str) -> str:
+    """Constructor-required placeholder for ``IntentClassifierService`` --
+    never actually invoked in the product path.
 
-    Deliberately lightweight per known_unknowns.md ("Intent classifier
-    approach: Lightweight model call") -- no ProviderAdapter, no pass id, no
-    cache markers, no capability routing. Reads the key lazily on each call
-    so app construction never fails when the key is unset (dev/CI without
-    live credentials); the call itself fails loudly if invoked without one.
+    The orchestrator always supplies a provider-routed caller as a per-call
+    ``classify(..., model_caller=...)`` override (see the module docstring's
+    Architecture Note). If this placeholder is ever called, that means the
+    override was missed -- fail loudly instead of silently reading process
+    credentials or returning a canned response.
     """
-
-    def _call(prompt: str) -> str:
-        import anthropic
-
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            raise RuntimeError(
-                "ANTHROPIC_API_KEY is not set; cannot perform intent classification."
-            )
-        client = anthropic.Anthropic(api_key=api_key, max_retries=0)
-        response = client.messages.create(
-            model=os.environ.get(
-                "AFTERWORLDS_INTENT_CLASSIFIER_MODEL", "claude-haiku-4-5-20251001"
-            ),
-            max_tokens=256,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        first_block = response.content[0]
-        return getattr(first_block, "text", "")
-
-    return _call
+    raise RuntimeError(
+        "IntentClassifierService's constructor-default model_caller was "
+        "invoked directly -- the product path must always supply a "
+        "provider-routed model_caller override via orchestrate_turn()."
+    )
 
 
 def _fake_provider_enabled() -> bool:
@@ -355,11 +354,11 @@ class _PerTurnRecentTurnsProvider:
 def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorService:
     """Assemble the real OrchestratorService from existing typed seams."""
     use_fake_provider = _fake_provider_enabled()
-    intent_classifier = IntentClassifierService(
-        fake_intent_model_caller
-        if use_fake_provider
-        else _default_intent_model_caller()
-    )
+    # Uniform in both fake and real mode: the orchestrator always supplies a
+    # provider-routed model_caller override per call (see module docstring's
+    # Architecture Note) -- fake mode's FakeProviderResolver already resolves
+    # to FakeProviderAdapter, which answers pass_id="intent_classifier".
+    intent_classifier = IntentClassifierService(_unrouted_intent_caller)
 
     retrieval_config = RetrievalMemoryConfig.from_env()
     # One Chroma client shared by the read (ChromaRetrievalMemoryProvider) and

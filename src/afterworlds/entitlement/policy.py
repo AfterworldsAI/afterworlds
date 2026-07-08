@@ -24,6 +24,13 @@ if TYPE_CHECKING:
 
 
 PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
+    # Round 6 remediation (PR #126): kept in sync with the provider-adapter
+    # pass profile per that module's documented "MUST agree" invariant, even
+    # though IntentClassificationResult carries no token telemetry today, so
+    # no PassUsageSnapshot is ever built for this pass and compute_deduction()
+    # never actually looks this entry up (classification cost is not yet
+    # included in hosted settlement -- see Architecture Notes).
+    PipelinePassId.INTENT_CLASSIFIER: ModelTier.HAIKU,
     PipelinePassId.PLANNER: ModelTier.HAIKU,
     PipelinePassId.RPG_ADJUDICATION: ModelTier.HAIKU,
     PipelinePassId.WRITER: ModelTier.SONNET,
