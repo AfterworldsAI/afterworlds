@@ -956,3 +956,103 @@ Two concrete defects (P2, P2) -- no boundary/ownership fork this round.
   passed, unchanged), `npm audit --audit-level=high` (0 vulnerabilities), production build, and the
   full Playwright E2E spine (7/7 passing) against a fresh build -- all clean. OpenAPI/TS regenerated
   and drift-checked.
+
+## Remediation round 10
+
+One P1 and two P2s. The DTO-versioning comment includes an explicit sibling-audit-gate note (rounds
+8-9 each added `schema_version` to a named subset of DTOs and each round missed a sibling class) --
+addressed by a full enumeration, not another named-subset patch, plus a standing test that fails on
+any future omission.
+
+- **BYOK readiness failure no longer blocks hosted access (P1).** `_submit_turn_sync()`
+  (`api/routes/turns.py`) called `byok_readiness_provider.is_byok_runnable(sojourner_id)` unguarded.
+  `ByokCredentialReadinessProvider.is_byok_runnable()`'s own docstring claims it "never raises," but
+  `_collect_available_byok_keys()` (`pipeline/provider/_readiness.py`) calls
+  `credential_store.get(sojourner_id, provider_name)` with no `try/except` around it -- a
+  keyring/credential-retrieval failure propagates uncaught. For a Sojourner with both hosted and BYOK
+  access, this turned a should-succeed hosted turn into an unhandled 500 instead of silently falling
+  back to hosted.
+  - `api/routes/turns.py`: wrapped only the `is_byok_runnable(...)` call in `try/except Exception`;
+    on failure, logs a structured warning (`sojourner_id`, `story_id`, `error_class` only -- no raw
+    credentials, provider secrets, key names, or keyring payloads) and treats `byok_ready = False`,
+    then proceeds through `select_access_path(status, byok_ready)` exactly as before. Entitlement
+    state is untouched; this route does not mark BYOK credentials invalid (not its ownership) --
+    matches the review comment's suggested shape exactly.
+  - Tests (`tests/api/test_turns.py`, new): hosted available + BYOK readiness raises -- still selects
+    hosted (`access_path.value == "hosted"`), turn delivers, no 500. Hosted unavailable + BYOK
+    readiness raises -- returns the normal typed `entitlement_blocked` 403, not a 500. A warning-log
+    test spies on the route module's logger directly (not `caplog` -- `_submit_turn_sync` runs on a
+    worker thread, and `caplog`'s handler attachment is not reliably observed across that boundary,
+    per the existing pattern in `test_each_settlement_write_failure_survives_turn`) and asserts the
+    logged `extra` carries only `sojourner_id`/`story_id`/`error_class`, with the raised exception's
+    own message text confirmed absent from the log.
+  - Not touched: `_readiness.py`'s own "never raises" docstring is technically inaccurate (the
+    unguarded `credential_store.get(...)` call can raise), but the review comment scopes the required
+    fix to the route-level pre-selection probe only ("This fix is only for the pre-selection readiness
+    probe") -- flagged here as a residual note, not fixed, since patching `_readiness.py` itself was
+    out of the requested scope and touches the shared predicate `ProviderResolver._resolve_byok` also
+    depends on (which *is* supposed to raise, per its own docstring).
+
+- **Identity ORM registered with Alembic metadata (P2).** `SojournerIdentityORM`
+  (`persistence/orm/identity.py`, `sojourner_identity` table) was never imported by `alembic/env.py`,
+  so `Base.metadata` was populated only when something else happened to import the module first (true
+  in every current test/app path, which is why this was latent, not currently broken) -- a future
+  `alembic revision --autogenerate` would see `sojourner_identity` as unmanaged and could emit a
+  destructive DROP. The table itself is already covered by migration 0016 (DoR-A, CRD Issue 19); this
+  is purely an autogenerate-tracking fix, not a new migration.
+  - `alembic/env.py`: added `import afterworlds.persistence.orm.identity  # noqa: F401` alongside the
+    other ORM imports.
+  - Verified manually (no established repo command for this): ran `alembic revision --autogenerate`
+    against a fresh throwaway DB at `main` migration head -- the generated diff does not mention
+    `sojourner_identity` at all (confirmed by grep, not assumed), only pre-existing, unrelated
+    SQLite-vs-model cosmetic drift (index-name / UUID-column-type differences on other tables, present
+    before this change). The throwaway migration file was deleted, not committed.
+  - Sibling audit: compared every `persistence/orm/*.py` (+ `entitlement/orm.py`) module against
+    `alembic/env.py`'s import list -- `identity` was the only gap; every other ORM module was already
+    imported. (`pipeline/provider/normalization.py` matched a naive path grep for "orm" but is not an
+    ORM module -- no `Base` subclass, no `__tablename__` -- confirmed, not assumed.)
+  - Tests (`tests/api/test_identity.py`, new): `test_sojourner_identity_table_in_base_metadata`
+    mirrors the existing `test_provider_tables_in_base_metadata`
+    (`tests/pipeline/provider/test_migration.py`) pattern from the CRD Issue 14a provider-tables fix
+    for the same defect family (ORM module never imported by `alembic/env.py`) -- a recurring defect
+    shape in this codebase, now covered for identity too by a standing assertion.
+
+- **Every public API DTO now carries `schema_version` (P2).** Rounds 8 and 9 each added
+  `schema_version` to a named subset (5 request DTOs; 3 setup-state union members) and each round's
+  own fix missed a sibling class still lacking it: `ProviderRefusalSummaryDTO`, `PersonaDTO`,
+  `TranscriptTurnDTO` -- all embedded response items, never top-level request/response bodies
+  themselves, which is presumably why they were missed by the narrower "request DTO" / "setup-state
+  union" framing of the prior two rounds.
+  - `src/afterworlds/api/dto.py`: added `schema_version: Literal[1] = 1` to all three. `extra="forbid"`
+    unchanged. Confirmed all three construction sites (`routes/personas.py`'s `_to_dto`,
+    `routes/turns.py`'s `provider_refusal_dto`/`TranscriptTurnDTO` list comprehension) never pass
+    `schema_version` explicitly -- every response relies on the default.
+  - **Full enumeration, not another named-subset patch:** hand-audited every `class X(BaseModel)` in
+    `dto.py` (21 total) against the review comment's instruction to check "every remaining `BaseModel`"
+    -- confirmed these were the only 3 gaps left after rounds 8-9.
+  - Added `tests/api/test_dto_versioning.py` (new file): enumerates every `BaseModel` subclass actually
+    *defined* in `dto.py` (via `obj.__module__ == dto_module.__name__`, so imported models like
+    `RpgVisibleState` aren't swept in) and fails if any lacks `schema_version` -- with a local,
+    currently-empty `_EXEMPT` set for any future deliberate exception, so a class can only skip
+    versioning with an explicit, reviewable justification in this file, not by silent omission. Also
+    asserts the field is exactly `Literal[1]` defaulting to `1` on every DTO (not just present), and
+    that the `SetupRequest` union members still key on `mode`. This closes the sibling-audit-gate
+    CLAUDE.md flagged: a third round hitting the same defect family (DTO versioning) now gets a
+    standing regression test instead of a fourth manual audit.
+  - Tests (`tests/api/test_personas.py`, `tests/api/test_transcript.py`, `tests/api/test_turns.py`,
+    new): `GET /api/personas` gallery items carry `schema_version: 1`; `GET .../turns` transcript items
+    carry it; a `POST .../turns` response with a populated `provider_refusal` (via a new
+    `make_refused_by_provider_result()` fixture in `tests/api/_fixtures.py`) carries it on the embedded
+    `provider_refusal` object.
+  - OpenAPI/TS regenerated; diff is exactly the 3 new `schema_version` fields on `PersonaDTO`,
+    `ProviderRefusalSummaryDTO`, `TranscriptTurnDTO`. All three are embedded response types (never
+    constructed client-side), so -- matching round 9, unlike round 8 -- no frontend call sites needed
+    updating; `tsc --noEmit` confirmed clean immediately after regeneration.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2320 passed, 10 skipped, 91.97% coverage, up from 2310/91.96% -- 10 new tests: 3 BYOK
+  readiness tests, 1 turn-response provider_refusal schema_version test, 1 identity-metadata test, 1
+  personas schema_version test, 1 transcript schema_version test, 3 DTO-enumeration tests). Frontend:
+  `tsc --noEmit`, ESLint, Prettier, Vitest (27 passed, unchanged), `npm audit --audit-level=high` (0
+  vulnerabilities), production build, and the full Playwright E2E spine (7/7 passing) against a fresh
+  build -- all clean. OpenAPI/TS regenerated and drift-checked.
