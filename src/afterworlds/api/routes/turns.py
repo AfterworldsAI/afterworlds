@@ -275,7 +275,16 @@ def get_transcript(
     session: Session = Depends(get_session),
     limit: int = 50,
     offset: int = 0,
+    latest: bool = False,
 ) -> TranscriptResponse:
+    """Round 11 remediation (PR #126 P2): ``latest=true`` returns the most
+    recent ``limit`` turns (still in chronological order within the page)
+    instead of the first ``limit`` -- without it, a story past the default
+    page size always re-showed its oldest turns on refresh, hiding newly
+    delivered output that was correctly persisted. ``limit``/``offset``
+    without ``latest`` are unchanged, for explicit oldest-first
+    pagination/backfill.
+    """
     story = get_story(session, story_id)
     if story is None:
         raise ApiErrorResponse(
@@ -291,8 +300,16 @@ def get_transcript(
         raise ApiErrorResponse(
             422, ApiErrorCode.VALIDATION_FAILED, "offset must be >= 0"
         )
+    if latest and offset != 0:
+        raise ApiErrorResponse(
+            422,
+            ApiErrorCode.VALIDATION_FAILED,
+            "offset is not supported together with latest=true",
+        )
 
-    turns = list_turns_by_story(session, story_id, limit=limit, offset=offset)
+    turns = list_turns_by_story(
+        session, story_id, limit=limit, offset=offset, newest_first=latest
+    )
     return TranscriptResponse(
         turns=[
             TranscriptTurnDTO(

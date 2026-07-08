@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from afterworlds.models.enums import IntentType
@@ -106,3 +106,88 @@ def test_transcript_turn_items_carry_schema_version(client) -> None:  # type: ig
     turns = resp.json()["turns"]
     assert len(turns) == 1
     assert turns[0]["schema_version"] == 1
+
+
+def test_transcript_latest_returns_most_recent_turns_in_chronological_order(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Round 11 remediation (PR #126 P2): the default GET .../turns page is
+    # the FIRST `limit` turns (oldest-first, offset 0) -- once a story has
+    # more than the default page size, a plain refresh always re-shows the
+    # oldest turns and never surfaces newly delivered output, even though it
+    # was correctly persisted. latest=true must return the most recent
+    # `limit` turns, still in chronological (oldest-to-newest) order within
+    # that page.
+    story_id = _create_story(client)
+    turn_ids = [
+        _seed_turn(
+            client,
+            story_id,
+            when=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(minutes=i),
+        )
+        for i in range(1, 61)
+    ]
+
+    resp = client.get(
+        f"/api/stories/{story_id}/turns", params={"limit": 50, "latest": "true"}
+    )
+    assert resp.status_code == 200, resp.text
+    turns = resp.json()["turns"]
+    assert len(turns) == 50
+    # The latest 50 of 60 turns = turns[10:60] (0-indexed), still oldest-first.
+    assert [t["turn_id"] for t in turns] == [str(tid) for tid in turn_ids[10:60]]
+
+
+def test_transcript_after_turn_51_latest_page_includes_it(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Round 11 remediation (PR #126 P2) regression: submitting turn 51 (past
+    # the default 50-turn page) must be visible on the very next latest-page
+    # refresh.
+    story_id = _create_story(client)
+    for i in range(1, 51):
+        _seed_turn(
+            client,
+            story_id,
+            when=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(minutes=i),
+        )
+    turn_51_id = _seed_turn(client, story_id, when=datetime(2026, 1, 2, 0, tzinfo=UTC))
+
+    resp = client.get(
+        f"/api/stories/{story_id}/turns", params={"limit": 50, "latest": "true"}
+    )
+    assert resp.status_code == 200, resp.text
+    turns = resp.json()["turns"]
+    assert turns[-1]["turn_id"] == str(turn_51_id)
+
+
+def test_transcript_latest_rejects_nonzero_offset(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client)
+    resp = client.get(
+        f"/api/stories/{story_id}/turns",
+        params={"latest": "true", "offset": 10},
+    )
+    assert resp.status_code == 422
+
+
+def test_transcript_default_pagination_unchanged_by_latest_support(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Explicit oldest-first limit/offset pagination (no latest param) must
+    # be unaffected by adding latest=true support.
+    story_id = _create_story(client)
+    turn_ids = [
+        _seed_turn(
+            client,
+            story_id,
+            when=datetime(2026, 1, 1, tzinfo=UTC) + timedelta(minutes=i),
+        )
+        for i in range(1, 6)
+    ]
+
+    resp = client.get(
+        f"/api/stories/{story_id}/turns", params={"limit": 2, "offset": 1}
+    )
+    assert resp.status_code == 200, resp.text
+    turns = resp.json()["turns"]
+    assert [t["turn_id"] for t in turns] == [str(tid) for tid in turn_ids[1:3]]

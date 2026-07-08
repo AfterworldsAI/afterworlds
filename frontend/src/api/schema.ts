@@ -63,7 +63,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Transcript */
+        /**
+         * Get Transcript
+         * @description Round 11 remediation (PR #126 P2): ``latest=true`` returns the most
+         *     recent ``limit`` turns (still in chronological order within the page)
+         *     instead of the first ``limit`` -- without it, a story past the default
+         *     page size always re-showed its oldest turns on refresh, hiding newly
+         *     delivered output that was correctly persisted. ``limit``/``offset``
+         *     without ``latest`` are unchanged, for explicit oldest-first
+         *     pagination/backfill.
+         */
         get: operations["get_transcript_api_stories__story_id__turns_get"];
         put?: never;
         /** Submit Turn */
@@ -1093,6 +1102,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                latest?: boolean;
             };
             header?: never;
             path: {

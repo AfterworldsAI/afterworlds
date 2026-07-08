@@ -21,12 +21,17 @@ export default function StoryView({ storyId }: { storyId: string }) {
   const [inFlight, setInFlight] = useState(false);
   const [lastResponse, setLastResponse] =
     useState<TurnSubmissionResponse | null>(null);
-  // Two distinct failure classes (Binding Decision 6): a page-load failure
+  // Three distinct failure classes (Binding Decision 6): a page-load failure
   // (loadError) fails closed over the whole view, no draft to preserve yet.
   // A turn-submission failure (turnError) must NOT replace the play view --
   // transcript, visible state, and the draft all stay exactly as they were.
+  // A post-submit refresh failure (refreshError, round 10 remediation, PR
+  // #126 P2) is neither: the turn was already persisted, so it must not be
+  // reported as a submission failure or restore the draft -- only the
+  // follow-up transcript/visible-state read failed.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [turnError, setTurnError] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   // Structured setup fields (this story's /setup call) and setup
   // *confirmation* are different things: per ADR-016 Decision 3 / ADR-017
   // Decision 9, confirmation is an ordinary narrative turn that the
@@ -39,12 +44,33 @@ export default function StoryView({ storyId }: { storyId: string }) {
   async function refresh() {
     const [s, t, v] = await Promise.all([
       api.getStory(storyId),
-      api.getTranscript(storyId),
+      api.getLatestTranscript(storyId),
       api.getVisibleState(storyId),
     ]);
     setStory(s);
     setTurns(t);
     setVisibleState(v);
+  }
+
+  // Post-submit refresh only (no story re-fetch -- the turn didn't change
+  // story metadata) -- reused by submitTurn and by the refresh-retry button
+  // so a refresh failure can be recovered without re-submitting the turn.
+  async function refreshTranscriptAndVisibleState() {
+    setRefreshError(null);
+    try {
+      const [t, v] = await Promise.all([
+        api.getLatestTranscript(storyId),
+        api.getVisibleState(storyId),
+      ]);
+      setTurns(t);
+      setVisibleState(v);
+    } catch (err) {
+      setRefreshError(
+        err instanceof Error
+          ? err.message
+          : "Failed to refresh transcript/visible state.",
+      );
+    }
   }
 
   // Shared by the initial load and the Retry button so the two paths can't
@@ -75,7 +101,11 @@ export default function StoryView({ storyId }: { storyId: string }) {
     if (inFlight || !userInput.trim()) return;
     setInFlight(true);
     setTurnError(null);
+    setRefreshError(null);
     try {
+      // Only the mutation itself is in this try/catch (round 10
+      // remediation, PR #126 P2): a failure here means the turn was never
+      // persisted, so the draft stays and turnError is the right signal.
       const response = await api.submitTurn(storyId, userInput);
       setLastResponse(response);
       if (
@@ -84,12 +114,6 @@ export default function StoryView({ storyId }: { storyId: string }) {
       ) {
         setDraft(""); // clear only on confirmed persistence (Binding Decision 6)
       }
-      const [t, v] = await Promise.all([
-        api.getTranscript(storyId),
-        api.getVisibleState(storyId),
-      ]);
-      setTurns(t);
-      setVisibleState(v);
     } catch (err) {
       // Draft/transcript/visible-state are untouched -- typed error surfaces
       // inline, the play view stays exactly as it was (Binding Decision 6).
@@ -100,9 +124,16 @@ export default function StoryView({ storyId }: { storyId: string }) {
           err instanceof Error ? err.message : "Turn submission failed.",
         );
       }
-    } finally {
       setInFlight(false);
+      return;
     }
+    setInFlight(false);
+    // The turn already succeeded above -- a failure here is a separate,
+    // non-fatal refresh problem, not a submission failure. lastResponse and
+    // the (possibly just-cleared) draft are left exactly as the successful
+    // submission set them; the refresh-retry button re-runs this without
+    // re-submitting the turn.
+    await refreshTranscriptAndVisibleState();
   }
 
   if (loadError) {
@@ -161,7 +192,20 @@ export default function StoryView({ storyId }: { storyId: string }) {
         story={story}
         onComplete={() => {
           setStructuredSetupSaved(true);
-          refresh();
+          // Sibling audit (round 11, same "mutation success vs. follow-up
+          // read" defect family as submitTurn): setup itself already
+          // succeeded by the time onComplete fires (SetupForm's own
+          // submit() only calls this after a successful api.submitSetup),
+          // so a refresh() failure here must not surface as a setup error
+          // or throw an unhandled promise rejection -- refreshError already
+          // covers this same "stale play view, recoverable via Retry" case.
+          refresh().catch((err) => {
+            setRefreshError(
+              err instanceof Error
+                ? err.message
+                : "Failed to refresh transcript/visible state.",
+            );
+          });
         }}
       />
     );
@@ -175,6 +219,17 @@ export default function StoryView({ storyId }: { storyId: string }) {
         {turnError && (
           <p className="turn-error" role="alert">
             {turnError}
+          </p>
+        )}
+        {refreshError && (
+          <p className="refresh-error" role="alert">
+            {refreshError}{" "}
+            <button
+              type="button"
+              onClick={() => refreshTranscriptAndVisibleState()}
+            >
+              Retry
+            </button>
           </p>
         )}
         <form

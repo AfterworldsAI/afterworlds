@@ -89,6 +89,15 @@ export const api = {
       `/api/stories/${storyId}/turns?limit=${limit}&offset=${offset}`,
     ).then((r) => r.turns),
 
+  // Round 11 remediation (PR #126 P2): the play view must show the most
+  // recently delivered turns, not always the first page -- a story past the
+  // default page size otherwise never shows new output on refresh even
+  // though it was correctly persisted.
+  getLatestTranscript: (storyId: string, limit = 50) =>
+    request<components["schemas"]["TranscriptResponse"]>(
+      `/api/stories/${storyId}/turns?limit=${limit}&latest=true`,
+    ).then((r) => r.turns),
+
   submitTurn: (storyId: string, userInput: string) =>
     request<TurnSubmissionResponse>(`/api/stories/${storyId}/turns`, {
       method: "POST",
