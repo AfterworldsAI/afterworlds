@@ -1055,4 +1055,85 @@ any future omission.
   personas schema_version test, 1 transcript schema_version test, 3 DTO-enumeration tests). Frontend:
   `tsc --noEmit`, ESLint, Prettier, Vitest (27 passed, unchanged), `npm audit --audit-level=high` (0
   vulnerabilities), production build, and the full Playwright E2E spine (7/7 passing) against a fresh
+  build -- all clean. OpenAPI/TS regenerated and drift-checked as noted above.
+
+## Remediation round 11
+
+Two P2s, both classified as valid product-path defects requiring no owner decision.
+
+- **Transcript refresh now shows the latest turns, not always the first page (P2).**
+  `GET /api/stories/{story_id}/turns` defaulted to `limit=50&offset=0`, and
+  `list_turns_by_story()` orders oldest-first -- once a story passed 50 turns, every refresh
+  (including the one immediately after submitting turn 51) re-fetched the *first* 50 turns, so a
+  newly delivered turn was correctly persisted but never became visible without manual pagination.
+  - `persistence/crud/node.py`: `list_turns_by_story()` gained `newest_first: bool = False`. When
+    `True`, it queries newest-first internally (`ORDER BY timestamp DESC`), applies `limit`/`offset`
+    to select from the *end* of the transcript, then reverses the page back to chronological order
+    before returning -- callers always see oldest-to-newest within the page either way. Existing
+    oldest-first callers (no `newest_first` arg) are untouched.
+  - `api/routes/turns.py`: `GET .../turns` gained a `latest: bool = False` query parameter, per the
+    review comment's preferred implementation (not the total-count-pagination alternative, which was
+    explicitly more surface area than needed here). `latest=true` calls
+    `list_turns_by_story(..., newest_first=True)`; `offset` is rejected with a typed 422 when combined
+    with `latest=true` (the two pagination modes have different meanings for "offset" and mixing them
+    would be ambiguous) -- explicit `limit`/`offset` pagination without `latest` is completely
+    unchanged, preserving it for backfill.
+  - `frontend/src/api/client.ts`: added `api.getLatestTranscript(storyId, limit)` (additive, not a
+    signature change to `getTranscript`) calling `.../turns?limit=...&latest=true`.
+  - `frontend/src/StoryView.tsx`: both `refresh()` (shared by initial load, the Retry button, and
+    setup-completion handoff) and the post-submit refresh now call `getLatestTranscript` instead of
+    `getTranscript` -- the play view shows the latest page from first load, not only after a
+    resubmission happens to trigger a refresh.
+  - Rejected alternative: raising the frontend's page size (e.g. to 200) was explicitly named in the
+    review comment as *not* a fix -- it only raises the turn count at which the bug reappears, not
+    fixes the ordering defect itself. Not attempted.
+  - Tests (`tests/api/test_transcript.py`, new): 60 seeded turns, `limit=50&latest=true` returns
+    exactly turns 11-60 in chronological order (not turns 1-50); a 51st turn is the last item on the
+    very next `latest=true` page (the review comment's own named regression scenario); `latest=true`
+    with a nonzero `offset` returns a typed 422; explicit `limit`/`offset` pagination without `latest`
+    is unchanged (verified against the same seeded data).
+  - OpenAPI/TS regenerated; diff is exactly the new `latest?: boolean` query parameter on the
+    transcript GET operation.
+
+- **Mutation success is now separated from post-submit refresh failure (P2).** `StoryView.submitTurn()`
+  wrapped `api.submitTurn(...)` and the follow-up transcript/visible-state refresh in one `try/catch`
+  -- a refresh failure (the turn already succeeded and was persisted) surfaced through the same
+  `turnError` path as an actual submission failure, misreporting a successful turn as failed and
+  offering no way to recover without re-submitting.
+  - `frontend/src/StoryView.tsx`: split into two boundaries. The outer `try/catch` now covers only
+    `api.submitTurn(...)` -- a failure there means the turn was never persisted, so `turnError` and
+    draft preservation are unchanged from before. On success, `lastResponse` is set and the draft
+    clears only for `delivered`/`ooc_handled` exactly as before, then a new
+    `refreshTranscriptAndVisibleState()` helper (its own internal `try/catch`) runs unconditionally.
+    Its failure sets a new `refreshError` state -- never `turnError` -- with a `Retry` button that
+    re-runs the same helper without re-submitting the turn. A failed refresh leaves the prior
+    transcript/visible-state untouched (not reset to empty), since `refreshTranscriptAndVisibleState`
+    only calls `setTurns`/`setVisibleState` after both reads succeed.
+  - **Sibling audit (mutation success / follow-up read coupling in other frontend flows):** grepped
+    every `async function` with a `try` block across `frontend/src/*.tsx`. Found one sibling:
+    `SetupForm`'s `submit()` calls `onComplete()` only after `api.submitSetup(...)` already succeeded;
+    `StoryView`'s `onComplete` callback called `refresh()` without awaiting or catching it -- a refresh
+    failure there was an unhandled promise rejection, not merely a shared-catch-block misreport (a
+    different failure mode in the same defect family, arguably worse since nothing was surfaced to the
+    user at all). Disposition: `patched`, minimally -- `onComplete` now awaits `refresh()` and routes
+    any failure into the same `refreshError` state/Retry button the main fix added, reusing the
+    existing surface rather than inventing a second one (the review comment's own scope boundary: "do
+    not broaden into full offline queue/retry UX"). No other `try` blocks in the frontend combine a
+    mutation with a follow-up read.
+  - Tests (`frontend/src/StoryView.test.tsx`, new describe block): POST failure keeps the draft, shows
+    `turnError`, and never calls the refresh path (`getLatestTranscript` called exactly once, from
+    initial load only). POST success + refresh success clears the draft and shows no error. POST
+    success + refresh failure still clears the draft (disposition-driven, not refresh-outcome-driven),
+    preserves the prior transcript, and shows a refresh-specific error that never contains "submission
+    failed" wording. The refresh-retry button recovers without incrementing `submitTurn`'s call count.
+    A fifth test covers the `SetupForm`-`onComplete` sibling directly. (This suite needed
+    `vi.clearAllMocks()` in its own `beforeEach` -- the file's shared `vi.hoisted` mocks don't reset
+    call counts between tests, which no prior test in this file had asserted on until now.)
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2324 passed, 10 skipped, 91.97% coverage, up from 2320/91.97% -- 4 new
+  `test_transcript.py` tests). Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (32 passed, up from
+  27 -- 5 new `StoryView.test.tsx` tests), `npm audit --audit-level=high` (0 vulnerabilities),
+  production build, and the full Playwright E2E spine (7/7 passing) against a fresh build -- all
+  clean. OpenAPI/TS regenerated and drift-checked.
   build -- all clean. OpenAPI/TS regenerated and drift-checked.
