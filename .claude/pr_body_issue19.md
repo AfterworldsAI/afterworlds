@@ -543,6 +543,9 @@ round).
     exception) raised during classification is still caught by `orchestrate_turn()`'s existing
     step-1 broad `except Exception`, preserving the current fail-closed `PIPELINE_ERROR` behavior --
     exactly the reviewer's fallback instruction when no classifier-specific refusal result exists.
+    **Superseded in round 7 below:** a later round added explicit `ProviderRefusalError` handling
+    for this exact step, mapping it to `REFUSED_BY_PROVIDER` instead. This bullet describes round 6
+    as implemented at the time, not current behavior.
   - **Known scope boundary, named rather than silently absorbed:** `IntentClassificationResult`
     still carries no token/telemetry fields, so no `PassUsageSnapshot` is ever built for this pass
     and `TurnCostPolicy.compute_deduction()` never consumes the new `PASS_TIER_DEFAULTS` entry --

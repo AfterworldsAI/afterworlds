@@ -88,6 +88,36 @@ def test_branching_partial_setup_does_not_promote_to_in_play(
         session.close()
 
 
+def test_branching_partial_setup_missing_interaction_style_does_not_promote(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Reverse-direction case of the above: the guard is symmetric --
+    branching_cadence present, interaction_style missing must not promote
+    either."""
+    story_id = _create_story(client, "branching")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "branching", "branching_cadence": "balanced"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import BranchingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.SETUP
+        assert state.interaction_style is None
+    finally:
+        session.close()
+
+
 def test_branching_setup_promotes_using_effective_state_across_two_partial_calls(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
