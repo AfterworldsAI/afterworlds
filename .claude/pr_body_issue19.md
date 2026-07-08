@@ -776,3 +776,114 @@ round's fix. Fixed by splitting into two tests: the original "delivered turn" co
 test asserts the rejection banner text and that the draft is preserved (Binding Decision 6) --
 closing exactly the gap the old comment flagged as untestable. Verified locally: full Playwright
 suite (7/7 passing) against a fresh production build, matching CI's exact invocation.
+
+## Remediation round 8
+
+Boundary note (owner-supplied, preserved verbatim from the review comment): "Do not expand into
+wiring BranchingWriterService unless the owner explicitly changes the current Issue 19 architecture
+note. The narrow fix is to stop the minimal UI from defaulting users into an unwired interaction
+style." All three fixes below respect this -- `BranchingWriterService` remains unwired, and the
+orchestrator's fail-closed guard for in-play HYBRID/TRUE_CYOA with no branching writer is untouched.
+
+- **Branching setup no longer defaults to unwired Hybrid (P1).** `BranchingSetupForm` defaulted
+  `interactionStyle` to `"hybrid"`. That default was inert through round 6 (Branching could never
+  reach `IN_PLAY`), but round 7's fix (setup now promotes to `IN_PLAY`) made it live: accepting the
+  default setup created a story whose first Branching turn deterministically hit the orchestrator's
+  fail-closed `PIPELINE_ERROR` ("branching writer service not wired for in-play HYBRID/TRUE_CYOA
+  session").
+  - `frontend/src/SetupForm.tsx`: `BranchingSetupForm`'s `interactionStyle` state now defaults to
+    `"freeform_only"`.
+  - Additional guard (required per the review comment -- "Do not rely only on a frontend default if
+    the API can still create the same broken state"): the Hybrid and True CYOA `<option>` elements are
+    now `disabled` with an "(unsupported in this build)" label, so a Sojourner cannot select them
+    through the minimal UI at all. A server-side/API-level guard was deliberately **not** added on top
+    of this: the orchestrator's existing fail-closed `PIPELINE_ERROR` for a direct API call configuring
+    HYBRID/TRUE_CYOA is itself the correct backstop (the review comment affirms this: "Do not silently
+    route HYBRID/TRUE_CYOA through the prose Writer; the orchestrator's fail-closed guard is correct"),
+    and a route-level guard rejecting HYBRID/TRUE_CYOA setup would regress round 7 -- it would make the
+    `INTERACTION_REJECTED` path unreachable again and break
+    `test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected`
+    (`tests/api/test_fake_provider_product_path.py`), which configures True CYOA via HTTP and expects
+    setup to succeed. Direct API configuration of HYBRID/TRUE_CYOA remaining possible (and failing
+    closed on the first turn, not silently) is treated here as an intentional boundary of this fix, not
+    a residual defect -- flagged explicitly rather than resolved silently, per CLAUDE.md's Known
+    Unknown rule.
+  - Tests (`frontend/src/StoryView.test.tsx`, new describe block): the Branching setup form's
+    interaction-style select defaults to `freeform_only` with Hybrid/True CYOA options disabled;
+    submitting without changes sends `interaction_style: "freeform_only"` to `submitSetup`.
+  - Tests (`frontend/e2e/spine.spec.ts`): the prior round-7 "True CYOA setup rejects freeform input"
+    E2E test could no longer exercise the True CYOA path through the UI once its `<select>` option
+    became disabled (a real collision, caught locally before pushing rather than by a second CI
+    failure) -- converted in place to "Hybrid and True CYOA are unsupported and not selectable",
+    asserting the default and both disabled options. The `INTERACTION_REJECTED` coverage this test used
+    to provide still lives at the API level
+    (`test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected`), so no coverage was lost, only
+    relocated to the layer that can still reach it. Playwright's `toBeDisabled()` does not evaluate an
+    `<option>` element's own `disabled` DOM property (options aren't independently "actionable"), so
+    the assertion uses `toHaveJSProperty("disabled", true)` instead -- discovered by a local run
+    failing with `Received: enabled` against a manually-confirmed-disabled element.
+
+- **Branch-card clicks now submit resolver-supported tokens instead of free-text labels (P2).**
+  `VisibleStatePanel`'s branch-card `onClick` submitted `` `I choose: ${opt.action_text}` ``.
+  `BranchSelectionValidationService` resolves only exact `opt_N`, explicit `"option/choice N"`,
+  ordinal words, or a bare operative number -- never a free-text action label -- so every UI
+  branch-card click became `INVALID_BRANCH_SELECTION`.
+  - `frontend/src/VisibleStatePanel.tsx`: added `branchSelectionToken(optionId)`, which derives `N`
+    from an `opt_N`-shaped `option_id` and returns `"I choose option N."` (matches
+    `_EXPLICIT_NUM_RE`), falling back to `` `I choose ${optionId}.` `` (matches `_OPT_ID_RE`) if the
+    id doesn't match that shape. The branch-card `onClick` now calls this instead of echoing
+    `action_text`. The displayed button label is unchanged (`opt.action_text`) -- only the submitted
+    payload changed. The `onBranchOptionClick` prop parameter was renamed from `actionText` to
+    `selectionText` to match what it now actually carries.
+  - Tests (`frontend/src/VisibleStatePanel.test.tsx`, new file): clicking a branch card with
+    `option_id: "opt_2"` submits a string containing `option 2`/`opt_2`, not the action label
+    (regression test that it no longer submits `"Climb the wall."` or the old `"I choose: ..."`
+    shape); the displayed button label stays `action_text`; a non-`opt_N` id falls back to
+    `"I choose {id}."`.
+
+- **Request DTOs now carry `schema_version`, matching every response DTO (P2).** `dto.py`'s own module
+  docstring already claimed every DTO carries `schema_version: Literal[1]` (Binding Decision 9), but
+  this was only true for the 10 response DTOs -- none of the 5 request DTOs had it, so clients had no
+  way to send a version and the contract was one-sided.
+  - `src/afterworlds/api/dto.py`: added `schema_version: Literal[1] = 1` to `CreateStoryRequest`,
+    `TurnSubmissionRequest`, `RpgSetupRequest`, `BranchingSetupRequest`, and `WritingSetupRequest` --
+    the exact field/type/default already used on every response DTO. `extra="forbid"` is unchanged on
+    all five; the `SetupRequest` discriminated union still keys on `mode`, unaffected by adding a
+    sibling field.
+  - **Sibling audit (all request-shaped DTOs, not only the three named in the review comment):**
+    grepped every FastAPI route handler signature across `api/routes/*.py` for a non-path/query body
+    parameter. Confirmed exactly 3 POST routes exist (`POST /api/stories`, `POST
+    .../{story_id}/setup`, `POST .../{story_id}/turns`), consuming exactly the 5 DTOs above (the setup
+    route via the `SetupRequest` union) -- no 6th request DTO exists. The other embedded/nested DTOs in
+    `dto.py` (`ProviderRefusalSummaryDTO`, `RpgSetupStateDTO`, `BranchingSetupStateDTO`,
+    `WritingSetupStateDTO`, `PersonaDTO`, `TranscriptTurnDTO`) are never deserialized directly from a
+    client request body -- they're embedded inside response envelopes -- so versioning them as
+    "requests" would be a category error; disposition `out of scope`, not a gap.
+  - Tests (`tests/api/test_request_schema_version.py`, new file): each of the 5 request DTOs, exercised
+    through the real HTTP routes, accepts an omitted `schema_version` (defaults to 1), accepts an
+    explicit `schema_version: 1`, and rejects `schema_version: 2` through the existing
+    `VALIDATION_FAILED` envelope (not a bespoke error shape) -- 15 tests total.
+  - OpenAPI/TS regenerated (`npm run generate-api-types`) since request schemas changed, per this
+    round's run gates. `frontend/src/api/schema.ts` diff is exactly the 5 new `schema_version` fields
+    (plus their read-only `*StateDTO` mirrors, which are generated from the same route's response
+    model and were not hand-edited). `npm run check-api-types-drift` confirmed no further drift after
+    committing.
+  - **Frontend call-site sibling audit (per the review comment's own instruction to check generated
+    types and call sites after regeneration):** openapi-typescript renders `schema_version: 1` as a
+    *required* field on request types (not optional, despite the Pydantic-side default) because it
+    treats single-value `const`/`Literal` fields as always-present regardless of the OpenAPI `required`
+    list -- discovered via a `tsc --noEmit` failure after regeneration, not assumed. This broke three
+    call sites statically typed against the generated request types: `StoryList.tsx`'s `createStory`
+    call and all three `SetupForm.tsx` `onSubmit(...)` calls (RPG/Branching/Writing). Fixed by adding
+    `schema_version: 1` explicitly at each of those four call sites. `client.ts`'s `submitTurn` builds
+    its body as an untyped inline object literal (never statically checked against
+    `TurnSubmissionRequest`), so it was not forced by the compiler -- `schema_version: 1` was added
+    there too anyway, for consistency across all five request bodies rather than leaving one silently
+    diverging from the other four's explicit-`1` behavior.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2307 passed, 10 skipped, 91.93% coverage, up from 2291/91.93% -- the 15 new
+  `test_request_schema_version.py` tests plus one more pulled in by the round-7 baseline). Frontend:
+  `tsc --noEmit`, ESLint, Prettier, Vitest (27 passed), `npm audit --audit-level=high` (0
+  vulnerabilities), production build, and the full Playwright E2E spine (7/7 passing) against a fresh
+  build -- all clean. OpenAPI/TS regenerated and drift-checked as noted above.
