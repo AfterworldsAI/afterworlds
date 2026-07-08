@@ -34,6 +34,9 @@ test("entitlement-blocked rendering: a fresh install has no runnable access path
   await expect(
     page.getByRole("heading", { name: "Choose your Writing companion" }),
   ).toBeVisible();
+  await page
+    .getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")
+    .fill("Draft the opening chapter of a mystery novel.");
   await page.getByRole("button", { name: /Chiron/ }).click();
   await page.getByRole("button", { name: "Save setup" }).click();
 
@@ -62,6 +65,9 @@ test("story create with mode selection, Writing setup, and a delivered turn", as
   await expect(
     page.getByRole("heading", { name: "Choose your Writing companion" }),
   ).toBeVisible();
+  await page
+    .getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")
+    .fill("Draft the opening chapter of a mystery novel.");
   await page.getByRole("button", { name: /Chiron/ }).click();
   await page.getByRole("button", { name: "Save setup" }).click();
 

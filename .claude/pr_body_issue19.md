@@ -473,3 +473,18 @@ view. Both directions negative-control verified (temporarily reverted to the old
 `visibleState !== null` check and confirmed the new test fails; temporarily disabled the Writing
 branch entirely and confirmed the existing positive-case test fails; restored). Full frontend
 gate suite re-run green (22 tests, up from 21).
+
+### CI catch: Playwright E2E spine required a matching fix
+
+CI's `spine.spec.ts` failed after round 5 landed: two tests (`entitlement-blocked rendering...`,
+`story create with mode selection, Writing setup, and a delivered turn`) select a Writing persona
+and click "Save setup" without ever filling the new required `specific_goals` textarea. `WritingSetupForm`'s
+submit button is `disabled={submitting || !personaId || !goalsReady}`, so the button never becomes
+clickable and Playwright's `.click()` timed out at 30s waiting for it -- a genuine sibling-audit
+miss in round 5 (the Vitest unit tests were updated for the new required field; the E2E spec, a
+sibling caller of the same form, was not checked). Fixed by filling the specific_goals textarea
+(`getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")`) before clicking "Save
+setup" in both tests. The other three Writing-mode E2E tests only assert the setup heading renders
+and never click "Save setup", so they were unaffected. Verified by running the full Playwright
+suite locally against a fresh build (`npx playwright test`) -- all 6 tests pass, including both
+previously-timing-out tests.
