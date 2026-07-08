@@ -95,7 +95,7 @@ function pipelineErrorResponse(): TurnSubmissionResponse {
 
 const mocks = vi.hoisted(() => ({
   getStory: vi.fn(),
-  getTranscript: vi.fn(),
+  getLatestTranscript: vi.fn(),
   getVisibleState: vi.fn(),
   getSetupState: vi.fn(),
   submitTurn: vi.fn(),
@@ -110,7 +110,7 @@ vi.mock("./api/client", async () => {
     ...actual,
     api: {
       getStory: mocks.getStory,
-      getTranscript: mocks.getTranscript,
+      getLatestTranscript: mocks.getLatestTranscript,
       getVisibleState: mocks.getVisibleState,
       getSetupState: mocks.getSetupState,
       submitTurn: mocks.submitTurn,
@@ -124,7 +124,7 @@ describe("StoryView draft preservation (Binding Decision 6)", () => {
   beforeEach(() => {
     localStorage.clear();
     mocks.getStory.mockResolvedValue(baseStory);
-    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
     mocks.getSetupState.mockResolvedValue(null);
   });
@@ -174,10 +174,154 @@ describe("StoryView draft preservation (Binding Decision 6)", () => {
   });
 });
 
+describe("StoryView separates mutation success from refresh failure (PR #126 round 11)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // This suite asserts call counts, which the rest of this file's shared
+    // vi.hoisted mocks don't reset between tests (mockClear() only clears
+    // call history, not queued mockResolvedValueOnce values set per-test).
+    vi.clearAllMocks();
+    mocks.getStory.mockResolvedValue(baseStory);
+    mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getSetupState.mockResolvedValue(null);
+  });
+
+  it("POST failure: draft remains, turnError is shown, lastResponse is not mutated", async () => {
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.submitTurn.mockRejectedValue(new Error("network down"));
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("network down");
+    expect(textarea).toHaveValue("hello there");
+    // The refresh path never runs: only the initial-load call happened.
+    expect(mocks.getLatestTranscript).toHaveBeenCalledTimes(1);
+  });
+
+  it("POST succeeds, refresh succeeds: draft clears, transcript updates, no error", async () => {
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([]) // initial load
+      .mockResolvedValueOnce([
+        {
+          turn_id: "t1",
+          user_input: "hello there",
+          assistant_output: "The story continues.",
+          timestamp: "2026-01-01T00:00:00Z",
+          intent_classification: "in_character_action",
+          schema_version: 1,
+        },
+      ]);
+    mocks.submitTurn.mockResolvedValue(deliveredResponse());
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("The story continues.");
+    expect(textarea).toHaveValue("");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("POST succeeds, refresh fails: draft still clears for delivered, lastResponse/prior transcript are preserved, and the error is refresh-specific, not a submission failure", async () => {
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([
+        {
+          turn_id: "prior",
+          user_input: "earlier input",
+          assistant_output: "earlier output",
+          timestamp: "2026-01-01T00:00:00Z",
+          intent_classification: "in_character_action",
+          schema_version: 1,
+        },
+      ]) // initial load
+      .mockRejectedValueOnce(new Error("transcript fetch failed")); // post-submit refresh
+    mocks.submitTurn.mockResolvedValue(deliveredResponse());
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByText("earlier output");
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("transcript fetch failed");
+    // Draft clearing is driven by disposition (delivered), not by whether
+    // the follow-up refresh succeeded.
+    expect(textarea).toHaveValue("");
+    // The prior transcript survives a failed refresh -- not wiped/reset.
+    expect(screen.getByText("earlier output")).toBeInTheDocument();
+    // Never phrased as a submission failure -- the turn already succeeded.
+    expect(screen.queryByText(/submission failed/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/no runnable access path/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("refresh-retry recovers without re-submitting the turn", async () => {
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([]) // initial load
+      .mockRejectedValueOnce(new Error("transcript fetch failed")) // post-submit refresh
+      .mockResolvedValueOnce([
+        {
+          turn_id: "t1",
+          user_input: "hello there",
+          assistant_output: "The story continues.",
+          timestamp: "2026-01-01T00:00:00Z",
+          intent_classification: "in_character_action",
+          schema_version: 1,
+        },
+      ]); // retry
+    mocks.submitTurn.mockResolvedValue(deliveredResponse());
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("transcript fetch failed");
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    await screen.findByText("The story continues.");
+    expect(
+      screen.queryByText("transcript fetch failed"),
+    ).not.toBeInTheDocument();
+    // Retrying the refresh must never re-submit the turn.
+    expect(mocks.submitTurn).toHaveBeenCalledTimes(1);
+  });
+
+  it("sibling audit: a refresh failure after SetupForm's onComplete surfaces as refreshError, not an unhandled rejection", async () => {
+    // SetupForm's submit() only calls onComplete() after api.submitSetup()
+    // already succeeded -- the same "mutation success, follow-up read
+    // fails" shape as submitTurn, previously uncaught (onComplete's
+    // refresh() call was fire-and-forget with no catch of its own).
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(null);
+    mocks.submitSetup.mockResolvedValue({});
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error("post-setup refresh failed"));
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Branching setup" });
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await screen.findByText("post-setup refresh failed");
+  });
+});
+
 describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.submitSetup.mockResolvedValue({});
     mocks.getSetupState.mockResolvedValue(null);
     mocks.listPersonas.mockResolvedValue({ mentors: [], peers: [] });
@@ -289,7 +433,7 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
 describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
   });
 
@@ -363,7 +507,7 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
 describe("StoryView Branching setup defaults to freeform_only (PR #126 round 8 P1)", () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
     mocks.getSetupState.mockResolvedValue(null);
     mocks.submitSetup.mockResolvedValue({});
@@ -411,7 +555,7 @@ describe("StoryView Branching setup defaults to freeform_only (PR #126 round 8 P
 describe("StoryView load-error retry (PR #126 round 3)", () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
   });
 
