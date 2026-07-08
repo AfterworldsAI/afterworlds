@@ -761,3 +761,18 @@ implemented directly.
 - Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
   `pytest -q` (2291 passed, 10 skipped, 91.93% coverage). No frontend files changed this round, so
   frontend gates were not re-run. No API schema changes, so no OpenAPI/TS regeneration was needed.
+
+### CI catch: Playwright E2E spine required a matching fix (again)
+
+CI's `spine.spec.ts` failed after round 7 landed: `Branching mode: setup and a delivered turn` sets
+both `interaction_style=true_cyoa` and `branching_cadence=interactive` during setup, which -- per
+this round's P1 fix -- now genuinely promotes `play_status` to `IN_PLAY`. Its freeform submission
+then correctly hit the orchestrator's True CYOA `INTERACTION_REJECTED` gate (pure core-dispatch
+logic, never gated on `BranchingWriterService`/`BranchSelectionValidationService` despite the test's
+own stale comment claiming otherwise) instead of falling through to the prose Writer path the test
+asserted on -- that gate simply could never be reached through the real setup route before this
+round's fix. Fixed by splitting into two tests: the original "delivered turn" coverage now uses
+`FREEFORM_ONLY` (which never rejects freeform input); a new "True CYOA setup rejects freeform input"
+test asserts the rejection banner text and that the draft is preserved (Binding Decision 6) --
+closing exactly the gap the old comment flagged as untestable. Verified locally: full Playwright
+suite (7/7 passing) against a fresh production build, matching CI's exact invocation.
