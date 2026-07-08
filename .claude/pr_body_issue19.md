@@ -887,3 +887,72 @@ orchestrator's fail-closed guard for in-play HYBRID/TRUE_CYOA with no branching 
   `tsc --noEmit`, ESLint, Prettier, Vitest (27 passed), `npm audit --audit-level=high` (0
   vulnerabilities), production build, and the full Playwright E2E spine (7/7 passing) against a fresh
   build -- all clean. OpenAPI/TS regenerated and drift-checked as noted above.
+
+## Remediation round 9
+
+Two concrete defects (P2, P2) -- no boundary/ownership fork this round.
+
+- **Writing visible-state lookup failure is now non-fatal (P2).** `build_visible_state()`'s own module
+  docstring claims it "never raises," but the Writing branch only guarded `writing_state is None` and
+  `writing_state.persona_id is None` before calling `WritingVisibleStateService.build()`, which also
+  raises `ValueError` when a persisted `persona_id` no longer resolves in the current persona registry
+  (e.g. the persona catalog changed after this story's setup ran). `build_visible_state()` is called
+  from three routes (`GET .../visible-state`, `GET .../setup`, and `POST .../turns`'s
+  post-orchestration re-fetch); an unguarded raise there surfaces as an unhandled 500.
+  - `src/afterworlds/api/visible_state.py`: the Writing branch now catches `ValueError` around the
+    `WritingVisibleStateService(...).build(writing_state)` call and returns `None`, logging a warning
+    with `story_id`, `mode`, and the exception's class name only -- no persisted content (goals,
+    persona fields) is logged. Matches the module's own documented "never raises" contract, which was
+    previously false for this one path.
+  - Tests (`tests/api/test_visible_state.py`, new): a Writing story with a persisted `persona_id` that
+    doesn't resolve in the registry (simulated by mutating the persisted row directly, since the real
+    setup route validates against the live registry and would reject it) -- `GET .../visible-state`
+    returns `200` with `visible_state: null`, not a 500. A valid persona (`chiron`) still returns the
+    normal populated `WritingVisibleState` (existing test, unaffected).
+  - Tests (`tests/api/test_fake_provider_product_path.py`, new): `POST .../turns` for a story whose
+    Writing session has a stale `persona_id` still returns `200` with `disposition: delivered` and
+    `visible_state: null`, not a 500. This required a SETUP-phase-with-persona-already-set fixture
+    shape (also only reachable via direct persistence, not the real setup route, which always sets
+    `persona_id` and `specific_goals` together and promotes straight to `IN_PLAY`) -- discovered while
+    writing the test that the orchestrator (`pipeline/orchestrator/service.py` step 2c) has its own,
+    independent persona-registry guard that already fails closed with `PIPELINE_ERROR` (no turn
+    created) for IN_PLAY Writing turns with an unresolvable `persona_id`, so the exact "turn delivered,
+    then visible-state crashes" scenario is only reachable for a SETUP-phase turn, where that guard
+    doesn't fire (it's gated on `play_status is IN_PLAY`) but `build_visible_state()`'s own weaker
+    precondition (`persona_id is None`) doesn't cover a persona set-but-stale row either. The fix in
+    `visible_state.py` protects this path regardless of which route reaches it.
+  - **Sibling audit (stale-registry/stale-config visible-state build failures across all three
+    modes):** `RpgVisibleStateService.build()` takes a plain, already-fetched `Dnd5eCharacterSheet` row
+    and does no external registry/catalog lookup -- no equivalent failure mode exists; disposition
+    `already safe`. `BranchingVisibleStateService.build()` raises `ValueError` only for
+    `interaction_style is None` / `branching_cadence is None`, but `build_visible_state()`'s own
+    Branching branch already checks both of those exact conditions before calling `build()` (confirmed
+    by re-reading, not assumed) -- the raise is structurally unreachable through this call site;
+    disposition `already safe`. Only Writing has an external-catalog dependency
+    (`JsonPersonaRegistry`) that can drift independently of the persisted session-state row, which is
+    exactly why only Writing needed a fix.
+
+- **Setup-state union members now carry `schema_version` (P2).** `SetupStateResponse` (the envelope)
+  already had `schema_version`, but its three discriminated-union members --
+  `RpgSetupStateDTO`, `BranchingSetupStateDTO`, `WritingSetupStateDTO` -- did not, inconsistent with
+  every other DTO in `dto.py` (all ten response DTOs plus, as of round 8, all five request DTOs).
+  - `src/afterworlds/api/dto.py`: added `schema_version: Literal[1] = 1` to all three. `extra="forbid"`
+    and the `mode` discriminator are unchanged. Confirmed all three construction sites
+    (`api/routes/setup.py`'s `_build_setup_state` function) never pass `schema_version`
+    explicitly, so every response relies on the default -- no call-site changes needed.
+  - Tests (`tests/api/test_setup.py`, new): `GET /api/stories/{story_id}/setup` returns
+    `setup_state.schema_version === 1` for a freshly-created story in each of the three modes (RPG,
+    Branching, Writing).
+  - OpenAPI/TS regenerated (`npm run generate-api-types`); diff is exactly the three new
+    `schema_version` fields on the generated `RpgSetupStateDTO`/`BranchingSetupStateDTO`/
+    `WritingSetupStateDTO` types. These are response-only types (never constructed client-side), so
+    unlike round 8's request-DTO regeneration, no frontend call sites needed updating --
+    `tsc --noEmit` was clean immediately after regeneration, confirmed rather than assumed.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2310 passed, 10 skipped, 91.96% coverage, up from 2307/91.93% -- 3 new tests: one
+  Writing-visible-state-stale-registry test, one POST-turns non-500 regression test, one setup-state
+  schema_version test across all three modes). Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (27
+  passed, unchanged), `npm audit --audit-level=high` (0 vulnerabilities), production build, and the
+  full Playwright E2E spine (7/7 passing) against a fresh build -- all clean. OpenAPI/TS regenerated
+  and drift-checked.
