@@ -355,6 +355,12 @@ export interface components {
             demeanor_tags: string[];
             /** Signature Move */
             signature_move: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /** PersonaGalleryResponse */
         PersonaGalleryResponse: {
@@ -399,6 +405,12 @@ export interface components {
             provider: string;
             /** Coarse Reason */
             coarse_reason?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * RpgSessionType
@@ -634,6 +646,12 @@ export interface components {
              */
             timestamp: string;
             intent_classification: components["schemas"]["IntentType"];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /** TurnSubmissionRequest */
         TurnSubmissionRequest: {

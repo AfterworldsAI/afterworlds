@@ -93,3 +93,16 @@ def test_transcript_rejects_invalid_limit(client) -> None:  # type: ignore[no-un
     story_id = _create_story(client)
     resp = client.get(f"/api/stories/{story_id}/turns", params={"limit": 0})
     assert resp.status_code == 422
+
+
+def test_transcript_turn_items_carry_schema_version(client) -> None:  # type: ignore[no-untyped-def]
+    # Round 10 remediation (PR #126 P2): TranscriptTurnDTO (embedded in
+    # TranscriptResponse) lacked schema_version, unlike every other DTO.
+    story_id = _create_story(client)
+    _seed_turn(client, story_id, when=datetime(2026, 1, 1, tzinfo=UTC))
+
+    resp = client.get(f"/api/stories/{story_id}/turns")
+    assert resp.status_code == 200
+    turns = resp.json()["turns"]
+    assert len(turns) == 1
+    assert turns[0]["schema_version"] == 1

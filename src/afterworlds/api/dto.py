@@ -110,6 +110,7 @@ class ProviderRefusalSummaryDTO(BaseModel):
 
     provider: str
     coarse_reason: str | None = None
+    schema_version: Literal[1] = 1
 
 
 class TurnSubmissionResponse(BaseModel):
@@ -342,6 +343,7 @@ class PersonaDTO(BaseModel):
     ui_long_description: str
     demeanor_tags: list[str]
     signature_move: str
+    schema_version: Literal[1] = 1
 
 
 class PersonaGalleryResponse(BaseModel):
@@ -360,6 +362,7 @@ class TranscriptTurnDTO(BaseModel):
     assistant_output: str
     timestamp: datetime
     intent_classification: IntentType
+    schema_version: Literal[1] = 1
 
 
 class TranscriptResponse(BaseModel):
