@@ -24,6 +24,147 @@ def test_branching_setup_applies_structured_fields(client) -> None:  # type: ign
     assert resp.json()["visible_state"]["branching_cadence"] == "balanced"
 
 
+def test_branching_setup_with_both_required_fields_promotes_to_in_play(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 7 remediation (PR #126 P1): Branching setup must receive the
+    same durable completion treatment as Writing -- once interaction_style
+    and branching_cadence are both persisted, play_status must promote to
+    IN_PLAY, not stay SETUP forever."""
+    story_id = _create_story(client, "branching")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "branching",
+            "interaction_style": "true_cyoa",
+            "branching_cadence": "balanced",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import BranchingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.IN_PLAY
+    finally:
+        session.close()
+
+
+def test_branching_partial_setup_does_not_promote_to_in_play(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """A setup call supplying only one of the two required fields must not
+    promote play_status -- the effective persisted state still lacks
+    branching_cadence."""
+    story_id = _create_story(client, "branching")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "branching", "interaction_style": "true_cyoa"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import BranchingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.SETUP
+        assert state.branching_cadence is None
+    finally:
+        session.close()
+
+
+def test_branching_setup_promotes_using_effective_state_across_two_partial_calls(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Do not infer completion from the incoming body alone: a second call
+    supplying only the still-missing field must promote using the
+    already-persisted field from the first call."""
+    story_id = _create_story(client, "branching")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "branching", "interaction_style": "hybrid"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import BranchingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.SETUP
+    finally:
+        session.close()
+
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "branching", "branching_cadence": "balanced"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.IN_PLAY
+        assert state.interaction_style.value == "hybrid"
+    finally:
+        session.close()
+
+
+def test_branching_setup_promotion_is_idempotent(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Repeated setup calls after promotion must not error or regress
+    play_status."""
+    story_id = _create_story(client, "branching")
+    for _ in range(2):
+        resp = client.post(
+            f"/api/stories/{story_id}/setup",
+            json={
+                "mode": "branching",
+                "interaction_style": "true_cyoa",
+                "branching_cadence": "balanced",
+            },
+        )
+        assert resp.status_code == 200, resp.text
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import BranchingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_branching_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_branching_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.IN_PLAY
+    finally:
+        session.close()
+
+
 def test_writing_setup_requires_persona_id(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(

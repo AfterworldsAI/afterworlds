@@ -28,7 +28,7 @@ from afterworlds.api.dto import (
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.visible_state import build_visible_state
-from afterworlds.models.enums import StoryMode, WritingPlayStatus
+from afterworlds.models.enums import BranchingPlayStatus, StoryMode, WritingPlayStatus
 from afterworlds.modes.personas.registry import SupportedMode, get_default_registry
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
@@ -84,6 +84,13 @@ def _apply_branching_setup(
         branch_count_range=body.branch_count_range,
         length_preference=body.length_preference,
         clear_branch_count_range=body.clear_branch_count_range,
+        # Round 7 remediation (PR #126 P1): mirrors the Writing setup route
+        # below -- requested on every call, but apply_branching_config_update
+        # only actually promotes once the persisted (post-update) row has
+        # both interaction_style and branching_cadence, whether supplied on
+        # this call or an earlier partial one. Idempotent: an already
+        # IN_PLAY story is simply reassigned the same status.
+        play_status=BranchingPlayStatus.IN_PLAY,
     )
     if not found:
         raise ApiErrorResponse(

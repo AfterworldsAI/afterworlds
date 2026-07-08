@@ -523,14 +523,25 @@ class OrchestratorService:
         # `binding.adapter` (resolved in step 0), the same selected
         # hosted/BYOK access path every other pass uses -- not a standalone
         # process-hosted key. `IntentClassifierService.classify` may raise
-        # the typed `IntentClassificationError` (parse / validation failure)
-        # OR any untyped runtime failure from the model caller (transport
-        # error, provider refusal, provider hiccup, etc.). Both must produce
-        # a typed PIPELINE_ERROR result rather than escaping
-        # `orchestrate_turn` as a raw exception — the orchestrator's
-        # terminal-state contract is exhaustive (Issue 12c). No
-        # classifier-specific refusal routing exists; a `ProviderRefusalError`
-        # here falls into this same fail-closed PIPELINE_ERROR path.
+        # the typed `IntentClassificationError` (parse / validation failure),
+        # a `ProviderRefusalError` (content-policy refusal), OR any untyped
+        # runtime failure from the model caller (transport error, provider
+        # hiccup, etc.).
+        #
+        # Round 7 remediation (PR #126 P2): a `ProviderRefusalError` is now
+        # caught before the broad exception handler and mapped to
+        # `REFUSED_BY_PROVIDER` with `provider_refusal` populated -- the same
+        # `_build_result(...)` pattern Planner/Writer/Extractor/Contradiction
+        # use, per Architecture Invariant 5 ("Provider refusals are typed
+        # pass failures, not Safety verdicts"). Collapsing a content-policy
+        # refusal into PIPELINE_ERROR would drop `provider_refusal` and make
+        # a content-policy decision look like an infrastructure failure. No
+        # real `IntentClassificationResult` exists yet at this point (the
+        # classifier failed before producing one), so `_synthesize_intent`
+        # supplies the same neutral placeholder used by every other
+        # pre-classification failure path. All other classifier failures
+        # (parser/schema/transport/unexpected) still map to typed
+        # PIPELINE_ERROR, unchanged.
         try:
             intent_caller = _make_intent_classifier_caller(
                 binding.adapter,  # type: ignore[arg-type]
@@ -542,6 +553,14 @@ class OrchestratorService:
                 )
             )
             latency["intent"] = classify_ms
+        except ProviderRefusalError as exc:
+            return self._build_result(
+                PipelineDisposition.REFUSED_BY_PROVIDER,
+                _synthesize_intent(user_input),
+                latency,
+                turn_start,
+                provider_refusal=exc.refusal,
+            )
         except Exception as exc:  # noqa: BLE001
             return self._pipeline_error(
                 _synthesize_intent(user_input),

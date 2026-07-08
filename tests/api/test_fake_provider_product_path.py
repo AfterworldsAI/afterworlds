@@ -337,6 +337,41 @@ def test_fake_provider_path_classifies_without_anthropic_api_key(
     assert body["pipeline_error_summary"] is None
 
 
+def test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 7 remediation (PR #126 P1) regression: before this fix, Branching
+    setup never promoted play_status past SETUP, so this freeform turn would
+    have fallen through to the ordinary prose Writer path (delivered) instead
+    of reaching the orchestrator's in-play True CYOA INTERACTION_REJECTED
+    rail. The fake classifier's fixed in_character_action intent is exactly
+    "not BRANCH_CHOICE", satisfying that rail's gate."""
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+
+    resp = client.post("/api/stories", json={"title": "T", "mode": "branching"})
+    assert resp.status_code == 201, resp.text
+    story_id = resp.json()["story_id"]
+
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "branching",
+            "interaction_style": "true_cyoa",
+            "branching_cadence": "balanced",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns",
+        json={"user_input": "I ignore the options and climb the wall."},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "interaction_rejected", body
+
+
 def test_rpg_setup_turn_does_not_require_completed_character_sheet(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:

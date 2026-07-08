@@ -9262,6 +9262,103 @@ class TestBranchChoiceValidationServiceRequired:
         assert result.interaction_rejection_reason is None
 
 
+class TestBranchingSetupPromotionReachesInPlayRails:
+    """Round 7 remediation (PR #126 P1): the setup route's real CRUD
+    promotion path -- not a hand-built fixture -- must feed the orchestrator's
+    in-play Branching rails. Every other Branching rail test in this file
+    constructs BranchingSessionState directly; this one goes through the
+    actual apply_branching_config_update() promotion + the real
+    get_branching_session_state_by_story resolver, proving play_status
+    genuinely reaches IN_PLAY through the persisted path this PR's setup
+    route uses, not just an in-memory stand-in.
+    """
+
+    def test_setup_promoted_in_play_branch_choice_reaches_selection_gate(
+        self, session_factory: object, session: object
+    ) -> None:
+        from afterworlds.models.enums import (
+            BranchingCadence,
+            BranchingPlayStatus,
+            IntentType,
+            InteractionStyle,
+            PacingStage,
+            StoryMode,
+        )
+        from afterworlds.models.session import BranchingSessionState
+        from afterworlds.persistence.crud.session_state import (
+            apply_branching_config_update,
+            create_branching_session_state,
+            get_branching_session_state_by_story,
+        )
+
+        story_id, node_id = _seed_branching_story_with_options(
+            session, ["Take the bridge", "Wade the river"]
+        )
+        create_branching_session_state(
+            session,
+            BranchingSessionState(
+                story_id=story_id, pacing_stage=PacingStage.ESCALATION
+            ),
+        )
+        session.commit()  # type: ignore[union-attr]
+
+        # The real promotion path this PR's setup route calls -- not a
+        # hand-built BranchingSessionState.
+        promoted = apply_branching_config_update(
+            session,
+            story_id,
+            interaction_style=InteractionStyle.HYBRID,
+            branching_cadence=BranchingCadence.BALANCED,
+            play_status=BranchingPlayStatus.IN_PLAY,
+        )
+        assert promoted is True
+        session.commit()  # type: ignore[union-attr]
+
+        state = get_branching_session_state_by_story(session, story_id)  # type: ignore[arg-type]
+        assert state is not None
+        assert state.play_status is BranchingPlayStatus.IN_PLAY
+
+        def _real_resolver(sid: UUID) -> BranchingSessionState | None:
+            s = session_factory()  # type: ignore[operator]
+            try:
+                return get_branching_session_state_by_story(s, sid)
+            finally:
+                s.close()
+
+        orch = OrchestratorService(
+            intent_classifier=FakeIntentClassifier(
+                make_intent(IntentType.BRANCH_CHOICE, "opt_1")
+            ),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=FakePlannerService(),
+            writer_service=FakeWriterService(),
+            extractor_service=FakeExtractorService(),
+            contradiction_service=FakeContradictionService(),
+            session_factory=session_factory,  # type: ignore[arg-type]
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+            mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+            branching_session_resolver=_real_resolver,
+            # Unwired, matching build_orchestrator()'s real product wiring
+            # (BranchSelectionValidationService is deliberately unwired --
+            # see Architecture Notes).
+            branching_selection_service=None,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "opt_1", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+
+        # Before this PR's fix, play_status could never reach IN_PLAY through
+        # the setup route, so this in-play-only gate was unreachable and the
+        # turn would have fallen through to ordinary prose (DELIVERED).
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "selection validation service not wired" in (
+            result.pipeline_error_summary or ""
+        )
+
+
 # ---------------------------------------------------------------------------
 # Writing mode OOC config persistence (CRD Issue 17 / PR #116 remediation)
 # ---------------------------------------------------------------------------

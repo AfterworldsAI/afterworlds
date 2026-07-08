@@ -235,13 +235,14 @@ class TestIntentClassificationRoutesThroughSelectedAdapter:
         )
         assert result.disposition is PipelineDisposition.DELIVERED
 
-    def test_provider_refusal_from_classifier_fails_closed_as_pipeline_error(
+    def test_provider_refusal_from_classifier_maps_to_refused_by_provider(
         self, session_factory, seeded_story
     ) -> None:
-        """No classifier-specific refusal routing exists -- a provider
-        refusal during classification must still fail closed as
-        PIPELINE_ERROR (Issue 12c's exhaustive terminal-state contract),
-        not escape orchestrate_turn as a raw exception."""
+        """Round 7 remediation (PR #126 P2): a provider refusal during
+        classification must preserve the refusal (REFUSED_BY_PROVIDER,
+        provider_refusal populated), not collapse into an
+        infrastructure-looking PIPELINE_ERROR that drops the refusal
+        details."""
         from afterworlds.pipeline._refusal import (
             PassIdentifier,
             ProviderRefusal,
@@ -267,4 +268,87 @@ class TestIntentClassificationRoutesThroughSelectedAdapter:
         result = orch.orchestrate_turn(
             story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
         )
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert result.provider_refusal is not None
+        assert (
+            result.provider_refusal.pass_identifier is PassIdentifier.INTENT_CLASSIFIER
+        )
+        assert result.pipeline_error_summary is None
+        assert result.turn_id is None
+        assert result.delivered_output is None
+
+    def test_non_refusal_classifier_error_still_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Parser/schema/transport/unexpected classifier failures continue
+        to map to typed PIPELINE_ERROR, unchanged by the refusal-parity fix."""
+
+        class _BoomAdapter:
+            provider_name = "boom-adapter"
+
+            def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+                raise RuntimeError("synthetic transport failure")
+
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_with_adapter(
+            session_factory, _BoomAdapter(), RuntimeAccessPath.HOSTED  # type: ignore[arg-type]
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.provider_refusal is None
+
+    def test_refusal_prevents_downstream_passes_from_running(
+        self, session_factory, seeded_story
+    ) -> None:
+        """A classifier refusal must stop the turn immediately -- no
+        Planner/Writer/Extractor/Contradiction call after it."""
+        from afterworlds.pipeline._refusal import (
+            PassIdentifier,
+            ProviderRefusal,
+            ProviderRefusalError,
+        )
+
+        class _RefusingAdapter:
+            provider_name = "refusing-adapter"
+
+            def call(self, request: ProviderCallRequest) -> ProviderCallResult:
+                raise ProviderRefusalError(
+                    ProviderRefusal(
+                        provider="refusing-adapter",
+                        pass_identifier=PassIdentifier.INTENT_CLASSIFIER,
+                        coarse_reason="synthetic refusal",
+                    )
+                )
+
+        story_id, node_id = seeded_story
+        planner = FakePlannerService()
+        writer = FakeWriterService()
+        extractor = FakeExtractorService()
+        contradiction = FakeContradictionService()
+        orch = OrchestratorService(
+            intent_classifier=IntentClassifierService(_guard_caller),
+            context_builder=FakeContextBuilder(),
+            safety_service=FakeSafetyService(),
+            planner_service=planner,
+            writer_service=writer,
+            extractor_service=extractor,
+            contradiction_service=contradiction,
+            session_factory=session_factory,
+            safety_policy=CapabilityProfileAwareSafetyPolicy(),
+            provider_resolver=_FixedResolver(
+                _RefusingAdapter(), RuntimeAccessPath.HOSTED  # type: ignore[arg-type]
+            ),
+            mode_resolver=fixed_mode_resolver(StoryMode.BRANCHING),
+            branching_session_resolver=_freeform_branching_session,
+        )
+
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert result.disposition is PipelineDisposition.REFUSED_BY_PROVIDER
+        assert planner.calls == []
+        assert writer.calls == []
+        assert extractor.calls == []
+        assert contradiction.calls == []

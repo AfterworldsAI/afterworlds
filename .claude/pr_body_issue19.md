@@ -657,3 +657,104 @@ round).
   no frontend files changed this round; run for gate completeness). `pip-audit` findings are
   pre-existing and unrelated to this round's changes (no dependencies added or changed). No API
   schema changes in this round, so no OpenAPI/TS regeneration was needed.
+
+## Remediation round 7
+
+Boundary note: this round's own classification named the defect families precisely (mode setup
+completion parity; provider-refusal parity) rather than repeating a prior finding, so both were
+implemented directly.
+
+- **Branching structured setup now promotes play_status to IN_PLAY (P1) -- mirrors the Writing
+  pattern exactly.** `apply_branching_config_update()` updated `interaction_style`/`branching_cadence`
+  but never touched `play_status`, so a frontend-created Branching story could save both required
+  fields, show fully configured visible state, and still have every subsequent turn treated as
+  setup/prose forever -- the orchestrator's in-play Branching rails (`INTERACTION_REJECTED` for True
+  CYOA freeform input, branch-choice validation) gate on `BranchingPlayStatus.IN_PLAY`, which could
+  never be reached.
+  - `apply_branching_config_update()` (`persistence/crud/session_state.py`) gained an optional
+    `play_status: BranchingPlayStatus | None = None` parameter, mirroring
+    `apply_writing_config_update()`'s existing `play_status` guard precisely: promotion only actually
+    happens when the *effective* (post-field-update) row has both `interaction_style` and
+    `branching_cadence` non-null -- not the incoming request body alone, since either field may
+    already be persisted from an earlier partial setup call rather than supplied on this one. A
+    non-`IN_PLAY` status is always applied unconditionally; only `IN_PLAY` is gated.
+  - `_apply_branching_setup()` (`api/routes/setup.py`) now requests `play_status=BranchingPlayStatus.IN_PLAY`
+    on every call, exactly as `_apply_writing_setup()` already does -- the CRUD-level guard, not the
+    route, decides whether promotion actually applies. Idempotent: an already-`IN_PLAY` story is
+    simply reassigned the same status.
+  - Tests (`tests/api/test_setup.py`): both required fields present promotes to `IN_PLAY`; a partial
+    setup call (one field only) does not promote; two successive partial calls (each supplying only
+    the still-missing field) correctly promote using the effective persisted state, not either call's
+    body in isolation; repeated setup calls after promotion remain idempotent.
+  - Tests (`tests/api/test_fake_provider_product_path.py`): an end-to-end regression through the real
+    HTTP setup route + a real turn submission -- a True CYOA story, once set up, correctly returns
+    `INTERACTION_REJECTED` for freeform input instead of falling through to ordinary prose (this
+    would have been impossible before the fix, since `play_status` could never reach `IN_PLAY` through
+    the real route).
+  - Tests (`tests/pipeline/orchestrator/test_service.py`, new `TestBranchingSetupPromotionReachesInPlayRails`):
+    unlike every other Branching-rail test in this file (which hand-constructs `BranchingSessionState`
+    directly), this one promotes state through the real `apply_branching_config_update()` call and
+    reads it back through the real `get_branching_session_state_by_story` resolver, proving the actual
+    persisted-state path -- not just an in-memory stand-in -- feeds the orchestrator's in-play
+    branch-choice gate correctly.
+  - **Sibling audit (setup completion parity across all three modes):** Writing already has this
+    exact pattern (round 5). RPG's setup route (`_apply_rpg_setup`) never touches `play_status`, and
+    grepping every write of `RpgPlayStatus.IN_PLAY` in `src/` found none -- `RpgSessionState`'s own
+    docstring documents the intended transition condition explicitly: "`play_status` transitions from
+    SETUP to IN_PLAY when the character sheet passes `D20RulesSystemAdapter.is_adjudicable()` and
+    setup_phase reaches COMPLETE" -- a condition tied to RPG adjudication, which Issue 19's product
+    wiring deliberately leaves unwired (Architecture Notes, prior rounds). Disposition: `Known
+    Unknown` / `out of scope` -- RPG has an explicit, documented reason not to transition yet, not a
+    silent gap; wiring RPG adjudication is a separate, larger piece of work. Also checked: the
+    frontend's `StoryView.tsx` `structuredSetupPersisted` check for Branching already uses
+    `visibleState !== null` as its completion signal (unlike Writing's explicit `play_status ===
+    "in_play"` check) -- `build_visible_state()`'s Branching branch (`api/visible_state.py`) already
+    returns `None` unless both `interaction_style` and `branching_cadence` are non-null, the exact
+    same condition this round's backend fix uses to promote `play_status`. Disposition: `already safe`
+    -- no frontend change needed, the existing signal was already semantically equivalent.
+
+- **Provider refusals from Intent Classification now preserved, not collapsed into PIPELINE_ERROR
+  (P2).** Once round 6 routed classification through the selected provider adapter, a content-policy
+  refusal from that adapter surfaced as `ProviderRefusalError`, but the classification step's `except
+  Exception` caught it along with every other failure and returned `PIPELINE_ERROR` -- dropping
+  `provider_refusal` and making a content-policy decision look like an infrastructure failure, in
+  tension with Architecture Invariant 5 ("Provider refusals are typed pass failures, not Safety
+  verdicts").
+  - `orchestrate_turn()`'s step 1 (`pipeline/orchestrator/service.py`) now catches `ProviderRefusalError`
+    before the broad exception handler and returns `PipelineDisposition.REFUSED_BY_PROVIDER` via the
+    same `_build_result(...)` pattern Planner/Writer/Extractor/Contradiction/RPG Adjudication/Branching
+    Writer already use, with `provider_refusal=exc.refusal` populated. No real `IntentClassificationResult`
+    exists yet at this point (classification itself failed), so `_synthesize_intent(user_input)` -- the
+    same neutral placeholder every other pre-classification failure path already uses -- supplies
+    `intent_classification`. All other classifier failures (parser/schema/transport/unexpected) still
+    map to typed `PIPELINE_ERROR`, unchanged.
+  - No hosted/BYOK boundary crossing was reintroduced: this is purely a catch-and-map change at the
+    call site already wired to the per-turn `binding.adapter` since round 6; no new provider call path
+    was added.
+  - Tests (`tests/pipeline/orchestrator/test_intent_classifier_routing.py`): a classifier
+    `ProviderRefusalError` now maps to `REFUSED_BY_PROVIDER` with `provider_refusal` populated,
+    `pipeline_error_summary` absent, `turn_id`/`delivered_output` both `None` (the round-6 test that
+    asserted the old `PIPELINE_ERROR` behavior was updated in place -- it exercised exactly the
+    behavior this round intentionally changes); a non-refusal classifier error (plain `RuntimeError`)
+    still maps to `PIPELINE_ERROR` with `provider_refusal` absent; a classifier refusal stops the turn
+    immediately -- Planner/Writer/Extractor/Contradiction all recorded zero calls afterward.
+  - **Sibling audit (`ProviderRefusalError` parity across every provider-backed pass):** grepped all
+    `except ProviderRefusalError` sites in `pipeline/orchestrator/service.py` -- 9 total (Intent
+    Classification, Planner, RPG Adjudication, Branching Writer, Writer ×2 call sites, Extractor,
+    Contradiction ×2 for the parallel-pass path). Every site maps to `REFUSED_BY_PROVIDER` via
+    `_build_result(...)` (or the parallel-path's `_ContradictionRefusalWithExtractor` wrapper, which
+    preserves the same contract) with `provider_refusal` populated -- confirmed parity, no stragglers.
+    Safety (`pipeline/safety/service.py`) is intentionally different: its `check()` wraps *all*
+    exceptions, including `ProviderRefusalError`, into its own `SafetyPassError` (fail-closed by
+    design, per its own docstring) rather than surfacing `REFUSED_BY_PROVIDER` -- this is the existing,
+    correct divergence Architecture Invariant 5 describes (a Safety pass's own refusal is a Safety
+    concern, not a narrative-pass refusal), not a defect. Disposition: `already safe`. Confirmed
+    `ProviderCallError` (operational failures) cannot be misclassified as a refusal: it and
+    `ProviderRefusalError` are sibling `Exception` subclasses, not parent/child, so the new
+    `except ProviderRefusalError` clause structurally cannot catch a `ProviderCallError` -- it falls
+    through to the unchanged broad `except Exception` → `PIPELINE_ERROR` path, verified by the
+    non-refusal regression test above.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2291 passed, 10 skipped, 91.93% coverage). No frontend files changed this round, so
+  frontend gates were not re-run. No API schema changes, so no OpenAPI/TS regeneration was needed.
