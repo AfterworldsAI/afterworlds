@@ -83,22 +83,47 @@ test("story create with mode selection, Writing setup, and a delivered turn", as
 });
 
 test("Branching mode: setup and a delivered turn", async ({ page }) => {
-  // NOTE: True CYOA's INTERACTION_REJECTED rejection lives inside
-  // BranchingWriterService's own pass logic (BranchSelectionValidationService),
-  // not the orchestrator's core dispatch. That pass service is a
-  // mode-specific service Issue 19 deliberately left unwired (Architecture
-  // Notes: "out of scope for Issue 19's core-path wiring") -- without it,
-  // every Branching turn falls back to the generic prose Writer path and
-  // returns DELIVERED regardless of interaction_style. Verified empirically:
-  // a True-CYOA freeform action that should be INTERACTION_REJECTED was
-  // rendered as an ordinary delivered turn instead. Flagged, not silently
-  // worked around -- the spec's "INTERACTION_REJECTED rendering in True
-  // CYOA" E2E scenario requires wiring BranchingWriterService first; this
-  // test covers what Issue 19's actual wiring supports today.
+  // FREEFORM_ONLY: the orchestrator's True CYOA INTERACTION_REJECTED gate
+  // (see the sibling test below) only fires for TRUE_CYOA, so freeform
+  // input here always reaches the ordinary prose Writer path regardless of
+  // play_status.
   seedEntitlement();
 
   await page.goto("/");
   await page.getByPlaceholder("Title").fill("A Branching Story");
+  await page.getByRole("combobox").selectOption("branching");
+  await page.getByRole("button", { name: "Create" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Branching setup" }),
+  ).toBeVisible();
+  await page.locator("select").first().selectOption("freeform_only");
+  await page.locator("select").nth(1).selectOption("interactive");
+  await page.getByRole("button", { name: "Save setup" }).click();
+
+  const textarea = page.getByPlaceholder("What do you do?");
+  await expect(textarea).toBeVisible();
+  await textarea.fill("I ignore the options and climb the wall.");
+  await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("faked for E2E testing")).toBeVisible();
+  await expect(textarea).toHaveValue("");
+});
+
+test("Branching mode: True CYOA setup rejects freeform input", async ({
+  page,
+}) => {
+  // Round 7 remediation (PR #126 P1): Branching setup now durably promotes
+  // play_status to IN_PLAY once interaction_style + branching_cadence are
+  // both persisted, so the orchestrator's True CYOA INTERACTION_REJECTED
+  // gate -- always part of orchestrate_turn's core dispatch, not a
+  // mode-specific pass service -- is reachable through the real setup
+  // route. Before that fix, play_status could never reach IN_PLAY here, so
+  // this freeform input fell through to the ordinary prose Writer and
+  // rendered as an ordinary delivered turn instead of a rejection.
+  seedEntitlement();
+
+  await page.goto("/");
+  await page.getByPlaceholder("Title").fill("A True CYOA Story");
   await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
 
@@ -113,8 +138,15 @@ test("Branching mode: setup and a delivered turn", async ({ page }) => {
   await expect(textarea).toBeVisible();
   await textarea.fill("I ignore the options and climb the wall.");
   await page.getByRole("button", { name: "Submit" }).click();
-  await expect(page.getByText("faked for E2E testing")).toBeVisible();
-  await expect(textarea).toHaveValue("");
+
+  await expect(page.getByRole("alert")).toContainText(
+    "True CYOA mode requires explicit branch selection",
+  );
+  // Rejected input is never delivered/ooc_handled, so the draft is
+  // preserved, not cleared (Binding Decision 6).
+  await expect(textarea).toHaveValue(
+    "I ignore the options and climb the wall.",
+  );
 });
 
 test("refresh/reload re-derives state from the API, not invented client state", async ({
