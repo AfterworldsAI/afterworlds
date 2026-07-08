@@ -66,6 +66,27 @@ def _seed_byok(client) -> None:  # type: ignore[no-untyped-def]
         session.close()
 
 
+def test_turn_submission_rejects_client_supplied_writing_provenance(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Regression (PR #126 review round 5, owner decision): Writing turn
+    provenance is server-derived only. ``TurnSubmissionRequest`` has no
+    ``work_product_kind``/``canon_eligibility_override`` fields, so
+    ``extra="forbid"`` must reject any client attempt to supply them --
+    this must never be re-opened as a client-supplied trust boundary."""
+    story_id = _create_story(client)
+    resp = client.post(
+        f"/api/stories/{story_id}/turns",
+        json={
+            "user_input": "hello",
+            "work_product_kind": "prose_continuation",
+            "canon_eligibility_override": "extractor_eligible",
+        },
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "validation_failed"
+
+
 def test_no_entitlement_blocks_before_orchestrator_call(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client)
     stub = _StubOrchestrator(make_pipeline_error_result)
@@ -158,7 +179,11 @@ def test_delivered_turn_envelope_carries_refreshed_visible_state(client) -> None
     _seed_hosted(client)
     client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron"},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
     )
     stub = _StubOrchestrator(make_delivered_result)
     client.app.dependency_overrides[get_orchestrator] = lambda: stub

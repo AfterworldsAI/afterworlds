@@ -335,3 +335,112 @@ Decision 7.
   overcorrected here, per explicit scope); the two `IN_PLAY`-gated validators (`persona_id`,
   `specific_goals` required) — `already safe`/unreachable, this route never sets `play_status`.
   OpenAPI schema changed (docstring only) and was regenerated; no frontend code changes needed.
+
+## Remediation round 5
+
+- **Server-derived Writing turn provenance (P1) — boundary resolved with an owner decision, not
+  silently.** This is the same Writing-provenance hotspot flagged `[OWNER DECISION]` in round 1;
+  per CLAUDE.md's boundary rule (repeated rounds hitting the same invariant), the fix was not
+  decided in code. The review comment's own "preferred" mechanism — promote `WritingSessionState
+  .play_status` to `IN_PLAY` once `persona_id` is configured — turned out to be blocked by an
+  existing invariant: both `WritingSessionState._in_play_requires_goal` and the
+  `apply_writing_config_update` CRUD guard (PR #116 owner decision) also require nonblank
+  `specific_goals` before `IN_PLAY` can be persisted, and the real `WritingSetupForm` only ever
+  collected `persona_id` — `specific_goals` stayed permanently blank for every story created
+  through the frontend. `specific_goals` is not neutral bootstrap state: it is injected directly
+  into the Writer's system prompt (`pipeline/writing/context.py`) and rendered in the
+  visible-state sidebar, so a synthesized placeholder would fabricate Sojourner-authored content.
+  This was surfaced to the owner as an explicit fork (promote-to-`IN_PLAY`-with-a-real-goal vs.
+  relax the `IN_PLAY` invariant via an ADR revision vs. defer) rather than resolved silently.
+  **Owner decision:** add a required, user-authored `specific_goals` field to Writing setup; do
+  not invent a placeholder; do not relax the `IN_PLAY` invariant.
+  - `WritingSetupForm` (frontend) now collects a required "What are you trying to write, revise,
+    or accomplish?" field and submits it as `specific_goals`.
+  - `WritingSetupRequest.specific_goals` (`api/dto.py`) changed from optional to required, with a
+    nonblank field validator (matching the existing `beat_constraints` validator pattern).
+  - `routes/setup.py`'s `_apply_writing_setup` now passes `play_status=WritingPlayStatus.IN_PLAY`
+    to `apply_writing_config_update` on every call. This is safe and idempotent precisely because
+    persona_id and nonblank specific_goals are both required and both applied earlier in the same
+    call, so the CRUD guard's "cannot enter IN_PLAY without persona_id + a goal" precondition is
+    always genuinely satisfied here — this route is the one legitimate place that can promote
+    play_status, per the owner's explicit direction.
+  - `routes/turns.py` no longer needs any "promote before orchestrating" bootstrap-commit dance
+    (the round-3 anchor-commit pattern was considered but not needed): promotion now happens
+    entirely inside `POST .../setup`, a separate call from turn submission. `_submit_turn_sync`
+    calls a new typed seam, `story_bootstrap.py::derive_writing_turn_request(session, story_id,
+    mode)`, which returns a server-derived `WritingTurnRequest(work_product_kind=
+    PROSE_CONTINUATION, canon_eligibility_override=EXTRACTOR_ELIGIBLE)` only when the story is
+    Writing mode AND its persisted `play_status` is genuinely `IN_PLAY`; otherwise it returns
+    `None` (fail closed, no invented defaults), leaving the orchestrator's existing SETUP-forcing
+    logic in `_narrative_persist` in control unchanged.
+  - **Binding Decision 2 note:** the derivation logic lives in `api/story_bootstrap.py`, not
+    inline in `routes/turns.py`, because `tests/api/test_handler_thinness.py` forbids route
+    modules from importing `afterworlds.pipeline.writing` directly (only the orchestrator may
+    invoke mode-specific pass services). The first implementation attempt imported
+    `WritingTurnRequest` straight into `turns.py` and correctly failed that test; moved to the
+    existing `story_bootstrap.py` seam (already home to `ensure_story_turn_anchor_node`/
+    `ensure_mode_session_state`/`resolve_play_status`) instead of a new module, per "fewest files."
+  - `TurnSubmissionRequest` gained no new fields — `work_product_kind`/`canon_eligibility_override`
+    are still rejected by `extra="forbid"` (regression test:
+    `tests/api/test_turns.py::test_turn_submission_rejects_client_supplied_writing_provenance`).
+    This does **not** reopen the rejected client-supplied trust-boundary approach from Binding
+    Decision 7 — provenance is derived entirely from persisted server-side state, never from the
+    HTTP request body.
+  - Tests: `tests/api/test_setup.py` (specific_goals required/nonblank, play_status promotion
+    verified via CRUD read); `tests/api/test_fake_provider_product_path.py` (full product-path
+    test asserting a turn submitted after real `/setup` is `PROSE_CONTINUATION`/
+    `EXTRACTOR_ELIGIBLE` in the durable `WritingNodeMetadata` record AND
+    `gather_turn_eligibility(...).eligible is True`, i.e. Retrieval Memory eligibility is not
+    suppressed; a SETUP-status regression test confirming turns before setup completes still stay
+    `NON_CANON_SUPPORT`; a missing-session-state fail-closed test). All new tests verified with a
+    negative control (temporarily reverted the fix, confirmed the tests fail, restored).
+  - Manually verified end-to-end in a browser against the real (un-mocked) `create_app()`: created
+    a Writing story, completed setup with a real persona and goal, confirmed the `/setup` response
+    showed `play_status: "in_play"`.
+
+- **RPG setup no longer resets to defaults on reload (P2).** `RpgSetupForm` previously always
+  initialized `dice_handling`/`tone` from hardcoded defaults (`ai_rolls`/`balanced`); since RPG
+  visible state stays null until a concrete character sheet exists (by design — sheet-dependent),
+  RPG cannot use the `structuredSetupPersisted` signal Branching/Writing already use to bypass
+  their setup forms on reload, so RPG's setup form always re-rendered fresh, and the next save
+  silently overwrote any previously-chosen non-default values. Fixed with a new
+  `GET /api/stories/{story_id}/setup` endpoint (mode-discriminated, mirroring the existing
+  `GET .../visible-state` pattern) that reads the persisted mode session-state config directly —
+  never sheet-dependent, since RPG session state exists from story creation
+  (`ensure_mode_session_state`), independent of sheet completeness. New DTOs: `RpgSetupStateDTO`,
+  `BranchingSetupStateDTO`, `WritingSetupStateDTO` (all-optional mirrors of the existing
+  `*SetupRequest` field sets, since persisted state may be partial), wrapped in
+  `SetupStateResponse`. `RpgSetupForm` now hydrates `diceHandling`/`tone` from this endpoint on
+  mount instead of relying only on hardcoded initial state.
+  - *Sibling audit* (PR #126 review round 5, P2's explicit instruction): checked whether
+    Branching/Writing setup forms have the same "defaults overwrite persisted config on reload"
+    defect. **Already safe** — both already bypass `SetupForm` entirely on reload once
+    `structuredSetupPersisted` is true (persisted visible state non-null), a fix from round 3; they
+    never re-render their setup forms with default state once configured, so there is no
+    defaults-overwrite path to fix. The new `GET .../setup` endpoint still returns
+    `BranchingSetupStateDTO`/`WritingSetupStateDTO` for symmetry/honesty across all three modes
+    (cheap: the CRUD reads already existed), but no frontend hydration consumes it for those two
+    modes today, since nothing needs to.
+  - Did not: treat `visibleState !== null` as the RPG setup-persisted signal (RPG's `GET
+    .../setup` is a dedicated, session-state-only read, unrelated to `RpgVisibleState`); store this
+    only in React state or only in localStorage; fabricate a partial `RpgVisibleState` before a
+    concrete sheet exists; expand into full setup-editing UX beyond `dice_handling`/`tone` (the
+    only fields `RpgSetupForm` currently exposes, though the new DTO carries every field
+    `RpgSetupRequest` already owns for future use).
+  - Tests: `tests/api/test_setup.py` (fresh RPG story returns creation defaults, not 404; saved
+    non-default values reflected on a fresh GET simulating reload; 404 for a missing story;
+    Branching/Writing GET symmetry); `frontend/src/StoryView.test.tsx` (RpgSetupForm hydrates from
+    persisted state; a save after hydration submits the hydrated values, not the hardcoded
+    defaults). Negative-control verified (temporarily reverted the fix, confirmed both new backend
+    tests fail, restored).
+  - Manually verified end-to-end in a browser: created an RPG story, saved `dice_handling=
+    player_rolls`/`tone=gritty`, reloaded the page, confirmed the setup form showed "Player rolls"/
+    "Gritty" (not the AI rolls/Balanced defaults).
+
+- OpenAPI schema regenerated (`specific_goals` now required on `WritingSetupRequest`; new
+  `RpgSetupStateDTO`/`BranchingSetupStateDTO`/`WritingSetupStateDTO`/`SetupStateResponse` schemas;
+  new `GET /api/stories/{story_id}/setup` operation) — `frontend/src/api/schema.ts` regenerated,
+  drift gate passes.
+- Full gate suite green on the exact branch head: `black`, `ruff`, `mypy --strict`, `pytest -q`
+  (2266 passed, 10 skipped, 91.78% coverage) for Python; `tsc --noEmit`, `eslint`, `prettier
+  --check`, `vitest run` (21 passed), production `vite build` for the frontend.

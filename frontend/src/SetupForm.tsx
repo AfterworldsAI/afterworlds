@@ -28,7 +28,12 @@ export default function SetupForm({
 
   if (story.mode === "rpg") {
     return (
-      <RpgSetupForm submitting={submitting} error={error} onSubmit={submit} />
+      <RpgSetupForm
+        storyId={story.story_id}
+        submitting={submitting}
+        error={error}
+        onSubmit={submit}
+      />
     );
   }
   if (story.mode === "branching") {
@@ -51,13 +56,35 @@ type FormProps = {
   onSubmit: (body: SetupRequest) => void;
 };
 
-function RpgSetupForm({ submitting, error, onSubmit }: FormProps) {
+function RpgSetupForm({
+  storyId,
+  submitting,
+  error,
+  onSubmit,
+}: FormProps & { storyId: string }) {
   const [diceHandling, setDiceHandling] = useState<"player_rolls" | "ai_rolls">(
     "ai_rolls",
   );
   const [tone, setTone] = useState<
     "gritty" | "balanced" | "forgiving" | "danger_free"
   >("balanced");
+
+  // Hydrate from whatever RPG setup config is already persisted (PR #126
+  // review round 5, P2) -- otherwise every reload resets these selects to
+  // the hardcoded defaults above, and the next save silently overwrites a
+  // prior non-default choice. RPG visible state cannot be used for this
+  // (sheet-dependent by design, null until a concrete sheet exists);
+  // GET .../setup reads RPG session state directly instead.
+  useEffect(() => {
+    api
+      .getSetupState(storyId)
+      .then((state) => {
+        if (!state || state.mode !== "rpg") return;
+        if (state.dice_handling) setDiceHandling(state.dice_handling);
+        if (state.tone) setTone(state.tone);
+      })
+      .catch(() => {});
+  }, [storyId]);
 
   return (
     <form
@@ -155,6 +182,7 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
 function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
   const [personas, setPersonas] = useState<PersonaGallery | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
+  const [specificGoals, setSpecificGoals] = useState("");
 
   useEffect(() => {
     api
@@ -163,15 +191,30 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
       .catch(() => setPersonas(null));
   }, []);
 
+  const goalsReady = specificGoals.trim().length > 0;
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (!personaId) return;
-        onSubmit({ mode: "writing", persona_id: personaId });
+        if (!personaId || !goalsReady) return;
+        onSubmit({
+          mode: "writing",
+          persona_id: personaId,
+          specific_goals: specificGoals,
+        });
       }}
     >
       <h2>Choose your Writing companion</h2>
+      <label>
+        What are you trying to write, revise, or accomplish?
+        <textarea
+          value={specificGoals}
+          onChange={(e) => setSpecificGoals(e.target.value)}
+          placeholder="e.g. Draft the opening chapter of a mystery novel"
+          required
+        />
+      </label>
       {personas && (
         <div className="persona-gallery">
           <section>
@@ -199,7 +242,7 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
         </div>
       )}
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" disabled={submitting || !personaId}>
+      <button type="submit" disabled={submitting || !personaId || !goalsReady}>
         Save setup
       </button>
     </form>

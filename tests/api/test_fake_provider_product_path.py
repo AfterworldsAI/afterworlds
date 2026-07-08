@@ -30,12 +30,20 @@ from afterworlds.entitlement.service import EntitlementService
 from afterworlds.models.enums import (
     RpgTurnRetrievalCategory,
     StoryMode,
-    WritingPlayStatus,
+    WritingCanonEligibility,
+    WritingWorkProductKind,
 )
 from afterworlds.models.story import Story
-from afterworlds.persistence.crud.retrieval import get_rpg_turn_retrieval_marker
-from afterworlds.persistence.crud.session_state import apply_writing_config_update
+from afterworlds.persistence.crud.retrieval import (
+    get_rpg_turn_retrieval_marker,
+    get_turn_for_eligibility,
+)
+from afterworlds.persistence.crud.session_state import (
+    delete_writing_session_state,
+    get_writing_session_state_by_story,
+)
 from afterworlds.persistence.crud.story import create_story
+from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility
 
 
 @pytest.fixture()
@@ -81,7 +89,11 @@ def _create_writing_story_with_persona(client) -> str:  # type: ignore[no-untype
     story_id: str = resp.json()["story_id"]
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron"},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
     )
     assert resp.status_code == 200, resp.text
     return story_id
@@ -125,23 +137,11 @@ def test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service(
     ("writing visible state service not wired for IN_PLAY turn")."""
     client = fake_provider_client
     _seed_hosted_entitlement(client)
+    # ``_create_writing_story_with_persona`` completes setup with a real
+    # persona_id and specific_goals, which (PR #126 review round 5) is
+    # itself now what legitimately promotes play_status SETUP -> IN_PLAY --
+    # no CRUD bypass needed to construct this precondition anymore.
     story_id = _create_writing_story_with_persona(client)
-
-    # Issue 19 does not wire the Writing OOC config extractor (a mode-
-    # specific pass SERVICE, deliberately out of scope per
-    # pipeline_wiring.py's module docstring), so nothing in today's product
-    # HTTP path promotes play_status SETUP -> IN_PLAY. Promote directly via
-    # the same typed CRUD the orchestrator itself uses, to construct the
-    # "IN_PLAY Writing story with a valid persona" precondition this
-    # regression needs without adding new mode policy.
-    session = client.app.state.session_factory()
-    try:
-        apply_writing_config_update(
-            session, UUID(story_id), play_status=WritingPlayStatus.IN_PLAY
-        )
-        session.commit()
-    finally:
-        session.close()
 
     resp = client.post(
         f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
@@ -192,7 +192,11 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
 
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron"},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
     )
     assert resp.status_code == 200, resp.text
 
@@ -203,6 +207,111 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
     body = resp.json()
     assert body["disposition"] == "delivered", body
     assert body["pipeline_error_summary"] is None
+
+
+def test_writing_setup_via_api_yields_extractor_eligible_turn(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """P1 product-path test (PR #126 review round 5, owner decision): a
+    Writing story that completes ``/setup`` with a real persona_id and
+    specific_goals through the ordinary HTTP path -- no client-supplied
+    provenance field (rejected by ``extra="forbid"``), no CRUD bypass --
+    must have its turns treated as ordinary Writing prose: routed to Story
+    Bible and eligible for Retrieval Memory, not silently persisted as
+    SETUP_CONFIRMATION/NON_CANON_SUPPORT forever solely because the DTO
+    omits a provenance field.
+    """
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+    story_id = _create_writing_story_with_persona(client)
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered", body
+    turn_id = UUID(body["turn_id"])
+
+    session = client.app.state.session_factory()
+    try:
+        turn = get_turn_for_eligibility(session, turn_id)
+        assert turn is not None
+        assert turn.mode_metadata is not None
+        assert (
+            turn.mode_metadata.work_product_kind
+            == WritingWorkProductKind.PROSE_CONTINUATION.value
+        )
+        assert (
+            turn.mode_metadata.canon_eligibility
+            == WritingCanonEligibility.EXTRACTOR_ELIGIBLE.value
+        )
+
+        decision = gather_turn_eligibility(session, turn_id, StoryMode.WRITING)
+        assert decision.eligible is True, decision.reason
+    finally:
+        session.close()
+
+
+def test_writing_turn_before_setup_stays_non_canon(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Regression guard for the SETUP side of the round-5 fix: a Writing
+    story that has not completed setup (play_status still SETUP) must keep
+    getting no derived ``writing_turn_request`` -- the orchestrator's
+    existing SETUP-forcing logic still applies unchanged."""
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+
+    resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+    assert resp.status_code == 201, resp.text
+    story_id = resp.json()["story_id"]
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "Hello there."}
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    turn_id = UUID(body["turn_id"])
+
+    session = client.app.state.session_factory()
+    try:
+        turn = get_turn_for_eligibility(session, turn_id)
+        assert turn is not None
+        assert turn.mode_metadata is not None
+        assert (
+            turn.mode_metadata.canon_eligibility
+            == WritingCanonEligibility.NON_CANON_SUPPORT.value
+        )
+    finally:
+        session.close()
+
+
+def test_writing_turn_with_missing_session_state_does_not_invent_provenance(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """P1 fail-closed requirement (PR #126 review round 5): if a Writing
+    story's session state row is missing/corrupt, the route must not invent
+    a derived ``writing_turn_request`` -- it must behave exactly as it did
+    before this fix (no provenance derivation at all), leaving whatever
+    already-existing typed handling applies."""
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+    story_id = _create_writing_story_with_persona(client)
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_writing_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        delete_writing_session_state(session, state.session_id)
+        session.commit()
+    finally:
+        session.close()
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
+    )
+    assert resp.status_code == 200, resp.text
 
 
 def test_rpg_setup_turn_does_not_require_completed_character_sheet(

@@ -38,6 +38,9 @@ export type VisibleState =
   | components["schemas"]["WritingVisibleState"];
 export type SetupRequest =
   operations["submit_setup_api_stories__story_id__setup_post"]["requestBody"]["content"]["application/json"];
+export type SetupState = NonNullable<
+  components["schemas"]["SetupStateResponse"]["setup_state"]
+>;
 export type PersonaGallery = components["schemas"]["PersonaGalleryResponse"];
 
 export class ApiRequestError extends Error {
@@ -102,6 +105,11 @@ export const api = {
       `/api/stories/${storyId}/setup`,
       { method: "POST", body: JSON.stringify(body) },
     ),
+
+  getSetupState: (storyId: string) =>
+    request<components["schemas"]["SetupStateResponse"]>(
+      `/api/stories/${storyId}/setup`,
+    ).then((r) => r.setup_state ?? null),
 
   listPersonas: () => request<PersonaGallery>("/api/personas"),
 };

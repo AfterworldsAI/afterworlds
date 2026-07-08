@@ -29,7 +29,15 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from afterworlds.models.character_sheet import RpgCharacterSheetBase
-from afterworlds.models.enums import DiceHandling, IntentType, PacingStage, StoryMode
+from afterworlds.models.enums import (
+    DiceHandling,
+    IntentType,
+    PacingStage,
+    StoryMode,
+    WritingCanonEligibility,
+    WritingPlayStatus,
+    WritingWorkProductKind,
+)
 from afterworlds.models.node import (
     BranchingNodeMetadata,
     Node,
@@ -58,6 +66,7 @@ from afterworlds.persistence.crud.session_state import (
     get_writing_session_state_by_story,
 )
 from afterworlds.persistence.crud.story import create_arc, create_chapter
+from afterworlds.pipeline.writing.models import WritingTurnRequest
 
 _ANCHOR_ARC_TITLE = "Main"
 _ANCHOR_CHAPTER_TITLE = "Turn Anchor"
@@ -185,3 +194,34 @@ def resolve_play_status(session: Session, story_id: UUID, mode: StoryMode) -> st
     if state is None:
         return "setup"
     return state.play_status.value
+
+
+def derive_writing_turn_request(
+    session: Session, story_id: UUID, mode: StoryMode
+) -> WritingTurnRequest | None:
+    """Server-derived Writing turn provenance (PR #126 review round 5, owner
+    decision) -- the one typed seam ``turns.py`` uses so it never imports
+    ``afterworlds.pipeline.writing`` directly (Binding Decision 2: only the
+    orchestrator invokes mode-specific pass services).
+
+    Returns None -- no derived request, never an invented default -- unless
+    *mode* is Writing AND the story's persisted play_status is genuinely
+    IN_PLAY. ``POST .../setup`` is the only place that promotes play_status
+    to IN_PLAY, and only once a real persona_id and a real, Sojourner-
+    authored ``specific_goals`` both exist on the row (``WritingSetupRequest``
+    requires both; the CRUD layer refuses to persist IN_PLAY otherwise). A
+    story still in SETUP, or with missing/corrupt session state, falls
+    through to None here, leaving the orchestrator's existing SETUP-forcing
+    logic in ``_narrative_persist`` in control -- this function must never
+    reopen the rejected client-supplied trust-boundary approach by widening
+    that fallback.
+    """
+    if mode is not StoryMode.WRITING:
+        return None
+    state = get_writing_session_state_by_story(session, story_id)
+    if state is None or state.play_status is not WritingPlayStatus.IN_PLAY:
+        return None
+    return WritingTurnRequest(
+        work_product_kind=WritingWorkProductKind.PROSE_CONTINUATION,
+        canon_eligibility_override=WritingCanonEligibility.EXTRACTOR_ELIGIBLE,
+    )

@@ -98,7 +98,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Setup State */
+        get: operations["get_setup_state_api_stories__story_id__setup_get"];
         put?: never;
         /** Submit Setup */
         post: operations["submit_setup_api_stories__story_id__setup_post"];
@@ -188,6 +189,24 @@ export interface components {
              * @default false
              */
             clear_branch_count_range: boolean;
+        };
+        /**
+         * BranchingSetupStateDTO
+         * @description Currently-persisted Branching setup/config fields. Branching already
+         *     bypasses SetupForm on reload once persisted visible state exists
+         *     (StoryView's ``structuredSetupPersisted``), so no frontend hydration
+         *     consumes this today -- included for GET .../setup symmetry across modes.
+         */
+        BranchingSetupStateDTO: {
+            /**
+             * Mode
+             * @constant
+             */
+            mode: "branching";
+            interaction_style?: components["schemas"]["InteractionStyle"] | null;
+            branching_cadence?: components["schemas"]["BranchingCadence"] | null;
+            branch_count_range?: components["schemas"]["BranchCountRange"] | null;
+            length_preference?: components["schemas"]["LengthPreference"] | null;
         };
         /**
          * BranchingVisibleState
@@ -394,6 +413,32 @@ export interface components {
             acceptable_content?: string | null;
         };
         /**
+         * RpgSetupStateDTO
+         * @description Currently-persisted RPG setup/config fields (PR #126 review round 5,
+         *     P2). Unlike ``RpgSetupRequest``, every field is optional -- this reflects
+         *     whatever has been saved so far, which may be partial or (for a brand-new
+         *     story) all-default. Read-only mirror of ``RpgSetupRequest``'s field set;
+         *     not a general character-sheet or setup-progress surface.
+         */
+        RpgSetupStateDTO: {
+            /**
+             * Mode
+             * @constant
+             */
+            mode: "rpg";
+            dice_handling?: components["schemas"]["DiceHandling"] | null;
+            /** Gm Cheating */
+            gm_cheating?: boolean | null;
+            tone?: components["schemas"]["RpgTone"] | null;
+            session_type?: components["schemas"]["RpgSessionType"] | null;
+            /** Genre Flavor */
+            genre_flavor?: string | null;
+            /** House Rules */
+            house_rules?: string | null;
+            /** Acceptable Content */
+            acceptable_content?: string | null;
+        };
+        /**
          * RpgTone
          * @description Consequence severity calibration configured at play configuration.
          * @enum {string}
@@ -427,6 +472,23 @@ export interface components {
         SetupResponse: {
             /** Visible State */
             visible_state?: components["schemas"]["RpgVisibleState"] | components["schemas"]["BranchingVisibleState"] | components["schemas"]["WritingVisibleState"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * SetupStateResponse
+         * @description Response for ``GET /api/stories/{story_id}/setup`` (PR #126 review
+         *     round 5, P2): lets a setup form hydrate its initial state from what is
+         *     already persisted, instead of always starting from hardcoded defaults
+         *     and silently overwriting a prior save on the next submit.
+         */
+        SetupStateResponse: {
+            /** Setup State */
+            setup_state?: components["schemas"]["RpgSetupStateDTO"] | components["schemas"]["BranchingSetupStateDTO"] | components["schemas"]["WritingSetupStateDTO"] | null;
             /**
              * Schema Version
              * @default 1
@@ -690,6 +752,43 @@ export interface components {
             mode: "writing";
             /** Persona Id */
             persona_id: string;
+            /** Specific Goals */
+            specific_goals: string;
+            critique_intensity?: components["schemas"]["CritiqueIntensity"] | null;
+            form?: components["schemas"]["WritingForm"] | null;
+            /** Form Other */
+            form_other?: string | null;
+            /** Tense */
+            tense?: string | null;
+            /** Pov */
+            pov?: string | null;
+            style_density?: components["schemas"]["StyleDensity"] | null;
+            /** Dialogue Narration Ratio */
+            dialogue_narration_ratio?: number | null;
+            /** Genre Conventions */
+            genre_conventions?: string | null;
+            /** Acceptable Content */
+            acceptable_content?: string | null;
+            /** Beat Constraints */
+            beat_constraints?: string[] | null;
+        };
+        /**
+         * WritingSetupStateDTO
+         * @description Currently-persisted Writing setup/config fields. Writing already
+         *     bypasses SetupForm on reload once persisted visible state exists
+         *     (StoryView's ``structuredSetupPersisted``), so no frontend hydration
+         *     consumes this today -- included for GET .../setup symmetry across modes.
+         *     Unlike ``WritingSetupRequest``, ``persona_id``/``specific_goals`` are
+         *     optional here since setup may not have completed yet.
+         */
+        WritingSetupStateDTO: {
+            /**
+             * Mode
+             * @constant
+             */
+            mode: "writing";
+            /** Persona Id */
+            persona_id?: string | null;
             critique_intensity?: components["schemas"]["CritiqueIntensity"] | null;
             form?: components["schemas"]["WritingForm"] | null;
             /** Form Other */
@@ -1010,6 +1109,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisibleStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_setup_state_api_stories__story_id__setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupStateResponse"];
                 };
             };
             /** @description Validation Error */

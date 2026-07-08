@@ -32,7 +32,10 @@ from afterworlds.api.dto import (
     TurnSubmissionResponse,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
-from afterworlds.api.story_bootstrap import ensure_story_turn_anchor_node
+from afterworlds.api.story_bootstrap import (
+    derive_writing_turn_request,
+    ensure_story_turn_anchor_node,
+)
 from afterworlds.api.visible_state import build_visible_state
 from afterworlds.entitlement.errors import EntitlementSettlementError
 from afterworlds.entitlement.policy import TurnCostPolicy
@@ -113,12 +116,24 @@ def _submit_turn_sync(
             # PIPELINE_ERROR from this same request.
             session.commit()
 
+        # PR #126 review round 5 (owner decision): the server, never the
+        # client, derives Writing turn provenance -- TurnSubmissionRequest
+        # has no work_product_kind/canon_eligibility fields (extra="forbid"
+        # rejects them if a client sends them). See
+        # ``derive_writing_turn_request`` for the fail-closed derivation
+        # rule (routed through story_bootstrap.py, not imported directly
+        # here, per Binding Decision 2).
+        writing_turn_request = derive_writing_turn_request(
+            session, story.story_id, story.mode
+        )
+
         result: OrchestrationResult = orchestrator.orchestrate_turn(
             story.story_id,
             anchor.node_id,
             user_input,
             sojourner_id,
             selection.access_path,
+            writing_turn_request=writing_turn_request,
         )
 
         settlement_warning: str | None = None

@@ -186,6 +186,15 @@ class WritingSetupRequest(BaseModel):
 
     mode: Literal["writing"]
     persona_id: str
+    # Required and nonblank (PR #126 review round 5, owner decision): the
+    # server can only legitimately promote play_status to IN_PLAY -- the
+    # signal turns.py uses to derive server-owned Writing turn provenance --
+    # once WritingSessionState's own IN_PLAY invariant (nonblank persona_id
+    # AND nonblank specific_goals) is genuinely satisfied. specific_goals is
+    # user-facing content (injected into the model prompt and rendered in
+    # the visible-state sidebar), so it must come from the Sojourner, not a
+    # server-synthesized placeholder.
+    specific_goals: str
     critique_intensity: CritiqueIntensity | None = None
     form: WritingForm | None = None
     form_other: str | None = None
@@ -194,9 +203,15 @@ class WritingSetupRequest(BaseModel):
     style_density: StyleDensity | None = None
     dialogue_narration_ratio: Annotated[int, Field(ge=0, le=100)] | None = None
     genre_conventions: str | None = None
-    specific_goals: str | None = None
     acceptable_content: str | None = None
     beat_constraints: list[str] | None = None
+
+    @field_validator("specific_goals")
+    @classmethod
+    def _specific_goals_nonblank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("specific_goals must not be blank")
+        return v
 
     @field_validator("beat_constraints")
     @classmethod
@@ -219,6 +234,83 @@ class SetupResponse(BaseModel):
 
     visible_state: (
         RpgVisibleState | BranchingVisibleState | WritingVisibleState | None
+    ) = None
+    schema_version: Literal[1] = 1
+
+
+class RpgSetupStateDTO(BaseModel):
+    """Currently-persisted RPG setup/config fields (PR #126 review round 5,
+    P2). Unlike ``RpgSetupRequest``, every field is optional -- this reflects
+    whatever has been saved so far, which may be partial or (for a brand-new
+    story) all-default. Read-only mirror of ``RpgSetupRequest``'s field set;
+    not a general character-sheet or setup-progress surface.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["rpg"]
+    dice_handling: DiceHandling | None = None
+    gm_cheating: bool | None = None
+    tone: RpgTone | None = None
+    session_type: RpgSessionType | None = None
+    genre_flavor: str | None = None
+    house_rules: str | None = None
+    acceptable_content: str | None = None
+
+
+class BranchingSetupStateDTO(BaseModel):
+    """Currently-persisted Branching setup/config fields. Branching already
+    bypasses SetupForm on reload once persisted visible state exists
+    (StoryView's ``structuredSetupPersisted``), so no frontend hydration
+    consumes this today -- included for GET .../setup symmetry across modes.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["branching"]
+    interaction_style: InteractionStyle | None = None
+    branching_cadence: BranchingCadence | None = None
+    branch_count_range: BranchCountRange | None = None
+    length_preference: LengthPreference | None = None
+
+
+class WritingSetupStateDTO(BaseModel):
+    """Currently-persisted Writing setup/config fields. Writing already
+    bypasses SetupForm on reload once persisted visible state exists
+    (StoryView's ``structuredSetupPersisted``), so no frontend hydration
+    consumes this today -- included for GET .../setup symmetry across modes.
+    Unlike ``WritingSetupRequest``, ``persona_id``/``specific_goals`` are
+    optional here since setup may not have completed yet.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    mode: Literal["writing"]
+    persona_id: str | None = None
+    critique_intensity: CritiqueIntensity | None = None
+    form: WritingForm | None = None
+    form_other: str | None = None
+    tense: str | None = None
+    pov: str | None = None
+    style_density: StyleDensity | None = None
+    dialogue_narration_ratio: int | None = None
+    genre_conventions: str | None = None
+    specific_goals: str | None = None
+    acceptable_content: str | None = None
+    beat_constraints: list[str] | None = None
+
+
+class SetupStateResponse(BaseModel):
+    """Response for ``GET /api/stories/{story_id}/setup`` (PR #126 review
+    round 5, P2): lets a setup form hydrate its initial state from what is
+    already persisted, instead of always starting from hardcoded defaults
+    and silently overwriting a prior save on the next submit.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    setup_state: (
+        RpgSetupStateDTO | BranchingSetupStateDTO | WritingSetupStateDTO | None
     ) = None
     schema_version: Literal[1] = 1
 

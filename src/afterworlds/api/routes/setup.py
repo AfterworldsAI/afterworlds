@@ -17,19 +17,25 @@ from sqlalchemy.orm import Session
 from afterworlds.api.deps import get_session
 from afterworlds.api.dto import (
     BranchingSetupRequest,
+    BranchingSetupStateDTO,
     RpgSetupRequest,
+    RpgSetupStateDTO,
     SetupRequest,
     SetupResponse,
+    SetupStateResponse,
     WritingSetupRequest,
+    WritingSetupStateDTO,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.visible_state import build_visible_state
-from afterworlds.models.enums import StoryMode
+from afterworlds.models.enums import StoryMode, WritingPlayStatus
 from afterworlds.modes.personas.registry import SupportedMode, get_default_registry
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
     apply_writing_config_update,
+    get_branching_session_state_by_story,
     get_rpg_session_state_by_story,
+    get_writing_session_state_by_story,
     update_rpg_session_state,
 )
 from afterworlds.persistence.crud.story import get_story
@@ -115,6 +121,15 @@ def _apply_writing_setup(
         acceptable_content=body.acceptable_content,
         beat_constraints=body.beat_constraints,
         beat_constraints_mode="replace" if body.beat_constraints is not None else None,
+        # PR #126 review round 5 (owner decision): this route is the one
+        # legitimate place that can promote Writing play_status to IN_PLAY --
+        # WritingSetupRequest requires both persona_id and nonblank
+        # specific_goals on every call, so the CRUD guard's "nonblank
+        # persona_id + nonblank specific_goals" precondition is always
+        # genuinely satisfied here. This is bootstrap/configuration state,
+        # not narrative output. Idempotent: a story already IN_PLAY is
+        # simply reassigned the same status.
+        play_status=WritingPlayStatus.IN_PLAY,
     )
     if not found:
         raise ApiErrorResponse(
@@ -152,3 +167,69 @@ def submit_setup(
     visible_state = build_visible_state(session, story_id, story.mode)
     session.commit()
     return SetupResponse(visible_state=visible_state)
+
+
+def _build_setup_state(
+    session: Session, story_id: UUID, mode: StoryMode
+) -> RpgSetupStateDTO | BranchingSetupStateDTO | WritingSetupStateDTO | None:
+    """Currently-persisted setup/config fields for a story (PR #126 review
+    round 5, P2). Unlike ``build_visible_state``, this never depends on a
+    concrete RPG character sheet -- RPG session state (dice_handling, tone,
+    etc.) exists from story creation, independent of sheet completeness.
+    """
+    if mode is StoryMode.RPG:
+        rpg_state = get_rpg_session_state_by_story(session, story_id)
+        if rpg_state is None:
+            return None
+        return RpgSetupStateDTO(
+            mode="rpg",
+            dice_handling=rpg_state.dice_handling,
+            gm_cheating=rpg_state.gm_cheating,
+            tone=rpg_state.tone,
+            session_type=rpg_state.session_type,
+            genre_flavor=rpg_state.genre_flavor,
+            house_rules=rpg_state.house_rules,
+            acceptable_content=rpg_state.acceptable_content,
+        )
+    if mode is StoryMode.BRANCHING:
+        branching_state = get_branching_session_state_by_story(session, story_id)
+        if branching_state is None:
+            return None
+        return BranchingSetupStateDTO(
+            mode="branching",
+            interaction_style=branching_state.interaction_style,
+            branching_cadence=branching_state.branching_cadence,
+            branch_count_range=branching_state.branch_count_range,
+            length_preference=branching_state.length_preference,
+        )
+    writing_state = get_writing_session_state_by_story(session, story_id)
+    if writing_state is None:
+        return None
+    return WritingSetupStateDTO(
+        mode="writing",
+        persona_id=writing_state.persona_id,
+        critique_intensity=writing_state.critique_intensity,
+        form=writing_state.form,
+        form_other=writing_state.form_other,
+        tense=writing_state.tense,
+        pov=writing_state.pov,
+        style_density=writing_state.style_density,
+        dialogue_narration_ratio=writing_state.dialogue_narration_ratio,
+        genre_conventions=writing_state.genre_conventions,
+        specific_goals=writing_state.specific_goals or None,
+        acceptable_content=writing_state.acceptable_content,
+        beat_constraints=writing_state.beat_constraints,
+    )
+
+
+@router.get("/{story_id}/setup", response_model=SetupStateResponse)
+def get_setup_state(
+    story_id: UUID, session: Session = Depends(get_session)
+) -> SetupStateResponse:
+    story = get_story(session, story_id)
+    if story is None:
+        raise ApiErrorResponse(
+            404, ApiErrorCode.NOT_FOUND, f"Story {story_id} not found"
+        )
+    setup_state = _build_setup_state(session, story_id, story.mode)
+    return SetupStateResponse(setup_state=setup_state)

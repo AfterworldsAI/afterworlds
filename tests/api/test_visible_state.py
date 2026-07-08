@@ -20,7 +20,11 @@ def test_visible_state_populated_after_writing_setup(client) -> None:  # type: i
     story_id = _create_story(client, "writing")
     setup_resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron"},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
     )
     assert setup_resp.status_code == 200, setup_resp.text
     assert setup_resp.json()["visible_state"]["persona_id"] == "chiron"

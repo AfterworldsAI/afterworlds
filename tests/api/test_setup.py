@@ -26,7 +26,10 @@ def test_branching_setup_applies_structured_fields(client) -> None:  # type: ign
 
 def test_writing_setup_requires_persona_id(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
-    resp = client.post(f"/api/stories/{story_id}/setup", json={"mode": "writing"})
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "specific_goals": "Draft chapter one"},
+    )
     assert resp.status_code == 422
 
 
@@ -34,10 +37,72 @@ def test_writing_setup_rejects_unknown_persona(client) -> None:  # type: ignore[
     story_id = _create_story(client, "writing")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "does-not-exist"},
+        json={
+            "mode": "writing",
+            "persona_id": "does-not-exist",
+            "specific_goals": "Draft chapter one",
+        },
     )
     assert resp.status_code == 422
     assert resp.json()["error_code"] == "validation_failed"
+
+
+def test_writing_setup_requires_specific_goals(client) -> None:  # type: ignore[no-untyped-def]
+    # P1 remediation (PR #126 review round 5, owner decision): specific_goals
+    # is required so play_status can only legitimately promote to IN_PLAY
+    # once a real, Sojourner-authored goal exists -- never a synthesized
+    # placeholder.
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "persona_id": "chiron"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "validation_failed"
+
+
+def test_writing_setup_rejects_blank_specific_goals(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "persona_id": "chiron", "specific_goals": "   "},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error_code"] == "validation_failed"
+
+
+def test_writing_setup_promotes_play_status_to_in_play(client) -> None:  # type: ignore[no-untyped-def]
+    # P1 remediation (PR #126 review round 5): once persona_id and a real
+    # specific_goals are both persisted through the one legitimate entry
+    # point, play_status promotes to IN_PLAY -- the durable signal turns.py
+    # uses to derive server-owned Writing turn provenance.
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft the opening chapter of a mystery novel",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["visible_state"]["play_status"] == "in_play"
+
+    from uuid import UUID
+
+    from afterworlds.models.enums import WritingPlayStatus
+    from afterworlds.persistence.crud.session_state import (
+        get_writing_session_state_by_story,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_writing_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        assert state.play_status is WritingPlayStatus.IN_PLAY
+        assert state.specific_goals == "Draft the opening chapter of a mystery novel"
+    finally:
+        session.close()
 
 
 def test_rpg_setup_applies_play_config_fields(client) -> None:  # type: ignore[no-untyped-def]
@@ -68,7 +133,11 @@ def test_setup_mode_mismatch_returns_conflict(client) -> None:  # type: ignore[n
     story_id = _create_story(client, "branching")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron"},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
     )
     assert resp.status_code == 409
     assert resp.json()["error_code"] == "setup_state_conflict"
@@ -92,6 +161,7 @@ def test_writing_setup_rejects_ratio_below_zero(client) -> None:  # type: ignore
         json={
             "mode": "writing",
             "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
             "dialogue_narration_ratio": -1,
         },
     )
@@ -105,6 +175,7 @@ def test_writing_setup_rejects_ratio_above_hundred(client) -> None:  # type: ign
         json={
             "mode": "writing",
             "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
             "dialogue_narration_ratio": 101,
         },
     )
@@ -115,7 +186,12 @@ def test_writing_setup_rejects_empty_beat_constraint(client) -> None:  # type: i
     story_id = _create_story(client, "writing")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron", "beat_constraints": [""]},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+            "beat_constraints": [""],
+        },
     )
     _assert_writing_setup_validation_envelope(resp)
 
@@ -124,7 +200,12 @@ def test_writing_setup_rejects_whitespace_only_beat_constraint(client) -> None: 
     story_id = _create_story(client, "writing")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "writing", "persona_id": "chiron", "beat_constraints": ["   "]},
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+            "beat_constraints": ["   "],
+        },
     )
     _assert_writing_setup_validation_envelope(resp)
 
@@ -139,8 +220,98 @@ def test_writing_setup_accepts_boundary_ratio_and_nonblank_constraints(
             json={
                 "mode": "writing",
                 "persona_id": "chiron",
+                "specific_goals": "Draft chapter one",
                 "dialogue_narration_ratio": ratio,
                 "beat_constraints": ["Introduce the antagonist", "Raise the stakes"],
             },
         )
         assert resp.status_code == 200, resp.text
+
+
+def test_get_setup_state_for_unconfigured_rpg_story_returns_creation_defaults(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # P2 remediation (PR #126 review round 5): RPG session state exists from
+    # story creation (ensure_mode_session_state), independent of whether a
+    # concrete character sheet exists yet -- so GET .../setup must return
+    # something even before the first POST .../setup call, not 404.
+    story_id = _create_story(client, "rpg", character_name="Arden")
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    state = resp.json()["setup_state"]
+    assert state["mode"] == "rpg"
+    assert state["dice_handling"] == "ai_rolls"
+    assert state["tone"] == "balanced"
+
+
+def test_get_setup_state_reflects_saved_rpg_config_after_reload(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # P2 remediation (PR #126 review round 5): the exact reload-preservation
+    # scenario -- save non-default values, then a fresh GET (simulating a
+    # page reload) must reflect them, not the ai_rolls/balanced defaults.
+    story_id = _create_story(client, "rpg", character_name="Arden")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "rpg", "dice_handling": "player_rolls", "tone": "gritty"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    state = resp.json()["setup_state"]
+    assert state["dice_handling"] == "player_rolls"
+    assert state["tone"] == "gritty"
+
+
+def test_get_setup_state_for_missing_story_returns_not_found(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    from uuid import uuid4
+
+    resp = client.get(f"/api/stories/{uuid4()}/setup")
+    assert resp.status_code == 404
+    assert resp.json()["error_code"] == "not_found"
+
+
+def test_get_setup_state_for_branching_and_writing_reflects_saved_config(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Sibling audit (PR #126 review round 5): Branching/Writing already
+    # bypass SetupForm safely on reload via persisted visible state
+    # (StoryView's structuredSetupPersisted), so no frontend hydration
+    # consumes this for them -- this only confirms the GET endpoint itself
+    # is honest and symmetric across all three modes.
+    story_id = _create_story(client, "branching")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "branching",
+            "interaction_style": "true_cyoa",
+            "branching_cadence": "balanced",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    state = resp.json()["setup_state"]
+    assert state["mode"] == "branching"
+    assert state["interaction_style"] == "true_cyoa"
+    assert state["branching_cadence"] == "balanced"
+
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    state = resp.json()["setup_state"]
+    assert state["mode"] == "writing"
+    assert state["persona_id"] == "chiron"
+    assert state["specific_goals"] == "Draft chapter one"

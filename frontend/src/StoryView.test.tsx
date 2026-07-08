@@ -97,6 +97,7 @@ const mocks = vi.hoisted(() => ({
   getStory: vi.fn(),
   getTranscript: vi.fn(),
   getVisibleState: vi.fn(),
+  getSetupState: vi.fn(),
   submitTurn: vi.fn(),
   submitSetup: vi.fn(),
 }));
@@ -110,6 +111,7 @@ vi.mock("./api/client", async () => {
       getStory: mocks.getStory,
       getTranscript: mocks.getTranscript,
       getVisibleState: mocks.getVisibleState,
+      getSetupState: mocks.getSetupState,
       submitTurn: mocks.submitTurn,
       submitSetup: mocks.submitSetup,
     },
@@ -122,6 +124,7 @@ describe("StoryView draft preservation (Binding Decision 6)", () => {
     mocks.getStory.mockResolvedValue(baseStory);
     mocks.getTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getSetupState.mockResolvedValue(null);
   });
 
   it("clears the draft only after a delivered turn", async () => {
@@ -174,6 +177,7 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     localStorage.clear();
     mocks.getTranscript.mockResolvedValue([]);
     mocks.submitSetup.mockResolvedValue({});
+    mocks.getSetupState.mockResolvedValue(null);
   });
 
   it("shows the play view (not SetupForm) for a Writing story with status=setup and persisted visible state", async () => {
@@ -247,6 +251,80 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
 
     await screen.findByPlaceholderText("What do you do?");
+  });
+});
+
+describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+  });
+
+  it("hydrates RpgSetupForm from persisted setup state instead of resetting to defaults", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    mocks.getSetupState.mockResolvedValue({
+      mode: "rpg",
+      dice_handling: "player_rolls",
+      gm_cheating: null,
+      tone: "gritty",
+      session_type: null,
+      genre_flavor: null,
+      house_rules: null,
+      acceptable_content: null,
+    });
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Dice handling")).toHaveValue(
+        "player_rolls",
+      ),
+    );
+    expect(screen.getByLabelText("Tone")).toHaveValue("gritty");
+  });
+
+  it("does not force the ai_rolls/balanced defaults back onto save when reopening a partially-configured story", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    mocks.getSetupState.mockResolvedValue({
+      mode: "rpg",
+      dice_handling: "player_rolls",
+      gm_cheating: null,
+      tone: "gritty",
+      session_type: null,
+      genre_flavor: null,
+      house_rules: null,
+      acceptable_content: null,
+    });
+    mocks.submitSetup.mockResolvedValue({});
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    await waitFor(() =>
+      expect(screen.getByLabelText("Dice handling")).toHaveValue(
+        "player_rolls",
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await waitFor(() => expect(mocks.submitSetup).toHaveBeenCalled());
+    expect(mocks.submitSetup).toHaveBeenCalledWith(
+      baseStory.story_id,
+      expect.objectContaining({
+        dice_handling: "player_rolls",
+        tone: "gritty",
+      }),
+    );
   });
 });
 
