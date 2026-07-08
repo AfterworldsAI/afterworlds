@@ -83,10 +83,10 @@ test("story create with mode selection, Writing setup, and a delivered turn", as
 });
 
 test("Branching mode: setup and a delivered turn", async ({ page }) => {
-  // FREEFORM_ONLY: the orchestrator's True CYOA INTERACTION_REJECTED gate
-  // (see the sibling test below) only fires for TRUE_CYOA, so freeform
-  // input here always reaches the ordinary prose Writer path regardless of
-  // play_status.
+  // FREEFORM_ONLY is the only interaction style selectable in this build
+  // (round 8, PR #126 P1 -- hybrid/true_cyoa are disabled pending
+  // BranchingWriterService wiring), so freeform input here always reaches
+  // the ordinary prose Writer path regardless of play_status.
   seedEntitlement();
 
   await page.goto("/");
@@ -109,17 +109,20 @@ test("Branching mode: setup and a delivered turn", async ({ page }) => {
   await expect(textarea).toHaveValue("");
 });
 
-test("Branching mode: True CYOA setup rejects freeform input", async ({
+test("Branching mode: Hybrid and True CYOA are unsupported and not selectable", async ({
   page,
 }) => {
-  // Round 7 remediation (PR #126 P1): Branching setup now durably promotes
-  // play_status to IN_PLAY once interaction_style + branching_cadence are
-  // both persisted, so the orchestrator's True CYOA INTERACTION_REJECTED
-  // gate -- always part of orchestrate_turn's core dispatch, not a
-  // mode-specific pass service -- is reachable through the real setup
-  // route. Before that fix, play_status could never reach IN_PLAY here, so
-  // this freeform input fell through to the ordinary prose Writer and
-  // rendered as an ordinary delivered turn instead of a rejection.
+  // Round 8 remediation (PR #126 P1): BranchingWriterService is deliberately
+  // not wired for Issue 19, and /setup now durably promotes completed
+  // Branching setup to IN_PLAY (round 7), so the orchestrator's fail-closed
+  // guard would deterministically PIPELINE_ERROR the first turn of any
+  // hybrid/true_cyoa story. The minimal UI must not let a Sojourner
+  // configure that broken state -- hybrid/true_cyoa are disabled options,
+  // and freeform_only is the default. INTERACTION_REJECTED coverage for
+  // true_cyoa (configured directly via the API, bypassing the UI) still
+  // lives at the API level:
+  // tests/api/test_fake_provider_product_path.py::
+  // test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected.
   seedEntitlement();
 
   await page.goto("/");
@@ -130,23 +133,18 @@ test("Branching mode: True CYOA setup rejects freeform input", async ({
   await expect(
     page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
-  await page.locator("select").first().selectOption("true_cyoa");
-  await page.locator("select").nth(1).selectOption("interactive");
-  await page.getByRole("button", { name: "Save setup" }).click();
 
-  const textarea = page.getByPlaceholder("What do you do?");
-  await expect(textarea).toBeVisible();
-  await textarea.fill("I ignore the options and climb the wall.");
-  await page.getByRole("button", { name: "Submit" }).click();
-
-  await expect(page.getByRole("alert")).toContainText(
-    "True CYOA mode requires explicit branch selection",
-  );
-  // Rejected input is never delivered/ooc_handled, so the draft is
-  // preserved, not cleared (Binding Decision 6).
-  await expect(textarea).toHaveValue(
-    "I ignore the options and climb the wall.",
-  );
+  const interactionStyleSelect = page.locator("select").first();
+  await expect(interactionStyleSelect).toHaveValue("freeform_only");
+  // Playwright's toBeDisabled() checks actionability, not the <option>
+  // element's own `disabled` DOM property (options inside a closed <select>
+  // are never independently "actionable") -- assert the property directly.
+  await expect(
+    interactionStyleSelect.locator("option[value=hybrid]"),
+  ).toHaveJSProperty("disabled", true);
+  await expect(
+    interactionStyleSelect.locator("option[value=true_cyoa]"),
+  ).toHaveJSProperty("disabled", true);
 });
 
 test("refresh/reload re-derives state from the API, not invented client state", async ({

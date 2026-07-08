@@ -90,7 +90,12 @@ function RpgSetupForm({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ mode: "rpg", dice_handling: diceHandling, tone });
+        onSubmit({
+          mode: "rpg",
+          dice_handling: diceHandling,
+          tone,
+          schema_version: 1,
+        });
       }}
     >
       <h2>RPG setup</h2>
@@ -127,9 +132,15 @@ function RpgSetupForm({
 }
 
 function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
+  // Round 8 remediation (PR #126 P1): default to freeform_only and disable
+  // hybrid/true_cyoa. BranchingWriterService is deliberately not wired for
+  // Issue 19 (see Architecture Notes), and the orchestrator fails closed
+  // with PIPELINE_ERROR for an in-play hybrid/true_cyoa session with no
+  // branching writer -- offering them here would let a Sojourner configure
+  // a story whose first Branching turn deterministically fails.
   const [interactionStyle, setInteractionStyle] = useState<
     "freeform_only" | "hybrid" | "true_cyoa"
-  >("hybrid");
+  >("freeform_only");
   const [cadence, setCadence] = useState<
     "interactive" | "balanced" | "immersive"
   >("balanced");
@@ -143,6 +154,7 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
           interaction_style: interactionStyle,
           branching_cadence: cadence,
           clear_branch_count_range: false,
+          schema_version: 1,
         });
       }}
     >
@@ -156,8 +168,12 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
           }
         >
           <option value="freeform_only">Freeform only</option>
-          <option value="hybrid">Hybrid (freeform + branch cards)</option>
-          <option value="true_cyoa">True CYOA (choices only)</option>
+          <option value="hybrid" disabled>
+            Hybrid (unsupported in this build)
+          </option>
+          <option value="true_cyoa" disabled>
+            True CYOA (unsupported in this build)
+          </option>
         </select>
       </label>
       <label>
@@ -202,6 +218,7 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
           mode: "writing",
           persona_id: personaId,
           specific_goals: specificGoals,
+          schema_version: 1,
         });
       }}
     >

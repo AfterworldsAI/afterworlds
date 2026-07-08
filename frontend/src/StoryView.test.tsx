@@ -360,6 +360,54 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
   });
 });
 
+describe("StoryView Branching setup defaults to freeform_only (PR #126 round 8 P1)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mocks.getTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getSetupState.mockResolvedValue(null);
+    mocks.submitSetup.mockResolvedValue({});
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "setup",
+    });
+  });
+
+  it("defaults the interaction style select to freeform_only and disables hybrid/true_cyoa", async () => {
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Branching setup" });
+    const select = screen.getByLabelText("Interaction style");
+    expect(select).toHaveValue("freeform_only");
+
+    const hybridOption = screen.getByRole("option", {
+      name: /hybrid/i,
+    }) as HTMLOptionElement;
+    const trueCyoaOption = screen.getByRole("option", {
+      name: /true cyoa/i,
+    }) as HTMLOptionElement;
+    expect(hybridOption.disabled).toBe(true);
+    expect(trueCyoaOption.disabled).toBe(true);
+  });
+
+  it("submits interaction_style: freeform_only when saved without changes", async () => {
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Branching setup" });
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await waitFor(() => expect(mocks.submitSetup).toHaveBeenCalled());
+    expect(mocks.submitSetup).toHaveBeenCalledWith(
+      baseStory.story_id,
+      expect.objectContaining({
+        mode: "branching",
+        interaction_style: "freeform_only",
+      }),
+    );
+  });
+});
+
 describe("StoryView load-error retry (PR #126 round 3)", () => {
   beforeEach(() => {
     localStorage.clear();
