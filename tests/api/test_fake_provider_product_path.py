@@ -41,6 +41,7 @@ from afterworlds.persistence.crud.retrieval import (
 from afterworlds.persistence.crud.session_state import (
     delete_writing_session_state,
     get_writing_session_state_by_story,
+    update_writing_session_state,
 )
 from afterworlds.persistence.crud.story import create_story
 from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility
@@ -408,3 +409,55 @@ def test_rpg_setup_turn_does_not_require_completed_character_sheet(
     finally:
         session.close()
     assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION
+
+
+def test_writing_turn_delivers_even_when_persona_registry_is_stale(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 9 remediation (PR #126 P2) regression: ``POST /turns`` calls
+    ``build_visible_state()`` after ``orchestrate_turn()`` has already
+    produced a deliverable turn result.
+
+    The orchestrator has its own, independent persona-registry guard
+    (``pipeline/orchestrator/service.py``), but it only fires for IN_PLAY
+    Writing turns -- a SETUP-phase turn with a persona_id already persisted
+    (a legacy/partial-data shape: persona set but not yet promoted, reachable
+    only via direct persistence, not the real setup route, which always sets
+    both persona_id and specific_goals together) skips that guard entirely
+    and reaches the ordinary base-mode Writer path. Before this fix, the
+    post-orchestration ``build_visible_state()`` re-fetch would then raise
+    ``ValueError`` from ``WritingVisibleStateService.build()``, turning a
+    valid delivered turn into an unhandled 500 instead of a normal response
+    with ``visible_state: null``.
+    """
+    client = fake_provider_client
+    _seed_hosted_entitlement(client)
+
+    resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+    assert resp.status_code == 201, resp.text
+    story_id = resp.json()["story_id"]
+
+    # Bypass the setup route (which always sets persona_id and specific_goals
+    # together, promoting straight to IN_PLAY) -- directly persist a
+    # persona_id on the auto-bootstrapped SETUP-phase row instead, to reach
+    # the SETUP-phase-with-persona-set shape the orchestrator's own guard
+    # does not cover.
+    session = client.app.state.session_factory()
+    try:
+        state = get_writing_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        update_writing_session_state(
+            session, state.model_copy(update={"persona_id": "does-not-exist"})
+        )
+        session.commit()
+    finally:
+        session.close()
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns",
+        json={"user_input": "Tell me a story about the sea."},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered", body
+    assert body["visible_state"] is None

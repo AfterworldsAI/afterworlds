@@ -15,6 +15,7 @@ never raises, never invents partial/placeholder visible state.
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -35,6 +36,8 @@ from afterworlds.pipeline.writing.models import WritingVisibleState
 from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 
 VisibleStateUnion = RpgVisibleState | BranchingVisibleState | WritingVisibleState
+
+logger = logging.getLogger(__name__)
 
 
 def build_visible_state(
@@ -62,4 +65,21 @@ def build_visible_state(
     writing_state = get_writing_session_state_by_story(session, story_id)
     if writing_state is None or writing_state.persona_id is None:
         return None
-    return WritingVisibleStateService(get_default_registry()).build(writing_state)
+    try:
+        return WritingVisibleStateService(get_default_registry()).build(writing_state)
+    except ValueError as exc:
+        # persona_id is set but no longer resolves in the current registry
+        # (e.g. the persona catalog changed after this story was set up).
+        # This runs after orchestrate_turn() has already produced a
+        # deliverable turn result, so a raise here would turn a valid
+        # delivered turn into an unhandled 500 -- never expose visible-state
+        # construction failures to the caller (module contract: "never
+        # raises"). No sensitive content in the log -- ids and error class
+        # only.
+        logger.warning(
+            "Writing visible-state build failed for story %s (mode=%s): %s",
+            story_id,
+            mode.value,
+            type(exc).__name__,
+        )
+        return None

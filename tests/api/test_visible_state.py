@@ -71,3 +71,50 @@ def test_visible_state_rpg_none_until_full_sheet_exists(client) -> None:  # type
 def test_visible_state_missing_story_404(client) -> None:  # type: ignore[no-untyped-def]
     resp = client.get(f"/api/stories/{uuid4()}/visible-state")
     assert resp.status_code == 404
+
+
+def _stale_writing_persona(client, story_id: str) -> None:  # type: ignore[no-untyped-def]
+    """Persist a persona_id that no longer resolves in the current registry --
+    simulates the persona catalog changing after this story's setup ran.
+    Bypasses the setup route (which validates persona_id against the live
+    registry) by mutating the persisted row directly."""
+    from uuid import UUID
+
+    from afterworlds.persistence.crud.session_state import (
+        get_writing_session_state_by_story,
+        update_writing_session_state,
+    )
+
+    session = client.app.state.session_factory()
+    try:
+        state = get_writing_session_state_by_story(session, UUID(story_id))
+        assert state is not None
+        update_writing_session_state(
+            session, state.model_copy(update={"persona_id": "does-not-exist"})
+        )
+        session.commit()
+    finally:
+        session.close()
+
+
+def test_visible_state_none_for_writing_persona_not_in_registry(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 9 remediation (PR #126 P2): WritingVisibleStateService.build()
+    raises ValueError when the persisted persona_id no longer resolves in the
+    current registry. build_visible_state()'s own contract is "never raises"
+    -- this must return None, not propagate the exception."""
+    story_id = _create_story(client, "writing")
+    client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "specific_goals": "Draft chapter one",
+        },
+    )
+    _stale_writing_persona(client, story_id)
+
+    resp = client.get(f"/api/stories/{story_id}/visible-state")
+    assert resp.status_code == 200
+    assert resp.json()["visible_state"] is None
