@@ -45,6 +45,24 @@ def make_pipeline_error_result(summary: str = "boom") -> OrchestrationResult:
     )
 
 
+def make_refused_by_provider_result() -> OrchestrationResult:
+    from afterworlds.pipeline._refusal import PassIdentifier, ProviderRefusal
+
+    return OrchestrationResult(
+        disposition=PipelineDisposition.REFUSED_BY_PROVIDER,
+        delivered_output=None,
+        turn_id=None,
+        intent_classification=_intent_result(),
+        provider_refusal=ProviderRefusal(
+            provider="anthropic",
+            pass_identifier=PassIdentifier.WRITER,
+            coarse_reason="synthetic refusal",
+        ),
+        total_latency_ms=1,
+        pass_latency_breakdown={},
+    )
+
+
 def make_delivered_result(
     turn_id: UUID | None = None, *, with_usage_metrics: bool = True
 ) -> OrchestrationResult:

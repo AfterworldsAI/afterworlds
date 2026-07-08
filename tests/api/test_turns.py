@@ -23,7 +23,11 @@ from afterworlds.entitlement.errors import (
     EntitlementSettlementError,
 )
 from afterworlds.entitlement.service import EntitlementService
-from tests.api._fixtures import make_delivered_result, make_pipeline_error_result
+from tests.api._fixtures import (
+    make_delivered_result,
+    make_pipeline_error_result,
+    make_refused_by_provider_result,
+)
 from tests.entitlement.conftest import (
     activate_byok,
     activate_hosted,
@@ -391,3 +395,121 @@ def test_lock_released_after_delivered_non_delivered_and_error(client) -> None: 
     with contextlib.suppress(RuntimeError):
         client.post(f"/api/stories/{story_id}/turns", json={"user_input": "x"})
     assert not client.app.state.story_locks[story_uuid].locked()
+
+
+class _RaisingByokReadinessProvider:
+    """Round 10 remediation (PR #126 P1) fixture: simulates a keyring/
+    credential-retrieval failure inside ``is_byok_runnable`` -- the
+    documented "never raises" contract is not actually upheld by
+    ``_collect_available_byok_keys``'s unguarded ``credential_store.get(...)``
+    call, so this is a realistic failure mode, not a hypothetical one."""
+
+    def is_byok_runnable(self, sojourner_id: UUID) -> bool:
+        raise RuntimeError("keyring backend unavailable")
+
+
+def test_byok_readiness_failure_falls_back_to_hosted(client) -> None:  # type: ignore[no-untyped-def]
+    """Round 10 remediation (PR #126 P1): a BYOK readiness probe failure must
+    not block a Sojourner who also has runnable hosted access, and must not
+    surface as a 500 -- select_access_path proceeds with byok_ready=False."""
+    from afterworlds.api.deps import get_byok_readiness_provider
+
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    turn_id = uuid4()
+    stub = _StubOrchestrator(lambda: make_delivered_result(turn_id))
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+    client.app.dependency_overrides[get_byok_readiness_provider] = (
+        lambda: _RaisingByokReadinessProvider()
+    )
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered"
+    assert body["turn_id"] == str(turn_id)
+    assert len(stub.calls) == 1
+    _, _, _, _, access_path = stub.calls[0]
+    assert access_path.value == "hosted"
+
+
+def test_byok_readiness_failure_with_no_hosted_access_returns_typed_error(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 10 remediation (PR #126 P1): with no runnable hosted path
+    either, a BYOK readiness failure must still resolve to the normal typed
+    access-path-blocked error, not an unhandled 500."""
+    from afterworlds.api.deps import get_byok_readiness_provider
+
+    story_id = _create_story(client)
+    stub = _StubOrchestrator(make_pipeline_error_result)
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+    client.app.dependency_overrides[get_byok_readiness_provider] = (
+        lambda: _RaisingByokReadinessProvider()
+    )
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 403, resp.text
+    assert resp.json()["error_code"] == "entitlement_blocked"
+    assert stub.calls == []
+
+
+def test_byok_readiness_failure_logs_warning_without_secret_material(
+    client,  # type: ignore[no-untyped-def]
+    monkeypatch,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 10 remediation (PR #126 P1): the fallback must be observable via
+    a structured warning log carrying only sojourner_id/story_id/error class
+    -- never raw credentials, provider secrets, key names, or keyring
+    payloads. Spies on the route module's logger directly (not caplog) --
+    ``_submit_turn_sync`` runs on a worker thread, and caplog's handler
+    attachment is not reliably observed across that boundary (see
+    ``test_each_settlement_write_failure_survives_turn`` above)."""
+    from afterworlds.api.deps import get_byok_readiness_provider
+    from afterworlds.api.routes import turns as turns_module
+
+    logged: list[tuple] = []
+    original_warning = turns_module.logger.warning
+
+    def _spy_warning(*args, **kwargs):  # type: ignore[no-untyped-def]
+        logged.append((args, kwargs))
+        return original_warning(*args, **kwargs)
+
+    monkeypatch.setattr(turns_module.logger, "warning", _spy_warning)
+
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    stub = _StubOrchestrator(lambda: make_delivered_result(uuid4()))
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+    client.app.dependency_overrides[get_byok_readiness_provider] = (
+        lambda: _RaisingByokReadinessProvider()
+    )
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 200, resp.text
+
+    assert len(logged) == 1
+    args, kwargs = logged[0]
+    logged_text = " ".join(str(a) for a in args) + str(kwargs)
+    assert kwargs["extra"]["error_class"] == "RuntimeError"
+    assert kwargs["extra"]["sojourner_id"] == str(client.app.state.sojourner_id)
+    assert kwargs["extra"]["story_id"] == story_id
+    assert "keyring backend unavailable" not in logged_text
+
+
+def test_turn_response_provider_refusal_carries_schema_version(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Round 10 remediation (PR #126 P2): ProviderRefusalSummaryDTO (embedded
+    # in TurnSubmissionResponse) lacked schema_version, unlike every other
+    # DTO.
+    story_id = _create_story(client)
+    _seed_hosted(client)
+    stub = _StubOrchestrator(make_refused_by_provider_result)
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+
+    resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "refused_by_provider"
+    assert body["provider_refusal"]["schema_version"] == 1
