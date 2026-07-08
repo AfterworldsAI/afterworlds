@@ -486,3 +486,26 @@ def test_get_setup_state_for_branching_and_writing_reflects_saved_config(
     assert state["mode"] == "writing"
     assert state["persona_id"] == "chiron"
     assert state["specific_goals"] == "Draft chapter one"
+
+
+def test_get_setup_state_schema_version_present_for_all_three_modes(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    # Round 9 remediation (PR #126 P2): SetupStateResponse itself already
+    # carried schema_version, but its RpgSetupStateDTO/BranchingSetupStateDTO/
+    # WritingSetupStateDTO union members did not -- inconsistent with the
+    # API DTO versioning contract (every DTO carries schema_version).
+    story_id = _create_story(client, "rpg", character_name="Arden")
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["setup_state"]["schema_version"] == 1
+
+    story_id = _create_story(client, "branching")
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["setup_state"]["schema_version"] == 1
+
+    story_id = _create_story(client, "writing")
+    resp = client.get(f"/api/stories/{story_id}/setup")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["setup_state"]["schema_version"] == 1

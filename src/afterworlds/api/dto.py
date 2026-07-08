@@ -261,6 +261,7 @@ class RpgSetupStateDTO(BaseModel):
     genre_flavor: str | None = None
     house_rules: str | None = None
     acceptable_content: str | None = None
+    schema_version: Literal[1] = 1
 
 
 class BranchingSetupStateDTO(BaseModel):
@@ -277,6 +278,7 @@ class BranchingSetupStateDTO(BaseModel):
     branching_cadence: BranchingCadence | None = None
     branch_count_range: BranchCountRange | None = None
     length_preference: LengthPreference | None = None
+    schema_version: Literal[1] = 1
 
 
 class WritingSetupStateDTO(BaseModel):
@@ -303,6 +305,7 @@ class WritingSetupStateDTO(BaseModel):
     specific_goals: str | None = None
     acceptable_content: str | None = None
     beat_constraints: list[str] | None = None
+    schema_version: Literal[1] = 1
 
 
 class SetupStateResponse(BaseModel):

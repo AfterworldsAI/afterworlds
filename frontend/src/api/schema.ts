@@ -213,6 +213,12 @@ export interface components {
             branching_cadence?: components["schemas"]["BranchingCadence"] | null;
             branch_count_range?: components["schemas"]["BranchCountRange"] | null;
             length_preference?: components["schemas"]["LengthPreference"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * BranchingVisibleState
@@ -455,6 +461,12 @@ export interface components {
             house_rules?: string | null;
             /** Acceptable Content */
             acceptable_content?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * RpgTone
@@ -838,6 +850,12 @@ export interface components {
             acceptable_content?: string | null;
             /** Beat Constraints */
             beat_constraints?: string[] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * WritingVersionPointer
