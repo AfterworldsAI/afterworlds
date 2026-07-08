@@ -7,12 +7,21 @@ import type { VisibleState } from "./api/client";
  * AW_Dice_Subsystem_CRD. This renders only the plain read-only fields
  * RpgVisibleState already carries.
  */
+// Round 8 remediation (PR #126 P2): BranchSelectionValidationService resolves
+// only opt_N, "option/choice N", ordinal words, or a bare operative number --
+// it does not resolve free-text action labels. Derive a resolver-supported
+// token from option_id instead of echoing the label.
+function branchSelectionToken(optionId: string): string {
+  const match = /^opt_(\d+)$/.exec(optionId);
+  return match ? `I choose option ${match[1]}.` : `I choose ${optionId}.`;
+}
+
 export default function VisibleStatePanel({
   visibleState,
   onBranchOptionClick,
 }: {
   visibleState: VisibleState | null;
-  onBranchOptionClick?: (actionText: string) => void;
+  onBranchOptionClick?: (selectionText: string) => void;
 }) {
   if (visibleState === null) {
     return (
@@ -90,7 +99,7 @@ export default function VisibleStatePanel({
                 type="button"
                 className="branch-card"
                 onClick={() =>
-                  onBranchOptionClick?.(`I choose: ${opt.action_text}`)
+                  onBranchOptionClick?.(branchSelectionToken(opt.option_id))
                 }
               >
                 {opt.action_text}
