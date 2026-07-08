@@ -47,3 +47,15 @@ def test_client_supplied_sojourner_id_in_header_ignored(client) -> None:  # type
     # The provisioned id is server-side only; no route echoes it back, but
     # confirm the app never adopted the header value as its identity.
     assert client.app.state.sojourner_id != spoofed
+
+
+def test_sojourner_identity_table_in_base_metadata() -> None:
+    """Round 10 remediation (PR #126 P2): regression for the alembic/env.py
+    bootstrap gap -- ``alembic/env.py`` did not import
+    ``afterworlds.persistence.orm.identity``, so ``Base.metadata`` was
+    populated only when something else happened to import it first (as this
+    test module already does above). Future Alembic autogenerate could then
+    treat ``sojourner_identity`` as unmanaged/extra and emit an accidental
+    drop. This mirrors ``test_provider_tables_in_base_metadata``
+    (tests/pipeline/provider/test_migration.py)."""
+    assert "sojourner_identity" in Base.metadata.tables
