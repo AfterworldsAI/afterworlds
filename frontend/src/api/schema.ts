@@ -670,6 +670,17 @@ export interface components {
         /**
          * WritingSetupRequest
          * @description Writing setup fields. ``persona_id`` is required -- no default persona.
+         *
+         *     ``dialogue_narration_ratio`` and ``beat_constraints`` are validated here
+         *     to match ``WritingSessionState``'s own validators (P2 remediation, PR
+         *     #126 review round 4): ``apply_writing_config_update`` assumes its caller
+         *     already validated these -- true for its one production caller
+         *     (``WritingConfigUpdate``, the OOC extractor's DTO), but this route calls
+         *     it directly with unvalidated client input. Without this, an out-of-range
+         *     ratio or a blank beat constraint would flush to the row, then the
+         *     immediately-following ``build_visible_state`` re-read would raise while
+         *     reconstructing ``WritingSessionState``, turning a client validation
+         *     problem into an internal 500 instead of a typed 422.
          */
         WritingSetupRequest: {
             /**

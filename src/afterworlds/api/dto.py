@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from afterworlds.models.enums import (
     BranchCountRange,
@@ -168,7 +168,19 @@ class BranchingSetupRequest(BaseModel):
 
 
 class WritingSetupRequest(BaseModel):
-    """Writing setup fields. ``persona_id`` is required -- no default persona."""
+    """Writing setup fields. ``persona_id`` is required -- no default persona.
+
+    ``dialogue_narration_ratio`` and ``beat_constraints`` are validated here
+    to match ``WritingSessionState``'s own validators (P2 remediation, PR
+    #126 review round 4): ``apply_writing_config_update`` assumes its caller
+    already validated these -- true for its one production caller
+    (``WritingConfigUpdate``, the OOC extractor's DTO), but this route calls
+    it directly with unvalidated client input. Without this, an out-of-range
+    ratio or a blank beat constraint would flush to the row, then the
+    immediately-following ``build_visible_state`` re-read would raise while
+    reconstructing ``WritingSessionState``, turning a client validation
+    problem into an internal 500 instead of a typed 422.
+    """
 
     model_config = {"extra": "forbid"}
 
@@ -180,11 +192,20 @@ class WritingSetupRequest(BaseModel):
     tense: str | None = None
     pov: str | None = None
     style_density: StyleDensity | None = None
-    dialogue_narration_ratio: int | None = None
+    dialogue_narration_ratio: Annotated[int, Field(ge=0, le=100)] | None = None
     genre_conventions: str | None = None
     specific_goals: str | None = None
     acceptable_content: str | None = None
     beat_constraints: list[str] | None = None
+
+    @field_validator("beat_constraints")
+    @classmethod
+    def _beat_constraints_nonblank(cls, v: list[str] | None) -> list[str] | None:
+        if v is not None:
+            for constraint in v:
+                if not constraint.strip():
+                    raise ValueError("beat_constraints must not contain empty strings")
+        return v
 
 
 SetupRequest = Annotated[

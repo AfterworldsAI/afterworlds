@@ -72,3 +72,75 @@ def test_setup_mode_mismatch_returns_conflict(client) -> None:  # type: ignore[n
     )
     assert resp.status_code == 409
     assert resp.json()["error_code"] == "setup_state_conflict"
+
+
+def _assert_writing_setup_validation_envelope(resp) -> None:  # type: ignore[no-untyped-def]
+    # P2 remediation (PR #126 review round 4): out-of-range
+    # dialogue_narration_ratio or a blank beat_constraints entry must be
+    # rejected at the API boundary with the typed envelope, not flushed and
+    # then hit WritingSessionState's own validators during the setup route's
+    # immediately-following build_visible_state re-read (which previously
+    # surfaced as an internal 500, not a 422).
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["error_code"] == "validation_failed"
+
+
+def test_writing_setup_rejects_ratio_below_zero(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "dialogue_narration_ratio": -1,
+        },
+    )
+    _assert_writing_setup_validation_envelope(resp)
+
+
+def test_writing_setup_rejects_ratio_above_hundred(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "writing",
+            "persona_id": "chiron",
+            "dialogue_narration_ratio": 101,
+        },
+    )
+    _assert_writing_setup_validation_envelope(resp)
+
+
+def test_writing_setup_rejects_empty_beat_constraint(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "persona_id": "chiron", "beat_constraints": [""]},
+    )
+    _assert_writing_setup_validation_envelope(resp)
+
+
+def test_writing_setup_rejects_whitespace_only_beat_constraint(client) -> None:  # type: ignore[no-untyped-def]
+    story_id = _create_story(client, "writing")
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={"mode": "writing", "persona_id": "chiron", "beat_constraints": ["   "]},
+    )
+    _assert_writing_setup_validation_envelope(resp)
+
+
+def test_writing_setup_accepts_boundary_ratio_and_nonblank_constraints(
+    client,  # type: ignore[no-untyped-def]
+) -> None:
+    story_id = _create_story(client, "writing")
+    for ratio in (0, 100):
+        resp = client.post(
+            f"/api/stories/{story_id}/setup",
+            json={
+                "mode": "writing",
+                "persona_id": "chiron",
+                "dialogue_narration_ratio": ratio,
+                "beat_constraints": ["Introduce the antagonist", "Raise the stakes"],
+            },
+        )
+        assert resp.status_code == 200, resp.text

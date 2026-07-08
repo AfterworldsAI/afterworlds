@@ -320,3 +320,18 @@ Decision 7.
   concrete sheet exists).
 - Retry after a failed initial story load now clears the stale error screen on success: the
   initial `useEffect` load and the Retry button share one `loadStory()` function.
+
+## Remediation round 4
+
+- `WritingSetupRequest` now validates `dialogue_narration_ratio` (0-100) and rejects blank/
+  whitespace-only `beat_constraints` entries at the API boundary, matching `WritingSessionState`'s
+  own validators. Previously the route flushed unvalidated values via `apply_writing_config_update`
+  (whose docstring assumes its one production caller, `WritingConfigUpdate`, already validated
+  them — true for the OOC extractor path, not for this route) and then immediately re-read the row
+  through `build_visible_state`, which raised while reconstructing `WritingSessionState` — an
+  unhandled 500, not the typed 422 envelope. Sibling audit of every other `WritingSessionState`
+  validator against `WritingSetupRequest`: `form=OTHER` without `form_other` — `already safe`,
+  `apply_writing_config_update` already skips that write to avoid an unreadable row (not
+  overcorrected here, per explicit scope); the two `IN_PLAY`-gated validators (`persona_id`,
+  `specific_goals` required) — `already safe`/unreachable, this route never sets `play_status`.
+  OpenAPI schema changed (docstring only) and was regenerated; no frontend code changes needed.
