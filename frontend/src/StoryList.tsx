@@ -35,6 +35,7 @@ export default function StoryList({
         title,
         mode,
         character_name: mode === "rpg" ? characterName || null : null,
+        schema_version: 1,
       });
       setTitle("");
       setCharacterName("");

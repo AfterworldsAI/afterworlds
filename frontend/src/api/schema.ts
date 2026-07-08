@@ -189,6 +189,12 @@ export interface components {
              * @default false
              */
             clear_branch_count_range: boolean;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * BranchingSetupStateDTO
@@ -242,6 +248,12 @@ export interface components {
             mode: components["schemas"]["StoryMode"];
             /** Character Name */
             character_name?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * CritiqueIntensity
@@ -411,6 +423,12 @@ export interface components {
             house_rules?: string | null;
             /** Acceptable Content */
             acceptable_content?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * RpgSetupStateDTO
@@ -609,6 +627,12 @@ export interface components {
         TurnSubmissionRequest: {
             /** User Input */
             user_input: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * TurnSubmissionResponse
@@ -771,6 +795,12 @@ export interface components {
             acceptable_content?: string | null;
             /** Beat Constraints */
             beat_constraints?: string[] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * WritingSetupStateDTO

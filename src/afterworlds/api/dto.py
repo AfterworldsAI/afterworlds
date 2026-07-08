@@ -88,12 +88,14 @@ class CreateStoryRequest(BaseModel):
     # RPG only; ignored for other modes. No default per-mode business
     # meaning is inferred here -- this is presentation-form input only.
     character_name: str | None = None
+    schema_version: Literal[1] = 1
 
 
 class TurnSubmissionRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     user_input: str
+    schema_version: Literal[1] = 1
 
 
 class ProviderRefusalSummaryDTO(BaseModel):
@@ -150,6 +152,7 @@ class RpgSetupRequest(BaseModel):
     genre_flavor: str | None = None
     house_rules: str | None = None
     acceptable_content: str | None = None
+    schema_version: Literal[1] = 1
 
 
 class BranchingSetupRequest(BaseModel):
@@ -165,6 +168,7 @@ class BranchingSetupRequest(BaseModel):
     branch_count_range: BranchCountRange | None = None
     length_preference: LengthPreference | None = None
     clear_branch_count_range: bool = False
+    schema_version: Literal[1] = 1
 
 
 class WritingSetupRequest(BaseModel):
@@ -205,6 +209,7 @@ class WritingSetupRequest(BaseModel):
     genre_conventions: str | None = None
     acceptable_content: str | None = None
     beat_constraints: list[str] | None = None
+    schema_version: Literal[1] = 1
 
     @field_validator("specific_goals")
     @classmethod

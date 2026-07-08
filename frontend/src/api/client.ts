@@ -92,7 +92,7 @@ export const api = {
   submitTurn: (storyId: string, userInput: string) =>
     request<TurnSubmissionResponse>(`/api/stories/${storyId}/turns`, {
       method: "POST",
-      body: JSON.stringify({ user_input: userInput }),
+      body: JSON.stringify({ user_input: userInput, schema_version: 1 }),
     }),
 
   getVisibleState: (storyId: string) =>
