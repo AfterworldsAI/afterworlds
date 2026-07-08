@@ -125,15 +125,31 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // and resets to false on every reload, while story.status legitimately
   // stays "setup" until the confirmation turn lands (ADR-016 Decision 3 /
   // ADR-017 Decision 9). Persisted visible state (non-null once
-  // interaction_style+branching_cadence, or persona_id, are configured) is
-  // a server-derived signal that survives reload. RPG visible state stays
-  // null until a concrete character sheet exists, so RPG must not use this
-  // signal to skip its own setup screen -- this is still only a client-
-  // local view-routing decision, not an assertion about backend play_status.
+  // interaction_style+branching_cadence are configured) is a server-derived
+  // signal that survives reload. RPG visible state stays null until a
+  // concrete character sheet exists, so RPG must not use this signal to
+  // skip its own setup screen -- this is still only a client-local
+  // view-routing decision, not an assertion about backend play_status.
+  //
+  // Writing is intentionally NOT symmetric with Branching here (PR #126
+  // round 5 follow-up): visibleState !== null only means persona_id is set
+  // -- it says nothing about specific_goals. A pre-round-5 story (or any
+  // row with persona_id set but a still-blank specific_goals) would have
+  // non-null visible state while play_status never promotes past SETUP,
+  // silently re-entering play view for a story whose turns stay forced to
+  // SETUP_CONFIRMATION/NON_CANON_SUPPORT forever -- the exact defect round
+  // 5 fixed, resurfacing via this bypass instead of the original path. For
+  // Writing, the durable "structured setup genuinely complete" signal is
+  // play_status === "in_play" (the same signal turns.py's
+  // derive_writing_turn_request uses), which can only be true once both
+  // persona_id and a real, Sojourner-authored specific_goals are persisted.
   const structuredSetupPersisted =
     story.status === "setup" &&
-    (story.mode === "branching" || story.mode === "writing") &&
-    visibleState !== null;
+    ((story.mode === "branching" && visibleState !== null) ||
+      (story.mode === "writing" &&
+        visibleState !== null &&
+        "play_status" in visibleState &&
+        visibleState.play_status === "in_play"));
 
   if (
     story.status === "setup" &&

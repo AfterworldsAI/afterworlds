@@ -58,8 +58,8 @@ function writingVisibleState(): VisibleState {
     ui_long_description: "Chiron approaches every project methodically.",
     signature_move: "Progressive challenge",
     demeanor_tags: ["patient"],
-    play_status: "setup",
-    specific_goals: "",
+    play_status: "in_play",
+    specific_goals: "Draft the opening chapter of a mystery novel",
     reading_interests: null,
     writing_interests: null,
     critique_intensity: "balanced",
@@ -100,6 +100,7 @@ const mocks = vi.hoisted(() => ({
   getSetupState: vi.fn(),
   submitTurn: vi.fn(),
   submitSetup: vi.fn(),
+  listPersonas: vi.fn(),
 }));
 
 vi.mock("./api/client", async () => {
@@ -114,6 +115,7 @@ vi.mock("./api/client", async () => {
       getSetupState: mocks.getSetupState,
       submitTurn: mocks.submitTurn,
       submitSetup: mocks.submitSetup,
+      listPersonas: mocks.listPersonas,
     },
   };
 });
@@ -178,9 +180,10 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     mocks.getTranscript.mockResolvedValue([]);
     mocks.submitSetup.mockResolvedValue({});
     mocks.getSetupState.mockResolvedValue(null);
+    mocks.listPersonas.mockResolvedValue({ mentors: [], peers: [] });
   });
 
-  it("shows the play view (not SetupForm) for a Writing story with status=setup and persisted visible state", async () => {
+  it("shows the play view (not SetupForm) for a Writing story with persisted play_status=in_play visible state", async () => {
     mocks.getStory.mockResolvedValue({
       ...baseStory,
       mode: "writing",
@@ -193,6 +196,35 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     await screen.findByPlaceholderText("What do you do?");
     expect(
       screen.queryByRole("heading", { name: "Choose your Writing companion" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still shows SetupForm for a Writing story whose persona is set but play_status has not promoted to in_play (PR #126 round 5 follow-up)", async () => {
+    // A pre-round-5 (or otherwise incomplete) row: persona_id is set --
+    // visible state is non-null -- but specific_goals is still blank, so
+    // play_status never promoted past SETUP. visibleState !== null alone
+    // must not be treated as "Writing setup complete": that would silently
+    // reopen the play view for a story whose turns stay forced to
+    // SETUP_CONFIRMATION/NON_CANON_SUPPORT forever, the exact defect round
+    // 5 fixed, resurfacing via this bypass instead of the original path.
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "writing",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue({
+      ...writingVisibleState(),
+      play_status: "setup",
+      specific_goals: "",
+    });
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", {
+      name: "Choose your Writing companion",
+    });
+    expect(
+      screen.queryByPlaceholderText("What do you do?"),
     ).not.toBeInTheDocument();
   });
 

@@ -444,3 +444,32 @@ Decision 7.
 - Full gate suite green on the exact branch head: `black`, `ruff`, `mypy --strict`, `pytest -q`
   (2266 passed, 10 skipped, 91.78% coverage) for Python; `tsc --noEmit`, `eslint`, `prettier
   --check`, `vitest run` (21 passed), production `vite build` for the frontend.
+
+### Round 5 follow-up: Branching/Writing setup-handoff signal tightened for Writing
+
+Owner follow-up after round 5 landed: `StoryView`'s `structuredSetupPersisted` (the round-3 signal
+that bypasses `SetupForm` on reload once structured setup is persisted) used `visibleState !==
+null` identically for both Branching and Writing. For Writing this was no longer correct once
+round 5 shipped: `visibleState !== null` only means `persona_id` is set — it says nothing about
+`specific_goals`. A pre-round-5 row (or any row with `persona_id` set but `specific_goals` still
+blank) has non-null visible state while `play_status` never promotes past `SETUP`, so the old
+signal would silently reopen the play view for a story whose turns stay forced to
+`SETUP_CONFIRMATION`/`NON_CANON_SUPPORT` forever — the exact defect round 5 fixed, resurfacing via
+this bypass instead of the original path.
+
+Fixed by making Writing's branch check `visibleState.play_status === "in_play"` instead of mere
+non-null presence — the same durable signal `turns.py`'s `derive_writing_turn_request` uses, which
+can only be true once both `persona_id` and a real, Sojourner-authored `specific_goals` are
+persisted (`WritingVisibleState` already exposes `play_status`, a property unique to it among the
+three `VisibleState` union members, so this narrows safely in TypeScript via `"play_status" in
+visibleState`). Branching is deliberately left unchanged — its `play_status` only flips once the
+confirmation turn itself lands (ADR-016 Decision 3), which happens *from* the play view, so gating
+Branching's bypass on `play_status` would prevent ever reaching the play view to submit that turn.
+
+Tests: `StoryView.test.tsx` updated — the existing "Writing story with persisted visible state"
+test now uses `play_status: "in_play"` (representing a genuinely round-5-complete row); a new test
+asserts a `persona_id`-set-but-`play_status: "setup"` row still shows `SetupForm`, not the play
+view. Both directions negative-control verified (temporarily reverted to the old
+`visibleState !== null` check and confirmed the new test fails; temporarily disabled the Writing
+branch entirely and confirmed the existing positive-case test fails; restored). Full frontend
+gate suite re-run green (22 tests, up from 21).
