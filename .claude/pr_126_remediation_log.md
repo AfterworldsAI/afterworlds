@@ -1224,3 +1224,67 @@ implemented exactly what was chosen -- no scope drift into fixing it in code fir
   --audit-level=high` (0 vulnerabilities), production build, and the full Playwright E2E spine
   (7/7 passing) against a fresh build via `npm run e2e` -- all clean. `check-api-types-drift`
   confirmed no OpenAPI/TS schema changes this round.
+
+## Remediation round 14
+
+Codex posted 2×P2, both classified up front by the review comment itself as valid frontend
+product-path defects, no owner decision needed, fix in the current PR. Both are framed as a
+sibling-audit miss from earlier rounds: settlement failure surviving the turn (round 6) never
+got a frontend rendering path, and mutation-success-vs-refresh-failure (round 10/11) never
+consumed the fields the successful mutation itself already returned.
+
+- **P2 -- preserve settlement warnings on successful turns.** `TurnSubmissionResponse` carries
+  `settlement_warning` for a hosted DELIVERED/OOC_HANDLED turn whose settlement write failed
+  (round 6's "settlement failure survives the turn" fix), but `DispositionBanner` returned `null`
+  unconditionally for `delivered`/`ooc_handled` before ever looking at it -- the backend's
+  non-blocking warning was silently dropped. Fixed in `frontend/src/DispositionBanner.tsx`: a new
+  check ahead of the disposition switch renders a `settlement-warning` banner when
+  `response.settlement_warning` is present on a `delivered`/`ooc_handled` response; falls through
+  to the existing `null` return (no banner) when it isn't. Not converted into an error state, does
+  not block the transcript/draft-clearing/play view -- purely an additional read of a field the
+  switch below never inspected.
+- **P2 -- use turn response `visible_state` before retryable refresh.** `TurnSubmissionResponse`
+  already carries server-refreshed `visible_state` from the successful mutation, but
+  `StoryView.submitTurn()` only ever set `visibleState` from the separate, retryable
+  `refreshTranscriptAndVisibleState()` read -- if that follow-up read failed, the sidebar kept
+  stale (or, on first turn, null) state even though the mutation response already had the current
+  value. Fixed in `frontend/src/StoryView.tsx`: `setVisibleState(response.visible_state ?? null)`
+  now runs immediately after `setLastResponse(response)`, regardless of disposition, before the
+  retryable refresh call. Coalesced to `null` (not left stale) when the response itself carries no
+  visible state, so this never invents state the backend didn't report. The follow-up refresh call
+  is unchanged and still overwrites this with the read path's own value as the eventual
+  reconciliation; a failed follow-up refresh no longer regresses the sidebar to stale/null.
+
+- Sibling audit (per the review comment's own instruction): checked every `TurnSubmissionResponse`
+  field meant to be surfaced immediately.
+  - `settlement_warning` -- patched (this round).
+  - `visible_state` -- patched (this round).
+  - `provider_refusal`, `pipeline_error_summary`, `pending_roll_redirect_message`,
+    `interaction_rejection_message` -- already safe; each already has its own `DispositionBanner`
+    branch (rounds 1/7/8) unaffected by this round's changes.
+  - `stable_prefix_cache_warmed` -- never rendered anywhere in the frontend (grepped
+    `frontend/src` for `cache_warmed`/`stable_prefix`; the only hits are the generated OpenAPI
+    schema and test fixtures defaulting it to `false`). This is a real gap against the original
+    Issue 19 plan's Phase 3 note ("`stable_prefix_cache_warmed` badge rendering closes the
+    session-resumption known unknown"), but adding that rendering is a new UI surface, and the
+    review comment's own sibling-audit instruction explicitly says "do not broaden into new UI
+    surfaces beyond this PR's minimal shell." Disposition: `out of scope`, flagged here rather than
+    silently fixed or silently dropped -- an owner call on whether/when to land the badge.
+
+- Tests: `frontend/src/DispositionBanner.test.tsx` -- two new cases (`delivered`, `ooc_handled`)
+  asserting the settlement-warning banner renders with the warning text; the pre-existing "renders
+  nothing for %s" case (both dispositions, `settlement_warning: null` in the shared fixture) already
+  covers "no settlement warning still renders no banner," and the existing non-success-disposition
+  cases were untouched by this change. `frontend/src/StoryView.test.tsx` -- new describe block
+  (`StoryView consumes turn-response visible_state before refresh`) with four cases: response
+  carries non-null `visible_state` + refresh fails -> the returned state renders; response carries
+  `visible_state: null` + refresh fails -> stale prior state is cleared, not left stale (asserted
+  against a story that had non-null state before the turn); response succeeds and refresh also
+  succeeds -> the refresh read's value is the final state, not the mutation response's; POST failure
+  -> visible state is untouched.
+
+- Gates: frontend `tsc --noEmit`, ESLint, Prettier (clean), Vitest (45 passed, up from 39 -- 2 new
+  `DispositionBanner` cases + 4 new `StoryView` cases), `npm audit --audit-level=high` (0
+  vulnerabilities), production build -- all clean. No backend code changed this round, so backend
+  gates were not re-run per the review comment's own instruction ("Backend tests only if backend
+  code changes, which should not be necessary").
