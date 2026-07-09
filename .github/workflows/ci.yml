@@ -158,5 +158,9 @@ jobs:
       - name: Run E2E spine
         # DoR-B: AFTERWORLDS_FAKE_PROVIDER=1 (set in playwright.config.ts's
         # webServer env) -- no real Anthropic calls in default CI.
-        run: npx playwright test
+        # Round 12 remediation (PR #126 P2): `npm run e2e` (not
+        # `npx playwright test` directly) is required -- it wraps Playwright
+        # via e2e/run-isolated.mjs, which computes one per-run isolated
+        # database path shared by the webServer and every test worker.
+        run: npm run e2e
         working-directory: frontend
