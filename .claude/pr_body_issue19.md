@@ -123,13 +123,11 @@ Notes, current known boundaries, and final gate status.
 
 ## Final gate status
 
-Gates on the exact branch head (round 12, the latest landed round):
+Gates on the exact branch head (round 13, the latest landed round):
 
 - Python: `black`, `ruff`, `mypy --strict` (173 source files, no issues), `pytest -q` (2324
-  passed, 10 skipped, 91.97% coverage) — unchanged since round 11; round 12 made no backend/API
-  changes.
-- Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (35 passed), `npm audit --audit-level=high`
+  passed, 10 skipped, 91.98% coverage).
+- Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (39 passed), `npm audit --audit-level=high`
   (0 vulnerabilities), production build.
-- E2E: full Playwright spine run twice via `npm run e2e` (7/7 passing both times), confirming
-  per-run database isolation.
-- OpenAPI/TS: generated and drift-checked; no schema changes in round 12.
+- E2E: full Playwright spine (7/7 passing) via `npm run e2e` against a fresh build.
+- OpenAPI/TS: generated and drift-checked; no schema changes in round 13.

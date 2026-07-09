@@ -1094,3 +1094,133 @@ Two P2s, both classified as valid and in scope for Issue 19, requiring no owner 
   times) -- all clean. No backend/API code changed this round, so `black`/`ruff`/`mypy`/`pytest` were
   not re-run (per the review comment's own run-gates instruction: "backend tests only if helper
   scripts or API behavior changed"). No OpenAPI/TS schema changes.
+
+## Remediation round 13
+
+A review-loop boundary problem (a genuine architecture contradiction between two prior owner
+decisions, not an ordinary next patch) plus one concrete P2, classified and handled per CLAUDE.md's
+boundary rule: paused before patching, surfaced the fork to the owner, waited for the decision, then
+implemented exactly what was chosen -- no scope drift into fixing it in code first and asking after.
+
+- **Writing `play_status` promotion vs. ADR-017 Decision 9 setup-confirmation semantics (P1,
+  boundary decision).** Round 5 made `POST /setup` promote Writing `play_status` straight to
+  `IN_PLAY` once `persona_id`/`specific_goals` were both persisted (an owner decision at the time).
+  Codex's round-13 review correctly identified that this contradicts two things simultaneously: (1)
+  ADR-017 Decision 9 / ADR-018 D6, which require the turn taken *while `play_status` is still
+  SETUP* to be classified `SETUP_CONFIRMATION`/`NON_CANON_SUPPORT`, not ordinary prose -- an
+  orchestrator guard (`_narrative_persist`, `if _wss.play_status is WritingPlayStatus.SETUP: ...`)
+  that existed specifically to enforce this, made permanently unreachable for Writing by round 5's
+  immediate promotion; and (2) the PR body's own (accurate, at the time) Architecture Notes claim
+  that "Setup route writes structured config only... never advances play_status/setup_phase
+  itself" -- true for RPG and (structurally, for different reasons) Branching, but not actually
+  true for Writing since round 5. Verified directly in code before escalating, not assumed: read
+  `_apply_writing_setup`, `derive_writing_turn_request`, and the orchestrator's SETUP-forcing
+  branch to confirm the contradiction was real, not a stale review comment.
+  - **Owner decision (Option A, of the two presented):** remove Writing `play_status` promotion
+    from `POST /setup`; the story stays SETUP after structured setup; the next `/turns` call is
+    genuinely recorded `SETUP_CONFIRMATION`/`NON_CANON_SUPPORT`; the orchestrator itself promotes to
+    `IN_PLAY` once that confirmation turn lands; `derive_writing_turn_request()` is untouched (it
+    already only derives `PROSE_CONTINUATION`/`EXTRACTOR_ELIGIBLE` once `play_status` is genuinely
+    `IN_PLAY`, so no change was needed there). No React-side transition, no client-supplied
+    `work_product_kind`/canon fields, no fabricated setup content -- all per the owner's explicit
+    constraints.
+  - `api/routes/setup.py`: `_apply_writing_setup` no longer passes `play_status=
+    WritingPlayStatus.IN_PLAY` to `apply_writing_config_update`. The now-unused `WritingPlayStatus`
+    import was removed.
+  - `pipeline/orchestrator/service.py`: `_narrative_persist`'s Writing Phase G block now promotes
+    `play_status` to `IN_PLAY` via `apply_writing_config_update(session, story_id,
+    play_status=WritingPlayStatus.IN_PLAY)` whenever `writing_session_state.play_status is
+    WritingPlayStatus.SETUP` -- i.e., whenever this turn was itself the setup-confirmation turn.
+    Same session/transaction as the rest of the turn, so the promotion is atomic with the turn's
+    own commit. Deliberately placed *outside* the existing provenance `try/except: pass` a few
+    lines above it: a missing audit record is an acceptable best-effort loss, but a silently
+    swallowed promotion failure would strand the story in SETUP forever -- a materially worse
+    outcome, so it must surface as a real error if it ever fails. The CRUD-level guard in
+    `apply_writing_config_update` (nonblank `persona_id`/`specific_goals` required to enter
+    `IN_PLAY`) is a structural no-op here, not a live risk: both fields are always already
+    persisted together by `WritingSetupRequest` before this turn is reachable.
+  - **Sibling audit (the same "promote play_status inside /setup" pattern, used for Branching
+    since round 7):** grepped every Branching `play_status` check in the orchestrator -- all five
+    gate on `IN_PLAY` (enabling in-play rails: True CYOA rejection, branch-choice validation,
+    HYBRID/TRUE_CYOA's `BranchingWriterService` requirement), none gate on `SETUP` to force a
+    special turn classification the way Writing's `work_product_kind`/`canon_eligibility` model
+    does. Branching has no `SETUP_CONFIRMATION`-equivalent concept to bypass, and its confirmation
+    pass is meant to be an ordinary `DELIVERED` turn per ADR-016 Decision 3, not something requiring
+    SETUP-phase forcing. Disposition: `already safe` -- structurally a different mechanism, not the
+    same defect.
+  - **Sibling regression found and fixed during implementation, not from a review comment:**
+    `StoryView.tsx`'s `structuredSetupPersisted` signal for Writing (round 5 follow-up) checked
+    `visibleState.play_status === "in_play"` as the "structured setup genuinely complete" proxy.
+    That stopped being correct the moment `POST /setup` stopped promoting `play_status` itself --
+    a Sojourner who reloads between completing setup and submitting the first (confirmation) turn
+    would now be bounced back to `SetupForm`, even though setup was already genuinely complete
+    (the exact defect shape round 3 and round 5's follow-up already fixed twice, resurfacing via a
+    signal that was correct until this round's change invalidated its premise). Fixed by switching
+    the discriminator to a nonblank `specific_goals` (persisted atomically with `persona_id` on
+    every `WritingSetupRequest`, and therefore unaffected by when `play_status` changes) instead of
+    `play_status`.
+  - Tests (`tests/api/test_setup.py`): renamed/rewrote
+    `test_writing_setup_promotes_play_status_to_in_play` to
+    `test_writing_setup_no_longer_promotes_play_status_itself`, asserting `play_status` stays
+    `"setup"` immediately after `POST /setup`.
+  - Tests (`tests/api/test_fake_provider_product_path.py`): rewrote
+    `test_writing_setup_via_api_yields_extractor_eligible_turn` into
+    `test_writing_setup_confirmation_turn_then_promotes_to_in_play` -- a two-turn end-to-end test:
+    the first turn's `mode_metadata` is `SETUP_CONFIRMATION`/`NON_CANON_SUPPORT` and ineligible for
+    Retrieval Memory, and its own response's `visible_state.play_status` is already `"in_play"`
+    (the promotion is atomic with that same turn, so the *response* reflects the post-promotion
+    state even though the turn's own classification correctly used the pre-turn state); the second
+    turn is ordinary `PROSE_CONTINUATION`/`EXTRACTOR_ELIGIBLE` and eligible. Also fixed
+    `test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service`, whose single
+    submitted turn was no longer actually IN_PLAY (its own guard is gated on
+    `play_status is IN_PLAY`) after this change -- it would have silently stopped exercising the
+    regression it claims to test without failing outright, since the literal assertions
+    (`disposition == "delivered"`, `pipeline_error_summary is None`) hold regardless of which guard
+    path is taken. Now submits the confirmation turn first, then asserts the true IN_PLAY guard
+    behavior on the second.
+  - Tests (`frontend/src/StoryView.test.tsx`): updated the two existing Writing
+    `structuredSetupPersisted` tests to use `specific_goals` instead of `play_status` as their
+    framing, and added a new test asserting the play view shows even while `play_status` is still
+    `"setup"`, once `specific_goals` is genuinely persisted -- the direct regression test for the
+    sibling fix above.
+
+- **Writing setup persona-gallery load failure is now non-fatal (P2) -- same read-failure class as
+  round 12's RPG setup hydration guard and round 11's post-submit refresh handling.**
+  `WritingSetupForm` silently swallowed `api.listPersonas()` failures (`.catch(() =>
+  setPersonas(null))`), rendering as an empty gallery with no explanation and no recovery path
+  short of a full page reload.
+  - `frontend/src/SetupForm.tsx`: `WritingSetupForm` gained `personaLoadStatus: "loading" | "ready"
+    | "error"`, mirroring round 12's RPG `hydrationStatus` pattern exactly. The load effect is now
+    a named, retriable `loadPersonas()` function. On error, a visible "Could not load Writing
+    companions. Retry before saving." message with its own Retry button is shown. Save's `disabled`
+    condition gained `personaLoadStatus !== "ready"` alongside the existing `!personaId`/
+    `!goalsReady` checks -- unlike RPG's form (where the *entire* form is submittable defaults
+    before hydration), Writing's Save was already unreachable until a persona was selected, so this
+    mainly closes the window where a stale/successful prior load's persona selection could still be
+    submitted while a subsequent reload was silently failing.
+  - **Sibling audit (per the review comment's own instruction -- other setup-form async reads with
+    swallowed errors and no retry path):** `SetupForm.tsx`'s RPG `hydrate()` -- `already safe`
+    (round 12 fix). `StoryView.tsx`'s initial `loadStory()` -- `already safe` (round 3, has a
+    visible error + Retry button). `StoryView.tsx`'s `refresh().catch()` inside `SetupForm`'s
+    `onComplete` and the dedicated `refreshTranscriptAndVisibleState()` -- `already safe` (round 11
+    fixes, both have `refreshError` + Retry). `BranchingSetupForm` -- N/A, no async read exists
+    (Branching setup never needed a `GET .../setup` hydration call; it already bypasses `SetupForm`
+    entirely on reload once configured, per existing Architecture Notes). `StoryList.tsx`'s
+    `listStories()` load -- has a visible error but no dedicated Retry button; disposition `out of
+    scope`, not the same component family (the top-level story list/creation screen, not a "setup
+    form"), and the review comment's own instruction was scoped to setup-form async reads plus an
+    explicit "do not broaden into a general loading framework."
+  - Tests (`frontend/src/StoryView.test.tsx`, new describe block): persona-load failure shows the
+    visible error and keeps Save disabled; clicking Retry reloads personas (a second, successful
+    `listPersonas()` call) and clears the error without a page reload; a successful load renders
+    persona cards, allows selection, and Save becomes enabled once goals are also filled.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2324 passed, 10 skipped, 91.98% coverage, up from 91.97% -- net-zero test count
+  change from the P1 backend fix, since it edited three existing tests rather than adding new
+  ones; the coverage increase reflects the new orchestrator promotion branch and route comment
+  being exercised). Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (39 passed, up from 35 -- 3
+  new persona-load tests, 1 new structuredSetupPersisted regression test), `npm audit
+  --audit-level=high` (0 vulnerabilities), production build, and the full Playwright E2E spine
+  (7/7 passing) against a fresh build via `npm run e2e` -- all clean. `check-api-types-drift`
+  confirmed no OpenAPI/TS schema changes this round.
