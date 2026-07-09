@@ -35,6 +35,23 @@ describe("DispositionBanner", () => {
     },
   );
 
+  it.each(["delivered", "ooc_handled"] as const)(
+    "renders the settlement warning for %s instead of nothing",
+    (disposition) => {
+      render(
+        <DispositionBanner
+          response={response({
+            disposition,
+            settlement_warning: "Your credit balance could not be updated.",
+          })}
+        />,
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Your credit balance could not be updated.",
+      );
+    },
+  );
+
   it("renders a safety banner for blocked_input_safety", () => {
     render(
       <DispositionBanner

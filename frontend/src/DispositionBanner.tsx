@@ -11,6 +11,20 @@ export default function DispositionBanner({
 }: {
   response: TurnSubmissionResponse;
 }) {
+  // Settlement failure survives the turn (hosted DELIVERED/OOC_HANDLED still
+  // succeeds) but is a non-blocking warning the Sojourner must still see,
+  // not a success-vs-failure signal -- checked before the ordinary-success
+  // null-return below so it isn't silently dropped (PR #126 P2 round 14,
+  // sibling of the round-6 settlement-failure-survives-the-turn fix).
+  if (
+    (response.disposition === "delivered" ||
+      response.disposition === "ooc_handled") &&
+    response.settlement_warning
+  ) {
+    return (
+      <Banner kind="settlement-warning">{response.settlement_warning}</Banner>
+    );
+  }
   switch (response.disposition) {
     case "delivered":
     case "ooc_handled":

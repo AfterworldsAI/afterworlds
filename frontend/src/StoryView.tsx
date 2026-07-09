@@ -108,6 +108,15 @@ export default function StoryView({ storyId }: { storyId: string }) {
       // persisted, so the draft stays and turnError is the right signal.
       const response = await api.submitTurn(storyId, userInput);
       setLastResponse(response);
+      // The mutation response already carries server-refreshed visible state
+      // (PR #126 P2 round 14, sibling of the round-10 mutation-success-vs-
+      // refresh-failure split): consume it now so the sidebar reflects the
+      // successful POST even if the follow-up read below fails, instead of
+      // leaving stale/null state. Coalesced to null (not left stale) when
+      // the response itself carries none, so this never invents state the
+      // backend didn't report. The follow-up refresh below still overwrites
+      // this with the read-path's own value as the eventual reconciliation.
+      setVisibleState(response.visible_state ?? null);
       if (
         response.disposition === "delivered" ||
         response.disposition === "ooc_handled"

@@ -406,6 +406,100 @@ describe("StoryView WritingSetupForm persona load (PR #126 round 13 P2)", () => 
   });
 });
 
+describe("StoryView consumes turn-response visible_state before refresh (PR #126 round 14 P2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    mocks.getStory.mockResolvedValue(baseStory);
+    mocks.getSetupState.mockResolvedValue(null);
+  });
+
+  it("POST succeeds with a non-null visible_state, refresh fails: the returned visible state is shown", async () => {
+    mocks.getVisibleState.mockResolvedValue(null); // initial load: no state yet
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([]) // initial load
+      .mockRejectedValueOnce(new Error("transcript fetch failed")); // post-submit refresh
+    mocks.submitTurn.mockResolvedValue({
+      ...deliveredResponse(),
+      visible_state: writingVisibleState(),
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("transcript fetch failed");
+    expect(screen.getByRole("heading", { name: "Chiron" })).toBeInTheDocument();
+  });
+
+  it("POST succeeds with visible_state: null, refresh fails: no stale state is invented", async () => {
+    mocks.getVisibleState.mockResolvedValue(writingVisibleState()); // initial load: already has state
+    mocks.getLatestTranscript
+      .mockResolvedValueOnce([]) // initial load
+      .mockRejectedValueOnce(new Error("transcript fetch failed")); // post-submit refresh
+    mocks.submitTurn.mockResolvedValue({
+      ...deliveredResponse(),
+      visible_state: null,
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Chiron" });
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("transcript fetch failed");
+    expect(
+      screen.queryByRole("heading", { name: "Chiron" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Complete setup to see story state here."),
+    ).toBeInTheDocument();
+  });
+
+  it("POST succeeds and refresh succeeds: the follow-up read is the final state", async () => {
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.submitTurn.mockResolvedValue({
+      ...deliveredResponse(),
+      visible_state: {
+        ...writingVisibleState(),
+        persona_display_name: "ResponsePersona",
+      },
+    });
+    mocks.getVisibleState.mockResolvedValueOnce(null); // initial load
+    mocks.getVisibleState.mockResolvedValueOnce({
+      ...writingVisibleState(),
+      persona_display_name: "RefreshPersona",
+    }); // post-submit refresh
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByRole("heading", { name: "RefreshPersona" });
+    expect(
+      screen.queryByRole("heading", { name: "ResponsePersona" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("POST failure does not mutate visible state", async () => {
+    mocks.getVisibleState.mockResolvedValue(writingVisibleState());
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.submitTurn.mockRejectedValue(new Error("network down"));
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Chiron" });
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    await screen.findByText("network down");
+    expect(screen.getByRole("heading", { name: "Chiron" })).toBeInTheDocument();
+  });
+});
+
 describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
   beforeEach(() => {
     localStorage.clear();
