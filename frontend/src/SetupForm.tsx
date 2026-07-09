@@ -68,6 +68,33 @@ function RpgSetupForm({
   const [tone, setTone] = useState<
     "gritty" | "balanced" | "forgiving" | "danger_free"
   >("balanced");
+  // Round 12 remediation (PR #126 P2): the hardcoded defaults above are
+  // visible and submittable before getSetupState() resolves. A quick Save
+  // during that window submitted ai_rolls/balanced and silently overwrote
+  // persisted non-default setup (e.g. player_rolls/gritty). Save must stay
+  // disabled until hydration has either applied persisted values or failed
+  // visibly -- never while it's still in flight.
+  const [hydrationStatus, setHydrationStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
+  const hydrate = () => {
+    setHydrationStatus("loading");
+    api
+      .getSetupState(storyId)
+      .then((state) => {
+        if (state && state.mode === "rpg") {
+          if (state.dice_handling) setDiceHandling(state.dice_handling);
+          if (state.tone) setTone(state.tone);
+        }
+        setHydrationStatus("ready");
+      })
+      .catch(() => {
+        // Not silently swallowed (round 12 remediation): Save stays
+        // disabled and the Sojourner sees why, with a way to retry.
+        setHydrationStatus("error");
+      });
+  };
 
   // Hydrate from whatever RPG setup config is already persisted (PR #126
   // review round 5, P2) -- otherwise every reload resets these selects to
@@ -75,16 +102,7 @@ function RpgSetupForm({
   // prior non-default choice. RPG visible state cannot be used for this
   // (sheet-dependent by design, null until a concrete sheet exists);
   // GET .../setup reads RPG session state directly instead.
-  useEffect(() => {
-    api
-      .getSetupState(storyId)
-      .then((state) => {
-        if (!state || state.mode !== "rpg") return;
-        if (state.dice_handling) setDiceHandling(state.dice_handling);
-        if (state.tone) setTone(state.tone);
-      })
-      .catch(() => {});
-  }, [storyId]);
+  useEffect(hydrate, [storyId]);
 
   return (
     <form
@@ -123,8 +141,19 @@ function RpgSetupForm({
           <option value="danger_free">Danger-free</option>
         </select>
       </label>
+      {hydrationStatus === "error" && (
+        <p className="form-error" role="alert">
+          Could not load saved RPG setup. Retry before saving.{" "}
+          <button type="button" onClick={hydrate}>
+            Retry
+          </button>
+        </p>
+      )}
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" disabled={submitting}>
+      <button
+        type="submit"
+        disabled={submitting || hydrationStatus !== "ready"}
+      >
         Save setup
       </button>
     </form>

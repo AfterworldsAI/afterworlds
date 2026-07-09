@@ -433,6 +433,9 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
 describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
   beforeEach(() => {
     localStorage.clear();
+    // Round 12 additions to this suite assert on submitSetup call counts,
+    // which the file's shared vi.hoisted mocks don't reset between tests.
+    vi.clearAllMocks();
     mocks.getLatestTranscript.mockResolvedValue([]);
     mocks.getVisibleState.mockResolvedValue(null);
   });
@@ -501,6 +504,101 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
         tone: "gritty",
       }),
     );
+  });
+
+  it("Round 12 remediation: disables Save while setup-state hydration is still in flight", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    // Never resolves within this test -- simulates hydration still pending.
+    mocks.getSetupState.mockReturnValue(new Promise(() => {}));
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    expect(screen.getByRole("button", { name: "Save setup" })).toBeDisabled();
+  });
+
+  it("Round 12 remediation regression: a quick save after reload cannot submit ai_rolls/balanced before hydration completes", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    let resolveHydration: (state: unknown) => void = () => {};
+    mocks.getSetupState.mockReturnValue(
+      new Promise((resolve) => {
+        resolveHydration = resolve;
+      }),
+    );
+    mocks.submitSetup.mockResolvedValue({});
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    // Clicking a disabled submit button must not submit the form.
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    expect(mocks.submitSetup).not.toHaveBeenCalled();
+
+    resolveHydration({
+      mode: "rpg",
+      dice_handling: "player_rolls",
+      gm_cheating: null,
+      tone: "gritty",
+      session_type: null,
+      genre_flavor: null,
+      house_rules: null,
+      acceptable_content: null,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save setup" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+
+    await waitFor(() => expect(mocks.submitSetup).toHaveBeenCalled());
+    expect(mocks.submitSetup).toHaveBeenCalledWith(
+      baseStory.story_id,
+      expect.objectContaining({
+        dice_handling: "player_rolls",
+        tone: "gritty",
+      }),
+    );
+  });
+
+  it("Round 12 remediation: hydration failure keeps Save disabled and shows a visible, retryable error", async () => {
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    mocks.getSetupState.mockRejectedValueOnce(new Error("network down"));
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "RPG setup" });
+    await screen.findByText(/Could not load saved RPG setup/i);
+    expect(screen.getByRole("button", { name: "Save setup" })).toBeDisabled();
+
+    mocks.getSetupState.mockResolvedValueOnce({
+      mode: "rpg",
+      dice_handling: "player_rolls",
+      gm_cheating: null,
+      tone: "gritty",
+      session_type: null,
+      genre_flavor: null,
+      house_rules: null,
+      acceptable_content: null,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save setup" })).toBeEnabled(),
+    );
+    expect(
+      screen.queryByText(/Could not load saved RPG setup/i),
+    ).not.toBeInTheDocument();
   });
 });
 
