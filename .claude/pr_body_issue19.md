@@ -1136,4 +1136,95 @@ Two P2s, both classified as valid product-path defects requiring no owner decisi
   27 -- 5 new `StoryView.test.tsx` tests), `npm audit --audit-level=high` (0 vulnerabilities),
   production build, and the full Playwright E2E spine (7/7 passing) against a fresh build -- all
   clean. OpenAPI/TS regenerated and drift-checked.
-  build -- all clean. OpenAPI/TS regenerated and drift-checked.
+
+## Remediation round 12
+
+Two P2s, both classified as valid and in scope for Issue 19, requiring no owner decision.
+
+- **RPG setup saves are now blocked until hydration finishes (P2).** `RpgSetupForm` initialized
+  `diceHandling`/`tone` to hardcoded defaults (`ai_rolls`/`balanced`), then asynchronously hydrated
+  them from `GET .../setup` -- but the Save button was enabled the entire time that request was in
+  flight, and its failure was silently swallowed (`.catch(() => {})`). A quick Save right after reload
+  could submit the hardcoded defaults and overwrite persisted non-default setup (e.g.
+  `player_rolls`/`gritty`) before hydration ever applied it.
+  - `frontend/src/SetupForm.tsx`: `RpgSetupForm` gained `hydrationStatus: "loading" | "ready" |
+    "error"`, starting at `"loading"`. The hydration effect (extracted into a named `hydrate`
+    function so a Retry button can re-invoke it) sets `"ready"` after applying whatever persisted
+    values exist (or none, for a brand-new story), or `"error"` on failure -- no longer silently
+    swallowed. The Save button's `disabled` condition is now `submitting || hydrationStatus !==
+    "ready"`. On `"error"`, a visible message ("Could not load saved RPG setup. Retry before saving.")
+    with its own Retry button is shown; Save stays disabled until a retry succeeds.
+  - Tests (`frontend/src/StoryView.test.tsx`, new, in the existing RPG-setup-reload describe block):
+    Save is disabled while `getSetupState()` is still pending (a never-resolving promise). A
+    regression test drives the exact reported scenario -- clicking Save while hydration is pending
+    submits nothing (`submitSetup` not called), then after hydration resolves to
+    `player_rolls`/`gritty`, Save becomes enabled and submits those persisted values, never the
+    defaults. A hydration-failure test confirms Save stays disabled with the visible error text, and
+    that clicking its Retry button (a successful second `getSetupState()` call) clears the error and
+    enables Save.
+  - This suite's `beforeEach` needed `vi.clearAllMocks()` for the same reason round 11's did (call-count
+    assertions against this file's shared, never-auto-reset `vi.hoisted` mocks).
+
+- **E2E database is now isolated per run (P2).** `playwright.config.ts` and `e2e/seed-entitlement.ts`
+  each separately hardcoded `sqlite:///./_e2e.db` -- two independent literals, not one source of
+  truth, exactly what the sibling-audit instruction asked to check for. Tests seeding hosted
+  entitlement mutated the same fixed repo-local database file that the "fresh install, no runnable
+  access path" test depended on being empty; a local rerun, a partial run, or a prior failed run left
+  entitlement state behind and could silently invalidate that scenario regardless of test order.
+  - Went with the review comment's **preferred** option (a wrapper script), not the "acceptable"
+    delete-before-start option, after the first attempt at the acceptable-tier fix (computing the
+    per-run path directly at the top of `playwright.config.ts`) demonstrably failed: Playwright
+    reloads `playwright.config.ts` once per worker process, so a top-level `mkdtempSync()` there
+    produces a *different* temp directory per worker than the one the webServer process got --
+    verified empirically (not assumed) by a failing first run: the seed script connected to a
+    directory the webServer's Alembic migrations had never touched (`sqlite3.OperationalError: no
+    such table: sojourner_identity`).
+  - `frontend/e2e/run-isolated.mjs` (new): computes one unique temp directory
+    (`mkdtempSync(tmpdir())`) exactly once, then spawns `playwright test` (plus any passthrough CLI
+    args) as a child process with `AFTERWORLDS_DATABASE_URL`/`AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY`
+    set on its env -- every descendant process (the webServer Playwright itself spawns, and every test
+    worker) inherits the same values via ordinary OS process-env inheritance, sidestepping Playwright's
+    internal config-reload semantics entirely rather than fighting them.
+  - A second bug surfaced while verifying: `spawnSync` with `shell: true` and array-form `args` does
+    not reliably re-quote an argument containing a space for the Windows shell it spawns (a `--grep
+    "delivered turn"` pattern silently split into two argv entries, `No tests found`). Fixed by
+    building one pre-quoted command string instead of an args array -- the documented-safe pattern for
+    `shell: true` -- and verified the exact failing repro (`--grep "delivered turn"`) resolves
+    correctly to 2 matching tests afterward.
+  - `frontend/playwright.config.ts`: now reads `AFTERWORLDS_DATABASE_URL`/
+    `AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY` from `process.env` (set by the wrapper), falling back to
+    its own unique temp path only for the unsupported direct-invocation case (`npx playwright test`,
+    bypassing the wrapper) -- documented in-file as best-effort/non-guaranteed-consistent-across-workers
+    for that fallback path specifically, since direct invocation is no longer the supported entry
+    point.
+  - `frontend/e2e/seed-entitlement.ts`: reads `process.env.AFTERWORLDS_DATABASE_URL` instead of
+    duplicating the literal; throws a clear, actionable error if unset (rather than silently using a
+    wrong/stale path) so a future direct-invocation regression fails loudly instead of quietly
+    reintroducing shared state.
+  - `frontend/package.json`: `"e2e"` script changed from `playwright test` to `node
+    e2e/run-isolated.mjs`. `.github/workflows/ci.yml`: the E2E job's `run: npx playwright test` step
+    changed to `run: npm run e2e` -- CI must go through the wrapper too, not just local runs.
+  - **Sibling audit (per the review comment's own instruction):** grepped every `_e2e.db`/`_e2e_chroma`
+    literal across the repo (excluding `node_modules`) -- found exactly the two named above, both now
+    replaced by the single `run-isolated.mjs` source of truth; no third hardcoded reference exists.
+    `scripts/seed_e2e_entitlement.py`'s `--db-url` is a required CLI argument with no hardcoded
+    default -- disposition `already safe`, it was never part of the duplication. `.gitignore`'s
+    `_e2e.db*`/`_e2e_chroma/` entries are left in place as harmless legacy coverage (the fallback path
+    could still theoretically write there if literally nothing else changes about how someone invokes
+    Playwright, though in practice it now always resolves to an OS temp directory) -- not removed,
+    since leaving an unused ignore pattern carries no cost and removing it isn't part of the requested
+    fix.
+  - Tests/checks (all run manually per the review comment's own list, empirically, not assumed):
+    full Playwright suite run twice in a row via `npm run e2e` -- both runs 7/7 green, each with a
+    distinct seeded sojourner id, confirming no shared state; `entitlement-blocked` run standalone via
+    `npm run e2e -- --grep "entitlement-blocked"` immediately after two prior seeded runs still saw no
+    runnable access path; a seeded-only filtered run (`--grep "delivered turn"`) still received hosted
+    entitlement correctly; confirmed zero `_e2e.db`/`_e2e_chroma` artifacts exist anywhere in the repo
+    tree after multiple runs (`ls` came back empty at both the repo root and `frontend/`).
+
+- Gates on the exact branch head: frontend `tsc --noEmit`, ESLint, Prettier, Vitest (35 passed, up from
+  32 -- 3 new `StoryView.test.tsx` tests), `npm audit --audit-level=high` (0 vulnerabilities),
+  production build, and the full Playwright E2E spine run twice via `npm run e2e` (7/7 passing both
+  times) -- all clean. No backend/API code changed this round, so `black`/`ruff`/`mypy`/`pytest` were
+  not re-run (per the review comment's own run-gates instruction: "backend tests only if helper
+  scripts or API behavior changed"). No OpenAPI/TS schema changes.
