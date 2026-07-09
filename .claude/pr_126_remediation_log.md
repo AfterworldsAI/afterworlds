@@ -1357,11 +1357,16 @@ bypassed the `ApiError` envelope.
   the 404 envelope; `POST /api/health` (GET-only) returns the 405 envelope with `Allow: GET`
   preserved; a real `ApiErrorResponse` 404 (not-found story) is unchanged; a built frontend dist
   (`index.html` present) still serves normally, confirming the new handler only fires for genuinely
-  unmatched paths.
+  unmatched paths. A follow-up commit added a fifth case the first pass missed: every other case ran
+  with `frontend_dist_dir` unmounted, so none exercised production's actual configuration -- an
+  unmatched `/api/...` path falling through to the mounted `StaticFiles`, which raises its own
+  `HTTPException(404)` from inside a mounted sub-app. `test_unmatched_api_route_returns_envelope_with_frontend_mounted`
+  mounts a real dist dir and asserts that path still reaches the `ApiError` envelope, not
+  `index.html` and not the framework body.
 
 - Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
-  `pytest -q` (2333 passed, 10 skipped, 91.97% coverage, up from 2324/91.98% -- 9 new tests: 3
-  policy, 2 orchestrator routing, 4 HTTP-exception envelope), `pip-audit` (same pre-existing,
+  `pytest -q` (2334 passed, 10 skipped, 91.97% coverage, up from 2324/91.98% -- 10 new tests: 3
+  policy, 2 orchestrator routing, 5 HTTP-exception envelope), `pip-audit` (same pre-existing,
   unrelated transitive CVEs as prior rounds -- Mako, pydantic-settings, msgpack, idna, urllib3, pip,
   chromadb -- owner decision still pending, nothing new introduced). No API DTO or OpenAPI schema
   changed this round (the `ApiError` envelope shape is unchanged; only which exceptions map to it
