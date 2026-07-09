@@ -135,14 +135,25 @@ def test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service(
 ) -> None:
     """Regression for the exact P1: without ``writing_visible_state_service``
     wired, every Writing turn submitted while IN_PLAY returned PIPELINE_ERROR
-    ("writing visible state service not wired for IN_PLAY turn")."""
+    ("writing visible state service not wired for IN_PLAY turn"). That guard
+    is gated on ``play_status is IN_PLAY``, so this needs a genuinely IN_PLAY
+    turn to exercise it -- as of round 13, ``_create_writing_story_with_persona``
+    completes setup but no longer promotes play_status itself (setup leaves
+    the story in SETUP; only the setup-confirmation turn's own processing
+    promotes to IN_PLAY -- see
+    ``test_writing_setup_confirmation_turn_then_promotes_to_in_play``). The
+    first turn here is therefore the setup-confirmation turn; the second is
+    the genuinely IN_PLAY turn this test actually regression-tests.
+    """
     client = fake_provider_client
     _seed_hosted_entitlement(client)
-    # ``_create_writing_story_with_persona`` completes setup with a real
-    # persona_id and specific_goals, which (PR #126 review round 5) is
-    # itself now what legitimately promotes play_status SETUP -> IN_PLAY --
-    # no CRUD bypass needed to construct this precondition anymore.
     story_id = _create_writing_story_with_persona(client)
+
+    resp = client.post(
+        f"/api/stories/{story_id}/turns", json={"user_input": "Let's begin."}
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["disposition"] == "delivered", resp.json()
 
     resp = client.post(
         f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
@@ -151,6 +162,7 @@ def test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service(
     body = resp.json()
     assert body["disposition"] == "delivered", body
     assert body["pipeline_error_summary"] is None
+    assert body["visible_state"]["play_status"] == "in_play"
 
 
 def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
@@ -210,28 +222,75 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
     assert body["pipeline_error_summary"] is None
 
 
-def test_writing_setup_via_api_yields_extractor_eligible_turn(
+def test_writing_setup_confirmation_turn_then_promotes_to_in_play(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
-    """P1 product-path test (PR #126 review round 5, owner decision): a
-    Writing story that completes ``/setup`` with a real persona_id and
-    specific_goals through the ordinary HTTP path -- no client-supplied
-    provenance field (rejected by ``extra="forbid"``), no CRUD bypass --
-    must have its turns treated as ordinary Writing prose: routed to Story
-    Bible and eligible for Retrieval Memory, not silently persisted as
-    SETUP_CONFIRMATION/NON_CANON_SUPPORT forever solely because the DTO
-    omits a provenance field.
+    """Round 13 boundary-decision product-path test (owner-approved,
+    supersedes round 5's promote-in-``/setup`` behavior): ``POST /setup``
+    persists persona_id/specific_goals but no longer promotes play_status
+    itself (see ``api/routes/setup.py``). ADR-017 Decision 9 / ADR-018 D6
+    require the *first* turn after setup -- taken while play_status is
+    still SETUP -- to be recorded as a setup-confirmation turn
+    (SETUP_CONFIRMATION/NON_CANON_SUPPORT), not ordinary prose. The
+    orchestrator itself (``_narrative_persist``) then promotes play_status
+    to IN_PLAY atomically with that turn's own commit, so every *subsequent*
+    turn is ordinary Writing prose: routed to Story Bible and eligible for
+    Retrieval Memory.
     """
     client = fake_provider_client
     _seed_hosted_entitlement(client)
     story_id = _create_writing_story_with_persona(client)
 
+    # Precondition: setup alone leaves play_status at SETUP.
+    resp = client.get(f"/api/stories/{story_id}/visible-state")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["visible_state"]["play_status"] == "setup"
+
+    # First turn after setup: play_status was SETUP when this turn began --
+    # must be recorded as the setup-confirmation turn, not ordinary prose.
+    # The response's visible_state already reflects the promotion this same
+    # turn applies (atomic with its own commit) -- the mode_metadata
+    # assertions below independently confirm the turn was classified using
+    # the *pre*-promotion state, not this post-turn snapshot.
+    resp = client.post(
+        f"/api/stories/{story_id}/turns",
+        json={"user_input": "Let's begin."},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["disposition"] == "delivered", body
+    assert body["visible_state"]["play_status"] == "in_play"
+    confirmation_turn_id = UUID(body["turn_id"])
+
+    session = client.app.state.session_factory()
+    try:
+        turn = get_turn_for_eligibility(session, confirmation_turn_id)
+        assert turn is not None
+        assert turn.mode_metadata is not None
+        assert (
+            turn.mode_metadata.work_product_kind
+            == WritingWorkProductKind.SETUP_CONFIRMATION.value
+        )
+        assert (
+            turn.mode_metadata.canon_eligibility
+            == WritingCanonEligibility.NON_CANON_SUPPORT.value
+        )
+        decision = gather_turn_eligibility(
+            session, confirmation_turn_id, StoryMode.WRITING
+        )
+        assert decision.eligible is False, decision.reason
+    finally:
+        session.close()
+
+    # Second turn: the confirmation turn has landed, so play_status is now
+    # IN_PLAY -- this turn must be ordinary, eligible Writing prose.
     resp = client.post(
         f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
     )
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["disposition"] == "delivered", body
+    assert body["visible_state"]["play_status"] == "in_play"
     turn_id = UUID(body["turn_id"])
 
     session = client.app.state.session_factory()

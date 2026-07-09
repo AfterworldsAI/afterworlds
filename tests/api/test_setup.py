@@ -242,11 +242,18 @@ def test_writing_setup_rejects_blank_specific_goals(client) -> None:  # type: ig
     assert resp.json()["error_code"] == "validation_failed"
 
 
-def test_writing_setup_promotes_play_status_to_in_play(client) -> None:  # type: ignore[no-untyped-def]
-    # P1 remediation (PR #126 review round 5): once persona_id and a real
-    # specific_goals are both persisted through the one legitimate entry
-    # point, play_status promotes to IN_PLAY -- the durable signal turns.py
-    # uses to derive server-owned Writing turn provenance.
+def test_writing_setup_no_longer_promotes_play_status_itself(client) -> None:  # type: ignore[no-untyped-def]
+    # Round 13 boundary decision (owner-approved, superseding round 5's
+    # promote-in-/setup behavior): POST /setup persists persona_id and
+    # specific_goals but leaves play_status at SETUP. ADR-017 Decision 9 /
+    # ADR-018 D6 require the *next* turn -- while play_status is still
+    # SETUP -- to be classified as a setup-confirmation turn
+    # (SETUP_CONFIRMATION/NON_CANON_SUPPORT), not ordinary prose; round 5's
+    # immediate promotion made that orchestrator guard permanently
+    # unreachable for Writing. The orchestrator itself now promotes to
+    # IN_PLAY only once that confirmation turn actually lands (covered by
+    # test_fake_provider_product_path.py's end-to-end
+    # test_writing_setup_confirmation_turn_then_promotes_to_in_play).
     story_id = _create_story(client, "writing")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
@@ -257,7 +264,7 @@ def test_writing_setup_promotes_play_status_to_in_play(client) -> None:  # type:
         },
     )
     assert resp.status_code == 200, resp.text
-    assert resp.json()["visible_state"]["play_status"] == "in_play"
+    assert resp.json()["visible_state"]["play_status"] == "setup"
 
     from uuid import UUID
 
@@ -270,7 +277,7 @@ def test_writing_setup_promotes_play_status_to_in_play(client) -> None:  # type:
     try:
         state = get_writing_session_state_by_story(session, UUID(story_id))
         assert state is not None
-        assert state.play_status is WritingPlayStatus.IN_PLAY
+        assert state.play_status is WritingPlayStatus.SETUP
         assert state.specific_goals == "Draft the opening chapter of a mystery novel"
     finally:
         session.close()

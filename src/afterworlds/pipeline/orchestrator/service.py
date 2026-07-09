@@ -1943,6 +1943,32 @@ class OrchestratorService:
             except Exception:  # noqa: BLE001
                 pass  # Provenance failure does not abort the turn
 
+            # Round 13 boundary decision (owner-approved, ADR-017 Decision 9 /
+            # ADR-018 D6): POST /setup no longer promotes play_status itself
+            # (see api/routes/setup.py) -- a story stays SETUP after
+            # structured setup until this, the setup-confirmation turn
+            # classified SETUP_CONFIRMATION/NON_CANON_SUPPORT above precisely
+            # because play_status was still SETUP, actually lands. Promote to
+            # IN_PLAY here, in the same session/transaction as the rest of
+            # this DELIVERED turn, so the transition is atomic with the
+            # turn's own commit -- never speculative, never done in React.
+            # Deliberately NOT inside the provenance try/except above: unlike
+            # a missing audit record, a failed promotion must not be
+            # silently swallowed -- that would strand the story in SETUP.
+            # apply_writing_config_update's own play_status guard is a no-op
+            # here if persona_id/specific_goals are somehow missing (cannot
+            # happen: WritingSetupRequest always persists both together
+            # before this turn is reachable), so this call cannot newly
+            # corrupt the row.
+            if writing_session_state.play_status is WritingPlayStatus.SETUP:
+                from afterworlds.persistence.crud.session_state import (  # noqa: PLC0415
+                    apply_writing_config_update as _promote_writing_play_status,
+                )
+
+                _promote_writing_play_status(
+                    session, story_id, play_status=WritingPlayStatus.IN_PLAY
+                )
+
         # 5a-rpg: [RPG only] Write the turn-category retrieval marker
         # (ADR-018 D6) inside the outer transaction — same location/
         # transaction-scoping as the Writing-mode block above, but NOT its

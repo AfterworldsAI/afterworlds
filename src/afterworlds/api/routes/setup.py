@@ -28,7 +28,7 @@ from afterworlds.api.dto import (
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.visible_state import build_visible_state
-from afterworlds.models.enums import BranchingPlayStatus, StoryMode, WritingPlayStatus
+from afterworlds.models.enums import BranchingPlayStatus, StoryMode
 from afterworlds.modes.personas.registry import SupportedMode, get_default_registry
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
@@ -128,15 +128,18 @@ def _apply_writing_setup(
         acceptable_content=body.acceptable_content,
         beat_constraints=body.beat_constraints,
         beat_constraints_mode="replace" if body.beat_constraints is not None else None,
-        # PR #126 review round 5 (owner decision): this route is the one
-        # legitimate place that can promote Writing play_status to IN_PLAY --
-        # WritingSetupRequest requires both persona_id and nonblank
-        # specific_goals on every call, so the CRUD guard's "nonblank
-        # persona_id + nonblank specific_goals" precondition is always
-        # genuinely satisfied here. This is bootstrap/configuration state,
-        # not narrative output. Idempotent: a story already IN_PLAY is
-        # simply reassigned the same status.
-        play_status=WritingPlayStatus.IN_PLAY,
+        # PR #126 round 13 (owner-approved boundary decision, superseding
+        # round 5): this route no longer promotes play_status to IN_PLAY.
+        # Round 5's promotion-in-/setup made every turn after structured
+        # setup classify as PROSE_CONTINUATION/EXTRACTOR_ELIGIBLE
+        # (derive_writing_turn_request), but ADR-017 Decision 9 / ADR-018 D6
+        # require the *next* turn after setup -- while play_status is still
+        # SETUP -- to be a setup-confirmation turn
+        # (SETUP_CONFIRMATION/NON_CANON_SUPPORT), not ordinary prose. The
+        # story now stays in SETUP here; the orchestrator's own
+        # `_narrative_persist` promotes to IN_PLAY once that
+        # setup-confirmation turn genuinely lands (see the play_status ==
+        # SETUP branch there), never in React and never speculatively.
     )
     if not found:
         raise ApiErrorResponse(
