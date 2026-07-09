@@ -65,3 +65,26 @@ def test_static_frontend_route_unaffected_when_dist_present(  # type: ignore[no-
         resp = c.get("/")
         assert resp.status_code == 200
         assert "ok" in resp.text
+
+
+def test_unmatched_api_route_returns_envelope_with_frontend_mounted(  # type: ignore[no-untyped-def]
+    app_settings, tmp_path
+) -> None:
+    """The production configuration always mounts StaticFiles at "/" --
+    an unmatched /api/... path falls through to that mount, which raises
+    its own HTTPException(404) from inside a mounted sub-app. This must
+    still reach the ApiError envelope, not the framework body and not
+    index.html (no bare {"detail": ...}, no HTML fallback)."""
+    dist_dir = tmp_path / "frontend_dist_present"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text("<html>ok</html>", encoding="utf-8")
+    app_settings = replace(app_settings, frontend_dist_dir=dist_dir)
+
+    app = create_app(app_settings)
+    with TestClient(app) as c:
+        resp = c.get("/api/does-not-exist")
+        assert resp.status_code == 404, resp.text
+        body = resp.json()
+        assert body["error_code"] == "not_found"
+        assert body["message"] == "Not found."
+        assert body["schema_version"] == 1
