@@ -169,6 +169,48 @@ class TestIntentClassificationRoutesThroughSelectedAdapter:
         )
         assert adapter.calls[0].pass_id is PipelinePassId.INTENT_CLASSIFIER
 
+    def test_delivered_result_carries_intent_classifier_usage(
+        self, session_factory, seeded_story
+    ) -> None:
+        """Round 8 remediation (PR #126 P1): the provider-routed classifier
+        call's usage must land on the returned OrchestrationResult so hosted
+        settlement can account for it."""
+        story_id, node_id = seeded_story
+        adapter = _SpyProviderAdapter()
+        orch = _make_orchestrator_with_adapter(
+            session_factory, adapter, RuntimeAccessPath.HOSTED
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.HOSTED
+        )
+        assert result.disposition is PipelineDisposition.DELIVERED
+        usage = result.intent_classifier_usage
+        assert usage is not None
+        assert usage.pass_id is PipelinePassId.INTENT_CLASSIFIER
+        assert usage.provider == "spy-provider"
+        assert usage.model_identifier == "spy-model"
+        assert usage.model_tier is ModelTier.HAIKU
+        assert usage.input_token_count == 10
+        assert usage.output_token_count == 5
+
+    def test_byok_delivered_result_carries_byok_adapter_usage(
+        self, session_factory, seeded_story, monkeypatch
+    ) -> None:
+        """Regression: a BYOK-selected turn's classifier usage still comes
+        from the BYOK adapter, not a hidden hosted one."""
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        story_id, node_id = seeded_story
+        adapter = _SpyProviderAdapter(provider_name="byok-adapter")
+        orch = _make_orchestrator_with_adapter(
+            session_factory, adapter, RuntimeAccessPath.BYOK
+        )
+        result = orch.orchestrate_turn(
+            story_id, node_id, "I open the door.", _SOJOURNER, RuntimeAccessPath.BYOK
+        )
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert result.intent_classifier_usage is not None
+        assert result.intent_classifier_usage.provider == "byok-adapter"
+
     def test_byok_selected_turn_does_not_require_process_anthropic_api_key(
         self, session_factory, seeded_story, monkeypatch
     ) -> None:
@@ -276,6 +318,9 @@ class TestIntentClassificationRoutesThroughSelectedAdapter:
         assert result.pipeline_error_summary is None
         assert result.turn_id is None
         assert result.delivered_output is None
+        # No provider result was ever returned (the adapter raised before
+        # producing one), so no usage exists to carry.
+        assert result.intent_classifier_usage is None
 
     def test_non_refusal_classifier_error_still_pipeline_error(
         self, session_factory, seeded_story
@@ -298,6 +343,9 @@ class TestIntentClassificationRoutesThroughSelectedAdapter:
         )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.provider_refusal is None
+        # The adapter raised before returning a ProviderCallResult, so no
+        # usage exists to carry -- distinct from a post-call parse failure.
+        assert result.intent_classifier_usage is None
 
     def test_refusal_prevents_downstream_passes_from_running(
         self, session_factory, seeded_story

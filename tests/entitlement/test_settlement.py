@@ -32,6 +32,7 @@ def _make_delivered_result(
     turn_id: UUID,
     input_tokens: int = 1000,
     output_tokens: int = 500,
+    include_classifier_usage: bool = False,
 ) -> object:
     """Create a minimal OrchestrationResult with DELIVERED disposition."""
     from afterworlds.models.enums import IntentType
@@ -46,6 +47,7 @@ def _make_delivered_result(
     )
     from afterworlds.pipeline.extractor.models import ExtractorResult
     from afterworlds.pipeline.orchestrator.models import (
+        IntentClassifierUsage,
         OrchestrationResult,
         PipelineDisposition,
     )
@@ -101,6 +103,21 @@ def _make_delivered_result(
         cache_read_token_count=None,
         cache_creation_token_count=None,
     )
+    classifier_usage = (
+        IntentClassifierUsage(
+            pass_id=PipelinePassId.INTENT_CLASSIFIER,
+            provider="test-provider",
+            model_identifier="test",
+            model_tier=ModelTier.HAIKU,
+            input_token_count=input_tokens,
+            output_token_count=output_tokens,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+            latency_ms=1,
+        )
+        if include_classifier_usage
+        else None
+    )
     return OrchestrationResult(
         disposition=PipelineDisposition.DELIVERED,
         delivered_output="prose",
@@ -110,6 +127,7 @@ def _make_delivered_result(
         writer_result=writer,
         extractor_result=extractor,
         contradiction_result=contradiction,
+        intent_classifier_usage=classifier_usage,
         total_latency_ms=0,
         pass_latency_breakdown={},
     )

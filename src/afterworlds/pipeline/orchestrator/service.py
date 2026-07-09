@@ -130,6 +130,7 @@ from afterworlds.pipeline.extractor.models import ExtractorPassError, ExtractorR
 from afterworlds.pipeline.extractor.service import ExtractorService
 from afterworlds.pipeline.orchestrator.models import (
     CapabilityProfileAwareSafetyPolicy,
+    IntentClassifierUsage,
     OrchestrationResult,
     PipelineDisposition,
     SafetyPolicyContext,
@@ -141,6 +142,7 @@ from afterworlds.pipeline.planner.models import (
 from afterworlds.pipeline.planner.service import PlannerService
 from afterworlds.pipeline.provider._models import (
     ProviderCallRequest,
+    ProviderCallResult,
     ProviderTextPart,
 )
 from afterworlds.pipeline.provider._protocol import ProviderAdapter
@@ -542,10 +544,16 @@ class OrchestratorService:
         # pre-classification failure path. All other classifier failures
         # (parser/schema/transport/unexpected) still map to typed
         # PIPELINE_ERROR, unchanged.
+        # Round 8 remediation (PR #126 P1): a fresh, per-turn capture -- not a
+        # shared/global holder -- lets the caller below expose the classifier's
+        # provider usage without a second provider call. See
+        # `_ClassifierUsageCapture`.
+        classifier_usage_capture = _ClassifierUsageCapture()
         try:
             intent_caller = _make_intent_classifier_caller(
                 binding.adapter,  # type: ignore[arg-type]
                 sojourner_id,
+                classifier_usage_capture,
             )
             intent_result, classify_ms = _timed(
                 lambda: self._intent_classifier.classify(
@@ -560,6 +568,9 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 provider_refusal=exc.refusal,
+                intent_classifier_usage=_extract_classifier_usage(
+                    classifier_usage_capture
+                ),
             )
         except Exception as exc:  # noqa: BLE001
             return self._pipeline_error(
@@ -567,6 +578,26 @@ class OrchestratorService:
                 latency,
                 turn_start,
                 f"intent classification failed: {exc}",
+                intent_classifier_usage=_extract_classifier_usage(
+                    classifier_usage_capture
+                ),
+            )
+        # Classification succeeded, so `_call` (inside `intent_caller`) always
+        # ran and populated the capture -- carried into every terminal result
+        # from here on so hosted settlement can account for classifier spend.
+        intent_classifier_usage = _extract_classifier_usage(classifier_usage_capture)
+
+        def _stamp_classifier_usage(result: OrchestrationResult) -> OrchestrationResult:
+            """Carry this turn's classifier usage onto a result built deep
+            inside `_run_narrative`/`_run_ooc` (and everything nested under
+            them) without threading a new parameter through every nested
+            call site -- `model_copy` does not re-run the disposition
+            validator, which is fine here since this field is additive and
+            outside the disposition-population invariant matrix."""
+            if intent_classifier_usage is None:
+                return result
+            return result.model_copy(
+                update={"intent_classifier_usage": intent_classifier_usage}
             )
 
         # 2. Early mode resolution (P2-2: must happen before context assembly so
@@ -788,21 +819,23 @@ class OrchestratorService:
                     "player_reported_total provided but RPG adjudication consume"
                     " path is not fully wired",
                 )
-            return self._run_narrative(
-                ctx,
-                story_id,
-                node_id,
-                sojourner_id,
-                intent_result,
-                binding,
-                latency,
-                turn_start,
-                request_risk_signal,
-                story_mode,
-                pending_roll=_pending_for_consume,
-                player_reported_total=player_reported_total,
-                _pre_session_state=pre_session_state,
-                _pre_sheet=pre_sheet,
+            return _stamp_classifier_usage(
+                self._run_narrative(
+                    ctx,
+                    story_id,
+                    node_id,
+                    sojourner_id,
+                    intent_result,
+                    binding,
+                    latency,
+                    turn_start,
+                    request_risk_signal,
+                    story_mode,
+                    pending_roll=_pending_for_consume,
+                    player_reported_total=player_reported_total,
+                    _pre_session_state=pre_session_state,
+                    _pre_sheet=pre_sheet,
+                )
             )
 
         # OOC short-circuit owns its own pipeline shape.
@@ -811,18 +844,20 @@ class OrchestratorService:
         # The P2-1 guard above ensures this only fires when player_reported_total
         # is None (i.e. the player is not reporting a roll total).
         if intent_result.intent_type is IntentType.OOC:
-            return self._run_ooc(
-                ctx,
-                story_id,
-                node_id,
-                sojourner_id,
-                intent_result,
-                binding,
-                latency,
-                turn_start,
-                request_risk_signal,
-                story_mode=story_mode,
-                pre_writing_state=pre_writing_state,
+            return _stamp_classifier_usage(
+                self._run_ooc(
+                    ctx,
+                    story_id,
+                    node_id,
+                    sojourner_id,
+                    intent_result,
+                    binding,
+                    latency,
+                    turn_start,
+                    request_risk_signal,
+                    story_mode=story_mode,
+                    pre_writing_state=pre_writing_state,
+                )
             )
 
         # Pending-roll intercept for RPG in-play narrative turns.
@@ -1051,25 +1086,27 @@ class OrchestratorService:
                 )
             pre_selected_context = _sel_result.selected_context
 
-        return self._run_narrative(
-            ctx,
-            story_id,
-            node_id,
-            sojourner_id,
-            intent_result,
-            binding,
-            latency,
-            turn_start,
-            request_risk_signal,
-            story_mode,
-            pending_roll=pending_roll,
-            player_reported_total=player_reported_total,
-            _pre_session_state=pre_session_state,
-            _pre_sheet=pre_sheet,
-            _pre_branching_state=pre_branching_state,
-            _pre_selected_context=pre_selected_context,
-            _pre_writing_state=pre_writing_state,
-            writing_turn_request=writing_turn_request,
+        return _stamp_classifier_usage(
+            self._run_narrative(
+                ctx,
+                story_id,
+                node_id,
+                sojourner_id,
+                intent_result,
+                binding,
+                latency,
+                turn_start,
+                request_risk_signal,
+                story_mode,
+                pending_roll=pending_roll,
+                player_reported_total=player_reported_total,
+                _pre_session_state=pre_session_state,
+                _pre_sheet=pre_sheet,
+                _pre_branching_state=pre_branching_state,
+                _pre_selected_context=pre_selected_context,
+                _pre_writing_state=pre_writing_state,
+                writing_turn_request=writing_turn_request,
+            )
         )
 
     # ------------------------------------------------------------------
@@ -3598,6 +3635,7 @@ class OrchestratorService:
         branching_ooc_config_result: object | None = None,
         writing_visible_state: object | None = None,
         writing_ooc_config_result: object | None = None,
+        intent_classifier_usage: IntentClassifierUsage | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -3637,6 +3675,7 @@ class OrchestratorService:
             branching_ooc_config_result=branching_ooc_config_result,
             writing_visible_state=writing_visible_state,
             writing_ooc_config_result=writing_ooc_config_result,
+            intent_classifier_usage=intent_classifier_usage,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
@@ -3655,6 +3694,7 @@ class OrchestratorService:
         output_safety_result: SafetyResult | None = None,
         rpg_adjudication_result: AdjudicationPassResult | None = None,
         branching_pass_result: _BranchingPassResult | None = None,
+        intent_classifier_usage: IntentClassifierUsage | None = None,
     ) -> OrchestrationResult:
         return self._build_result(
             PipelineDisposition.PIPELINE_ERROR,
@@ -3668,6 +3708,7 @@ class OrchestratorService:
             pipeline_error_summary=summary,
             rpg_adjudication_result=rpg_adjudication_result,
             branching_pass_result=branching_pass_result,
+            intent_classifier_usage=intent_classifier_usage,
         )
 
     def _run_with_transaction(
@@ -4049,8 +4090,21 @@ def _synthesize_intent(user_input: str) -> IntentClassificationResult:
 _INTENT_CLASSIFIER_MAX_TOKENS = 256
 
 
+class _ClassifierUsageCapture:
+    """Per-turn holder for the Intent Classifier's most recent provider result.
+
+    A fresh instance is created per call to ``_make_intent_classifier_caller``
+    (once per turn, in ``orchestrate_turn``) -- never a shared/global instance,
+    so concurrent turns never see each other's usage (Round 8 remediation,
+    PR #126 P1).
+    """
+
+    def __init__(self) -> None:
+        self.result: ProviderCallResult | None = None
+
+
 def _make_intent_classifier_caller(
-    adapter: ProviderAdapter, sojourner_id: UUID
+    adapter: ProviderAdapter, sojourner_id: UUID, usage_capture: _ClassifierUsageCapture
 ) -> Callable[[str], str]:
     """Build a ``ModelCallerT`` that routes Intent Classification through the
     turn's already-resolved provider adapter.
@@ -4062,6 +4116,12 @@ def _make_intent_classifier_caller(
     hosted/server key outside the Sojourner's BYOK pool. ``ScopedProviderAdapter``
     fills sojourner_id (Issue 14a refusal-log scoping) exactly as the other
     passes do; no second, hidden provider resolver is created here.
+
+    Round 8 remediation (PR #126 P1): the raw ``ProviderCallResult`` is
+    written to ``usage_capture`` so the caller can carry its usage into
+    ``OrchestrationResult.intent_classifier_usage`` for hosted settlement --
+    without this, classifier tokens were spent through the selected provider
+    but never accounted for.
     """
     scoped = ScopedProviderAdapter(adapter, sojourner_id)
 
@@ -4072,6 +4132,7 @@ def _make_intent_classifier_caller(
             max_output_tokens=_INTENT_CLASSIFIER_MAX_TOKENS,
         )
         result = scoped.call(request)
+        usage_capture.result = result
         text_parts = [
             part.text
             for part in result.content_parts
@@ -4084,6 +4145,29 @@ def _make_intent_classifier_caller(
         return text_parts[0]
 
     return _call
+
+
+def _extract_classifier_usage(
+    usage_capture: _ClassifierUsageCapture,
+) -> IntentClassifierUsage | None:
+    """Convert a captured classifier ``ProviderCallResult`` to the narrow
+    usage snapshot carried on ``OrchestrationResult``. ``None`` if
+    classification never reached a provider result (e.g. refused before
+    responding)."""
+    result = usage_capture.result
+    if result is None:
+        return None
+    return IntentClassifierUsage(
+        pass_id=result.pass_id,
+        provider=result.provider_name,
+        model_identifier=result.model_identifier,
+        model_tier=result.model_tier,
+        input_token_count=result.input_token_count,
+        output_token_count=result.output_token_count,
+        cache_read_token_count=result.cache_read_token_count,
+        cache_creation_token_count=result.cache_creation_token_count,
+        latency_ms=result.latency_ms,
+    )
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:

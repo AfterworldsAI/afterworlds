@@ -1288,3 +1288,81 @@ consumed the fields the successful mutation itself already returned.
   vulnerabilities), production build -- all clean. No backend code changed this round, so backend
   gates were not re-run per the review comment's own instruction ("Backend tests only if backend
   code changes, which should not be necessary").
+
+## Remediation round 15
+
+Codex posted 1×P1 + 1×P2. P1 classified valid and merge-blocking: no owner decision exists
+declaring Intent Classification non-billable for hosted settlement, so Round 6's provider-routed
+classifier call (which returns text only) must carry its usage into settlement, not silently drop
+it. P2 classified valid and narrow: framework-raised HTTP errors (unmatched route, wrong method)
+bypassed the `ApiError` envelope.
+
+- **P1 -- carry Intent Classifier provider usage into hosted settlement.** Added
+  `IntentClassifierUsage` (`pipeline/orchestrator/models.py`) -- a purpose-built snapshot (pass_id,
+  provider, model_identifier, model_tier, token counts, latency_ms), not the full
+  `ProviderCallResult`, so settlement code only sees what it needs. `OrchestrationResult` gained an
+  additive `intent_classifier_usage` field, outside the disposition-population invariant matrix
+  (same treatment as `stable_prefix_cache_warmed`).
+  `_make_intent_classifier_caller()` (`pipeline/orchestrator/service.py`) now takes a per-turn
+  `_ClassifierUsageCapture` -- a fresh instance created once per turn in `orchestrate_turn`, never
+  shared/global -- and writes the real `ProviderCallResult` into it before reducing it to text. No
+  second provider call; the same `scoped.call(request)` this pass already made. `orchestrate_turn`
+  extracts the usage once classification succeeds and carries it forward: the two low-level result
+  constructors (`_build_result`/`_pipeline_error`) gained an `intent_classifier_usage` parameter for
+  the handful of failures still inside `orchestrate_turn` itself (mode resolution, context assembly,
+  etc. -- all non-billable PIPELINE_ERROR anyway), and the three points where `orchestrate_turn`
+  delegates to `_run_narrative`/`_run_ooc` (which build the actual DELIVERED/OOC_HANDLED results deep
+  in their own persistence methods) stamp the usage onto the returned result via `model_copy` rather
+  than threading a ninth parameter through five nested methods and ~80 call sites --
+  `model_copy(update=...)` does not re-run the disposition validator, which is safe here since this
+  field is additive and outside that matrix. `TurnCostPolicy.extract_snapshots()`
+  (`entitlement/policy.py`) now appends a `PipelinePassId.INTENT_CLASSIFIER` snapshot whenever
+  `result.intent_classifier_usage is not None`, using the usage's own `model_tier`
+  (`PASS_TIER_DEFAULTS` remains a fallback only). Removed the stale `PASS_TIER_DEFAULTS` comment
+  claiming classifier cost is never included in settlement.
+- **P2 -- wrap framework HTTP errors in the `ApiError` envelope.** `create_app()`
+  (`api/app.py`) now registers a handler for `starlette.exceptions.HTTPException` (FastAPI's own
+  `HTTPException` subclasses it, so one registration catches both) alongside the existing
+  `ApiErrorResponse`/`RequestValidationError`/`Exception` handlers. Maps 404 -> `NOT_FOUND` /
+  "Not found.", 405 -> `VALIDATION_FAILED` / "Method not allowed." (preserving the `Allow` header),
+  other 4xx -> `VALIDATION_FAILED` with the framework's own detail text, 5xx -> `INTERNAL_ERROR`
+  with a generic message. Nothing in this codebase raises `HTTPException` directly (grepped) --
+  every in-app failure already raises `ApiErrorResponse` -- so every exception this handler ever
+  sees is framework-generated (unmatched route, wrong method, or the `StaticFiles(html=True)` mount's
+  own 404 for an unknown asset when no `404.html` exists), never client- or handler-echoed text.
+
+- Sibling audit (P1): grepped every `provider.call(request)` / `scoped.call(request)` site in
+  `pipeline/` -- Planner, Writer, Extractor, Contradiction, Safety, RPG adjudication, Branching
+  writer, Branching OOC-config extractor, and Writing OOC-config extractor all already copy
+  `input_token_count`/`output_token_count`/etc. from the `ProviderCallResult` into their own typed
+  Result before returning, and each already has a corresponding `PassUsageSnapshot` path in
+  `extract_snapshots()`. Intent Classification (`_make_intent_classifier_caller`, added Round 6) was
+  the only pass reducing a `ProviderCallResult` straight to text with no snapshot path -- now fixed.
+  `PASS_TIER_DEFAULTS` and `extract_snapshots()` together cover all 11 `PipelinePassId` values; no
+  other gap found. Not broadened into redesigning Issue 7 intent classification beyond carrying
+  provider usage, per the review comment's own instruction.
+
+- Tests: `tests/entitlement/test_policy.py` -- `test_extract_snapshots_includes_intent_classifier_when_present`
+  (token/provider/model/tier fields preserved), `test_extract_snapshots_omits_intent_classifier_when_absent`,
+  and `test_compute_deduction_larger_with_intent_classifier_usage` (hosted settlement test: a
+  delivered turn's deduction is strictly larger with classifier usage than without).
+  `tests/entitlement/test_settlement.py` -- `_make_delivered_result()` gained an
+  `include_classifier_usage` flag used by the above. `tests/pipeline/orchestrator/test_intent_classifier_routing.py` --
+  `test_delivered_result_carries_intent_classifier_usage` (provider-routed classifier call stores
+  usage on the returned result, with the spy adapter's exact token/provider/model/tier values) and
+  `test_byok_delivered_result_carries_byok_adapter_usage` (BYOK path still stores usage from the BYOK
+  adapter, not a hidden hosted one); the existing refusal and non-refusal-error tests gained
+  `intent_classifier_usage is None` assertions (no provider result ever returned, so nothing to
+  carry). `tests/api/test_http_exception_envelope.py` (new, P2) -- unmatched `/api/...` route returns
+  the 404 envelope; `POST /api/health` (GET-only) returns the 405 envelope with `Allow: GET`
+  preserved; a real `ApiErrorResponse` 404 (not-found story) is unchanged; a built frontend dist
+  (`index.html` present) still serves normally, confirming the new handler only fires for genuinely
+  unmatched paths.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2333 passed, 10 skipped, 91.97% coverage, up from 2324/91.98% -- 9 new tests: 3
+  policy, 2 orchestrator routing, 4 HTTP-exception envelope), `pip-audit` (same pre-existing,
+  unrelated transitive CVEs as prior rounds -- Mako, pydantic-settings, msgpack, idna, urllib3, pip,
+  chromadb -- owner decision still pending, nothing new introduced). No API DTO or OpenAPI schema
+  changed this round (the `ApiError` envelope shape is unchanged; only which exceptions map to it
+  changed), so frontend gates and `check-api-types-drift` were not re-run.

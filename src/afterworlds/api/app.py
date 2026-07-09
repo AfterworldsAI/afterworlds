@@ -16,6 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.db_bootstrap import upgrade_to_head
@@ -103,6 +104,41 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
             detail=detail or None,
         )
         return JSONResponse(status_code=422, content=error.model_dump())
+
+    @app.exception_handler(StarletteHTTPException)
+    async def _http_exception_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        # P2 remediation (PR #126): framework-raised HTTP errors -- an
+        # unmatched /api/... route, a wrong-method 405, or the StaticFiles
+        # mount's own 404 for an unknown asset path -- previously returned
+        # FastAPI's default {"detail": ...} body instead of the single
+        # ApiError envelope (Binding Decision 10). FastAPI's own
+        # HTTPException subclasses Starlette's, so this one registration
+        # catches both. Nothing in this codebase raises HTTPException
+        # directly (grepped); every in-app failure already raises
+        # ApiErrorResponse, so exc.detail here is always framework text,
+        # never client- or handler-supplied.
+        if exc.status_code == 404:
+            error = ApiError(error_code=ApiErrorCode.NOT_FOUND, message="Not found.")
+        elif exc.status_code == 405:
+            error = ApiError(
+                error_code=ApiErrorCode.VALIDATION_FAILED,
+                message="Method not allowed.",
+            )
+        elif 400 <= exc.status_code < 500:
+            message = str(exc.detail) if exc.detail else "Request failed."
+            error = ApiError(error_code=ApiErrorCode.VALIDATION_FAILED, message=message)
+        else:
+            error = ApiError(
+                error_code=ApiErrorCode.INTERNAL_ERROR,
+                message="An internal error occurred.",
+            )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error.model_dump(),
+            headers=dict(exc.headers) if exc.headers else None,
+        )
 
     @app.exception_handler(Exception)
     async def _unhandled_exception_handler(
