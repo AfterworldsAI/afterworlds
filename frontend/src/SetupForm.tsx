@@ -228,13 +228,31 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
   const [personas, setPersonas] = useState<PersonaGallery | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [specificGoals, setSpecificGoals] = useState("");
+  // Round 13 remediation (PR #126 P2, same read-failure class as the round-12
+  // RPG setup hydration guard and post-submit refresh handling): the persona
+  // gallery load previously swallowed its own failure (`.catch(() =>
+  // setPersonas(null))`), which rendered as an empty gallery with no
+  // explanation and no way to recover short of a full page reload. Track
+  // load state explicitly instead.
+  const [personaLoadStatus, setPersonaLoadStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
 
-  useEffect(() => {
+  const loadPersonas = () => {
+    setPersonaLoadStatus("loading");
     api
       .listPersonas()
-      .then(setPersonas)
-      .catch(() => setPersonas(null));
-  }, []);
+      .then((loaded) => {
+        setPersonas(loaded);
+        setPersonaLoadStatus("ready");
+      })
+      .catch(() => {
+        setPersonas(null);
+        setPersonaLoadStatus("error");
+      });
+  };
+
+  useEffect(loadPersonas, []);
 
   const goalsReady = specificGoals.trim().length > 0;
 
@@ -261,6 +279,14 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
           required
         />
       </label>
+      {personaLoadStatus === "error" && (
+        <p className="form-error" role="alert">
+          Could not load Writing companions. Retry before saving.{" "}
+          <button type="button" onClick={loadPersonas}>
+            Retry
+          </button>
+        </p>
+      )}
       {personas && (
         <div className="persona-gallery">
           <section>
@@ -288,7 +314,15 @@ function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
         </div>
       )}
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" disabled={submitting || !personaId || !goalsReady}>
+      <button
+        type="submit"
+        disabled={
+          submitting ||
+          personaLoadStatus !== "ready" ||
+          !personaId ||
+          !goalsReady
+        }
+      >
         Save setup
       </button>
     </form>

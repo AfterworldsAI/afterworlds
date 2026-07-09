@@ -166,21 +166,33 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // round 5 follow-up): visibleState !== null only means persona_id is set
   // -- it says nothing about specific_goals. A pre-round-5 story (or any
   // row with persona_id set but a still-blank specific_goals) would have
-  // non-null visible state while play_status never promotes past SETUP,
-  // silently re-entering play view for a story whose turns stay forced to
-  // SETUP_CONFIRMATION/NON_CANON_SUPPORT forever -- the exact defect round
-  // 5 fixed, resurfacing via this bypass instead of the original path. For
-  // Writing, the durable "structured setup genuinely complete" signal is
-  // play_status === "in_play" (the same signal turns.py's
-  // derive_writing_turn_request uses), which can only be true once both
-  // persona_id and a real, Sojourner-authored specific_goals are persisted.
+  // non-null visible state, silently re-entering play view for a story
+  // whose turns stay forced to SETUP_CONFIRMATION/NON_CANON_SUPPORT
+  // forever -- the exact defect round 5 fixed, resurfacing via this bypass
+  // instead of the original path. The durable "structured setup genuinely
+  // complete" signal is a nonblank specific_goals, which can only be true
+  // once both persona_id and a real, Sojourner-authored specific_goals are
+  // persisted together (WritingSetupRequest always requires both on every
+  // call).
+  //
+  // Round 13 boundary decision (owner-approved): this signal was
+  // previously play_status === "in_play", matching turns.py's
+  // derive_writing_turn_request. That stopped being correct once POST
+  // /setup itself stopped promoting play_status (ADR-017 Decision 9 /
+  // ADR-018 D6 require the story to stay SETUP until the setup-confirmation
+  // turn genuinely lands) -- checking play_status here would have bounced
+  // a Sojourner who reloads between completing setup and submitting that
+  // first turn back to the setup form, even though setup was already
+  // genuinely complete. specific_goals is unaffected by that timing: it is
+  // persisted (nonblank, by the same request) before play_status ever
+  // changes.
   const structuredSetupPersisted =
     story.status === "setup" &&
     ((story.mode === "branching" && visibleState !== null) ||
       (story.mode === "writing" &&
         visibleState !== null &&
-        "play_status" in visibleState &&
-        visibleState.play_status === "in_play"));
+        "specific_goals" in visibleState &&
+        !!visibleState.specific_goals?.trim()));
 
   if (
     story.status === "setup" &&

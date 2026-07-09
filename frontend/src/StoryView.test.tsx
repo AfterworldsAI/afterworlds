@@ -318,6 +318,94 @@ describe("StoryView separates mutation success from refresh failure (PR #126 rou
   });
 });
 
+describe("StoryView WritingSetupForm persona load (PR #126 round 13 P2)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "writing",
+      status: "setup",
+    });
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getSetupState.mockResolvedValue(null);
+  });
+
+  it("shows a visible error and keeps Save disabled when the persona gallery fails to load", async () => {
+    mocks.listPersonas.mockRejectedValue(new Error("network down"));
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByText(/Could not load Writing companions/i);
+    // "Save setup" isn't reachable via an accessible name until goals are
+    // filled and a persona is selectable, so query the raw submit button.
+    const saveButton = screen
+      .getByRole("heading", { name: "Choose your Writing companion" })
+      .closest("form")
+      ?.querySelector('button[type="submit"]');
+    expect(saveButton).toBeDisabled();
+  });
+
+  it("retry reloads personas and clears the error without a page reload", async () => {
+    mocks.listPersonas.mockRejectedValueOnce(new Error("network down"));
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByText(/Could not load Writing companions/i);
+
+    mocks.listPersonas.mockResolvedValueOnce({
+      mentors: [
+        {
+          persona_id: "chiron",
+          display_name: "Chiron",
+          orientation: "mentor",
+          ui_short_description: "Patient mentor.",
+          ui_long_description: "Chiron approaches every project methodically.",
+          demeanor_tags: ["patient"],
+          signature_move: "Progressive challenge",
+          schema_version: 1,
+        },
+      ],
+      peers: [],
+    });
+    fireEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    await screen.findByRole("button", { name: /Chiron/ });
+    expect(
+      screen.queryByText(/Could not load Writing companions/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("successful load renders persona cards and allows selection, enabling Save once goals are filled", async () => {
+    mocks.listPersonas.mockResolvedValue({
+      mentors: [
+        {
+          persona_id: "chiron",
+          display_name: "Chiron",
+          orientation: "mentor",
+          ui_short_description: "Patient mentor.",
+          ui_long_description: "Chiron approaches every project methodically.",
+          demeanor_tags: ["patient"],
+          signature_move: "Progressive challenge",
+          schema_version: 1,
+        },
+      ],
+      peers: [],
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const personaButton = await screen.findByRole("button", { name: /Chiron/ });
+    fireEvent.click(personaButton);
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        "e.g. Draft the opening chapter of a mystery novel",
+      ),
+      { target: { value: "Draft a short story." } },
+    );
+
+    expect(screen.getByRole("button", { name: "Save setup" })).toBeEnabled();
+  });
+});
+
 describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -327,7 +415,7 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     mocks.listPersonas.mockResolvedValue({ mentors: [], peers: [] });
   });
 
-  it("shows the play view (not SetupForm) for a Writing story with persisted play_status=in_play visible state", async () => {
+  it("shows the play view (not SetupForm) for a Writing story with persisted nonblank specific_goals", async () => {
     mocks.getStory.mockResolvedValue({
       ...baseStory,
       mode: "writing",
@@ -343,14 +431,40 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("still shows SetupForm for a Writing story whose persona is set but play_status has not promoted to in_play (PR #126 round 5 follow-up)", async () => {
+  it("shows the play view even while play_status is still setup, once specific_goals is genuinely persisted (PR #126 round 13)", async () => {
+    // Round 13 boundary decision: POST /setup no longer promotes
+    // play_status itself (ADR-017 Decision 9 / ADR-018 D6 -- the story
+    // stays SETUP until the setup-confirmation turn lands). A Sojourner who
+    // reloads between completing setup and submitting that first turn must
+    // still reach the play view, not bounce back to SetupForm -- checking
+    // play_status here (as before round 13) would have reintroduced that
+    // exact bounce.
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "writing",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue({
+      ...writingVisibleState(),
+      play_status: "setup",
+    });
+
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByPlaceholderText("What do you do?");
+    expect(
+      screen.queryByRole("heading", { name: "Choose your Writing companion" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still shows SetupForm for a Writing story whose persona is set but specific_goals is still blank (PR #126 round 5 follow-up)", async () => {
     // A pre-round-5 (or otherwise incomplete) row: persona_id is set --
-    // visible state is non-null -- but specific_goals is still blank, so
-    // play_status never promoted past SETUP. visibleState !== null alone
-    // must not be treated as "Writing setup complete": that would silently
-    // reopen the play view for a story whose turns stay forced to
-    // SETUP_CONFIRMATION/NON_CANON_SUPPORT forever, the exact defect round
-    // 5 fixed, resurfacing via this bypass instead of the original path.
+    // visible state is non-null -- but specific_goals is still blank.
+    // visibleState !== null alone must not be treated as "Writing setup
+    // complete": that would silently reopen the play view for a story
+    // whose turns stay forced to SETUP_CONFIRMATION/NON_CANON_SUPPORT
+    // forever, the exact defect round 5 fixed, resurfacing via this bypass
+    // instead of the original path.
     mocks.getStory.mockResolvedValue({
       ...baseStory,
       mode: "writing",
