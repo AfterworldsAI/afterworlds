@@ -17,12 +17,14 @@ from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from afterworlds.api.app import create_app
 from afterworlds.api.config import ApiSettings
 from afterworlds.api.story_bootstrap import ensure_mode_session_state
 from afterworlds.entitlement.enums import EntitlementEventType, HostedAccessPlan
 from afterworlds.entitlement.payloads import (
+    ByokLicenseActivatedPayload,
     HostedAccessActivatedPayload,
     SubscriptionCreditGrantPayload,
 )
@@ -44,6 +46,8 @@ from afterworlds.persistence.crud.session_state import (
     update_writing_session_state,
 )
 from afterworlds.persistence.crud.story import create_story
+from afterworlds.persistence.orm.session_state import WritingSessionStateORM
+from afterworlds.pipeline.orchestrator.models import PipelineDisposition
 from afterworlds.pipeline.retrieval.eligibility import gather_turn_eligibility
 
 
@@ -82,6 +86,26 @@ def _seed_hosted_entitlement(client) -> None:  # type: ignore[no-untyped-def]
         session.commit()
     finally:
         session.close()
+
+
+def _seed_byok_entitlement(client) -> None:  # type: ignore[no-untyped-def]
+    session = client.app.state.session_factory()
+    try:
+        service = EntitlementService(session)
+        sojourner_id = client.app.state.sojourner_id
+        service.receive_entitlement_event(
+            sojourner_id,
+            EntitlementEventType.BYOK_LICENSE_ACTIVATED,
+            ByokLicenseActivatedPayload(purchased_at=datetime.now(UTC)),
+        )
+        session.commit()
+    finally:
+        session.close()
+
+
+class _AlwaysByokReady:
+    def is_byok_runnable(self, sojourner_id: UUID) -> bool:  # noqa: ARG002
+        return True
 
 
 def _create_writing_story_with_persona(client) -> str:  # type: ignore[no-untyped-def]
@@ -311,6 +335,88 @@ def test_writing_setup_confirmation_turn_then_promotes_to_in_play(
         assert decision.eligible is True, decision.reason
     finally:
         session.close()
+
+
+def test_visible_state_reflects_promotion_even_if_row_was_cached_pre_turn(
+    fake_provider_client,  # type: ignore[no-untyped-def]
+) -> None:
+    """Round 16 remediation (PR #126 P2): the route's session is opened once
+    for the whole request; derive_writing_turn_request() reads
+    WritingSessionState *before* orchestrate_turn() runs, which promotes
+    play_status to IN_PLAY in its own, separate session and commits there.
+    If the route's own session had already cached that row in its identity
+    map, a plain re-query for build_visible_state() would return the
+    pre-turn SETUP attributes instead of the orchestrator's committed
+    write -- the ORM does not overwrite an already-loaded object from a
+    fresh SELECT by default.
+
+    In production this session normally does not retain a strong reference
+    to the row across derive_writing_turn_request() (CPython frees it
+    immediately, evicting it from the identity map before build_visible_state
+    re-queries), which is exactly why this is worth pinning down with a test
+    rather than trusting it to keep working by accident: any future change
+    that holds a reference to the row for longer (a cache, a relationship
+    load, a debugger) would silently resurrect the staleness. This test
+    forces that worst case directly, by wrapping the app's session_factory
+    so the very first WritingSessionState read on the route's session is
+    pre-loaded and kept alive for the whole request -- then asserts the
+    response still reflects the orchestrator's committed IN_PLAY promotion.
+
+    Uses BYOK (not hosted) access so no settlement write runs: hosted
+    settlement's own credit-deduction commit would itself expire the whole
+    session as a side effect (SQLAlchemy's default expire_on_commit=True),
+    incidentally masking the exact staleness this test exists to force
+    independent of any other code path's behavior.
+    """
+    client = fake_provider_client
+    _seed_byok_entitlement(client)
+    story_id = _create_writing_story_with_persona(client)
+
+    # Pre-create the turn-anchor node so _submit_turn_sync's own
+    # ensure_story_turn_anchor_node() call below is a no-op (anchor.created
+    # is False). Otherwise its own "anchor just created" pre-turn commit
+    # would expire the whole session (SQLAlchemy's default
+    # expire_on_commit=True) before build_visible_state() ever runs -- which
+    # would mask the exact staleness this test forces, independent of
+    # whether the expire_all() fix is present.
+    from afterworlds.api.story_bootstrap import ensure_story_turn_anchor_node
+
+    anchor_session = client.app.state.session_factory()
+    try:
+        ensure_story_turn_anchor_node(anchor_session, UUID(story_id), StoryMode.WRITING)
+        anchor_session.commit()
+    finally:
+        anchor_session.close()
+
+    real_factory = client.app.state.session_factory
+    held_refs = []  # keeps the pre-turn ORM row alive for the whole request
+
+    def forcing_factory():  # type: ignore[no-untyped-def]
+        session = real_factory()
+        row = session.scalars(
+            select(WritingSessionStateORM).where(
+                WritingSessionStateORM.story_id == story_id
+            )
+        ).first()
+        assert row is not None
+        assert row.play_status == "setup"
+        held_refs.append(row)  # forces identity-map retention past this call
+        return session
+
+    from afterworlds.api.routes.turns import _submit_turn_sync
+
+    response = _submit_turn_sync(
+        forcing_factory,
+        client.app.state.orchestrator,
+        _AlwaysByokReady(),
+        UUID(story_id),
+        client.app.state.sojourner_id,
+        "Let's begin.",
+    )
+
+    assert response.disposition is PipelineDisposition.DELIVERED
+    assert response.visible_state is not None
+    assert response.visible_state.play_status == "in_play"
 
 
 def test_writing_turn_before_setup_stays_non_canon(

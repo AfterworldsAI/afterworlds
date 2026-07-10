@@ -206,6 +206,21 @@ def _submit_turn_sync(
             else None
         )
 
+        # Round 16 remediation (PR #126 P2): orchestrate_turn() runs in its
+        # own session/transaction and may commit mode-session-state changes
+        # there (e.g. the Writing setup-confirmation turn promoting
+        # play_status to IN_PLAY). This session's identity map can already
+        # hold that same row from an earlier pre-turn read (e.g.
+        # derive_writing_turn_request() above) -- if so, a plain re-query
+        # would silently keep serving the pre-turn attributes instead of the
+        # orchestrator's committed write, because the ORM does not overwrite
+        # an already-loaded object's attributes from a fresh SELECT by
+        # default. expire_all() forces the next read to reflect what the
+        # orchestrator actually committed, without touching this session's
+        # own not-yet-committed writes (e.g. the settlement event/state
+        # above) or its commit/rollback semantics.
+        session.expire_all()
+
         # Single fetch, same session, before commit -- avoids a client-side
         # read race after this turn's writes land (spec: "refreshed
         # visible-state payload ... single fetch, avoids a read race after

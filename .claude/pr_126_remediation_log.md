@@ -1371,3 +1371,81 @@ bypassed the `ApiError` envelope.
   chromadb -- owner decision still pending, nothing new introduced). No API DTO or OpenAPI schema
   changed this round (the `ApiError` envelope shape is unchanged; only which exceptions map to it
   changed), so frontend gates and `check-api-types-drift` were not re-run.
+
+## Remediation round 16
+
+Codex posted 2×P2, both classified up front as valid, in-scope sibling-audit misses -- no owner
+decision needed, fix narrowly in this PR. Both are framed as "a filtered/derived view diverging
+from the authoritative source it was derived from": post-turn `visible_state` diverging from what
+the orchestrator actually committed, and setup accepting a persona_id the frontend's own filtered
+list would never have offered.
+
+- **P2 -- expire/reload before building post-turn `visible_state`.** `routes/turns.py`'s route
+  session reads `WritingSessionState` before `orchestrate_turn()` runs
+  (`derive_writing_turn_request()`); the orchestrator promotes `play_status` to IN_PLAY for the
+  Writing setup-confirmation turn in its own, separate session and commits there. If the route's
+  session had already cached that row, a later re-query for `build_visible_state()` would keep
+  serving the pre-turn attributes instead of the orchestrator's committed write -- the ORM does not
+  overwrite an already-loaded object's attributes from a fresh `SELECT` by default. Fixed with the
+  smallest of the three suggested options: `session.expire_all()` immediately before
+  `build_visible_state(...)` in `_submit_turn_sync()`, after settlement (so settlement's own
+  not-yet-committed writes are unaffected) and before the route's own final commit (so
+  commit/rollback semantics are unchanged). Investigated first whether this reproduces naturally:
+  it does not, in the hosted/billable path, because `EntitlementService.settle_hosted_turn_cost()`'s
+  own credit-deduction commit already expires the whole session as an accidental side effect
+  (SQLAlchemy's default `expire_on_commit=True`) before `build_visible_state()` runs -- and even
+  off that path, CPython's immediate refcounting normally frees the ORM row (nothing holds a
+  reference to it) before the second read, evicting it from the identity map. Both are "correct by
+  accident," not by design, which is exactly the fragility worth removing: any future change that
+  holds the row longer (a cache, a relationship load, BYOK's skip-settlement path already does)
+  would silently resurrect the staleness.
+- **P2 -- enforce active-only personas during Writing setup.** `_apply_writing_setup()`
+  (`api/routes/setup.py`) called `registry.get_profile()` and persisted whatever it resolved,
+  without checking availability -- `GET /api/personas` only ever lists `ACTIVE` profiles
+  (`list_active()`), so a direct API client could persist a `HIDDEN`/`DEPRECATED` persona_id for a
+  brand-new story by naming it directly, bypassing the frontend's own filter. Fixed by requiring
+  `profile.availability is PersonaAvailability.ACTIVE` immediately after `get_profile()` resolves,
+  before any config write; a non-active persona now returns a typed 422 `VALIDATION_FAILED` naming
+  the persona and does not mutate `WritingSessionState`. `get_profile()` itself is untouched and
+  stays unrestricted -- already-persisted stories that were set up before a persona was
+  hidden/deprecated must still resolve it via `build_visible_state()`.
+
+- Sibling audit (P1): every post-`orchestrate_turn()` read in `routes/turns.py` was checked.
+  `build_visible_state()` is the only one -- fixed. `entitlement_service.settle_hosted_turn_cost()`'s
+  reads of `RuntimeEntitlementState` are all within the same route session and nothing else writes
+  that table mid-request (the orchestrator never touches entitlement tables), so there is no
+  cross-session staleness risk there; not touched. No general repository/session architecture
+  change made -- one `expire_all()` call at the one call site that needed it.
+- Sibling audit (P2): grepped the API layer for every `registry.get_profile(` call site accepting a
+  raw client-supplied id against a filtered/authoritative-vs-visible split. `_apply_writing_setup()`
+  was the only one -- fixed. RPG setup (`dice_handling`, `gm_cheating`, `tone`, etc.) and Branching
+  setup (`interaction_style`, `branching_cadence`, etc.) are plain enums with no registry-backed
+  catalog or availability tiers, so no analogous gap exists there. Not broadened into a persona
+  admin/CMS feature.
+
+- Tests: `tests/api/test_fake_provider_product_path.py::test_visible_state_reflects_promotion_even_if_row_was_cached_pre_turn`
+  -- forces the worst case directly (rather than relying on it occurring naturally, which the
+  investigation above showed it does not): wraps the app's session_factory so the route's session
+  pre-loads and holds a strong reference to the pre-turn `WritingSessionState` row, pre-creates the
+  turn-anchor node so `_submit_turn_sync`'s own anchor-creation commit does not itself mask the
+  staleness, and submits over BYOK (not hosted) so settlement's own commit does not either -- then
+  asserts the response `visible_state.play_status` is `"in_play"`. Verified by temporarily removing
+  the `expire_all()` fix: the test fails with `assert 'setup' == 'in_play'`, confirming it is
+  load-bearing; restored before landing. `tests/api/test_persona_availability.py` (new) --
+  `test_setup_accepts_active_persona`; `test_setup_rejects_hidden_persona` and
+  `test_setup_rejects_deprecated_persona` (422 envelope, `WritingSessionState.persona_id` left
+  `None` -- verified these two fail without the fix, restored before landing);
+  `test_persisted_hidden_persona_still_resolves_for_existing_story` (direct-DB-write bypass of the
+  now-guarded setup route, mirroring `test_visible_state.py`'s `_stale_writing_persona` pattern,
+  confirms `build_visible_state()` still resolves a hidden persona for an already-persisted story);
+  `test_personas_gallery_excludes_hidden_and_deprecated`. A temporary registry (one `ACTIVE`, one
+  `HIDDEN`, one `DEPRECATED` profile) is monkeypatched into `setup.py`, `visible_state.py`, and
+  `personas.py`'s own `get_default_registry` references, since the real product registry currently
+  has no non-active personas to test against. All existing RPG/Branching/Writing visible-state
+  tests still pass unchanged.
+
+- Gates on the exact branch head: `black`, `ruff`, `mypy --strict` (173 source files, no issues),
+  `pytest -q` (2340 passed, 10 skipped, 91.97% coverage, up from 2334 -- 6 new tests: 1 fake-provider
+  regression, 5 persona-availability), `pip-audit` (same pre-existing, unrelated transitive CVEs as
+  prior rounds; nothing new introduced). No API DTO or OpenAPI schema changed this round, so
+  frontend gates and `check-api-types-drift` were not re-run.

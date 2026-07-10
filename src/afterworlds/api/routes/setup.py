@@ -29,7 +29,11 @@ from afterworlds.api.dto import (
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.visible_state import build_visible_state
 from afterworlds.models.enums import BranchingPlayStatus, StoryMode
-from afterworlds.modes.personas.registry import SupportedMode, get_default_registry
+from afterworlds.modes.personas.registry import (
+    PersonaAvailability,
+    SupportedMode,
+    get_default_registry,
+)
 from afterworlds.persistence.crud.session_state import (
     apply_branching_config_update,
     apply_writing_config_update,
@@ -108,6 +112,21 @@ def _apply_writing_setup(
         profile = registry.get_profile(body.persona_id, SupportedMode.WRITING)
     except KeyError as exc:
         raise ApiErrorResponse(422, ApiErrorCode.VALIDATION_FAILED, str(exc)) from exc
+
+    # Round 16 remediation (PR #126 P2): GET /api/personas only ever lists
+    # ACTIVE profiles (list_active()), but get_profile() above resolves any
+    # profile that supports the mode, regardless of availability -- by
+    # design, so already-persisted stories can still resolve a HIDDEN/
+    # DEPRECATED persona_id they were set up with. A *new* setup call must
+    # not be allowed to pick one just because a direct API client can name
+    # it by id; get_profile() itself stays unrestricted for that reason, so
+    # this is enforced here instead, before any config write.
+    if profile.availability is not PersonaAvailability.ACTIVE:
+        raise ApiErrorResponse(
+            422,
+            ApiErrorCode.VALIDATION_FAILED,
+            f"Persona {profile.persona_id!r} is not available for new setup.",
+        )
 
     found = apply_writing_config_update(
         session,
