@@ -24,6 +24,12 @@ if TYPE_CHECKING:
 
 
 PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
+    # Round 8 remediation (PR #126 P1): fallback only -- OrchestrationResult
+    # .intent_classifier_usage already carries its own model_tier from the
+    # provider-routed call, so this entry is consulted only if that usage
+    # snapshot were ever missing a tier (kept in sync with the
+    # provider-adapter pass profile per that module's "MUST agree" invariant).
+    PipelinePassId.INTENT_CLASSIFIER: ModelTier.HAIKU,
     PipelinePassId.PLANNER: ModelTier.HAIKU,
     PipelinePassId.RPG_ADJUDICATION: ModelTier.HAIKU,
     PipelinePassId.WRITER: ModelTier.SONNET,
@@ -140,8 +146,10 @@ class TurnCostPolicy:
     def extract_snapshots(cls, result: OrchestrationResult) -> list[PassUsageSnapshot]:
         """Extract ``PassUsageSnapshot`` objects from a delivered OrchestrationResult.
 
-        Non-None pass results only.  Intent classification produces no snapshot.
-        Safety pass snapshots are included when present (consumed hosted compute).
+        Non-None pass results only.  Intent classification is included via
+        ``result.intent_classifier_usage`` when present (Round 8 remediation,
+        PR #126 P1).  Safety pass snapshots are included when present
+        (consumed hosted compute).
 
         Uses pass result ``model_tier`` when set; falls back to
         ``PASS_TIER_DEFAULTS`` for backward compatibility.
@@ -210,6 +218,21 @@ class TurnCostPolicy:
                 sr.model_identifier,
                 provider=sr.provider,
                 model_tier_str=sr.model_tier,
+            )
+
+        if result.intent_classifier_usage is not None:
+            icu = result.intent_classifier_usage
+            snapshots.append(
+                _require_tokens(
+                    PipelinePassId.INTENT_CLASSIFIER,
+                    icu.input_token_count,
+                    icu.output_token_count,
+                    icu.cache_read_token_count,
+                    icu.cache_creation_token_count,
+                    icu.model_identifier,
+                    provider=icu.provider,
+                    model_tier_str=icu.model_tier.value,
+                )
             )
 
         if result.input_safety_result is not None:

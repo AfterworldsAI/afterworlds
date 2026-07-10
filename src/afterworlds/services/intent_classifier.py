@@ -238,6 +238,8 @@ class IntentClassifierService:
         raw_input: str,
         story_id: UUID,
         hints: ClassificationHints | None = None,
+        *,
+        model_caller: ModelCallerT | None = None,
     ) -> IntentClassificationResult:
         """Classify a single player input into a typed IntentClassificationResult.
 
@@ -252,6 +254,13 @@ class IntentClassifierService:
             story_id: UUID of the story this input belongs to.  Not used by v1
                 classification logic.
             hints: optional typed hints stub.  Not consumed in v1.
+            model_caller: optional per-call override of the constructor's
+                model caller.  Round 6 remediation (PR #126): the product
+                orchestrator resolves a ``TurnProviderBinding`` per turn (the
+                selected hosted/BYOK access path) and must route every
+                classification call through it, not through a caller fixed
+                at app-construction time.  Preserves the constructor-injected
+                caller as the default for existing callers/tests.
 
         Returns:
             IntentClassificationResult with a typed IntentType.
@@ -261,6 +270,7 @@ class IntentClassifierService:
                 be parsed and validated as IntentClassificationResult.  No
                 silent fallback.
         """
+        caller = model_caller if model_caller is not None else self._model_caller
         prompt = CLASSIFICATION_PROMPT + raw_input
-        raw_response = self._model_caller(prompt)
+        raw_response = caller(prompt)
         return _parse_model_response(raw_response, raw_input)

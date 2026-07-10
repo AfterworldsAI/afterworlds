@@ -24,6 +24,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from afterworlds.entitlement.enums import ModelTier, PipelinePassId
 from afterworlds.models.enums import InteractionRejectionReason
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.rpg import RpgVisibleState
@@ -85,6 +86,29 @@ class OrchestratorError(Exception):
     that the orchestrator (or a test) built a result whose field set does
     not match the spec's invariants for its disposition.
     """
+
+
+class IntentClassifierUsage(BaseModel):
+    """Provider usage for the Intent Classification pass (PR #126 P1).
+
+    Intent Classification is a real model call routed through the turn's
+    selected provider adapter; this snapshot lets
+    ``TurnCostPolicy.extract_snapshots()`` include it in hosted settlement
+    instead of silently dropping it. Purpose-built (not the full
+    ``ProviderCallResult``) so settlement code only sees the fields it needs.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    pass_id: PipelinePassId
+    provider: str
+    model_identifier: str
+    model_tier: ModelTier
+    input_token_count: int | None
+    output_token_count: int | None
+    cache_read_token_count: int | None
+    cache_creation_token_count: int | None
+    latency_ms: int
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +193,13 @@ class OrchestrationResult(BaseModel):
     # Both declared as Any to avoid import cycles.
     writing_visible_state: Any | None = None
     writing_ooc_config_result: Any | None = None
+
+    # Additive field (Round 8 remediation, PR #126 P1): Intent Classification
+    # provider usage, captured from the turn's provider-routed classifier
+    # call so hosted settlement (TurnCostPolicy.extract_snapshots()) can
+    # include it. None only when classification never produced a provider
+    # result (e.g. REFUSED_BY_PROVIDER during classification itself).
+    intent_classifier_usage: IntentClassifierUsage | None = None
 
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
@@ -500,6 +531,7 @@ SafetyPolicy = CapabilityProfileAwareSafetyPolicy
 
 __all__ = [
     "CapabilityProfileAwareSafetyPolicy",
+    "IntentClassifierUsage",
     "InteractionRejectionReason",
     "OrchestrationResult",
     "OrchestratorError",

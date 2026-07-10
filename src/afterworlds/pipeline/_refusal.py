@@ -23,6 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class PassIdentifier(StrEnum):
     """Identifier for which provider-backed pass produced a refusal."""
 
+    INTENT_CLASSIFIER = "intent_classifier"
     PLANNER = "planner"
     RPG_ADJUDICATION = "rpg_adjudication"
     BRANCHING_WRITER = "branching_writer"

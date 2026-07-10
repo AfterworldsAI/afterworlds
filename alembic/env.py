@@ -19,6 +19,7 @@ import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.rolling_summary  # noqa: F401
 import afterworlds.persistence.orm.rpg  # noqa: F401
 import afterworlds.persistence.orm.retrieval  # noqa: F401
+import afterworlds.persistence.orm.identity  # noqa: F401
 import afterworlds.entitlement.orm  # noqa: F401
 import afterworlds.pipeline.provider.credentials._metadata  # noqa: F401
 import afterworlds.pipeline.provider._route_config  # noqa: F401

@@ -774,6 +774,69 @@ def test_extract_snapshots_branching_writer_no_duplicate_snapshots() -> None:
     assert pass_ids.count(PipelinePassId.BRANCHING_WRITER) == 1
 
 
+# ---------------------------------------------------------------------------
+# Round 8 remediation (PR #126 P1): intent_classifier_usage is included in
+# hosted settlement via extract_snapshots().
+# ---------------------------------------------------------------------------
+
+
+def test_extract_snapshots_includes_intent_classifier_when_present() -> None:
+    """DELIVERED result with intent_classifier_usage yields an
+    INTENT_CLASSIFIER snapshot preserving token/provider/model/tier fields."""
+    from uuid import uuid4
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    result = _make_delivered_result(
+        uuid4(), input_tokens=42, output_tokens=7, include_classifier_usage=True
+    )
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    classifier_snaps = [
+        s for s in snapshots if s.pass_id is PipelinePassId.INTENT_CLASSIFIER
+    ]
+    assert len(classifier_snaps) == 1
+    snap = classifier_snaps[0]
+    assert snap.input_tokens == 42
+    assert snap.output_tokens == 7
+    assert snap.provider == "test-provider"
+    assert snap.model_identifier == "test"
+    assert snap.model_tier == ModelTier.HAIKU
+
+
+def test_extract_snapshots_omits_intent_classifier_when_absent() -> None:
+    """DELIVERED result without intent_classifier_usage yields no
+    INTENT_CLASSIFIER snapshot (e.g. a result built before Round 8)."""
+    from uuid import uuid4
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    result = _make_delivered_result(uuid4(), include_classifier_usage=False)
+    snapshots = TurnCostPolicy.extract_snapshots(result)  # type: ignore[arg-type]
+    assert all(s.pass_id is not PipelinePassId.INTENT_CLASSIFIER for s in snapshots)
+
+
+def test_compute_deduction_larger_with_intent_classifier_usage() -> None:
+    """Hosted settlement test: a delivered turn's deduction is strictly
+    larger when classifier usage is present, since it adds a billable
+    snapshot on top of the same Planner/Writer/Extractor/Contradiction
+    usage."""
+    from uuid import uuid4
+
+    from tests.entitlement.test_settlement import _make_delivered_result
+
+    policy = make_policy()
+    without_usage = _make_delivered_result(uuid4(), include_classifier_usage=False)
+    with_usage = _make_delivered_result(uuid4(), include_classifier_usage=True)
+
+    deduction_without = policy.compute_deduction(
+        TurnCostPolicy.extract_snapshots(without_usage)  # type: ignore[arg-type]
+    )
+    deduction_with = policy.compute_deduction(
+        TurnCostPolicy.extract_snapshots(with_usage)  # type: ignore[arg-type]
+    )
+    assert deduction_with > deduction_without
+
+
 # Forward declarations to satisfy mypy in the last test
 from uuid import UUID  # noqa: E402
 

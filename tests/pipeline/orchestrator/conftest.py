@@ -203,8 +203,17 @@ class FakeIntentClassifier:
     calls: list[tuple[str, UUID]] = field(default_factory=list)
 
     def classify(
-        self, raw_input: str, story_id: UUID, hints: Any = None
+        self,
+        raw_input: str,
+        story_id: UUID,
+        hints: Any = None,
+        *,
+        model_caller: Any = None,
     ) -> IntentClassificationResult:
+        # Round 6 remediation (PR #126 P1): the orchestrator now always
+        # passes a provider-routed model_caller override; this fake ignores
+        # it (fixed canned intent) but must accept the kwarg or every
+        # orchestrator test using this fake breaks with TypeError.
         self.calls.append((raw_input, story_id))
         if self.raise_exc is not None:
             raise self.raise_exc

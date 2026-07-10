@@ -249,3 +249,55 @@ def node_belongs_to_story(session: Session, node_id: UUID, story_id: UUID) -> bo
         .first()
     )
     return result is not None
+
+
+def list_turns_by_story(
+    session: Session,
+    story_id: UUID,
+    *,
+    limit: int,
+    offset: int = 0,
+    newest_first: bool = False,
+) -> list[Turn]:
+    """Return Turns for a story in persisted (timestamp) order, paged.
+
+    Walks Turn → Node → Chapter → Arc and filters on Arc.story_id, mirroring
+    ``node_belongs_to_story`` -- correct regardless of how many Nodes a story
+    ends up owning, not coupled to the v1 single-turn-anchor-node shape.
+
+    ``newest_first=True`` (round 11 remediation, PR #126 P2: transcript
+    "latest page" support) queries newest-first so ``limit``/``offset``
+    select from the end of the transcript instead of the start, then
+    reverses the page back to chronological order before returning --
+    callers always see oldest-to-newest within the returned page either way.
+
+    Round 17 remediation (PR #126 P2): ``timestamp`` alone is not a unique
+    key -- two turns can share the same stored timestamp, which left both
+    plain pagination and the newest-page query with unspecified tie order
+    (a repeated read could shuffle or drop a turn at a page boundary).
+    ``turn_id`` (the primary key, always present) is a stable secondary sort
+    key; ordering by it does not imply any relationship to insertion order,
+    only that repeated reads return the same order.
+    """
+    from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+
+    order_cols = (
+        (TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
+        if newest_first
+        else (TurnORM.timestamp.asc(), TurnORM.turn_id.asc())
+    )
+    rows = (
+        session.query(TurnORM)
+        .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+        .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+        .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+        .filter(ArcORM.story_id == str(story_id))
+        .order_by(*order_cols)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    turns = [_turn_orm_to_model(row) for row in rows]
+    if newest_first:
+        turns.reverse()
+    return turns

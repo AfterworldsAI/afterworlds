@@ -314,6 +314,7 @@ def apply_branching_config_update(
     length_preference: LengthPreference | None = None,
     *,
     clear_branch_count_range: bool = False,
+    play_status: BranchingPlayStatus | None = None,
 ) -> bool:
     """Apply non-None config fields to the BranchingSessionState ORM row for a story.
 
@@ -324,6 +325,16 @@ def apply_branching_config_update(
     NULL regardless of the ``branch_count_range`` argument (use when switching to
     FREEFORM_ONLY, which has no valid range).  When ``False``, the usual
     "non-None means set, None means leave unchanged" semantics apply.
+
+    ``play_status`` (Round 7 remediation, PR #126): mirrors
+    ``apply_writing_config_update``'s ``play_status`` guard exactly.  A
+    caller may request ``IN_PLAY`` on every setup call (as the Branching
+    setup route now does) without checking prior state itself -- promotion
+    only actually happens when the *effective* (post-update) row has both
+    ``interaction_style`` and ``branching_cadence`` non-null, since either
+    field may already be persisted from an earlier partial setup call rather
+    than supplied on this one.  Requesting a non-``IN_PLAY`` status is always
+    applied unconditionally (only ``IN_PLAY`` is gated).
     """
     row = session.scalars(
         select(BranchingSessionStateORM).where(
@@ -342,6 +353,13 @@ def apply_branching_config_update(
         row.branch_count_range = branch_count_range.value
     if length_preference is not None:
         row.length_preference = length_preference.value
+    if play_status is not None:
+        if play_status is BranchingPlayStatus.IN_PLAY and (
+            row.interaction_style is None or row.branching_cadence is None
+        ):
+            pass  # skip: cannot enter IN_PLAY without both required fields
+        else:
+            row.play_status = play_status.value
     session.flush()
     return True
 

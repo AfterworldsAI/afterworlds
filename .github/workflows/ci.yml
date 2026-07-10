@@ -66,3 +66,101 @@ jobs:
         # Revisit if chromadb ships a patched release, or if a server-mode deployment
         # is ever proposed (which would require a new safe-deployment review).
         run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-45829
+
+  frontend:
+    name: Frontend — Typecheck, Lint, Format, Test, Audit, Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node (pinned LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python package (for OpenAPI schema generation)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+        working-directory: .
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type checking — tsc --noEmit
+        run: npm run typecheck
+
+      - name: Linting — ESLint
+        run: npm run lint
+
+      - name: Formatting — Prettier
+        run: npm run format:check
+
+      - name: Tests — Vitest
+        run: npm run test
+
+      - name: Dependency audit — npm audit
+        run: npm audit --audit-level=high
+
+      - name: OpenAPI TS types drift check
+        run: npm run check-api-types-drift
+
+      - name: Production build
+        run: npm run build
+
+  e2e:
+    name: E2E — minimal spine (Playwright, faked provider passes)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node (pinned LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Run E2E spine
+        # DoR-B: AFTERWORLDS_FAKE_PROVIDER=1 (set in playwright.config.ts's
+        # webServer env) -- no real Anthropic calls in default CI.
+        # Round 12 remediation (PR #126 P2): `npm run e2e` (not
+        # `npx playwright test` directly) is required -- it wraps Playwright
+        # via e2e/run-isolated.mjs, which computes one per-run isolated
+        # database path shared by the webServer and every test worker.
+        run: npm run e2e
+        working-directory: frontend
