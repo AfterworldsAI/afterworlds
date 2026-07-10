@@ -216,9 +216,11 @@ def _submit_turn_sync(
         # orchestrator's committed write, because the ORM does not overwrite
         # an already-loaded object's attributes from a fresh SELECT by
         # default. expire_all() forces the next read to reflect what the
-        # orchestrator actually committed, without touching this session's
-        # own not-yet-committed writes (e.g. the settlement event/state
-        # above) or its commit/rollback semantics.
+        # orchestrator actually committed. Safe to call here: settlement
+        # (receive_entitlement_event) and any anchor-creation write above
+        # have already committed by this point, so there is nothing pending
+        # in this session for expire_all() to discard, and the route's own
+        # commit/rollback semantics are otherwise unchanged.
         session.expire_all()
 
         # Single fetch, same session, before commit -- avoids a client-side
