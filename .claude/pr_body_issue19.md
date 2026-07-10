@@ -78,10 +78,16 @@ Playwright minimal-spine E2E suite running against the built app with faked prov
   turn-submission envelope's `visible_state` field and the standalone `GET .../visible-state`
   route — not a reuse of `OrchestrationResult`'s embedded visible-state fields, which are forbidden
   by the disposition-invariant validator on every non-DELIVERED disposition.
-- Setup route (`POST .../setup`) writes only structured config fields via existing typed CRUD; it
-  never writes turns and never advances `play_status`/`setup_phase` itself. RPG conversational
-  setup and Branching/Writing setup-confirmation turns (ADR-016 Decision 3 / ADR-017 Decision 9)
-  go through ordinary `POST .../turns`.
+- Setup route (`POST .../setup`) writes structured setup/config fields via existing typed CRUD and
+  never writes turns. Promotion semantics are mode-specific:
+  - Branching: once the effective persisted setup has both `interaction_style` and
+    `branching_cadence`, the setup route promotes `play_status` to `IN_PLAY`; this is required for
+    Branching rails such as CYOA rejection and branch-choice validation.
+  - Writing: the setup route does not promote `play_status`; the next ordinary `POST .../turns`
+    call remains the ADR-017 setup-confirmation turn (`SETUP_CONFIRMATION` / `NON_CANON_SUPPORT`)
+    and the server promotes to `IN_PLAY` only after that turn lands.
+  - RPG: the setup route records structured setup only; RPG progression to `IN_PLAY` remains tied
+    to the later concrete character-sheet/adjudicability path, not Issue 19's minimal setup form.
 - The DoR-B fake-provider path (`api/fake_pipeline.py`, env-gated by `AFTERWORLDS_FAKE_PROVIDER`,
   never true in the product/dev path) is E2E support only, not product behavior — each real pass
   service's own parsing/validation logic still runs end-to-end against deterministic canned data;

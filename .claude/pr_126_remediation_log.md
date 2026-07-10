@@ -1449,3 +1449,55 @@ list would never have offered.
   regression, 5 persona-availability), `pip-audit` (same pre-existing, unrelated transitive CVEs as
   prior rounds; nothing new introduced). No API DTO or OpenAPI schema changed this round, so
   frontend gates and `check-api-types-drift` were not re-run.
+
+## Remediation round 17
+
+Codex posted 2×P2. One is a sibling of the round-11 latest-page pagination work: two other
+TurnORM-ordered queries (`SQLiteRecentTurnsProvider`, the retrieval backfill query) already carry a
+`turn_id` tie-breaker; `list_turns_by_story()` was the one query that didn't get it. The other is
+documentation hygiene: an Architecture Note in the PR body/`.claude/pr_body_issue19.md` went stale
+after round 13's owner-approved Writing promotion-timing change (setup no longer promotes Writing;
+the setup-confirmation turn does) without the note being updated to match, and it was never
+accurate for Branching (which the setup route does promote, once both `interaction_style` and
+`branching_cadence` are persisted) in the first place.
+
+- **P2 -- deterministic transcript tie-breaker.** `list_turns_by_story()` (`persistence/crud/node.py`)
+  ordered only by `TurnORM.timestamp`; two turns sharing a stored timestamp had unspecified SQLite
+  tie order, so a repeated read of the same page (or the `latest=true` newest-page query) could
+  shuffle or drop a turn at a page boundary. Fixed by adding `TurnORM.turn_id` (the primary key,
+  always present) as a secondary sort key: `ORDER BY timestamp ASC, turn_id ASC` for chronological
+  order, `ORDER BY timestamp DESC, turn_id DESC` for the newest-page query, page reversed back to
+  chronological order before returning exactly as before -- the API-visible ordering contract
+  (oldest-to-newest within a returned page) is unchanged; no client-side sorting introduced.
+- **P2 -- correct the setup Architecture Note.** Replaced the single blanket claim ("never advances
+  `play_status`/`setup_phase` itself") with the mode-specific breakdown Codex's own comment
+  supplied: Branching promotes once both structured fields are persisted; Writing does not promote
+  at setup (the next turn's setup-confirmation processing does, per the round-13 owner decision);
+  RPG's setup route only ever wrote structured config and was never implicated. Edited in both
+  `.claude/pr_body_issue19.md` and the live PR body's Architecture Notes section; kept concise, no
+  diary added -- this remediation's own narrative lives here instead.
+
+- Sibling audit (P1): grepped every `order_by`/`ORDER BY` touching `TurnORM` or paged listings.
+  `SQLiteRecentTurnsProvider` (`services/context_builder.py`) and the retrieval backfill query
+  (`pipeline/retrieval/backfill.py`) already order by `(timestamp, turn_id)` -- confirms `turn_id`
+  tie-breaking is the established pattern here; `list_turns_by_story()` was the one gap, now closed.
+  `list_stories()` (`api/routes/stories.py`) orders by `updated_at.desc()` with no `limit`/`offset` at
+  all -- no page boundary exists, so no tie-breaker gap to fix. No Turn timestamp storage or
+  `created_at` column changes made, per the review comment's own instruction.
+
+- Tests: `tests/persistence/test_transcript_ordering.py` (new) -- three turns (round 1)/five turns
+  (round 2)/six turns (round 3) sharing one identical timestamp:
+  `test_list_turns_by_story_orders_by_timestamp_then_turn_id_ascending` (deterministic ascending
+  order, stable across two consecutive calls); `test_list_turns_by_story_newest_first_returns_deterministic_subset_oldest_first`
+  (the newest-page query selects the correct top-N-by-turn_id subset, presented oldest-first);
+  `test_list_turns_by_story_page_boundary_stable_across_repeated_calls` (both a plain
+  `limit`/`offset` page and a `latest=true` page return byte-identical results across two calls).
+  Verified by temporarily reverting the `turn_id` tie-breaker: all three fail (SQLite's actual tie
+  order for these rows is insertion order, not the turn_id's lexicographic order, so the assertions
+  genuinely diverge) -- confirms the fix is load-bearing; restored before landing. Existing
+  `tests/api/test_transcript.py` (9 tests) and `tests/persistence/test_crud_node.py` unaffected.
+
+- Gates: `black`, `ruff`, `mypy --strict` (173 source files, no issues), `pytest -q` (2343 passed,
+  10 skipped, 91.97% coverage, up from 2340 -- 3 new tests), `pip-audit` (same pre-existing,
+  unrelated transitive CVEs as prior rounds; nothing new introduced). No API DTO or OpenAPI schema
+  changed this round; the Architecture Note edit is prose-only, no code test required for it alone.

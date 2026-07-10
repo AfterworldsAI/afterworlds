@@ -270,17 +270,29 @@ def list_turns_by_story(
     select from the end of the transcript instead of the start, then
     reverses the page back to chronological order before returning --
     callers always see oldest-to-newest within the returned page either way.
+
+    Round 17 remediation (PR #126 P2): ``timestamp`` alone is not a unique
+    key -- two turns can share the same stored timestamp, which left both
+    plain pagination and the newest-page query with unspecified tie order
+    (a repeated read could shuffle or drop a turn at a page boundary).
+    ``turn_id`` (the primary key, always present) is a stable secondary sort
+    key; ordering by it does not imply any relationship to insertion order,
+    only that repeated reads return the same order.
     """
     from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 
-    order_col = TurnORM.timestamp.desc() if newest_first else TurnORM.timestamp.asc()
+    order_cols = (
+        (TurnORM.timestamp.desc(), TurnORM.turn_id.desc())
+        if newest_first
+        else (TurnORM.timestamp.asc(), TurnORM.turn_id.asc())
+    )
     rows = (
         session.query(TurnORM)
         .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
         .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
         .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
         .filter(ArcORM.story_id == str(story_id))
-        .order_by(order_col)
+        .order_by(*order_cols)
         .offset(offset)
         .limit(limit)
         .all()
