@@ -103,6 +103,28 @@ Playwright minimal-spine E2E suite running against the built app with faked prov
   rather than silently booting an API-only server. Full wheel/pip packaging (bundling the frontend
   dist, `docs/prompts`, and the Alembic migration directory as package data) remains a follow-up —
   see below.
+- Hosted settlement (`TurnCostPolicy.extract_snapshots()`) includes Intent Classification cost:
+  `OrchestrationResult.intent_classifier_usage` carries the provider-routed classifier call's
+  usage (captured via a per-turn, non-global `_ClassifierUsageCapture`, no second provider call),
+  and `extract_snapshots()` appends an `INTENT_CLASSIFIER` `PassUsageSnapshot` whenever it is
+  present. Every hosted model-backed pass that can run before DELIVERED/OOC_HANDLED settlement now
+  has a corresponding snapshot path; none is exempted without an explicit owner decision.
+- `create_app()`'s exception translation now also covers framework-raised HTTP errors, not only
+  application-raised ones: a `starlette.exceptions.HTTPException` handler (which also catches
+  FastAPI's own `HTTPException`, a subclass) covers unmatched routes, wrong-method requests, and
+  the `StaticFiles` mount's own 404 for an unknown asset — all now return the single `ApiError`
+  envelope (Binding Decision 10) instead of the framework's default body.
+- `routes/turns.py`'s post-turn `visible_state` build always reflects what `orchestrate_turn()`
+  actually committed, not the route session's pre-turn read: `session.expire_all()` runs
+  immediately before `build_visible_state(...)`, since the orchestrator commits mode-session-state
+  changes (e.g. Writing's setup-confirmation promotion to IN_PLAY) in its own, separate
+  session/transaction, and the ORM does not overwrite an already-loaded object's attributes from a
+  fresh `SELECT` by default.
+- Writing setup enforces `PersonaAvailability.ACTIVE` at the API boundary
+  (`_apply_writing_setup()`), not only via `GET /api/personas` only listing active profiles for the
+  frontend — a direct API client naming a `HIDDEN`/`DEPRECATED` persona_id by hand is rejected
+  (422) before any config write. `get_profile()` itself remains unrestricted so already-persisted
+  stories still resolve a persona that was hidden/deprecated after their setup ran.
 
 ## Current follow-ups / owner decisions
 
@@ -129,12 +151,16 @@ Notes, current known boundaries, and final gate status.
 
 ## Final gate status
 
-Gates on the exact branch head (round 14, the latest landed round):
+Gates on the exact branch head (round 17, the latest landed round):
 
-- Python: `black`, `ruff`, `mypy --strict` (173 source files, no issues), `pytest -q` (2324
-  passed, 10 skipped, 91.98% coverage) — unchanged since round 13; round 14 touched frontend
-  only.
-- Frontend: `tsc --noEmit`, ESLint, Prettier, Vitest (45 passed, up from 39), `npm audit
-  --audit-level=high` (0 vulnerabilities), production build.
-- E2E: full Playwright spine (7/7 passing) via `npm run e2e` against a fresh build.
-- OpenAPI/TS: generated and drift-checked; no schema changes in round 13 or round 14.
+- Python: `black`, `ruff`, `mypy --strict` (173 source files, no issues), `pytest -q` (2343
+  passed, 10 skipped, 91.97% coverage, up from 2324/91.98% — rounds 15–17 added 19 backend
+  tests), `pip-audit` (same pre-existing, unrelated transitive CVEs as prior rounds; nothing new
+  introduced).
+- Frontend: unchanged since round 14 (`tsc --noEmit`, ESLint, Prettier, Vitest 45 passed, `npm
+  audit --audit-level=high` 0 vulnerabilities, production build) — rounds 15–17 touched backend
+  and documentation only.
+- E2E: full Playwright spine (7/7 passing) via `npm run e2e` against a fresh build, unchanged
+  since round 14.
+- OpenAPI/TS: generated and drift-checked; no schema changes in round 13 through 17 (the
+  `ApiError` envelope shape and every DTO are unchanged this round).
