@@ -36,10 +36,10 @@ sequences, player-roll lifecycle completion — see ADR-015b):
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from afterworlds.models.enums import (
     ActionResolutionStatus,
@@ -260,22 +260,44 @@ class PendingRollRequest(BaseModel):
 class RollTerm(BaseModel):
     """One independently meaningful dice term within a RollInstructionSnapshot.
 
-    Validation enforced by callers assembling terms: bounded positive
-    ``count``/``sides``; ``keep_count`` only set for keep operations, and
-    then ``1 <= keep_count <= count``; adapter approval for supported dice
-    and operations. This model does not execute arbitrary formulas.
+    Enforced here: bounded positive ``count``/``sides``; ``keep_count`` only
+    set for keep operations, and then ``1 <= keep_count <= count``. Adapter
+    approval for supported dice/operations is a caller concern (the adapter
+    decides which shapes it will *generate*), not this model's — this model
+    only rejects shapes that could never be legal for any adapter. This model
+    does not execute arbitrary formulas.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     schema_version: Literal[1] = 1
     term_id: UUID
-    count: int
-    sides: int
+    count: int = Field(gt=0)
+    sides: int = Field(gt=0)
     selection_rule: DiceSelectionRule
     keep_count: int | None = None
     contribution: RollContribution = RollContribution.ADD
     label: str | None = None
+
+    @model_validator(mode="after")
+    def keep_count_matches_selection_rule(self) -> Self:
+        if self.selection_rule is DiceSelectionRule.SUM_ALL:
+            if self.keep_count is not None:
+                raise ValueError(
+                    f"keep_count must be None for selection_rule=SUM_ALL, "
+                    f"got {self.keep_count}"
+                )
+            return self
+        if self.keep_count is None:
+            raise ValueError(
+                f"keep_count is required for selection_rule={self.selection_rule.value}"
+            )
+        if not (1 <= self.keep_count <= self.count):
+            raise ValueError(
+                f"keep_count ({self.keep_count}) must be between 1 and "
+                f"count ({self.count})"
+            )
+        return self
 
 
 class RollModifierComponent(BaseModel):
