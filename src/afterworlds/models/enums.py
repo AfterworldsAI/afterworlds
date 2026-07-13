@@ -202,6 +202,116 @@ class RollVisibility(StrEnum):
     PLAYER = "player"
 
 
+class RollPurpose(StrEnum):
+    """Bounded adapter-owned roll-purpose vocabulary — CRD Issue 15b.
+
+    Never a free-form string; the model may propose a purpose, but code
+    verifies or replaces it before it becomes authoritative.
+    """
+
+    ATTACK = "attack"
+    SAVING_THROW = "saving_throw"
+    ABILITY_CHECK = "ability_check"
+    SKILL_CHECK = "skill_check"
+    DAMAGE = "damage"
+    HEALING = "healing"
+    DURATION = "duration"
+    CONTESTED = "contested"
+
+
+class DiceSelectionRule(StrEnum):
+    """How dice within one RollTerm combine into a subtotal — CRD Issue 15b."""
+
+    SUM_ALL = "sum_all"
+    KEEP_HIGHEST = "keep_highest"
+    KEEP_LOWEST = "keep_lowest"
+
+
+class RollContribution(StrEnum):
+    """Sign a RollTerm's subtotal contributes to the instruction total.
+
+    CRD Issue 15b.
+    """
+
+    ADD = "add"
+    SUBTRACT = "subtract"
+
+
+class ModifierVisibility(StrEnum):
+    """Player-visibility of one RollModifierComponent — CRD Issue 15b."""
+
+    PLAYER_VISIBLE = "player_visible"
+    HIDDEN = "hidden"
+
+
+class RpgInteractionPhase(StrEnum):
+    """What kind of pending interaction (if any) a sequence exposes.
+
+    CRD Issue 15b.
+    """
+
+    PENDING_ROLL = "pending_roll"
+    PENDING_MECHANICAL_DECISION = "pending_mechanical_decision"
+    READY_FOR_NARRATION = "ready_for_narration"
+
+
+class ActionResolutionStatus(StrEnum):
+    """Lifecycle status of a persisted ActionResolutionSequence — CRD Issue 15b."""
+
+    ACTIVE = "active"
+    READY_FOR_NARRATION = "ready_for_narration"
+    COMPLETED = "completed"
+
+
+class SequenceInteractionKind(StrEnum):
+    """Which interaction type (if any) is currently pending on a sequence.
+
+    CRD Issue 15b.
+    """
+
+    ROLL = "roll"
+    DECISION = "decision"
+    NONE = "none"
+
+
+class ResolvedStepKind(StrEnum):
+    """What kind of resolved step this is within a sequence.
+
+    CRD Issue 15b.
+    """
+
+    PLAYER_ROLL = "player_roll"
+    AI_ROLL = "ai_roll"
+    HIDDEN_ROLL = "hidden_roll"
+    ADJUSTMENT = "adjustment"
+    MECHANICAL_DECISION = "mechanical_decision"
+
+
+class RollSubmissionSource(StrEnum):
+    """Fine-grained channel a player roll result arrived through — CRD Issue 15b.
+
+    Distinct from ``ResolvedAdjudicationRecord.source`` (the coarse
+    player/ai/hidden origin). Audit enforces: PLAYER source implies
+    INLINE_UI or PHYSICAL_SELF_REPORT; AI/HIDDEN source implies
+    BACKEND_DICE_SERVICE.
+    """
+
+    INLINE_UI = "inline_ui"
+    PHYSICAL_SELF_REPORT = "physical_self_report"
+    BACKEND_DICE_SERVICE = "backend_dice_service"
+
+
+class RollAdjustmentTiming(StrEnum):
+    """When a RollAdjustmentOption may be applied relative to the roll — CRD Issue 15b.
+
+    Only PRE_ROLL is active in v1; POST_ROLL_BEFORE_OUTCOME is preserved as a
+    schema value for a later curated mechanic but has no v1 code path.
+    """
+
+    PRE_ROLL = "pre_roll"
+    POST_ROLL_BEFORE_OUTCOME = "post_roll_before_outcome"
+
+
 class ConditionVisibility(StrEnum):
     """Whether an active condition is visible to the Sojourner.
 

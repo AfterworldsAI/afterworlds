@@ -31,11 +31,21 @@ if TYPE_CHECKING:
 
 
 class PendingRollDuplicateError(Exception):
-    """Raised when a pending roll is announced while one already exists."""
+    """Raised when a pending roll is announced while one already exists.
+
+    Superseded as the primary story-level gate by ``ActionSequenceStateConflictError``
+    (CRD Issue 15b) — the authoritative "one unresolved thing per story" invariant now
+    lives on ``action_resolution_sequences``. This still fires as a lower-level
+    defense-in-depth check inside ``check_no_pending_for_story``.
+    """
+
+    code = "ACTION_SEQUENCE_STATE_CONFLICT"
 
 
 class PendingRollAlreadyConsumedError(Exception):
     """Raised when mark_consumed targets a row that is no longer pending."""
+
+    code = "PENDING_ROLL_ALREADY_CONSUMED"
 
 
 class PendingRollRequestService:
@@ -116,16 +126,17 @@ class PendingRollRequestService:
 
 
 def _orm_to_model(orm: PendingRollRequestORM) -> PendingRollRequest:
-    """Convert a ``PendingRollRequestORM`` row to a ``PendingRollRequest`` model."""
+    """Convert a ``PendingRollRequestORM`` row to a ``PendingRollRequest`` model.
+
+    Revised for CRD Issue 15b: display/derivation fields are retired in favor
+    of the structured ``instruction_snapshot_json``; see ADR-015b's Column
+    Disposition table.
+    """
     return PendingRollRequest(
         request_id=UUID(orm.request_id),
         story_id=UUID(orm.story_id),
         session_id=UUID(orm.session_id),
         character_id=UUID(orm.character_id),
-        check_label=orm.check_label,
-        player_facing_instruction=orm.player_facing_instruction,
-        expected_value_shape=orm.expected_value_shape,
-        visible_modifier_note=orm.visible_modifier_note,
         visibility=RollVisibility(orm.visibility),
         source_proposal_ref=orm.source_proposal_ref,
         originating_turn_id=UUID(orm.originating_turn_id),
@@ -135,11 +146,15 @@ def _orm_to_model(orm: PendingRollRequestORM) -> PendingRollRequest:
         status=cast(Literal["pending", "consumed", "cancelled", "expired"], orm.status),
         created_at=datetime.fromisoformat(orm.created_at),
         schema_version=cast(Literal[1], orm.schema_version),
-        roll_expression=orm.roll_expression,
-        visible_modifier_total=orm.visible_modifier_total,
-        visible_modifier_breakdown_json=orm.visible_modifier_breakdown_json,
-        hidden_modifier_present=orm.hidden_modifier_present,
         adapter_context_hash=orm.adapter_context_hash,
+        sequence_id=(UUID(orm.sequence_id) if orm.sequence_id is not None else None),
+        step_id=(UUID(orm.step_id) if orm.step_id is not None else None),
+        instruction_id=(
+            UUID(orm.instruction_id) if orm.instruction_id is not None else None
+        ),
+        instruction_revision=orm.instruction_revision,
+        instruction_schema_version=orm.instruction_schema_version,
+        instruction_snapshot_json=orm.instruction_snapshot_json,
     )
 
 

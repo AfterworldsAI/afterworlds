@@ -17,6 +17,20 @@ Architectural invariants enforced here:
   must never appear in any player-facing output, prompt, or DTO.
 - ``RpgVisibleState`` is character-visible only; hidden state excluded by
   construction.
+
+CRD Issue 15b additions (structured roll instructions, action-resolution
+sequences, player-roll lifecycle completion — see ADR-015b):
+- ``RollInstructionSnapshot``/``RollTerm`` are authoritative; human-readable
+  expressions (``display_expression``) are display/diagnostic text only.
+- Player-visible projections (``PlayerRollInstructionView`` and friends) omit
+  every backend-only field — ``RollAdjustmentOption.ability_id`` in particular
+  never appears in ``PlayerAdjustmentOptionView``.
+- ``ActionResolutionSequence`` persists one declared action or mechanically
+  linked action group; at most one pending interaction (roll XOR decision)
+  per sequence.
+- ``PendingRollRequest`` is revised per ADR-015b's Column Disposition table:
+  legacy display/derivation fields are retired in favor of
+  ``instruction_snapshot_json``.
 """
 
 from __future__ import annotations
@@ -27,7 +41,20 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from afterworlds.models.enums import ConditionVisibility, RollVisibility
+from afterworlds.models.enums import (
+    ActionResolutionStatus,
+    ConditionVisibility,
+    DiceSelectionRule,
+    ModifierVisibility,
+    ResolvedStepKind,
+    RollAdjustmentTiming,
+    RollContribution,
+    RollPurpose,
+    RollSubmissionSource,
+    RollVisibility,
+    RpgInteractionPhase,
+    SequenceInteractionKind,
+)
 
 # ---------------------------------------------------------------------------
 # Roll proposal DTOs (model-emitted; no trust-relevant numbers)
@@ -182,15 +209,20 @@ class WriterAdjudicationView(BaseModel):
 
 
 class PendingRollRequest(BaseModel):
-    """Persisted state for a player-roll request spanning two turns.
+    """Persisted state for a player-roll request, linked to its sequence.
 
-    Created on the announce turn; consumed on the turn the Sojourner reports
-    the result.  Stores the code-derived roll terms snapshot so consumption
-    validates against what was announced, not freshly recomputed state.
+    Revised per ADR-015b's Column Disposition table (CRD Issue 15b). The
+    display/derivation fields the v1 implementation carried directly —
+    ``roll_expression``, ``expected_value_shape``, ``visible_modifier_total``,
+    ``visible_modifier_breakdown_json``, ``check_label``,
+    ``player_facing_instruction``, ``visible_modifier_note``,
+    ``hidden_modifier_present`` — are retired in favor of one structured
+    ``instruction_snapshot_json``; display text derives from the snapshot.
 
-    ``hidden_modifier_present`` is INTERNAL ONLY — it must never appear in
-    ``WriterAdjudicationView``, ``RpgVisibleState``, player-facing prompts,
-    or delivered output.
+    New rows require ``sequence_id``/``step_id``/``instruction_id``/
+    ``instruction_revision``/``instruction_schema_version``/
+    ``instruction_snapshot_json``. Legacy consumed rows may retain nullable
+    sequence/instruction linkage.
 
     ``adapter_context_hash`` surfaces sheet-state drift between announce and
     consume.  In v1, a mismatch produces a diagnostic but does NOT trigger
@@ -203,10 +235,6 @@ class PendingRollRequest(BaseModel):
     story_id: UUID
     session_id: UUID
     character_id: UUID
-    check_label: str
-    player_facing_instruction: str
-    expected_value_shape: str
-    visible_modifier_note: str | None = None
     visibility: RollVisibility
     source_proposal_ref: str
     originating_turn_id: UUID
@@ -214,11 +242,398 @@ class PendingRollRequest(BaseModel):
     status: Literal["pending", "consumed", "cancelled", "expired"] = "pending"
     created_at: datetime
     schema_version: Literal[1] = 1
-    roll_expression: str
-    visible_modifier_total: int | None = None
-    visible_modifier_breakdown_json: str | None = None
-    hidden_modifier_present: bool = False
     adapter_context_hash: str | None = None
+
+    sequence_id: UUID | None = None
+    step_id: UUID | None = None
+    instruction_id: UUID | None = None
+    instruction_revision: int | None = None
+    instruction_schema_version: int | None = None
+    instruction_snapshot_json: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Roll Instruction Contract (CRD Issue 15b — authoritative structured roll)
+# ---------------------------------------------------------------------------
+
+
+class RollTerm(BaseModel):
+    """One independently meaningful dice term within a RollInstructionSnapshot.
+
+    Validation enforced by callers assembling terms: bounded positive
+    ``count``/``sides``; ``keep_count`` only set for keep operations, and
+    then ``1 <= keep_count <= count``; adapter approval for supported dice
+    and operations. This model does not execute arbitrary formulas.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    count: int
+    sides: int
+    selection_rule: DiceSelectionRule
+    keep_count: int | None = None
+    contribution: RollContribution = RollContribution.ADD
+    label: str | None = None
+
+
+class RollModifierComponent(BaseModel):
+    """One code-owned integer modifier contributing to a RollInstructionSnapshot total.
+
+    ``visibility`` gates whether this component may appear in
+    ``PlayerModifierView`` — HIDDEN components are never surfaced player-side.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    modifier_id: UUID
+    label: str
+    value: int
+    visibility: ModifierVisibility
+    source_kind: str
+    source_reference: str | None = None
+
+
+class RollAdjustmentOption(BaseModel):
+    """A typed, backend-derived adjustment a Sojourner may apply to a pending roll.
+
+    V1 selection is a stable ``option_id`` only, no typed parameters (15b-10)
+    — see the "Parameterized adjustments" Known Unknown for mechanics that
+    would need more than that. ``ability_id`` is backend-only and must never
+    appear in ``PlayerAdjustmentOptionView``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    ability_id: str
+    timing: RollAdjustmentTiming
+    player_visible_label: str
+    resource_preview: str | None = None
+
+
+class RollInstructionSnapshot(BaseModel):
+    """The authoritative structured roll instruction (CRD Issue 15b).
+
+    Human-readable ``display_expression``/``display_label`` are display and
+    diagnostic text only — never the resolution authority. Supersedes the
+    v1 ``roll_expression`` string per ADR-015b.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    instruction_id: UUID
+    instruction_revision: int
+    purpose: RollPurpose
+
+    terms: tuple[RollTerm, ...]
+    modifier_components: tuple[RollModifierComponent, ...]
+
+    display_expression: str
+    display_label: str
+
+    source_rule_refs: tuple[str, ...]
+    adjustment_options: tuple[RollAdjustmentOption, ...]
+
+    sequence_id: UUID
+    step_id: UUID
+
+
+# ---------------------------------------------------------------------------
+# Player-visible contracts (CRD Issue 15b — hidden state excluded by construction)
+# ---------------------------------------------------------------------------
+
+
+class PlayerRollTermView(BaseModel):
+    """Player-visible projection of a RollTerm — no backend-only fields."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    count: int
+    sides: int
+    selection_rule: DiceSelectionRule
+    keep_count: int | None = None
+    contribution: RollContribution
+    label: str | None = None
+
+
+class PlayerModifierView(BaseModel):
+    """Player-visible projection of a PLAYER_VISIBLE RollModifierComponent only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    modifier_id: UUID
+    label: str
+    value: int
+
+
+class PlayerAdjustmentOptionView(BaseModel):
+    """Player-visible projection of a RollAdjustmentOption.
+
+    ``ability_id`` is deliberately absent — it is backend-only.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+    resource_preview: str | None = None
+
+
+class SequenceProgressView(BaseModel):
+    """Player-visible progress marker within an ActionResolutionSequence.
+
+    ``step_index`` is 1-based. ``known_step_count`` may be ``None`` where
+    later steps depend on unresolved outcomes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    step_index: int
+    known_step_count: int | None = None
+    step_label: str | None = None
+    sequence_label: str | None = None
+
+
+class PlayerRollInstructionView(BaseModel):
+    """Player-visible projection of a RollInstructionSnapshot for a pending roll.
+
+    No hidden value, hidden-modifier-existence flag, hidden target, internal
+    rule reference, adapter hash, or backend-only identity may enter this DTO.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    pending_roll_request_id: UUID
+    sequence_id: UUID
+    instruction_id: UUID
+    instruction_revision: int
+
+    purpose: RollPurpose
+    interaction_phase: Literal[RpgInteractionPhase.PENDING_ROLL]
+    progress: SequenceProgressView
+
+    display_label: str
+    display_expression: str
+    terms: tuple[PlayerRollTermView, ...]
+    visible_modifiers: tuple[PlayerModifierView, ...]
+    visible_modifier_total: int
+
+    adjustment_options: tuple[PlayerAdjustmentOptionView, ...]
+
+
+class MechanicalDecisionOption(BaseModel):
+    """One selectable option for a pending mechanical decision."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+
+
+class PendingMechanicalDecisionView(BaseModel):
+    """Player-visible pending mechanical decision within an ActionResolutionSequence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    sequence_id: UUID
+    interaction_phase: Literal[RpgInteractionPhase.PENDING_MECHANICAL_DECISION]
+    prompt: str
+    options: tuple[MechanicalDecisionOption, ...]
+
+
+class ActionResolutionAdvanceResult(BaseModel):
+    """Result of one ActionResolutionService advancement call.
+
+    Exactly one payload matching ``interaction_phase`` is populated, except
+    ``READY_FOR_NARRATION``, which carries neither. An accepted adjustment
+    returns the revised ``PENDING_ROLL`` instruction — it does not create a
+    separate pending-adjustment state.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    interaction_phase: RpgInteractionPhase
+
+    pending_roll: PlayerRollInstructionView | None = None
+    pending_decision: PendingMechanicalDecisionView | None = None
+
+
+# ---------------------------------------------------------------------------
+# Player-roll submissions (CRD Issue 15b)
+# ---------------------------------------------------------------------------
+
+
+class PlayerRollTermResult(BaseModel):
+    """Raw per-term submitted values for one RollTerm."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    values: tuple[int, ...]
+
+
+class RawPlayerRollSubmission(BaseModel):
+    """Inline or physical raw-value roll submission, grouped by ``term_id``.
+
+    The client submits no authoritative formula, modifier, target, outcome,
+    or total — the backend derives selections, subtotals, totals, and
+    outcomes from ``term_results``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    source: Literal["inline_ui", "physical_self_report"]
+    pending_roll_request_id: UUID
+    expected_instruction_revision: int
+    term_results: tuple[PlayerRollTermResult, ...]
+
+
+class PhysicalAggregateRollSubmission(BaseModel):
+    """Physical self-report of an aggregate-only result (no raw per-die values)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    source: Literal["physical_self_report"]
+    pending_roll_request_id: UUID
+    expected_instruction_revision: int
+    reported_aggregate: int
+
+
+# ---------------------------------------------------------------------------
+# Resolved steps and ready bundle (CRD Issue 15b)
+# ---------------------------------------------------------------------------
+
+
+class DerivedRollTermResult(BaseModel):
+    """Code-derived resolution of one RollTerm's submitted or generated values.
+
+    ``selected_indices`` are zero-based indexes into ``values``. For
+    ``SUM_ALL`` every index is selected; for keep-highest/keep-lowest, kept
+    and omitted dice remain reconstructable from ``values`` and
+    ``selected_indices``.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    values: tuple[int, ...]
+    selected_indices: tuple[int, ...]
+    contribution_applied_subtotal: int
+
+
+class ResolvedSequenceStep(BaseModel):
+    """One resolved step (roll, adjustment, or decision) within a sequence.
+
+    ``step_index`` is 1-based. ``AI_ROLL``/``HIDDEN_ROLL`` support contested
+    checks and other adapter-resolved opposing mechanics — hidden steps may
+    have internal results and provisional effects while exposing only their
+    visibility-filtered ``WriterAdjudicationView``. Resolved steps are the
+    source for projected-state reconstruction, final audit rows, ordered
+    Writer views, and provisional-effect application.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    step_id: UUID
+    step_index: int
+    kind: ResolvedStepKind
+
+    instruction_snapshot: RollInstructionSnapshot | None = None
+    submission_source: RollSubmissionSource | None = None
+
+    submitted_term_results: tuple[PlayerRollTermResult, ...] | None = None
+    reported_aggregate: int | None = None
+    raw_values_complete: bool | None = None
+
+    derived_term_results: tuple[DerivedRollTermResult, ...] = ()
+    authoritative_total: int | None = None
+    internal_outcome: str | None = None
+
+    writer_view: WriterAdjudicationView | None = None
+    provisional_effects: tuple[SheetEffect, ...] = ()
+
+
+class ReadyActionResolutionBundle(BaseModel):
+    """Complete internal bundle for a sequence that has reached READY_FOR_NARRATION.
+
+    Reuses the shipped per-result ``WriterAdjudicationView`` — it does not
+    create a second visibility model. ``ActionResolutionService`` supplies
+    this to the orchestrator; the orchestrator passes only approved
+    visibility-filtered facts to Writer.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    story_id: UUID
+    node_id: UUID
+    character_id: UUID
+    originating_turn_id: UUID
+
+    originating_user_input: str
+    resolved_steps: tuple[ResolvedSequenceStep, ...]
+    writer_views: tuple[WriterAdjudicationView, ...]
+    accumulated_provisional_effects: tuple[SheetEffect, ...]
+
+
+# ---------------------------------------------------------------------------
+# Action-Resolution Sequence (CRD Issue 15b — persisted lifecycle unit)
+# ---------------------------------------------------------------------------
+
+
+class ActionResolutionSequence(BaseModel):
+    """Persisted unit spanning one declared action or mechanically linked action group.
+
+    At most one unresolved sequence exists per story (enforced by a SQLite
+    partial unique index over ``active``/``ready_for_narration`` statuses at
+    the ORM layer). A sequence exposes at most one pending interaction: a
+    roll or a mechanical decision, never both.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    story_id: UUID
+    node_id: UUID
+    character_id: UUID
+    originating_turn_id: UUID
+
+    status: ActionResolutionStatus
+    current_interaction_kind: SequenceInteractionKind
+
+    current_pending_roll_request_id: UUID | None = None
+    current_decision_request_id: UUID | None = None
+
+    resolved_steps: tuple[ResolvedSequenceStep, ...]
+    projected_state_json: str
+    provisional_effects_json: str
+
+    created_at: datetime
+    updated_at: datetime
 
 
 # ---------------------------------------------------------------------------
@@ -290,19 +705,48 @@ class RpgVisibleState(BaseModel):
 
 
 __all__ = [
+    "ActionResolutionAdvanceResult",
+    "ActionResolutionSequence",
     "AdjudicationProposalOutput",
+    "DerivedRollTermResult",
     "DiceResult",
+    "MechanicalDecisionOption",
+    "PendingMechanicalDecisionView",
     "PendingRollRequest",
+    "PhysicalAggregateRollSubmission",
+    "PlayerAdjustmentOptionView",
+    "PlayerModifierView",
+    "PlayerRollInstructionView",
+    "PlayerRollTermResult",
+    "PlayerRollTermView",
+    "RawPlayerRollSubmission",
+    "ReadyActionResolutionBundle",
     "ResolvedAdjudicationRecord",
+    "ResolvedSequenceStep",
+    "RollAdjustmentOption",
+    "RollInstructionSnapshot",
+    "RollModifierComponent",
     "RollProposal",
+    "RollTerm",
     "RpgVisibleState",
+    "SequenceProgressView",
     "SheetEffect",
     "VisibleCharacterState",
     "VisibleItem",
     "VisibleLocation",
     "VisibleRelationship",
     "WriterAdjudicationView",
-    # Re-export visibility enums for convenience
+    # Re-export enums for convenience
+    "ActionResolutionStatus",
     "ConditionVisibility",
+    "DiceSelectionRule",
+    "ModifierVisibility",
+    "ResolvedStepKind",
+    "RollAdjustmentTiming",
+    "RollContribution",
+    "RollPurpose",
+    "RollSubmissionSource",
     "RollVisibility",
+    "RpgInteractionPhase",
+    "SequenceInteractionKind",
 ]

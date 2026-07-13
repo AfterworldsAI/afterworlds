@@ -193,6 +193,33 @@ Issue 15 ships a v1 block-and-redirect policy: if a new in-character action arri
 
 ---
 
+### Parameterized adjustments (spell-slot-level upcasting, variable-amount resource recovery)
+
+**Resolve during:** A future issue, only if the owner pulls upcasting or similar variable-amount mechanics into v1 scope.
+
+**Surfaced during:** Issue 15b Phase 2 bounded-d20 coverage inventory, against the curated SRD 5.2.1 package (`data/srd/srd_5_2_1_structured.json`).
+
+The coverage inventory found two mechanic classes in the curated v1 package that need a genuinely typed parameter, not a fixed `option_id` selection: spell-slot-level selection for upcasting (8+ of the 16 curated spells scale dice count/targets by the chosen casting slot level, e.g. Magic Missile: +1 dart per slot level above 1st) and Arcane Recovery (variable-amount slot recovery, player-chosen). Per 15b-10, any adjustment option requiring parameters beyond a stable `option_id` requires an ADR-015b amendment before it ships. Phase 2 does not build this: base-level casting of all 16 curated spells is fully supported; upcasting and Arcane Recovery are declared explicitly unsupported and the adapter fails loud (not a silent `undetermined`, not a silent base-level fallback) if either is invoked. A per-slot-level enumerated `option_id` set was considered and rejected as parameter-laundering — the value flows into `RollTerm.count` arithmetic, which is exactly what 15b-10 gates.
+
+**What resolution requires:** Owner decision to pull upcasting/variable-resource-recovery mechanics into scope; an ADR-015b amendment defining a typed `RollAdjustmentOption` extension (e.g. `chosen_slot_level: int`, server-validated against the sheet's available slots) before any implementation.
+
+---
+
+### Rules Package carries no structured numeric/mechanical data (DC, dice formulas)
+
+**Resolve during:** Whichever future issue next revises Rules Package ingestion/schema (Issue 5a/5b territory).
+
+**Surfaced during:** Issue 15b Phase 2 implementation, while wiring `D20RulesSystemAdapter._verify_dc` and evaluating multi-die damage-pool generation against the curated SRD 5.2.1 package.
+
+This is one defect family with two confirmed instances, found via sibling audit after the first instance surfaced:
+
+1. **No DC field anywhere.** `SpellEntity`, `ConditionEntity`, `StatBlockEntity`, and `ActionEntity` (`models/rules_package.py`) carry no `dc`/`difficulty_class`/`save_dc` field of any kind. `RuleOverride` is a non-mutating layered content-patch channel for chunks/entities, not a per-call numeric-DC channel. Consequently `_verify_dc` returns `None` for every call in v1 — not a temporary implementation gap, but structurally unavoidable until Rules Package schema carries a DC field. Every DC-gated roll purpose (attack, saving throw, ability check, skill check, contested) resolves to `outcome="undetermined"` by construction; this is ADR-015 Decision 7's documented fallback behavior operating correctly, not a bug, but it means Issue 15b's Critical Acceptance Matrix item 1 ("prove a representative `1d20` attack") is satisfied at the mechanics/unit level (dice roll, modifier assembly, total, and the `_compute_outcome` success/failure/crit branches are all provably correct given an explicit `dc`), not at the "produces a non-undetermined verdict against real curated content" level.
+2. **No structured dice/damage data.** The curated package's mechanical entities store dice formulas as unstructured prose within `structured_data.effect_description`/`actions` string fields (e.g. literally `"8d6 fire damage"` as text), not as a parseable `RollTerm`-shaped field. This means the bounded d20 adapter cannot auto-generate a real multi-die damage/healing `RollInstructionSnapshot` (e.g. Fireball's `8d6`, the Young Red Dragon's `2d10+6` bite) from `RollProposal` + sheet + rule slice alone — there is no source field for the adapter to read the dice shape from. Issue 15b's structured `RollTerm`/`RollInstructionSnapshot` contract itself fully **represents** these pools (summed/mixed/repeated pools were built and are unit-tested against hand-constructed instructions, proving the coverage-inventory's representability claim); what's blocked is adapter-side **generation** of such an instruction from today's Rules Package content for anything beyond the existing 1d20-family check/save/attack generation, which stays sheet-derived and unaffected by this gap.
+
+**What resolution requires:** A Rules Package schema change (owned by whichever issue next revises ingestion — Issue 5a/5b territory, out of scope for Issue 15b, which owns roll instruction structure, not Rules Package data modeling) adding structured numeric fields — at minimum a DC-bearing field on entities that need one, and a structured dice-term representation (or a parseable canonical dice-string field) on entities with damage/healing effects — so ingestion can populate machine-readable mechanical data instead of only prose. Until then, DC-gated outcomes remain `undetermined` by construction and damage/healing/duration `RollInstructionSnapshot`s for curated-package content must be hand-supplied rather than adapter-generated.
+
+---
+
 ## How to Add a New Unknown
 
 When construction surfaces a decision that is not covered by existing docs and should not be resolved unilaterally:

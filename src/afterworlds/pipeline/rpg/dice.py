@@ -1,18 +1,32 @@
 """DiceService protocol and SystemRandomDiceService implementation — CRD Issue 15.
+Revised by CRD Issue 15b.
 
 The DiceService owns all randomness for RPG adjudication.  Rolls are
 deterministic under injection (seedable for tests; secrets/SystemRandom in
 production).  There are no d20 semantics here — the dice service rolls and
 keeps without knowledge of modifiers, DCs, or game rules.
+
+CRD Issue 15b: ``chosen_die_range`` is retired (15b-25) — its only caller was
+the total-only ``consume_player_roll`` legacy path, removed from
+``pipeline/rpg/adapter.py``. ``roll_term`` is added: unlike ``roll``, which
+parses a display-string expression, it rolls a structured ``RollTerm``
+directly and returns raw per-die values without reducing them, so callers
+(``ActionResolutionService`` for AI/hidden/backend-generated steps) can feed
+the values into ``D20RulesSystemAdapter.resolve_snapshot``'s
+``term_results`` alongside player-submitted terms, using one resolution path
+for every submission source.
 """
 
 from __future__ import annotations
 
 import re
 import secrets
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from afterworlds.models.rpg import DiceResult
+
+if TYPE_CHECKING:
+    from afterworlds.models.rpg import RollTerm
 
 _EXPRESSION_RE = re.compile(
     r"^(\d+)d(\d+)(?:(kh|kl)(\d+))?(?:([+-])(\d+))?$",
@@ -48,21 +62,6 @@ def _parse_expression(expression: str) -> tuple[int, int, str | None, int | None
     return count, sides, keep_op, keep_n
 
 
-def chosen_die_range(expression: str) -> tuple[int, int]:
-    """Return (min_chosen, max_chosen) for a single-chosen dice expression.
-
-    Valid: straight ``1dS``, or ``NdSkh1`` / ``NdSkl1`` (one die kept).
-    Raises ``ValueError`` for multi-die-sum expressions (unsupported) or
-    unparseable formats — caller must treat as fail-closed.
-    """
-    count, sides, keep_op, keep_n = _parse_expression(expression)
-    if keep_op is None and count != 1:
-        raise ValueError(
-            f"Multi-die-sum not supported for range validation: {expression!r}"
-        )
-    return (1, sides)
-
-
 @runtime_checkable
 class DiceService(Protocol):
     """Injectable dice service — no d20 semantics, no modifiers.
@@ -84,6 +83,16 @@ class DiceService(Protocol):
 
         Raises:
             ValueError: if the expression cannot be parsed.
+        """
+        ...
+
+    def roll_term(self, term: RollTerm) -> tuple[int, ...]:
+        """Roll a structured RollTerm and return raw per-die values, unreduced.
+
+        CRD Issue 15b. Selection (sum-all/keep-highest/keep-lowest) is the
+        adapter's job (``D20RulesSystemAdapter.resolve_snapshot``), not the
+        dice service's — this returns every rolled value for ``term.count``
+        dice of ``term.sides`` sides.
         """
         ...
 
@@ -122,3 +131,7 @@ class SystemRandomDiceService:
             chosen = sorted(raw)[:keep_n][0]
 
         return DiceResult(expression=expression, raw_rolls=raw, chosen=chosen)
+
+    def roll_term(self, term: RollTerm) -> tuple[int, ...]:
+        """Roll ``term.count`` dice of ``term.sides`` sides; no selection applied."""
+        return tuple(self._rng.randint(1, term.sides) for _ in range(term.count))

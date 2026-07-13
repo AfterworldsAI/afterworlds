@@ -1,14 +1,21 @@
-"""Bounded d20 Rules System Adapter — CRD Issue 15.
+"""Bounded d20 Rules System Adapter — CRD Issue 15. Revised by CRD Issue 15b.
 
 This is a hand-authored, bounded d20 adapter.  It covers modifier assembly,
-code-verified DC lookup, degree-of-success calculation, advantage/disadvantage,
-roll-authorship invariant enforcement, and sheet-effect derivation.
+DC lookup (always None in v1 — see ``_verify_dc``), degree-of-success
+calculation, advantage/disadvantage, roll-authorship invariant enforcement,
+and sheet-effect derivation.
+
+CRD Issue 15b adds structured RollInstructionSnapshot/RollTerm generation
+(``build_check_instruction``) and resolution (``resolve_snapshot``) for
+PLAYER rolls, superseding the retired ``prepare_player_roll_announce``/
+``consume_player_roll`` total-only path (ADR-015b, 15b-25).
 
 Boundaries:
 - d20-specific concepts (DC, AC, proficiency, saving throws, ability scores,
   advantage/disadvantage) live HERE, not in generic adjudication code.
 - The adapter returns ``outcome="undetermined"`` when the mechanic is outside
-  the supported boundary, rather than inventing a result.
+  the supported boundary, rather than inventing a result. In v1 this covers
+  every DC-gated purpose unconditionally — see ``_verify_dc``.
 - ``gm_cheating=off`` is enforced at record creation time: the record is the
   immutable source of truth; Writer prose cannot change it.
 - Roll-authorship is code-enforced: the adapter, not the model, produces
@@ -20,20 +27,26 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
-from afterworlds.models.enums import RollVisibility
+from afterworlds.models.enums import (
+    DiceSelectionRule,
+    ModifierVisibility,
+    RollContribution,
+    RollPurpose,
+    RollVisibility,
+)
 from afterworlds.models.rpg import (
     DiceResult,
-    PendingRollRequest,
     ResolvedAdjudicationRecord,
+    RollInstructionSnapshot,
+    RollModifierComponent,
     RollProposal,
+    RollTerm,
     SheetEffect,
     WriterAdjudicationView,
 )
-from afterworlds.pipeline.rpg.dice import chosen_die_range
 
 _Outcome = Literal[
     "success", "failure", "critical_success", "critical_failure", "undetermined"
@@ -102,6 +115,40 @@ def _ability_modifier(score: int) -> int:
     return (score - 10) // 2
 
 
+# Legacy 3-expression shapes, now emitted as structured RollTerm fields
+# (CRD Issue 15b) instead of a display-only string. Order matches
+# DiceSelectionRule; keep_count is None for a straight sum-all roll.
+_CHECK_EXPRESSION_SHAPES: dict[str, tuple[int, int, DiceSelectionRule, int | None]] = {
+    "1d20": (1, 20, DiceSelectionRule.SUM_ALL, None),
+    "2d20kh1": (2, 20, DiceSelectionRule.KEEP_HIGHEST, 1),
+    "2d20kl1": (2, 20, DiceSelectionRule.KEEP_LOWEST, 1),
+}
+
+
+def _reduce_term(term: RollTerm, values: tuple[int, ...]) -> tuple[int, int]:
+    """Reduce one RollTerm's rolled values to (subtotal, representative_die).
+
+    ``representative_die`` is the single value crit-recognition inspects
+    (meaningful only for a ``sides==20`` term) — the sole kept die for a
+    keep-highest/keep-lowest term, or the first value for a straight roll.
+    Raises ``PlayerRollValueError`` if ``values`` doesn't match what the
+    term's shape requires — a defensive check; primary validation belongs
+    to ``ActionResolutionService`` before this is ever called.
+    """
+    if len(values) != term.count:
+        raise PlayerRollValueError(
+            f"Term {term.term_id} expects {term.count} value(s), got {len(values)}"
+        )
+    if term.selection_rule is DiceSelectionRule.SUM_ALL:
+        return sum(values), values[0]
+    keep_n = term.keep_count or 1
+    ordered = sorted(
+        values, reverse=(term.selection_rule is DiceSelectionRule.KEEP_HIGHEST)
+    )
+    kept = ordered[:keep_n]
+    return sum(kept), kept[0]
+
+
 def _context_hash(sheet: Dnd5eCharacterSheet) -> str:
     """Compute a short hash of adjudication-relevant sheet state.
 
@@ -161,9 +208,12 @@ class _ModifierBreakdown:
 class D20RulesSystemAdapter:
     """Hand-authored bounded d20 Rules System Adapter.
 
-    Constructs deterministic modifier breakdowns, verifies DCs from rule
-    slices and house-rule overrides, computes outcomes, and builds
-    ``ResolvedAdjudicationRecord`` instances.
+    Constructs deterministic modifier breakdowns, computes outcomes, and
+    builds ``ResolvedAdjudicationRecord`` instances. DC lookup
+    (``_verify_dc``) always returns None in v1 — no DC-bearing field exists
+    in the current Rules Package schema — so every DC-gated purpose resolves
+    to ``outcome="undetermined"`` by construction; see the "Rules Package
+    DC-data-modeling gap" Known Unknown.
 
     Returns ``outcome="undetermined"`` when mechanics are outside the
     supported boundary rather than inventing a result.
@@ -264,10 +314,25 @@ class D20RulesSystemAdapter:
         _rule_slice: ActiveRuleSlice | None,
         _overrides: list[RuleOverride],
     ) -> int | None:
-        """DC verification is deferred to Issue 18.
+        """Always returns None in v1 — no DC-bearing field exists to verify against.
 
-        Always returns None in v1.  Model-authored subsystem_tag and
-        difficulty_reference_note are never authoritative DC sources.
+        Model-authored subsystem_tag and difficulty_reference_note are never
+        authoritative DC sources (ADR-015 Decision 3). Beyond that: the
+        curated Rules Package's structured entity types (SpellEntity,
+        ConditionEntity, StatBlockEntity, ActionEntity) carry no dc /
+        difficulty_class / save_dc field of any kind, so there is nothing
+        for a rule-slice lookup to find. ``RuleOverride`` is a non-mutating
+        layered content-patch channel for chunks/entities, not a per-call
+        numeric-DC channel, and does not fill this gap either. Adding a
+        machine-readable DC field is a Rules Package schema change owned by
+        CRD Issue 5a/5b, not CRD Issue 15b (which owns roll INSTRUCTION
+        structure, not Rules Package data modeling) — see the "Rules
+        Package DC-data-modeling gap" Known Unknown. Per ADR-015 Decision 7,
+        the adapter returns ``outcome="undetermined"`` rather than inventing
+        a result, so every DC-gated purpose (attack, saving throw, ability
+        check, skill check, contested) resolves to "undetermined" by
+        construction in v1; non-DC purposes (damage, healing, duration) are
+        unaffected since they never compare against a DC.
         """
         return None
 
@@ -289,6 +354,12 @@ class D20RulesSystemAdapter:
         is_nat_max = raw_chosen == sides
         is_nat_one = raw_chosen == 1
 
+        # ponytail: crit success/failure on a natural 20/1 applies to attack
+        # purposes (and death saves) only in 5e, not saves/checks generally —
+        # this branch currently fires on any d20 regardless of purpose. Dead
+        # code today (dc is always None, so this function returns above
+        # before reaching here); restrict to attack purpose once real DC
+        # data lands (Rules Package DC-data-modeling gap, owned by 5a/5b).
         if sides == 20:
             if is_nat_max:
                 return "critical_success"
@@ -310,8 +381,9 @@ class D20RulesSystemAdapter:
     ) -> ResolvedAdjudicationRecord:
         """Resolve an AI or HIDDEN roll and return an immutable record.
 
-        PLAYER rolls must use ``prepare_player_roll_announce`` instead;
-        this method raises ``ValueError`` if called with a PLAYER proposal.
+        PLAYER rolls must use ``build_check_instruction``/``resolve_snapshot``
+        instead; this method raises ``ValueError`` if called with a PLAYER
+        proposal.
         """
         if proposal.visibility is RollVisibility.PLAYER:
             raise ValueError(
@@ -345,126 +417,223 @@ class D20RulesSystemAdapter:
             gm_cheating_at_roll=gm_cheating,
         )
 
-    def prepare_player_roll_announce(
+    def build_check_instruction(
         self,
         proposal: RollProposal,
         sheet: Dnd5eCharacterSheet,
         rule_slice: ActiveRuleSlice | None,
         overrides: list[RuleOverride],
-        story_id: UUID,
-        session_id: UUID,
-        originating_turn_id: UUID,
-    ) -> tuple[PendingRollRequest, WriterAdjudicationView]:
-        """Build a PendingRollRequest and announce WriterAdjudicationView.
+        *,
+        sequence_id: UUID,
+        step_id: UUID,
+        instruction_id: UUID,
+    ) -> RollInstructionSnapshot:
+        """Build a structured RollInstructionSnapshot for a PLAYER check/save/attack.
 
-        Called on the announce turn.  The PendingRollRequest stores the
-        code-derived roll terms for validation on the consume turn.
+        CRD Issue 15b — replaces the retired ``prepare_player_roll_announce``
+        expression-string path. Purpose is inferred from the same skill/save
+        lookup ``_assemble_modifiers`` already uses (SKILL_CHECK/SAVING_THROW),
+        falling back to ABILITY_CHECK — ``RollProposal`` carries no explicit
+        purpose field for the adapter to read. Persistence (PendingRollRequest,
+        sequence linkage) is ``ActionResolutionService``'s responsibility, not
+        the adapter's; this method returns the instruction only.
         """
         if proposal.visibility is not RollVisibility.PLAYER:
-            raise ValueError(
-                "prepare_player_roll_announce called on non-PLAYER proposal"
-            )
+            raise ValueError("build_check_instruction called on non-PLAYER proposal")
 
         mods = self._assemble_modifiers(proposal, sheet, rule_slice, overrides)
+        count, sides, selection_rule, keep_count = _CHECK_EXPRESSION_SHAPES[
+            mods.expression
+        ]
 
-        modifier_note: str | None = None
+        term = RollTerm(
+            term_id=uuid4(),
+            count=count,
+            sides=sides,
+            selection_rule=selection_rule,
+            keep_count=keep_count,
+            contribution=RollContribution.ADD,
+            label=proposal.check_label,
+        )
+
+        modifier_components: list[RollModifierComponent] = []
+        breakdown = json.loads(mods.breakdown_json) if mods.breakdown_json else {}
+        for label, value in breakdown.items():
+            modifier_components.append(
+                RollModifierComponent(
+                    modifier_id=uuid4(),
+                    label=label,
+                    value=value,
+                    visibility=ModifierVisibility.PLAYER_VISIBLE,
+                    source_kind="sheet_modifier",
+                    source_reference=None,
+                )
+            )
+
+        label = _normalize_skill_key(proposal.skill_or_attribute_label or "")
+        purpose = (
+            RollPurpose.SKILL_CHECK
+            if label in _SKILL_ABILITY
+            else (
+                RollPurpose.SAVING_THROW
+                if label in _SAVE_ABILITY
+                else RollPurpose.ABILITY_CHECK
+            )
+        )
+
+        modifier_note = ""
         if mods.visible_total != 0:
             sign = "+" if mods.visible_total > 0 else ""
-            modifier_note = f"{sign}{mods.visible_total}"
+            modifier_note = f" {sign}{mods.visible_total}"
 
-        instruction = f"Roll {mods.expression}"
-        if modifier_note:
-            instruction += f" {modifier_note}"
-
-        context_hash = _context_hash(sheet)
-
-        pending = PendingRollRequest(
-            request_id=uuid4(),
-            story_id=story_id,
-            session_id=session_id,
-            character_id=sheet.sheet_id,
-            check_label=proposal.check_label,
-            player_facing_instruction=instruction,
-            expected_value_shape="integer",
-            visible_modifier_note=modifier_note,
-            visibility=RollVisibility.PLAYER,
-            source_proposal_ref=f"{proposal.subsystem_tag}/{proposal.check_label}",
-            originating_turn_id=originating_turn_id,
-            created_at=datetime.now(tz=UTC),
-            roll_expression=mods.expression,
-            visible_modifier_total=mods.visible_total if not mods.has_hidden else None,
-            visible_modifier_breakdown_json=mods.visible_breakdown_json,
-            hidden_modifier_present=mods.has_hidden,
-            adapter_context_hash=context_hash,
+        return RollInstructionSnapshot(
+            instruction_id=instruction_id,
+            instruction_revision=1,
+            purpose=purpose,
+            terms=(term,),
+            modifier_components=tuple(modifier_components),
+            display_expression=f"{mods.expression}{modifier_note}",
+            display_label=proposal.check_label,
+            source_rule_refs=(),
+            adjustment_options=(),
+            sequence_id=sequence_id,
+            step_id=step_id,
         )
 
-        summary = f"Roll needed: {instruction} for {proposal.check_label}"
-        view = WriterAdjudicationView(
-            check_label=proposal.check_label,
-            visibility=RollVisibility.PLAYER,
-            player_facing_summary=summary,
-            total=None,
-            dc=None,
-            outcome=None,
-        )
-
-        return pending, view
-
-    def consume_player_roll(
+    def resolve_snapshot(
         self,
-        pending: PendingRollRequest,
-        reported_total: int,
+        *,
+        instruction: RollInstructionSnapshot,
+        term_results: dict[UUID, tuple[int, ...]],
+        rule_slice: ActiveRuleSlice | None,
+        overrides: list[RuleOverride],
+        source: Literal["ai", "hidden", "player"],
+        gm_cheating: bool,
+    ) -> ResolvedAdjudicationRecord:
+        """Resolve a RollInstructionSnapshot against already-rolled term values.
+
+        CRD Issue 15b — the structured successor to ``resolve_roll`` and the
+        retired ``consume_player_roll``. Callers (``ActionResolutionService``
+        for player submissions, this adapter's own AI/hidden generation path)
+        supply ``term_results`` keyed by ``term_id``; this method derives
+        subtotals per term's ``selection_rule``, sums with modifiers, and
+        computes ``outcome``. Does not roll dice itself and does not persist
+        anything — pure resolution.
+        """
+        total = sum(m.value for m in instruction.modifier_components)
+        raw_chosen_for_crit: int | None = None
+        for term in instruction.terms:
+            values = term_results.get(term.term_id, ())
+            subtotal, chosen = _reduce_term(term, values)
+            signed = (
+                subtotal if term.contribution is RollContribution.ADD else -subtotal
+            )
+            total += signed
+            if term.sides == 20 and raw_chosen_for_crit is None:
+                raw_chosen_for_crit = chosen
+
+        dc = self._verify_dc(rule_slice, overrides)
+        outcome = self._compute_outcome(
+            total,
+            dc,
+            raw_chosen_for_crit if raw_chosen_for_crit is not None else total,
+            sides=20 if raw_chosen_for_crit is not None else 0,
+        )
+
+        raw_rolls = tuple(
+            v for term in instruction.terms for v in term_results.get(term.term_id, ())
+        )
+
+        return ResolvedAdjudicationRecord(
+            check_label=instruction.display_label,
+            visibility=(
+                RollVisibility.PLAYER
+                if source == "player"
+                else (
+                    RollVisibility.HIDDEN
+                    if source == "hidden"
+                    else RollVisibility.SHOWN
+                )
+            ),
+            expression=instruction.display_expression,
+            raw_rolls=raw_rolls,
+            modifiers_json=json.dumps(
+                {
+                    "visible_total": sum(
+                        m.value
+                        for m in instruction.modifier_components
+                        if m.visibility is ModifierVisibility.PLAYER_VISIBLE
+                    ),
+                    "breakdown": {
+                        m.label: m.value for m in instruction.modifier_components
+                    },
+                },
+                sort_keys=True,
+            ),
+            total=total,
+            dc=dc,
+            outcome=outcome,
+            sheet_effects=(),
+            source=source,
+            gm_cheating_at_roll=gm_cheating,
+        )
+
+    def resolve_aggregate_snapshot(
+        self,
+        *,
+        instruction: RollInstructionSnapshot,
+        reported_aggregate: int,
         rule_slice: ActiveRuleSlice | None,
         overrides: list[RuleOverride],
         gm_cheating: bool,
     ) -> ResolvedAdjudicationRecord:
-        """Resolve a player-reported roll against the stored PendingRollRequest.
+        """Resolve a physical aggregate-only report: the total is authoritative.
 
-        Uses the roll terms that were announced (stored in ``pending``), not
-        freshly recomputed sheet state.  ``adapter_context_hash`` drift is
-        logged but does NOT trigger recomputation in v1.
+        CRD Issue 15b (15b-15). Per-die crit recognition is unavailable
+        without raw values — ``ActionResolutionService`` records
+        ``raw_values_complete=False`` for this path rather than fabricating
+        dice. Caller must range-validate ``reported_aggregate`` first.
         """
         dc = self._verify_dc(rule_slice, overrides)
-        visible_mod = pending.visible_modifier_total or 0
-        hidden_mod = 0
-        raw_die = reported_total - visible_mod - hidden_mod
-
-        try:
-            min_die, max_die = chosen_die_range(pending.roll_expression)
-        except ValueError as exc:
-            raise PlayerRollValueError(
-                f"Cannot validate roll: unsupported expression "
-                f"{pending.roll_expression!r}"
-            ) from exc
-        if not (min_die <= raw_die <= max_die):
-            raise PlayerRollValueError(
-                f"Player-reported total {reported_total} implies raw die {raw_die}, "
-                f"outside [{min_die}, {max_die}] for {pending.roll_expression!r}"
-            )
-
-        outcome = self._compute_outcome(reported_total, dc, raw_die)
-
+        outcome = self._compute_outcome(
+            reported_aggregate, dc, reported_aggregate, sides=0
+        )
         return ResolvedAdjudicationRecord(
-            check_label=pending.check_label,
+            check_label=instruction.display_label,
             visibility=RollVisibility.PLAYER,
-            expression=pending.roll_expression,
-            raw_rolls=(raw_die,),
+            expression=instruction.display_expression,
+            raw_rolls=(),
             modifiers_json=json.dumps(
                 {
-                    "visible_total": visible_mod,
-                    "breakdown": json.loads(
-                        pending.visible_modifier_breakdown_json or "{}"
+                    "visible_total": sum(
+                        m.value for m in instruction.modifier_components
                     ),
+                    "breakdown": {
+                        m.label: m.value for m in instruction.modifier_components
+                    },
                 },
                 sort_keys=True,
             ),
-            total=reported_total,
+            total=reported_aggregate,
             dc=dc,
             outcome=outcome,
             sheet_effects=(),
             source="player",
             gm_cheating_at_roll=gm_cheating,
         )
+
+    def aggregate_range(self, instruction: RollInstructionSnapshot) -> tuple[int, int]:
+        """Return the legal (min, max) aggregate total for a RollInstructionSnapshot.
+
+        Used to range-validate a physical aggregate-only report before
+        resolution — the structured successor to the retired
+        ``chosen_die_range`` (now handles arbitrary multi-term instructions,
+        not just a single chosen die).
+        """
+        modifier_total = sum(m.value for m in instruction.modifier_components)
+        min_total = sum(t.count for t in instruction.terms) + modifier_total
+        max_total = sum(t.count * t.sides for t in instruction.terms) + modifier_total
+        return min_total, max_total
 
     def to_writer_view(
         self, record: ResolvedAdjudicationRecord
