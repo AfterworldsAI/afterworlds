@@ -70,20 +70,26 @@ shipped source as it stands on `origin/main`, not a paraphrase of it.
 | # | Narrow assumption (ADR-015 / shipped code) | Citation | Superseded by |
 |---|---|---|---|
 | 1 | `PendingRollRequest` is a single free-standing row with no unit above it linking mechanically related rolls. | ADR-015 Decision 1 ("`PendingRollRequest` rows... persist for 'pending' turns"); `models/rpg.py:184-221` has no sequence/step field; grep across `models/rpg.py` and `pipeline/rpg/` finds no multi-step linkage concept. | `ActionResolutionSequence` with `sequence_id`/`step_id` (15b-18, 15b-19). |
-| 2 | The only roll expressions the system ever produces are three hardcoded strings, and consumption is total-only with the raw die *derived* by subtraction. | `pipeline/rpg/adapter.py:245-250` (hardcoded `if/elif` emitting `"1d20"`/`"2d20kh1"`/`"2d20kl1"` only); `adapter.py:413-467` `consume_player_roll(pending, reported_total, ...)`; `raw_die = reported_total - visible_mod - hidden_mod` at `adapter.py:430`; `dice.py:51-63` `chosen_die_range` gates validation to single-chosen-die expressions only. Note: `dice.py:17-20`'s `_EXPRESSION_RE` and its executor already parse general `NdS(kh\|kl)K([+-]N)` shapes — the defect is the adapter's narrow *generator* and the total-only *consumption* path, not a parser ceiling. | Structured `RollInstructionSnapshot`/`RollTerm` contract supporting summed pools, keep-highest, keep-lowest, mixed pools, repeated pools, and code-owned integer modifiers (15b-3, 15b-4, 15b-5); raw per-term submission (15b-14, 15b-15). |
+| 2 | The only roll expressions the system ever produces are three hardcoded strings, and consumption is total-only with the raw die *derived* by subtraction. | `pipeline/rpg/adapter.py:245-250` (hardcoded `if/elif` emitting `"1d20"`/`"2d20kh1"`/`"2d20kl1"` only); `adapter.py:413-467` `consume_player_roll(pending, reported_total, ...)`; `raw_die = reported_total - visible_mod - hidden_mod` at `adapter.py:430`; `dice.py:51-63` `chosen_die_range` gates validation to single-chosen-die expressions only. Note: `dice.py:17-20`'s `_EXPRESSION_RE` accepts general `NdS(kh\|kl)K([+-]N)` syntax, including `keep_n > 1`, but the executor (`dice.py:117-122`) does not correctly implement it: for `keep_n > 1` it returns `sorted(raw, ...)[:keep_n][0]` — the single highest/lowest die, not the sum of the kept dice — and neither the executor nor `chosen_die_range` rejects `keep_n > count`. The defect is the adapter's narrow *generator*, the total-only *consumption* path, AND the executor's unproven multi-keep selection logic — not a parser ceiling. | Structured `RollInstructionSnapshot`/`RollTerm` contract supporting summed pools, keep-highest, keep-lowest, mixed pools, repeated pools, and code-owned integer modifiers (15b-3, 15b-4, 15b-5); raw per-term submission (15b-14, 15b-15). |
 | 3 | Advantage/disadvantage is inferred by regex over the model's free-text `subsystem_tag`; there is no player-facing adjustment mechanism at all. | `adapter.py:42-44` (`_ADV_RE`/`_DISADV_RE`); applied at `adapter.py:241-243`; no `AdjustmentOption`-shaped model exists anywhere in `src/` (only the unrelated billing `ManualCreditAdjustmentPayload`); `RollProposal` (`models/rpg.py:37-53`) has no dedicated field. | Typed `RollAdjustmentOption` with a stable `option_id`, backend-derived eligibility, and pre-roll timing (15b-9 through 15b-13). |
 | 4 | Consuming a reported roll total re-enters the full provider-backed narrative pipeline (Planner, Writer, Contradiction, Extractor) rather than resolving deterministically. | `orchestrator/service.py:822-839` routes the `player_reported_total is not None` branch through `self._run_narrative(...)`; `_run_narrative` unconditionally runs Input Safety Preflight (`:1145-1178`), the Planner call (`:1181-1213`), and later Writer/Contradiction/Extractor in the same function. | Deterministic intermediate operations with no provider call or settlement (15b-27, 15b-28); narration only at sequence completion via `orchestrate_rpg_resume` (15b-20, 15b-21). |
 | 5 | `PendingRollRequest` carries precomputed display/derivation fields that duplicate authority instead of deriving from one structured snapshot. | `models/rpg.py:184-221`: `roll_expression`, `expected_value_shape`, `visible_modifier_total`, `visible_modifier_breakdown_json`, `check_label`, `player_facing_instruction`, `visible_modifier_note`, `hidden_modifier_present` all present as plain fields with no structured snapshot backing them. | Column Disposition table in **Revised PendingRollRequest** below — these fields retire after backfill in favor of `instruction_snapshot_json`. |
 | 6 | The pending-roll intercept (`BLOCKED_PENDING_ROLL`) triggers on a single outstanding `PendingRollRequest` row and has no notion of a pending mechanical decision or a completed-but-not-narrated sequence. | `orchestrator/service.py:863-891`; `pipeline/rpg/pending.py:54-72` (`load_pending_for_story`, single-row `.one_or_none()` lookup); DB uniqueness index at `persistence/orm/rpg.py:65-72` structurally allows only one pending row per story. | Sequence-aware gate blocking ordinary in-character input for any unresolved sequence state — pending roll, pending mechanical decision, or `ready_for_narration` (**Gate and Resume Trigger**, 15b-31, 15b-32). |
 | 7 | No product-API wiring exists for the RPG roll lifecycle, and the gap is deeper than a missing route: the RPG adjudication pass service itself is left unwired in the running application. | `api/dto.py:94-98` (`TurnSubmissionRequest` has `extra="forbid"` and only `user_input`); `api/routes/turns.py:164-171` (orchestrator call never threads a roll total); `Glob` of `api/routes/*.py` shows no roll-submission/adjustment/decision/resume route; `api/pipeline_wiring.py:406-435` (`build_orchestrator()`) never passes `rpg_adjudication_service`, `rpg_dice_service`, or `rpg_pending_roll_service` — all left at `None` defaults, confirmed by the module's own docstring at `pipeline_wiring.py:9-10, 66-68, 83-85`. | Phase 3 product-API wiring reusing CRD Issue 19 conventions (**Product API Wiring** below, 15b-29). Flagged here because Phase 2's orchestrator-integration work and Phase 3's route work both depend on closing this gap, and neither should assume the other already did. |
 
-Item 2's caveat is worth restating precisely because it changes Phase 2's build-vs-reuse calculus: the
-existing `dice.py` expression regex and roll executor are not the bottleneck — they already parse and
-execute general `NdS`, keep-highest/keep-lowest, and `+N`/`-N` modifier shapes. The bottleneck is (a) the
-adapter's generator, which only ever emits three literal strings, and (b) `chosen_die_range`, whose
-validation path is reachable only from the legacy total-only consume flow being retired. Phase 2 should
-evaluate whether `dice.py`'s existing parse/execute machinery can be reused underneath the new
-`RollTerm`-based contract before writing a new one.
+Item 2's caveat needs restating precisely, because the original phrasing overclaimed the executor's
+capability — a Codex review of this document (round 1) caught it. What's actually true: the parser
+(`_EXPRESSION_RE`) accepts general `NdS(kh|kl)K([+-]N)` syntax, and the executor correctly handles the two
+shapes the shipped adapter ever generates — a summed-all pool (`keep_op is None`) and a single kept die
+(`keep_n == 1`). It does **not** correctly handle `keep_n > 1`: `sorted(raw, ...)[:keep_n][0]` takes the
+first element of the kept slice, not its sum, so `4d6kh3` would return one die's value instead of the sum
+of the top three, and neither the executor nor `chosen_die_range` rejects `keep_n > count`. This is a
+correction to the ADR's own defect inventory, not a Phase 2 implementation note: **Phase 2 must fix or
+replace the executor's selection logic under the new `RollTerm` contract** — reusing `dice.py`'s parser is
+still reasonable; reusing its unproven multi-keep executor as-is is not. This document does not patch
+`dice.py`; it is documents-only. Phase 2's tests must prove at least one `NdSkhK`/`NdSklK` case with
+`K > 1` (e.g. `4d6kh3`, and a multi-die keep-lowest case) and must prove rejection of a zero or excessive
+`keep_count` (i.e., outside `[1, count]`).
 
 ---
 
@@ -242,12 +248,15 @@ mechanism.
 
 **Decision (15b-30):** Convert existing pending expressions (`1d20`, `2d20kh1`, `2d20kl1`) deterministically
 into the new structured shape. Unknown pending expressions fail visibly and are never coerced to a default
-roll.
+roll. Backfilled rows carry `schema_version = 2` (the versioning rule under **Revised PendingRollRequest**
+above); untouched legacy consumed rows keep `schema_version = 1`, their nullable sequence/instruction
+linkage, and their existing `consumed_turn_id`/`source_proposal_ref` provenance exactly as shipped.
 
 **Rationale:** Table item 2 confirms the shipped generator only ever produces these three expressions, so
 the migration's deterministic-conversion set is exhaustive against real data — but "fail visibly" is the
 correct behavior for any row this ADR's inspection did not anticipate, consistent with CLAUDE.md invariant
-11 (auditability from explicit event logs, not inferred state).
+11 (auditability from explicit event logs, not inferred state). Versioning backfilled rows as `2` rather
+than leaving them at `1` keeps `schema_version` a truthful description of a row's actual column shape.
 
 ### Group 13 — Client gate and resume UX
 
@@ -391,14 +400,29 @@ This follows the existing partial-unique-index pattern used by active pending ro
 
 ## Revised PendingRollRequest
 
+The shipped row's actual primary-key/column names differ from an earlier draft of this section, which a
+Codex review of this document (round 1) caught: the persisted row's identity column is `request_id`, not
+`pending_roll_request_id`; there is no `consumed_at` column (only `consumed_turn_id`); `source_proposal_ref`
+and `schema_version` are shipped columns this table previously omitted; and `session_id` carries no
+foreign key today. The corrections below apply to both this ADR and the governing Issue #127 spec, which
+carried the same error in its own "Revised Row" sketch and column table — this was a specification defect,
+not solely an ADR transcription error.
+
 ### Column Disposition
 
 | Shipped field (`models/rpg.py:184-221`) | Disposition |
 |---|---|
-| `pending_roll_request_id`, `story_id`, `session_id`, `character_id`, `originating_turn_id` | Retain. |
+| `request_id` | Retain as the persisted row's identity (primary key). Public submission DTOs and the new `rpg_roll_audit` linkage column may still name this `pending_roll_request_id` — that name remains legitimate at the DTO/audit layer; this table is not a mandate to rename it there. |
+| `story_id` | Retain. |
+| `session_id` | Retain **as shipped** — this column carries no foreign key today, and this ADR does not add one. |
+| `character_id` | Retain with existing FK behavior. |
+| `originating_turn_id` | Retain. |
 | `visibility` | Retain; player-visible reads continue to depend on it. |
 | `status` | Retain and preserve all four enum values (`pending`, `consumed`, `cancelled`, `expired`) — `cancelled`/`expired` stay dormant per Group 3. |
-| `created_at` / `consumed_at` | Retain. |
+| `created_at` | Retain. |
+| `consumed_turn_id` | Retain, nullable, for historical consumed rows. New deterministic consumption (15b-25) creates no narrative Turn, so new rows normally leave this null — it is not backfilled with a synthetic value. |
+| `source_proposal_ref` | Retain as internal provenance. This is the smallest safe disposition absent a specified lossless migration destination for this field. |
+| `schema_version` | Retain the column; **bump the value for the materially revised row contract** rather than silently calling both the legacy and new row shapes version 1 — see the versioning rule below. |
 | `adapter_context_hash` | Retain as an internal drift diagnostic; non-authoritative, non-public. |
 | `roll_expression` | Retire after backfill; derive display text from the structured snapshot. |
 | `expected_value_shape` | Retire after backfill; derive from structured terms. |
@@ -411,7 +435,19 @@ This follows the existing partial-unique-index pattern used by active pending ro
 
 New fields required on new rows: `sequence_id`, `step_id`, `instruction_id`, `instruction_revision`,
 `instruction_schema_version`, `instruction_snapshot_json`. Legacy consumed rows may retain nullable
-sequence/instruction linkage.
+sequence/instruction linkage, provenance (`source_proposal_ref`), and row-version information exactly as
+shipped.
+
+**`schema_version` versioning rule:** `schema_version = 1` denotes the legacy row shape (no structured
+instruction linkage; the eight retired display/derivation fields are authoritative). `schema_version = 2`
+denotes the revised row shape (structured `instruction_snapshot_json` is authoritative; the eight retired
+fields are absent). A row's `schema_version` reflects its *actual* column shape, not merely its creation
+order: rows created by `ActionResolutionService.start_sequence` are `schema_version = 2`; legacy pending
+rows the migration backfills into a real `ActionResolutionSequence` (Migration item 6) become
+`schema_version = 2` once backfilled, since their shape now matches the v2 contract; legacy *consumed* rows
+that are not backfilled with real structured data (Migration item 7) remain `schema_version = 1`, since
+their shape stays legacy. No row is ever silently relabeled version 1 after gaining a structured
+instruction, and no row is labeled version 2 without one.
 
 If Phase 2 source inspection identifies a compatibility consumer of a retired field that cannot be
 migrated cleanly, that is a stop-and-flag event against 15b-25, not a reason to retain a second authority.
