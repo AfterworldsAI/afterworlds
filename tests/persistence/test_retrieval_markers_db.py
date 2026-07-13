@@ -87,15 +87,11 @@ def _seed_pending_roll_request(
             session_id=str(uuid4()),
             character_id=str(sheet.sheet_id),
             originating_turn_id=str(originating_turn_id),
-            check_label="Stealth Check",
-            player_facing_instruction="Roll a Stealth Check and report the total!",
-            expected_value_shape="d20",
             visibility=RollVisibility.PLAYER.value,
             source_proposal_ref="roll_0",
             status="pending",
             created_at=_NOW.isoformat(),
             schema_version=1,
-            roll_expression="1d20+5",
         )
     )
     session.commit()

@@ -210,15 +210,11 @@ def _seed_rpg_story_with_marker_mismatch_turn(session):  # type: ignore[no-untyp
             session_id=str(uuid4()),
             character_id=str(sheet.sheet_id),
             originating_turn_id=str(turn.turn_id),
-            check_label="Stealth Check",
-            player_facing_instruction="Roll a Stealth Check and report the total!",
-            expected_value_shape="d20",
             visibility=RollVisibility.PLAYER.value,
             source_proposal_ref="roll_0",
             status="pending",
             created_at=_NOW.isoformat(),
             schema_version=1,
-            roll_expression="1d20+5",
         )
     )
     session.commit()

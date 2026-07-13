@@ -11,12 +11,8 @@ import pytest
 
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import (
-    PendingRollRequest,
-    ResolvedAdjudicationRecord,
-    RollProposal,
-)
-from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter, PlayerRollValueError
+from afterworlds.models.rpg import ResolvedAdjudicationRecord, RollProposal
+from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -332,180 +328,153 @@ def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
 
 
 # ---------------------------------------------------------------------------
-# consume_player_roll validation: raw die range check (Round 5 Fix 2)
+# build_check_instruction / resolve_snapshot (CRD Issue 15b) — replaces the
+# retired prepare_player_roll_announce/consume_player_roll expression-string
+# path. Range/count validation of submitted values is ActionResolutionService's
+# job now, not the adapter's — see tests/pipeline/rpg/test_sequence.py.
 # ---------------------------------------------------------------------------
 
 
-def _make_pending(
+def _build_instruction(
+    adapter: D20RulesSystemAdapter,
     *,
-    expression: str = "1d20",
-    visible_mod: int | None = None,
-) -> PendingRollRequest:
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=uuid4(),
-        session_id=uuid4(),
-        character_id=uuid4(),
-        check_label="Stealth check",
-        player_facing_instruction=f"Roll {expression}",
-        expected_value_shape="integer",
-        visible_modifier_note=f"+{visible_mod}" if visible_mod else None,
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="skill_check/Stealth check",
-        originating_turn_id=uuid4(),
-        created_at=_NOW,
-        roll_expression=expression,
-        visible_modifier_total=visible_mod,
-        visible_modifier_breakdown_json=None,
+    label: str = "stealth",
+    subsystem_tag: str = "skill_check",
+    sheet: Dnd5eCharacterSheet | None = None,
+):
+    proposal = _make_proposal(label, RollVisibility.PLAYER, subsystem_tag)
+    return adapter.build_check_instruction(
+        proposal,
+        sheet or _make_sheet(skills={"stealth": 3}),
+        None,
+        [],
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+        instruction_id=uuid4(),
     )
 
 
-def test_consume_valid_total_accepted() -> None:
-    """reported_total=15 with no modifier → raw_die=15 which is in [1,20]."""
+def test_build_check_instruction_plain_tag_is_1d20_sum_all() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 15, None, [], False)
-    assert record.total == 15
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check")
+    assert len(instruction.terms) == 1
+    term = instruction.terms[0]
+    assert (term.count, term.sides) == (1, 20)
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert term.selection_rule is DiceSelectionRule.SUM_ALL
+    assert term.keep_count is None
+
+
+def test_build_check_instruction_advantage_tag_is_2d20_keep_highest() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check advantage")
+    term = instruction.terms[0]
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert (term.count, term.sides) == (2, 20)
+    assert term.selection_rule is DiceSelectionRule.KEEP_HIGHEST
+    assert term.keep_count == 1
+
+
+def test_build_check_instruction_disadvantage_tag_is_2d20_keep_lowest() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check disadvantage")
+    term = instruction.terms[0]
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert term.selection_rule is DiceSelectionRule.KEEP_LOWEST
+    assert term.keep_count == 1
+
+
+def test_build_check_instruction_rejects_non_player_proposal() -> None:
+    adapter = D20RulesSystemAdapter()
+    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    with pytest.raises(ValueError, match="non-PLAYER"):
+        adapter.build_check_instruction(
+            proposal,
+            _make_sheet(),
+            None,
+            [],
+            sequence_id=uuid4(),
+            step_id=uuid4(),
+            instruction_id=uuid4(),
+        )
+
+
+def test_resolve_snapshot_sum_all_totals_die_plus_modifier() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (15,)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 20  # 15 + 5
     assert record.raw_rolls == (15,)
+    assert record.outcome == "undetermined"  # DC always None in v1
 
 
-def test_consume_min_die_accepted() -> None:
+def test_resolve_snapshot_keep_highest_selects_max_die() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 1, None, [], False)
-    assert record.raw_rolls == (1,)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check advantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (8, 17)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 17
 
 
-def test_consume_max_die_accepted() -> None:
+def test_resolve_snapshot_keep_lowest_selects_min_die() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 20, None, [], False)
-    assert record.raw_rolls == (20,)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check disadvantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (14, 3)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 3
 
 
-def test_consume_total_zero_raw_die_rejected() -> None:
-    """reported_total=0 → raw_die=0, outside [1,20]."""
+def test_aggregate_range_covers_full_legal_span() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 0, None, [], False)
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    assert adapter.aggregate_range(instruction) == (6, 25)  # 1d20 [1,20] + mod 5
 
 
-def test_consume_total_implies_raw_die_above_max_rejected() -> None:
-    """reported_total=21 with no modifier → raw_die=21, outside [1,20]."""
+def test_resolve_aggregate_snapshot_uses_reported_total_directly() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 21, None, [], False)
-
-
-def test_consume_with_modifier_valid() -> None:
-    """reported_total=18, visible_mod=5 → raw_die=13, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=5)
-    record = adapter.consume_player_roll(pending, 18, None, [], False)
-    assert record.raw_rolls == (13,)
-
-
-def test_consume_with_modifier_raw_die_too_low_rejected() -> None:
-    """reported_total=5, visible_mod=7 → raw_die=-2, outside [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=7)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
-
-
-def test_consume_advantage_expression_accepted() -> None:
-    """2d20kh1 total=17, mod=0 → raw_die=17, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1")
-    record = adapter.consume_player_roll(pending, 17, None, [], False)
-    assert record.raw_rolls == (17,)
-
-
-def test_consume_disadvantage_expression_accepted() -> None:
-    """2d20kl1 total=4, mod=0 → raw_die=4, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1")
-    record = adapter.consume_player_roll(pending, 4, None, [], False)
-    assert record.raw_rolls == (4,)
-
-
-def test_consume_unsupported_expression_rejected() -> None:
-    """Unsupported multi-die-sum expression must fail-closed."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="3d6")
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 10, None, [], False)
-
-
-# ---------------------------------------------------------------------------
-# consume_player_roll boundary cases with visible modifier (Round 6 spec)
-# ---------------------------------------------------------------------------
-
-
-def test_consume_1d20_mod5_max_boundary_accepted() -> None:
-    """1d20 + mod=5, total=25 → raw=20, accepted (exact max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
-    assert record.raw_rolls == (20,)
-
-
-def test_consume_1d20_mod5_min_boundary_accepted() -> None:
-    """1d20 + mod=5, total=6 → raw=1, accepted (exact min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
-    assert record.raw_rolls == (1,)
-
-
-def test_consume_1d20_mod5_one_over_max_rejected() -> None:
-    """1d20 + mod=5, total=26 → raw=21, rejected (one over max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
-
-
-def test_consume_1d20_mod5_one_under_min_rejected() -> None:
-    """1d20 + mod=5, total=5 → raw=0, rejected (one under min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
-
-
-def test_consume_kh1_mod5_max_boundary_accepted() -> None:
-    """2d20kh1 + mod=5, total=25 → raw=20, accepted (exact max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
-    assert record.raw_rolls == (20,)
-
-
-def test_consume_kh1_mod5_one_over_max_rejected() -> None:
-    """2d20kh1 + mod=5, total=26 → raw=21, rejected (one over max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
-
-
-def test_consume_kl1_mod5_min_boundary_accepted() -> None:
-    """2d20kl1 + mod=5, total=6 → raw=1, accepted (exact min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
-    assert record.raw_rolls == (1,)
-
-
-def test_consume_kl1_mod5_one_under_min_rejected() -> None:
-    """2d20kl1 + mod=5, total=5 → raw=0, rejected (one under min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    record = adapter.resolve_aggregate_snapshot(
+        instruction=instruction,
+        reported_aggregate=18,
+        rule_slice=None,
+        overrides=[],
+        gm_cheating=False,
+    )
+    assert record.total == 18
+    assert record.raw_rolls == ()
 
 
 # ---------------------------------------------------------------------------
@@ -574,18 +543,25 @@ class TestSkillKeyNormalization:
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["dexterity_modifier"] == 3
 
-    def test_announce_display_case_key_visible_modifier_and_note(self) -> None:
-        """Announce: display-case sheet key produces correct visible_modifier_total."""
-        from uuid import uuid4 as _uuid4
-
+    def test_build_check_instruction_display_case_key_uses_stored_modifier(
+        self,
+    ) -> None:
+        """Announce: display-case sheet key produces a correct modifier_component."""
         adapter = D20RulesSystemAdapter()
         sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
         proposal = _make_proposal("stealth", RollVisibility.PLAYER)
-        pending, _view = adapter.prepare_player_roll_announce(
-            proposal, sheet, None, [], _uuid4(), _uuid4(), _uuid4()
+        instruction = adapter.build_check_instruction(
+            proposal,
+            sheet,
+            None,
+            [],
+            sequence_id=uuid4(),
+            step_id=uuid4(),
+            instruction_id=uuid4(),
         )
-        assert pending.visible_modifier_total == 7  # pre-fix would be 3 (Dex fallback)
-        assert pending.visible_modifier_note == "+7"
+        # pre-fix would be 3 (Dex fallback) instead of the stored +7.
+        assert instruction.modifier_components[0].value == 7
+        assert "+7" in instruction.display_expression
 
     def test_resolve_roll_display_case_modifiers_json_structure(self) -> None:
         """resolve_roll: Perception key gives correct visible_total/breakdown."""

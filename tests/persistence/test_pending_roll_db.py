@@ -72,14 +72,11 @@ def _make_orm_row(
         session_id=str(uuid4()),
         character_id=character_id,
         originating_turn_id=turn_id,
-        check_label="Stealth Check",
-        player_facing_instruction="Roll 1d20+3",
-        expected_value_shape="d20",
         visibility="player",
         source_proposal_ref="roll_0",
         status=status,
         created_at=_NOW.isoformat(),
-        roll_expression="1d20+3",
+        schema_version=1,
     )
 
 

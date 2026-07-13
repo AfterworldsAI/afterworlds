@@ -215,65 +215,6 @@ def _build_instruction_snapshot_json(
     return json.dumps(snapshot)
 
 
-def _new_pending_roll_requests_table(name: str) -> sa.Table:
-    """Build the target ``pending_roll_requests`` schema explicitly.
-
-    Used for both the new-table create (upgrade) and the legacy-shape
-    recreate (downgrade) so the full column/FK/index set is always declared
-    verbatim rather than relying on batch-mode reflection.
-    """
-    return sa.Table(
-        name,
-        sa.MetaData(),
-        sa.Column("request_id", sa.String(36), primary_key=True),
-        sa.Column(
-            "story_id",
-            sa.String(36),
-            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("session_id", sa.String(36), nullable=False),
-        sa.Column(
-            "character_id",
-            sa.String(36),
-            sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "originating_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "consumed_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        sa.Column("visibility", sa.String(16), nullable=False),
-        sa.Column("source_proposal_ref", sa.Text, nullable=False),
-        sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
-        sa.Column("created_at", sa.String(64), nullable=False),
-        sa.Column("schema_version", sa.Integer, nullable=False, server_default="1"),
-        sa.Column("adapter_context_hash", sa.String(64), nullable=True),
-        sa.Column(
-            "sequence_id",
-            sa.String(36),
-            sa.ForeignKey(
-                "action_resolution_sequences.sequence_id", ondelete="CASCADE"
-            ),
-            nullable=True,
-        ),
-        sa.Column("step_id", sa.String(36), nullable=True),
-        sa.Column("instruction_id", sa.String(36), nullable=True),
-        sa.Column("instruction_revision", sa.Integer, nullable=True),
-        sa.Column("instruction_schema_version", sa.Integer, nullable=True),
-        sa.Column("instruction_snapshot_json", sa.Text, nullable=True),
-        sa.Column("additional_data", sa.JSON, nullable=True),
-    )
-
-
 def upgrade() -> None:
     # ------------------------------------------------------------------
     # action_resolution_sequences — must exist before pending_roll_requests
@@ -462,10 +403,64 @@ def upgrade() -> None:
 
     # ------------------------------------------------------------------
     # Explicit table swap (see module docstring for why not batch mode).
+    # op.create_table (not a bare sa.Table(...).create(bind=conn)) is
+    # required here: SQLAlchemy's DDL compiler resolves bare-string
+    # sa.ForeignKey("stories.story_id", ...) targets by looking them up in
+    # the SAME MetaData as the owning table, which a freshly constructed
+    # sa.Table(name, sa.MetaData(), ...) never has — it would raise
+    # NoReferencedTableError. Alembic's op.create_table does not require
+    # that resolution.
     # ------------------------------------------------------------------
     op.rename_table(_TABLE, "_pending_roll_requests_legacy")
-    new_table = _new_pending_roll_requests_table(_TABLE)
-    new_table.create(bind=conn)
+    op.create_table(
+        _TABLE,
+        sa.Column("request_id", sa.String(36), primary_key=True),
+        sa.Column(
+            "story_id",
+            sa.String(36),
+            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("session_id", sa.String(36), nullable=False),
+        sa.Column(
+            "character_id",
+            sa.String(36),
+            sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
+            nullable=False,
+        ),
+        sa.Column(
+            "originating_turn_id",
+            sa.String(36),
+            sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "consumed_turn_id",
+            sa.String(36),
+            sa.ForeignKey("turns.turn_id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        sa.Column("visibility", sa.String(16), nullable=False),
+        sa.Column("source_proposal_ref", sa.Text, nullable=False),
+        sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
+        sa.Column("created_at", sa.String(64), nullable=False),
+        sa.Column("schema_version", sa.Integer, nullable=False, server_default="1"),
+        sa.Column("adapter_context_hash", sa.String(64), nullable=True),
+        sa.Column(
+            "sequence_id",
+            sa.String(36),
+            sa.ForeignKey(
+                "action_resolution_sequences.sequence_id", ondelete="CASCADE"
+            ),
+            nullable=True,
+        ),
+        sa.Column("step_id", sa.String(36), nullable=True),
+        sa.Column("instruction_id", sa.String(36), nullable=True),
+        sa.Column("instruction_revision", sa.Integer, nullable=True),
+        sa.Column("instruction_schema_version", sa.Integer, nullable=True),
+        sa.Column("instruction_snapshot_json", sa.Text, nullable=True),
+        sa.Column("additional_data", sa.JSON, nullable=True),
+    )
 
     if sequence_inserts:
         conn.execute(
@@ -489,7 +484,26 @@ def upgrade() -> None:
             sequence_inserts,
         )
     if pending_new_rows:
-        conn.execute(new_table.insert(), pending_new_rows)
+        conn.execute(
+            sa.text(
+                f"INSERT INTO {_TABLE} ("
+                " request_id, story_id, session_id, character_id,"
+                " originating_turn_id, consumed_turn_id, visibility,"
+                " source_proposal_ref, status, created_at, schema_version,"
+                " adapter_context_hash, additional_data, sequence_id,"
+                " step_id, instruction_id, instruction_revision,"
+                " instruction_schema_version, instruction_snapshot_json"
+                ") VALUES ("
+                " :request_id, :story_id, :session_id, :character_id,"
+                " :originating_turn_id, :consumed_turn_id, :visibility,"
+                " :source_proposal_ref, :status, :created_at, :schema_version,"
+                " :adapter_context_hash, :additional_data, :sequence_id,"
+                " :step_id, :instruction_id, :instruction_revision,"
+                " :instruction_schema_version, :instruction_snapshot_json"
+                ")"
+            ),
+            pending_new_rows,
+        )
 
     op.drop_table("_pending_roll_requests_legacy")
 

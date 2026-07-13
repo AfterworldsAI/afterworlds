@@ -53,7 +53,6 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
 )
 from tests.pipeline.orchestrator.test_service import (
-    _FakePendingRollService,
     _make_orchestrator_with_adjudication,
     _make_rpg_session_and_sheet,
     _seed_writing_story_setup_wss,
@@ -470,56 +469,32 @@ class TestRetrievalQueryConstructionFailureFailsClosed:
         assert result.disposition is PipelineDisposition.DELIVERED
 
 
-def _make_pending_roll_request_for_sheet(
-    story_id: UUID, sheet_id: UUID, originating_turn_id: UUID
-) -> object:
-    """Build a PendingRollRequest whose story_id/character_id satisfy the
-    pending_roll_requests table's FKs to stories/rpg_character_sheet_bases —
-    the announce path writes this row directly via ``session.add``, unlike
-    the mark_consumed path which goes through the injected service."""
-    from datetime import UTC, datetime
-    from uuid import uuid4
-
-    from afterworlds.models.enums import RollVisibility
-    from afterworlds.models.rpg import PendingRollRequest
-
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=story_id,
-        session_id=uuid4(),
-        character_id=sheet_id,
-        check_label="Stealth Check",
-        player_facing_instruction="Roll a Stealth Check and report the total!",
-        expected_value_shape="d20",
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="roll_0",
-        originating_turn_id=originating_turn_id,
-        created_at=datetime.now(tz=UTC),
-        roll_expression="1d20+5",
-    )
-
-
 class _AdjServiceAnnouncingPending:
-    """Fake adjudication service that always announces a new pending roll
-    for a specific, already-persisted (story_id, sheet_id) pair."""
+    """Fake adjudication service that always announces a new pending roll.
 
-    def __init__(self, story_id: UUID, sheet_id: UUID) -> None:
-        self._story_id = story_id
-        self._sheet_id = sheet_id
+    CRD Issue 15b: the announce path itself (structured instruction +
+    ActionResolutionSequence persistence) is now
+    ``ActionResolutionService.start_sequence``'s job, called by the real
+    orchestrator from ``_write_rpg_audit`` — this fake only needs to supply
+    the raw ``RollProposal`` the LLM would have produced.
+    """
 
     def is_adjudicable(self, sheet: object) -> bool:
         return True
 
     def adjudicate(self, *args: object, **kwargs: object) -> object:
-        from uuid import uuid4
-
+        from afterworlds.models.enums import RollVisibility
+        from afterworlds.models.rpg import RollProposal
         from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 
         return AdjudicationPassResult(
             proposals=(),
             writer_views=(),
-            pending_roll_request=_make_pending_roll_request_for_sheet(
-                self._story_id, self._sheet_id, uuid4()
+            player_proposal=RollProposal(
+                check_label="Stealth Check",
+                subsystem_tag="skill_check",
+                skill_or_attribute_label="stealth",
+                visibility=RollVisibility.PLAYER,
             ),
         )
 
@@ -564,7 +539,9 @@ def _make_rpg_orch_announcing_pending_with_svc(
     """RPG orchestrator: adjudication announces a pending roll and the
     lifecycle service IS wired — the turn completes DELIVERED, unlike the
     no-service-wired guard case covered by TestRpgPendingRollServiceGuard."""
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
     from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+    from afterworlds.pipeline.rpg.sequence import ActionResolutionService
 
     session_state, sheet = _seed_character_sheet(session_factory, story_id)
 
@@ -580,12 +557,14 @@ def _make_rpg_orch_announcing_pending_with_svc(
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(StoryMode.RPG),
-        rpg_adjudication_service=_AdjServiceAnnouncingPending(  # type: ignore[arg-type]
-            story_id, sheet.sheet_id  # type: ignore[attr-defined]
-        ),
+        rpg_adjudication_service=_AdjServiceAnnouncingPending(),  # type: ignore[arg-type]
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
-        rpg_pending_roll_service=_FakePendingRollService(pending=None),  # type: ignore[arg-type]
+        rpg_sequence_service=ActionResolutionService(  # type: ignore[arg-type]
+            adapter=D20RulesSystemAdapter(),
+            dice_service=SystemRandomDiceService(seed=42),
+            session_factory=session_factory,  # type: ignore[arg-type]
+        ),
         retrieval_write_service=retrieval_write_service,
     )
 
