@@ -25,7 +25,8 @@
 > authority until final narrative delivery.
 
 Audit honesty and hidden-state protection are governed by Decision Group 5 below (15b-16, 15b-17).
-Durable intermediate provenance is governed by Decision Group 15 below (15b-34).
+Durable intermediate provenance is governed by Decision Group 15 below (15b-34). Stored-snapshot authority
+applies equally to pending rolls and pending mechanical decisions, per Decision Group 16 below (15b-35).
 
 ---
 
@@ -348,6 +349,30 @@ pre-delivery provenance, and `rpg_roll_audit` remains the sole final delivered-r
 event atomically with sequence advancement — rather than as an afterthought write — is what makes "no lost
 validated result" a transactional guarantee instead of a best-effort one.
 
+### Group 16 — Persisted decision request snapshot
+
+**Decision (15b-35):** A pending mechanical decision is backed by the same stored-snapshot authority
+pattern as a pending roll. `MechanicalDecisionSnapshot` is the backend-authoritative record — analogous to
+`RollInstructionSnapshot` — persisted for the lifetime of the pending decision and referenced by the
+sequence's `current_decision_request_id`. `PendingMechanicalDecisionView` gains a `decision_revision`
+field; a decision submission requires `expected_decision_revision`, validated and rejected/rehydrated on
+mismatch exactly as `expected_instruction_revision` already governs roll submissions (15b-13).
+`ResolvedSequenceStep` gains `decision_snapshot: MechanicalDecisionSnapshot | None` and
+`accepted_option_id: str | None` alongside its existing roll-shaped fields, so a `MECHANICAL_DECISION`
+step's stored authority — and the audit/event row later reconstructed from it (15b-34) — never depends on
+re-reading live adapter or Character Sheet state at validation or reconstruction time.
+
+**Rationale:** ADR-015b already requires this level of authority for rolls — a structured snapshot, stable
+identity (`term_id`/`instruction_id`), and revision-gated staleness rejection. Mechanical decisions are a
+first-class pending-interaction kind (15b-19), not a lesser one, and the inherited ADR-015 principle of
+"stored-snapshot authority over later live-state drift" (see **Inherited ADR-015 Decisions** below)
+already applies to both interaction kinds — this decision makes that application explicit instead of
+leaving decisions as the one interaction kind without a defined stored contract. Removing mechanical
+decisions from scope was the offered alternative, but it would silently cut acceptance criterion 11, the
+`submit_decision` service method, `MECHANICAL_DECISION_INVALID`, and `SequenceInteractionKind.DECISION` —
+a materially smaller lifecycle than the one already accepted across 15b-19 through 15b-24 — so the
+additive fix is the correct, smaller change.
+
 ---
 
 ## Inherited ADR-015 Decisions (not reopened)
@@ -432,6 +457,83 @@ class RollInstructionSnapshot(BaseModel):
 `PlayerModifierView`, `PlayerAdjustmentOptionView`, `SequenceProgressView`,
 `PlayerRollInstructionView`) omit every backend-only field, per Group 5 above — `ability_id` in
 particular never appears in `PlayerAdjustmentOptionView`.
+
+---
+
+## Mechanical Decision Contract
+
+Per 15b-35. Architectural sketch; an equivalent repository-native shape is acceptable if it preserves
+these fields and invariants — the same disclaimer that governs the Roll Instruction Contract above.
+
+```python
+class MechanicalDecisionOptionSnapshot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+    source_rule_ref: str | None = None
+    provisional_effects_json: str
+
+
+class MechanicalDecisionSnapshot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    decision_id: UUID
+    decision_revision: int
+    prompt: str
+    options: tuple[MechanicalDecisionOptionSnapshot, ...]
+    source_rule_refs: tuple[str, ...]
+    sequence_id: UUID
+    step_id: UUID
+```
+
+Required validation: at least one option; every `option_id` unique within a snapshot; adapter approval for
+supported decision kinds — no arbitrary option execution, mirroring `RollTerm`'s "no arbitrary formula
+execution" constraint.
+
+`option_id`, `player_visible_label`, and `prompt` are the only fields that ever reach a player-facing view.
+`source_rule_ref` and `provisional_effects_json` are backend-only, per Group 5 — parity with `ability_id`
+never appearing in `PlayerAdjustmentOptionView`.
+
+`PendingMechanicalDecisionView` (player-visible) gains `decision_revision: int`, mirroring
+`PlayerRollInstructionView.instruction_revision`:
+
+```python
+class PendingMechanicalDecisionView(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    sequence_id: UUID
+    decision_revision: int
+    interaction_phase: Literal[RpgInteractionPhase.PENDING_MECHANICAL_DECISION]
+    prompt: str
+    options: tuple[MechanicalDecisionOption, ...]
+```
+
+Submission mirrors the roll submission shapes' stale-revision guard:
+
+```python
+class MechanicalDecisionSubmission(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    expected_decision_revision: int
+    option_id: str
+```
+
+`ResolvedSequenceStep` gains two fields alongside its existing roll-shaped ones, so a `MECHANICAL_DECISION`
+step carries the same stored authority a roll step does:
+
+```python
+decision_snapshot: MechanicalDecisionSnapshot | None
+accepted_option_id: str | None
+```
+
+For `MECHANICAL_DECISION` steps, `decision_snapshot`/`accepted_option_id` are populated and the
+roll-shaped fields (`instruction_snapshot`, `submitted_term_results`, `derived_term_results`, etc.) are
+`None`/empty; for roll-kind steps the reverse holds. Validating a decision submission (option membership,
+`decision_revision` staleness) and reconstructing its later audit/event row (15b-34) both read only from
+the stored `MechanicalDecisionSnapshot` — never from live adapter or Character Sheet state.
 
 ---
 
@@ -621,6 +723,7 @@ ACTION_SEQUENCE_STATE_CONFLICT
 ACTION_ADJUSTMENT_NOT_ALLOWED
 ACTION_ADJUSTMENT_INELIGIBLE
 MECHANICAL_DECISION_INVALID
+MECHANICAL_DECISION_REVISION_MISMATCH
 SEQUENCE_NOT_READY_FOR_NARRATION
 ```
 
@@ -638,7 +741,10 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   `ActionResolutionStatus`, `SequenceInteractionKind`, `ActionResolutionSequence`,
   `DerivedRollTermResult`, `ResolvedStepKind`, `RollSubmissionSource`, `ResolvedSequenceStep`,
   `ReadyActionResolutionBundle`, `PlayerRollTermResult`, `RawPlayerRollSubmission`,
-  `PhysicalAggregateRollSubmission`, `ActionResolutionEvent` are added (Phase 2).
+  `PhysicalAggregateRollSubmission`, `ActionResolutionEvent`, `MechanicalDecisionOptionSnapshot`,
+  `MechanicalDecisionSnapshot`, `MechanicalDecisionSubmission` are added (Phase 2).
+- `PendingMechanicalDecisionView` gains `decision_revision`; `ResolvedSequenceStep` gains
+  `decision_snapshot` and `accepted_option_id` (Phase 2; 15b-35).
 - `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration).
 - `action_resolution_sequences` table added with the partial unique index above (Phase 2, migration).
 - `action_resolution_events` table added as an append-only ledger (DB-layer UPDATE/DELETE triggers, same
