@@ -3,32 +3,38 @@
 Creates ``action_resolution_sequences`` (persisted unit spanning one declared
 action or mechanically linked action group; at most one unresolved sequence
 per story via a partial unique index, mirroring the existing
-``uq_pending_roll_requests_story_active`` pattern).
+``uq_pending_roll_requests_story_active`` pattern). ``session_id`` is a real
+``NOT NULL`` column from creation (PR #129 remediation — earlier drafts of
+this migration added it nullable via a separate follow-up migration 0018;
+since neither had merged to main, 0018 is folded in here rather than kept as
+a second migration correcting the first).
 
-Revises ``pending_roll_requests`` per ADR-015b's Column Disposition table:
-drops ``roll_expression``, ``expected_value_shape``, ``visible_modifier_total``,
-``visible_modifier_breakdown_json``, ``check_label``, ``player_facing_instruction``,
-``visible_modifier_note``, ``hidden_modifier_present`` outright after backfilling
-every unconsumed (``status='pending'``) row into a deterministic single-step
-``ACTIVE`` sequence with an equivalent ``RollInstructionSnapshot``. Historical
-consumed rows are left with their new structured columns ``NULL`` and
-``schema_version`` unchanged — they are not backfilled, since nothing reads a
-consumed row's mechanical detail again (ADR-015b's Column Disposition
-amendment, made during Phase 2 resumption: this table is transient,
-mutated-in-place operational state, not the audit-of-record, and the
-project's working database carries zero rows in it — there is no real data
-behind a preserve-nullable requirement to protect).
+Revises ``pending_roll_requests`` per ADR-015b's Column Disposition table and
+Owner Decision 15b-36 (pre-release clean schema cutover, PR #129
+remediation): drops ``roll_expression``, ``expected_value_shape``,
+``visible_modifier_total``, ``visible_modifier_breakdown_json``,
+``check_label``, ``player_facing_instruction``, ``visible_modifier_note``,
+``hidden_modifier_present`` outright. No historical-row conversion is
+attempted or promised — Afterworlds has never been deployed or run, and no
+supported database is expected to contain a row in the legacy shape. Before
+the destructive column drop, this migration asserts ``pending_roll_requests``
+is empty and raises, aborting before any ``ALTER TABLE`` runs, if that
+precondition is false; a populated table means the pre-release
+clean-schema-cutover assumption does not hold for that database, and it must
+be reset or migrated separately with a hand-authored, reviewed conversion —
+this migration does not improvise one.
 
-``pending_roll_requests`` needs no table recreate for this: this project's
-runtime (SQLite >= 3.35, confirmed 3.49.1; SQLAlchemy 2.0; Alembic 1.18)
-supports ``ALTER TABLE ... ADD COLUMN`` and ``ALTER TABLE ... DROP COLUMN``
-natively, and none of the eight dropped columns participate in this table's
-only index (``uq_pending_roll_requests_story_active``, on ``story_id`` alone)
-or any foreign key. Each column add/drop below is a single direct
-``ALTER TABLE`` statement — no ``PRAGMA foreign_keys`` toggling, table
-rename, or row copy. The table's other columns, its two ``create_index``
-indexes, its partial unique index, and its four foreign keys (all created in
-migration 0011) are untouched by this migration and are not recreated here.
+``pending_roll_requests`` needs no table recreate for the column changes:
+this project's runtime (SQLite >= 3.35, confirmed 3.49.1; SQLAlchemy 2.0;
+Alembic 1.18) supports ``ALTER TABLE ... ADD COLUMN`` and
+``ALTER TABLE ... DROP COLUMN`` natively, and none of the eight dropped
+columns participate in this table's only index
+(``uq_pending_roll_requests_story_active``, on ``story_id`` alone) or any
+foreign key. Each column add/drop below is a single direct ``ALTER TABLE``
+statement — no ``PRAGMA foreign_keys`` toggling, table rename, or row copy.
+The table's other columns, its two ``create_index`` indexes, its partial
+unique index, and its four foreign keys (all created in migration 0011) are
+untouched by this migration and are not recreated here.
 
 ``rpg_roll_audit`` gets its new nullable columns via plain ``op.add_column``
 (NOT batch mode) because this table has the append-only UPDATE/DELETE
@@ -38,25 +44,13 @@ append-only guard. Plain ``ADD COLUMN`` is sufficient here since every new
 column is nullable with no default, which SQLite's native ``ALTER TABLE ADD
 COLUMN`` supports without a table recreate.
 
-Legacy pending-row conversion: only the three literal expressions the
-shipped adapter (``pipeline/rpg/adapter.py``) ever produced —
-``1d20``, ``2d20kh1``, ``2d20kl1`` — are recognized. Any pending row whose
-``roll_expression`` does not match one of these is corruption or an
-out-of-band write; the whole migration collects every such offender and
-raises once (not on the first bad row, not a per-row quarantine — a
-quarantine state would either lose data or have to resurrect the retired
-legacy columns it's meant to replace) rather than coercing to a default roll.
-Purpose is inferred deterministically from ``check_label`` via the same
-skill/save lookup the adapter uses (skill match -> SKILL_CHECK, save match ->
-SAVING_THROW, else -> ABILITY_CHECK fallback); the shipped adapter's
-``_ModifierBreakdown`` always sets ``has_hidden=False``, so no pending row
-can carry a hidden modifier component that would need reconstruction.
-
 ``downgrade()`` re-adds the eight legacy columns and best-effort
-reconstructs display text for rows that have a structured snapshot to
-reconstruct it from; this is inherently lossy (there is no real legacy data
-behind any row upgrade() touched — see the Column Disposition amendment
-above), same as it was before this simplification.
+reconstructs display text for any row that has a structured
+``instruction_snapshot_json`` to reconstruct it from (real post-Phase-2 rows
+created by ``ActionResolutionService.start_sequence``, not migration
+backfill — this migration performs no backfill). Reconstruction is
+inherently lossy for the eight legacy columns' own text where a snapshot
+doesn't cover it exactly; rows with no snapshot get the placeholder default.
 
 Revision ID: 0017
 Revises: 0016
@@ -66,8 +60,6 @@ Create Date: 2026-07-13
 from __future__ import annotations
 
 import json
-import re
-import uuid
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -80,159 +72,45 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 _TABLE = "pending_roll_requests"
-_SEQUENCE_NS = uuid.UUID("6f2b8e4a-0d1a-4b3e-9c1f-15b000000001")
-_STEP_NS = uuid.UUID("6f2b8e4a-0d1a-4b3e-9c1f-15b000000002")
-_INSTRUCTION_NS = uuid.UUID("6f2b8e4a-0d1a-4b3e-9c1f-15b000000003")
 
-# Mirrors pipeline/rpg/adapter.py's _SKILL_ABILITY / _SAVE_ABILITY keys.
-# Migrations must not import application code, so this is a narrow,
-# purpose-inference-only local copy — not a second source of adjudication truth.
-_SKILL_KEYS = frozenset(
-    {
-        "acrobatics",
-        "animal_handling",
-        "arcana",
-        "athletics",
-        "deception",
-        "history",
-        "insight",
-        "intimidation",
-        "investigation",
-        "medicine",
-        "nature",
-        "perception",
-        "performance",
-        "persuasion",
-        "religion",
-        "sleight_of_hand",
-        "stealth",
-        "survival",
-    }
-)
-_SAVE_KEYS = frozenset(
-    {
-        "strength_save",
-        "dexterity_save",
-        "constitution_save",
-        "intelligence_save",
-        "wisdom_save",
-        "charisma_save",
-    }
+_LEGACY_COLUMNS = (
+    "roll_expression",
+    "expected_value_shape",
+    "visible_modifier_total",
+    "visible_modifier_breakdown_json",
+    "check_label",
+    "player_facing_instruction",
+    "visible_modifier_note",
+    "hidden_modifier_present",
 )
 
-_KNOWN_EXPRESSIONS = {
-    "1d20": {"count": 1, "sides": 20, "selection_rule": "sum_all", "keep_count": None},
-    "2d20kh1": {
-        "count": 2,
-        "sides": 20,
-        "selection_rule": "keep_highest",
-        "keep_count": 1,
-    },
-    "2d20kl1": {
-        "count": 2,
-        "sides": 20,
-        "selection_rule": "keep_lowest",
-        "keep_count": 1,
-    },
-}
 
+def _assert_pending_roll_requests_empty(conn: sa.engine.Connection) -> None:
+    """Owner Decision 15b-36's precondition, enforced before any destructive change.
 
-def _normalize_key(value: str) -> str:
-    return re.sub(r"[\s\-]+", "_", value.strip()).lower()
-
-
-def _infer_purpose(check_label: str) -> str:
-    key = _normalize_key(check_label)
-    if key in _SKILL_KEYS:
-        return "skill_check"
-    if key in _SAVE_KEYS:
-        return "saving_throw"
-    return "ability_check"
-
-
-def _build_instruction_snapshot_json(
-    *,
-    instruction_id: str,
-    sequence_id: str,
-    step_id: str,
-    roll_expression: str,
-    check_label: str,
-    visible_modifier_total: int | None,
-    visible_modifier_breakdown_json: str | None,
-) -> str:
-    term_shape = _KNOWN_EXPRESSIONS[roll_expression]
-    term_id = str(uuid.uuid5(_INSTRUCTION_NS, f"term:{instruction_id}"))
-    terms = [
-        {
-            "schema_version": 1,
-            "term_id": term_id,
-            "count": term_shape["count"],
-            "sides": term_shape["sides"],
-            "selection_rule": term_shape["selection_rule"],
-            "keep_count": term_shape["keep_count"],
-            "contribution": "add",
-            "label": None,
-        }
-    ]
-
-    modifier_components: list[dict] = []
-    breakdown: dict = {}
-    if visible_modifier_breakdown_json:
-        try:
-            breakdown = json.loads(visible_modifier_breakdown_json)
-        except (json.JSONDecodeError, TypeError):
-            breakdown = {}
-    if breakdown:
-        for label, value in breakdown.items():
-            modifier_components.append(
-                {
-                    "schema_version": 1,
-                    "modifier_id": str(
-                        uuid.uuid5(_INSTRUCTION_NS, f"mod:{instruction_id}:{label}")
-                    ),
-                    "label": label,
-                    "value": value,
-                    "visibility": "player_visible",
-                    "source_kind": "legacy_migration",
-                    "source_reference": None,
-                }
-            )
-    elif visible_modifier_total:
-        modifier_components.append(
-            {
-                "schema_version": 1,
-                "modifier_id": str(
-                    uuid.uuid5(_INSTRUCTION_NS, f"mod:{instruction_id}:total")
-                ),
-                "label": "legacy_modifier",
-                "value": visible_modifier_total,
-                "visibility": "player_visible",
-                "source_kind": "legacy_migration",
-                "source_reference": None,
-            }
+    Raises rather than coercing to a default shape or silently skipping the
+    conversion — a populated table here means the pre-release
+    clean-schema-cutover assumption is false for this database.
+    """
+    count = conn.execute(sa.text(f"SELECT COUNT(*) FROM {_TABLE}")).scalar()
+    if count:
+        raise RuntimeError(
+            f"Migration 0017: {_TABLE!r} contains {count} row(s), but "
+            "ADR-015b Owner Decision 15b-36 (pre-release clean schema "
+            "cutover) requires this table to be empty before dropping its "
+            "eight legacy display/derivation columns -- no supported "
+            "database is promised to contain a row in this shape. This "
+            "database must be reset (if disposable) or migrated separately "
+            "with a hand-authored, reviewed conversion for its existing "
+            "row(s) before this migration can run."
         )
-
-    snapshot = {
-        "schema_version": 1,
-        "instruction_id": instruction_id,
-        "instruction_revision": 1,
-        "purpose": _infer_purpose(check_label),
-        "terms": terms,
-        "modifier_components": modifier_components,
-        "display_expression": roll_expression,
-        "display_label": check_label,
-        "source_rule_refs": [],
-        "adjustment_options": [],
-        "sequence_id": sequence_id,
-        "step_id": step_id,
-    }
-    return json.dumps(snapshot)
 
 
 def upgrade() -> None:
     # ------------------------------------------------------------------
     # action_resolution_sequences — must exist before pending_roll_requests
-    # gains its FK to it.
+    # gains its FK to it. session_id is NOT NULL from creation (PR #129
+    # remediation; previously added nullable via a separate migration 0018).
     # ------------------------------------------------------------------
     op.create_table(
         "action_resolution_sequences",
@@ -255,6 +133,7 @@ def upgrade() -> None:
             sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
             nullable=False,
         ),
+        sa.Column("session_id", sa.String(36), nullable=False),
         sa.Column(
             "originating_turn_id",
             sa.String(36),
@@ -299,6 +178,9 @@ def upgrade() -> None:
     # ------------------------------------------------------------------
     # pending_roll_requests — add the six new nullable structured columns.
     # Direct ALTER TABLE ADD COLUMN; no recreate needed (see module docstring).
+    # Purely additive — safe regardless of the table's row count, so this
+    # runs before the zero-row precondition check below, which only guards
+    # the destructive column drop.
     #
     # sequence_id carries a foreign key, so it can't go through Alembic's
     # op.add_column on SQLite: Alembic treats any ADD COLUMN carrying a
@@ -323,152 +205,20 @@ def upgrade() -> None:
     )
 
     # ------------------------------------------------------------------
-    # Backfill unconsumed (status='pending') legacy rows into a real
-    # ActionResolutionSequence, reading the legacy display columns one
-    # last time before they're dropped below. Historical consumed rows
-    # are left with their new structured columns NULL — nothing reads a
-    # consumed row's mechanical detail again.
+    # Owner Decision 15b-36: hard precondition before any destructive
+    # change. No backfill/conversion pass exists — a populated table means
+    # the pre-release clean-cutover assumption is false for this database.
     # ------------------------------------------------------------------
     conn = op.get_bind()
-    pending_rows = conn.execute(
-        sa.text(
-            "SELECT request_id, story_id, character_id, originating_turn_id,"
-            " check_label, roll_expression, visible_modifier_total,"
-            " visible_modifier_breakdown_json, created_at"
-            " FROM pending_roll_requests WHERE status = 'pending'"
-        )
-    ).fetchall()
-
-    offenders = [
-        (r.request_id, r.roll_expression)
-        for r in pending_rows
-        if r.roll_expression not in _KNOWN_EXPRESSIONS
-    ]
-    if offenders:
-        raise RuntimeError(
-            "Migration 0017: cannot convert unrecognized pending roll "
-            "expression(s) — these are never coerced to a default roll: "
-            + ", ".join(f"{rid!r} -> {expr!r}" for rid, expr in offenders)
-        )
-
-    now_iso = conn.execute(sa.text("SELECT CURRENT_TIMESTAMP")).scalar()
-
-    sequence_inserts: list[dict] = []
-    pending_updates: list[dict] = []
-    for r in pending_rows:
-        sequence_id = str(uuid.uuid5(_SEQUENCE_NS, r.request_id))
-        step_id = str(uuid.uuid5(_STEP_NS, r.request_id))
-        instruction_id = str(uuid.uuid5(_INSTRUCTION_NS, r.request_id))
-        snapshot_json = _build_instruction_snapshot_json(
-            instruction_id=instruction_id,
-            sequence_id=sequence_id,
-            step_id=step_id,
-            roll_expression=r.roll_expression,
-            check_label=r.check_label,
-            visible_modifier_total=r.visible_modifier_total,
-            visible_modifier_breakdown_json=r.visible_modifier_breakdown_json,
-        )
-
-        # node_id is required (NOT NULL, FK) on action_resolution_sequences but
-        # was never carried by the legacy pending_roll_requests row — the
-        # pre-15b schema had no node linkage for a player-roll announce.
-        # Resolve it from the originating Turn's node_id, which does exist.
-        node_row = conn.execute(
-            sa.text("SELECT node_id FROM turns WHERE turn_id = :tid"),
-            {"tid": r.originating_turn_id},
-        ).fetchone()
-        if node_row is None or node_row.node_id is None:
-            raise RuntimeError(
-                "Migration 0017: cannot resolve node_id for pending roll "
-                f"{r.request_id!r} — originating turn "
-                f"{r.originating_turn_id!r} has no node_id"
-            )
-
-        sequence_inserts.append(
-            {
-                "sequence_id": sequence_id,
-                "story_id": r.story_id,
-                "node_id": node_row.node_id,
-                "character_id": r.character_id,
-                "originating_turn_id": r.originating_turn_id,
-                "status": "active",
-                "current_interaction_kind": "roll",
-                "current_pending_roll_request_id": r.request_id,
-                "current_decision_request_id": None,
-                "current_decision_snapshot_json": None,
-                "resolved_steps_json": "[]",
-                "projected_state_json": "{}",
-                "provisional_effects_json": "[]",
-                "created_at": r.created_at,
-                "updated_at": now_iso,
-                "schema_version": 1,
-            }
-        )
-        pending_updates.append(
-            {
-                "request_id": r.request_id,
-                "sequence_id": sequence_id,
-                "step_id": step_id,
-                "instruction_id": instruction_id,
-                "instruction_revision": 1,
-                "instruction_schema_version": 1,
-                "instruction_snapshot_json": snapshot_json,
-                "schema_version": 2,
-            }
-        )
-
-    if sequence_inserts:
-        conn.execute(
-            sa.text(
-                "INSERT INTO action_resolution_sequences ("
-                " sequence_id, story_id, node_id, character_id,"
-                " originating_turn_id, status, current_interaction_kind,"
-                " current_pending_roll_request_id, current_decision_request_id,"
-                " current_decision_snapshot_json, resolved_steps_json,"
-                " projected_state_json, provisional_effects_json,"
-                " created_at, updated_at, schema_version"
-                ") VALUES ("
-                " :sequence_id, :story_id, :node_id, :character_id,"
-                " :originating_turn_id, :status, :current_interaction_kind,"
-                " :current_pending_roll_request_id, :current_decision_request_id,"
-                " :current_decision_snapshot_json, :resolved_steps_json,"
-                " :projected_state_json, :provisional_effects_json,"
-                " :created_at, :updated_at, :schema_version"
-                ")"
-            ),
-            sequence_inserts,
-        )
-    if pending_updates:
-        conn.execute(
-            sa.text(
-                f"UPDATE {_TABLE} SET"
-                " sequence_id = :sequence_id, step_id = :step_id,"
-                " instruction_id = :instruction_id,"
-                " instruction_revision = :instruction_revision,"
-                " instruction_schema_version = :instruction_schema_version,"
-                " instruction_snapshot_json = :instruction_snapshot_json,"
-                " schema_version = :schema_version"
-                " WHERE request_id = :request_id"
-            ),
-            pending_updates,
-        )
+    _assert_pending_roll_requests_empty(conn)
 
     # ------------------------------------------------------------------
-    # Drop the eight legacy display/derivation columns outright — no real
-    # data to preserve (ADR-015b Column Disposition, amended during Phase 2
-    # resumption). Direct ALTER TABLE DROP COLUMN; none of these participate
-    # in this table's index or any foreign key.
+    # Drop the eight legacy display/derivation columns outright — no
+    # historical-row compatibility is promised (Owner Decision 15b-36).
+    # Direct ALTER TABLE DROP COLUMN; none of these participate in this
+    # table's index or any foreign key.
     # ------------------------------------------------------------------
-    for col_name in (
-        "roll_expression",
-        "expected_value_shape",
-        "visible_modifier_total",
-        "visible_modifier_breakdown_json",
-        "check_label",
-        "player_facing_instruction",
-        "visible_modifier_note",
-        "hidden_modifier_present",
-    ):
+    for col_name in _LEGACY_COLUMNS:
         op.drop_column(_TABLE, col_name)
 
     # ------------------------------------------------------------------
@@ -503,12 +253,10 @@ def downgrade() -> None:
     ):
         op.drop_column("rpg_roll_audit", col)
 
-    # Re-add the eight legacy columns. This is inherently lossy: there is no
-    # real legacy data behind any row upgrade() touched (see the Column
-    # Disposition amendment in ADR-015b — the table carried zero rows at the
-    # time this simplification was made). Best-effort reconstruction from
-    # instruction_snapshot_json covers rows upgrade() itself backfilled;
-    # everything else gets the placeholder default.
+    # Re-add the eight legacy columns. Best-effort reconstruction from
+    # instruction_snapshot_json covers real post-Phase-2 rows (this
+    # migration performs no backfill of its own); rows with no snapshot get
+    # the placeholder default.
     op.add_column(
         _TABLE, sa.Column("check_label", sa.Text, nullable=False, server_default="")
     )

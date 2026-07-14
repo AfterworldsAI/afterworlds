@@ -7,6 +7,8 @@ import json
 import os
 import tempfile
 
+import pytest
+
 
 def _load_migration_0013() -> object:
     """Import the 0013 migration module so we can test its helper functions."""
@@ -326,5 +328,236 @@ def test_migration_0013_version_pointers_conversion() -> None:
         assert p["pointer_id"] == uuid_str
         assert p["kind"] == "draft_label"
         assert p["schema_version"] == 1
+    finally:
+        os.unlink(db_path)
+
+
+# ---------------------------------------------------------------------------
+# Migration 0017 — Owner Decision 15b-36 (pre-release clean schema cutover)
+# ---------------------------------------------------------------------------
+
+
+def _legacy_pending_roll_insert_kwargs(request_id: str) -> dict:
+    """Column values for a pending_roll_requests row in its pre-0017 (0011) shape.
+
+    story_id/character_id/originating_turn_id are synthetic UUIDs, not real
+    parent rows — Alembic's own migration-runner connection does not enable
+    SQLite foreign-key enforcement (only this project's application engine
+    factory does, via its own connect event listener), so this table accepts
+    the insert regardless. The precondition test only needs *a row to exist*.
+    """
+    import uuid
+
+    return {
+        "request_id": request_id,
+        "story_id": str(uuid.uuid4()),
+        "session_id": str(uuid.uuid4()),
+        "character_id": str(uuid.uuid4()),
+        "originating_turn_id": str(uuid.uuid4()),
+        "visibility": "player",
+        "source_proposal_ref": "test/stealth",
+        "status": "pending",
+        "created_at": "2026-01-01T00:00:00",
+        "schema_version": 1,
+        "roll_expression": "1d20",
+        "expected_value_shape": "integer",
+        "visible_modifier_total": 2,
+        "visible_modifier_breakdown_json": "{}",
+        "check_label": "Stealth Check",
+        "player_facing_instruction": "Roll 1d20+2",
+        "visible_modifier_note": None,
+        "hidden_modifier_present": False,
+    }
+
+
+def test_migration_0017_upgrade_head_drops_legacy_columns() -> None:
+    """Target schema after `head` carries none of the eight legacy columns."""
+    import sqlalchemy as sa
+
+    from alembic import command
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        command.upgrade(_alembic_cfg(db_path), "head")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+        inspector = sa.inspect(engine)
+        columns = {c["name"] for c in inspector.get_columns("pending_roll_requests")}
+        engine.dispose()
+
+        legacy = {
+            "roll_expression",
+            "expected_value_shape",
+            "visible_modifier_total",
+            "visible_modifier_breakdown_json",
+            "check_label",
+            "player_facing_instruction",
+            "visible_modifier_note",
+            "hidden_modifier_present",
+        }
+        assert columns & legacy == set(), f"Legacy columns survived: {columns & legacy}"
+    finally:
+        os.unlink(db_path)
+
+
+def test_migration_0017_action_resolution_sequences_session_id_non_null() -> None:
+    """`action_resolution_sequences.session_id` is NOT NULL from creation."""
+    import sqlalchemy as sa
+
+    from alembic import command
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        command.upgrade(_alembic_cfg(db_path), "head")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+        inspector = sa.inspect(engine)
+        columns = {
+            c["name"]: c for c in inspector.get_columns("action_resolution_sequences")
+        }
+        engine.dispose()
+
+        assert "session_id" in columns
+        assert columns["session_id"]["nullable"] is False
+    finally:
+        os.unlink(db_path)
+
+
+def test_migration_0017_aborts_before_destructive_change_when_row_exists() -> None:
+    """A preexisting pending_roll_requests row aborts 0017 before any ALTER TABLE.
+
+    Owner Decision 15b-36: the migration's zero-row precondition must fail
+    visibly rather than silently coerce or skip. Verifies both that the
+    upgrade raises and that no destructive change happened first — the
+    legacy columns must still all be present afterward, proving the failure
+    landed before the drop loop (or that the whole migration's DDL rolled
+    back transactionally either way).
+    """
+    import uuid
+
+    import sqlalchemy as sa
+
+    from alembic import command
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        cfg = _alembic_cfg(db_path)
+        command.upgrade(cfg, "0016")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+        with engine.connect() as conn:
+            conn.execute(
+                sa.text(
+                    "INSERT INTO pending_roll_requests ("
+                    " request_id, story_id, session_id, character_id,"
+                    " originating_turn_id, visibility, source_proposal_ref, status,"
+                    " created_at, schema_version, roll_expression,"
+                    " expected_value_shape, visible_modifier_total,"
+                    " visible_modifier_breakdown_json, check_label,"
+                    " player_facing_instruction, visible_modifier_note,"
+                    " hidden_modifier_present"
+                    ") VALUES ("
+                    " :request_id, :story_id, :session_id, :character_id,"
+                    " :originating_turn_id, :visibility, :source_proposal_ref, :status,"
+                    " :created_at, :schema_version, :roll_expression,"
+                    " :expected_value_shape, :visible_modifier_total,"
+                    " :visible_modifier_breakdown_json, :check_label,"
+                    " :player_facing_instruction, :visible_modifier_note,"
+                    " :hidden_modifier_present"
+                    ")"
+                ),
+                _legacy_pending_roll_insert_kwargs(str(uuid.uuid4())),
+            )
+            conn.commit()
+        engine.dispose()
+
+        with pytest.raises(Exception, match="pending_roll_requests.*contains"):
+            command.upgrade(cfg, "0017")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+        inspector = sa.inspect(engine)
+        columns = {c["name"] for c in inspector.get_columns("pending_roll_requests")}
+        engine.dispose()
+
+        # The legacy columns must all still be present — the destructive
+        # drop loop must not have run (or its effects rolled back).
+        for col in (
+            "roll_expression",
+            "expected_value_shape",
+            "visible_modifier_total",
+            "visible_modifier_breakdown_json",
+            "check_label",
+            "player_facing_instruction",
+            "visible_modifier_note",
+            "hidden_modifier_present",
+        ):
+            assert (
+                col in columns
+            ), f"Legacy column {col!r} missing after aborted migration"
+    finally:
+        os.unlink(db_path)
+
+
+def test_migration_0017_foreign_key_check_and_triggers_sound() -> None:
+    """After upgrade head, PRAGMA foreign_key_check is clean and append-only
+    triggers on rpg_roll_audit still reject UPDATE/DELETE."""
+    import uuid
+
+    import sqlalchemy as sa
+    from sqlalchemy.exc import IntegrityError
+
+    from alembic import command
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+    try:
+        command.upgrade(_alembic_cfg(db_path), "head")
+
+        engine = sa.create_engine(f"sqlite:///{db_path}")
+        with engine.connect() as conn:
+            violations = conn.execute(sa.text("PRAGMA foreign_key_check")).fetchall()
+            assert violations == [], f"foreign_key_check violations: {violations}"
+
+            # A row-level trigger needs a row to fire on.
+            conn.execute(
+                sa.text(
+                    "INSERT INTO turns"
+                    " (turn_id, node_id, user_input, assistant_output, timestamp,"
+                    " intent_classification)"
+                    " VALUES"
+                    " (:tid, NULL, 'u', 'a', '2026-01-01', 'in_character_action')"
+                ),
+                {"tid": str(uuid.uuid4())},
+            )
+            turn_id = conn.execute(
+                sa.text("SELECT turn_id FROM turns LIMIT 1")
+            ).scalar()
+            conn.execute(
+                sa.text(
+                    "INSERT INTO rpg_roll_audit"
+                    " (turn_id, story_id, session_id, character_id, check_label,"
+                    " visibility, expression, raw_rolls_json, modifiers_json, total,"
+                    " dc, outcome, source, gm_cheating_at_roll, sheet_effects_json,"
+                    " created_at)"
+                    " VALUES (:turn_id, :sid, :ssid, :cid, 'Stealth', 'player',"
+                    " '1d20', '[12]', '{}', 12, NULL, 'undetermined', 'player', 0,"
+                    " '[]', '2026-01-01')"
+                ),
+                {
+                    "turn_id": turn_id,
+                    "sid": str(uuid.uuid4()),
+                    "ssid": str(uuid.uuid4()),
+                    "cid": str(uuid.uuid4()),
+                },
+            )
+            conn.commit()
+
+            with pytest.raises(IntegrityError, match="append-only"):
+                conn.execute(sa.text("DELETE FROM rpg_roll_audit"))
+                conn.commit()
+        engine.dispose()
     finally:
         os.unlink(db_path)

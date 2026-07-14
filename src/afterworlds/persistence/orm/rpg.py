@@ -216,14 +216,7 @@ class ActionResolutionSequenceORM(Base):
     )
 
     # -- CRD Issue 15b: session identity (ADR-015b 15b-34) ------------------
-    # Nullable at the ORM layer only because migration 0018 retrofits this
-    # column via ALTER TABLE ADD COLUMN, which SQLite refuses to accept as
-    # NOT NULL without a placeholder default (no sensible UUID sentinel
-    # exists) — same posture as PendingRollRequestORM's sequence_id/step_id/
-    # instruction_id additions in migration 0017. ActionResolutionService
-    # populates it on every new row (start_sequence); it is never None for
-    # a row created after this migration.
-    session_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    session_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
 
     status: Mapped[str] = mapped_column(
         sa.String(24), nullable=False, server_default="active"
