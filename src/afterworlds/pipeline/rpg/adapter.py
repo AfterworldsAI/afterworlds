@@ -632,10 +632,32 @@ class D20RulesSystemAdapter:
         resolution — the structured successor to the retired
         ``chosen_die_range`` (now handles arbitrary multi-term instructions,
         not just a single chosen die).
+
+        Computed from each term's authoritative selection semantics, not raw
+        dice count (Codex review, PR #129): ``SUM_ALL`` contributes every
+        rolled die; ``KEEP_HIGHEST``/``KEEP_LOWEST`` contribute only
+        ``keep_count`` dice regardless of how many were rolled — e.g.
+        ``2d20kh1``'s legal range is ``[1, 20]``, not ``[2, 40]`` (rolling
+        all 1s or all 20s and keeping one still yields 1 or 20; ADR-015b's
+        own defect inventory item 2 flags exactly this shape of bug in the
+        retired executor). ``SUBTRACT`` reverses which extreme becomes the
+        term's min/max contribution.
         """
         modifier_total = sum(m.value for m in instruction.modifier_components)
-        min_total = sum(t.count for t in instruction.terms) + modifier_total
-        max_total = sum(t.count * t.sides for t in instruction.terms) + modifier_total
+        min_total = modifier_total
+        max_total = modifier_total
+        for term in instruction.terms:
+            kept = (
+                term.count
+                if term.selection_rule is DiceSelectionRule.SUM_ALL
+                else (term.keep_count or 1)
+            )
+            term_min = kept * 1
+            term_max = kept * term.sides
+            if term.contribution is RollContribution.SUBTRACT:
+                term_min, term_max = -term_max, -term_min
+            min_total += term_min
+            max_total += term_max
         return min_total, max_total
 
     def to_writer_view(

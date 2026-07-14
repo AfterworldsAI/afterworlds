@@ -402,3 +402,62 @@ def test_consume_roll_rejects_already_consumed_row() -> None:
         session.close()
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+def test_consume_roll_rejects_out_of_range_aggregate_before_any_mutation() -> None:
+    """An out-of-range aggregate report leaves the pending row and event
+    ledger untouched — rejection happens before any write (Codex P1,
+    aggregate_range fix, PR #129)."""
+    import sqlalchemy as sa
+
+    from afterworlds.models.rpg import PhysicalAggregateRollSubmission
+    from afterworlds.persistence.database import create_session_factory
+    from afterworlds.persistence.orm.rpg import (
+        ActionResolutionEventORM,
+        PendingRollRequestORM,
+    )
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.models import PendingRollInvalidAggregateError
+    from afterworlds.pipeline.rpg.sequence import ActionResolutionService
+
+    engine = sa.create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    try:
+        # 2d20kh1 (advantage): legal aggregate range is [1, 20].
+        term = _term(DiceSelectionRule.KEEP_HIGHEST, count=2, keep_count=1)
+        instr = _instruction(term)
+        request_id = _seed_pending_roll(session, instr=instr)
+
+        svc = ActionResolutionService(
+            adapter=D20RulesSystemAdapter(),
+            dice_service=None,  # type: ignore[arg-type]
+            session_factory=lambda: session,
+        )
+        submission = PhysicalAggregateRollSubmission(
+            source="physical_self_report",
+            pending_roll_request_id=request_id,
+            expected_instruction_revision=instr.instruction_revision,
+            reported_aggregate=35,  # illegal for 2d20kh1 (max is 20)
+        )
+
+        with pytest.raises(PendingRollInvalidAggregateError):
+            svc.consume_roll(
+                session,
+                submission=submission,
+                rule_slice=None,
+                overrides=[],
+                gm_cheating=False,
+            )
+
+        assert session.query(ActionResolutionEventORM).count() == 0
+        row = (
+            session.query(PendingRollRequestORM)
+            .filter_by(request_id=str(request_id))
+            .one()
+        )
+        assert row.status == "pending"
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()

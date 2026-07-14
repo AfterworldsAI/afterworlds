@@ -10,10 +10,17 @@ from uuid import uuid4
 import pytest
 
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
-from afterworlds.models.enums import DiceSelectionRule, RollPurpose, RollVisibility
+from afterworlds.models.enums import (
+    DiceSelectionRule,
+    ModifierVisibility,
+    RollContribution,
+    RollPurpose,
+    RollVisibility,
+)
 from afterworlds.models.rpg import (
     ResolvedAdjudicationRecord,
     RollInstructionSnapshot,
+    RollModifierComponent,
     RollProposal,
     RollTerm,
 )
@@ -465,7 +472,7 @@ def test_resolve_snapshot_keep_lowest_selects_min_die() -> None:
 def _multi_keep_instruction(
     *,
     selection_rule: DiceSelectionRule,
-    keep_count: int,
+    keep_count: int | None,
     count: int = 4,
     sides: int = 6,
 ) -> tuple[RollInstructionSnapshot, RollTerm]:
@@ -540,6 +547,143 @@ def test_aggregate_range_covers_full_legal_span() -> None:
     adapter = D20RulesSystemAdapter()
     instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
     assert adapter.aggregate_range(instruction) == (6, 25)  # 1d20 [1,20] + mod 5
+
+
+def test_aggregate_range_keep_highest_2d20kh1_is_1_to_20() -> None:
+    """Codex P1 (PR #129): must be [1, 20], not [2, 40] (2 dice * 20 sides)."""
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check advantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    assert adapter.aggregate_range(instruction) == (1, 20)
+
+
+def test_aggregate_range_keep_lowest_2d20kl1_is_1_to_20() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check disadvantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    assert adapter.aggregate_range(instruction) == (1, 20)
+
+
+def test_aggregate_range_keep_highest_4d6kh3_is_3_to_18() -> None:
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
+    adapter = D20RulesSystemAdapter()
+    assert adapter.aggregate_range(instruction) == (3, 18)
+
+
+def test_aggregate_range_keep_lowest_4d6kl3_is_3_to_18() -> None:
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_LOWEST, keep_count=3
+    )
+    adapter = D20RulesSystemAdapter()
+    assert adapter.aggregate_range(instruction) == (3, 18)
+
+
+def test_aggregate_range_summed_pool() -> None:
+    """4d6 sum-all: [4, 24]."""
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.SUM_ALL, keep_count=None
+    )
+    adapter = D20RulesSystemAdapter()
+    assert adapter.aggregate_range(instruction) == (4, 24)
+
+
+def test_aggregate_range_subtraction_reverses_extremes() -> None:
+    """A subtracted 1d6 term contributes [-6, -1], not [1, 6]."""
+    term = RollTerm(
+        term_id=uuid4(),
+        count=1,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+        contribution=RollContribution.SUBTRACT,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ABILITY_CHECK,
+        terms=(term,),
+        modifier_components=(),
+        display_expression="1d6",
+        display_label="Subtracted Check",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    adapter = D20RulesSystemAdapter()
+    assert adapter.aggregate_range(instruction) == (-6, -1)
+
+
+def test_aggregate_range_mixed_repeated_pools_with_modifier() -> None:
+    """2d20kh1 (advantage attack, [1,20]) + 2d6 damage (SUM_ALL, [2,12]) + a
+    +3 modifier: total range [1+2+3, 20+12+3] = [6, 35]."""
+    attack_term = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+        contribution=RollContribution.ADD,
+    )
+    damage_term = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+        contribution=RollContribution.ADD,
+    )
+    modifier = RollModifierComponent(
+        modifier_id=uuid4(),
+        label="strength",
+        value=3,
+        visibility=ModifierVisibility.PLAYER_VISIBLE,
+        source_kind="sheet_modifier",
+        source_reference=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ATTACK,
+        terms=(attack_term, damage_term),
+        modifier_components=(modifier,),
+        display_expression="2d20kh1+2d6",
+        display_label="Mixed Pool Attack",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    adapter = D20RulesSystemAdapter()
+    assert adapter.aggregate_range(instruction) == (6, 35)
+
+
+def test_aggregate_range_boundary_values_accepted_by_resolve_aggregate_snapshot() -> (
+    None
+):
+    """The exact min/max boundary from aggregate_range must itself be legal."""
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
+    adapter = D20RulesSystemAdapter()
+    min_total, max_total = adapter.aggregate_range(instruction)
+    for boundary in (min_total, max_total):
+        record = adapter.resolve_aggregate_snapshot(
+            instruction=instruction,
+            reported_aggregate=boundary,
+            rule_slice=None,
+            overrides=[],
+            gm_cheating=False,
+        )
+        assert record.total == boundary
 
 
 def test_resolve_aggregate_snapshot_uses_reported_total_directly() -> None:
