@@ -535,12 +535,27 @@ class ActionResolutionService:
             PendingRollRequestORM,
         )
 
-        pending_row = (
-            session.query(PendingRollRequestORM)
-            .filter_by(request_id=str(submission.pending_roll_request_id))
-            .one()
+        # Atomic conditional consume: two concurrent transactions can both
+        # load this row as 'pending' via _load_pending_and_instruction above
+        # before either commits. An unconditional status assignment would
+        # let both proceed and both append an event. The WHERE status =
+        # 'pending' predicate plus rowcount check makes the second writer
+        # lose cleanly instead — mirrors the retired mark_consumed path's
+        # atomic guard.
+        result = session.execute(
+            sa.update(PendingRollRequestORM)
+            .where(
+                PendingRollRequestORM.request_id
+                == str(submission.pending_roll_request_id),
+                PendingRollRequestORM.status == "pending",
+            )
+            .values(status="consumed")
         )
-        pending_row.status = "consumed"
+        if result.rowcount == 0:  # type: ignore[attr-defined]
+            raise PendingRollAlreadyConsumedError(
+                f"Pending roll {submission.pending_roll_request_id!r} was "
+                "consumed by a concurrent request"
+            )
         session.flush()
 
         seq_row = (

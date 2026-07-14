@@ -13,7 +13,7 @@ no FK rows needed since action_resolution_events has none).
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -269,3 +269,136 @@ def test_append_event_order_independent_per_sequence(session) -> None:  # type: 
 
     orders = [r.event_order for r in session.query(ActionResolutionEventORM).all()]
     assert orders == [1, 1]
+
+
+# ---------------------------------------------------------------------------
+# consume_roll — atomic conditional consume (Codex P1, PR #129 remediation)
+# ---------------------------------------------------------------------------
+
+
+def _seed_pending_roll(session, *, instr: RollInstructionSnapshot) -> UUID:  # type: ignore[no-untyped-def]
+    """Persist a minimal sequence + pending-roll row set consume_roll can act on.
+
+    No real parent rows for story_id/character_id/originating_turn_id: the
+    caller must use a plain (non-FK-enforcing) engine — see
+    ``test_consume_roll_rejects_already_consumed_row``, which builds its own
+    rather than the module ``session`` fixture (that one goes through
+    ``persistence.database.create_engine``, which enables
+    ``PRAGMA foreign_keys = ON``; Alembic's own migration-runner engine does
+    not, which is why the 0017 precondition test can use synthetic UUIDs too).
+    """
+    from afterworlds.persistence.orm.rpg import (
+        ActionResolutionSequenceORM,
+        PendingRollRequestORM,
+    )
+
+    now = datetime.now(tz=UTC).isoformat()
+    session.add(
+        ActionResolutionSequenceORM(
+            sequence_id=str(instr.sequence_id),
+            story_id=str(uuid4()),
+            node_id=str(uuid4()),
+            character_id=str(uuid4()),
+            session_id=str(uuid4()),
+            originating_turn_id=str(uuid4()),
+            status="active",
+            current_interaction_kind="roll",
+            resolved_steps_json="[]",
+            provisional_effects_json="[]",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+    request_id = uuid4()
+    session.add(
+        PendingRollRequestORM(
+            request_id=str(request_id),
+            story_id=str(uuid4()),
+            session_id=str(uuid4()),
+            character_id=str(uuid4()),
+            originating_turn_id=str(uuid4()),
+            visibility="player",
+            source_proposal_ref="test/stealth",
+            status="pending",
+            created_at=now,
+            sequence_id=str(instr.sequence_id),
+            step_id=str(instr.step_id),
+            instruction_id=str(instr.instruction_id),
+            instruction_revision=instr.instruction_revision,
+            instruction_schema_version=instr.schema_version,
+            instruction_snapshot_json=instr.model_dump_json(),
+        )
+    )
+    session.commit()
+    return request_id
+
+
+def test_consume_roll_rejects_already_consumed_row() -> None:
+    """A row consumed out-of-band is rejected cleanly, with zero events written.
+
+    Does not isolate genuine cross-session interleaving (consume_roll has no
+    injection point to pause mid-call) — end-to-end, this exercises both the
+    pre-existing status check in _load_pending_and_instruction and the new
+    atomic conditional UPDATE as defense-in-depth. The UPDATE's WHERE
+    status='pending' + rowcount check is what actually closes the race under
+    real concurrent sessions (SQLite serializes the two UPDATE statements;
+    whichever commits second sees rowcount=0), which this test cannot force
+    without a second real session/thread interleaved mid-call.
+
+    Uses a plain, non-FK-enforcing engine (unlike the module ``session``
+    fixture) so story_id/character_id/originating_turn_id can be synthetic —
+    this test only cares about pending_roll_requests.status, not referential
+    integrity to parent rows.
+    """
+    import sqlalchemy as sa
+
+    from afterworlds.models.rpg import PlayerRollTermResult, RawPlayerRollSubmission
+    from afterworlds.persistence.database import create_session_factory
+    from afterworlds.persistence.orm.rpg import (
+        ActionResolutionEventORM,
+        PendingRollRequestORM,
+    )
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.pending import PendingRollAlreadyConsumedError
+    from afterworlds.pipeline.rpg.sequence import ActionResolutionService
+
+    engine = sa.create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    try:
+        term = _term(DiceSelectionRule.SUM_ALL)
+        instr = _instruction(term)
+        request_id = _seed_pending_roll(session, instr=instr)
+
+        # Simulate a concurrent transaction that already consumed this row.
+        session.query(PendingRollRequestORM).filter_by(
+            request_id=str(request_id)
+        ).update({"status": "consumed"})
+        session.commit()
+
+        svc = ActionResolutionService(
+            adapter=D20RulesSystemAdapter(),
+            dice_service=None,  # type: ignore[arg-type]
+            session_factory=lambda: session,
+        )
+        submission = RawPlayerRollSubmission(
+            source="inline_ui",
+            pending_roll_request_id=request_id,
+            expected_instruction_revision=instr.instruction_revision,
+            term_results=(PlayerRollTermResult(term_id=term.term_id, values=(14,)),),
+        )
+
+        with pytest.raises(PendingRollAlreadyConsumedError):
+            svc.consume_roll(
+                session,
+                submission=submission,
+                rule_slice=None,
+                overrides=[],
+                gm_cheating=False,
+            )
+
+        assert session.query(ActionResolutionEventORM).count() == 0
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
