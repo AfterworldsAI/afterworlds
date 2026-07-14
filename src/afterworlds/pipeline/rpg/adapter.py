@@ -486,6 +486,8 @@ class D20RulesSystemAdapter:
             sign = "+" if mods.visible_total > 0 else ""
             modifier_note = f" {sign}{mods.visible_total}"
 
+        dc = self._verify_dc(rule_slice, overrides)
+
         return RollInstructionSnapshot(
             instruction_id=instruction_id,
             instruction_revision=1,
@@ -498,6 +500,7 @@ class D20RulesSystemAdapter:
             adjustment_options=(),
             sequence_id=sequence_id,
             step_id=step_id,
+            dc=dc,
         )
 
     def resolve_snapshot(

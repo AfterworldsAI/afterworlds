@@ -262,6 +262,7 @@ class ActionResolutionService:
             node_id=str(node_id),
             character_id=str(character_id),
             originating_turn_id=str(originating_turn_id),
+            session_id=str(session_id),
             status=ActionResolutionStatus.ACTIVE.value,
             current_interaction_kind=SequenceInteractionKind.ROLL.value,
             current_pending_roll_request_id=None,  # set below once request_id exists
@@ -604,6 +605,7 @@ class ActionResolutionService:
             story_id=UUID(seq_row.story_id),
             node_id=UUID(seq_row.node_id),
             character_id=UUID(seq_row.character_id),
+            session_id=UUID(seq_row.session_id),
             originating_turn_id=UUID(seq_row.originating_turn_id),
             originating_user_input=originating_user_input,
             resolved_steps=tuple(resolved_steps),

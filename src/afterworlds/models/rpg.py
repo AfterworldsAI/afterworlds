@@ -364,6 +364,15 @@ class RollInstructionSnapshot(BaseModel):
     sequence_id: UUID
     step_id: UUID
 
+    dc: int | None = None
+    """Code-verified difficulty/target value (ADR-015b 15b-34).
+
+    ``None`` for rolls with no compare-outcome and, in v1, for every roll —
+    no Rules Package entity carries a DC field yet (see the "Rules Package
+    DC-data-modeling gap" Known Unknown). Backend-only; never appears in
+    ``PlayerRollInstructionView``.
+    """
+
 
 # ---------------------------------------------------------------------------
 # Player-visible contracts (CRD Issue 15b — hidden state excluded by construction)
@@ -475,6 +484,52 @@ class PendingMechanicalDecisionView(BaseModel):
     interaction_phase: Literal[RpgInteractionPhase.PENDING_MECHANICAL_DECISION]
     prompt: str
     options: tuple[MechanicalDecisionOption, ...]
+    decision_revision: int
+
+
+class MechanicalDecisionOptionSnapshot(BaseModel):
+    """One backend-authoritative option within a MechanicalDecisionSnapshot.
+
+    ADR-015b 15b-35.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+    source_rule_ref: str | None = None
+    provisional_effects_json: str
+
+
+class MechanicalDecisionSnapshot(BaseModel):
+    """The authoritative structured mechanical-decision instruction (ADR-015b 15b-35).
+
+    Mirrors ``RollInstructionSnapshot``'s snapshot/revision pattern for the
+    decision interaction kind.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    decision_id: UUID
+    decision_revision: int
+    prompt: str
+    options: tuple[MechanicalDecisionOptionSnapshot, ...]
+    source_rule_refs: tuple[str, ...]
+    sequence_id: UUID
+    step_id: UUID
+
+
+class MechanicalDecisionSubmission(BaseModel):
+    """Player selection of one MechanicalDecisionSnapshot option (ADR-015b 15b-35)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    expected_decision_revision: int
+    option_id: str
 
 
 class ActionResolutionAdvanceResult(BaseModel):
@@ -596,6 +651,9 @@ class ResolvedSequenceStep(BaseModel):
     writer_view: WriterAdjudicationView | None = None
     provisional_effects: tuple[SheetEffect, ...] = ()
 
+    decision_snapshot: MechanicalDecisionSnapshot | None = None
+    accepted_option_id: str | None = None
+
 
 class ReadyActionResolutionBundle(BaseModel):
     """Complete internal bundle for a sequence that has reached READY_FOR_NARRATION.
@@ -613,6 +671,7 @@ class ReadyActionResolutionBundle(BaseModel):
     story_id: UUID
     node_id: UUID
     character_id: UUID
+    session_id: UUID
     originating_turn_id: UUID
 
     originating_user_input: str
@@ -642,6 +701,7 @@ class ActionResolutionSequence(BaseModel):
     story_id: UUID
     node_id: UUID
     character_id: UUID
+    session_id: UUID
     originating_turn_id: UUID
 
     status: ActionResolutionStatus
@@ -733,6 +793,9 @@ __all__ = [
     "DerivedRollTermResult",
     "DiceResult",
     "MechanicalDecisionOption",
+    "MechanicalDecisionOptionSnapshot",
+    "MechanicalDecisionSnapshot",
+    "MechanicalDecisionSubmission",
     "PendingMechanicalDecisionView",
     "PendingRollRequest",
     "PhysicalAggregateRollSubmission",
