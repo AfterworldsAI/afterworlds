@@ -319,9 +319,13 @@ The Phase 2 contract:
 - Events are keyed by `sequence_id`, `step_id`, an ordered event identity, and event kind.
 - Every accepted `ResolvedStepKind` is covered: player roll, AI roll, hidden roll, adjustment, and
   mechanical decision.
-- Each event preserves: the applicable instruction/revision, submission source, raw or aggregate input,
-  derived selections/subtotals/total/outcome, accepted option/decision identity, provisional effects,
-  timestamps, and mechanical provenance.
+- Each event preserves provisional effects, timestamps, and mechanical provenance in its common envelope,
+  plus a kind-discriminated payload: roll-kind events preserve the applicable instruction snapshot,
+  submission source, raw or aggregate input, and derived selections/subtotal/total/outcome; adjustment
+  events preserve the resulting instruction snapshot and a string accepted option ID; mechanical-decision
+  events preserve the complete decision snapshot (including decision ID and revision) and a string accepted
+  option ID. No event carries fields outside its own kind's payload (see **Action-Resolution Event Ledger**
+  below for the exact shape).
 - The event and its corresponding sequence advancement commit atomically — one write, one commit; no
   partially-advanced sequence with a missing event, and no orphaned event without a matching advancement.
 - Invalid, stale, rejected, or duplicate submissions change neither the sequence nor the event ledger.
@@ -579,7 +583,46 @@ of whatever normalized or JSON-backed shape `resolved_steps` itself takes.
 Per 15b-34. Architectural sketch; an equivalent repository-native shape is acceptable if it preserves
 append-only enforcement, atomic commit with sequence advancement, and the fields below.
 
+The event is a common envelope carrying only genuinely common fields — event/sequence/step identity, event
+order, kind, provenance, provisional effects, and timestamp — plus a kind-discriminated `payload`. This is
+required propagation of 15b-34 and 15b-35, not a new decision: rolls, adjustments, and mechanical decisions
+are different authority shapes (a bounded dice result, a revised instruction, a chosen decision option) and
+a single roll-shaped record cannot carry decision identity without either fabricating a roll `instruction_id`
+for a decision or losing `decision_id`/`decision_revision` entirely.
+
 ```python
+class RollEventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    kind: Literal[
+        ResolvedStepKind.PLAYER_ROLL, ResolvedStepKind.AI_ROLL, ResolvedStepKind.HIDDEN_ROLL
+    ]
+    instruction_snapshot: RollInstructionSnapshot
+    submission_source: RollSubmissionSource | None
+    raw_input_json: str | None
+    aggregate_input_json: str | None
+    derived_selections_json: str
+    subtotal: int | None
+    total: int | None
+    outcome: str | None
+
+
+class AdjustmentEventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.ADJUSTMENT] = ResolvedStepKind.ADJUSTMENT
+    resulting_instruction_snapshot: RollInstructionSnapshot
+    accepted_adjustment_option_id: str
+
+
+class MechanicalDecisionEventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.MECHANICAL_DECISION] = ResolvedStepKind.MECHANICAL_DECISION
+    decision_snapshot: MechanicalDecisionSnapshot
+    accepted_decision_option_id: str
+
+
 class ActionResolutionEvent(BaseModel):
     model_config = ConfigDict(extra="forbid")
     schema_version: Literal[1] = 1
@@ -588,20 +631,27 @@ class ActionResolutionEvent(BaseModel):
     step_id: UUID
     event_order: int
     kind: ResolvedStepKind
-    instruction_id: UUID
-    instruction_revision: int
-    submission_source: RollSubmissionSource | None
-    raw_input_json: str | None
-    aggregate_input_json: str | None
-    derived_selections_json: str
-    subtotal: int | None
-    total: int | None
-    outcome: str | None
-    accepted_option_id: UUID | None
-    provisional_effects_json: str
     mechanical_provenance: str
+    provisional_effects_json: str
     created_at: datetime
+    payload: RollEventPayload | AdjustmentEventPayload | MechanicalDecisionEventPayload
 ```
+
+Required cross-field invariants: `kind` and `payload.kind` agree — `PLAYER_ROLL`/`AI_ROLL`/`HIDDEN_ROLL`
+require `RollEventPayload`; `ADJUSTMENT` requires `AdjustmentEventPayload`; `MECHANICAL_DECISION` requires
+`MechanicalDecisionEventPayload`; no other kind/payload combination is constructible. A
+`MechanicalDecisionEventPayload` carries no `instruction_id`, `instruction_revision`, or other roll-instruction
+field — a decision event never fabricates a roll identity. A `RollEventPayload` carries no `decision_snapshot`
+or `accepted_decision_option_id` — a roll event never carries decision fields. `accepted_adjustment_option_id`
+and `accepted_decision_option_id` are `str`, matching `option_id`'s type on `RollAdjustmentOption` and
+`MechanicalDecisionOptionSnapshot`; neither is ever `UUID`. `MechanicalDecisionEventPayload.decision_snapshot`
+carries the complete immutable `MechanicalDecisionSnapshot`, including `decision_id` and `decision_revision`,
+so a `MECHANICAL_DECISION` event never depends on `ActionResolutionSequence.resolved_steps` or other mutable
+sequence state to reconstruct its accepted authority.
+
+Only `RollEventPayload`-carrying events (`PLAYER_ROLL`, `AI_ROLL`, `HIDDEN_ROLL`) ever produce a final
+`rpg_roll_audit` row. `ADJUSTMENT` and `MECHANICAL_DECISION` events remain append-only mechanical
+provenance and are never forced into `rpg_roll_audit`'s roll-shaped columns.
 
 ### Audit Contract
 
@@ -615,8 +665,10 @@ Three layers now exist, and none of them stand in for another:
   but it is not sheet, canon, or delivered-result authority on its own.
 - **`rpg_roll_audit`** remains the sole final delivered-result audit, semantically unchanged from ADR-015:
   non-null `turn_id`, written only inside the final delivery transaction. At successful narration, final
-  `rpg_roll_audit` rows are derived from the corresponding event-ledger rows — this promotes already-durable
-  provenance into the delivered-result record, it does not duplicate authority.
+  `rpg_roll_audit` rows are derived from the corresponding `RollEventPayload`-carrying event-ledger rows —
+  this promotes already-durable provenance into the delivered-result record, it does not duplicate
+  authority. `ADJUSTMENT` and `MECHANICAL_DECISION` events are never derived into `rpg_roll_audit`; they
+  remain append-only mechanical provenance only.
 
 ### Transaction Lifecycle
 
@@ -628,7 +680,8 @@ Two transaction boundaries apply, and Phase 2 must not conflate them:
    or duplicate submissions commit neither. This transaction has no provider call, no settlement, and adds
    no `PipelineDisposition` value (Group 10, 15b-27/15b-28) — extended by this decision, not contradicted.
 2. **Final delivery transaction** (ADR-015 Decision 1, unchanged): on successful `orchestrate_rpg_resume`,
-   the outer 12c transaction derives `rpg_roll_audit` rows from the event ledger, applies sheet effects,
+   the outer 12c transaction derives `rpg_roll_audit` rows from the event ledger's `RollEventPayload`-carrying
+   rows only, applies sheet effects,
    marks the sequence `completed`, and commits all of it together with the delivered Turn. On block
    (Output Safety, Contradiction, provider refusal, pipeline error), the existing 12c rollback removes the
    Turn, the derived `rpg_roll_audit` rows, and the sheet mutations — exactly as ADR-015 Decision 1 already
@@ -741,8 +794,9 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   `ActionResolutionStatus`, `SequenceInteractionKind`, `ActionResolutionSequence`,
   `DerivedRollTermResult`, `ResolvedStepKind`, `RollSubmissionSource`, `ResolvedSequenceStep`,
   `ReadyActionResolutionBundle`, `PlayerRollTermResult`, `RawPlayerRollSubmission`,
-  `PhysicalAggregateRollSubmission`, `ActionResolutionEvent`, `MechanicalDecisionOptionSnapshot`,
-  `MechanicalDecisionSnapshot`, `MechanicalDecisionSubmission` are added (Phase 2).
+  `PhysicalAggregateRollSubmission`, `ActionResolutionEvent`, `RollEventPayload`, `AdjustmentEventPayload`,
+  `MechanicalDecisionEventPayload`, `MechanicalDecisionOptionSnapshot`, `MechanicalDecisionSnapshot`,
+  `MechanicalDecisionSubmission` are added (Phase 2).
 - `PendingMechanicalDecisionView` gains `decision_revision`; `ResolvedSequenceStep` gains
   `decision_snapshot` and `accepted_option_id` (Phase 2; 15b-35).
 - `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration).
