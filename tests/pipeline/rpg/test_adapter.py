@@ -10,8 +10,13 @@ from uuid import uuid4
 import pytest
 
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
-from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import ResolvedAdjudicationRecord, RollProposal
+from afterworlds.models.enums import DiceSelectionRule, RollPurpose, RollVisibility
+from afterworlds.models.rpg import (
+    ResolvedAdjudicationRecord,
+    RollInstructionSnapshot,
+    RollProposal,
+    RollTerm,
+)
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 
 # ---------------------------------------------------------------------------
@@ -455,6 +460,80 @@ def test_resolve_snapshot_keep_lowest_selects_min_die() -> None:
         gm_cheating=False,
     )
     assert record.total == 3
+
+
+def _multi_keep_instruction(
+    *,
+    selection_rule: DiceSelectionRule,
+    keep_count: int,
+    count: int = 4,
+    sides: int = 6,
+) -> tuple[RollInstructionSnapshot, RollTerm]:
+    """A hand-built instruction with a keep_count > 1 term.
+
+    ADR-015b's own defect inventory (item 2) flags the retired executor's
+    ``sorted(raw, ...)[:keep_n][0]`` bug — it took one die from the kept
+    slice instead of summing it, so ``4d6kh3`` silently returned a single
+    die's value. ``build_check_instruction`` never generates a keep_count>1
+    term (the shipped adapter only produces 1d20/2d20kh1/2d20kl1), so this
+    constructs the instruction directly to exercise ``_reduce_term`` (via
+    ``resolve_snapshot``) against the exact shape the ADR requires proven.
+    """
+    term = RollTerm(
+        term_id=uuid4(),
+        count=count,
+        sides=sides,
+        selection_rule=selection_rule,
+        keep_count=keep_count,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ABILITY_CHECK,
+        terms=(term,),
+        modifier_components=(),
+        display_expression=f"{count}d{sides}",
+        display_label="Ability Check",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    return instruction, term
+
+
+def test_resolve_snapshot_keep_highest_sums_top_k_not_single_die() -> None:
+    """4d6kh3: total must be the sum of the top 3 dice (15), not one die."""
+    adapter = D20RulesSystemAdapter()
+    instruction, term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (2, 6, 4, 5)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 15  # 6 + 4 + 5, dropping the lowest (2)
+
+
+def test_resolve_snapshot_keep_lowest_sums_bottom_k_not_single_die() -> None:
+    """4d6kl3: total must be the sum of the bottom 3 dice (11), not one die."""
+    adapter = D20RulesSystemAdapter()
+    instruction, term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_LOWEST, keep_count=3
+    )
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (2, 6, 4, 5)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 11  # 2 + 4 + 5, dropping the highest (6)
 
 
 def test_aggregate_range_covers_full_legal_span() -> None:
