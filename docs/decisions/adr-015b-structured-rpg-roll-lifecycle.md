@@ -274,11 +274,21 @@ exists to populate it from, since the shipped implementation never persisted per
 (supersession table item 8). The migration creates the table empty; only sequences created after Phase 2
 ships generate events.
 
+`pending_roll_requests` stays one physical SQLite table with one fixed column set across both row versions
+(Round 5, correcting a specification defect — Codex, PR #128, "Specify a table-level v1/v2 migration
+shape"): the migration widens the five currently-`NOT NULL` legacy columns to nullable and adds the six
+nullable structured columns via a standard SQLite rebuild-copy pass, then backfills the structured columns
+for unconsumed rows only. No column is dropped and no row is lost. See **Revised PendingRollRequest** →
+Column Disposition / physical migration shape below for the full correction.
+
 **Rationale:** Table item 2 confirms the shipped generator only ever produces these three expressions, so
 the migration's deterministic-conversion set is exhaustive against real data — but "fail visibly" is the
 correct behavior for any row this ADR's inspection did not anticipate, consistent with CLAUDE.md invariant
 11 (auditability from explicit event logs, not inferred state). Versioning backfilled rows as `2` rather
-than leaving them at `1` keeps `schema_version` a truthful description of a row's actual column shape.
+than leaving them at `1` keeps `schema_version` a truthful description of a row's actual column shape. A
+single physical table with nullable field families, rather than an implied per-row column set, is the only
+shape SQLite can actually express (Round 5) — proposing otherwise would have forced Phase 2 to choose
+between dropping historical data or inventing an unspecified destructive migration.
 
 ### Group 13 — Client gate and resume UX
 
@@ -316,7 +326,9 @@ The Phase 2 contract:
   the action-resolution subsystem. Exact repository-native naming/schema is a mandatory Phase 2 advisor
   checkpoint — not decided here, in the same way Group 8 leaves the shared-machinery extraction shape to
   an advisor checkpoint rather than guessing at it.
-- Events are keyed by `sequence_id`, `step_id`, an ordered event identity, and event kind.
+- Events are keyed by `sequence_id`, `step_id`, an ordered event identity, and event kind, and carry stable
+  `story_id`/`session_id`/`character_id` identity directly on the common envelope (Round 5) — so final audit
+  construction never needs to join `ActionResolutionSequence` or `RpgSessionState` for these values.
 - Every accepted `ResolvedStepKind` is covered: player roll, AI roll, hidden roll, adjustment, and
   mechanical decision.
 - Each event preserves provisional effects, timestamps, and mechanical provenance in its common envelope,
@@ -335,7 +347,9 @@ The Phase 2 contract:
   written only inside the final delivery transaction, per ADR-015 Decision 1.
 - On successful narration: final `rpg_roll_audit` rows are derived from the immutable action-resolution
   events, sheet effects apply, the sequence completes, and all of it commits together with the delivered
-  Turn.
+  Turn. This derivation is field-complete (Round 5): every `rpg_roll_audit` column other than DB-generated
+  identity and the final `turn_id` has a named source on the roll event's envelope, payload, or embedded
+  `RollInstructionSnapshot` — see **Final Audit Projection** below.
 - On blocked, refused, or failed final narration: the Turn, `rpg_roll_audit` rows, sheet effects, and
   sequence completion roll back exactly as ADR-015 Decision 1 already requires — but the previously
   committed `ready_for_narration` sequence and its event ledger survive that rollback undisturbed. A later
@@ -450,11 +464,20 @@ class RollInstructionSnapshot(BaseModel):
     modifier_components: tuple[RollModifierComponent, ...]
     display_expression: str
     display_label: str
+    dc: int | None = None
     source_rule_refs: tuple[str, ...]
     adjustment_options: tuple["RollAdjustmentOption", ...]
     sequence_id: UUID
     step_id: UUID
 ```
+
+`dc` (Round 5) is the code-verified difficulty/target value for checks that compare `total` against one —
+attack vs. AC, save vs. DC, skill check vs. DC — verified at the Proposal-to-Instruction Boundary the same
+way purpose, modifier, and target are; it is `None` for rolls with no compare-outcome, such as damage or
+duration. `dc` is backend-only and never appears in `PlayerRollInstructionView`, the same non-leak rule
+`ability_id` follows on `PlayerAdjustmentOptionView` (Group 5). This closes a completeness gap in the final
+`rpg_roll_audit` projection (Group 15, 15b-34) — see **Final Audit Projection** below — not a new roll
+mechanic; it is required propagation of 15b-34, not a Group 2 reopening.
 
 `RollModifierComponent` carries `modifier_id`, `label`, `value`, `visibility` (`PLAYER_VISIBLE`/`HIDDEN`),
 `source_kind`, `source_reference`. Player-visible projections (`PlayerRollTermView`,
@@ -556,11 +579,17 @@ class SequenceInteractionKind(str, Enum):
     NONE = "none"
 ```
 
-`ActionResolutionSequence` persists `sequence_id`, `story_id`, `node_id`, `character_id`,
+`ActionResolutionSequence` persists `sequence_id`, `story_id`, `session_id`, `node_id`, `character_id`,
 `originating_turn_id`, `status`, `current_interaction_kind`, current pending roll/decision request IDs,
 `resolved_steps`, `projected_state_json`, `provisional_effects_json`, timestamps. Repository-native
 normalization is permitted, but identity, status, and uniqueness constraints must not be hidden inside one
 opaque JSON blob.
+
+`session_id` (Round 5) is required so RPG session identity survives on the durable sequence itself: without
+it, deriving final audit rows after a blocked/failed narration and resume would have to re-read mutable
+`RpgSessionState` rather than reconstruct from durable mechanical records, and `AI_ROLL`/`HIDDEN_ROLL`
+events have no `PendingRollRequest` row to recover it from. `ReadyActionResolutionBundle` gains the same
+field for the same reason — see Issue #127's **Ready Bundle** section.
 
 ```sql
 CREATE UNIQUE INDEX uq_unresolved_action_resolution_per_story
@@ -599,12 +628,14 @@ class RollEventPayload(BaseModel):
     ]
     instruction_snapshot: RollInstructionSnapshot
     submission_source: RollSubmissionSource | None
+    pending_roll_request_id: UUID | None
     raw_input_json: str | None
     aggregate_input_json: str | None
     derived_selections_json: str
     subtotal: int | None
     total: int | None
     outcome: str | None
+    gm_cheating_at_roll: bool
 
 
 class AdjustmentEventPayload(BaseModel):
@@ -629,6 +660,9 @@ class ActionResolutionEvent(BaseModel):
     event_id: UUID
     sequence_id: UUID
     step_id: UUID
+    story_id: UUID
+    session_id: UUID
+    character_id: UUID
     event_order: int
     kind: ResolvedStepKind
     mechanical_provenance: str
@@ -636,6 +670,13 @@ class ActionResolutionEvent(BaseModel):
     created_at: datetime
     payload: RollEventPayload | AdjustmentEventPayload | MechanicalDecisionEventPayload
 ```
+
+`story_id`, `session_id`, and `character_id` (Round 5) are stable identity carried directly on every event,
+regardless of kind — genuinely common fields, not roll-specific ones, since every event belongs to exactly
+one story/session/character. This is what lets a `RollEventPayload`-carrying event supply
+`rpg_roll_audit.story_id`/`session_id`/`character_id` on its own: final audit construction never needs to
+join `ActionResolutionSequence` or `RpgSessionState` for these values (see **Final Audit Projection**
+below).
 
 Required cross-field invariants: `kind` and `payload.kind` agree — `PLAYER_ROLL`/`AI_ROLL`/`HIDDEN_ROLL`
 require `RollEventPayload`; `ADJUSTMENT` requires `AdjustmentEventPayload`; `MECHANICAL_DECISION` requires
@@ -648,6 +689,15 @@ and `accepted_decision_option_id` are `str`, matching `option_id`'s type on `Rol
 carries the complete immutable `MechanicalDecisionSnapshot`, including `decision_id` and `decision_revision`,
 so a `MECHANICAL_DECISION` event never depends on `ActionResolutionSequence.resolved_steps` or other mutable
 sequence state to reconstruct its accepted authority.
+
+`RollEventPayload.pending_roll_request_id` (Round 5) is required (non-null) for `kind == PLAYER_ROLL` — the
+Sojourner always submits against a real `PendingRollRequest` row — and null for `AI_ROLL`/`HIDDEN_ROLL`,
+which have no player-facing pending-roll row to link. It is never reconstructed later from
+`PendingRollRequest`; the event is the sole source once written, so it survives the pending row's own
+mutation-in-place lifecycle. `RollEventPayload.gm_cheating_at_roll` (Round 5) is a snapshot of the session's
+`gm_cheating` config taken at roll-acceptance time — the same "immutable once set" snapshot the shipped
+`ResolvedAdjudicationRecord.gm_cheating_at_roll` already takes, moved onto the durable event so final audit
+construction never re-reads live `RpgSessionState`.
 
 Only `RollEventPayload`-carrying events (`PLAYER_ROLL`, `AI_ROLL`, `HIDDEN_ROLL`) ever produce a final
 `rpg_roll_audit` row. `ADJUSTMENT` and `MECHANICAL_DECISION` events remain append-only mechanical
@@ -669,6 +719,54 @@ Three layers now exist, and none of them stand in for another:
   this promotes already-durable provenance into the delivered-result record, it does not duplicate
   authority. `ADJUSTMENT` and `MECHANICAL_DECISION` events are never derived into `rpg_roll_audit`; they
   remain append-only mechanical provenance only.
+
+### Final Audit Projection
+
+Per 15b-34 (Round 5, required propagation — not a new decision): the immutable-event-to-final-audit
+contract is field-complete. Every `rpg_roll_audit` column other than the two DB/transaction-supplied
+identities below is sourced from a single `RollEventPayload`-carrying event's envelope, payload, or
+embedded `RollInstructionSnapshot` — never from `ActionResolutionSequence`, `RpgSessionState`,
+`PendingRollRequest`, adapter, or Character Sheet state.
+
+| `rpg_roll_audit` column | Source |
+|---|---|
+| `global_sequence` | DB-generated (SQLite rowid); not sourced from the event. |
+| `turn_id` | The final delivery transaction's provisional `turn_id` (ADR-015 Decision 1); not sourced from the event. |
+| `story_id` | `event.story_id` (envelope). |
+| `session_id` | `event.session_id` (envelope). |
+| `character_id` | `event.character_id` (envelope). |
+| `check_label` | `payload.instruction_snapshot.display_label`. |
+| `visibility` | Derived from `event.kind`: `PLAYER_ROLL` → `RollVisibility.PLAYER`; `AI_ROLL` → `RollVisibility.SHOWN`; `HIDDEN_ROLL` → `RollVisibility.HIDDEN` — the same three-way distinction `ResolvedStepKind`'s roll values already encode, so no separate field is needed. |
+| `expression` | `payload.instruction_snapshot.display_expression` (display text only, per 15b-3 — never audit authority in its own right). |
+| `raw_rolls_json` | The flat per-die values reconstructed from `payload.derived_selections_json` when `raw_input_json` is complete; `"[]"` (never fabricated) for aggregate-only physical reports — see below. |
+| `modifiers_json` | Serialized `payload.instruction_snapshot.modifier_components`. |
+| `total` | `payload.total`. |
+| `dc` | `payload.instruction_snapshot.dc` (new field; `None` when the check has no compare-outcome target). |
+| `outcome` | `payload.outcome`. |
+| `source` | Derived from `event.kind`: `PLAYER_ROLL` → `"player"`; `AI_ROLL` → `"ai"`; `HIDDEN_ROLL` → `"hidden"`. |
+| `gm_cheating_at_roll` | `payload.gm_cheating_at_roll` (new field). |
+| `sheet_effects_json` | `event.provisional_effects_json` (envelope). |
+| `created_at` | `event.created_at` (envelope) — the roll's own acceptance timestamp, not the final-delivery commit timestamp. |
+| `sequence_id` | `event.sequence_id` (envelope). |
+| `step_id` | `event.step_id` (envelope). |
+| `pending_roll_request_id` | `payload.pending_roll_request_id` (new field; non-null for `PLAYER_ROLL`, null for `AI_ROLL`/`HIDDEN_ROLL`). |
+| `instruction_id` | `payload.instruction_snapshot.instruction_id`. |
+| `instruction_revision` | `payload.instruction_snapshot.instruction_revision`. |
+| `instruction_schema_version` | `payload.instruction_snapshot.schema_version`. |
+| `instruction_snapshot_json` | Serialized `payload.instruction_snapshot` in full. |
+| `submission_source` | `payload.submission_source`. |
+| `raw_values_complete` | `true` when `payload.raw_input_json` carries complete per-term raw values (inline UI, physical raw report, or `BACKEND_DICE_SERVICE` — the backend dice service always knows every die); `false` for aggregate-only physical reports. |
+
+**Aggregate-only physical-report projection:** when `RollEventPayload.raw_input_json` is null and
+`aggregate_input_json` carries the reported aggregate (15b-15), the payload records no per-die values —
+`derived_selections_json` reflects that no raw selection was derived (an empty/no-op structure, never
+invented die values), `total` is the reported aggregate as validated by code, and `outcome` is derived from
+`total` vs `dc` exactly as for a raw submission. At final-audit projection, `raw_rolls_json` becomes `"[]"`
+— an honest "no raw dice recorded" value, not a fabricated one — and `raw_values_complete = false` is the
+authoritative flag a consumer must check before treating `raw_rolls_json` as complete per-die provenance.
+`total`, `outcome`, `modifiers_json`, and every other projected column remain fully authoritative regardless
+of `raw_values_complete`; only per-die granularity is missing, consistent with 15b-15's "never fabricates
+raw dice for an aggregate-only report."
 
 ### Transaction Lifecycle
 
@@ -716,6 +814,16 @@ not solely an ADR transcription error.
 
 ### Column Disposition
 
+`pending_roll_requests` remains one physical SQLite table with one fixed column set for every row — SQLite
+has no mechanism for a table to carry different columns per row, and no wording below may be read as
+implying otherwise (Round 5, correcting a specification defect: Codex, PR #128, "Specify a table-level
+v1/v2 migration shape"). "Retire after backfill" in the table means retired from `schema_version = 2`
+reads, writes, and authority — it does not mean the column is physically dropped. Every retired column
+stays present and nullable so historical `schema_version = 1` rows keep their populated, authoritative
+legacy data undisturbed; physical column removal is a future cleanup only after v1 compatibility ends, and
+is out of scope for Issue 15b. See the physical migration shape below the versioning rule for how the
+existing `NOT NULL` legacy text columns become nullable without data loss.
+
 | Shipped field (`models/rpg.py:184-221`) | Disposition |
 |---|---|
 | `request_id` | Retain as the persisted row's identity (primary key). Public submission DTOs and the new `rpg_roll_audit` linkage column may still name this `pending_roll_request_id` — that name remains legitimate at the DTO/audit layer; this table is not a mandate to rename it there. |
@@ -744,16 +852,48 @@ New fields required on new rows: `sequence_id`, `step_id`, `instruction_id`, `in
 sequence/instruction linkage, provenance (`source_proposal_ref`), and row-version information exactly as
 shipped.
 
-**`schema_version` versioning rule:** `schema_version = 1` denotes the legacy row shape (no structured
-instruction linkage; the eight retired display/derivation fields are authoritative). `schema_version = 2`
-denotes the revised row shape (structured `instruction_snapshot_json` is authoritative; the eight retired
-fields are absent). A row's `schema_version` reflects its *actual* column shape, not merely its creation
-order: rows created by `ActionResolutionService.start_sequence` are `schema_version = 2`; legacy pending
-rows the migration backfills into a real `ActionResolutionSequence` (Migration item 6) become
-`schema_version = 2` once backfilled, since their shape now matches the v2 contract; legacy *consumed* rows
-that are not backfilled with real structured data (Migration item 7) remain `schema_version = 1`, since
-their shape stays legacy. No row is ever silently relabeled version 1 after gaining a structured
-instruction, and no row is labeled version 2 without one.
+**`schema_version` versioning rule (Round 5 — corrects a specification defect, not a new decision):**
+`schema_version` identifies which *field family is authoritative* for a row, not which columns physically
+exist on it — every row has the same physical column set. The eight legacy display/derivation columns
+(`roll_expression`, `expected_value_shape`, `visible_modifier_total`, `visible_modifier_breakdown_json`,
+`check_label`, `player_facing_instruction`, `visible_modifier_note`, `hidden_modifier_present`) and the six
+structured v2 columns (`sequence_id`, `step_id`, `instruction_id`, `instruction_revision`,
+`instruction_schema_version`, `instruction_snapshot_json`) are both physically present, nullable, on every
+row; each family is populated only for the rows that need it:
+
+- `schema_version = 1` (legacy row shape): the eight legacy columns are populated and authoritative; the
+  six structured columns are null.
+- `schema_version = 2` (revised row shape): the six structured columns are populated and authoritative; the
+  eight legacy columns may be null — they are not backfilled with synthetic legacy values — and are never
+  read as authoritative for that row regardless of whatever value, if any, physically remains in them.
+
+A row's `schema_version` reflects which family is authoritative, not merely its creation order: rows
+created by `ActionResolutionService.start_sequence` are `schema_version = 2` with legacy columns left null;
+legacy pending rows the migration backfills into a real `ActionResolutionSequence` (Migration item 6) become
+`schema_version = 2` once backfilled — their original legacy column values may remain physically present
+from the original insert, but code must not read them as authoritative once `schema_version = 2`; legacy
+*consumed* rows that are not backfilled with real structured data (Migration item 7) remain
+`schema_version = 1`, with their legacy columns populated and authoritative and their structured columns
+null. No row is ever silently relabeled version 1 after gaining a structured instruction, and no row is
+labeled version 2 without one.
+
+**Physical migration shape (Round 5):** five shipped legacy columns are currently `NOT NULL`
+(`check_label`, `player_facing_instruction`, `expected_value_shape`, `roll_expression`,
+`persistence/orm/rpg.py:96-109`; and `hidden_modifier_present`, `persistence/orm/rpg.py:116-118` — it
+carries `server_default="0"`, but must still widen to nullable rather than silently default to `False`,
+which would read as an authoritative "no hidden modifier" claim on a `schema_version = 2` row that actually
+has one) and must become nullable so `schema_version = 2` rows can leave them null rather than fabricating
+legacy content. SQLite cannot alter a column's `NOT NULL` constraint in place, so Phase 2's migration uses
+the standard SQLite rebuild-copy shape for this table: wrap the rebuild in `PRAGMA foreign_keys=OFF` /
+`PRAGMA foreign_keys=ON`; create a new table with the full target column set (the five legacy columns above
+widened to nullable, plus the six new nullable structured columns) and the same outgoing foreign keys —
+`character_id` (`RESTRICT`), `originating_turn_id` (`CASCADE`), `consumed_turn_id` (`SET NULL`),
+`story_id` (`CASCADE`) — reproduced verbatim, not merely implied; copy every existing row across unchanged;
+drop the old table; rename the new table into place; recreate the `uq_pending_roll_requests_story_active`
+partial unique index verbatim; and run `PRAGMA foreign_key_check` before commit. No row is dropped or
+truncated by this step; it only widens nullability and adds columns. The deterministic-expression backfill
+(Migration items 3, 6, 7) runs after the rebuild, against the now-nullable structured columns. Physical
+removal of the five legacy columns is out of scope for Issue 15b — see the Column Disposition note above.
 
 If Phase 2 source inspection identifies a compatibility consumer of a retired field that cannot be
 migrated cleanly, that is a stop-and-flag event against 15b-25, not a reason to retain a second authority.
@@ -799,15 +939,24 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   `MechanicalDecisionSubmission` are added (Phase 2).
 - `PendingMechanicalDecisionView` gains `decision_revision`; `ResolvedSequenceStep` gains
   `decision_snapshot` and `accepted_option_id` (Phase 2; 15b-35).
-- `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration).
+- `ActionResolutionSequence` and `ReadyActionResolutionBundle` gain `session_id`; `RollInstructionSnapshot`
+  gains `dc`; `ActionResolutionEvent`'s common envelope gains `story_id`/`session_id`/`character_id`;
+  `RollEventPayload` gains `pending_roll_request_id` and `gm_cheating_at_roll` (Phase 2; Round 5, required
+  propagation of 15b-34 — see **Final Audit Projection** above).
+- `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration). The five
+  currently-`NOT NULL` legacy columns (`check_label`, `player_facing_instruction`, `expected_value_shape`,
+  `roll_expression`, `hidden_modifier_present`) widen to nullable via a SQLite rebuild-copy migration,
+  alongside the six new nullable structured columns — one physical table, two nullable field families, no dropped
+  columns or rows (Phase 2, migration; Round 5, required propagation of 15b-30).
 - `action_resolution_sequences` table added with the partial unique index above (Phase 2, migration).
 - `action_resolution_events` table added as an append-only ledger (DB-layer UPDATE/DELETE triggers, same
   pattern as `rpg_roll_audit`), keyed by `sequence_id`/`step_id`/event order, committed atomically with
   sequence advancement, requiring no backfill (Phase 2, migration; 15b-34).
 - `rpg_roll_audit` gains nullable columns: `sequence_id`, `step_id`, `pending_roll_request_id`,
   `instruction_id`, `instruction_revision`, `instruction_schema_version`, `instruction_snapshot_json`,
-  `submission_source`, `raw_values_complete` (Phase 2, migration). Existing append-only UPDATE/DELETE
-  triggers must be preserved or recreated verbatim if SQLite forces table reconstruction.
+  `submission_source`, `raw_values_complete` (Phase 2, migration). Every column's source is now named in
+  **Final Audit Projection** above (Round 5). Existing append-only UPDATE/DELETE triggers must be preserved
+  or recreated verbatim if SQLite forces table reconstruction.
 - `ActionResolutionService` added (`start_sequence`, `apply_adjustment`, `consume_roll`,
   `submit_decision`, `get_ready_bundle`) — never returns `OrchestrationResult`, never invokes the
   pipeline (Phase 2).
