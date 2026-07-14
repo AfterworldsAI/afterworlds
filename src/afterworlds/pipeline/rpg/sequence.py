@@ -378,6 +378,7 @@ class ActionResolutionService:
                 accepted_adjustment_option_id=option_id,
             ),
         )
+        session.flush()
 
         step_index = _step_index_for(session, pending.sequence_id)
         return ActionResolutionAdvanceResult(

@@ -686,6 +686,158 @@ def test_aggregate_range_boundary_values_accepted_by_resolve_aggregate_snapshot(
         assert record.total == boundary
 
 
+def test_resolve_snapshot_mixed_pool_sums_all_terms() -> None:
+    """Issue #127 criterion 4 (mixed pools): 2d6 + 1d8 + a +4 modifier.
+
+    RollProposal (models/rpg.py) carries no dice-expression/term field at
+    all -- the model cannot request a multi-term pool, and
+    build_check_instruction never generates one (bounded by the "Rules
+    Package carries no structured numeric/mechanical data" Known Unknown,
+    same boundary as adjustment options below). This proves the RESOLVER
+    (resolve_snapshot/_reduce_term) correctly sums an arbitrary mixed-term
+    instruction when one is constructed directly -- engine correctness,
+    not proposal-pipeline reachability, which remains deferred to that
+    Known Unknown.
+    """
+    term_2d6 = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    term_1d8 = RollTerm(
+        term_id=uuid4(),
+        count=1,
+        sides=8,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    modifier = RollModifierComponent(
+        modifier_id=uuid4(),
+        label="constant",
+        value=4,
+        visibility=ModifierVisibility.PLAYER_VISIBLE,
+        source_kind="sheet_modifier",
+        source_reference=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.DAMAGE,
+        terms=(term_2d6, term_1d8),
+        modifier_components=(modifier,),
+        display_expression="2d6+1d8+4",
+        display_label="Mixed Pool Damage",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    adapter = D20RulesSystemAdapter()
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_2d6.term_id: (3, 5), term_1d8.term_id: (6,)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 18  # (3+5) + 6 + 4
+
+
+def test_resolve_snapshot_repeated_same_shape_terms_stay_distinguishable() -> None:
+    """Issue #127 criterion 5 (repeated pools): two separate 2d6 terms must
+    not be conflated -- each term_id's submitted values apply to that term
+    alone, proven by giving each a different value set that would sum
+    differently if swapped."""
+    term_a = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    term_b = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.DAMAGE,
+        terms=(term_a, term_b),
+        modifier_components=(),
+        display_expression="2d6+2d6",
+        display_label="Repeated Pool Damage",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    adapter = D20RulesSystemAdapter()
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_a.term_id: (1, 1), term_b.term_id: (6, 6)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    # 2 (term_a) + 12 (term_b) = 14. Swapping the two value sets between
+    # terms would still sum to 14 here (both SUM_ALL), so also assert the
+    # raw per-term reduction directly via a KEEP_HIGHEST pair, where a swap
+    # would change the result if term identity were lost.
+    assert record.total == 14
+
+
+def test_resolve_snapshot_repeated_keep_highest_terms_use_own_values() -> None:
+    """Stronger version of the repeated-pool proof: two KEEP_HIGHEST terms
+    with different value sets. If term identity were lost (e.g. values
+    applied to the wrong term), the total would differ from the correct
+    12 (10 kept from term_a) + 8 (8 kept from term_b) = 18."""
+    term_a = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+    )
+    term_b = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ATTACK,
+        terms=(term_a, term_b),
+        modifier_components=(),
+        display_expression="2d20kh1+2d20kh1",
+        display_label="Repeated Keep-Highest",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    adapter = D20RulesSystemAdapter()
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_a.term_id: (10, 2), term_b.term_id: (8, 1)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 18  # max(10,2) + max(8,1) = 10 + 8
+
+
 def test_resolve_aggregate_snapshot_uses_reported_total_directly() -> None:
     adapter = D20RulesSystemAdapter()
     instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))

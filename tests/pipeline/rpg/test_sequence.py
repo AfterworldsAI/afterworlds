@@ -27,11 +27,13 @@ import afterworlds.persistence.orm.story  # noqa: F401
 from afterworlds.models.enums import (
     DiceSelectionRule,
     ResolvedStepKind,
+    RollAdjustmentTiming,
     RollContribution,
     RollPurpose,
 )
 from afterworlds.models.rpg import (
     AdjustmentEventPayload,
+    RollAdjustmentOption,
     RollEventPayload,
     RollInstructionSnapshot,
     RollTerm,
@@ -66,7 +68,10 @@ def _term(
     )
 
 
-def _instruction(*terms: RollTerm) -> RollInstructionSnapshot:
+def _instruction(
+    *terms: RollTerm,
+    adjustment_options: tuple[RollAdjustmentOption, ...] = (),
+) -> RollInstructionSnapshot:
     return RollInstructionSnapshot(
         instruction_id=uuid4(),
         instruction_revision=1,
@@ -76,7 +81,7 @@ def _instruction(*terms: RollTerm) -> RollInstructionSnapshot:
         display_expression="test",
         display_label="Test Check",
         source_rule_refs=(),
-        adjustment_options=(),
+        adjustment_options=adjustment_options,
         sequence_id=uuid4(),
         step_id=uuid4(),
     )
@@ -457,6 +462,121 @@ def test_consume_roll_rejects_out_of_range_aggregate_before_any_mutation() -> No
             .one()
         )
         assert row.status == "pending"
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# apply_adjustment — Issue #127 criteria 9/10 (PR #129 sibling audit)
+#
+# No adapter path populates adjustment_options in v1 (advantage/disadvantage
+# is decided at instruction-build time, not offered post-hoc; parameterized
+# mechanics like spell-slot upcasting are deferred — see the "Parameterized
+# adjustments" Known Unknown). apply_adjustment's own state-transition logic
+# is fully written and reachable by direct call, though: these tests
+# hand-build an instruction WITH a populated adjustment_options tuple (the
+# same "prove the engine, not proposal-pipeline reachability" pattern used
+# for mixed/repeated pools in test_adapter.py) to prove that logic is
+# correct, without building new adapter-side option generation.
+# ---------------------------------------------------------------------------
+
+
+def _adjustment_option(option_id: str = "advantage") -> RollAdjustmentOption:
+    return RollAdjustmentOption(
+        option_id=option_id,
+        ability_id="luck",
+        timing=RollAdjustmentTiming.PRE_ROLL,
+        player_visible_label="Use Luck Point",
+    )
+
+
+def test_apply_adjustment_accepted_revises_instruction_without_new_phase() -> None:
+    """Criterion 9: an eligible option revises the pending instruction and
+    stays PENDING_ROLL -- no separate interaction phase is created."""
+    import sqlalchemy as sa
+
+    from afterworlds.models.enums import RpgInteractionPhase
+    from afterworlds.persistence.database import create_session_factory
+    from afterworlds.persistence.orm.rpg import ActionResolutionEventORM
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.sequence import ActionResolutionService
+
+    engine = sa.create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    try:
+        option = _adjustment_option("advantage")
+        term = _term(DiceSelectionRule.SUM_ALL)
+        instr = _instruction(term, adjustment_options=(option,))
+        request_id = _seed_pending_roll(session, instr=instr)
+
+        svc = ActionResolutionService(
+            adapter=D20RulesSystemAdapter(),
+            dice_service=None,  # type: ignore[arg-type]
+            session_factory=lambda: session,
+        )
+        result = svc.apply_adjustment(
+            session, pending_roll_request_id=request_id, option_id="advantage"
+        )
+
+        assert result.interaction_phase is RpgInteractionPhase.PENDING_ROLL
+        assert result.pending_roll is not None
+        assert result.pending_roll.instruction_revision == 2  # noqa: PLR2004
+
+        events = session.query(ActionResolutionEventORM).all()
+        assert len(events) == 1
+        assert events[0].kind == "adjustment"
+    finally:
+        session.close()
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_apply_adjustment_rejected_option_changes_nothing() -> None:
+    """Criterion 10: an unsupported/mistimed option_id is rejected and
+    mutates nothing -- no revision bump, no event written."""
+    import sqlalchemy as sa
+
+    from afterworlds.persistence.database import create_session_factory
+    from afterworlds.persistence.orm.rpg import (
+        ActionResolutionEventORM,
+        PendingRollRequestORM,
+    )
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.models import ActionAdjustmentNotAllowedError
+    from afterworlds.pipeline.rpg.sequence import ActionResolutionService
+
+    engine = sa.create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+    session = create_session_factory(engine)()
+    try:
+        option = _adjustment_option("advantage")
+        term = _term(DiceSelectionRule.SUM_ALL)
+        instr = _instruction(term, adjustment_options=(option,))
+        request_id = _seed_pending_roll(session, instr=instr)
+
+        svc = ActionResolutionService(
+            adapter=D20RulesSystemAdapter(),
+            dice_service=None,  # type: ignore[arg-type]
+            session_factory=lambda: session,
+        )
+
+        with pytest.raises(ActionAdjustmentNotAllowedError):
+            svc.apply_adjustment(
+                session,
+                pending_roll_request_id=request_id,
+                option_id="nonexistent_option",
+            )
+
+        row = (
+            session.query(PendingRollRequestORM)
+            .filter_by(request_id=str(request_id))
+            .one()
+        )
+        assert row.instruction_revision == 1
+        assert session.query(ActionResolutionEventORM).count() == 0
     finally:
         session.close()
         Base.metadata.drop_all(engine)
