@@ -533,6 +533,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **Out of scope:** new Rules Package schema, broad cross-system adapter framework beyond bounded d20, frontend UI rendering/polish beyond necessary integration, executable mechanics generated from ingestion.
 - **Deliverables:** RPG mode orchestration layer, d20 adapter, dice/audit services, hidden-roll visibility controls, visible-state DTO/service contract, tests for rules/roll invariants.
 - **Acceptance:** LLM may request/propose rolls but not author trust-relevant numeric results; hidden rolls are backend-visible and code-generated; `gm_cheating = off` preserves results; Rules Package / Rules System Adapter / Character Sheet Model / RPG Adjudication Loop remain separate; Issue 15 defines visible-state payload shape while Issue 19 renders it through the frontend/API shell.
+- **Superseded in part by Issue 15b:** the player-roll request/response shape and consume path shipped under Issue 15 were narrower than ordinary bounded-d20 play requires (single hardcoded expression set, total-only consumption, no persisted unit above one request, no product-API reachability). ADR-015b (CRD Issue 15b) supersedes that shape with a structured roll instruction, action-resolution sequences, and typed adjustments/decisions without reopening any acceptance criterion listed above. See `/docs/decisions/adr-015b-structured-rpg-roll-lifecycle.md`.
 
 ### Issue 16 — Branching Mode Integration
 
@@ -565,6 +566,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **Out of scope:** Next.js, SSR, separate Node app server, Electron, new orchestration behavior, mode logic, entitlement logic, persistence architecture, provider routing, business policy.
 - **Deliverables:** frontend shell, API routes, DTOs, service integration, tests.
 - **Acceptance:** route handlers are thin; frontend can create/select story/mode, submit turn, and display output/status through existing services; no business logic leaks into HTTP code.
+- **RPG roll-lifecycle routes (Issue 15b Phase 3):** the RPG player-roll lifecycle (pending-interaction read, roll submission, adjustment, mechanical decision, sequence resume) is added as thin routes under these same Issue 19 conventions — app factory, error envelope, access-path helper, story lock, generated contracts. This is route wiring for an owning service's contract, not new mode logic in Issue 19. See `/docs/decisions/adr-015b-structured-rpg-roll-lifecycle.md`.
 
 ### Issue 20 — Billing/BYOK Visibility and Configuration
 

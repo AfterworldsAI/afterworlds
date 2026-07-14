@@ -183,13 +183,31 @@ Issue 16 ships the `INTERACTION_REJECTED` disposition for True CYOA invalid free
 
 ### Pending-roll rewind/cancel policy
 
-**Resolve during:** A future issue after Issue 15, when at minimum one supported rewind/cancel flow exists.
+**Resolve during:** A future issue after Issue 15b, when at minimum one supported rewind/cancel flow exists.
 
-**Surfaced during:** Issue 15.
+**Surfaced during:** Issue 15. **Touched, not resolved, during Issue 15b.**
 
-Issue 15 ships a v1 block-and-redirect policy: if a new in-character action arrives while a `PendingRollRequest` is outstanding, the orchestrator blocks and redirects the Sojourner to the pending roll. It does not cancel, supersede, or expire the request. `PendingRollRequest.status` has `cancelled` and `expired` as valid literals for schema compatibility, but no code path activates them in v1.
+Issue 15 shipped a v1 block-and-redirect policy: if a new in-character action arrives while a
+`PendingRollRequest` is outstanding, the orchestrator blocks and redirects the Sojourner to the pending
+roll. It does not cancel, supersede, or expire the request. `PendingRollRequest.status` has `cancelled`
+and `expired` as valid literals for schema compatibility, but no code path activates them in v1.
 
-**What resolution requires:** Decide at minimum one of: (a) whether the Sojourner can explicitly cancel a pending roll and what the mechanical/narrative consequence is; (b) whether a pending roll expires after N turns or N minutes and what cleanup applies; (c) whether a GM-initiated scene transition supersedes a pending roll. Implement the chosen policy, add or remove `cancelled`/`expired` lifecycle transitions accordingly, and test rollback for each non-consumed termination path.
+Issue 15b (ADR-015b) generalizes the block-and-redirect gate from one pending-roll row to any unresolved
+`ActionResolutionSequence` state — pending roll, pending mechanical decision, or `ready_for_narration` —
+but explicitly does not resolve this unknown (15b-33): cancellation, expiration, rewind,
+retry/regenerate, and supersession all remain deferred. `PendingRollStatus.CANCELLED`/`EXPIRED` stay
+dormant in the revised schema for the same reason (15b-8). Issue 15b also adds one directly related open
+question this item now covers: cleanup policy for an **abandoned `ready_for_narration` sequence** (one
+that reached readiness but was never resumed) is unresolved and falls under the same future-issue
+resolution window as rewind/cancel, since both are lifecycle-termination policy for the same persisted
+unit.
+
+**What resolution requires:** Decide at minimum one of: (a) whether the Sojourner can explicitly cancel a
+pending roll or an active/ready sequence and what the mechanical/narrative consequence is; (b) whether a
+pending roll or an abandoned ready sequence expires after N turns or N minutes and what cleanup applies;
+(c) whether a GM-initiated scene transition supersedes a pending roll or sequence. Implement the chosen
+policy, add or remove `cancelled`/`expired` lifecycle transitions accordingly, and test rollback for each
+non-consumed termination path.
 
 ---
 
