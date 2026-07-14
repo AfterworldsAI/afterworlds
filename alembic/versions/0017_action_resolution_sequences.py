@@ -6,21 +6,29 @@ per story via a partial unique index, mirroring the existing
 ``uq_pending_roll_requests_story_active`` pattern).
 
 Revises ``pending_roll_requests`` per ADR-015b's Column Disposition table:
-retires ``roll_expression``, ``expected_value_shape``, ``visible_modifier_total``,
+drops ``roll_expression``, ``expected_value_shape``, ``visible_modifier_total``,
 ``visible_modifier_breakdown_json``, ``check_label``, ``player_facing_instruction``,
-``visible_modifier_note``, ``hidden_modifier_present`` after backfilling every
-unconsumed (``status='pending'``) row into a deterministic single-step ``ACTIVE``
-sequence with an equivalent ``RollInstructionSnapshot``. Historical consumed
-rows keep nullable sequence/instruction linkage (spec migration items 6-7) —
-only pending rows are wrapped.
+``visible_modifier_note``, ``hidden_modifier_present`` outright after backfilling
+every unconsumed (``status='pending'``) row into a deterministic single-step
+``ACTIVE`` sequence with an equivalent ``RollInstructionSnapshot``. Historical
+consumed rows are left with their new structured columns ``NULL`` and
+``schema_version`` unchanged — they are not backfilled, since nothing reads a
+consumed row's mechanical detail again (ADR-015b's Column Disposition
+amendment, made during Phase 2 resumption: this table is transient,
+mutated-in-place operational state, not the audit-of-record, and the
+project's working database carries zero rows in it — there is no real data
+behind a preserve-nullable requirement to protect).
 
-``pending_roll_requests`` requires an explicit manual table-recreate (create
-new table, copy data, drop old, rename) rather than ``batch_alter_table``:
-this table carries a partial-unique-index ``WHERE`` predicate and four FKs
-with three distinct ``ondelete`` actions (CASCADE/RESTRICT/CASCADE/SET NULL),
-both of which Alembic's SQLite batch-mode reflection has historically
-mishandled on recreate. Declaring the full target schema explicitly removes
-any dependency on what reflection does or doesn't preserve.
+``pending_roll_requests`` needs no table recreate for this: this project's
+runtime (SQLite >= 3.35, confirmed 3.49.1; SQLAlchemy 2.0; Alembic 1.18)
+supports ``ALTER TABLE ... ADD COLUMN`` and ``ALTER TABLE ... DROP COLUMN``
+natively, and none of the eight dropped columns participate in this table's
+only index (``uq_pending_roll_requests_story_active``, on ``story_id`` alone)
+or any foreign key. Each column add/drop below is a single direct
+``ALTER TABLE`` statement — no ``PRAGMA foreign_keys`` toggling, table
+rename, or row copy. The table's other columns, its two ``create_index``
+indexes, its partial unique index, and its four foreign keys (all created in
+migration 0011) are untouched by this migration and are not recreated here.
 
 ``rpg_roll_audit`` gets its new nullable columns via plain ``op.add_column``
 (NOT batch mode) because this table has the append-only UPDATE/DELETE
@@ -43,6 +51,12 @@ skill/save lookup the adapter uses (skill match -> SKILL_CHECK, save match ->
 SAVING_THROW, else -> ABILITY_CHECK fallback); the shipped adapter's
 ``_ModifierBreakdown`` always sets ``has_hidden=False``, so no pending row
 can carry a hidden modifier component that would need reconstruction.
+
+``downgrade()`` re-adds the eight legacy columns and best-effort
+reconstructs display text for rows that have a structured snapshot to
+reconstruct it from; this is inherently lossy (there is no real legacy data
+behind any row upgrade() touched — see the Column Disposition amendment
+above), same as it was before this simplification.
 
 Revision ID: 0017
 Revises: 0016
@@ -283,25 +297,48 @@ def upgrade() -> None:
     )
 
     # ------------------------------------------------------------------
-    # Read every legacy row up front so validation (Phase 1) always
-    # completes, and any bad row aborts, before the destructive table
-    # swap (Phase 2) touches anything.
+    # pending_roll_requests — add the six new nullable structured columns.
+    # Direct ALTER TABLE ADD COLUMN; no recreate needed (see module docstring).
+    #
+    # sequence_id carries a foreign key, so it can't go through Alembic's
+    # op.add_column on SQLite: Alembic treats any ADD COLUMN carrying a
+    # constraint as an unsupported "ALTER of constraints" and raises,
+    # directing to batch mode — a restriction in Alembic's SQLite dialect,
+    # not in SQLite itself, which has always supported an inline REFERENCES
+    # clause in ALTER TABLE ADD COLUMN. Issued as raw DDL via op.execute to
+    # get the FK without triggering Alembic's batch-mode requirement.
+    # ------------------------------------------------------------------
+    op.execute(
+        "ALTER TABLE pending_roll_requests ADD COLUMN sequence_id VARCHAR(36) "
+        "REFERENCES action_resolution_sequences (sequence_id) ON DELETE CASCADE"
+    )
+    op.add_column(_TABLE, sa.Column("step_id", sa.String(36), nullable=True))
+    op.add_column(_TABLE, sa.Column("instruction_id", sa.String(36), nullable=True))
+    op.add_column(_TABLE, sa.Column("instruction_revision", sa.Integer, nullable=True))
+    op.add_column(
+        _TABLE, sa.Column("instruction_schema_version", sa.Integer, nullable=True)
+    )
+    op.add_column(
+        _TABLE, sa.Column("instruction_snapshot_json", sa.Text, nullable=True)
+    )
+
+    # ------------------------------------------------------------------
+    # Backfill unconsumed (status='pending') legacy rows into a real
+    # ActionResolutionSequence, reading the legacy display columns one
+    # last time before they're dropped below. Historical consumed rows
+    # are left with their new structured columns NULL — nothing reads a
+    # consumed row's mechanical detail again.
     # ------------------------------------------------------------------
     conn = op.get_bind()
-    legacy_rows = conn.execute(
+    pending_rows = conn.execute(
         sa.text(
-            "SELECT request_id, story_id, session_id, character_id,"
-            " originating_turn_id, consumed_turn_id, check_label,"
-            " player_facing_instruction, expected_value_shape,"
-            " visible_modifier_note, visibility, source_proposal_ref, status,"
-            " created_at, schema_version, roll_expression,"
-            " visible_modifier_total, visible_modifier_breakdown_json,"
-            " hidden_modifier_present, adapter_context_hash, additional_data"
-            " FROM pending_roll_requests"
+            "SELECT request_id, story_id, character_id, originating_turn_id,"
+            " check_label, roll_expression, visible_modifier_total,"
+            " visible_modifier_breakdown_json, created_at"
+            " FROM pending_roll_requests WHERE status = 'pending'"
         )
     ).fetchall()
 
-    pending_rows = [r for r in legacy_rows if r.status == "pending"]
     offenders = [
         (r.request_id, r.roll_expression)
         for r in pending_rows
@@ -317,150 +354,68 @@ def upgrade() -> None:
     now_iso = conn.execute(sa.text("SELECT CURRENT_TIMESTAMP")).scalar()
 
     sequence_inserts: list[dict] = []
-    pending_new_rows: list[dict] = []
-    for r in legacy_rows:
-        base = {
-            "request_id": r.request_id,
-            "story_id": r.story_id,
-            "session_id": r.session_id,
-            "character_id": r.character_id,
-            "originating_turn_id": r.originating_turn_id,
-            "consumed_turn_id": r.consumed_turn_id,
-            "visibility": r.visibility,
-            "source_proposal_ref": r.source_proposal_ref,
-            "status": r.status,
-            "created_at": r.created_at,
-            "schema_version": r.schema_version,
-            "adapter_context_hash": r.adapter_context_hash,
-            "additional_data": r.additional_data,
-            "sequence_id": None,
-            "step_id": None,
-            "instruction_id": None,
-            "instruction_revision": None,
-            "instruction_schema_version": None,
-            "instruction_snapshot_json": None,
-        }
-        if r.status == "pending":
-            sequence_id = str(uuid.uuid5(_SEQUENCE_NS, r.request_id))
-            step_id = str(uuid.uuid5(_STEP_NS, r.request_id))
-            instruction_id = str(uuid.uuid5(_INSTRUCTION_NS, r.request_id))
-            snapshot_json = _build_instruction_snapshot_json(
-                instruction_id=instruction_id,
-                sequence_id=sequence_id,
-                step_id=step_id,
-                roll_expression=r.roll_expression,
-                check_label=r.check_label,
-                visible_modifier_total=r.visible_modifier_total,
-                visible_modifier_breakdown_json=r.visible_modifier_breakdown_json,
-            )
-            base.update(
-                sequence_id=sequence_id,
-                step_id=step_id,
-                instruction_id=instruction_id,
-                instruction_revision=1,
-                instruction_schema_version=1,
-                instruction_snapshot_json=snapshot_json,
-            )
-            sequence_inserts.append(
-                {
-                    "sequence_id": sequence_id,
-                    "story_id": r.story_id,
-                    "node_id": None,  # legacy rows carry no node_id; see note below
-                    "character_id": r.character_id,
-                    "originating_turn_id": r.originating_turn_id,
-                    "status": "active",
-                    "current_interaction_kind": "roll",
-                    "current_pending_roll_request_id": r.request_id,
-                    "current_decision_request_id": None,
-                    "current_decision_snapshot_json": None,
-                    "resolved_steps_json": "[]",
-                    "projected_state_json": "{}",
-                    "provisional_effects_json": "[]",
-                    "created_at": r.created_at,
-                    "updated_at": now_iso,
-                    "schema_version": 1,
-                }
-            )
-        pending_new_rows.append(base)
+    pending_updates: list[dict] = []
+    for r in pending_rows:
+        sequence_id = str(uuid.uuid5(_SEQUENCE_NS, r.request_id))
+        step_id = str(uuid.uuid5(_STEP_NS, r.request_id))
+        instruction_id = str(uuid.uuid5(_INSTRUCTION_NS, r.request_id))
+        snapshot_json = _build_instruction_snapshot_json(
+            instruction_id=instruction_id,
+            sequence_id=sequence_id,
+            step_id=step_id,
+            roll_expression=r.roll_expression,
+            check_label=r.check_label,
+            visible_modifier_total=r.visible_modifier_total,
+            visible_modifier_breakdown_json=r.visible_modifier_breakdown_json,
+        )
 
-    # ``node_id`` is required (NOT NULL, FK) on action_resolution_sequences but
-    # was never carried by the legacy pending_roll_requests row — the pre-15b
-    # schema had no node linkage for a player-roll announce. Resolve it from
-    # the originating Turn's node_id, which does exist, rather than leaving a
-    # NOT NULL column unset.
-    for seq in sequence_inserts:
+        # node_id is required (NOT NULL, FK) on action_resolution_sequences but
+        # was never carried by the legacy pending_roll_requests row — the
+        # pre-15b schema had no node linkage for a player-roll announce.
+        # Resolve it from the originating Turn's node_id, which does exist.
         node_row = conn.execute(
             sa.text("SELECT node_id FROM turns WHERE turn_id = :tid"),
-            {"tid": seq["originating_turn_id"]},
+            {"tid": r.originating_turn_id},
         ).fetchone()
         if node_row is None or node_row.node_id is None:
             raise RuntimeError(
                 "Migration 0017: cannot resolve node_id for pending roll "
-                f"{seq['current_pending_roll_request_id']!r} — originating "
-                f"turn {seq['originating_turn_id']!r} has no node_id"
+                f"{r.request_id!r} — originating turn "
+                f"{r.originating_turn_id!r} has no node_id"
             )
-        seq["node_id"] = node_row.node_id
 
-    # ------------------------------------------------------------------
-    # Explicit table swap (see module docstring for why not batch mode).
-    # op.create_table (not a bare sa.Table(...).create(bind=conn)) is
-    # required here: SQLAlchemy's DDL compiler resolves bare-string
-    # sa.ForeignKey("stories.story_id", ...) targets by looking them up in
-    # the SAME MetaData as the owning table, which a freshly constructed
-    # sa.Table(name, sa.MetaData(), ...) never has — it would raise
-    # NoReferencedTableError. Alembic's op.create_table does not require
-    # that resolution.
-    # ------------------------------------------------------------------
-    op.rename_table(_TABLE, "_pending_roll_requests_legacy")
-    op.create_table(
-        _TABLE,
-        sa.Column("request_id", sa.String(36), primary_key=True),
-        sa.Column(
-            "story_id",
-            sa.String(36),
-            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("session_id", sa.String(36), nullable=False),
-        sa.Column(
-            "character_id",
-            sa.String(36),
-            sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "originating_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "consumed_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        sa.Column("visibility", sa.String(16), nullable=False),
-        sa.Column("source_proposal_ref", sa.Text, nullable=False),
-        sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
-        sa.Column("created_at", sa.String(64), nullable=False),
-        sa.Column("schema_version", sa.Integer, nullable=False, server_default="1"),
-        sa.Column("adapter_context_hash", sa.String(64), nullable=True),
-        sa.Column(
-            "sequence_id",
-            sa.String(36),
-            sa.ForeignKey(
-                "action_resolution_sequences.sequence_id", ondelete="CASCADE"
-            ),
-            nullable=True,
-        ),
-        sa.Column("step_id", sa.String(36), nullable=True),
-        sa.Column("instruction_id", sa.String(36), nullable=True),
-        sa.Column("instruction_revision", sa.Integer, nullable=True),
-        sa.Column("instruction_schema_version", sa.Integer, nullable=True),
-        sa.Column("instruction_snapshot_json", sa.Text, nullable=True),
-        sa.Column("additional_data", sa.JSON, nullable=True),
-    )
+        sequence_inserts.append(
+            {
+                "sequence_id": sequence_id,
+                "story_id": r.story_id,
+                "node_id": node_row.node_id,
+                "character_id": r.character_id,
+                "originating_turn_id": r.originating_turn_id,
+                "status": "active",
+                "current_interaction_kind": "roll",
+                "current_pending_roll_request_id": r.request_id,
+                "current_decision_request_id": None,
+                "current_decision_snapshot_json": None,
+                "resolved_steps_json": "[]",
+                "projected_state_json": "{}",
+                "provisional_effects_json": "[]",
+                "created_at": r.created_at,
+                "updated_at": now_iso,
+                "schema_version": 1,
+            }
+        )
+        pending_updates.append(
+            {
+                "request_id": r.request_id,
+                "sequence_id": sequence_id,
+                "step_id": step_id,
+                "instruction_id": instruction_id,
+                "instruction_revision": 1,
+                "instruction_schema_version": 1,
+                "instruction_snapshot_json": snapshot_json,
+                "schema_version": 2,
+            }
+        )
 
     if sequence_inserts:
         conn.execute(
@@ -483,44 +438,38 @@ def upgrade() -> None:
             ),
             sequence_inserts,
         )
-    if pending_new_rows:
+    if pending_updates:
         conn.execute(
             sa.text(
-                f"INSERT INTO {_TABLE} ("
-                " request_id, story_id, session_id, character_id,"
-                " originating_turn_id, consumed_turn_id, visibility,"
-                " source_proposal_ref, status, created_at, schema_version,"
-                " adapter_context_hash, additional_data, sequence_id,"
-                " step_id, instruction_id, instruction_revision,"
-                " instruction_schema_version, instruction_snapshot_json"
-                ") VALUES ("
-                " :request_id, :story_id, :session_id, :character_id,"
-                " :originating_turn_id, :consumed_turn_id, :visibility,"
-                " :source_proposal_ref, :status, :created_at, :schema_version,"
-                " :adapter_context_hash, :additional_data, :sequence_id,"
-                " :step_id, :instruction_id, :instruction_revision,"
-                " :instruction_schema_version, :instruction_snapshot_json"
-                ")"
+                f"UPDATE {_TABLE} SET"
+                " sequence_id = :sequence_id, step_id = :step_id,"
+                " instruction_id = :instruction_id,"
+                " instruction_revision = :instruction_revision,"
+                " instruction_schema_version = :instruction_schema_version,"
+                " instruction_snapshot_json = :instruction_snapshot_json,"
+                " schema_version = :schema_version"
+                " WHERE request_id = :request_id"
             ),
-            pending_new_rows,
+            pending_updates,
         )
 
-    op.drop_table("_pending_roll_requests_legacy")
-
-    op.create_index(
-        "ix_pending_roll_requests_story_id",
-        _TABLE,
-        ["story_id"],
-    )
-    op.create_index(
-        "ix_pending_roll_requests_status",
-        _TABLE,
-        ["story_id", "status"],
-    )
-    op.execute(
-        "CREATE UNIQUE INDEX uq_pending_roll_requests_story_active "
-        "ON pending_roll_requests (story_id) WHERE status = 'pending'"
-    )
+    # ------------------------------------------------------------------
+    # Drop the eight legacy display/derivation columns outright — no real
+    # data to preserve (ADR-015b Column Disposition, amended during Phase 2
+    # resumption). Direct ALTER TABLE DROP COLUMN; none of these participate
+    # in this table's index or any foreign key.
+    # ------------------------------------------------------------------
+    for col_name in (
+        "roll_expression",
+        "expected_value_shape",
+        "visible_modifier_total",
+        "visible_modifier_breakdown_json",
+        "check_label",
+        "player_facing_instruction",
+        "visible_modifier_note",
+        "hidden_modifier_present",
+    ):
+        op.drop_column(_TABLE, col_name)
 
     # ------------------------------------------------------------------
     # rpg_roll_audit — plain ADD COLUMN only; batch mode would drop the
@@ -554,29 +503,65 @@ def downgrade() -> None:
     ):
         op.drop_column("rpg_roll_audit", col)
 
-    op.execute("DROP INDEX IF EXISTS uq_pending_roll_requests_story_active")
-    op.drop_index("ix_pending_roll_requests_status", table_name=_TABLE)
-    op.drop_index("ix_pending_roll_requests_story_id", table_name=_TABLE)
+    # Re-add the eight legacy columns. This is inherently lossy: there is no
+    # real legacy data behind any row upgrade() touched (see the Column
+    # Disposition amendment in ADR-015b — the table carried zero rows at the
+    # time this simplification was made). Best-effort reconstruction from
+    # instruction_snapshot_json covers rows upgrade() itself backfilled;
+    # everything else gets the placeholder default.
+    op.add_column(
+        _TABLE, sa.Column("check_label", sa.Text, nullable=False, server_default="")
+    )
+    op.add_column(
+        _TABLE,
+        sa.Column(
+            "player_facing_instruction", sa.Text, nullable=False, server_default=""
+        ),
+    )
+    op.add_column(
+        _TABLE,
+        sa.Column(
+            "expected_value_shape", sa.Text, nullable=False, server_default="integer"
+        ),
+    )
+    op.add_column(_TABLE, sa.Column("visible_modifier_note", sa.Text, nullable=True))
+    op.add_column(
+        _TABLE,
+        sa.Column(
+            "roll_expression", sa.String(64), nullable=False, server_default="1d20"
+        ),
+    )
+    op.add_column(
+        _TABLE, sa.Column("visible_modifier_total", sa.Integer, nullable=True)
+    )
+    op.add_column(
+        _TABLE, sa.Column("visible_modifier_breakdown_json", sa.Text, nullable=True)
+    )
+    op.add_column(
+        _TABLE,
+        sa.Column(
+            "hidden_modifier_present",
+            sa.Boolean,
+            nullable=False,
+            server_default="0",
+        ),
+    )
 
     conn = op.get_bind()
     rows = conn.execute(
         sa.text(
-            "SELECT request_id, story_id, session_id, character_id,"
-            " originating_turn_id, consumed_turn_id, visibility,"
-            " source_proposal_ref, status, created_at, schema_version,"
-            " adapter_context_hash, instruction_snapshot_json, additional_data"
-            " FROM pending_roll_requests"
+            f"SELECT request_id, instruction_snapshot_json FROM {_TABLE}"
+            " WHERE instruction_snapshot_json IS NOT NULL"
         )
     ).fetchall()
 
-    legacy_rows: list[dict] = []
+    updates: list[dict] = []
     for r in rows:
         snapshot: dict = {}
-        if r.instruction_snapshot_json:
-            try:
-                snapshot = json.loads(r.instruction_snapshot_json)
-            except (json.JSONDecodeError, TypeError):
-                snapshot = {}
+        try:
+            snapshot = json.loads(r.instruction_snapshot_json)
+        except (json.JSONDecodeError, TypeError):
+            snapshot = {}
         modifier_components = snapshot.get("modifier_components") or []
         visible_total = (
             sum(int(m.get("value", 0)) for m in modifier_components)
@@ -588,121 +573,36 @@ def downgrade() -> None:
             if modifier_components
             else None
         )
-        legacy_rows.append(
+        updates.append(
             {
                 "request_id": r.request_id,
-                "story_id": r.story_id,
-                "session_id": r.session_id,
-                "character_id": r.character_id,
-                "originating_turn_id": r.originating_turn_id,
-                "consumed_turn_id": r.consumed_turn_id,
                 "check_label": snapshot.get("display_label", ""),
                 "player_facing_instruction": snapshot.get("display_expression", ""),
-                "expected_value_shape": "integer",
-                "visible_modifier_note": None,
-                "visibility": r.visibility,
-                "source_proposal_ref": r.source_proposal_ref,
-                "status": r.status,
-                "created_at": r.created_at,
-                "schema_version": 1,
                 "roll_expression": snapshot.get("display_expression", "1d20"),
                 "visible_modifier_total": visible_total,
                 "visible_modifier_breakdown_json": breakdown_json,
-                "hidden_modifier_present": False,
-                "adapter_context_hash": r.adapter_context_hash,
-                "additional_data": r.additional_data,
             }
         )
-
-    op.rename_table(_TABLE, "_pending_roll_requests_new")
-    op.create_table(
-        _TABLE,
-        sa.Column("request_id", sa.String(36), primary_key=True),
-        sa.Column(
-            "story_id",
-            sa.String(36),
-            sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("session_id", sa.String(36), nullable=False),
-        sa.Column(
-            "character_id",
-            sa.String(36),
-            sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
-            nullable=False,
-        ),
-        sa.Column(
-            "originating_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "consumed_turn_id",
-            sa.String(36),
-            sa.ForeignKey("turns.turn_id", ondelete="SET NULL"),
-            nullable=True,
-        ),
-        sa.Column("check_label", sa.Text, nullable=False),
-        sa.Column("player_facing_instruction", sa.Text, nullable=False),
-        sa.Column("expected_value_shape", sa.Text, nullable=False),
-        sa.Column("visible_modifier_note", sa.Text, nullable=True),
-        sa.Column("visibility", sa.String(16), nullable=False),
-        sa.Column("source_proposal_ref", sa.Text, nullable=False),
-        sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
-        sa.Column("created_at", sa.String(64), nullable=False),
-        sa.Column("schema_version", sa.Integer, nullable=False, server_default="1"),
-        sa.Column("roll_expression", sa.String(64), nullable=False),
-        sa.Column("visible_modifier_total", sa.Integer, nullable=True),
-        sa.Column("visible_modifier_breakdown_json", sa.Text, nullable=True),
-        sa.Column(
-            "hidden_modifier_present",
-            sa.Boolean,
-            nullable=False,
-            server_default="0",
-        ),
-        sa.Column("adapter_context_hash", sa.String(64), nullable=True),
-        sa.Column("additional_data", sa.JSON, nullable=True),
-    )
-    if legacy_rows:
+    if updates:
         conn.execute(
             sa.text(
-                f"INSERT INTO {_TABLE} ("
-                " request_id, story_id, session_id, character_id,"
-                " originating_turn_id, consumed_turn_id, check_label,"
-                " player_facing_instruction, expected_value_shape,"
-                " visible_modifier_note, visibility, source_proposal_ref,"
-                " status, created_at, schema_version, roll_expression,"
-                " visible_modifier_total, visible_modifier_breakdown_json,"
-                " hidden_modifier_present, adapter_context_hash, additional_data"
-                ") VALUES ("
-                " :request_id, :story_id, :session_id, :character_id,"
-                " :originating_turn_id, :consumed_turn_id, :check_label,"
-                " :player_facing_instruction, :expected_value_shape,"
-                " :visible_modifier_note, :visibility, :source_proposal_ref,"
-                " :status, :created_at, :schema_version, :roll_expression,"
-                " :visible_modifier_total, :visible_modifier_breakdown_json,"
-                " :hidden_modifier_present, :adapter_context_hash, :additional_data"
-                ")"
+                f"UPDATE {_TABLE} SET"
+                " check_label = :check_label,"
+                " player_facing_instruction = :player_facing_instruction,"
+                " roll_expression = :roll_expression,"
+                " visible_modifier_total = :visible_modifier_total,"
+                " visible_modifier_breakdown_json = :visible_modifier_breakdown_json"
+                " WHERE request_id = :request_id"
             ),
-            legacy_rows,
+            updates,
         )
-    op.drop_table("_pending_roll_requests_new")
 
-    op.create_index(
-        "ix_pending_roll_requests_story_id",
-        _TABLE,
-        ["story_id"],
-    )
-    op.create_index(
-        "ix_pending_roll_requests_status",
-        _TABLE,
-        ["story_id", "status"],
-    )
-    op.execute(
-        "CREATE UNIQUE INDEX uq_pending_roll_requests_story_active "
-        "ON pending_roll_requests (story_id) WHERE status = 'pending'"
-    )
+    op.drop_column(_TABLE, "instruction_snapshot_json")
+    op.drop_column(_TABLE, "instruction_schema_version")
+    op.drop_column(_TABLE, "instruction_revision")
+    op.drop_column(_TABLE, "instruction_id")
+    op.drop_column(_TABLE, "step_id")
+    op.drop_column(_TABLE, "sequence_id")
 
     op.execute("DROP INDEX IF EXISTS uq_unresolved_action_resolution_per_story")
     op.drop_index(
