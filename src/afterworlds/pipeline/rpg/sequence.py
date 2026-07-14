@@ -32,19 +32,25 @@ from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import (
     ActionResolutionStatus,
+    DiceSelectionRule,
     ResolvedStepKind,
+    RollContribution,
     RollSubmissionSource,
     RpgInteractionPhase,
     SequenceInteractionKind,
 )
 from afterworlds.models.rpg import (
     ActionResolutionAdvanceResult,
+    ActionResolutionEvent,
+    AdjustmentEventPayload,
+    DerivedRollTermResult,
     PlayerAdjustmentOptionView,
     PlayerModifierView,
     PlayerRollInstructionView,
     PlayerRollTermView,
     ReadyActionResolutionBundle,
     ResolvedSequenceStep,
+    RollEventPayload,
     RollInstructionSnapshot,
     SequenceProgressView,
 )
@@ -339,7 +345,10 @@ class ActionResolutionService:
         revised = instruction.model_copy(
             update={"instruction_revision": instruction.instruction_revision + 1}
         )
-        from afterworlds.persistence.orm.rpg import PendingRollRequestORM
+        from afterworlds.persistence.orm.rpg import (
+            ActionResolutionSequenceORM,
+            PendingRollRequestORM,
+        )
 
         row = (
             session.query(PendingRollRequestORM)
@@ -349,6 +358,26 @@ class ActionResolutionService:
         row.instruction_revision = revised.instruction_revision
         row.instruction_snapshot_json = json.dumps(revised.model_dump(mode="json"))
         session.flush()
+
+        seq_row = (
+            session.query(ActionResolutionSequenceORM)
+            .filter_by(sequence_id=str(pending.sequence_id))
+            .one()
+        )
+        _append_event(
+            session,
+            sequence_id=pending.sequence_id,
+            step_id=pending.step_id,
+            story_id=UUID(seq_row.story_id),
+            session_id=UUID(seq_row.session_id),
+            character_id=UUID(seq_row.character_id),
+            kind=ResolvedStepKind.ADJUSTMENT,
+            provisional_effects_json="[]",
+            payload=AdjustmentEventPayload(
+                resulting_instruction_snapshot=revised,
+                accepted_adjustment_option_id=option_id,
+            ),
+        )
 
         step_index = _step_index_for(session, pending.sequence_id)
         return ActionResolutionAdvanceResult(
@@ -438,6 +467,10 @@ class ActionResolutionService:
 
         submitted_term_results: tuple[PlayerRollTermResult, ...] | None = None
         reported_aggregate: int | None = None
+        derived_term_results: tuple[DerivedRollTermResult, ...] = ()
+        raw_input_json: str | None = None
+        aggregate_input_json: str | None = None
+        subtotal: int | None = None
 
         if isinstance(submission, PhysicalAggregateRollSubmission):
             min_total, max_total = self._adapter.aggregate_range(instruction)
@@ -457,6 +490,13 @@ class ActionResolutionService:
             raw_values_complete = False
             submission_source = RollSubmissionSource.PHYSICAL_SELF_REPORT
             reported_aggregate = submission.reported_aggregate
+            # Aggregate-only physical reports carry no per-die values — no raw
+            # selection is derivable, and dice/modifier are not decomposable
+            # from a single reported number (ADR-015b's Aggregate-only
+            # physical-report projection).
+            aggregate_input_json = json.dumps(
+                {"reported_aggregate": submission.reported_aggregate}
+            )
         else:
             term_results = self._validate_raw_submission(instruction, submission)
             record = self._adapter.resolve_snapshot(
@@ -474,6 +514,19 @@ class ActionResolutionService:
                 else RollSubmissionSource.PHYSICAL_SELF_REPORT
             )
             submitted_term_results = submission.term_results
+            derived_term_results = _build_derived_term_results(
+                instruction, term_results
+            )
+            raw_input_json = json.dumps(
+                [r.model_dump(mode="json") for r in submission.term_results]
+            )
+            subtotal = sum(
+                t.contribution_applied_subtotal for t in derived_term_results
+            )
+
+        derived_selections_json = json.dumps(
+            [t.model_dump(mode="json") for t in derived_term_results]
+        )
 
         writer_view = self._adapter.to_writer_view(record)
 
@@ -505,7 +558,7 @@ class ActionResolutionService:
             submitted_term_results=submitted_term_results,
             reported_aggregate=reported_aggregate,
             raw_values_complete=raw_values_complete,
-            derived_term_results=(),
+            derived_term_results=derived_term_results,
             authoritative_total=record.total,
             internal_outcome=record.outcome,
             writer_view=writer_view,
@@ -520,6 +573,32 @@ class ActionResolutionService:
         provisional = json.loads(seq_row.provisional_effects_json or "[]")
         provisional.extend(e.model_dump(mode="json") for e in record.sheet_effects)
         seq_row.provisional_effects_json = json.dumps(provisional)
+
+        _append_event(
+            session,
+            sequence_id=pending.sequence_id,
+            step_id=pending.step_id,
+            story_id=UUID(seq_row.story_id),
+            session_id=UUID(seq_row.session_id),
+            character_id=UUID(seq_row.character_id),
+            kind=ResolvedStepKind.PLAYER_ROLL,
+            provisional_effects_json=json.dumps(
+                [e.model_dump(mode="json") for e in record.sheet_effects]
+            ),
+            payload=RollEventPayload(
+                kind=ResolvedStepKind.PLAYER_ROLL,
+                instruction_snapshot=instruction,
+                submission_source=submission_source,
+                pending_roll_request_id=submission.pending_roll_request_id,
+                raw_input_json=raw_input_json,
+                aggregate_input_json=aggregate_input_json,
+                derived_selections_json=derived_selections_json,
+                subtotal=subtotal,
+                total=record.total,
+                outcome=record.outcome,
+                gm_cheating_at_roll=record.gm_cheating_at_roll,
+            ),
+        )
 
         # v1: no code path generates a second linked step (see module
         # docstring) — a resolved roll always completes the sequence.
@@ -686,6 +765,119 @@ def _load_resolved_steps(
 ) -> list[ResolvedSequenceStep]:
     raw = json.loads(seq_row.resolved_steps_json or "[]")
     return [ResolvedSequenceStep.model_validate(item) for item in raw]
+
+
+# CRD Issue 15b (ADR-015b 15b-34) — the d20 system is the only adapter that
+# exists today; this identifies which rules engine produced an event, for a
+# future multi-system codebase. The ADR types the field but does not define
+# its content beyond "provenance".
+_MECHANICAL_PROVENANCE = "d20_rules_system_adapter"
+
+
+def _build_derived_term_results(
+    instruction: RollInstructionSnapshot,
+    term_results: dict[UUID, tuple[int, ...]],
+) -> tuple[DerivedRollTermResult, ...]:
+    """Reconstruct per-term selected-die provenance from already-decided values.
+
+    Independent of ``D20RulesSystemAdapter._reduce_term``'s subtotal/crit-die
+    computation — this only re-serializes *which* indices were kept, for the
+    event ledger's ``derived_selections_json`` and
+    ``ResolvedSequenceStep.derived_term_results``. It makes no adjudication
+    decision and cannot diverge from ``_reduce_term``'s sum for any term:
+    KEEP_HIGHEST/KEEP_LOWEST select the same multiset of values (ties are
+    immaterial to the sum), and SUM_ALL always selects every index.
+    """
+    results: list[DerivedRollTermResult] = []
+    for term in instruction.terms:
+        values = term_results.get(term.term_id, ())
+        if term.selection_rule is DiceSelectionRule.SUM_ALL:
+            selected_indices = tuple(range(len(values)))
+        else:
+            keep_n = term.keep_count or 1
+            order = sorted(
+                range(len(values)),
+                key=lambda i: values[i],
+                reverse=(term.selection_rule is DiceSelectionRule.KEEP_HIGHEST),
+            )
+            selected_indices = tuple(sorted(order[:keep_n]))
+        subtotal = sum(values[i] for i in selected_indices)
+        signed_subtotal = (
+            subtotal if term.contribution is RollContribution.ADD else -subtotal
+        )
+        results.append(
+            DerivedRollTermResult(
+                term_id=term.term_id,
+                values=values,
+                selected_indices=selected_indices,
+                contribution_applied_subtotal=signed_subtotal,
+            )
+        )
+    return tuple(results)
+
+
+def _next_event_order(session: Session, sequence_id: UUID) -> int:
+    result = session.execute(
+        sa.text(
+            "SELECT COALESCE(MAX(event_order), 0) FROM action_resolution_events "
+            "WHERE sequence_id = :sid"
+        ),
+        {"sid": str(sequence_id)},
+    ).scalar_one()
+    return int(result) + 1
+
+
+def _append_event(
+    session: Session,
+    *,
+    sequence_id: UUID,
+    step_id: UUID,
+    story_id: UUID,
+    session_id: UUID,
+    character_id: UUID,
+    kind: ResolvedStepKind,
+    provisional_effects_json: str,
+    payload: RollEventPayload | AdjustmentEventPayload,
+) -> None:
+    """Validate and persist one ActionResolutionEvent (ADR-015b 15b-34).
+
+    Must run inside the caller's outer (intermediate) transaction, alongside
+    the sequence-advancing write — both commit or neither does. The unique
+    ``(sequence_id, event_order)`` index is the DB-level backstop against a
+    duplicate or racing write for the same sequence position.
+    """
+    from afterworlds.persistence.orm.rpg import ActionResolutionEventORM
+
+    event = ActionResolutionEvent(
+        event_id=uuid4(),
+        sequence_id=sequence_id,
+        step_id=step_id,
+        story_id=story_id,
+        session_id=session_id,
+        character_id=character_id,
+        event_order=_next_event_order(session, sequence_id),
+        kind=kind,
+        mechanical_provenance=_MECHANICAL_PROVENANCE,
+        provisional_effects_json=provisional_effects_json,
+        created_at=datetime.now(tz=UTC),
+        payload=payload,
+    )
+    session.add(
+        ActionResolutionEventORM(
+            event_id=str(event.event_id),
+            sequence_id=str(event.sequence_id),
+            step_id=str(event.step_id),
+            story_id=str(event.story_id),
+            session_id=str(event.session_id),
+            character_id=str(event.character_id),
+            event_order=event.event_order,
+            kind=event.kind.value,
+            mechanical_provenance=event.mechanical_provenance,
+            provisional_effects_json=event.provisional_effects_json,
+            created_at=event.created_at.isoformat(),
+            payload_json=json.dumps(event.payload.model_dump(mode="json")),
+        )
+    )
 
 
 def _to_player_roll_view(
