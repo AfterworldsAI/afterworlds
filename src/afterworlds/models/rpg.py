@@ -719,6 +719,117 @@ class ActionResolutionSequence(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Action-Resolution Event Ledger (CRD Issue 15b, ADR-015b 15b-34 — durable,
+# append-only pre-delivery mechanical provenance)
+# ---------------------------------------------------------------------------
+
+
+class RollEventPayload(BaseModel):
+    """Payload for a PLAYER_ROLL/AI_ROLL/HIDDEN_ROLL ActionResolutionEvent.
+
+    ``total``/``outcome`` are non-null for every accepted roll — matching
+    the shipped ``ResolvedAdjudicationRecord.total``/bounded ``outcome``.
+    Only ``instruction_snapshot.dc`` remains nullable, for checks with no
+    compare-outcome target. ``pending_roll_request_id`` is required for
+    ``PLAYER_ROLL`` (a real ``PendingRollRequest`` row always exists) and
+    null for ``AI_ROLL``/``HIDDEN_ROLL``, and is never reconstructed later
+    from ``PendingRollRequest`` — this event is the sole source once
+    written. ``gm_cheating_at_roll`` is a snapshot of the session's
+    ``gm_cheating`` config at roll-acceptance time, immutable once set.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    kind: Literal[
+        ResolvedStepKind.PLAYER_ROLL,
+        ResolvedStepKind.AI_ROLL,
+        ResolvedStepKind.HIDDEN_ROLL,
+    ]
+    instruction_snapshot: RollInstructionSnapshot
+    submission_source: RollSubmissionSource | None
+    pending_roll_request_id: UUID | None
+    raw_input_json: str | None
+    aggregate_input_json: str | None
+    derived_selections_json: str
+    subtotal: int | None
+    total: int
+    outcome: Literal[
+        "success", "failure", "critical_success", "critical_failure", "undetermined"
+    ]
+    gm_cheating_at_roll: bool
+
+
+class AdjustmentEventPayload(BaseModel):
+    """Payload for an ADJUSTMENT ActionResolutionEvent — a revised instruction."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.ADJUSTMENT] = ResolvedStepKind.ADJUSTMENT
+    resulting_instruction_snapshot: RollInstructionSnapshot
+    accepted_adjustment_option_id: str
+
+
+class MechanicalDecisionEventPayload(BaseModel):
+    """Payload for a MECHANICAL_DECISION ActionResolutionEvent — a chosen option.
+
+    Carries the complete immutable ``MechanicalDecisionSnapshot``, including
+    ``decision_id``/``decision_revision``, so this event never depends on
+    ``ActionResolutionSequence.resolved_steps`` or other mutable sequence
+    state to reconstruct its accepted authority.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.MECHANICAL_DECISION] = (
+        ResolvedStepKind.MECHANICAL_DECISION
+    )
+    decision_snapshot: MechanicalDecisionSnapshot
+    accepted_decision_option_id: str
+
+
+class ActionResolutionEvent(BaseModel):
+    """One immutable, append-only record of an accepted mechanical outcome.
+
+    Written inside the intermediate transaction (15b-34) that advances a
+    sequence — never updated or deleted once committed. ``story_id``,
+    ``session_id``, and ``character_id`` are carried directly on every
+    event so a ``RollEventPayload``-carrying event can supply
+    ``rpg_roll_audit``'s identity columns on its own, without joining
+    ``ActionResolutionSequence`` or ``RpgSessionState`` (see the Final
+    Audit Projection in ADR-015b). ``kind`` and ``payload.kind`` must
+    agree; no other kind/payload combination is constructible.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal[1] = 1
+    event_id: UUID
+    sequence_id: UUID
+    step_id: UUID
+    story_id: UUID
+    session_id: UUID
+    character_id: UUID
+    event_order: int
+    kind: ResolvedStepKind
+    mechanical_provenance: str
+    provisional_effects_json: str
+    created_at: datetime
+    payload: RollEventPayload | AdjustmentEventPayload | MechanicalDecisionEventPayload
+
+    @model_validator(mode="after")
+    def kind_matches_payload_kind(self) -> Self:
+        if self.kind != self.payload.kind:
+            raise ValueError(
+                f"kind ({self.kind.value}) must match payload.kind "
+                f"({self.payload.kind.value})"
+            )
+        return self
+
+
+# ---------------------------------------------------------------------------
 # RPG visible-state payload (character-visible only; hidden state excluded)
 # ---------------------------------------------------------------------------
 
@@ -788,10 +899,13 @@ class RpgVisibleState(BaseModel):
 
 __all__ = [
     "ActionResolutionAdvanceResult",
+    "ActionResolutionEvent",
     "ActionResolutionSequence",
     "AdjudicationProposalOutput",
+    "AdjustmentEventPayload",
     "DerivedRollTermResult",
     "DiceResult",
+    "MechanicalDecisionEventPayload",
     "MechanicalDecisionOption",
     "MechanicalDecisionOptionSnapshot",
     "MechanicalDecisionSnapshot",
@@ -809,6 +923,7 @@ __all__ = [
     "ResolvedAdjudicationRecord",
     "ResolvedSequenceStep",
     "RollAdjustmentOption",
+    "RollEventPayload",
     "RollInstructionSnapshot",
     "RollModifierComponent",
     "RollProposal",

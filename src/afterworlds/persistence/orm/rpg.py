@@ -256,3 +256,52 @@ class ActionResolutionSequenceORM(Base):
     schema_version: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, server_default="1"
     )
+
+
+class ActionResolutionEventORM(Base):
+    """Append-only ledger of accepted mechanical outcomes.
+
+    CRD Issue 15b (ADR-015b 15b-34). Written inside the intermediate
+    transaction that advances a sequence (accepted roll, adjustment, or
+    mechanical decision) — never the final delivery transaction, and never
+    updated or deleted once committed. UPDATE and DELETE are prevented by
+    DB-layer triggers (see migration 0019), the same pattern
+    ``RpgRollAuditORM`` already uses (migration 0011).
+
+    ``sequence_id``/``step_id``/``story_id``/``session_id``/``character_id``
+    are plain unconstrained strings, not FK-constrained: audit permanence
+    must not depend on the lifecycle of the row they identify, matching
+    ``RpgRollAuditORM``'s own identity columns. ``payload_json`` holds the
+    kind-discriminated ``RollEventPayload``/``AdjustmentEventPayload``/
+    ``MechanicalDecisionEventPayload`` — only ever loaded whole and
+    interpreted in Python, matching this module's JSON-blob convention for
+    similar payloads. The unique index on ``(sequence_id, event_order)`` is
+    the DB-level backstop against a duplicate or racing event write for the
+    same sequence position.
+    """
+
+    __tablename__ = "action_resolution_events"
+    __table_args__ = (
+        sa.Index(
+            "uq_action_resolution_events_sequence_order",
+            "sequence_id",
+            "event_order",
+            unique=True,
+        ),
+    )
+
+    event_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    sequence_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    step_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    story_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    session_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    character_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    event_order: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(sa.String(24), nullable=False)
+    mechanical_provenance: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    provisional_effects_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    payload_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    schema_version: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default="1"
+    )
