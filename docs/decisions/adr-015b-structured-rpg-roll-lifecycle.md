@@ -266,31 +266,60 @@ mechanism.
 
 **Decision (15b-30):** Convert existing pending expressions (`1d20`, `2d20kh1`, `2d20kl1`) deterministically
 into the new structured shape. Unknown pending expressions fail visibly and are never coerced to a default
-roll. Backfilled rows carry `schema_version = 2` (the versioning rule under **Revised PendingRollRequest**
-above); untouched legacy consumed rows keep `schema_version = 1`, their nullable sequence/instruction
-linkage, and their existing `consumed_turn_id`/`source_proposal_ref` provenance exactly as shipped. The
-action-resolution event ledger (15b-34) requires no backfill: no historical intermediate-operation data
-exists to populate it from, since the shipped implementation never persisted per-step provenance
-(supersession table item 8). The migration creates the table empty; only sequences created after Phase 2
-ships generate events.
+roll. `schema_version` on `pending_roll_requests` is a lightweight, non-authoritative diagnostic marker for
+whether a row's structured instruction linkage was ever populated, not an authoritative dual-family
+discriminant. The action-resolution event ledger (15b-34) requires no backfill: no historical
+intermediate-operation data exists to populate it from, since the shipped implementation never persisted
+per-step provenance (supersession table item 8). The migration creates the table empty; only sequences
+created after Phase 2 ships generate events.
 
-`pending_roll_requests` stays one physical SQLite table with one fixed column set for every row. The eight
-legacy display/derivation columns are dropped outright rather than preserved nullable (amended during Phase
-2 resumption, correcting Round 5's data-preservation choice — see **Revised PendingRollRequest** → Column
-Disposition below for the full rationale: the table is non-authoritative transient state, not an audit
-trail, and carries no real historical data to protect). The six structured linkage columns are added
-nullable. Migration adds and drops columns via direct `ALTER TABLE` statements — SQLite ≥ 3.35 supports
-both natively for this table's shape, so no rebuild-copy pass is needed. Unconsumed (`status = 'pending'`)
-rows are still backfilled into a real `ActionResolutionSequence` so no in-flight roll is orphaned; historical
-consumed rows are left with their structured columns `NULL`, since nothing reads a consumed row's
-mechanical detail again. See **Revised PendingRollRequest** below for the full column disposition.
+`pending_roll_requests` stays one physical SQLite table with one fixed column set for every row. Migration
+adds and drops columns via direct `ALTER TABLE` statements — SQLite ≥ 3.35 supports both natively for this
+table's shape, so no rebuild-copy pass is needed. The final column disposition (which columns are retained,
+which are dropped, and on what precondition) is governed by **Decision 15b-36** below, which supersedes this
+decision's original nullable-preservation choice for those eight columns; see **Revised PendingRollRequest**
+→ Column Disposition for the full disposition table.
 
 **Rationale:** Table item 2 confirms the shipped generator only ever produces these three expressions, so
 the migration's deterministic-conversion set is exhaustive against real data — but "fail visibly" is the
 correct behavior for any row this ADR's inspection did not anticipate, consistent with CLAUDE.md invariant
-11 (auditability from explicit event logs, not inferred state). `schema_version` is retained only as a
-lightweight diagnostic marker, not an authoritative dual-family discriminant — see the simplified versioning
-note below.
+11 (auditability from explicit event logs, not inferred state).
+
+---
+
+### Group 12 Addendum — Owner Decision 15b-36 (Phase 2 remediation, pre-release clean schema cutover)
+
+**Decision (15b-36, Owner Decision):** CRD Issue 15b uses a pre-release clean schema cutover for
+`pending_roll_requests`. The eight legacy display/derivation columns (`roll_expression`,
+`expected_value_shape`, `visible_modifier_total`, `visible_modifier_breakdown_json`, `check_label`,
+`player_facing_instruction`, `visible_modifier_note`, `hidden_modifier_present`) are dropped outright. No
+historical v1-row compatibility is promised or attempted, because **Afterworlds has never been deployed or
+run and no supported database contains rows in this shape** — this is an Owner-stated fact about the
+project's release status, not an inference drawn from inspecting any single developer database. The
+migration must fail visibly — abort before making any destructive change — if `pending_roll_requests`
+unexpectedly contains any row at migration time; a populated table means the pre-release clean-cutover
+assumption is false for that database; the migration does not silently degrade to a best-effort backfill in
+that case. Structured instruction snapshots (`instruction_snapshot_json` and friends) supersede the eight
+retired columns' display/derivation role; `rpg_roll_audit` and the action-resolution event ledger (15b-34)
+own audit provenance — neither of those depended on `pending_roll_requests`'s legacy columns and neither is
+affected by this decision.
+
+This decision **supersedes only** the Phase 1 nullable-preservation migration choice recorded under 15b-30
+(Round 5's requirement that the eight columns stay physically present and nullable rather than be dropped,
+and the active-row backfill machinery that requirement implied). It does not reopen 15b-25 (legacy
+consume-path retirement), 15b-30's deterministic-expression-conversion decision, or any other Group's
+decisions. Round 5's original finding — that the previous dual-family versioning-rule text was physically
+impossible to implement in one SQLite table — stands and is not reopened; 15b-36 changes only the *chosen
+resolution* for the eight legacy columns.
+
+**Rationale:** The prior "Amendment (Phase 2 resumption)" text framed this as a non-decision correction
+("still under 15b-30, no new decision, nothing else reopened") justified by inspecting one working
+developer database and finding it empty. That was the right outcome but the wrong process — a schema
+authority decision (drop vs. preserve columns; promise vs. refuse historical-row compatibility) is an Owner
+Decision, not an implementation detail an inspection can quietly settle. Recording it explicitly as 15b-36,
+grounded in the Owner's own statement that the project has never been deployed (not in a single sampled
+database), makes the decision auditable and gives the migration itself a hard, visible precondition to
+enforce rather than an assumption to carry silently.
 
 ### Group 13 — Client gate and resume UX
 
@@ -848,25 +877,14 @@ not solely an ADR transcription error.
 
 ### Column Disposition
 
-**Amendment (Phase 2 resumption — corrects Round 5's nullable-preserve requirement; still under 15b-30, no
-new decision, nothing else reopened):** Round 5 required the eight legacy display/derivation columns to
-stay physically present and nullable rather than be dropped, reasoning from a general
-data-loss-avoidance principle. Revisiting that principle against this specific table found it wasn't
-load-bearing here: `pending_roll_requests` is transient, mutated-in-place operational state spanning two
-turns (ADR-015 Decision 1) — it is not the audit-of-record (`rpg_roll_audit`, and the durable event ledger
-per Group 15/15b-34, own that role, and are untouched by this table's shape). The eight columns hold only
-precomputed display text, never read again once a row is consumed. And concretely: as of this amendment,
-CRD Issue 15b's target deployment has never shipped — `pending_roll_requests` carries zero rows in the
-project's working database, so there is no real data behind the preservation requirement to protect.
-Round 5's underlying finding — that the previous versioning-rule text was physically impossible to
-implement in one SQLite table — stands and is not reopened; only the *chosen resolution* (preserve
-nullable vs. drop cleanly) changes, now that "preserve" has no real data to preserve.
-
-The eight legacy columns are dropped outright. This does **not** reopen 15b-25 (legacy consume-path
-retirement) or 15b-30's backfill-active-rows requirement below — an unconsumed (`status = 'pending'`)
-legacy row at migration time still must be wrapped into a working `ActionResolutionSequence` so an
-in-flight roll isn't orphaned; only its *display-column carryover* is no longer attempted, since nothing
-reads those columns off a migrated row either.
+Per **Decision 15b-36** above (Owner Decision — pre-release clean schema cutover, superseding only this
+table's Phase 1 nullable-preservation choice), the eight legacy display/derivation columns are dropped
+outright. No historical row is backfilled into a new `ActionResolutionSequence`, because none is promised
+to exist: the migration asserts `pending_roll_requests` is empty before making any destructive change and
+aborts visibly if that precondition is false, rather than silently reconstructing structured state for rows
+this decision does not expect. This does not reopen 15b-25 (legacy consume-path retirement) or 15b-30's
+deterministic-expression-conversion decision — 15b-30 still governs how the three known expressions would be
+converted *if* a matching row existed; 15b-36 only removes the promise that one ever will.
 
 | Shipped field (`models/rpg.py:184-221`) | Disposition |
 |---|---|
@@ -892,9 +910,10 @@ reads those columns off a migrated row either.
 | `hidden_modifier_present` | Drop. Internal code derives hidden-modifier existence from `ModifierVisibility.HIDDEN` at read time; never exposed publicly, never needed as stored state. |
 
 New fields required on new rows: `sequence_id`, `step_id`, `instruction_id`, `instruction_revision`,
-`instruction_schema_version`, `instruction_snapshot_json` — all nullable, populated for rows created via
-`ActionResolutionService.start_sequence` or migration-backfilled active rows, left `NULL` for historical
-consumed rows the migration doesn't backfill.
+`instruction_schema_version`, `instruction_snapshot_json` — all nullable at the ORM layer (SQLite's `ALTER
+TABLE ADD COLUMN` cannot add a `NOT NULL` column without a placeholder default), populated for every row by
+`ActionResolutionService.start_sequence` from the moment Phase 2 ships. No pre-Phase-2 row populates them —
+per 15b-36, none is expected to exist.
 
 **`schema_version` (simplified — the eight/six dual-family versioning rule this superseded no longer
 applies, since only one physical column family exists):** `schema_version` is a lightweight, non-
@@ -905,16 +924,16 @@ behavior from this value; `instruction_id IS NULL` is the actual, directly-check
 use. No row is ever silently relabeled after gaining a structured instruction, and no row is labeled `2`
 without one.
 
-**Physical migration shape (simplified):** dropping fixed-shape columns and adding new nullable ones no
-longer requires a rebuild-copy pass. This project's runtime (SQLite ≥ 3.35, confirmed 3.49.1; SQLAlchemy
-2.0; Alembic 1.18) supports `ALTER TABLE ... DROP COLUMN` and `ALTER TABLE ... ADD COLUMN` natively, and
-none of the eight dropped columns participate in `pending_roll_requests`'s only index
+**Physical migration shape:** dropping fixed-shape columns and adding new nullable ones requires no
+rebuild-copy pass. This project's runtime (SQLite ≥ 3.35, confirmed 3.49.1; SQLAlchemy 2.0; Alembic 1.18)
+supports `ALTER TABLE ... DROP COLUMN` and `ALTER TABLE ... ADD COLUMN` natively, and none of the eight
+dropped columns participate in `pending_roll_requests`'s only index
 (`uq_pending_roll_requests_story_active`, on `story_id` alone) or any foreign key — so each column drop and
 add is a single direct `ALTER TABLE` statement, no `PRAGMA foreign_keys` toggling, table rename, or row
 copy required. `pending_roll_requests`'s other columns, indexes, and foreign keys are untouched by this
-change. The deterministic-expression backfill (Migration items 3 and 6 below) still runs, as a set of
-per-row `UPDATE`s against `status = 'pending'` rows after the new columns are added — this is unaffected by
-the simplified schema change, since it operates on rows, not table shape.
+change. Per 15b-36, there is no row-conversion pass at all: the migration asserts the table is empty
+immediately before the destructive column drop and raises, aborting before any `ALTER TABLE` runs, if that
+assertion fails.
 
 If Phase 2 source inspection identifies a compatibility consumer of a retired field that cannot be
 migrated cleanly, that is a stop-and-flag event against 15b-25, not a reason to retain a second authority.
@@ -970,9 +989,9 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   legacy display/derivation columns (`check_label`, `player_facing_instruction`, `expected_value_shape`,
   `visible_modifier_note`, `roll_expression`, `visible_modifier_total`, `visible_modifier_breakdown_json`,
   `hidden_modifier_present`) are dropped outright via direct `ALTER TABLE` statements; the six new structured
-  linkage columns are added nullable the same way — no rebuild-copy pass needed (Phase 2, migration; amended
-  during Phase 2 resumption, correcting Round 5's nullable-preserve choice under 15b-30 — the table carries
-  no real historical data to protect).
+  linkage columns are added nullable the same way — no rebuild-copy pass needed, and no row-conversion pass
+  attempted (Phase 2, migration; per Owner Decision 15b-36 — pre-release clean schema cutover, no historical
+  v1-row compatibility promised).
 - `action_resolution_sequences` table added with the partial unique index above (Phase 2, migration).
 - `action_resolution_events` table added as an append-only ledger (DB-layer UPDATE/DELETE triggers, same
   pattern as `rpg_roll_audit`), keyed by `sequence_id`/`step_id`/event order, committed atomically with
