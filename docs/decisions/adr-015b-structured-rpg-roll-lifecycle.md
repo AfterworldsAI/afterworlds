@@ -19,8 +19,13 @@
 >
 > Mechanically linked rolls accumulate inside one action-resolution sequence and reach the Writer
 > together at a meaningful narrative boundary — not once per die roll.
+>
+> Every accepted intermediate roll, adjustment, or mechanical decision commits durable, append-only
+> provenance atomically with sequence advancement — without becoming sheet, canon, or delivered-result
+> authority until final narrative delivery.
 
 Audit honesty and hidden-state protection are governed by Decision Group 5 below (15b-16, 15b-17).
+Durable intermediate provenance is governed by Decision Group 15 below (15b-34).
 
 ---
 
@@ -72,10 +77,11 @@ shipped source as it stands on `origin/main`, not a paraphrase of it.
 | 1 | `PendingRollRequest` is a single free-standing row with no unit above it linking mechanically related rolls. | ADR-015 Decision 1 ("`PendingRollRequest` rows... persist for 'pending' turns"); `models/rpg.py:184-221` has no sequence/step field; grep across `models/rpg.py` and `pipeline/rpg/` finds no multi-step linkage concept. | `ActionResolutionSequence` with `sequence_id`/`step_id` (15b-18, 15b-19). |
 | 2 | The only roll expressions the system ever produces are three hardcoded strings, and consumption is total-only with the raw die *derived* by subtraction. | `pipeline/rpg/adapter.py:245-250` (hardcoded `if/elif` emitting `"1d20"`/`"2d20kh1"`/`"2d20kl1"` only); `adapter.py:413-467` `consume_player_roll(pending, reported_total, ...)`; `raw_die = reported_total - visible_mod - hidden_mod` at `adapter.py:430`; `dice.py:51-63` `chosen_die_range` gates validation to single-chosen-die expressions only. Note: `dice.py:17-20`'s `_EXPRESSION_RE` accepts general `NdS(kh\|kl)K([+-]N)` syntax, including `keep_n > 1`, but the executor (`dice.py:117-122`) does not correctly implement it: for `keep_n > 1` it returns `sorted(raw, ...)[:keep_n][0]` — the single highest/lowest die, not the sum of the kept dice — and neither the executor nor `chosen_die_range` rejects `keep_n > count`. The defect is the adapter's narrow *generator*, the total-only *consumption* path, AND the executor's unproven multi-keep selection logic — not a parser ceiling. | Structured `RollInstructionSnapshot`/`RollTerm` contract supporting summed pools, keep-highest, keep-lowest, mixed pools, repeated pools, and code-owned integer modifiers (15b-3, 15b-4, 15b-5); raw per-term submission (15b-14, 15b-15). |
 | 3 | Advantage/disadvantage is inferred by regex over the model's free-text `subsystem_tag`; there is no player-facing adjustment mechanism at all. | `adapter.py:42-44` (`_ADV_RE`/`_DISADV_RE`); applied at `adapter.py:241-243`; no `AdjustmentOption`-shaped model exists anywhere in `src/` (only the unrelated billing `ManualCreditAdjustmentPayload`); `RollProposal` (`models/rpg.py:37-53`) has no dedicated field. | Typed `RollAdjustmentOption` with a stable `option_id`, backend-derived eligibility, and pre-roll timing (15b-9 through 15b-13). |
-| 4 | Consuming a reported roll total re-enters the full provider-backed narrative pipeline (Planner, Writer, Contradiction, Extractor) rather than resolving deterministically. | `orchestrator/service.py:822-839` routes the `player_reported_total is not None` branch through `self._run_narrative(...)`; `_run_narrative` unconditionally runs Input Safety Preflight (`:1145-1178`), the Planner call (`:1181-1213`), and later Writer/Contradiction/Extractor in the same function. | Deterministic intermediate operations with no provider call or settlement (15b-27, 15b-28); narration only at sequence completion via `orchestrate_rpg_resume` (15b-20, 15b-21). |
+| 4 | Consuming a reported roll total re-enters the full provider-backed narrative pipeline (Planner, and later Writer, Contradiction, Extractor when preceding gates permit) rather than resolving deterministically. | `orchestrator/service.py:822-839` routes the `player_reported_total is not None` branch through `self._run_narrative(...)`; `_run_narrative` re-enters the narrative pipeline: Input Safety Preflight is conditional, gated behind `self._safety_policy.should_run_input_preflight(preflight_ctx)` (`:1145-1178`), the Planner call is unconditional (`:1181-1213`), and later Writer/Contradiction/Extractor run in the same function when preceding gates permit. | Deterministic intermediate operations with no provider call or settlement (15b-27, 15b-28); narration only at sequence completion via `orchestrate_rpg_resume` (15b-20, 15b-21). |
 | 5 | `PendingRollRequest` carries precomputed display/derivation fields that duplicate authority instead of deriving from one structured snapshot. | `models/rpg.py:184-221`: `roll_expression`, `expected_value_shape`, `visible_modifier_total`, `visible_modifier_breakdown_json`, `check_label`, `player_facing_instruction`, `visible_modifier_note`, `hidden_modifier_present` all present as plain fields with no structured snapshot backing them. | Column Disposition table in **Revised PendingRollRequest** below — these fields retire after backfill in favor of `instruction_snapshot_json`. |
 | 6 | The pending-roll intercept (`BLOCKED_PENDING_ROLL`) triggers on a single outstanding `PendingRollRequest` row and has no notion of a pending mechanical decision or a completed-but-not-narrated sequence. | `orchestrator/service.py:863-891`; `pipeline/rpg/pending.py:54-72` (`load_pending_for_story`, single-row `.one_or_none()` lookup); DB uniqueness index at `persistence/orm/rpg.py:65-72` structurally allows only one pending row per story. | Sequence-aware gate blocking ordinary in-character input for any unresolved sequence state — pending roll, pending mechanical decision, or `ready_for_narration` (**Gate and Resume Trigger**, 15b-31, 15b-32). |
 | 7 | No product-API wiring exists for the RPG roll lifecycle, and the gap is deeper than a missing route: the RPG adjudication pass service itself is left unwired in the running application. | `api/dto.py:94-98` (`TurnSubmissionRequest` has `extra="forbid"` and only `user_input`); `api/routes/turns.py:164-171` (orchestrator call never threads a roll total); `Glob` of `api/routes/*.py` shows no roll-submission/adjustment/decision/resume route; `api/pipeline_wiring.py:406-435` (`build_orchestrator()`) never passes `rpg_adjudication_service`, `rpg_dice_service`, or `rpg_pending_roll_service` — all left at `None` defaults, confirmed by the module's own docstring at `pipeline_wiring.py:9-10, 66-68, 83-85`. | Phase 3 product-API wiring reusing CRD Issue 19 conventions (**Product API Wiring** below, 15b-29). Flagged here because Phase 2's orchestrator-integration work and Phase 3's route work both depend on closing this gap, and neither should assume the other already did. |
+| 8 | No durable, append-only record of an intermediate mechanical operation survives independently of final delivery. `rpg_roll_audit` is delivery-gated and rolled back atomically with any blocked/errored turn; `PendingRollRequest` is a single row mutated in place on consumption. Nothing records that a specific intermediate roll/adjustment/decision was accepted, independent of whether the Turn that eventually narrates it is ever delivered. | `persistence/orm/rpg.py:32-36` (`RpgRollAuditORM.turn_id` is `nullable=False`, FK to `turns.turn_id`); `persistence/orm/rpg.py:16-27` docstring ("Rows are written inside the 12c outer transaction after the provisional turn_id exists... rolled back atomically with the Turn if any block disposition fires"); `pipeline/rpg/pending.py`'s `mark_consumed` performs an in-place `UPDATE` on the existing `pending_roll_requests` row; no append-only or event-sourced table for intermediate RPG operations exists anywhere in `persistence/orm/rpg.py`. | Append-only `action_resolution_events` ledger, committed atomically with sequence advancement, independent of final-delivery gating (Group 15, 15b-34). |
 
 Item 2's caveat needs restating precisely, because the original phrasing overclaimed the executor's
 capability — a Codex review of this document (round 1) caught it. What's actually true: the parser
@@ -90,6 +96,15 @@ still reasonable; reusing its unproven multi-keep executor as-is is not. This do
 `dice.py`; it is documents-only. Phase 2's tests must prove at least one `NdSkhK`/`NdSklK` case with
 `K > 1` (e.g. `4d6kh3`, and a multi-die keep-lowest case) and must prove rejection of a zero or excessive
 `keep_count` (i.e., outside `[1, count]`).
+
+Item 4's citation needs the same kind of restatement — a Codex review of this document (round 2) caught it.
+`_run_narrative` does not run Input Safety Preflight unconditionally: that block is gated behind
+`self._safety_policy.should_run_input_preflight(preflight_ctx)` (`orchestrator/service.py:1145`). What is
+unconditional is the Planner call immediately after it (`:1181-1213`), and, when preceding gates permit,
+the later Writer/Contradiction/Extractor passes. The underlying defect is unchanged by this correction: the
+legacy consume path re-enters the provider-backed narrative pipeline — including unconditional Planner
+execution — to resolve what should be a deterministic intermediate operation, regardless of whether Safety
+itself runs on any given call.
 
 ---
 
@@ -164,7 +179,9 @@ a client-computed total, closing the "derive raw die by subtraction" gap.
 
 **Decision (15b-16, 15b-17):** Audit records the structured instruction and result used; anti-cheat,
 browser attestation, and cryptographic fairness are out of scope. Player DTOs expose only player-visible
-facts — hidden values, hidden-modifier existence, and internal references remain backend-only.
+facts — hidden values, hidden-modifier existence, and internal references remain backend-only. Durable
+audit for intermediate, pre-delivery operations is the append-only event ledger (Group 15, 15b-34); this
+decision's audit-recording obligation for delivered results continues to mean `rpg_roll_audit`.
 
 **Rationale:** This is a direct continuation of ADR-015 Decision 5 (hidden-roll handling), extended to the
 richer instruction/adjustment surface: `ability_id` on `RollAdjustmentOption` is backend-only precisely
@@ -250,7 +267,11 @@ mechanism.
 into the new structured shape. Unknown pending expressions fail visibly and are never coerced to a default
 roll. Backfilled rows carry `schema_version = 2` (the versioning rule under **Revised PendingRollRequest**
 above); untouched legacy consumed rows keep `schema_version = 1`, their nullable sequence/instruction
-linkage, and their existing `consumed_turn_id`/`source_proposal_ref` provenance exactly as shipped.
+linkage, and their existing `consumed_turn_id`/`source_proposal_ref` provenance exactly as shipped. The
+action-resolution event ledger (15b-34) requires no backfill: no historical intermediate-operation data
+exists to populate it from, since the shipped implementation never persisted per-step provenance
+(supersession table item 8). The migration creates the table empty; only sequences created after Phase 2
+ships generate events.
 
 **Rationale:** Table item 2 confirms the shipped generator only ever produces these three expressions, so
 the migration's deterministic-conversion set is exhaustive against real data — but "fail visibly" is the
@@ -277,7 +298,55 @@ philosophy Decision 10 established rather than inventing a new gate semantics.
 deferred. Failed final narration preserves validated results and does not authorize rerolling.
 
 **Rationale:** This is a continuation, not a resolution, of the open `known_unknowns.md` entry
-"Pending-roll rewind/cancel policy" — see the `known_unknowns.md` edit accompanying this PR.
+"Pending-roll rewind/cancel policy" — see the `known_unknowns.md` edit accompanying this PR. The append-only
+event ledger (Group 15, 15b-34) is the durable mechanism that makes "failed final narration preserves
+validated results" a transactional guarantee rather than a stated intention only.
+
+### Group 15 — Durable intermediate audit
+
+**Decision (15b-34):** Every accepted intermediate roll, adjustment, or mechanical decision commits an
+append-only action-resolution event atomically with sequence advancement. These events preserve durable
+mechanical provenance without becoming sheet, canon, or delivered-result authority. `rpg_roll_audit`
+remains delivery-gated and tied to a non-null final `turn_id`.
+
+The Phase 2 contract:
+
+- A dedicated append-only event table, or an equivalent normalized immutable persistence shape, owned by
+  the action-resolution subsystem. Exact repository-native naming/schema is a mandatory Phase 2 advisor
+  checkpoint — not decided here, in the same way Group 8 leaves the shared-machinery extraction shape to
+  an advisor checkpoint rather than guessing at it.
+- Events are keyed by `sequence_id`, `step_id`, an ordered event identity, and event kind.
+- Every accepted `ResolvedStepKind` is covered: player roll, AI roll, hidden roll, adjustment, and
+  mechanical decision.
+- Each event preserves: the applicable instruction/revision, submission source, raw or aggregate input,
+  derived selections/subtotals/total/outcome, accepted option/decision identity, provisional effects,
+  timestamps, and mechanical provenance.
+- The event and its corresponding sequence advancement commit atomically — one write, one commit; no
+  partially-advanced sequence with a missing event, and no orphaned event without a matching advancement.
+- Invalid, stale, rejected, or duplicate submissions change neither the sequence nor the event ledger.
+- Append-only behavior is enforced at the database layer — the same trigger-based pattern `rpg_roll_audit`
+  already uses (`persistence/orm/rpg.py:23`, migration 0011). Phase 2's migration and tests must cover it.
+- `rpg_roll_audit` stays semantically unchanged as the final delivered-result audit: non-null `turn_id`,
+  written only inside the final delivery transaction, per ADR-015 Decision 1.
+- On successful narration: final `rpg_roll_audit` rows are derived from the immutable action-resolution
+  events, sheet effects apply, the sequence completes, and all of it commits together with the delivered
+  Turn.
+- On blocked, refused, or failed final narration: the Turn, `rpg_roll_audit` rows, sheet effects, and
+  sequence completion roll back exactly as ADR-015 Decision 1 already requires — but the previously
+  committed `ready_for_narration` sequence and its event ledger survive that rollback undisturbed. A later
+  resume attempt reuses exactly those recorded mechanics; it does not authorize rerolling, re-deciding, or
+  regenerating a different outcome (continuation of 15b-33).
+
+**Rationale:** This is audit completeness and transaction correctness, not anti-cheat or fairness
+enforcement — Group 5's disclaimer (15b-17) still governs cryptographic/attestation scope. Supersession
+table item 8 identified a real gap: nothing durable survives between "a mechanical operation was accepted"
+and "the Turn that narrates it is delivered," which forces Phase 2 to choose between losing a validated
+result on rollback or persisting trust-relevant mechanics outside any audit boundary. An append-only event
+ledger closes that gap without touching ADR-015's delivery-transaction rollback discipline: sequence state
+remains provisional operational state with no independent audit weight, the event ledger is immutable
+pre-delivery provenance, and `rpg_roll_audit` remains the sole final delivered-result audit. Committing the
+event atomically with sequence advancement — rather than as an afterthought write — is what makes "no lost
+validated result" a transactional guarantee instead of a best-effort one.
 
 ---
 
@@ -396,6 +465,88 @@ WHERE status IN ('active', 'ready_for_narration');
 This follows the existing partial-unique-index pattern used by active pending rolls
 (`persistence/orm/rpg.py:65-72`).
 
+`resolved_steps` is the sequence's own provisional working view of accepted steps — it supports gating,
+projection, and resume without a second read. It is not the durable audit record: append-only mechanical
+provenance for every accepted step lives in the action-resolution event ledger below (15b-34), independent
+of whatever normalized or JSON-backed shape `resolved_steps` itself takes.
+
+---
+
+## Action-Resolution Event Ledger
+
+Per 15b-34. Architectural sketch; an equivalent repository-native shape is acceptable if it preserves
+append-only enforcement, atomic commit with sequence advancement, and the fields below.
+
+```python
+class ActionResolutionEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
+    event_id: UUID
+    sequence_id: UUID
+    step_id: UUID
+    event_order: int
+    kind: ResolvedStepKind
+    instruction_id: UUID
+    instruction_revision: int
+    submission_source: RollSubmissionSource | None
+    raw_input_json: str | None
+    aggregate_input_json: str | None
+    derived_selections_json: str
+    subtotal: int | None
+    total: int | None
+    outcome: str | None
+    accepted_option_id: UUID | None
+    provisional_effects_json: str
+    mechanical_provenance: str
+    created_at: datetime
+```
+
+### Audit Contract
+
+Three layers now exist, and none of them stand in for another:
+
+- **`ActionResolutionSequence` state** (`resolved_steps`, `projected_state_json`,
+  `provisional_effects_json`) is provisional operational state. It advances as the sequence advances and
+  carries no independent audit weight.
+- **The action-resolution event ledger** is immutable pre-delivery mechanical provenance. Once written, an
+  event is never updated or deleted; it durably records that a specific mechanical outcome was accepted,
+  but it is not sheet, canon, or delivered-result authority on its own.
+- **`rpg_roll_audit`** remains the sole final delivered-result audit, semantically unchanged from ADR-015:
+  non-null `turn_id`, written only inside the final delivery transaction. At successful narration, final
+  `rpg_roll_audit` rows are derived from the corresponding event-ledger rows — this promotes already-durable
+  provenance into the delivered-result record, it does not duplicate authority.
+
+### Transaction Lifecycle
+
+Two transaction boundaries apply, and Phase 2 must not conflate them:
+
+1. **Intermediate transaction** (new, per 15b-34): committing an accepted roll, adjustment, or mechanical
+   decision writes one action-resolution event and advances the sequence (status,
+   `current_interaction_kind`, pending request IDs, `resolved_steps`) atomically. Invalid, stale, rejected,
+   or duplicate submissions commit neither. This transaction has no provider call, no settlement, and adds
+   no `PipelineDisposition` value (Group 10, 15b-27/15b-28) — extended by this decision, not contradicted.
+2. **Final delivery transaction** (ADR-015 Decision 1, unchanged): on successful `orchestrate_rpg_resume`,
+   the outer 12c transaction derives `rpg_roll_audit` rows from the event ledger, applies sheet effects,
+   marks the sequence `completed`, and commits all of it together with the delivered Turn. On block
+   (Output Safety, Contradiction, provider refusal, pipeline error), the existing 12c rollback removes the
+   Turn, the derived `rpg_roll_audit` rows, and the sheet mutations — exactly as ADR-015 Decision 1 already
+   specifies. It does **not** remove the previously committed `ready_for_narration` sequence or its event
+   ledger; those were committed by the intermediate transaction, not the final one, and survive.
+
+### Narration Readiness and Recovery
+
+- **Success:** `orchestrate_rpg_resume` derives final audit rows from the immutable events, applies
+  effects, completes the sequence, and commits with the delivered Turn (final delivery transaction above).
+- **Blocked, refused, or failed narration:** the final Turn, `rpg_roll_audit` rows, sheet effects, and
+  sequence completion roll back per ADR-015 Decision 1. The previously committed `ready_for_narration`
+  sequence and its event ledger are preserved untouched. A later resume attempt against that sequence
+  reuses exactly the recorded mechanics — it does not authorize rerolling, re-deciding, or regenerating a
+  different outcome (continuation of 15b-33). An identical-facts retry of the same resume attempt is
+  idempotent against the same event ledger, not a second independent roll.
+
+This is audit completeness and transaction correctness, not anti-cheat or fairness enforcement (Group 5,
+15b-17 still governs that boundary).
+
 ---
 
 ## Revised PendingRollRequest
@@ -487,9 +638,12 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   `ActionResolutionStatus`, `SequenceInteractionKind`, `ActionResolutionSequence`,
   `DerivedRollTermResult`, `ResolvedStepKind`, `RollSubmissionSource`, `ResolvedSequenceStep`,
   `ReadyActionResolutionBundle`, `PlayerRollTermResult`, `RawPlayerRollSubmission`,
-  `PhysicalAggregateRollSubmission` are added (Phase 2).
+  `PhysicalAggregateRollSubmission`, `ActionResolutionEvent` are added (Phase 2).
 - `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration).
 - `action_resolution_sequences` table added with the partial unique index above (Phase 2, migration).
+- `action_resolution_events` table added as an append-only ledger (DB-layer UPDATE/DELETE triggers, same
+  pattern as `rpg_roll_audit`), keyed by `sequence_id`/`step_id`/event order, committed atomically with
+  sequence advancement, requiring no backfill (Phase 2, migration; 15b-34).
 - `rpg_roll_audit` gains nullable columns: `sequence_id`, `step_id`, `pending_roll_request_id`,
   `instruction_id`, `instruction_revision`, `instruction_schema_version`, `instruction_snapshot_json`,
   `submission_source`, `raw_values_complete` (Phase 2, migration). Existing append-only UPDATE/DELETE
