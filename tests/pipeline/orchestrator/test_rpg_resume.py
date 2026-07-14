@@ -317,7 +317,11 @@ class TestOrchestrateRpgResumeHappyPath:
         )
 
         result = orch.orchestrate_rpg_resume(
-            sequence_id, _SOJOURNER, RuntimeAccessPath.HOSTED
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.DELIVERED
@@ -365,12 +369,16 @@ class TestOrchestrateRpgResumeIdempotency:
         )
 
         result = orch.orchestrate_rpg_resume(
-            sequence_id, _SOJOURNER, RuntimeAccessPath.HOSTED
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary is not None
-        assert "already completed" in result.pipeline_error_summary
+        assert "ACTION_SEQUENCE_ALREADY_COMPLETED" in result.pipeline_error_summary
 
         with session_factory() as read_session:  # type: ignore[operator]
             audit_count = read_session.query(RpgRollAuditORM).count()
@@ -389,12 +397,16 @@ class TestOrchestrateRpgResumeNotFoundNotReady:
         orch = _make_resume_orchestrator(session_factory)
 
         result = orch.orchestrate_rpg_resume(
-            uuid4(), _SOJOURNER, RuntimeAccessPath.HOSTED
+            uuid4(),
+            uuid4(),
+            uuid4(),
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary is not None
-        assert "not found" in result.pipeline_error_summary
+        assert "ACTION_SEQUENCE_NOT_FOUND" in result.pipeline_error_summary
 
     def test_active_sequence_not_ready_is_pipeline_error(
         self, session_factory: object, session: object, seeded_story: tuple[UUID, UUID]
@@ -410,12 +422,91 @@ class TestOrchestrateRpgResumeNotFoundNotReady:
         orch = _make_resume_orchestrator(session_factory)
 
         result = orch.orchestrate_rpg_resume(
-            sequence_id, _SOJOURNER, RuntimeAccessPath.HOSTED
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary is not None
-        assert "not ready_for_narration" in result.pipeline_error_summary
+        assert "SEQUENCE_NOT_READY_FOR_NARRATION" in result.pipeline_error_summary
+
+
+# ---------------------------------------------------------------------------
+# Story/node identity mismatch (Issue #127 15b-23; Codex P1, PR #129)
+# ---------------------------------------------------------------------------
+
+
+class TestOrchestrateRpgResumeIdentityMismatch:
+    def test_story_mismatch_is_state_conflict_and_touches_nothing(
+        self, session_factory: object, session: object, seeded_story: tuple[UUID, UUID]
+    ) -> None:
+        story_id, node_id = seeded_story
+        sequence_id, sheet, session_state = _seed_ready_sequence(
+            session, story_id=story_id, node_id=node_id
+        )
+        orch = _make_resume_orchestrator(
+            session_factory, session_state=session_state, sheet=sheet
+        )
+
+        result = orch.orchestrate_rpg_resume(
+            uuid4(),  # wrong story_id
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "ACTION_SEQUENCE_STATE_CONFLICT" in result.pipeline_error_summary
+        assert result.writer_result is None
+
+        with session_factory() as read_session:  # type: ignore[operator]
+            audit_count = read_session.query(RpgRollAuditORM).count()
+            seq_row = (
+                read_session.query(ActionResolutionSequenceORM)
+                .filter_by(sequence_id=str(sequence_id))
+                .one()
+            )
+        assert audit_count == 0
+        assert seq_row.status == "ready_for_narration"
+
+    def test_node_mismatch_is_state_conflict_and_touches_nothing(
+        self, session_factory: object, session: object, seeded_story: tuple[UUID, UUID]
+    ) -> None:
+        story_id, node_id = seeded_story
+        sequence_id, sheet, session_state = _seed_ready_sequence(
+            session, story_id=story_id, node_id=node_id
+        )
+        orch = _make_resume_orchestrator(
+            session_factory, session_state=session_state, sheet=sheet
+        )
+
+        result = orch.orchestrate_rpg_resume(
+            story_id,
+            uuid4(),  # wrong node_id -- story has moved on since the roll
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "ACTION_SEQUENCE_STATE_CONFLICT" in result.pipeline_error_summary
+        assert result.writer_result is None
+
+        with session_factory() as read_session:  # type: ignore[operator]
+            audit_count = read_session.query(RpgRollAuditORM).count()
+            seq_row = (
+                read_session.query(ActionResolutionSequenceORM)
+                .filter_by(sequence_id=str(sequence_id))
+                .one()
+            )
+        assert audit_count == 0
+        assert seq_row.status == "ready_for_narration"
 
 
 # ---------------------------------------------------------------------------
@@ -439,7 +530,11 @@ class TestOrchestrateRpgResumeOutputSafetyBlock:
         )
 
         result = orch.orchestrate_rpg_resume(
-            sequence_id, _SOJOURNER, RuntimeAccessPath.HOSTED
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.BLOCKED_OUTPUT_SAFETY
@@ -491,7 +586,11 @@ class TestOrchestrateRpgResumeContradictionBlock:
         )
 
         result = orch.orchestrate_rpg_resume(
-            sequence_id, _SOJOURNER, RuntimeAccessPath.HOSTED
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
 
         assert result.disposition is PipelineDisposition.BLOCKED_CONTRADICTION

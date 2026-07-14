@@ -103,7 +103,6 @@ if TYPE_CHECKING:
         RpgSessionState,
         WritingSessionState,
     )
-    from afterworlds.persistence.orm.node import TurnORM
     from afterworlds.pipeline.branching.models import (
         SelectedBranchContext,
     )
@@ -2338,9 +2337,13 @@ class OrchestratorService:
 
     def orchestrate_rpg_resume(
         self,
+        story_id: UUID,
+        node_id: UUID,
         sequence_id: UUID,
-        sojourner_id: UUID,
+        *,
         access_path: RuntimeAccessPath,
+        sojourner_id: UUID,
+        request_risk_signal: bool = False,
     ) -> OrchestrationResult:
         """Resume narration for a READY_FOR_NARRATION ActionResolutionSequence.
 
@@ -2353,16 +2356,27 @@ class OrchestratorService:
         anything; every mechanical fact it narrates was already committed
         by the intermediate transaction that made the sequence ready.
 
+        Matches Issue #127's approved seam (15b-21 through 15b-24):
+        ``story_id``/``node_id`` are caller-supplied, not derived from the
+        sequence — the caller resolves ``node_id`` via the same canonical
+        current-node path ordinary turn submission uses, and this method
+        verifies it against the sequence's stored identity (15b-23) before
+        any Writer call or persistent mutation. A mismatch means the story
+        has moved on since the roll was announced; it surfaces as a typed
+        ``ACTION_SEQUENCE_STATE_CONFLICT`` and touches nothing.
+
         No Planner call: the declared action was already planned and
         voice-approved before the roll was requested, and a resume "does
         not authorize rerolling, re-deciding, or regenerating a different
         outcome" (ADR-015b, Narration Readiness and Recovery). No Input
-        Preflight: there is no new Sojourner-authored text to screen — a
-        roll submission is mechanical data, already code-validated in the
+        Preflight, no ``IntentClassifierService`` call (15b-22): there is no
+        new Sojourner-authored text to screen or classify — a roll
+        submission is mechanical data, already code-validated in the
         intermediate transaction. Output Audit still runs, mirroring the
         OOC path (which also skips Planner but keeps both safety gates
         active): new prose always needs auditing regardless of whether
-        Planner ran.
+        Planner ran. ``request_risk_signal`` threads through to the same
+        ``SafetyPolicyContext`` gate ordinary turns use.
         """
         turn_start = time.perf_counter()
         latency: dict[str, int] = {}
@@ -2383,8 +2397,11 @@ class OrchestratorService:
         return self._run_with_transaction(
             lambda session: self._rpg_resume_persist(
                 session,
+                story_id=story_id,
+                node_id=node_id,
                 sequence_id=sequence_id,
                 sojourner_id=sojourner_id,
+                request_risk_signal=request_risk_signal,
                 binding=binding,
                 latency=latency,
                 turn_start=turn_start,
@@ -2399,8 +2416,11 @@ class OrchestratorService:
         self,
         session: Session,
         *,
+        story_id: UUID,
+        node_id: UUID,
         sequence_id: UUID,
         sojourner_id: UUID,
+        request_risk_signal: bool,
         binding: TurnProviderBinding,
         latency: dict[str, int],
         turn_start: float,
@@ -2413,12 +2433,19 @@ class OrchestratorService:
         sequence raises ``ActionSequenceAlreadyCompletedError`` before any
         write, and a concurrent resume of the same sequence serializes on
         SQLite's writer lock and observes the same guard on its turn — no
-        separate locking mechanism is introduced.
+        separate locking mechanism is introduced. Each typed rejection
+        (not-found, already-completed, not-ready, story/node conflict) gets
+        a distinctly prefixed ``pipeline_error_summary`` matching Issue
+        #127's Errors vocabulary, so a caller can distinguish them without
+        depending on free-text wording — ``PipelineDisposition`` gains no
+        new value for this (15b-32's "success-equivalent" UX for an
+        already-completed retry is a client-layer decision Phase 3 makes
+        from that prefix; Phase 2 only guarantees the signal survives).
         """
-        from afterworlds.persistence.orm.node import TurnORM
         from afterworlds.pipeline.rpg.models import (
             ActionSequenceAlreadyCompletedError,
             ActionSequenceNotFoundError,
+            ActionSequenceStateConflictError,
             SequenceNotReadyForNarrationError,
         )
 
@@ -2434,31 +2461,46 @@ class OrchestratorService:
             )
         try:
             bundle = sequence_svc.get_ready_bundle(session, sequence_id=sequence_id)
-        except (
-            ActionSequenceNotFoundError,
-            ActionSequenceAlreadyCompletedError,
-            SequenceNotReadyForNarrationError,
-        ) as exc:
+            if bundle.story_id != story_id or bundle.node_id != node_id:
+                raise ActionSequenceStateConflictError(
+                    f"sequence {sequence_id!r} belongs to story={bundle.story_id!r}/"
+                    f"node={bundle.node_id!r}; caller supplied "
+                    f"story={story_id!r}/node={node_id!r}"
+                )
+        except ActionSequenceNotFoundError as exc:
             return self._pipeline_error(
                 placeholder_intent,
                 latency,
                 turn_start,
-                f"sequence not resumable: {exc}",
+                f"ACTION_SEQUENCE_NOT_FOUND: {exc}",
+                planner_skipped=True,
+            )
+        except ActionSequenceAlreadyCompletedError as exc:
+            return self._pipeline_error(
+                placeholder_intent,
+                latency,
+                turn_start,
+                f"ACTION_SEQUENCE_ALREADY_COMPLETED: {exc}",
+                planner_skipped=True,
+            )
+        except SequenceNotReadyForNarrationError as exc:
+            return self._pipeline_error(
+                placeholder_intent,
+                latency,
+                turn_start,
+                f"SEQUENCE_NOT_READY_FOR_NARRATION: {exc}",
+                planner_skipped=True,
+            )
+        except ActionSequenceStateConflictError as exc:
+            return self._pipeline_error(
+                placeholder_intent,
+                latency,
+                turn_start,
+                f"ACTION_SEQUENCE_STATE_CONFLICT: {exc}",
                 planner_skipped=True,
             )
 
-        original_turn = session.get(TurnORM, str(bundle.originating_turn_id))
-        if original_turn is None:
-            return self._pipeline_error(
-                placeholder_intent,
-                latency,
-                turn_start,
-                f"originating turn {bundle.originating_turn_id!r} not found",
-                planner_skipped=True,
-            )
-        intent_result = _resume_intent_result(
-            original_turn, bundle.originating_user_input
-        )
+        intent_result = _synthesize_rpg_resume_intent(bundle.originating_user_input)
 
         if self._rpg_session_sheet_resolver is None:
             return self._pipeline_error(
@@ -2514,6 +2556,17 @@ class OrchestratorService:
         ctx.pass_forward_ledger.add(
             "rpg_adjudication", _serialize_resume_writer_views(bundle.writer_views)
         )
+        # Code-owned continuation frame (15b-24): system-authored metadata
+        # marking this turn as resolution of the already-declared action,
+        # never fabricated Sojourner prose. Deliberately does not restate
+        # mechanical facts — those live in the rpg_adjudication block above.
+        ctx.pass_forward_ledger.add(
+            "rpg_resume_continuation",
+            "This turn narrates the resolution of the Sojourner's "
+            "previously declared action; no new Sojourner input arrived "
+            "this turn. Resolved mechanical facts are provided separately "
+            "in the rpg_adjudication block.",
+        )
 
         try:
             writer_result, ms = _timed(
@@ -2553,7 +2606,7 @@ class OrchestratorService:
         output_safety: SafetyResult | None = None
         audit_ctx = SafetyPolicyContext(
             eligible_writer_routes=binding.eligible_writer_routes,
-            request_risk_signal=False,
+            request_risk_signal=request_risk_signal,
             access_path=binding.access_path,
             writer_result=writer_result,
         )
@@ -4575,25 +4628,27 @@ def _serialize_resume_writer_views(views: tuple[WriterAdjudicationView, ...]) ->
     )
 
 
-def _resume_intent_result(
-    original_turn: TurnORM, originating_user_input: str
-) -> IntentClassificationResult:
-    """Reuse the originating turn's already-decided intent for a resume.
+def _synthesize_rpg_resume_intent(raw_input: str) -> IntentClassificationResult:
+    """Code-owned synthetic intent for RPG resume (Issue #127, 15b-22).
 
-    ADR-015b: a resume narrates an already-planned, already-classified
-    action — it does not re-decide, so it must not re-classify. Falls back
-    to reconstructing a synthetic result from the scalar
-    ``intent_classification`` column when the full typed result wasn't
-    persisted for the originating turn (a nullable column).
+    ``IntentClassifierService`` is never called for a resume: 15b-22
+    requires "a code-owned synthetic intent and typed continuation
+    context... It does not classify an empty string or call
+    IntentClassifierService." This is not a reuse of the originating turn's
+    real classification either — that would be re-deciding an already-
+    settled intent from stale grounds. ``IN_CHARACTER_ACTION`` is a fixed
+    structural choice, not a claim about what the original turn was
+    classified as: every sequence reaching ``READY_FOR_NARRATION`` began
+    from a declared action resolved via ``ActionResolutionService``, which
+    ``orchestrate_turn`` only reaches for that intent family. Confidence is
+    ``1.0`` (a structural fact asserted by construction, not a probabilistic
+    classifier guess) rather than ``0.0`` (the placeholder
+    ``_synthesize_intent`` uses for a genuine pre-classification failure).
     """
-    if original_turn.intent_classification_result is not None:
-        return IntentClassificationResult.model_validate(
-            original_turn.intent_classification_result
-        )
     return IntentClassificationResult(
-        intent_type=IntentType(original_turn.intent_classification),
+        intent_type=IntentType.IN_CHARACTER_ACTION,
         confidence=1.0,
-        raw_input=originating_user_input,
+        raw_input=raw_input,
         ambiguous=False,
     )
 
