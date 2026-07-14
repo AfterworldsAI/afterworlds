@@ -633,8 +633,10 @@ class RollEventPayload(BaseModel):
     aggregate_input_json: str | None
     derived_selections_json: str
     subtotal: int | None
-    total: int | None
-    outcome: str | None
+    total: int
+    outcome: Literal[
+        "success", "failure", "critical_success", "critical_failure", "undetermined"
+    ]
     gm_cheating_at_roll: bool
 
 
@@ -703,6 +705,23 @@ Only `RollEventPayload`-carrying events (`PLAYER_ROLL`, `AI_ROLL`, `HIDDEN_ROLL`
 `rpg_roll_audit` row. `ADJUSTMENT` and `MECHANICAL_DECISION` events remain append-only mechanical
 provenance and are never forced into `rpg_roll_audit`'s roll-shaped columns.
 
+`RollEventPayload.total` and `RollEventPayload.outcome` are non-null for every accepted `PLAYER_ROLL`,
+`AI_ROLL`, or `HIDDEN_ROLL` event (Round 6, correcting a P1: Codex, PR #128, "Require non-null roll totals
+in audit projection") — matching the shipped `ResolvedAdjudicationRecord.total: int` and its non-null
+bounded `outcome` (`models/rpg.py:137-149`), which the Final Audit Projection below writes directly into
+the existing non-null `rpg_roll_audit.total`/`outcome` columns. `outcome` uses the same repository-native
+bounded set `ResolvedAdjudicationRecord` and `WriterAdjudicationView` already use —
+`"success"`/`"failure"`/`"critical_success"`/`"critical_failure"`/`"undetermined"` — not a new vocabulary.
+Only `RollInstructionSnapshot.dc` remains nullable: when a roll has no compare-outcome target (damage,
+healing, duration), `dc` is `None` and the event's `outcome` is the already-shipped `"undetermined"` value,
+never a null outcome or an invented sixth value. Hidden-roll events retain complete internal `total`, `dc`
+(via `instruction_snapshot`), and `outcome` authority — identical in shape to a player or AI roll event;
+`ResolvedAdjudicationRecord`'s docstring already establishes that redaction happens only in the
+Writer-facing view, not the internal record (`models/rpg.py:14-15, 160-161`), and this ADR does not reopen
+that boundary. `WriterAdjudicationView.total`/`dc`/`outcome` stay `None` for `HIDDEN` visibility exactly as
+shipped — this is existing, unchanged Group 5 (15b-16, 15b-17) behavior, restated here only to make explicit
+that it is unaffected by the event payload becoming non-null.
+
 ### Audit Contract
 
 Three layers now exist, and none of them stand in for another:
@@ -740,9 +759,9 @@ embedded `RollInstructionSnapshot` — never from `ActionResolutionSequence`, `R
 | `expression` | `payload.instruction_snapshot.display_expression` (display text only, per 15b-3 — never audit authority in its own right). |
 | `raw_rolls_json` | The flat per-die values reconstructed from `payload.derived_selections_json` when `raw_input_json` is complete; `"[]"` (never fabricated) for aggregate-only physical reports — see below. |
 | `modifiers_json` | Serialized `payload.instruction_snapshot.modifier_components`. |
-| `total` | `payload.total`. |
-| `dc` | `payload.instruction_snapshot.dc` (new field; `None` when the check has no compare-outcome target). |
-| `outcome` | `payload.outcome`. |
+| `total` | `payload.total` (non-null — Round 6). |
+| `dc` | `payload.instruction_snapshot.dc` (new field; `None` when the check has no compare-outcome target — the only nullable field in this row group). |
+| `outcome` | `payload.outcome` (non-null — Round 6; `"undetermined"` when `dc` is `None`). |
 | `source` | Derived from `event.kind`: `PLAYER_ROLL` → `"player"`; `AI_ROLL` → `"ai"`; `HIDDEN_ROLL` → `"hidden"`. |
 | `gm_cheating_at_roll` | `payload.gm_cheating_at_roll` (new field). |
 | `sheet_effects_json` | `event.provisional_effects_json` (envelope). |
@@ -760,10 +779,23 @@ embedded `RollInstructionSnapshot` — never from `ActionResolutionSequence`, `R
 **Aggregate-only physical-report projection:** when `RollEventPayload.raw_input_json` is null and
 `aggregate_input_json` carries the reported aggregate (15b-15), the payload records no per-die values —
 `derived_selections_json` reflects that no raw selection was derived (an empty/no-op structure, never
-invented die values), `total` is the reported aggregate as validated by code, and `outcome` is derived from
-`total` vs `dc` exactly as for a raw submission. At final-audit projection, `raw_rolls_json` becomes `"[]"`
-— an honest "no raw dice recorded" value, not a fabricated one — and `raw_values_complete = false` is the
-authoritative flag a consumer must check before treating `raw_rolls_json` as complete per-die provenance.
+invented die values), `total` is the reported aggregate as validated by code (still non-null — an
+aggregate-only report supplies a total by definition), and `outcome` is derived from `total` vs `dc` exactly
+as for a raw submission, or `"undetermined"` when `dc` is `None`; `outcome` is never null here either. At
+final-audit projection, `raw_rolls_json` becomes `"[]"` — an honest "no raw dice recorded" value, not a
+fabricated one — and `raw_values_complete = false` is the authoritative flag a consumer must check before
+treating `raw_rolls_json` as complete per-die provenance.
+
+**Sibling check (Round 6):** every other column in the table above was compared, destination nullability
+against source nullability. `total` and `outcome` were the only `NOT NULL` `rpg_roll_audit` columns fed by a
+then-nullable source; no other column has that direction of mismatch. `dc` is the sole intentionally
+nullable destination, fed by the equally nullable `RollInstructionSnapshot.dc` — consistent by design, not a
+contradiction. Every other `NOT NULL` destination (`story_id`, `session_id`, `character_id`, `check_label`,
+`visibility`, `expression`, `raw_rolls_json`, `modifiers_json`, `source`, `gm_cheating_at_roll`,
+`sheet_effects_json`, `created_at`) is already fed by a non-null envelope/payload/snapshot field or a
+derivation that always produces a value. The nine nullable `rpg_roll_audit` columns added for legacy-row
+compatibility are fed by sources of equal or narrower nullability, which is always safe. This check found no
+further contradiction and does not broaden the contract beyond the `total`/`outcome` correction above.
 `total`, `outcome`, `modifiers_json`, and every other projected column remain fully authoritative regardless
 of `raw_values_complete`; only per-die granularity is missing, consistent with 15b-15's "never fabricates
 raw dice for an aggregate-only report."
@@ -942,7 +974,9 @@ Exact names follow repository conventions; validation precedes atomic consumptio
 - `ActionResolutionSequence` and `ReadyActionResolutionBundle` gain `session_id`; `RollInstructionSnapshot`
   gains `dc`; `ActionResolutionEvent`'s common envelope gains `story_id`/`session_id`/`character_id`;
   `RollEventPayload` gains `pending_roll_request_id` and `gm_cheating_at_roll` (Phase 2; Round 5, required
-  propagation of 15b-34 — see **Final Audit Projection** above).
+  propagation of 15b-34 — see **Final Audit Projection** above). `RollEventPayload.total` and `.outcome`
+  become non-null, `outcome` typed to the shipped bounded set (Phase 2; Round 6, required propagation of
+  15b-34, correcting a P1 insert-failure risk against the existing non-null `rpg_roll_audit` columns).
 - `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration). The five
   currently-`NOT NULL` legacy columns (`check_label`, `player_facing_instruction`, `expected_value_shape`,
   `roll_expression`, `hidden_modifier_present`) widen to nullable via a SQLite rebuild-copy migration,
