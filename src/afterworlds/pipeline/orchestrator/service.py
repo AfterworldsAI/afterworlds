@@ -2410,6 +2410,8 @@ class OrchestratorService:
             latency,
             turn_start,
             success_disposition=PipelineDisposition.DELIVERED,
+            pre_transaction_fn=binding.pre_transaction_fn,
+            post_transaction_fn=binding.post_transaction_fn,
         )
 
     def _rpg_resume_persist(

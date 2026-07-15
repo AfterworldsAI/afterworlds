@@ -20,7 +20,9 @@ import json
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from afterworlds.entitlement.enums import RuntimeAccessPath
+import sqlalchemy as sa
+
+from afterworlds.entitlement.enums import PipelinePassId, RuntimeAccessPath
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.enums import (
     DiceHandling,
@@ -31,16 +33,34 @@ from afterworlds.models.enums import (
     RollPurpose,
     RollSubmissionSource,
     RpgPlayStatus,
+    StoryMode,
+)
+from afterworlds.models.node import (
+    BranchingNodeMetadata,
+    Node,
+    NodeMetadata,
+    StateDelta,
 )
 from afterworlds.models.rpg import RollEventPayload, RollInstructionSnapshot, RollTerm
 from afterworlds.models.session import RpgSessionState
+from afterworlds.models.story import Arc, Chapter, Story
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.character_sheet import (
     create_dnd5e_sheet,
     create_rpg_base_sheet,
 )
-from afterworlds.persistence.crud.node import create_turn
+from afterworlds.persistence.crud.node import create_node, create_turn
+from afterworlds.persistence.crud.story import create_arc, create_chapter, create_story
+from afterworlds.persistence.database import create_engine, create_session_factory
+from afterworlds.persistence.orm.base import Base
+from afterworlds.persistence.orm.node import TurnORM
 from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM, RpgRollAuditORM
+from afterworlds.pipeline._refusal import (
+    PassIdentifier,
+    ProviderRefusal,
+    ProviderRefusalError,
+    RefusalCategory,
+)
 from afterworlds.pipeline.contradiction.models import (
     ContradictionCategory,
     ContradictionViolation,
@@ -50,6 +70,15 @@ from afterworlds.pipeline.orchestrator import (
     OrchestratorService,
     PipelineDisposition,
 )
+from afterworlds.pipeline.provider._models import ProviderCallRequest
+from afterworlds.pipeline.provider._refusal_log import ProviderRefusalEvent
+from afterworlds.pipeline.provider._resolver import RefusalLogProxy
+from afterworlds.pipeline.provider._routing import (
+    EligibleModelRoute,
+    SafetyWhitelistStatus,
+    TurnProviderBinding,
+)
+from afterworlds.pipeline.provider.adapters._fallback import RefusalFallbackRouter
 from afterworlds.pipeline.rpg.sequence import (
     ActionResolutionService,
     _append_event,
@@ -58,6 +87,7 @@ from afterworlds.pipeline.rpg.sequence import (
 from afterworlds.pipeline.safety.models import (
     SafetyCategory,
     SafetyConcern,
+    SafetyPassError,
     SafetyReport,
     SafetyResult,
     SafetyTarget,
@@ -249,6 +279,8 @@ def _make_resume_orchestrator(
     writer_output: str = "Narrator: you slip past unseen.",
     safety_output: SafetyResult | None = None,
     contradiction_violations: list[ContradictionViolation] | None = None,
+    provider_resolver: object | None = None,
+    safety_service: object | None = None,
 ) -> OrchestratorService:
     sequence_svc = ActionResolutionService(
         adapter=None,  # type: ignore[arg-type]
@@ -261,7 +293,8 @@ def _make_resume_orchestrator(
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(make_intent()),
         context_builder=FakeContextBuilder(),
-        safety_service=FakeSafetyService(output_verdict=safety_output),
+        safety_service=safety_service
+        or FakeSafetyService(output_verdict=safety_output),
         planner_service=FakePlannerService(),
         writer_service=FakeWriterService(assistant_output=writer_output),
         extractor_service=FakeExtractorService(),
@@ -270,7 +303,7 @@ def _make_resume_orchestrator(
         ),
         session_factory=session_factory,  # type: ignore[arg-type]
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
-        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
+        provider_resolver=provider_resolver or _make_fake_resolver(),  # type: ignore[arg-type]
         rpg_session_sheet_resolver=resolver,  # type: ignore[arg-type]
         rpg_sequence_service=sequence_svc,
     )
@@ -610,3 +643,268 @@ class TestOrchestrateRpgResumeContradictionBlock:
 
         assert audit_count == 0
         assert seq_row.status == "ready_for_narration"
+
+
+# ---------------------------------------------------------------------------
+# Transaction hooks (Codex P1, PR #129 discussion r3583794727)
+#
+# orchestrate_rpg_resume resolves a TurnProviderBinding but originally called
+# _run_with_transaction without its pre_transaction_fn/post_transaction_fn --
+# unlike the narrative and OOC wrappers. Those hooks switch RefusalLogProxy
+# into buffered mode before the outer transaction and flush it only after
+# the session closes. Without them, a post-Writer provider refusal during
+# resume tries to log through a fresh SQLite session while the resume
+# transaction still holds the write lock; RefusalFallbackRouter._log()
+# suppresses that failure, silently losing the refusal audit row.
+# ---------------------------------------------------------------------------
+
+
+class _InertAdapter:
+    """Adapter stand-in for the happy path: fakes never touch it, so a call
+    reaching it is itself a test failure, not a scenario to support."""
+
+    provider_name = "fake-anthropic"
+
+    def call(self, request: object) -> object:
+        raise AssertionError("adapter.call must not be reached on the happy path")
+
+
+class _RefusingPrimary:
+    """Primary adapter that always refuses -- drives the real
+    RefusalFallbackRouter/RefusalLogProxy path, not a stand-in raise."""
+
+    provider_name = "anthropic"
+
+    def call(self, request: ProviderCallRequest) -> object:
+        raise ProviderRefusalError(
+            ProviderRefusal(
+                provider="anthropic",
+                model="claude-test",
+                pass_identifier=PassIdentifier.WRITER,
+                refusal_category=RefusalCategory.CONTENT_POLICY,
+            )
+        )
+
+
+class _RealRouterOutputSafety:
+    """Output Safety fake whose check() calls the real provider chain.
+
+    A fake that merely raised ProviderRefusalError itself would never touch
+    RefusalFallbackRouter._log()/RefusalLogProxy -- the exact code the bug
+    lives in -- so this drives ``provider.call()`` for real, matching what
+    the production SafetyService does (fail-closed: any ProviderRefusalError
+    becomes SafetyPassError).
+    """
+
+    def check(
+        self,
+        built_context: object,
+        text: str,
+        target: SafetyTarget,
+        *,
+        provider: object = None,
+    ) -> SafetyResult:
+        if target is SafetyTarget.INPUT:
+            return SafetyResult(report=SafetyReport(concerns=[]), target=target)
+        request = ProviderCallRequest(
+            pass_id=PipelinePassId.OUTPUT_SAFETY,
+            system_blocks=[],
+            rendered_blocks=[],
+            max_output_tokens=1000,
+        )
+        assert provider is not None
+        try:
+            provider.call(request)  # type: ignore[attr-defined]
+        except ProviderRefusalError as exc:
+            raise SafetyPassError(str(exc), cause=exc) from exc
+        raise AssertionError("refusing primary must always raise")
+
+
+class TestOrchestrateRpgResumeTransactionHooks:
+    def test_hooks_invoked_exactly_once_and_no_spurious_refusal_event_on_success(
+        self, session_factory: object, session: object, seeded_story: tuple[UUID, UUID]
+    ) -> None:
+        story_id, node_id = seeded_story
+        sequence_id, sheet, session_state = _seed_ready_sequence(
+            session, story_id=story_id, node_id=node_id
+        )
+
+        proxy = RefusalLogProxy(session_factory)
+        pre_calls: list[None] = []
+        post_calls: list[None] = []
+
+        def counted_pre() -> None:
+            pre_calls.append(None)
+            proxy.start_buffering()
+
+        def counted_post() -> None:
+            post_calls.append(None)
+            proxy.flush()
+
+        route = EligibleModelRoute(
+            provider_name="fake-anthropic",
+            model_identifier="fake-anthropic:claude-test",
+            whitelist_status=SafetyWhitelistStatus.NOT_WHITELISTED,
+            supports_required_capabilities=False,
+        )
+        binding = TurnProviderBinding(
+            adapter=_InertAdapter(),
+            primary_writer_route=route,
+            eligible_writer_routes=(route,),
+            access_path=RuntimeAccessPath.HOSTED,
+            pre_transaction_fn=counted_pre,
+            post_transaction_fn=counted_post,
+        )
+
+        class _Resolver:
+            def resolve_for_turn(
+                self, access_path: object, sojourner_id: object
+            ) -> object:
+                return binding
+
+        orch = _make_resume_orchestrator(
+            session_factory,
+            session_state=session_state,
+            sheet=sheet,
+            provider_resolver=_Resolver(),
+        )
+
+        result = orch.orchestrate_rpg_resume(
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
+        )
+
+        assert result.disposition is PipelineDisposition.DELIVERED
+        assert len(pre_calls) == 1
+        assert len(post_calls) == 1
+
+        with session_factory() as read_session:  # type: ignore[operator]
+            refusal_rows = (
+                read_session.execute(sa.select(ProviderRefusalEvent)).scalars().all()
+            )
+        assert len(refusal_rows) == 0
+
+    def test_output_safety_refusal_buffers_during_transaction_and_survives_flush(
+        self, tmp_path: object
+    ) -> None:
+        """Real SQLite-backed proof (not a mock): pre-fix, the resume
+        transaction's own Writer-flushed Turn row holds the write lock, so a
+        direct-mode refusal write from a fresh connection dies to
+        "database is locked" and is silently suppressed by
+        RefusalFallbackRouter._log(). Post-fix, the proxy buffers instead and
+        flushes only after session.close() releases the lock."""
+        db_path = tmp_path / "rpg_resume_refusal.db"  # type: ignore[operator]
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"timeout": 0})
+        Base.metadata.create_all(engine)
+        sf = create_session_factory(engine)
+
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        with sf() as seed_session:
+            story = Story(
+                title="Resume Refusal Test Story",
+                mode=StoryMode.RPG,
+                created_at=now,
+                updated_at=now,
+            )
+            create_story(seed_session, story)
+            arc = Arc(story_id=story.story_id, title="Arc 1", order=0)
+            create_arc(seed_session, arc)
+            chapter = Chapter(arc_id=arc.arc_id, title="Chapter 1", order=0)
+            create_chapter(seed_session, chapter)
+            node = Node(
+                chapter_id=chapter.chapter_id,
+                content="",
+                state_delta=StateDelta(),
+                branching_logic=[],
+                intent_type=IntentType.IN_CHARACTER_ACTION,
+                metadata=NodeMetadata(timestamp=now),
+                mode_metadata=BranchingNodeMetadata(),
+            )
+            create_node(seed_session, node)
+            seed_session.commit()
+            story_id, node_id = story.story_id, node.node_id
+
+            sequence_id, sheet, session_state = _seed_ready_sequence(
+                seed_session, story_id=story_id, node_id=node_id
+            )
+
+        proxy = RefusalLogProxy(sf)
+        router = RefusalFallbackRouter(
+            primary=_RefusingPrimary(), fallback=None, refusal_log_fn=proxy
+        )
+        route = EligibleModelRoute(
+            provider_name="anthropic",
+            model_identifier="claude-test",
+            whitelist_status=SafetyWhitelistStatus.NOT_WHITELISTED,
+            supports_required_capabilities=False,
+        )
+        binding = TurnProviderBinding(
+            adapter=router,
+            primary_writer_route=route,
+            eligible_writer_routes=(route,),
+            access_path=RuntimeAccessPath.HOSTED,
+            pre_transaction_fn=proxy.start_buffering,
+            post_transaction_fn=proxy.flush,
+        )
+
+        class _Resolver:
+            def resolve_for_turn(
+                self, access_path: object, sojourner_id: object
+            ) -> object:
+                return binding
+
+        orch = _make_resume_orchestrator(
+            sf,
+            session_state=session_state,
+            sheet=sheet,
+            provider_resolver=_Resolver(),
+            safety_service=_RealRouterOutputSafety(),
+        )
+
+        result = orch.orchestrate_rpg_resume(
+            story_id,
+            node_id,
+            sequence_id,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
+        )
+
+        # Existing typed pass-failure disposition (Output Safety's
+        # SafetyPassError maps to PIPELINE_ERROR, same as every other
+        # safety-pass failure) -- no new disposition invented for this fix.
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "output safety" in result.pipeline_error_summary.lower()
+        assert result.writer_result is not None
+        resume_turn_id = str(result.writer_result.turn_id)
+
+        with sf() as read_session:  # type: ignore[operator]
+            # _seed_ready_sequence also persists an unrelated "originating
+            # turn" row -- must check for the resume's own turn_id specifically,
+            # not merely that some Turn row exists.
+            resume_turn_row = read_session.get(TurnORM, resume_turn_id)
+            audit_count = read_session.query(RpgRollAuditORM).count()
+            seq_row = (
+                read_session.query(ActionResolutionSequenceORM)
+                .filter_by(sequence_id=str(sequence_id))
+                .one()
+            )
+            refusal_rows = (
+                read_session.execute(sa.select(ProviderRefusalEvent)).scalars().all()
+            )
+
+        # Rolled back: no provisional Turn survives, sequence never advances
+        # past ready_for_narration, no partial audit row.
+        assert resume_turn_row is None
+        assert audit_count == 0
+        assert seq_row.status == "ready_for_narration"
+
+        # The refusal audit row itself IS preserved -- committed in a
+        # separate session after session.close() released the write lock,
+        # not lost to RefusalFallbackRouter._log()'s suppressed exception.
+        assert len(refusal_rows) == 1
+        assert refusal_rows[0].fallback_outcome == "NO_FALLBACK_CONFIGURED"
+        assert refusal_rows[0].refusal_category == "content_policy"
