@@ -211,6 +211,59 @@ non-consumed termination path.
 
 ---
 
+### Rules Package carries no structured numeric/mechanical data (DC, dice formulas)
+
+**RESOLVED (architecture) by ADR-005c.** See `/docs/decisions/adr-005c-rules-authority-repair.md`. The
+architectural question — how DC and dice-term authority should be modeled and bound so an adapter can
+execute against real Rules Package content, and why that authority must never silently fall back to
+prose, retrieval, or model inference — is resolved by ADR-005c (Decisions 1, 2, 4, 5, 6).
+**Implementation remains pending** CRD Issue 5c (SRD corpus integrity / reproducible full-corpus
+ingestion), CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b
+(D&D 5e character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20
+adapter production reachability).
+
+**Surfaced during:** Issue 15b Phase 2 implementation on frozen PR #129 (`D20RulesSystemAdapter.
+_verify_dc` unconditionally returns `None`; Rules Package entities carry no `dc`/`difficulty_class` field
+and store dice/damage data as unstructured prose). The ADR-005c investigation also found the committed
+SRD artifact (`data/srd/srd_5_2_1_structured.json`, 50 entities / 54 sections) falls short of CRD Issue
+5b's full-corpus contract (ADR-005c Context item 1) — a distinct but related defect this entry's
+resolution now covers under the same repair order.
+
+**Resolve implementation during:** CRD Issues 5c, 5d, 2b, 15c, in the order recorded in ADR-005c's
+Repair-Order Consequence.
+
+---
+
+### Parameterized adjustments (spell-slot-level upcasting, variable-amount resource recovery)
+
+**Open. Not resolved by ADR-005c** — see ADR-005c's Verification Note and Scope Boundaries, which
+explicitly exclude "implementing parameterized upcasting." ADR-005c does not approve a final parameter
+schema for this item.
+
+Some mechanics require validated typed parameters rather than selection through a fixed `option_id`.
+Examples include casting-level selection and variable resource amounts. ADR-015b currently supports
+fixed option selection only. The exact typed parameter contract and the set of mechanics admitted into
+deterministic v1 support remain unresolved and require an explicit owner decision before implementation.
+
+**Do not infer production coverage from this entry.** The current SRD artifact is an incomplete curated
+subset (see the Rules Package entry above and ADR-005c Context item 1), and production package-to-adapter
+reachability for any mechanic — base-level or parameterized — has not been established. This entry does
+not claim that a specific number of spells, or base-level casting generally, is currently supported in
+production; it only names the parameter-shape question that remains open regardless of corpus state.
+
+**Surfaced during:** Issue 15b Phase 2 bounded-d20 coverage inventory (frozen PR #129), against the
+curated SRD 5.2.1 package. Any adjustment option requiring parameters beyond a stable `option_id`
+requires an ADR-015b amendment before it ships.
+
+**What resolution requires:** Owner decision on whether to pull upcasting/variable-resource-recovery
+mechanics into scope, and which mechanics are admitted into deterministic v1 support; an ADR-015b
+amendment defining a typed `RollAdjustmentOption` extension before any implementation — *non-binding
+illustrative example, not an approved schema:* a field shaped like `chosen_slot_level: int`,
+server-validated against the sheet's available slots, is one possible form this could take. This is
+independent of, and not resolved by, the Rules Authority repair order above.
+
+---
+
 ## How to Add a New Unknown
 
 When construction surfaces a decision that is not covered by existing docs and should not be resolved unilaterally:
