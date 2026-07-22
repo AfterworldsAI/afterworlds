@@ -98,19 +98,39 @@ documents:
    iterates `entity_refs` when it is non-empty; with both left at their model defaults (`[]`), the
    method returns `ActiveRuleSlice(chunks=(), entities=())` — not an error, not a fallback to "all
    content."
-8. **The live orchestration path currently constructs an effectively empty request.** The sole
-   production call site, `src/afterworlds/pipeline/orchestrator/service.py:656`, is:
+8. **Two independent live paths reach adjudication with no usable rule slice — not one.** Direct
+   repository verification (prompted by Codex review; an earlier draft of this ADR audited only Path B
+   and incorrectly stated the slug path was not live) confirms both:
+
+   **Path A — non-UUID binding is silently omitted.** `RpgCharacterSheetBase.rules_package_id` is a plain
+   `str` (`src/afterworlds/models/character_sheet.py`). The live story-bootstrap path,
+   `ensure_mode_session_state` in `src/afterworlds/api/story_bootstrap.py:153`, hardcodes
+   `rules_package_id="dnd5e"` for every RPG character sheet it creates. This function is called directly
+   from the production `POST /api/stories` route (`src/afterworlds/api/routes/stories.py:66`) for every
+   new RPG story — confirmed by direct inspection, not inferred. No production code path subsequently
+   rewrites `rules_package_id` to a UUID before play. At turn time,
+   `src/afterworlds/pipeline/orchestrator/service.py:645-651` is:
    ```python
-   _pkg_uuid = UUID(pre_sheet.rules_package_id)
-   rule_slice_request = RuleSliceRequest(package_id=_pkg_uuid)
+   try:
+       _pkg_uuid = UUID(pre_sheet.rules_package_id)
+       rule_slice_request = RuleSliceRequest(package_id=_pkg_uuid)
+   except ValueError:
+       # Non-UUID binding (slug) — omit request; adjudication
+       # proceeds without a rule slice and produces "undetermined".
+       rule_slice_request = None
    ```
-   `subsystem_tags` and `entity_refs` are never set anywhere else in this file, so this call always
-   resolves to an empty `ActiveRuleSlice` today — confirmed. **Verification note:** this call site uses
-   a real UUID parsed from `pre_sheet.rules_package_id`, not a human-readable slug; no code path that
-   "omits the request when given an unresolved slug" was found in the current orchestrator. The
-   underlying failure mode this ADR addresses — a valid package identifier producing an entirely empty
-   adjudication request — is confirmed exactly as stated; the slug-substitution framing is a risk this
-   ADR prevents architecturally (Decision 5), not a bug reproduced in today's code.
+   For the bootstrap value `"dnd5e"`, `UUID(...)` raises `ValueError`; the `except` clause catches it and
+   sets `rule_slice_request = None`, and adjudication continues without a Rules Package slice. **This is
+   a live, currently-reachable fail-open path, not a forward-looking risk.**
+
+   **Path B — a valid UUID still produces an empty request.** When `rules_package_id` does hold a
+   syntactically valid UUID, the same call site (`service.py:647`) builds
+   `RuleSliceRequest(package_id=_pkg_uuid)` with `subsystem_tags`/`entity_refs` left at their model
+   defaults (`[]`); per item 7 above, this always resolves to an empty `ActiveRuleSlice` — not an error.
+
+   Both paths converge on the same downstream consequence (items 9–10 below): adjudication proceeds with
+   no Rules Package authority, and missing authority can surface as `outcome="undetermined"`
+   indistinguishably from a genuinely unsupported mechanic.
 9. **The bounded d20 adapter cannot verify real DCs or generate non-1d20-family instructions from
    production data.** On `main` (`src/afterworlds/pipeline/rpg/adapter.py`, pre-Issue-15b),
    `_verify_dc` unconditionally `return`s `None`, with an inline comment stating DC verification is
@@ -243,14 +263,15 @@ model-authored labels substituting for deterministic package, entity, action, ab
 mechanic identities. Any adjudicating request must contain sufficient deterministic selectors to
 retrieve its required authority.
 
-**Confirmed against current code (Context item 8):** the live orchestrator already uses a real UUID, not
-a slug — the slug-substitution failure mode this decision guards against is a forward-looking
-architectural constraint, not a reproduction of an existing bug. The **empty-request** failure mode is
-confirmed today: a valid UUID reaches `RuleSliceRequest` with default (empty) `subsystem_tags` and
-`entity_refs`, and `get_active_rule_slice` returns an empty slice with no error. CRD Issue 5d owns
-closing this gap — either by requiring non-default selectors before a slice request is honored, or by a
-documented, explicit "whole-package slice" request shape that is distinguishable from an
-accidentally-empty one.
+**Confirmed against current code (Context item 8):** both prohibited failure modes are live. The current
+bootstrap path supplies the non-UUID identifier `dnd5e`; the orchestrator catches the resulting UUID
+parse failure, omits the `RuleSliceRequest`, and continues without a rule slice (Path A). Separately,
+when the stored identifier is a valid UUID, the orchestrator constructs a request with no subsystem or
+entity selectors, which resolves to an empty slice without error (Path B). CRD Issue 5d owns
+deterministic package-reference resolution and authoritative selector construction — closing both gaps,
+either by requiring non-default selectors before a slice request is honored, or by a documented, explicit
+"whole-package slice" request shape distinguishable from an accidentally-empty one. CRD Issue 15c owns
+ensuring adjudication fails closed when the resolved authority is absent or empty.
 
 ### Decision 6 — Advertised supported mechanics fail closed when authority is missing
 
