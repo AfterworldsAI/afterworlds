@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -27,16 +27,17 @@ def _make_pending_orm(
     request_id: str | None = None,
     status: str = "pending",
 ) -> MagicMock:
-    """Return a mock PendingRollRequestORM with sensible defaults."""
+    """Return a mock PendingRollRequestORM with sensible defaults.
+
+    CRD Issue 15b: fields match the revised schema (ADR-015b Column
+    Disposition table) — structured instruction linkage, not the retired
+    display/derivation columns.
+    """
     orm = MagicMock()
     orm.request_id = request_id or str(uuid4())
     orm.story_id = story_id or str(uuid4())
     orm.session_id = str(uuid4())
     orm.character_id = str(uuid4())
-    orm.check_label = "Stealth Check"
-    orm.player_facing_instruction = "Roll a Stealth Check!"
-    orm.expected_value_shape = "d20"
-    orm.visible_modifier_note = "proficient"
     orm.visibility = "player"
     orm.source_proposal_ref = "roll_0"
     orm.originating_turn_id = str(uuid4())
@@ -44,11 +45,13 @@ def _make_pending_orm(
     orm.status = status
     orm.created_at = datetime.now(tz=UTC).isoformat()
     orm.schema_version = 1
-    orm.roll_expression = "1d20+5"
-    orm.visible_modifier_total = 5
-    orm.visible_modifier_breakdown_json = '{"proficiency": 2, "ability": 3}'
-    orm.hidden_modifier_present = False
     orm.adapter_context_hash = None
+    orm.sequence_id = str(uuid4())
+    orm.step_id = str(uuid4())
+    orm.instruction_id = str(uuid4())
+    orm.instruction_revision = 1
+    orm.instruction_schema_version = 1
+    orm.instruction_snapshot_json = None
     return orm
 
 
@@ -62,12 +65,11 @@ def test_orm_to_model_converts_fields() -> None:
     orm = _make_pending_orm(story_id=str(sid))
     model = _orm_to_model(orm)
     assert model.story_id == sid
-    assert model.check_label == "Stealth Check"
     assert model.visibility == RollVisibility.PLAYER
     assert model.status == "pending"
     assert model.schema_version == 1
-    assert model.visible_modifier_total == 5
-    assert model.hidden_modifier_present is False
+    assert model.instruction_revision == 1
+    assert model.sequence_id == UUID(orm.sequence_id)
 
 
 def test_orm_to_model_handles_null_consumed_turn() -> None:

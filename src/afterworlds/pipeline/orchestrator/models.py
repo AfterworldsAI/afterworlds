@@ -201,6 +201,15 @@ class OrchestrationResult(BaseModel):
     # result (e.g. REFUSED_BY_PROVIDER during classification itself).
     intent_classifier_usage: IntentClassifierUsage | None = None
 
+    # Additive CRD Issue 15b field: True for a turn that legitimately never
+    # called Planner for a reason other than OOC (currently:
+    # orchestrate_rpg_resume — ADR-015b's "no re-planning an already-
+    # resolved roll"). ``is_ooc`` alone was, and remains, the sole
+    # planner-skip signal for OOC; this is the second, explicit one for
+    # every other planner-less path. False (the default) preserves every
+    # existing disposition's invariants unchanged.
+    planner_skipped: bool = False
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -257,7 +266,8 @@ class OrchestrationResult(BaseModel):
                 "delivered_output non-empty", self._non_empty_str(self.delivered_output)
             )
             self._require("turn_id present", self.turn_id is not None)
-            self._require("planner_result present", self.planner_result is not None)
+            if not self.planner_skipped:
+                self._require("planner_result present", self.planner_result is not None)
             self._require("writer_result present", self.writer_result is not None)
             self._require("extractor_result present", self.extractor_result is not None)
             self._require(
@@ -344,9 +354,9 @@ class OrchestrationResult(BaseModel):
                 "output safety verdict BLOCK",
                 self.output_safety_result.verdict is SafetyVerdict.BLOCK,
             )
-            if is_ooc:
+            if is_ooc or self.planner_skipped:
                 self._forbid(
-                    "planner_result absent on OOC output-block",
+                    "planner_result absent on planner-less output-block",
                     self.planner_result is not None,
                 )
             else:
@@ -384,7 +394,8 @@ class OrchestrationResult(BaseModel):
                 "contradiction verdict BLOCKED",
                 self.contradiction_result.verdict is ContradictionVerdict.BLOCKED,
             )
-            self._require("planner_result present", self.planner_result is not None)
+            if not self.planner_skipped:
+                self._require("planner_result present", self.planner_result is not None)
             # extractor_result may be present (extraction completed under
             # SAVEPOINT) — the SAVEPOINT plus outer transaction rolls back
             # those writes when Contradiction blocks.

@@ -185,15 +185,13 @@ class TestMultipleVisibleProposalsPlayerRolls:
             _make_sheet(),
             dice,
             provider=_FakeProvider(proposals),
-            story_id=_STORY_ID,
-            originating_turn_id=_TURN_ID,
         )
         return result, dice
 
     def test_one_pending_request_created(self) -> None:
         result, _ = self._adjudicate()
-        assert result.pending_roll_request is not None
-        assert result.pending_roll_request.check_label == "Attack Roll"
+        assert result.player_proposal is not None
+        assert result.player_proposal.check_label == "Attack Roll"
 
     def test_no_resolved_records(self) -> None:
         result, _ = self._adjudicate()
@@ -228,14 +226,12 @@ class TestHiddenPreservationWithPendingVisible:
             _make_sheet(),
             dice,
             provider=_FakeProvider(proposals),
-            story_id=_STORY_ID,
-            originating_turn_id=_TURN_ID,
         )
         return result, dice
 
     def test_pending_and_one_resolved(self) -> None:
         result, _ = self._adjudicate()
-        assert result.pending_roll_request is not None
+        assert result.player_proposal is not None
         assert len(result.proposals) == 1
 
     def test_dice_called_once_for_hidden(self) -> None:
@@ -263,14 +259,12 @@ class TestAiRollsRegression:
             _make_sheet(),
             dice,
             provider=_FakeProvider(proposals),
-            story_id=_STORY_ID,
-            originating_turn_id=_TURN_ID,
         )
         return result, dice
 
     def test_no_pending_two_resolved(self) -> None:
         result, _ = self._adjudicate()
-        assert result.pending_roll_request is None
+        assert result.player_proposal is None
         assert len(result.proposals) == 2
 
     def test_dice_called_twice(self) -> None:

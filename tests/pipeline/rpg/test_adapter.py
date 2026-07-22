@@ -10,13 +10,21 @@ from uuid import uuid4
 import pytest
 
 from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
-from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import (
-    PendingRollRequest,
-    ResolvedAdjudicationRecord,
-    RollProposal,
+from afterworlds.models.enums import (
+    DiceSelectionRule,
+    ModifierVisibility,
+    RollContribution,
+    RollPurpose,
+    RollVisibility,
 )
-from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter, PlayerRollValueError
+from afterworlds.models.rpg import (
+    ResolvedAdjudicationRecord,
+    RollInstructionSnapshot,
+    RollModifierComponent,
+    RollProposal,
+    RollTerm,
+)
+from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -332,180 +340,516 @@ def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
 
 
 # ---------------------------------------------------------------------------
-# consume_player_roll validation: raw die range check (Round 5 Fix 2)
+# build_check_instruction / resolve_snapshot (CRD Issue 15b) — replaces the
+# retired prepare_player_roll_announce/consume_player_roll expression-string
+# path. Range/count validation of submitted values is ActionResolutionService's
+# job now, not the adapter's — see tests/pipeline/rpg/test_sequence.py.
 # ---------------------------------------------------------------------------
 
 
-def _make_pending(
+def _build_instruction(
+    adapter: D20RulesSystemAdapter,
     *,
-    expression: str = "1d20",
-    visible_mod: int | None = None,
-) -> PendingRollRequest:
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=uuid4(),
-        session_id=uuid4(),
-        character_id=uuid4(),
-        check_label="Stealth check",
-        player_facing_instruction=f"Roll {expression}",
-        expected_value_shape="integer",
-        visible_modifier_note=f"+{visible_mod}" if visible_mod else None,
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="skill_check/Stealth check",
-        originating_turn_id=uuid4(),
-        created_at=_NOW,
-        roll_expression=expression,
-        visible_modifier_total=visible_mod,
-        visible_modifier_breakdown_json=None,
+    label: str = "stealth",
+    subsystem_tag: str = "skill_check",
+    sheet: Dnd5eCharacterSheet | None = None,
+):
+    proposal = _make_proposal(label, RollVisibility.PLAYER, subsystem_tag)
+    return adapter.build_check_instruction(
+        proposal,
+        sheet or _make_sheet(skills={"stealth": 3}),
+        None,
+        [],
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+        instruction_id=uuid4(),
     )
 
 
-def test_consume_valid_total_accepted() -> None:
-    """reported_total=15 with no modifier → raw_die=15 which is in [1,20]."""
+def test_build_check_instruction_plain_tag_is_1d20_sum_all() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 15, None, [], False)
-    assert record.total == 15
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check")
+    assert len(instruction.terms) == 1
+    term = instruction.terms[0]
+    assert (term.count, term.sides) == (1, 20)
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert term.selection_rule is DiceSelectionRule.SUM_ALL
+    assert term.keep_count is None
+
+
+def test_build_check_instruction_advantage_tag_is_2d20_keep_highest() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check advantage")
+    term = instruction.terms[0]
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert (term.count, term.sides) == (2, 20)
+    assert term.selection_rule is DiceSelectionRule.KEEP_HIGHEST
+    assert term.keep_count == 1
+
+
+def test_build_check_instruction_disadvantage_tag_is_2d20_keep_lowest() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, subsystem_tag="skill_check disadvantage")
+    term = instruction.terms[0]
+    from afterworlds.models.enums import DiceSelectionRule
+
+    assert term.selection_rule is DiceSelectionRule.KEEP_LOWEST
+    assert term.keep_count == 1
+
+
+def test_build_check_instruction_rejects_non_player_proposal() -> None:
+    adapter = D20RulesSystemAdapter()
+    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    with pytest.raises(ValueError, match="non-PLAYER"):
+        adapter.build_check_instruction(
+            proposal,
+            _make_sheet(),
+            None,
+            [],
+            sequence_id=uuid4(),
+            step_id=uuid4(),
+            instruction_id=uuid4(),
+        )
+
+
+def test_resolve_snapshot_sum_all_totals_die_plus_modifier() -> None:
+    adapter = D20RulesSystemAdapter()
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (15,)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 20  # 15 + 5
     assert record.raw_rolls == (15,)
+    assert record.outcome == "undetermined"  # DC always None in v1
 
 
-def test_consume_min_die_accepted() -> None:
+def test_resolve_snapshot_keep_highest_selects_max_die() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 1, None, [], False)
-    assert record.raw_rolls == (1,)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check advantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (8, 17)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 17
 
 
-def test_consume_max_die_accepted() -> None:
+def test_resolve_snapshot_keep_lowest_selects_min_die() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 20, None, [], False)
-    assert record.raw_rolls == (20,)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check disadvantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    term = instruction.terms[0]
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (14, 3)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 3
 
 
-def test_consume_total_zero_raw_die_rejected() -> None:
-    """reported_total=0 → raw_die=0, outside [1,20]."""
+def _multi_keep_instruction(
+    *,
+    selection_rule: DiceSelectionRule,
+    keep_count: int | None,
+    count: int = 4,
+    sides: int = 6,
+) -> tuple[RollInstructionSnapshot, RollTerm]:
+    """A hand-built instruction with a keep_count > 1 term.
+
+    ADR-015b's own defect inventory (item 2) flags the retired executor's
+    ``sorted(raw, ...)[:keep_n][0]`` bug — it took one die from the kept
+    slice instead of summing it, so ``4d6kh3`` silently returned a single
+    die's value. ``build_check_instruction`` never generates a keep_count>1
+    term (the shipped adapter only produces 1d20/2d20kh1/2d20kl1), so this
+    constructs the instruction directly to exercise ``_reduce_term`` (via
+    ``resolve_snapshot``) against the exact shape the ADR requires proven.
+    """
+    term = RollTerm(
+        term_id=uuid4(),
+        count=count,
+        sides=sides,
+        selection_rule=selection_rule,
+        keep_count=keep_count,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ABILITY_CHECK,
+        terms=(term,),
+        modifier_components=(),
+        display_expression=f"{count}d{sides}",
+        display_label="Ability Check",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
+    return instruction, term
+
+
+def test_resolve_snapshot_keep_highest_sums_top_k_not_single_die() -> None:
+    """4d6kh3: total must be the sum of the top 3 dice (15), not one die."""
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 0, None, [], False)
+    instruction, term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (2, 6, 4, 5)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 15  # 6 + 4 + 5, dropping the lowest (2)
 
 
-def test_consume_total_implies_raw_die_above_max_rejected() -> None:
-    """reported_total=21 with no modifier → raw_die=21, outside [1,20]."""
+def test_resolve_snapshot_keep_lowest_sums_bottom_k_not_single_die() -> None:
+    """4d6kl3: total must be the sum of the bottom 3 dice (11), not one die."""
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 21, None, [], False)
+    instruction, term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_LOWEST, keep_count=3
+    )
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term.term_id: (2, 6, 4, 5)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 11  # 2 + 4 + 5, dropping the highest (6)
 
 
-def test_consume_with_modifier_valid() -> None:
-    """reported_total=18, visible_mod=5 → raw_die=13, in [1,20]."""
+def test_aggregate_range_covers_full_legal_span() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=5)
-    record = adapter.consume_player_roll(pending, 18, None, [], False)
-    assert record.raw_rolls == (13,)
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    assert adapter.aggregate_range(instruction) == (6, 25)  # 1d20 [1,20] + mod 5
 
 
-def test_consume_with_modifier_raw_die_too_low_rejected() -> None:
-    """reported_total=5, visible_mod=7 → raw_die=-2, outside [1,20]."""
+def test_aggregate_range_keep_highest_2d20kh1_is_1_to_20() -> None:
+    """Codex P1 (PR #129): must be [1, 20], not [2, 40] (2 dice * 20 sides)."""
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=7)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check advantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    assert adapter.aggregate_range(instruction) == (1, 20)
 
 
-def test_consume_advantage_expression_accepted() -> None:
-    """2d20kh1 total=17, mod=0 → raw_die=17, in [1,20]."""
+def test_aggregate_range_keep_lowest_2d20kl1_is_1_to_20() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1")
-    record = adapter.consume_player_roll(pending, 17, None, [], False)
-    assert record.raw_rolls == (17,)
+    instruction = _build_instruction(
+        adapter,
+        subsystem_tag="skill_check disadvantage",
+        sheet=_make_sheet(skills={"stealth": 0}),
+    )
+    assert adapter.aggregate_range(instruction) == (1, 20)
 
 
-def test_consume_disadvantage_expression_accepted() -> None:
-    """2d20kl1 total=4, mod=0 → raw_die=4, in [1,20]."""
+def test_aggregate_range_keep_highest_4d6kh3_is_3_to_18() -> None:
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1")
-    record = adapter.consume_player_roll(pending, 4, None, [], False)
-    assert record.raw_rolls == (4,)
+    assert adapter.aggregate_range(instruction) == (3, 18)
 
 
-def test_consume_unsupported_expression_rejected() -> None:
-    """Unsupported multi-die-sum expression must fail-closed."""
+def test_aggregate_range_keep_lowest_4d6kl3_is_3_to_18() -> None:
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_LOWEST, keep_count=3
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="3d6")
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 10, None, [], False)
+    assert adapter.aggregate_range(instruction) == (3, 18)
 
 
-# ---------------------------------------------------------------------------
-# consume_player_roll boundary cases with visible modifier (Round 6 spec)
-# ---------------------------------------------------------------------------
-
-
-def test_consume_1d20_mod5_max_boundary_accepted() -> None:
-    """1d20 + mod=5, total=25 → raw=20, accepted (exact max)."""
+def test_aggregate_range_summed_pool() -> None:
+    """4d6 sum-all: [4, 24]."""
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.SUM_ALL, keep_count=None
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
-    assert record.raw_rolls == (20,)
+    assert adapter.aggregate_range(instruction) == (4, 24)
 
 
-def test_consume_1d20_mod5_min_boundary_accepted() -> None:
-    """1d20 + mod=5, total=6 → raw=1, accepted (exact min)."""
+def test_aggregate_range_subtraction_reverses_extremes() -> None:
+    """A subtracted 1d6 term contributes [-6, -1], not [1, 6]."""
+    term = RollTerm(
+        term_id=uuid4(),
+        count=1,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+        contribution=RollContribution.SUBTRACT,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ABILITY_CHECK,
+        terms=(term,),
+        modifier_components=(),
+        display_expression="1d6",
+        display_label="Subtracted Check",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
-    assert record.raw_rolls == (1,)
+    assert adapter.aggregate_range(instruction) == (-6, -1)
 
 
-def test_consume_1d20_mod5_one_over_max_rejected() -> None:
-    """1d20 + mod=5, total=26 → raw=21, rejected (one over max)."""
+def test_aggregate_range_mixed_repeated_pools_with_modifier() -> None:
+    """2d20kh1 (advantage attack, [1,20]) + 2d6 damage (SUM_ALL, [2,12]) + a
+    +3 modifier: total range [1+2+3, 20+12+3] = [6, 35]."""
+    attack_term = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+        contribution=RollContribution.ADD,
+    )
+    damage_term = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+        contribution=RollContribution.ADD,
+    )
+    modifier = RollModifierComponent(
+        modifier_id=uuid4(),
+        label="strength",
+        value=3,
+        visibility=ModifierVisibility.PLAYER_VISIBLE,
+        source_kind="sheet_modifier",
+        source_reference=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ATTACK,
+        terms=(attack_term, damage_term),
+        modifier_components=(modifier,),
+        display_expression="2d20kh1+2d6",
+        display_label="Mixed Pool Attack",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
+    assert adapter.aggregate_range(instruction) == (6, 35)
 
 
-def test_consume_1d20_mod5_one_under_min_rejected() -> None:
-    """1d20 + mod=5, total=5 → raw=0, rejected (one under min)."""
+def test_aggregate_range_boundary_values_accepted_by_resolve_aggregate_snapshot() -> (
+    None
+):
+    """The exact min/max boundary from aggregate_range must itself be legal."""
+    instruction, _term = _multi_keep_instruction(
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST, keep_count=3
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+    min_total, max_total = adapter.aggregate_range(instruction)
+    for boundary in (min_total, max_total):
+        record = adapter.resolve_aggregate_snapshot(
+            instruction=instruction,
+            reported_aggregate=boundary,
+            rule_slice=None,
+            overrides=[],
+            gm_cheating=False,
+        )
+        assert record.total == boundary
 
 
-def test_consume_kh1_mod5_max_boundary_accepted() -> None:
-    """2d20kh1 + mod=5, total=25 → raw=20, accepted (exact max)."""
+def test_resolve_snapshot_mixed_pool_sums_all_terms() -> None:
+    """Issue #127 criterion 4 (mixed pools): 2d6 + 1d8 + a +4 modifier.
+
+    RollProposal (models/rpg.py) carries no dice-expression/term field at
+    all -- the model cannot request a multi-term pool, and
+    build_check_instruction never generates one (bounded by the "Rules
+    Package carries no structured numeric/mechanical data" Known Unknown,
+    same boundary as adjustment options below). This proves the RESOLVER
+    (resolve_snapshot/_reduce_term) correctly sums an arbitrary mixed-term
+    instruction when one is constructed directly -- engine correctness,
+    not proposal-pipeline reachability, which remains deferred to that
+    Known Unknown.
+    """
+    term_2d6 = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    term_1d8 = RollTerm(
+        term_id=uuid4(),
+        count=1,
+        sides=8,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    modifier = RollModifierComponent(
+        modifier_id=uuid4(),
+        label="constant",
+        value=4,
+        visibility=ModifierVisibility.PLAYER_VISIBLE,
+        source_kind="sheet_modifier",
+        source_reference=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.DAMAGE,
+        terms=(term_2d6, term_1d8),
+        modifier_components=(modifier,),
+        display_expression="2d6+1d8+4",
+        display_label="Mixed Pool Damage",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
-    assert record.raw_rolls == (20,)
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_2d6.term_id: (3, 5), term_1d8.term_id: (6,)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 18  # (3+5) + 6 + 4
 
 
-def test_consume_kh1_mod5_one_over_max_rejected() -> None:
-    """2d20kh1 + mod=5, total=26 → raw=21, rejected (one over max)."""
+def test_resolve_snapshot_repeated_same_shape_terms_stay_distinguishable() -> None:
+    """Issue #127 criterion 5 (repeated pools): two separate 2d6 terms must
+    not be conflated -- each term_id's submitted values apply to that term
+    alone, proven by giving each a different value set that would sum
+    differently if swapped."""
+    term_a = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    term_b = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=6,
+        selection_rule=DiceSelectionRule.SUM_ALL,
+        keep_count=None,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.DAMAGE,
+        terms=(term_a, term_b),
+        modifier_components=(),
+        display_expression="2d6+2d6",
+        display_label="Repeated Pool Damage",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_a.term_id: (1, 1), term_b.term_id: (6, 6)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    # 2 (term_a) + 12 (term_b) = 14. Swapping the two value sets between
+    # terms would still sum to 14 here (both SUM_ALL), so also assert the
+    # raw per-term reduction directly via a KEEP_HIGHEST pair, where a swap
+    # would change the result if term identity were lost.
+    assert record.total == 14
 
 
-def test_consume_kl1_mod5_min_boundary_accepted() -> None:
-    """2d20kl1 + mod=5, total=6 → raw=1, accepted (exact min)."""
+def test_resolve_snapshot_repeated_keep_highest_terms_use_own_values() -> None:
+    """Stronger version of the repeated-pool proof: two KEEP_HIGHEST terms
+    with different value sets. If term identity were lost (e.g. values
+    applied to the wrong term), the total would differ from the correct
+    12 (10 kept from term_a) + 8 (8 kept from term_b) = 18."""
+    term_a = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+    )
+    term_b = RollTerm(
+        term_id=uuid4(),
+        count=2,
+        sides=20,
+        selection_rule=DiceSelectionRule.KEEP_HIGHEST,
+        keep_count=1,
+    )
+    instruction = RollInstructionSnapshot(
+        instruction_id=uuid4(),
+        instruction_revision=1,
+        purpose=RollPurpose.ATTACK,
+        terms=(term_a, term_b),
+        modifier_components=(),
+        display_expression="2d20kh1+2d20kh1",
+        display_label="Repeated Keep-Highest",
+        source_rule_refs=(),
+        adjustment_options=(),
+        sequence_id=uuid4(),
+        step_id=uuid4(),
+    )
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
-    assert record.raw_rolls == (1,)
+    record = adapter.resolve_snapshot(
+        instruction=instruction,
+        term_results={term_a.term_id: (10, 2), term_b.term_id: (8, 1)},
+        rule_slice=None,
+        overrides=[],
+        source="player",
+        gm_cheating=False,
+    )
+    assert record.total == 18  # max(10,2) + max(8,1) = 10 + 8
 
 
-def test_consume_kl1_mod5_one_under_min_rejected() -> None:
-    """2d20kl1 + mod=5, total=5 → raw=0, rejected (one under min)."""
+def test_resolve_aggregate_snapshot_uses_reported_total_directly() -> None:
     adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+    instruction = _build_instruction(adapter, sheet=_make_sheet(skills={"stealth": 5}))
+    record = adapter.resolve_aggregate_snapshot(
+        instruction=instruction,
+        reported_aggregate=18,
+        rule_slice=None,
+        overrides=[],
+        gm_cheating=False,
+    )
+    assert record.total == 18
+    assert record.raw_rolls == ()
 
 
 # ---------------------------------------------------------------------------
@@ -574,18 +918,25 @@ class TestSkillKeyNormalization:
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["dexterity_modifier"] == 3
 
-    def test_announce_display_case_key_visible_modifier_and_note(self) -> None:
-        """Announce: display-case sheet key produces correct visible_modifier_total."""
-        from uuid import uuid4 as _uuid4
-
+    def test_build_check_instruction_display_case_key_uses_stored_modifier(
+        self,
+    ) -> None:
+        """Announce: display-case sheet key produces a correct modifier_component."""
         adapter = D20RulesSystemAdapter()
         sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
         proposal = _make_proposal("stealth", RollVisibility.PLAYER)
-        pending, _view = adapter.prepare_player_roll_announce(
-            proposal, sheet, None, [], _uuid4(), _uuid4(), _uuid4()
+        instruction = adapter.build_check_instruction(
+            proposal,
+            sheet,
+            None,
+            [],
+            sequence_id=uuid4(),
+            step_id=uuid4(),
+            instruction_id=uuid4(),
         )
-        assert pending.visible_modifier_total == 7  # pre-fix would be 3 (Dex fallback)
-        assert pending.visible_modifier_note == "+7"
+        # pre-fix would be 3 (Dex fallback) instead of the stored +7.
+        assert instruction.modifier_components[0].value == 7
+        assert "+7" in instruction.display_expression
 
     def test_resolve_roll_display_case_modifiers_json_structure(self) -> None:
         """resolve_roll: Perception key gives correct visible_total/breakdown."""

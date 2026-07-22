@@ -1,31 +1,32 @@
-"""RPG Adjudication pass service — CRD Issue 15.
+"""RPG Adjudication pass service — CRD Issue 15. Revised by CRD Issue 15b.
 
 Responsibilities:
-  1. Normal path (no pending roll being consumed):
-       a. Render AssembledContext + character state into a ProviderCallRequest.
-       b. Call the LLM via forced tool use → AdjudicationProposalOutput.
-       c. Enforce multi-roll bound (ADJUDICATION_MAX_ROLLS_PER_TURN).
-       d. For each HIDDEN proposal (and SHOWN in AI_ROLLS mode): resolve via
-          D20RulesSystemAdapter + DiceService → ResolvedAdjudicationRecord.
-       e. For the first visible (SHOWN→PLAYER or PLAYER) proposal in
-          PLAYER_ROLLS mode: prepare announce via adapter → PendingRollRequest
-          + announce WriterAdjudicationView.  Overflow visible proposals are
-          deferred (not AI-resolved, not a second pending roll).
-       f. Return AdjudicationPassResult with resolved records + writer views
-          + optional pending_roll_request.
+  1. Render AssembledContext + character state into a ProviderCallRequest.
+  2. Call the LLM via forced tool use → AdjudicationProposalOutput.
+  3. Enforce multi-roll bound (ADJUDICATION_MAX_ROLLS_PER_TURN).
+  4. For each HIDDEN proposal (and SHOWN in AI_ROLLS mode): resolve via
+     D20RulesSystemAdapter + DiceService → ResolvedAdjudicationRecord.
+  5. For the first visible (SHOWN→PLAYER or PLAYER) proposal in PLAYER_ROLLS
+     mode: return it as ``player_proposal`` for the orchestrator to hand to
+     ``ActionResolutionService.start_sequence`` inside its own transaction —
+     this service no longer builds pending-roll state itself (CRD Issue 15b;
+     sequence identity/persistence is ``ActionResolutionService``'s job, not
+     the adjudication pass service's). Overflow visible proposals are
+     deferred (not AI-resolved, not a second pending roll).
+  6. Return AdjudicationPassResult with resolved records + writer views +
+     optional player_proposal.
 
-  2. Consume path (pending_roll_request + player_reported_total provided):
-       No LLM call.  Delegate to adapter.consume_player_roll(); return
-       AdjudicationPassResult with the single resolved record and no token
-       counts (consume path is code-only).
+Per 15b-25, the retired total-only consume path (pending_roll_request +
+player_reported_total kwargs, ``_consume()``) no longer exists here —
+consuming a player roll result is exclusively
+``ActionResolutionService.consume_roll``, reached through
+``orchestrate_rpg_resume``, not this service.
 
 Architectural invariants enforced here:
   - Roll-authorship is structural: schema forbids result/DC/modifier fields on
     proposals; the adapter holds all resolution logic.
   - gm_cheating=off is honoured at record creation time in the adapter; this
     service never overrides it.
-  - PLAYER proposals on the normal path produce a PendingRollRequest — no
-    DiceService call.
   - Multi-roll bound: proposals beyond ADJUDICATION_MAX_ROLLS_PER_TURN are
     dropped (fail-safe, not fail-closed — partial adjudication is better than
     a hard failure on narrative turns with many simultaneous checks).
@@ -37,14 +38,12 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
-    PendingRollRequest,
     ResolvedAdjudicationRecord,
     RollProposal,
     WriterAdjudicationView,
@@ -61,7 +60,6 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
     ProviderToolDefinition,
 )
-from afterworlds.pipeline.rpg.adapter import PlayerRollValueError
 from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC,
@@ -157,8 +155,10 @@ def _effective_visibility(
 class RpgAdjudicationPassService:
     """RPG Adjudication pass service.
 
-    Normal path: LLM → proposals → adapter resolution → AdjudicationPassResult.
-    Consume path: no LLM; adapter.consume_player_roll() → single resolved record.
+    LLM → proposals → adapter resolution (AI/hidden) or raw proposal handoff
+    (player) → AdjudicationPassResult. CRD Issue 15b: the retired consume
+    path (no LLM; ``adapter.consume_player_roll()``) no longer exists here —
+    see ``ActionResolutionService.consume_roll``.
 
     Args:
         adapter: D20RulesSystemAdapter instance.
@@ -187,12 +187,14 @@ class RpgAdjudicationPassService:
         *,
         provider: ProviderAdapter,
         overrides: list[RuleOverride] | None = None,
-        story_id: UUID,
-        originating_turn_id: UUID,
-        pending_roll: PendingRollRequest | None = None,
-        player_reported_total: int | None = None,
     ) -> AdjudicationPassResult:
         """Execute one adjudication pass and return a typed result.
+
+        CRD Issue 15b: no longer takes ``story_id``/``originating_turn_id`` —
+        this service returns a raw ``player_proposal`` for PLAYER rolls; the
+        orchestrator (which already has both IDs) is the one that calls
+        ``ActionResolutionService.start_sequence`` with them, inside its own
+        transaction.
 
         Args:
             built_context: AssembledContext from the Context Builder.  The
@@ -200,40 +202,22 @@ class RpgAdjudicationPassService:
             session_state: Current RpgSessionState (provides gm_cheating flag).
             sheet: Active Dnd5eCharacterSheet for modifier assembly.
             dice_service: Injected DiceService for roll randomness.
-            provider: ProviderAdapter for the LLM call (normal path only).
+            provider: ProviderAdapter for the LLM call.
             overrides: Active RuleOverrides for the session.  Defaults to [].
-            story_id: Story UUID, forwarded to PendingRollRequest.
-            originating_turn_id: Turn UUID for audit and PendingRollRequest.
-            pending_roll: Non-None on the consume path — the PendingRollRequest
-                being consumed this turn.
-            player_reported_total: Non-None on the consume path — the integer
-                total the player reported.
 
         Returns:
             AdjudicationPassResult with resolved records, writer views, and
-            optional pending_roll_request.
+            optional player_proposal.
 
         Raises:
             ProviderRefusalError: propagated unchanged for REFUSED_BY_PROVIDER.
             AdjudicationPassError: LLM call failure, missing tool block, schema
-                validation failure, or adapter error on normal path.
+                validation failure, or adapter error.
         """
         _overrides: list[RuleOverride] = overrides or []
         rule_slice: ActiveRuleSlice | None = (
             built_context.stable_prefix.rules_package_slice
         )
-
-        # -- Consume path --------------------------------------------------------
-        if pending_roll is not None and player_reported_total is not None:
-            return self._consume(
-                pending_roll,
-                player_reported_total,
-                rule_slice,
-                _overrides,
-                session_state,
-            )
-
-        # -- Normal path ---------------------------------------------------------
         return self._normal(
             built_context,
             session_state,
@@ -242,43 +226,6 @@ class RpgAdjudicationPassService:
             provider=provider,
             overrides=_overrides,
             rule_slice=rule_slice,
-            story_id=story_id,
-            originating_turn_id=originating_turn_id,
-        )
-
-    # -----------------------------------------------------------------------
-    # Consume path
-    # -----------------------------------------------------------------------
-
-    def _consume(
-        self,
-        pending: PendingRollRequest,
-        reported_total: int,
-        rule_slice: ActiveRuleSlice | None,
-        overrides: list[RuleOverride],
-        session_state: RpgSessionState,
-    ) -> AdjudicationPassResult:
-        """Resolve a player-reported roll against the stored PendingRollRequest.
-
-        No LLM call.  Token counts are None (code-only path).
-        """
-        try:
-            record = self._adapter.consume_player_roll(
-                pending,
-                reported_total,
-                rule_slice,
-                overrides,
-                session_state.gm_cheating,
-            )
-        except PlayerRollValueError as exc:
-            raise AdjudicationPassError(
-                f"Player-reported roll rejected: {exc}"
-            ) from exc
-        writer_view = self._adapter.to_writer_view(record)
-        return AdjudicationPassResult(
-            proposals=(record,),
-            writer_views=(writer_view,),
-            pending_roll_request=None,
         )
 
     # -----------------------------------------------------------------------
@@ -295,8 +242,6 @@ class RpgAdjudicationPassService:
         provider: ProviderAdapter,
         overrides: list[RuleOverride],
         rule_slice: ActiveRuleSlice | None,
-        story_id: UUID,
-        originating_turn_id: UUID,
     ) -> AdjudicationPassResult:
         request = self._render(built_context)
 
@@ -332,13 +277,13 @@ class RpgAdjudicationPassService:
 
         records: list[ResolvedAdjudicationRecord] = []
         views: list[WriterAdjudicationView] = []
-        pending_roll_request: PendingRollRequest | None = None
+        player_proposal: RollProposal | None = None
 
         for proposal in proposals:
             effective_vis = _effective_visibility(
                 proposal.visibility,
                 session_state.dice_handling,
-                pending_roll_request is not None,
+                player_proposal is not None,
             )
             coerced = (
                 proposal.model_copy(update={"visibility": effective_vis})
@@ -347,21 +292,23 @@ class RpgAdjudicationPassService:
             )
 
             if effective_vis is RollVisibility.PLAYER:
-                if pending_roll_request is not None:
+                if player_proposal is not None:
                     # Overflow visible proposal deferred — not AI-resolved, not
-                    # a second pending.
+                    # a second pending. CRD Issue 15b: the orchestrator builds
+                    # the structured instruction and announce view via
+                    # ActionResolutionService.start_sequence, not this service.
                     continue
-                pending, view = self._adapter.prepare_player_roll_announce(
-                    coerced,
-                    sheet,
-                    rule_slice,
-                    overrides,
-                    story_id=story_id,
-                    session_id=session_state.session_id,
-                    originating_turn_id=originating_turn_id,
+                player_proposal = coerced
+                views.append(
+                    WriterAdjudicationView(
+                        check_label=coerced.check_label,
+                        visibility=RollVisibility.PLAYER,
+                        player_facing_summary=(f"Roll needed: {coerced.check_label}"),
+                        total=None,
+                        dc=None,
+                        outcome=None,
+                    )
                 )
-                pending_roll_request = pending
-                views.append(view)
             else:
                 try:
                     record = self._adapter.resolve_roll(
@@ -384,7 +331,7 @@ class RpgAdjudicationPassService:
         return AdjudicationPassResult(
             proposals=tuple(records),
             writer_views=tuple(views),
-            pending_roll_request=pending_roll_request,
+            player_proposal=player_proposal,
             provider=result.provider_name,
             model_identifier=result.model_identifier,
             model_tier=result.model_tier.value,

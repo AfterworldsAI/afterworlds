@@ -1,6 +1,8 @@
-"""ORM models for RPG adjudication audit log and pending roll requests.
+"""ORM models for RPG adjudication audit log, pending roll requests, and
+action-resolution sequences.
 
-CRD Issue 15.
+CRD Issue 15. Revised by CRD Issue 15b (structured roll instructions,
+action-resolution sequences, player-roll lifecycle completion — ADR-015b).
 """
 
 from __future__ import annotations
@@ -24,6 +26,15 @@ class RpgRollAuditORM(Base):
     Rows are written inside the 12c outer transaction after the provisional
     turn_id exists; they are rolled back atomically with the Turn if any block
     disposition fires.
+
+    CRD Issue 15b columns (``sequence_id`` through ``raw_values_complete``)
+    are nullable for legacy-row compatibility. Migration must use plain
+    ``op.add_column`` for these — NOT ``batch_alter_table`` — because SQLite
+    batch mode is copy-and-swap and does not reflect triggers onto the new
+    table, which would silently drop the append-only guard above.
+    ``submission_source`` enforces, for new rows: PLAYER source implies
+    INLINE_UI or PHYSICAL_SELF_REPORT; AI/HIDDEN source implies
+    BACKEND_DICE_SERVICE. Legacy rows may retain ``submission_source = NULL``.
     """
 
     __tablename__ = "rpg_roll_audit"
@@ -50,15 +61,36 @@ class RpgRollAuditORM(Base):
     sheet_effects_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
+    # -- CRD Issue 15b additions (nullable; legacy rows leave these NULL) ----
+    sequence_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    step_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    pending_roll_request_id: Mapped[str | None] = mapped_column(
+        sa.String(36), nullable=True
+    )
+    instruction_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    instruction_revision: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    instruction_schema_version: Mapped[int | None] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    instruction_snapshot_json: Mapped[str | None] = mapped_column(
+        sa.Text, nullable=True
+    )
+    submission_source: Mapped[str | None] = mapped_column(sa.String(24), nullable=True)
+    raw_values_complete: Mapped[bool | None] = mapped_column(sa.Boolean, nullable=True)
+
 
 class PendingRollRequestORM(Base):
-    """Persisted state for a player-roll request spanning two turns.
+    """Persisted state for a player-roll request, linked to its sequence.
 
-    Created on the announce turn (written inside the 12c outer transaction).
-    Consumed on the turn the Sojourner reports the result.
-
-    ``hidden_modifier_present`` is stored for internal audit only and must
-    never be exposed in player-facing output, prompts, or delivered turn data.
+    Revised by CRD Issue 15b per ADR-015b's Column Disposition table. Retired
+    display/derivation columns (``roll_expression``, ``expected_value_shape``,
+    ``visible_modifier_total``, ``visible_modifier_breakdown_json``,
+    ``check_label``, ``player_facing_instruction``, ``visible_modifier_note``,
+    ``hidden_modifier_present``) are dropped after migration backfill; display
+    text now derives from ``instruction_snapshot_json``. New rows require
+    ``sequence_id``/``step_id``/``instruction_id``/``instruction_revision``/
+    ``instruction_schema_version``/``instruction_snapshot_json``; legacy
+    consumed rows may retain nullable sequence/instruction linkage.
     """
 
     __tablename__ = "pending_roll_requests"
@@ -93,10 +125,6 @@ class PendingRollRequestORM(Base):
         sa.ForeignKey("turns.turn_id", ondelete="SET NULL"),
         nullable=True,
     )
-    check_label: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    player_facing_instruction: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    expected_value_shape: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    visible_modifier_note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     visibility: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     source_proposal_ref: Mapped[str] = mapped_column(sa.Text, nullable=False)
     status: Mapped[str] = mapped_column(
@@ -106,20 +134,167 @@ class PendingRollRequestORM(Base):
     schema_version: Mapped[int] = mapped_column(
         sa.Integer, nullable=False, server_default="1"
     )
-    roll_expression: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    visible_modifier_total: Mapped[int | None] = mapped_column(
-        sa.Integer, nullable=True
-    )
-    visible_modifier_breakdown_json: Mapped[str | None] = mapped_column(
-        sa.Text, nullable=True
-    )
-    hidden_modifier_present: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, server_default="0"
-    )
     adapter_context_hash: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
 
+    # -- CRD Issue 15b: structured instruction linkage -----------------------
+    sequence_id: Mapped[str | None] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("action_resolution_sequences.sequence_id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    step_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    instruction_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    instruction_revision: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    instruction_schema_version: Mapped[int | None] = mapped_column(
+        sa.Integer, nullable=True
+    )
+    instruction_snapshot_json: Mapped[str | None] = mapped_column(
+        sa.Text, nullable=True
+    )
+
     additional_data: Mapped[dict[str, Any] | None] = mapped_column(
         sa.JSON, nullable=True
+    )
+
+
+class ActionResolutionSequenceORM(Base):
+    """Persisted unit spanning one declared action or mechanically linked action group.
+
+    CRD Issue 15b. At most one unresolved sequence exists per story, enforced
+    by the partial unique index below over ``active``/``ready_for_narration``
+    statuses — the same pattern already used by
+    ``uq_pending_roll_requests_story_active``.
+
+    ``current_pending_roll_request_id`` and ``current_decision_request_id``
+    are plain UUID-string pointers, not FK-constrained: the integrity
+    direction that matters is ``PendingRollRequestORM.sequence_id -> here``,
+    not the reverse, and a real reverse FK would create a circular
+    table-creation dependency for no correctness benefit. Identity, status,
+    and the pending-interaction pointers are real typed/queryable columns;
+    ``resolved_steps_json``/``projected_state_json``/``provisional_effects_json``
+    are JSON blobs because they are only ever loaded whole and interpreted in
+    Python by ``ActionResolutionService`` — never queried or indexed by SQL —
+    matching this module's existing convention for similar payloads
+    (``raw_rolls_json``, ``modifiers_json``, ``sheet_effects_json``).
+    ``current_decision_snapshot_json`` similarly holds the small ephemeral
+    prompt/options payload for a pending mechanical decision; a dedicated
+    child table for a single-slot-per-sequence value would be unjustified.
+    """
+
+    __tablename__ = "action_resolution_sequences"
+    __table_args__ = (
+        sa.Index(
+            "uq_unresolved_action_resolution_per_story",
+            "story_id",
+            unique=True,
+            sqlite_where=sa.text("status IN ('active', 'ready_for_narration')"),
+        ),
+    )
+
+    sequence_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    story_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    node_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("nodes.node_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    character_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rpg_character_sheet_bases.sheet_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    originating_turn_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("turns.turn_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # -- CRD Issue 15b: session identity (ADR-015b 15b-34) ------------------
+    session_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+
+    status: Mapped[str] = mapped_column(
+        sa.String(24), nullable=False, server_default="active"
+    )
+    current_interaction_kind: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="none"
+    )
+    current_pending_roll_request_id: Mapped[str | None] = mapped_column(
+        sa.String(36), nullable=True
+    )
+    current_decision_request_id: Mapped[str | None] = mapped_column(
+        sa.String(36), nullable=True
+    )
+    current_decision_snapshot_json: Mapped[str | None] = mapped_column(
+        sa.Text, nullable=True
+    )
+
+    resolved_steps_json: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default="[]"
+    )
+    projected_state_json: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default="{}"
+    )
+    provisional_effects_json: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default="[]"
+    )
+
+    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    updated_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    schema_version: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default="1"
+    )
+
+
+class ActionResolutionEventORM(Base):
+    """Append-only ledger of accepted mechanical outcomes.
+
+    CRD Issue 15b (ADR-015b 15b-34). Written inside the intermediate
+    transaction that advances a sequence (accepted roll, adjustment, or
+    mechanical decision) — never the final delivery transaction, and never
+    updated or deleted once committed. UPDATE and DELETE are prevented by
+    DB-layer triggers (see migration 0019), the same pattern
+    ``RpgRollAuditORM`` already uses (migration 0011).
+
+    ``sequence_id``/``step_id``/``story_id``/``session_id``/``character_id``
+    are plain unconstrained strings, not FK-constrained: audit permanence
+    must not depend on the lifecycle of the row they identify, matching
+    ``RpgRollAuditORM``'s own identity columns. ``payload_json`` holds the
+    kind-discriminated ``RollEventPayload``/``AdjustmentEventPayload``/
+    ``MechanicalDecisionEventPayload`` — only ever loaded whole and
+    interpreted in Python, matching this module's JSON-blob convention for
+    similar payloads. The unique index on ``(sequence_id, event_order)`` is
+    the DB-level backstop against a duplicate or racing event write for the
+    same sequence position.
+    """
+
+    __tablename__ = "action_resolution_events"
+    __table_args__ = (
+        sa.Index(
+            "uq_action_resolution_events_sequence_order",
+            "sequence_id",
+            "event_order",
+            unique=True,
+        ),
+    )
+
+    event_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    sequence_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    step_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    story_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    session_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    character_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    event_order: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    kind: Mapped[str] = mapped_column(sa.String(24), nullable=False)
+    mechanical_provenance: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    provisional_effects_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    payload_json: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    schema_version: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default="1"
     )
