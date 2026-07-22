@@ -4,9 +4,8 @@
 SRD 5.2.1 ingestion, the bounded d20 adapter, and frozen PR #129 (CRD Issue 15b Phase 2). Not scoped to
 a single CRD issue; this ADR establishes the repair order for CRD Issues 5c, 5d, 2b, and 15c below.
 **Date:** 2026-07-21
-**Status:** Accepted — owner directive dated 2026-07-21 authorizing this document. This acceptance
-covers the seven decisions and repository-consistency updates recorded here; it is not an owner comment
-on a specific PR (none exists yet for this documentation-only change).
+**Status:** Accepted — owner directive dated 2026-07-21 authorizing the seven decisions recorded here.
+Repository adoption proceeds through the documentation PR that introduces this ADR.
 
 ---
 
@@ -76,10 +75,15 @@ documents:
    pipeline's own outputs to each other. `sql_ingest_complete` is set `True` once `sql_chunk_count > 0`
    (i.e., "at least one chunk exists"), not "the corpus is complete." No check compares ingested content
    to the source PDF or any independent completeness reference.
-5. **Ingestion tests use deliberately minimal fixtures.** `tests/ingestion/test_ingestion.py` (2,216
-   lines, 63 tests) proves provenance non-nullity, manifest gating, idempotency, and publish/draft
-   visibility against the same small curated fixture — it does not, and structurally cannot, prove
-   production-corpus completeness.
+5. **Ingestion tests use deliberately minimal, independently constructed fixtures — not the committed
+   production artifact.** `tests/ingestion/test_ingestion.py` (2,216 lines, 63 tests) defines its own
+   in-memory `srd_data_fixture` (a hand-constructed minimal dict covering all 8 subsystems: 3 spells, 3
+   conditions, 2 items, 1 stat block, 1 action) to prove provenance non-nullity, manifest gating,
+   idempotency, and publish/draft visibility. This fixture is not `data/srd/srd_5_2_1_structured.json` —
+   the test suite never loads or validates the committed production corpus against the official SRD
+   inventory, and therefore cannot prove production-corpus completeness. This is a distinct gap from the
+   fixture's own minimality: even a much larger hand-constructed fixture would not close it, because
+   nothing in the suite checks the *committed artifact* at all.
 6. **Rules Package entities lack typed numeric/relational mechanical data.**
    `src/afterworlds/models/rules_package.py`: `SpellEntity.effect_description`, `ConditionEntity.
    effects`, `ActionEntity.effect`, and `StatBlockEntity.actions` are all plain `str`/`tuple[str, ...]`
@@ -195,7 +199,7 @@ Every executable fact must resolve to authoritative source provenance, use an ap
 representation, remain distinguishable from source prose, and be covered by the adapter capability
 manifest. The project preserves complete source authority without pretending to compile every source
 sentence into executable mechanics. This directly targets defect items 1 and 6: full-corpus ingestion
-(the source-corpus layer) and typed mechanical fields (the executable-projection layer) are separate
+(the source-corpus layer) and typed mechanical authority (the executable-projection layer) are separate
 repair efforts with separate acceptance criteria — conflating them is what let a 50-entity subset with
 prose-only mechanics stand in for both at once.
 
@@ -220,8 +224,10 @@ authority.
 
 This preserves and restates the Issue 18 boundary already established in ADR-018 (Central Invariant and
 Decision 10, quoted in Context item 11) rather than introducing a new one. It also forecloses the stale
-`_verify_dc` "deferred to Issue 18" plan noted in the Verification Note: DC authority must come from a
-typed Rules Package field (CRD Issue 5d), never from retrieval.
+`_verify_dc` "deferred to Issue 18" plan noted in the Verification Note: DC authority must come from
+typed, persisted, source-linked Rules Package mechanical authority defined by Issue 5d — whether that
+takes the shape of a field on an existing entity, a linked mechanical-projection record, or another typed
+persisted structure is an Issue 5d implementation choice this ADR does not make — never from retrieval.
 
 ### Decision 5 — Canonical Rules Package binding uses deterministic package identity, not an unverified slug
 
@@ -321,8 +327,8 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
 
 ### Costs and tradeoffs
 
-- Additional schema and migration work will be required (Rules Package DC/dice-term fields, deterministic
-  binding).
+- Additional schema and migration work will be required (Rules Package DC/dice-term mechanical authority,
+  deterministic binding) — exact shape is an Issue 5d decision, not fixed here.
 - Full-corpus ingestion and executable projection need separate tests and manifests.
 - Every supported adapter/package combination requires explicit certification.
 - Some SRD mechanics will remain present in the corpus but unsupported by deterministic adjudication.
@@ -339,14 +345,14 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
 ## Alternatives Considered
 
 1. **Continue patching the Issue 15b adapter against the current package.** Rejected — the adapter's
-   `_verify_dc` returns `None` unconditionally on `main` because no DC field exists anywhere upstream;
-   no adapter-local patch can manufacture data the Rules Package does not carry.
+   `_verify_dc` returns `None` unconditionally on `main` because no DC authority exists anywhere
+   upstream; no adapter-local patch can manufacture data the Rules Package does not carry.
 2. **Treat model interpretation of source prose as deterministic authority.** Rejected — this directly
    violates CLAUDE.md invariant 10 and ADR-015 Decision 7; the model is not code-owned and cannot be the
    trust boundary for mechanical values.
 3. **Parse arbitrary dice and effect prose at runtime.** Rejected — turns ingestion into an inferred
    rules engine (Decision 3), reintroducing exactly the "generated mechanical logic" risk this ADR
-   forecloses, and offers no provenance guarantee that a typed, source-linked field does.
+   forecloses, and offers no provenance guarantee that typed, source-linked mechanical authority does.
 4. **Treat ChromaDB or semantic retrieval as the missing rules engine.** Rejected — already foreclosed by
    ADR-018 Decision 10; retrieval is a discovery aid, never authority (Decision 4).
 5. **Mark the curated subset as the intended v1 package and silently weaken Issue 5b's full-corpus
@@ -402,15 +408,22 @@ CRD-issue-vs-GitHub-issue namespace distinction — do not invent GitHub numbers
 
 ## `known_unknowns.md` Resolution Text
 
-The **"Rules Package carries no structured numeric/mechanical data (DC, dice formulas)"** entry (Open
-section) is updated in place: the architectural question — how DC and dice-term authority should be
-modeled and bound so the adapter can execute against real Rules Package content, and how that authority
-must never silently fall back to prose, retrieval, or model inference — is resolved by ADR-005c
-(Decisions 1, 2, 4, 5, 6). Implementation remains pending CRD Issues 5c (corpus), 5d (structured
-mechanical authority and deterministic binding), 2b (character-state completeness), and 15c (adapter
-production reachability). The narrower, separately-tracked **"Parameterized adjustments
-(spell-slot-level upcasting, variable-amount resource recovery)"** entry is preserved unchanged — it is a
-distinct, still-open mechanic-shape question that ADR-005c does not resolve.
+Neither entry below existed in canonical `known_unknowns.md` on `main` before this ADR's documentation
+PR. Both were first surfaced and documented on frozen, unmerged PR #129 (Issue 15b Phase 2); because that
+PR never merged, neither entry ever reached the canonical record. This ADR's documentation change adds
+both entries to `known_unknowns.md` for the first time on `main`, with corrected dispositions rather than
+an import of PR #129's text as-is:
+
+- **"Rules Package carries no structured numeric/mechanical data (DC, dice formulas)"** (new entry, Open
+  section): the architectural question — how DC and dice-term authority should be modeled and bound so
+  the adapter can execute against real Rules Package content, and how that authority must never silently
+  fall back to prose, retrieval, or model inference — is resolved by ADR-005c (Decisions 1, 2, 4, 5, 6).
+  Implementation remains pending CRD Issues 5c (corpus), 5d (structured mechanical authority and
+  deterministic binding), 2b (character-state completeness), and 15c (adapter production reachability).
+- **"Parameterized adjustments (spell-slot-level upcasting, variable-amount resource recovery)"** (new
+  entry, Open section): added as a distinct, still-open mechanic-shape question that ADR-005c does not
+  resolve. Any production-coverage or production-reachability claims present in PR #129's version of this
+  question are not imported — see Context items 1, 5, and 12 above.
 
 ---
 
