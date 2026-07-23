@@ -299,6 +299,49 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(session, candidate)
     assert pkg_row.published_at == _NOW  # reuse never mutated the publish record
 
 
+def test_reuse_rejects_inconsistent_package_row_state(session, candidate):
+    """A published rp_corpus_releases row is not, by itself, sufficient
+    evidence for reuse — the rp_packages row must independently confirm
+    published+enabled, or reuse must fail closed rather than report success."""
+    first = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    assert first.published and not first.reused
+
+    pkg_row = session.execute(
+        select(RulesPackageORM).where(
+            RulesPackageORM.rules_package_id == candidate.package_uuid
+        )
+    ).scalar_one()
+    pkg_row.publication_status = "draft"
+    session.commit()
+
+    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    assert not result.published and not result.reused
+    assert result.gate is not None
+    assert any("rp_packages" in f for f in result.gate.failures)
+
+
+def test_reuse_rejects_tampered_release_row(session, candidate):
+    """Reuse must re-run the full gate against the reconstructed existing
+    release, not just the digest — a tampered proof-identity field (here,
+    bundle_root_hash) must fail reuse even if the digest itself still
+    matches."""
+    first = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    assert first.published and not first.reused
+
+    release_row = session.execute(
+        select(CorpusReleaseORM).where(
+            CorpusReleaseORM.package_uuid == candidate.package_uuid
+        )
+    ).scalar_one()
+    release_row.bundle_root_hash = "0" * 64
+    session.commit()
+
+    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    assert not result.published and not result.reused
+    assert result.gate is not None
+    assert any("bundle_root_hash" in f for f in result.gate.failures)
+
+
 def test_final_gate_failure_does_not_publish_partial_content(session, candidate):
     tampered = dataclasses.replace(candidate, transform_config_hash="0" * 64)
 

@@ -762,28 +762,47 @@ def finalize_release(
             policy=candidate.policy,
             bundle=candidate.bundle,
         )
-        if not verify_persisted_digest(session, pkg, policy=candidate.policy):
+        legacy_violations = check_legacy_reachability(session, repo_root)
+        sql_persist_ok = (
+            len(artifacts.ledger.leaves) == len(candidate.ledger.leaves)
+            and len(artifacts.members.chunks) == len(candidate.members.chunks)
+            and not membership_violations
+        )
+        # Re-run the *full* gate against the reconstructed existing release —
+        # not just the digest — so a reuse can't be accepted on a release whose
+        # other proof identities (bundle root, evidence-report hash, reconciliation
+        # hash, ...) or live legacy state no longer satisfy publication.
+        gate = run_gate(
+            artifacts,
+            legacy_reachability_violations=len(legacy_violations),
+            chunk_membership_violations=len(membership_violations),
+            sql_persist_ok=sql_persist_ok,
+            vector_write_ok=True,
+        )
+        package_row = session.execute(
+            select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+        ).scalar_one_or_none()
+        package_state_ok = (
+            package_row is not None
+            and package_row.is_enabled
+            and package_row.publication_status == "published"
+        )
+        if not gate.passed or not package_state_ok:
+            failures = list(gate.failures)
+            if not package_state_ok:
+                failures.append(
+                    f"rp_packages row for {pkg} is missing or not in a "
+                    "published+enabled state consistent with its published "
+                    "rp_corpus_releases row"
+                )
             return FinalizeResult(
                 published=False,
                 reused=False,
                 artifacts=None,
-                gate=GateResult(
-                    passed=False,
-                    failures=(
-                        f"published release {pkg} failed digest re-verification "
-                        "on reuse (persisted state tampered since publication)",
-                    ),
-                ),
-            )
-        if membership_violations:
-            return FinalizeResult(
-                published=False,
-                reused=False,
-                artifacts=None,
-                gate=GateResult(passed=False, failures=membership_violations),
+                gate=GateResult(passed=False, failures=tuple(failures)),
             )
         return FinalizeResult(
-            published=True, reused=True, artifacts=artifacts, gate=None
+            published=True, reused=True, artifacts=artifacts, gate=gate
         )
 
     # --- c: persist the candidate as a non-runtime-visible draft -------------
