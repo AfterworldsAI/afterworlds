@@ -24,6 +24,7 @@ import unicodedata
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.models import (
     ExclusionReason,
+    Leaf,
     LeafType,
     ProjectionRole,
     ReconciliationPolicy,
@@ -164,3 +165,34 @@ def policy_payload(policy: ReconciliationPolicy) -> dict[str, object]:
 def policy_hash(policy: ReconciliationPolicy) -> str:
     """SHA-256 of the policy's canonical payload."""
     return hash_obj(policy_payload(policy))
+
+
+# ---------------------------------------------------------------------------
+# Deterministic exclusion predicates (Component D policy application)
+# ---------------------------------------------------------------------------
+
+_TOC_INDEX_LABELS = ("table of contents", "index")
+
+
+def exclusion_reason_for(
+    leaf: Leaf, container_labels: dict[str, str]
+) -> ExclusionReason | None:
+    """Return the frozen policy's exclusion reason for *leaf*, or None.
+
+    This is the single deterministic policy application shared by the transform
+    (which skips excluded leaves — K a2) and the reconciler (which assigns the
+    final disposition — K a3), so the two can never disagree. A leaf with no
+    reason is represented; a leaf the transform failed to represent yet matches
+    no reason is left unresolved by the reconciler.
+    """
+    if leaf.leaf_type is LeafType.HEADER_FOOTER:
+        return FROZEN_POLICY.reason("running_header_footer")
+    path_labels = " ".join(
+        container_labels.get(cid, "").casefold() for cid in leaf.container_path
+    )
+    if any(tag in path_labels for tag in _TOC_INDEX_LABELS) and leaf.leaf_type in (
+        LeafType.HEADING,
+        LeafType.PARAGRAPH,
+    ):
+        return FROZEN_POLICY.reason("toc_or_index_listing")
+    return None
