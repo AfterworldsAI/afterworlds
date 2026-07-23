@@ -40,6 +40,7 @@ def run_gate(
     artifacts: ReleaseArtifacts,
     *,
     legacy_reachability_violations: int = 0,
+    chunk_membership_violations: int = 0,
     sql_persist_ok: bool = True,
     vector_write_ok: bool = True,
 ) -> GateResult:
@@ -209,6 +210,15 @@ def run_gate(
     # 22. Zero legacy-reachability violations (Owner Decision 1 / Component L).
     if legacy_reachability_violations != 0:
         f.append("legacy-reachability violation present")
+
+    # 23. Persisted rp_chunks exactly matches the declared projection set, and
+    #     every declared-projected chunk and its source are runtime-enabled —
+    #     otherwise the digest/report can pass while runtime reads omit or add
+    #     content (checked against the live DB by
+    #     persistence.verify_chunk_runtime_membership; not recomputable from
+    #     in-memory artifacts alone).
+    if chunk_membership_violations != 0:
+        f.append("persisted rp_chunks runtime-membership violation present")
 
     return GateResult(passed=not f, failures=tuple(f))
 

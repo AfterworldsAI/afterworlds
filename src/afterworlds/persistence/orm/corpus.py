@@ -43,14 +43,28 @@ class CorpusReleaseORM(Base):
     )
     transform_config_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     bundle_root_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    evidence_report_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    persisted_corpus_digest: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    # These three are the post-persistence proof identities (Component K steps
+    # d/e/f): they cannot be known when the draft row is first inserted, before
+    # the leaf/chunk/projection rows exist to reconstruct and digest. They stay
+    # NULL from insertion through the draft phase and are set exactly once, by
+    # ``persistence.finalize_release``, from the actual persisted/reconstructed
+    # state — never defaulted, never caller-supplied as evidence of persistence.
+    evidence_report_hash: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    persisted_corpus_digest: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
     ledger_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     policy_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     reconciliation_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    corpus_report_reference: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    corpus_report_reference: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
     transform_config: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
-    report_payload: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
+    report_payload: Mapped[dict[str, Any] | None] = mapped_column(
+        sa.JSON, nullable=True
+    )
     publication_status: Mapped[str] = mapped_column(
         sa.String(32), nullable=False, default="draft"
     )

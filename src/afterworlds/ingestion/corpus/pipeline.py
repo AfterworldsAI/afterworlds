@@ -2,18 +2,31 @@
 
 Drives the fixed acyclic order that produces every proof identity, so no
 artifact is ever covered by a hash it contains and the evidence report is never
-generated before the (logical) persisted state exists:
+generated before the (actual, persisted) state it reports on exists:
 
     a0  freeze the reconciliation policy (committed input, covered by B)
     a1  derive and hash the frozen source ledger
     a2  generate the canonical corpus members from the frozen ledger
     a3  apply only the frozen policy → reconciliation member
-    b   compute the bundle-root hash
-    (c  persist — see persistence layer)
-    d   compute the persisted-corpus digest from the canonical logical state
+    b   compute the bundle-root hash                                  } build_candidate
+    ------------------------------------------------------------------
+    c   persist — see persistence.finalize_release
+    d   compute the persisted-corpus digest from the actual persisted
+        (and reconstructed) state
     e   generate the evidence report (post-persistence)
     f   hash the completed evidence report
-    g   record the five top-level hashes in the release record
+    g   record the five top-level hashes in the release record and    } finalize_release
+        run the final publication gate                                (persistence.py)
+
+``build_candidate`` performs only steps a0–b: everything that is a pure,
+deterministic function of the committed PDF and frozen policy, and nothing
+else. Its result, :class:`CandidateRelease`, structurally cannot claim that
+persistence occurred — it has no evidence report, no persisted-corpus digest,
+and no external release/publication record, because steps c–g require an
+actual database and cannot be produced, or faked via a boolean flag, in
+memory. :func:`afterworlds.ingestion.corpus.persistence.finalize_release`
+performs steps c–g against a live session and returns the completed
+:class:`ReleaseArtifacts`.
 
 A clean checkout regenerates a0–g byte-for-byte from committed inputs.
 """
@@ -27,24 +40,17 @@ from afterworlds.ingestion.corpus.bundle import (
     build_bundle,
     derive_package_uuid,
     derive_release_version,
-    persisted_corpus_digest,
     reconciliation_hash,
     transform_config_hash,
     transform_config_payload,
 )
-from afterworlds.ingestion.corpus.concordance import (
-    CanaryResult,
-    ConcordanceResult,
-    check_canaries,
-    check_concordance,
-)
+from afterworlds.ingestion.corpus.concordance import CanaryResult, ConcordanceResult
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
     CorpusBundleMembers,
     ReconciliationMember,
     ReconciliationPolicy,
-    ReleaseIdentity,
     ReleaseRecord,
     SourceLedger,
 )
@@ -56,17 +62,19 @@ from afterworlds.ingestion.corpus.pdf_source import (
 )
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_hash
 from afterworlds.ingestion.corpus.reconcile import reconcile
-from afterworlds.ingestion.corpus.report import (
-    EvidenceReport,
-    build_report,
-    report_hash,
-)
+from afterworlds.ingestion.corpus.report import EvidenceReport
 from afterworlds.ingestion.corpus.transform import build_corpus
 
 
 @dataclass(frozen=True)
-class ReleaseArtifacts:
-    """Everything a build produces, in one immutable bundle."""
+class CandidateRelease:
+    """Everything derivable before persistence exists (Component K steps a0–b).
+
+    This type cannot claim persistence occurred: it carries no evidence report,
+    no persisted-corpus digest, and no external release/publication record. Those
+    require an actual persisted (and reconstructed) database state and are the
+    sole responsibility of :func:`persistence.finalize_release` (steps c–g).
+    """
 
     pages: list[ExtractedPage]
     ledger: SourceLedger
@@ -74,20 +82,29 @@ class ReleaseArtifacts:
     reconciliation: ReconciliationMember
     policy: ReconciliationPolicy
     bundle: CanonicalBundle
-    report: EvidenceReport
-    release: ReleaseRecord
-    concordance: ConcordanceResult
-    canaries: tuple[CanaryResult, ...]
+    package_uuid: str
+    release_version: str
+    authoritative_source_hash: str
+    transform_config_hash: str
+    transform_config: dict[str, object]
+    ledger_hash: str
+    policy_hash: str
+    reconciliation_hash: str
 
 
-def build_release(
+def build_candidate(
     pdf_path: Path,
     *,
-    legacy_reachability_violations: int = 0,
-    persisted: bool = True,
     policy: ReconciliationPolicy = FROZEN_POLICY,
-) -> ReleaseArtifacts:
-    """Execute steps a0–g and return the release artifacts (Component K)."""
+) -> CandidateRelease:
+    """Execute steps a0–b: the pre-persistence candidate build.
+
+    Deterministic and side-effect-free; touches no database. The returned
+    ``package_uuid``/``release_version`` are content-derived from the committed
+    PDF and frozen transform/policy inputs (Owner Decision 1) and are therefore
+    already stable at this stage — but nothing about the state described here is
+    yet proven persisted or runtime-visible.
+    """
     # a0 — freeze policy (committed input).
     p_hash = policy_hash(policy)
     ex_cfg = extraction_config()
@@ -112,63 +129,40 @@ def build_release(
     # b — bundle-root hash.
     bundle = build_bundle(ledger, members, recon)
 
-    concordance = check_concordance(members.chunks, pages)
-    canaries = check_canaries(pages)
-
-    # d — persisted-corpus digest from the canonical logical persisted state.
-    digest = (
-        persisted_corpus_digest(
-            package_uuid, release_version, ledger, members, recon, policy
-        )
-        if persisted
-        else ""
-    )
-
-    # e — evidence report (post-persistence).
-    report = build_report(
-        ledger=ledger,
-        members=members,
-        recon=recon,
-        policy=policy,
-        authoritative_source_hash=PDF_SHA256,
-        transform_config_hash=thash,
-        bundle_root_hash=bundle.bundle_root_hash,
-        ledger_hash_value=l_hash,
-        persisted_corpus_digest=digest,
-        concordance=concordance,
-        canaries=canaries,
-        legacy_reachability_violations=legacy_reachability_violations,
-        persisted=persisted,
-    )
-    # f — hash the completed report.
-    report_h = report_hash(report)
-
-    # g — external release/publication record with the five top-level hashes.
-    release = ReleaseRecord(
-        package_uuid=package_uuid,
-        release_version=release_version,
-        identity=ReleaseIdentity(
-            authoritative_source_hash=PDF_SHA256,
-            transform_config_hash=thash,
-            bundle_root_hash=bundle.bundle_root_hash,
-            evidence_report_hash=report_h,
-            persisted_corpus_digest=digest,
-        ),
-        transform_config=tconfig,
-        ledger_hash=l_hash,
-        policy_hash=p_hash,
-        reconciliation_hash=r_hash,
-        corpus_report_reference=report_h,
-    )
-    return ReleaseArtifacts(
+    return CandidateRelease(
         pages=pages,
         ledger=ledger,
         members=members,
         reconciliation=recon,
         policy=policy,
         bundle=bundle,
-        report=report,
-        release=release,
-        concordance=concordance,
-        canaries=canaries,
+        package_uuid=package_uuid,
+        release_version=release_version,
+        authoritative_source_hash=PDF_SHA256,
+        transform_config_hash=thash,
+        transform_config=tconfig,
+        ledger_hash=l_hash,
+        policy_hash=p_hash,
+        reconciliation_hash=r_hash,
     )
+
+
+@dataclass(frozen=True)
+class ReleaseArtifacts:
+    """The completed, post-persistence release (Component K steps a0–g).
+
+    Produced only by :func:`persistence.finalize_release` from a candidate plus
+    the actual reconstructed persisted state — never assembled directly from a
+    :class:`CandidateRelease` alone.
+    """
+
+    pages: list[ExtractedPage]
+    ledger: SourceLedger
+    members: CorpusBundleMembers
+    reconciliation: ReconciliationMember
+    policy: ReconciliationPolicy
+    bundle: CanonicalBundle
+    report: EvidenceReport
+    release: ReleaseRecord
+    concordance: ConcordanceResult
+    canaries: tuple[CanaryResult, ...]

@@ -12,9 +12,9 @@ from afterworlds.ingestion.corpus.bundle import reconciliation_hash
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
 from afterworlds.ingestion.corpus.models import Disposition, LeafType
-from afterworlds.ingestion.corpus.pipeline import build_release
+from afterworlds.ingestion.corpus.pipeline import build_candidate
 
-from .conftest import PDF_PATH
+from .conftest import PDF_PATH, finalize_in_fresh_db
 
 # --- Component C: frozen ledger, occurrence partition, disjointness -----------
 
@@ -146,8 +146,13 @@ def test_release_binds_five_top_level_hashes(release):
 
 
 def test_clean_regeneration_is_byte_for_byte_deterministic(release):
-    # One fresh regeneration must reproduce the session build byte-for-byte.
-    b = build_release(PDF_PATH)
+    # One fresh regeneration — full candidate build + finalize into a brand-new
+    # DB — must reproduce the session build byte-for-byte, including the
+    # post-persistence proof hashes (Component K's full acyclic c-g order).
+    fresh_candidate = build_candidate(PDF_PATH)
+    result = finalize_in_fresh_db(fresh_candidate)
+    assert result.published and result.artifacts is not None, result.gate
+    b = result.artifacts
     assert release.release.package_uuid == b.release.package_uuid
     assert release.release.release_version == b.release.release_version
     assert release.release.identity == b.release.identity

@@ -32,14 +32,19 @@ def upgrade() -> None:
         sa.Column("authoritative_source_hash", sa.String(64), nullable=False),
         sa.Column("transform_config_hash", sa.String(64), nullable=False),
         sa.Column("bundle_root_hash", sa.String(64), nullable=False),
-        sa.Column("evidence_report_hash", sa.String(64), nullable=False),
-        sa.Column("persisted_corpus_digest", sa.String(64), nullable=False),
+        # Post-persistence proof identities (Component K steps d/e/f): NULL on
+        # the initial draft insert (the leaf/chunk/projection rows they are
+        # computed from do not exist yet), set exactly once by
+        # ``persistence.finalize_release`` from the actual persisted and
+        # reconstructed state before the final gate runs.
+        sa.Column("evidence_report_hash", sa.String(64), nullable=True),
+        sa.Column("persisted_corpus_digest", sa.String(64), nullable=True),
         sa.Column("ledger_hash", sa.String(64), nullable=False),
         sa.Column("policy_hash", sa.String(64), nullable=False),
         sa.Column("reconciliation_hash", sa.String(64), nullable=False),
-        sa.Column("corpus_report_reference", sa.String(64), nullable=False),
+        sa.Column("corpus_report_reference", sa.String(64), nullable=True),
         sa.Column("transform_config", sa.JSON, nullable=False),
-        sa.Column("report_payload", sa.JSON, nullable=False),
+        sa.Column("report_payload", sa.JSON, nullable=True),
         sa.Column("publication_status", sa.String(32), nullable=False),
         sa.Column("created_at", sa.String(64), nullable=False),
         sa.ForeignKeyConstraint(
