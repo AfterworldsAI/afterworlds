@@ -5,6 +5,15 @@ derived deterministically from the authoritative PDF. This document defines the
 acyclic proof lifecycle (Component K) and the determinism rules that make a clean
 checkout regenerate an identical release.
 
+**Scope of the claim.** Reproducibility is byte-for-byte **within the recorded
+reproduction environment**: the pinned extractor (below), Python 3.12, and the
+platform recorded in the evidence report (`reproduction_environment`). The corpus
+content identities (ledger, bundle root, persisted-corpus digest, package UUID)
+depend only on the PDF and the transform configuration, not on the platform; the
+environment is recorded so a divergence — should a future extractor or platform
+change extraction output — is observable rather than silent. Cross-platform
+byte-identity has not been independently proven and is verified per environment.
+
 ## Inputs (committed)
 
 - **Authoritative source:** `docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf`
