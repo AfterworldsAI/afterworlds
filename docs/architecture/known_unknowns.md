@@ -217,10 +217,15 @@ non-consumed termination path.
 architectural question — how DC and dice-term authority should be modeled and bound so an adapter can
 execute against real Rules Package content, and why that authority must never silently fall back to
 prose, retrieval, or model inference — is resolved by ADR-005c (Decisions 1, 2, 4, 5, 6).
-**Implementation remains pending** CRD Issue 5c (SRD corpus integrity / reproducible full-corpus
-ingestion), CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b
-(D&D 5e character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20
-adapter production reachability).
+**Source-corpus layer implemented by CRD Issue 5c (#132).** The authoritative full-corpus ingestion,
+frozen source ledger, frozen reconciliation policy, deterministic reconciliation, source-to-corpus
+concordance, byte-for-byte reproducible acyclic build, corpus-publication gate, and strict legacy
+quarantine are delivered under ADR-005c Completion Contract A. This establishes the source-corpus layer
+and the new package UUID/release-version seam only; it does **not** provide executable mechanical
+authority (no MechanicalEntity, no DC/dice typing — Owner Decision 2). **Implementation remains pending**
+CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b (D&D 5e
+character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
+production reachability).
 
 **Surfaced during:** Issue 15b Phase 2 implementation on frozen PR #129 (`D20RulesSystemAdapter.
 _verify_dc` unconditionally returns `None`; Rules Package entities carry no `dc`/`difficulty_class` field
