@@ -12,6 +12,8 @@ is computed over the completed report (K step f) and recorded externally.
 
 from __future__ import annotations
 
+import platform
+import sys
 from collections import Counter
 from dataclasses import dataclass
 
@@ -85,6 +87,15 @@ def build_report(
         "persisted_corpus_digest": persisted_corpus_digest,
         # Transform + policy identity.
         "transform_identity": ledger.extraction_config,
+        # The environment needed to reproduce the transform (Component B). Recorded
+        # here (not in the corpus content hashes) so an identical corpus keeps the
+        # same package identity across platforms while the environment stays on
+        # record; reproducibility is claimed within this recorded environment.
+        "reproduction_environment": {
+            "python": f"{sys.version_info.major}.{sys.version_info.minor}",
+            "platform_system": platform.system(),
+            "platform_machine": platform.machine(),
+        },
         "reconciliation_policy_reference": {
             "policy_version": policy.policy_version,
             "policy_hash": policy_hash(policy),

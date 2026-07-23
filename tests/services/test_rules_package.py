@@ -24,6 +24,7 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+import afterworlds.persistence.orm.corpus  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -233,6 +234,14 @@ class TestRpTablePrefix:
             "rp_mechanical_entities",
             "rp_overrides",
             "rp_manifests",
+            # CRD Issue 5c (#132) corpus-integrity release tables.
+            "rp_corpus_releases",
+            "rp_source_ledgers",
+            "rp_ledger_containers",
+            "rp_ledger_leaves",
+            "rp_reconciliation_policies",
+            "rp_reconciliations",
+            "rp_corpus_projections",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
