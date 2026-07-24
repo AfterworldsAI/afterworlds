@@ -117,7 +117,7 @@ def build_candidate(
     l_hash = ledger_hash(ledger)
 
     package_uuid = derive_package_uuid(PDF_SHA256, thash)
-    release_version = derive_release_version(thash)
+    release_version = derive_release_version(PDF_SHA256, thash)
 
     # a2 — generate canonical corpus members from the frozen ledger.
     members = build_corpus(ledger)
@@ -166,3 +166,8 @@ class ReleaseArtifacts:
     release: ReleaseRecord
     concordance: ConcordanceResult
     canaries: tuple[CanaryResult, ...]
+    # The actual verified vector logical state read back from the real Chroma
+    # collection at publish/reuse time (Component K step c + digest, PR #134
+    # defect family 1). A plain serializable payload so the gate can recompute
+    # the persisted-corpus digest without a Chroma dependency of its own.
+    vector_state: dict[str, object]

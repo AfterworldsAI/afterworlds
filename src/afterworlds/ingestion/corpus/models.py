@@ -176,6 +176,18 @@ class CorpusChunk:
     Maps 1:1 to a persisted ``RuleChunk`` row (Issue 5a model, unextended).
     ``source_leaf_ids`` records which leaves it aggregates; the projection edges
     carry the exact covered subspans and role (Component D/G).
+
+    ``source_document`` / ``source_locator_type`` / ``source_locator_value`` are
+    the Issue 5a runtime-visible provenance fields (Component G). They are
+    populated when a chunk is reconstructed from its persisted ``rp_chunks`` row
+    so that the persisted-corpus digest binds the *actual* served citation, not a
+    ledger-synthesized approximation of it — tampering any of them must break
+    ``verify_persisted_digest`` and the final/reuse gate (PR #134 remediation,
+    defect family 2). They default to empty for the pre-persistence build path
+    (``transform.build_corpus``), which does not carry provenance into the
+    bundle root; provenance enters the proof only through the persisted-state
+    digest, and ``persistence._persist_bundle_rows`` derives the persisted
+    values deterministically from the ledger + locator.
     """
 
     chunk_id: str
@@ -185,6 +197,9 @@ class CorpusChunk:
     section_label: str | None
     container_path: tuple[str, ...]
     source_leaf_ids: tuple[str, ...]
+    source_document: str = ""
+    source_locator_type: str = ""
+    source_locator_value: str = ""
 
 
 @dataclass(frozen=True)

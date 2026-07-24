@@ -9,8 +9,29 @@ from __future__ import annotations
 
 import dataclasses
 
-from afterworlds.ingestion.corpus.gate import run_gate
+from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
 from afterworlds.ingestion.corpus.models import ReconciliationFindings
+
+
+def _evidence(
+    *,
+    sql_persist_ok: bool = True,
+    vector_write_ok: bool = True,
+    legacy: int = 0,
+    membership: int = 0,
+    vector_failures: tuple[str, ...] = (),
+) -> PublicationEvidence:
+    """Explicit all-passing evidence for gate unit tests (each scenario breaks
+    exactly one input). This is a test helper, not a production caller — the
+    production gate surface (``PublicationEvidence``) has no defaults, so real
+    callers cannot hardcode success by omission."""
+    return PublicationEvidence(
+        sql_persist_ok=sql_persist_ok,
+        vector_write_ok=vector_write_ok,
+        legacy_reachability_violations=legacy,
+        chunk_membership_violations=membership,
+        vector_verification_failures=vector_failures,
+    )
 
 
 def _replace_identity(release, **kw):
@@ -26,38 +47,38 @@ def _replace_release(release, **kw):
 
 
 def test_gate_passes_on_the_real_release(release):
-    result = run_gate(release)
+    result = run_gate(release, _evidence())
     assert result.passed, result.failures
 
 
 def test_gate_fails_on_source_hash_mismatch(release):
     broken = _replace_identity(release, authoritative_source_hash="0" * 64)
-    assert not run_gate(broken).passed
+    assert not run_gate(broken, _evidence()).passed
 
 
 def test_gate_fails_on_substituted_ledger_hash(release):
     broken = _replace_release(release, ledger_hash="0" * 64)
-    result = run_gate(broken)
+    result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("ledger" in f for f in result.failures)
 
 
 def test_gate_fails_on_tampered_digest(release):
     broken = _replace_identity(release, persisted_corpus_digest="0" * 64)
-    result = run_gate(broken)
+    result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("digest" in f for f in result.failures)
 
 
 def test_gate_fails_on_missing_release_hash(release):
     broken = _replace_identity(release, bundle_root_hash="")
-    assert not run_gate(broken).passed
+    assert not run_gate(broken, _evidence()).passed
 
 
 def test_gate_fails_on_unresolved_leaves(release):
     recon = dataclasses.replace(release.reconciliation, unresolved_leaves=1)
     broken = dataclasses.replace(release, reconciliation=recon)
-    result = run_gate(broken)
+    result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("unresolved" in f for f in result.failures)
 
@@ -65,7 +86,9 @@ def test_gate_fails_on_unresolved_leaves(release):
 def test_gate_fails_on_gap_finding(release):
     findings = dataclasses.replace(release.reconciliation.findings, gaps=("some-leaf",))
     recon = dataclasses.replace(release.reconciliation, findings=findings)
-    assert not run_gate(dataclasses.replace(release, reconciliation=recon)).passed
+    assert not run_gate(
+        dataclasses.replace(release, reconciliation=recon), _evidence()
+    ).passed
 
 
 def test_gate_fails_on_orphan_finding(release):
@@ -73,7 +96,7 @@ def test_gate_fails_on_orphan_finding(release):
         release.reconciliation.findings, orphans=("some-chunk",)
     )
     recon = dataclasses.replace(release.reconciliation, findings=findings)
-    result = run_gate(dataclasses.replace(release, reconciliation=recon))
+    result = run_gate(dataclasses.replace(release, reconciliation=recon), _evidence())
     assert not result.passed
     assert any("orphan" in f for f in result.failures)
 
@@ -83,12 +106,14 @@ def test_gate_fails_on_duplication_finding(release):
         release.reconciliation.findings, duplications=("dup",)
     )
     recon = dataclasses.replace(release.reconciliation, findings=findings)
-    assert not run_gate(dataclasses.replace(release, reconciliation=recon)).passed
+    assert not run_gate(
+        dataclasses.replace(release, reconciliation=recon), _evidence()
+    ).passed
 
 
 def test_gate_fails_when_reconciliation_hash_substituted(release):
     broken = _replace_release(release, reconciliation_hash="0" * 64)
-    result = run_gate(broken)
+    result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("reconciliation" in f for f in result.failures)
 
@@ -96,18 +121,30 @@ def test_gate_fails_when_reconciliation_hash_substituted(release):
 def test_gate_fails_when_report_predates_persistence(release):
     report = dataclasses.replace(release.report, persisted=False)
     broken = dataclasses.replace(release, report=report)
-    result = run_gate(broken)
+    result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("predates persistence" in f for f in result.failures)
 
 
 def test_gate_fails_on_legacy_reachability_violation(release):
-    assert not run_gate(release, legacy_reachability_violations=1).passed
+    assert not run_gate(release, _evidence(legacy=1)).passed
 
 
 def test_gate_fails_when_sql_or_vector_persist_incomplete(release):
-    assert not run_gate(release, sql_persist_ok=False).passed
-    assert not run_gate(release, vector_write_ok=False).passed
+    assert not run_gate(release, _evidence(sql_persist_ok=False)).passed
+    assert not run_gate(release, _evidence(vector_write_ok=False)).passed
+
+
+def test_gate_fails_on_vector_verification_failure(release):
+    result = run_gate(
+        release, _evidence(vector_failures=("vector collection missing doc X",))
+    )
+    assert not result.passed
+    assert any("vector verification" in f for f in result.failures)
+
+
+def test_gate_fails_on_chunk_membership_violation(release):
+    assert not run_gate(release, _evidence(membership=1)).passed
 
 
 def test_gate_fails_on_empty_findings_replaced_unresolved(release):
@@ -115,7 +152,9 @@ def test_gate_fails_on_empty_findings_replaced_unresolved(release):
         release.reconciliation.findings, unresolved=("leaf",)
     )
     recon = dataclasses.replace(release.reconciliation, findings=findings)
-    assert not run_gate(dataclasses.replace(release, reconciliation=recon)).passed
+    assert not run_gate(
+        dataclasses.replace(release, reconciliation=recon), _evidence()
+    ).passed
 
 
 def test_findings_type_is_frozen():

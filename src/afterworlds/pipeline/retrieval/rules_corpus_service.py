@@ -37,6 +37,12 @@ from afterworlds.pipeline.retrieval.collections import (
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
 
+#: Maximum documents per Chroma add/upsert call. Chroma enforces its own
+#: ``max_batch_size`` (5461 on the pinned build); staying under it lets a
+#: full-corpus reindex (~13.6k chunks) proceed in bounded batches. Chunking the
+#: write does not change stored IDs, content, or metadata.
+_MAX_UPSERT_BATCH = 5000
+
 
 class RulesCorpusService:
     """Reindex/diagnostic-query path for the finalized rules_corpus collections."""
@@ -108,11 +114,18 @@ class RulesCorpusService:
             documents.append(row.content)
             metadatas.append(metadata.model_dump(mode="json"))
 
-        collection.upsert(
-            documents=documents,
-            metadatas=metadatas,  # type: ignore[arg-type]
-            ids=ids,
-        )
+        # Chroma caps a single add/upsert at ``max_batch_size`` (a few thousand);
+        # a full Rules Package corpus (CRD Issue 5c: ~13.6k chunks) exceeds it in
+        # one call. Upsert in bounded batches so a large package reindexes without
+        # a ValueError. Schema, deterministic IDs, and metadata are unchanged —
+        # only the write is chunked (Codex review, PR #134).
+        for start in range(0, len(ids), _MAX_UPSERT_BATCH):
+            stop = start + _MAX_UPSERT_BATCH
+            collection.upsert(
+                documents=documents[start:stop],
+                metadatas=metadatas[start:stop],  # type: ignore[arg-type]
+                ids=ids[start:stop],
+            )
         return len(rows)
 
     def diagnostic_query(

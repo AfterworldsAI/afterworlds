@@ -172,14 +172,51 @@ def derive_package_uuid(source_hash: str, transform_hash: str) -> str:
     return content_id("package", source_hash, transform_hash)
 
 
-def derive_release_version(transform_hash: str) -> str:
-    """Deterministic release version; a changed transform yields a new version."""
-    return f"{RELEASE_VERSION_PREFIX}.{transform_hash[:12]}"
+def derive_release_version(source_hash: str, transform_hash: str) -> str:
+    """Deterministic release version derived from **both** the authoritative
+    source identity and the transform identity — consistent with
+    :func:`derive_package_uuid`.
+
+    ``rp_packages`` uniquely constrains ``(name, version, system)`` and the
+    corpus always uses the fixed name ``SRD 5.2.1 Corpus``; if the version were
+    derived from the transform hash alone (PR #134 defect family 3), a changed
+    authoritative source with unchanged extraction/policy config would mint a
+    *new* ``package_uuid`` but collide on the *old* version, hitting the
+    uniqueness constraint instead of creating the expected new draft release.
+    Binding both identities into the version guarantees: identical inputs →
+    identical UUID *and* version (idempotent); a change to *either* source or
+    transform → both a new UUID *and* a new version, never mutating the
+    published predecessor.
+    """
+    # A short content-derived tag over both identities. Deterministic and stable
+    # across clean rebuilds; the same reproducibility discipline as the UUID.
+    version_tag = content_id("release_version", source_hash, transform_hash)[:12]
+    return f"{RELEASE_VERSION_PREFIX}.{version_tag}"
 
 
 # ---------------------------------------------------------------------------
 # Persisted-corpus digest (Component A step d)
 # ---------------------------------------------------------------------------
+
+
+def _chunk_provenance_payload(members: CorpusBundleMembers) -> list[dict[str, object]]:
+    """The runtime-visible RuleChunk provenance/source-membership (Component G).
+
+    Bound into the digest so that tampering any persisted citation field
+    (``source_document``, ``source_locator_type``, ``source_locator_value``)
+    changes the digest and fails verification/gating (PR #134 defect family 2).
+    ``members`` here are the *reconstructed* members, whose provenance was read
+    back from the actual ``rp_chunks`` rows.
+    """
+    return [
+        {
+            "chunk_id": c.chunk_id,
+            "source_document": c.source_document,
+            "source_locator_type": c.source_locator_type,
+            "source_locator_value": c.source_locator_value,
+        }
+        for c in members.chunks
+    ]
 
 
 def persisted_corpus_payload(
@@ -189,27 +226,24 @@ def persisted_corpus_payload(
     members: CorpusBundleMembers,
     recon: ReconciliationMember,
     policy: ReconciliationPolicy,
+    vector_state: dict[str, object],
 ) -> dict[str, object]:
     """The complete authoritative logical persisted state (Component A).
 
     Binds package/release identity, ledger leaf/container relationships, final
     dispositions and reasons, the policy reference, projection identities/roles/
-    subspans, findings, the authoritative RuleChunks, and the required vector-
-    document identity/content/metadata. Excludes raw DB files, embedding bytes,
-    the evidence report, and the external release record.
+    subspans, findings, the authoritative RuleChunks (including their
+    runtime-visible provenance), and the **actual verified vector logical
+    state** (``vector_state``). Excludes raw DB files, embedding bytes, the
+    evidence report, and the external release record.
+
+    ``vector_state`` is the canonical logical projection *read back from the
+    real Chroma collection* (document IDs, content, required metadata, count,
+    and embedding-model id) — never an intended payload synthesized from SQL
+    alone (PR #134 defect family 1). Computing the digest over the actual
+    read-back is what makes a missing/empty/stale/tampered vector collection
+    change the digest and fail publication or reuse.
     """
-    vector_docs = [
-        {
-            "id": c.chunk_id,
-            "content": c.content,
-            "metadata": {
-                "subsystem": c.subsystem,
-                "printed_page": c.printed_page,
-                "section_label": c.section_label,
-            },
-        }
-        for c in members.chunks
-    ]
     return {
         "package_uuid": package_uuid,
         "release_version": release_version,
@@ -220,7 +254,8 @@ def persisted_corpus_payload(
             "policy_hash": policy_hash(policy),
         },
         "chunks": corpus_members_payload(members)["chunks"],
-        "vector_documents": vector_docs,
+        "chunk_provenance": _chunk_provenance_payload(members),
+        "vector_logical_state": vector_state,
     }
 
 
@@ -231,9 +266,10 @@ def persisted_corpus_digest(
     members: CorpusBundleMembers,
     recon: ReconciliationMember,
     policy: ReconciliationPolicy,
+    vector_state: dict[str, object],
 ) -> str:
     return hash_obj(
         persisted_corpus_payload(
-            package_uuid, release_version, ledger, members, recon, policy
+            package_uuid, release_version, ledger, members, recon, policy, vector_state
         )
     )

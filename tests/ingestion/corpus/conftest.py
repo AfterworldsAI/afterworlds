@@ -11,6 +11,7 @@ fast.
 
 from __future__ import annotations
 
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,9 @@ from afterworlds.ingestion.corpus.pipeline import (
 )
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
+from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PDF_PATH = REPO_ROOT / "docs" / "sources" / "DnD5_5e_SRD_CC_v5_2_1.pdf"
@@ -45,8 +49,28 @@ def candidate() -> CandidateRelease:
     return build_candidate(PDF_PATH)
 
 
+@pytest.fixture()
+def retrieval_config() -> RetrievalMemoryConfig:
+    """Default retrieval config (deterministic; local ONNX model id)."""
+    return RetrievalMemoryConfig()
+
+
+@pytest.fixture()
+def fake_embedding() -> DeterministicFakeEmbeddingFunction:
+    """Explicit offline embedding function — never selected implicitly."""
+    return DeterministicFakeEmbeddingFunction()
+
+
+@pytest.fixture()
+def chroma_client(tmp_path):  # type: ignore[no-untyped-def]
+    """A fully isolated on-disk Chroma client rooted at a per-test tmp dir."""
+    return build_isolated_test_chroma_client(str(tmp_path / "chroma"))
+
+
 def finalize_in_fresh_db(candidate: CandidateRelease):  # type: ignore[no-untyped-def]
-    """Finalize *candidate* against a brand-new, already-committed in-memory DB.
+    """Finalize *candidate* against a brand-new, already-committed in-memory DB
+    plus a private, isolated on-disk Chroma store and the deterministic offline
+    embedding function.
 
     Returns the ``FinalizeResult``; the caller is responsible for asserting
     ``published``/``reused`` as appropriate to the test.
@@ -60,8 +84,18 @@ def finalize_in_fresh_db(candidate: CandidateRelease):  # type: ignore[no-untype
     Base.metadata.create_all(eng)
     factory = create_session_factory(eng)
     sess = factory()
+    chroma_dir = tempfile.mkdtemp(prefix="corpus-chroma-")
+    client = build_isolated_test_chroma_client(chroma_dir)
     try:
-        result = finalize_release(sess, candidate, repo_root=REPO_ROOT, now=NOW)
+        result = finalize_release(
+            sess,
+            candidate,
+            repo_root=REPO_ROOT,
+            now=NOW,
+            chroma_client=client,
+            retrieval_config=RetrievalMemoryConfig(),
+            embedding_function=DeterministicFakeEmbeddingFunction(),
+        )
     finally:
         sess.close()
         eng.dispose()

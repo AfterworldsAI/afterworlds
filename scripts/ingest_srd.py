@@ -44,6 +44,10 @@ from afterworlds.persistence.database import (  # noqa: E402
     create_engine,
     create_session_factory,
 )
+from afterworlds.pipeline.retrieval.client import build_chroma_client  # noqa: E402
+from afterworlds.pipeline.retrieval.config import (  # noqa: E402
+    RetrievalMemoryConfig,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _DEFAULT_PDF = "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
@@ -76,10 +80,22 @@ def main() -> int:
 
     engine = create_engine(args.db_url)
     session_factory = create_session_factory(engine)
+
+    # Real embedded Chroma client + config (Issue 18 seam). The default local
+    # ONNX MiniLM embedding function is resolved inside the reindex path; no fake
+    # is ever selected in production (embedding.resolve_default_embedding_function).
+    retrieval_config = RetrievalMemoryConfig.from_env()
+    chroma_client = build_chroma_client(retrieval_config)
+
     now = datetime.now(UTC).isoformat()
     with session_factory() as session:
         result = finalize_release(
-            session, candidate, repo_root=_REPO_ROOT, now=now
+            session,
+            candidate,
+            repo_root=_REPO_ROOT,
+            now=now,
+            chroma_client=chroma_client,
+            retrieval_config=retrieval_config,
         )
 
     if result.reused:

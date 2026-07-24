@@ -12,6 +12,8 @@ in isolation and the whole gate passes only when every condition holds.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from afterworlds.ingestion.corpus.bundle import (
     build_bundle,
     persisted_corpus_digest,
@@ -36,16 +38,35 @@ from afterworlds.ingestion.corpus.policy import (
 from afterworlds.ingestion.corpus.report import report_hash
 
 
+@dataclass(frozen=True)
+class PublicationEvidence:
+    """Real-operation evidence the release-capable gate requires (Component I).
+
+    Every field must be supplied explicitly by the caller from an actual
+    operation — there are **no defaults**, so no production caller can obtain a
+    successful SQL/vector/legacy/membership verdict by omitting an argument or
+    hard-coding ``True`` (PR #134 remediation, defect family 1). ``finalize_release``
+    builds this from the real reindex/read-back/reconstruction results; gate
+    unit tests construct it explicitly per scenario.
+    """
+
+    sql_persist_ok: bool
+    vector_write_ok: bool
+    legacy_reachability_violations: int
+    chunk_membership_violations: int
+    vector_verification_failures: tuple[str, ...]
+
+
 def run_gate(
     artifacts: ReleaseArtifacts,
-    *,
-    legacy_reachability_violations: int = 0,
-    chunk_membership_violations: int = 0,
-    sql_persist_ok: bool = True,
-    vector_write_ok: bool = True,
+    evidence: PublicationEvidence,
 ) -> GateResult:
     """Run the publication gate over the release record (Component I)."""
     a = artifacts
+    legacy_reachability_violations = evidence.legacy_reachability_violations
+    chunk_membership_violations = evidence.chunk_membership_violations
+    sql_persist_ok = evidence.sql_persist_ok
+    vector_write_ok = evidence.vector_write_ok
     f: list[str] = []
     policy = a.policy
     ledger = a.ledger
@@ -168,9 +189,18 @@ def run_gate(
     if rel.corpus_report_reference != ident.evidence_report_hash:
         f.append("corpus report reference != evidence report hash")
 
-    # 17. Persisted-corpus digest matches (tamper detection).
+    # 17. Persisted-corpus digest matches (tamper detection) — recomputed over
+    #     the reconstructed SQL state **and the actual read-back vector logical
+    #     state** carried on the artifacts, so a missing/stale/tampered Chroma
+    #     collection (or a tampered SQL provenance field) fails here.
     recomputed_digest = persisted_corpus_digest(
-        rel.package_uuid, rel.release_version, ledger, a.members, recon, policy
+        rel.package_uuid,
+        rel.release_version,
+        ledger,
+        a.members,
+        recon,
+        policy,
+        a.vector_state,
     )
     if ident.persisted_corpus_digest != recomputed_digest:
         f.append("persisted_corpus_digest mismatch (tampered persisted state)")
@@ -189,11 +219,16 @@ def run_gate(
     ):
         f.append("accounting equation does not balance")
 
-    # 20. SQL/vector persistence succeeded.
+    # 20. SQL/vector persistence succeeded — from real operation evidence, never
+    #     a caller-hardcoded True (PR #134 defect family 1). A vector write
+    #     failure or any read-back discrepancy (empty/missing/extra/stale
+    #     document, metadata or embedding-model mismatch) blocks publication.
     if not sql_persist_ok:
         f.append("SQL persistence incomplete")
     if not vector_write_ok:
         f.append("vector write incomplete")
+    for vf in evidence.vector_verification_failures:
+        f.append(f"vector verification: {vf}")
 
     # 21. Five release-hash fields present.
     if not all(

@@ -28,6 +28,7 @@ from afterworlds.ingestion.corpus.quarantine import (
     check_active_store,
     check_legacy_reachability,
 )
+from afterworlds.ingestion.corpus.vector_publication import read_actual_vector_state
 from afterworlds.models.enums import PublicationStatusEnum, RuleSubsystemEnum
 from afterworlds.persistence.orm.corpus import (
     CorpusProjectionORM,
@@ -40,6 +41,7 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.pipeline.retrieval.rules_corpus_service import RulesCorpusService
 from afterworlds.services.rules_package import RulesPackageService
 
 from .conftest import REPO_ROOT
@@ -47,19 +49,52 @@ from .conftest import REPO_ROOT
 _NOW = "2026-07-23T00:00:00Z"
 
 
-def _persist(session, release):
+def _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding):
+    """Publish *candidate* through the real cross-store lifecycle."""
+    return finalize_release(
+        session,
+        candidate,
+        repo_root=REPO_ROOT,
+        now=_NOW,
+        chroma_client=chroma_client,
+        retrieval_config=retrieval_config,
+        embedding_function=fake_embedding,
+    )
+
+
+def _persist(session, release, chroma_client, retrieval_config, fake_embedding):
+    """Re-persist a finalized release's SQL state into a fresh DB and reindex its
+    vectors, so the SQL-tamper tests below can exercise digest verification in a
+    store whose vector logical state matches the fixture's."""
     persist_release(session, release, now=_NOW)
     session.commit()
-    return release.release.package_uuid
+    pkg = release.release.package_uuid
+    RulesCorpusService(
+        chroma_client, retrieval_config, fake_embedding
+    ).reindex_from_sql(session, UUID(pkg))
+    return pkg
 
 
-def test_persist_round_trip_digest_matches(session, release):
-    pkg = _persist(session, release)
-    assert verify_persisted_digest(session, pkg)
+def _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding):
+    """The actual read-back vector logical state, as a digest-ready payload."""
+    return read_actual_vector_state(
+        chroma_client, pkg, retrieval_config, fake_embedding
+    ).to_payload()
 
 
-def test_reconstructed_payload_equals_in_memory(session, release):
-    pkg = _persist(session, release)
+def test_persist_round_trip_digest_matches(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert verify_persisted_digest(session, pkg, vs)
+
+
+def test_reconstructed_payload_equals_in_memory(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
     in_mem = persisted_corpus_payload(
         pkg,
         release.release.release_version,
@@ -67,12 +102,15 @@ def test_reconstructed_payload_equals_in_memory(session, release):
         release.members,
         release.reconciliation,
         release.policy,
+        vs,
     )
-    assert reconstruct_payload(session, pkg) == in_mem
+    assert reconstruct_payload(session, pkg, vs) == in_mem
 
 
-def test_authoritative_chunks_persist_into_rp_chunks(session, release):
-    pkg = _persist(session, release)
+def test_authoritative_chunks_persist_into_rp_chunks(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     count = len(
         session.execute(
             select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg)
@@ -83,18 +121,23 @@ def test_authoritative_chunks_persist_into_rp_chunks(session, release):
     assert count == len(release.members.chunks)
 
 
-def test_tamper_leaf_content_breaks_digest(session, release):
-    pkg = _persist(session, release)
+def test_tamper_leaf_content_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     row = session.execute(
         select(LedgerLeafORM).where(LedgerLeafORM.package_uuid == pkg).limit(1)
     ).scalar_one()
     row.content = row.content + " TAMPERED"
     session.commit()
-    assert not verify_persisted_digest(session, pkg)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert not verify_persisted_digest(session, pkg, vs)
 
 
-def test_tamper_projection_subspan_breaks_digest(session, release):
-    pkg = _persist(session, release)
+def test_tamper_projection_subspan_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     row = session.execute(
         select(CorpusProjectionORM)
         .where(CorpusProjectionORM.package_uuid == pkg)
@@ -102,11 +145,14 @@ def test_tamper_projection_subspan_breaks_digest(session, release):
     ).scalar_one()
     row.cover_end = row.cover_end + 1
     session.commit()
-    assert not verify_persisted_digest(session, pkg)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert not verify_persisted_digest(session, pkg, vs)
 
 
-def test_tamper_reconciliation_findings_breaks_digest(session, release):
-    pkg = _persist(session, release)
+def test_tamper_reconciliation_findings_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     row = session.execute(
         select(ReconciliationORM).where(ReconciliationORM.package_uuid == pkg)
     ).scalar_one()
@@ -114,7 +160,67 @@ def test_tamper_reconciliation_findings_breaks_digest(session, release):
     findings["gaps"] = ["fabricated"]
     row.findings = findings
     session.commit()
-    assert not verify_persisted_digest(session, pkg)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert not verify_persisted_digest(session, pkg, vs)
+
+
+def _tamper_chunk_provenance_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding, field, newvalue
+):
+    """DF2: tampering any persisted runtime-visible RuleChunk provenance field
+    (source_document / source_locator_type / source_locator_value) must break
+    the persisted-corpus digest — those citations are served to callers and must
+    be attested, not left free to corrupt silently."""
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    row = session.execute(
+        select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg).limit(1)
+    ).scalar_one()
+    setattr(row, field, newvalue)
+    session.commit()
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert not verify_persisted_digest(session, pkg, vs)
+
+
+def test_tamper_chunk_source_document_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    _tamper_chunk_provenance_breaks_digest(
+        session,
+        release,
+        chroma_client,
+        retrieval_config,
+        fake_embedding,
+        "source_document",
+        "FORGED SOURCE",
+    )
+
+
+def test_tamper_chunk_locator_type_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    _tamper_chunk_provenance_breaks_digest(
+        session,
+        release,
+        chroma_client,
+        retrieval_config,
+        fake_embedding,
+        "source_locator_type",
+        "section",
+    )
+
+
+def test_tamper_chunk_locator_value_breaks_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    _tamper_chunk_provenance_breaks_digest(
+        session,
+        release,
+        chroma_client,
+        retrieval_config,
+        fake_embedding,
+        "source_locator_value",
+        "p. 9999",
+    )
 
 
 # --- Legacy quarantine (Component L / Acceptance #12) -------------------------
@@ -154,8 +260,10 @@ def test_active_store_flags_a_legacy_package_row(session):
     assert any("legacy-1" in v for v in violations)
 
 
-def test_corpus_release_is_not_flagged_as_legacy(session, release):
-    pkg = _persist(session, release)
+def test_corpus_release_is_not_flagged_as_legacy(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     # The new corpus release uses a different package name; never flagged.
     assert check_active_store(session) == []
     assert pkg
@@ -164,11 +272,13 @@ def test_corpus_release_is_not_flagged_as_legacy(session, release):
 # --- Chunk runtime-membership verification (PR #134 remediation, req. 4) -----
 
 
-def test_orphan_enabled_chunk_breaks_runtime_membership_verification(session, release):
+def test_orphan_enabled_chunk_breaks_runtime_membership_verification(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
     """An extra enabled rp_chunks row with no declared projection is invisible
     to the digest but would be served by runtime reads — verification must
     catch it even though the digest itself still matches."""
-    pkg = _persist(session, release)
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     session.add(
         RuleChunkORM(
             chunk_id="orphan-chunk-1",
@@ -184,18 +294,22 @@ def test_orphan_enabled_chunk_breaks_runtime_membership_verification(session, re
         )
     )
     session.commit()
-    assert verify_persisted_digest(session, pkg)  # digest scoped to declared set
+    # Read the vector state as it stood before the orphan was added (no reindex),
+    # so the digest — scoped to the declared-projection set on both sides — still
+    # matches; the orphan is caught only by the separate membership gate.
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert verify_persisted_digest(session, pkg, vs)  # digest scoped to declared set
     violations = verify_chunk_runtime_membership(session, pkg)
     assert any("orphan-chunk-1" in v for v in violations)
 
 
 def test_disabled_projected_chunk_breaks_runtime_membership_verification(
-    session, release
+    session, release, chroma_client, retrieval_config, fake_embedding
 ):
     """A declared-projected chunk disabled after persistence would vanish from
     runtime reads while the digest (which doesn't track is_enabled) stays
     unaffected — verification must fail closed on the mismatch."""
-    pkg = _persist(session, release)
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     row = session.execute(
         select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg).limit(1)
     ).scalar_one()
@@ -206,11 +320,11 @@ def test_disabled_projected_chunk_breaks_runtime_membership_verification(
 
 
 def test_disabled_required_source_breaks_runtime_membership_verification(
-    session, release
+    session, release, chroma_client, retrieval_config, fake_embedding
 ):
     """Disabling the source of every declared-projected chunk empties runtime
     reads for the whole package while leaving the digest unaffected."""
-    pkg = _persist(session, release)
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
     source = session.execute(
         select(RuleSourceORM).where(RuleSourceORM.rules_package_id == pkg)
     ).scalar_one()
@@ -238,7 +352,9 @@ def test_candidate_release_carries_no_persistence_claim():
 # --- finalize_release lifecycle: legacy blocking, idempotency, rollback ------
 
 
-def test_legacy_active_row_blocks_publication(session, candidate):
+def test_legacy_active_row_blocks_publication(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
     session.add(
         RulesPackageORM(
             rules_package_id="legacy-active-1",
@@ -254,7 +370,9 @@ def test_legacy_active_row_blocks_publication(session, candidate):
     )
     session.commit()
 
-    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
 
     assert not result.published
     assert result.gate is not None
@@ -270,12 +388,22 @@ def test_legacy_active_row_blocks_publication(session, candidate):
     )
 
 
-def test_repeated_finalize_is_idempotent_and_does_not_mutate(session, candidate):
-    first = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+def test_repeated_finalize_is_idempotent_and_does_not_mutate(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert first.published and not first.reused and first.artifacts is not None
 
     second = finalize_release(
-        session, candidate, repo_root=REPO_ROOT, now="2026-07-24T00:00:00Z"
+        session,
+        candidate,
+        repo_root=REPO_ROOT,
+        now="2026-07-24T00:00:00Z",
+        chroma_client=chroma_client,
+        retrieval_config=retrieval_config,
+        embedding_function=fake_embedding,
     )
     assert second.published and second.reused and second.artifacts is not None
     assert second.artifacts.release.identity == first.artifacts.release.identity
@@ -299,11 +427,15 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(session, candidate)
     assert pkg_row.published_at == _NOW  # reuse never mutated the publish record
 
 
-def test_reuse_rejects_inconsistent_package_row_state(session, candidate):
+def test_reuse_rejects_inconsistent_package_row_state(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
     """A published rp_corpus_releases row is not, by itself, sufficient
     evidence for reuse — the rp_packages row must independently confirm
     published+enabled, or reuse must fail closed rather than report success."""
-    first = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert first.published and not first.reused
 
     pkg_row = session.execute(
@@ -314,18 +446,24 @@ def test_reuse_rejects_inconsistent_package_row_state(session, candidate):
     pkg_row.publication_status = "draft"
     session.commit()
 
-    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert not result.published and not result.reused
     assert result.gate is not None
     assert any("rp_packages" in f for f in result.gate.failures)
 
 
-def test_reuse_rejects_tampered_release_row(session, candidate):
+def test_reuse_rejects_tampered_release_row(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
     """Reuse must re-run the full gate against the reconstructed existing
     release, not just the digest — a tampered proof-identity field (here,
     bundle_root_hash) must fail reuse even if the digest itself still
     matches."""
-    first = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert first.published and not first.reused
 
     release_row = session.execute(
@@ -336,16 +474,48 @@ def test_reuse_rejects_tampered_release_row(session, candidate):
     release_row.bundle_root_hash = "0" * 64
     session.commit()
 
-    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert not result.published and not result.reused
     assert result.gate is not None
     assert any("bundle_root_hash" in f for f in result.gate.failures)
 
 
-def test_final_gate_failure_does_not_publish_partial_content(session, candidate):
+def test_reuse_rejects_missing_vector_collection(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """DF1: a reuse cannot claim success against missing/stale vectors. After a
+    clean publish, dropping the rules-corpus collection must make the next
+    reuse attempt fail closed (empty read-back → digest + vector verification
+    both fail), not report a successful no-op."""
+    from afterworlds.ingestion.corpus.vector_publication import (
+        cleanup_vector_collection,
+    )
+
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert first.published and not first.reused
+
+    cleanup_vector_collection(chroma_client, candidate.package_uuid)
+
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert not result.published and not result.reused
+    assert result.gate is not None
+    assert any("vector" in f or "digest" in f for f in result.gate.failures)
+
+
+def test_final_gate_failure_does_not_publish_partial_content(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
     tampered = dataclasses.replace(candidate, transform_config_hash="0" * 64)
 
-    result = finalize_release(session, tampered, repo_root=REPO_ROOT, now=_NOW)
+    result = _finalize(
+        session, tampered, chroma_client, retrieval_config, fake_embedding
+    )
 
     assert not result.published
     assert result.gate is not None and not result.gate.passed
@@ -365,13 +535,23 @@ def test_final_gate_failure_does_not_publish_partial_content(session, candidate)
         ).scalar_one_or_none()
         is None
     )
+    # No partial vector content either: the collection this attempt wrote was
+    # cleaned up on the failed gate.
+    leftover = read_actual_vector_state(
+        chroma_client, tampered.package_uuid, retrieval_config, fake_embedding
+    )
+    assert leftover.count == 0
 
 
-def test_published_package_retrievable_via_rules_package_service(session, candidate):
+def test_published_package_retrievable_via_rules_package_service(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
     """A successful ingest publishes both records, and RulesPackageService's
     normal published-only play-time path can retrieve the package and its
     chunks — no draft-visibility backdoor is needed or used."""
-    result = finalize_release(session, candidate, repo_root=REPO_ROOT, now=_NOW)
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
     assert result.published and not result.reused
 
     svc = RulesPackageService(session)

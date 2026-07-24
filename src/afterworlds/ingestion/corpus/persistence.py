@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -41,7 +41,7 @@ from afterworlds.ingestion.corpus.bundle import (
     persisted_corpus_payload,
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
-from afterworlds.ingestion.corpus.gate import run_gate
+from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -71,6 +71,12 @@ from afterworlds.ingestion.corpus.report import (
     build_report,
     report_hash,
 )
+from afterworlds.ingestion.corpus.vector_publication import (
+    VectorPublicationResult,
+    cleanup_vector_collection,
+    reindex_and_verify,
+    verify_only,
+)
 from afterworlds.persistence.orm.corpus import (
     CorpusProjectionORM,
     CorpusReleaseORM,
@@ -85,6 +91,11 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
+
+if TYPE_CHECKING:
+    from chromadb.api import ClientAPI
 
 # ---------------------------------------------------------------------------
 # Shared row-building primitives
@@ -491,6 +502,14 @@ def _load_members(
                 section_label=chunk_row.source_section_label,
                 container_path=primary.container_path,
                 source_leaf_ids=tuple(leaf_ids),
+                # Runtime-visible provenance read back from the actual persisted
+                # rp_chunks row (Component G, PR #134 defect family 2). Bound
+                # into the persisted-corpus digest so tampering any cited
+                # locator field breaks verify_persisted_digest and the gate,
+                # rather than being silently synthesized from the ledger.
+                source_document=chunk_row.source_document,
+                source_locator_type=chunk_row.source_locator_type,
+                source_locator_value=chunk_row.source_locator_value,
             )
         )
     # Restore canonical (build_corpus) order: by primary leaf occurrence index.
@@ -566,9 +585,19 @@ def verify_chunk_runtime_membership(session: Session, pkg: str) -> tuple[str, ..
 
 
 def recompute_persisted_digest(
-    session: Session, pkg: str, *, policy: ReconciliationPolicy = FROZEN_POLICY
+    session: Session,
+    pkg: str,
+    vector_state: dict[str, object],
+    *,
+    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> str:
-    """Recompute the persisted-corpus digest from the actual DB rows."""
+    """Recompute the persisted-corpus digest from the actual DB rows plus the
+    actual read-back vector logical state (``vector_state``).
+
+    The caller supplies ``vector_state`` from :func:`read_actual_vector_state`
+    (never a SQL-synthesized fiction), so a missing/stale/tampered Chroma
+    collection recomputes to a different digest and fails verification.
+    """
     release = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
@@ -576,24 +605,43 @@ def recompute_persisted_digest(
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
     return persisted_corpus_digest(
-        release.package_uuid, release.release_version, ledger, members, recon, policy
+        release.package_uuid,
+        release.release_version,
+        ledger,
+        members,
+        recon,
+        policy,
+        vector_state,
     )
 
 
 def verify_persisted_digest(
-    session: Session, pkg: str, *, policy: ReconciliationPolicy = FROZEN_POLICY
+    session: Session,
+    pkg: str,
+    vector_state: dict[str, object],
+    *,
+    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> bool:
-    """True iff the recomputed digest matches the stored release digest."""
+    """True iff the recomputed digest matches the stored release digest.
+
+    ``vector_state`` is the actual read-back vector logical state; pass the
+    output of :func:`read_actual_vector_state` so a divergent Chroma collection
+    (as well as any tampered SQL row) makes this return ``False``.
+    """
     release = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
-    return recompute_persisted_digest(session, pkg, policy=policy) == (
+    return recompute_persisted_digest(session, pkg, vector_state, policy=policy) == (
         release.persisted_corpus_digest
     )
 
 
 def reconstruct_payload(
-    session: Session, pkg: str, *, policy: ReconciliationPolicy = FROZEN_POLICY
+    session: Session,
+    pkg: str,
+    vector_state: dict[str, object],
+    *,
+    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> dict[str, object]:
     """Reconstruct the canonical persisted-corpus payload from the DB (debug)."""
     release = session.execute(
@@ -603,7 +651,13 @@ def reconstruct_payload(
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
     return persisted_corpus_payload(
-        release.package_uuid, release.release_version, ledger, members, recon, policy
+        release.package_uuid,
+        release.release_version,
+        ledger,
+        members,
+        recon,
+        policy,
+        vector_state,
     )
 
 
@@ -647,9 +701,14 @@ def _reconstruct_artifacts(
     pages: list[ExtractedPage],
     policy: ReconciliationPolicy,
     bundle: CanonicalBundle,
+    vector_state: dict[str, object],
 ) -> tuple[ReleaseArtifacts, tuple[str, ...]]:
     """Load a fully-persisted release's DB-grounded artifacts + its membership
     violations (used by both the fresh-publish and the idempotent-reuse path).
+
+    ``vector_state`` is the actual read-back vector logical state; it is carried
+    on the artifacts so the gate recomputes the persisted-corpus digest over the
+    real cross-store state (Component A / K step c).
     """
     release_row = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
@@ -695,6 +754,7 @@ def _reconstruct_artifacts(
         release=release_record,
         concordance=concordance,
         canaries=canaries,
+        vector_state=vector_state,
     )
     return artifacts, membership_violations
 
@@ -705,30 +765,37 @@ def finalize_release(
     *,
     repo_root: Path,
     now: str,
+    chroma_client: ClientAPI,
+    retrieval_config: RetrievalMemoryConfig,
+    embedding_function: RetrievalEmbeddingFunction | None = None,
 ) -> FinalizeResult:
     """Persist, reconstruct, prove, gate, and (only if the gate passes) publish.
 
-    Executes Component K steps c–g in the mandated order:
+    Executes Component K steps c–g in the mandated order, across **both** stores:
 
     1. Idempotency check: an already-*published* release for this content
-       -derived ``package_uuid`` is a safe no-op (reused, not re-persisted or
-       mutated); a changed source/config produces a different ``package_uuid``
+       -derived ``package_uuid`` is a safe no-op — but only after re-proving the
+       existing cross-store state (full gate + package-row state + actual vector
+       read-back); a changed source/config produces a different ``package_uuid``
        and is always a new release.
-    2. (c) Persist the candidate as a non-runtime-visible ``draft`` — flushed,
-       not committed, so nothing is visible to any other session yet.
+    2. (c) Persist the candidate as a non-runtime-visible ``draft`` into SQL
+       (flushed, not committed) **and** reindex it into the real Chroma
+       rules-corpus collection via the Issue 18 seam, then read the collection
+       back and verify it against SQL ground truth.
     3. Reconstruct the authoritative logical state from the rows just persisted
        (never from the in-memory candidate) and verify DB-vs-declared chunk
        membership.
-    4. (d) Compute the persisted-corpus digest from that reconstruction.
-    5. Live legacy zero-reachability check against *this* session (does not
-       assume any migration ran).
+    4. (d) Compute the persisted-corpus digest from that reconstruction **plus
+       the actual verified vector logical state**.
+    5. Live legacy zero-reachability check against *this* session.
     6. (e) Generate the post-persistence evidence report; (f) hash it.
     7. (g) Run the final gate over the DB-grounded artifacts, with real
-       (non-default) evidence for legacy reachability, chunk-runtime
-       membership, and SQL persistence.
+       (non-default) :class:`PublicationEvidence` for SQL persistence, vector
+       write/verification, legacy reachability, and chunk-runtime membership.
     8. If the gate passes: transition both records to ``published``, set
-       ``published_at``, and commit. If it fails: roll the whole transaction
-       back — no draft row, no chunk, nothing survives a failed gate.
+       ``published_at``, and commit. If it fails: roll the SQL transaction back
+       **and** drop the vector collection this attempt created — no partial
+       content survives a failed gate in either store.
     """
     pkg = candidate.package_uuid
 
@@ -755,12 +822,19 @@ def finalize_release(
                     ),
                 ),
             )
+        # Reuse path: verify the existing vectors against SQL ground truth
+        # WITHOUT rewriting them, so a missing/stale/tampered collection cannot
+        # be silently rebuilt into a false "successful reuse".
+        vector_result = verify_only(
+            session, pkg, chroma_client, retrieval_config, embedding_function
+        )
         artifacts, membership_violations = _reconstruct_artifacts(
             session,
             pkg,
             pages=candidate.pages,
             policy=candidate.policy,
             bundle=candidate.bundle,
+            vector_state=vector_result.state.to_payload(),
         )
         legacy_violations = check_legacy_reachability(session, repo_root)
         sql_persist_ok = (
@@ -768,17 +842,19 @@ def finalize_release(
             and len(artifacts.members.chunks) == len(candidate.members.chunks)
             and not membership_violations
         )
-        # Re-run the *full* gate against the reconstructed existing release —
-        # not just the digest — so a reuse can't be accepted on a release whose
-        # other proof identities (bundle root, evidence-report hash, reconciliation
-        # hash, ...) or live legacy state no longer satisfy publication.
-        gate = run_gate(
-            artifacts,
+        evidence = PublicationEvidence(
+            sql_persist_ok=sql_persist_ok,
+            vector_write_ok=vector_result.ok,
             legacy_reachability_violations=len(legacy_violations),
             chunk_membership_violations=len(membership_violations),
-            sql_persist_ok=sql_persist_ok,
-            vector_write_ok=True,
+            vector_verification_failures=vector_result.failures,
         )
+        # Re-run the *full* gate against the reconstructed existing release —
+        # not just the digest — so a reuse can't be accepted on a release whose
+        # other proof identities (bundle root, evidence-report hash,
+        # reconciliation hash), live legacy state, or actual vector state no
+        # longer satisfy publication.
+        gate = run_gate(artifacts, evidence)
         package_row = session.execute(
             select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
         ).scalar_one_or_none()
@@ -805,7 +881,7 @@ def finalize_release(
             published=True, reused=True, artifacts=artifacts, gate=gate
         )
 
-    # --- c: persist the candidate as a non-runtime-visible draft -------------
+    # --- c: persist the candidate as a non-runtime-visible SQL draft ---------
     source_id = _persist_package_and_source(
         session, pkg, candidate.release_version, now=now
     )
@@ -837,15 +913,31 @@ def finalize_release(
         now=now,
     )
 
+    # --- c (cont.): actual vector write + read-back verification -------------
+    # Any failure here is captured as evidence and blocks the gate below; the
+    # SQL draft is uncommitted and the vector collection is cleaned up on a
+    # failed gate, so a failed attempt is never runtime-visible in either store.
+    vector_result = _finalize_vector_or_rollback(
+        session, pkg, chroma_client, retrieval_config, embedding_function
+    )
+
     # --- reconstruct strictly from what was just persisted --------------------
     membership_violations = verify_chunk_runtime_membership(session, pkg)
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, candidate.policy)
     members = _load_members(session, pkg, ledger)
 
-    # --- d: persisted-corpus digest from the actual persisted state ----------
+    # --- d: persisted-corpus digest from the actual persisted state (SQL +
+    #        actual verified vector logical state) ----------------------------
+    vector_state = vector_result.state.to_payload()
     digest = persisted_corpus_digest(
-        pkg, candidate.release_version, ledger, members, recon, candidate.policy
+        pkg,
+        candidate.release_version,
+        ledger,
+        members,
+        recon,
+        candidate.policy,
+        vector_state,
     )
 
     # --- live legacy zero-reachability check (this session, not assumed) -----
@@ -899,6 +991,7 @@ def finalize_release(
         release=release_record,
         concordance=concordance,
         canaries=canaries,
+        vector_state=vector_state,
     )
 
     # Real evidence, not a rubber-stamped default: persistence is judged "ok"
@@ -907,6 +1000,13 @@ def finalize_release(
         len(ledger.leaves) == len(candidate.ledger.leaves)
         and len(members.chunks) == len(candidate.members.chunks)
         and not membership_violations
+    )
+    evidence = PublicationEvidence(
+        sql_persist_ok=sql_persist_ok,
+        vector_write_ok=vector_result.ok,
+        legacy_reachability_violations=len(legacy_violations),
+        chunk_membership_violations=len(membership_violations),
+        vector_verification_failures=vector_result.failures,
     )
 
     # --- g: fill in the post-persistence identity, then run the final gate ---
@@ -919,18 +1019,13 @@ def finalize_release(
     release_row.report_payload = report.payload
     session.flush()
 
-    gate = run_gate(
-        artifacts,
-        legacy_reachability_violations=len(legacy_violations),
-        chunk_membership_violations=len(membership_violations),
-        sql_persist_ok=sql_persist_ok,
-        vector_write_ok=True,  # vector persistence is not implemented by this
-        # package (pre-existing scope gap, unchanged by this remediation); see
-        # Architecture Notes.
-    )
+    gate = run_gate(artifacts, evidence)
 
     if not gate.passed:
+        # Roll back SQL and drop the vector collection this attempt wrote, so a
+        # failed gate leaves no runtime-visible content in either store.
         session.rollback()
+        cleanup_vector_collection(chroma_client, pkg)
         return FinalizeResult(published=False, reused=False, artifacts=None, gate=gate)
 
     package_row = session.execute(
@@ -943,3 +1038,22 @@ def finalize_release(
     session.commit()
 
     return FinalizeResult(published=True, reused=False, artifacts=artifacts, gate=gate)
+
+
+def _finalize_vector_or_rollback(
+    session: Session,
+    pkg: str,
+    chroma_client: ClientAPI,
+    retrieval_config: RetrievalMemoryConfig,
+    embedding_function: RetrievalEmbeddingFunction | None,
+) -> VectorPublicationResult:
+    """Reindex into the real Chroma collection and verify the read-back.
+
+    Returns the :class:`VectorPublicationResult` (state + failures) — failures do
+    not raise here; they are threaded into the gate as evidence so the failure
+    is reported uniformly and the collection is cleaned up on the failed-gate
+    path.
+    """
+    return reindex_and_verify(
+        session, pkg, chroma_client, retrieval_config, embedding_function
+    )
