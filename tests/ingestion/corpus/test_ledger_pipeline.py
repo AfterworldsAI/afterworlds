@@ -169,6 +169,19 @@ def test_evidence_report_carries_proof_hashes_but_not_its_own(release):
     assert release.release.identity.evidence_report_hash not in payload.values()
 
 
+def test_evidence_report_records_complete_transform_identity(release):
+    """PR #134 P1: the report records the full Component B identity — extractor
+    config + first-party source manifest/hash + deterministic invocation + IR
+    flag — not just ledger.extraction_config."""
+    ti = release.report.payload["transform_identity"]
+    assert isinstance(ti, dict)
+    assert ti["extractor"]  # extractor config present
+    assert ti["source_manifest"]  # first-party source manifest present
+    assert len(ti["transform_source_hash"]) == 64
+    assert ti["component_b_invocation"]["deterministic"] is True
+    assert ti["intermediate_representation_committed"] is False
+
+
 def test_authoritative_pdf_path_is_the_canonical_spelling():
     assert PDF_PATH.name == "DnD5_5e_SRD_CC_v5_2_1.pdf"
     assert PDF_PATH.exists()
