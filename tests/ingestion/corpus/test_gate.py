@@ -75,6 +75,32 @@ def test_gate_fails_on_missing_release_hash(release):
     assert not run_gate(broken, _evidence()).passed
 
 
+def test_gate_fails_on_incomplete_transform_config(release):
+    """PR #134 P1: a recorded transform config with no first-party source
+    manifest (the pre-fix payload) is rejected — the gate no longer accepts an
+    identity that omits the transform-code manifest."""
+    partial = {
+        k: v
+        for k, v in release.release.transform_config.items()
+        if k != "transform_identity"
+    }
+    broken = _replace_release(release, transform_config=partial)
+    result = run_gate(broken, _evidence())
+    assert not result.passed
+    assert any("transform identity incomplete" in f for f in result.failures)
+
+
+def test_gate_fails_on_tampered_transform_config(release):
+    """PR #134 P1: tampering the recorded transform config without updating its
+    stored hash fails the internal-consistency check (the config is validated
+    against its recorded hash, not reconstructed from ledger config + policy)."""
+    tampered = {**release.release.transform_config, "extraction_config": {"tool": "x"}}
+    broken = _replace_release(release, transform_config=tampered)
+    result = run_gate(broken, _evidence())
+    assert not result.passed
+    assert any("transform config" in f for f in result.failures)
+
+
 def test_gate_fails_on_unresolved_leaves(release):
     recon = dataclasses.replace(release.reconciliation, unresolved_leaves=1)
     broken = dataclasses.replace(release, reconciliation=recon)

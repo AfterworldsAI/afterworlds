@@ -22,6 +22,7 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash, policy_payload
+from afterworlds.ingestion.corpus.transform_identity import transform_identity
 
 RELEASE_VERSION_PREFIX = "5.2.1-corpus"
 
@@ -34,10 +35,18 @@ RELEASE_VERSION_PREFIX = "5.2.1-corpus"
 def transform_config_payload(
     extraction_config: dict[str, object], policy: ReconciliationPolicy
 ) -> dict[str, object]:
-    """The committed transform inputs: extractor config + the frozen policy."""
+    """The committed transform inputs (Component B).
+
+    The extractor config and frozen policy alone do not capture a change to the
+    first-party transform *code* (segmentation, chunk generation, canonical
+    identity derivation). ``transform_identity`` binds a source manifest over the
+    audited first-party modules, so any covered code change moves this payload's
+    hash — hence the package UUID and release version (PR #134 P1).
+    """
     return {
         "extraction_config": extraction_config,
         "reconciliation_policy": policy_payload(policy),
+        "transform_identity": transform_identity(),
     }
 
 

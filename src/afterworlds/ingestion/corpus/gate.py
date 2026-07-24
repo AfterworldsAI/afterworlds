@@ -18,9 +18,9 @@ from afterworlds.ingestion.corpus.bundle import (
     build_bundle,
     persisted_corpus_digest,
     reconciliation_hash,
-    transform_config_hash,
 )
 from afterworlds.ingestion.corpus.concordance import check_concordance
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     Disposition,
@@ -34,6 +34,7 @@ from afterworlds.ingestion.corpus.policy import (
     exclusion_reason_for,
     normalize,
     policy_hash,
+    policy_payload,
 )
 from afterworlds.ingestion.corpus.report import report_hash
 
@@ -81,12 +82,27 @@ def run_gate(
     if ident.authoritative_source_hash != PDF_SHA256:
         f.append("authoritative_source_hash mismatch")
 
-    # 2. Transform identity present + hash matches the committed config.
-    if not rel.transform_config:
-        f.append("transform identity missing")
-    recomputed_thash = transform_config_hash(ledger.extraction_config, policy)
-    if ident.transform_config_hash != recomputed_thash:
-        f.append("transform_config_hash mismatch (config or policy substituted)")
+    # 2. Transform identity present, complete, and internally consistent.
+    #    Validated against the *complete recorded* transform configuration
+    #    (extractor config + frozen policy + first-party source manifest), not by
+    #    reconstructing the old partial identity from ledger.extraction_config +
+    #    policy alone — an omitted source manifest (the pre-fix payload) or a
+    #    recorded config whose stored hash no longer matches it is rejected here
+    #    (PR #134 P1). The "code change → new identity" protection itself lives at
+    #    build_candidate (manifest → transform hash → package_uuid → reuse miss);
+    #    the gate proves the recorded hash was honestly derived from a complete
+    #    recorded config and that config matches the reconstructed artifacts.
+    tconfig = rel.transform_config
+    ti = tconfig.get("transform_identity") if isinstance(tconfig, dict) else None
+    if not tconfig or not isinstance(ti, dict) or not ti.get("transform_source_hash"):
+        f.append("transform identity incomplete (no first-party source manifest)")
+    elif ident.transform_config_hash != hash_obj(tconfig):
+        f.append("transform_config_hash mismatch (recorded transform config tampered)")
+    if isinstance(tconfig, dict):
+        if tconfig.get("extraction_config") != ledger.extraction_config:
+            f.append("recorded transform config extractor != reconstructed ledger")
+        if tconfig.get("reconciliation_policy") != policy_payload(policy):
+            f.append("recorded transform config policy != frozen policy")
 
     # 3. Policy committed/frozen before output: the applied policy hash must be
     #    the frozen policy hash, and it must be covered by the transform config.

@@ -45,6 +45,7 @@ def build_report(
     policy: ReconciliationPolicy,
     authoritative_source_hash: str,
     transform_config_hash: str,
+    transform_config: dict[str, object],
     bundle_root_hash: str,
     ledger_hash_value: str,
     persisted_corpus_digest: str,
@@ -85,8 +86,17 @@ def build_report(
         "bundle_root_hash": bundle_root_hash,
         "frozen_source_ledger_hash": ledger_hash_value,
         "persisted_corpus_digest": persisted_corpus_digest,
-        # Transform + policy identity.
-        "transform_identity": ledger.extraction_config,
+        # Complete Component B transform identity: extractor config + the
+        # first-party source manifest/hash + deterministic invocation + IR flag
+        # (not just ledger.extraction_config — PR #134 P1).
+        "transform_identity": {
+            "extractor": transform_config.get("extraction_config"),
+            **(
+                transform_config.get("transform_identity", {})  # type: ignore[dict-item]
+                if isinstance(transform_config.get("transform_identity"), dict)
+                else {}
+            ),
+        },
         # The environment needed to reproduce the transform (Component B). Recorded
         # here (not in the corpus content hashes) so an identical corpus keeps the
         # same package identity across platforms while the environment stays on

@@ -953,6 +953,7 @@ def finalize_release(
         policy=candidate.policy,
         authoritative_source_hash=candidate.authoritative_source_hash,
         transform_config_hash=candidate.transform_config_hash,
+        transform_config=candidate.transform_config,
         bundle_root_hash=candidate.bundle.bundle_root_hash,
         ledger_hash_value=ledger_hash(ledger),
         persisted_corpus_digest=digest,

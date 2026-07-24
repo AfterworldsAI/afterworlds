@@ -25,6 +25,19 @@ byte-identity has not been independently proven and is verified per environment.
 - **Frozen reconciliation policy:** committed source in
   `afterworlds.ingestion.corpus.policy` (closed exclusion-reason set, projection
   roles + overlap semantics, normalization identity). Frozen before any output.
+- **First-party transform source manifest:** the transform identity binds a
+  canonical manifest over the committed first-party modules that produce the
+  candidate corpus or its canonical identities (steps a0–b) — `pdf_source`,
+  `ledger`, `transform`, `reconcile`, `policy`, `bundle`, `hashing`, `models`,
+  `pipeline`, `transform_identity` (verification/persistence/publication modules
+  are excluded because they cannot change the candidate bytes). Each entry is a
+  repo-relative path + SHA-256 of that file's newline-normalized source, sorted
+  by path; the aggregate `transform_source_hash` is a pure function of those
+  bytes. A change to **any** covered module moves the hash automatically — no
+  manual version bump — so a transform-code change (e.g. a segmentation or
+  chunk-generation fix) yields a **new draft release** rather than reusing the
+  predecessor's identity. Implemented in
+  `afterworlds.ingestion.corpus.transform_identity`.
 
 ## Acyclic proof lifecycle (Component K, steps a0–g)
 
@@ -55,7 +68,8 @@ independently verify correspondence to the real PDF.
 Recorded in the external release/publication record (`rp_corpus_releases`):
 
 1. authoritative source hash;
-2. transform source/configuration hash (covers the frozen policy);
+2. transform source/configuration hash (covers the extractor config, the frozen
+   policy, **and the first-party transform source manifest/hash**);
 3. canonical corpus-bundle root hash;
 4. evidence-report hash;
 5. persisted-corpus digest.

@@ -98,3 +98,108 @@ there):
   `test_repeated_finalize_is_idempotent_and_does_not_mutate`,
   `test_candidate_release_carries_no_persistence_claim`,
   `test_legacy_active_row_blocks_publication`.
+
+## Remediation round 3 — bind first-party transform code into the release identity
+
+Codex round 3 (P1, `bundle.py:40`): `transform_config_payload()` covered only the
+extractor configuration and the frozen policy. A first-party transform-code
+change with no PDF / extractor-version / policy change (e.g. a `ledger`
+segmentation fix or a `transform` chunk-generation change) kept the same
+`transform_config_hash` → same `package_uuid` / `release_version`, so
+`finalize_release` could take the existing-release *reuse* path under an identity
+minted by *different code*. The evidence report likewise labelled only
+`ledger.extraction_config` as the transform identity.
+
+**Root correction (honest-by-construction, no manual bump).** New module
+`transform_identity.py` derives a deterministic first-party transform identity:
+a stable tool label plus a canonical source manifest over the audited modules —
+each entry a repo-relative path + SHA-256 of the file's newline-normalized
+source, sorted by path — and an aggregate `transform_source_hash` that is a pure
+function of those bytes. `transform_config_payload` now embeds this identity
+alongside the extractor config and frozen policy, so the transform hash (hence
+`package_uuid` and `release_version`) moves automatically on any covered-source
+change. The Component B invocation (`build_candidate` entrypoint + a0–b steps,
+deterministic) and the "no intermediate representation committed" flag are
+recorded. The tool version label is descriptive only; change detection is the
+source hash, so there is no manually-remembered constant that can silently
+bypass it. Newlines are normalized before hashing (matching the pipeline's `\n`
+canonical discipline; `.gitattributes` already pins `*.py` to `eol=lf`) so a
+CRLF checkout cannot perturb the identity; a missing audited module fails closed
+(`TransformSourceMissingError`).
+
+**Gate (`gate.py` condition 2).** No longer reconstructs the *old partial*
+identity from `ledger.extraction_config` + the current policy. It now validates
+the **complete recorded** transform configuration: rejects a config with no
+first-party source manifest (the pre-fix payload), checks the recorded
+`transform_config_hash` equals `hash_obj(rel.transform_config)` (recorded-config
+tamper), and ties the recorded extractor config / policy to the reconstructed
+artifacts. The gate stays a pure function of the artifacts — it does not re-read
+the live source tree; the "code change → new identity" protection lives entirely
+at `build_candidate` (manifest → transform hash → `package_uuid` → reuse-lookup
+miss → fresh draft), with the gate proving the recorded hash was honestly
+derived from a complete recorded config.
+
+**Evidence report (`report.py`).** `transform_identity` now records the complete
+Component B identity — extractor config + source manifest/hash + deterministic
+invocation + IR-committed flag — not just `ledger.extraction_config`.
+`build_report` takes the transform-config payload to do so.
+
+### Manifest audit dispositions
+
+Included (can affect the candidate corpus or a canonical identity in steps a0–b):
+
+| Module | Reason |
+|---|---|
+| `pdf_source` | extraction (a1) |
+| `ledger` | leaf/container segmentation (a1) |
+| `transform` | canonical corpus generation (a2) |
+| `reconcile` | policy application / dispositions / projections (a3) |
+| `policy` | frozen policy code + `normalize`/`exclusion_reason_for` (a0, affects a3) |
+| `bundle` | canonical member/reconciliation payloads, bundle root, identity derivation (b) |
+| `hashing` | canonical serialization + `content_id` underlying every identity |
+| `models` | dataclasses/enums whose values enter canonical payloads |
+| `pipeline` | a0–b orchestration / `build_candidate` ordering |
+| `transform_identity` | defines the manifest itself (self-covering, tamper-resistant) |
+
+Excluded (cannot change the candidate corpus bytes or an a0–b canonical identity;
+including them would spuriously churn the identity and is the "unrelated
+runtime/publication code" the finding warns against):
+
+| Module | Reason |
+|---|---|
+| `concordance` | verification only (E/J) — verifies, never generates |
+| `report` | post-persistence evidence (e) |
+| `gate` | publication verification (g) |
+| `persistence` | persistence/reconstruction (c/d) |
+| `vector_publication` | informational vector write/read-back (c) |
+| `quarantine` | legacy zero-reachability check (L) |
+
+### Round 3 regression coverage
+
+- **Byte-sensitivity / no-silent-bypass** (`test_transform_identity.py`):
+  aggregate order-independence + byte-change sensitivity; manifest covers exactly
+  the audited module set; each recorded sha256 equals the real file digest (not a
+  constant); flipping one byte in **each** covered module (parametrized) moves
+  `transform_source_hash`; a transform-code change moves
+  `transform_config_hash`, `package_uuid`, and `release_version`; identical
+  sources deterministic; missing module fails closed; Component B invocation / IR
+  flag recorded.
+- **Gate** (`test_gate.py`): `test_gate_fails_on_incomplete_transform_config`
+  (pre-fix payload with no manifest rejected),
+  `test_gate_fails_on_tampered_transform_config` (recorded-config tamper vs.
+  stored hash). The existing `transform_config_hash="0"*64` tamper
+  (`test_final_gate_failure_does_not_publish_partial_content`) remains green.
+- Byte-for-byte determinism preserved: the full-corpus
+  `test_clean_regeneration_is_byte_for_byte_deterministic` still passes (the
+  manifest is stable across a clean rebuild of the same sources).
+
+### Sibling-audit disposition (release-identity seam, recurring)
+
+Same seam family as DF3 (release-key identity). DF3 fixed the *version-vs-UUID*
+derivation asymmetry; round 3 fixes the *completeness of the transform hash's
+inputs* (first-party code was absent). Both `patched` at the root in
+`bundle.derive_*` / `transform_config_payload`. Remaining release-identity inputs
+audited: authoritative source (PDF hash, bound), extractor config (bound), frozen
+policy (bound), first-party transform code (now bound). No Owner Decision, Known
+Unknown, or later-issue (5d/2b/15c/15b/19b) scope was entered; no MechanicalEntity
+generated.
