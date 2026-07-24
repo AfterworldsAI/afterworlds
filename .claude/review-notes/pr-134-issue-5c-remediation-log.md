@@ -203,3 +203,61 @@ audited: authoritative source (PDF hash, bound), extractor config (bound), froze
 policy (bound), first-party transform code (now bound). No Owner Decision, Known
 Unknown, or later-issue (5d/2b/15c/15b/19b) scope was entered; no MechanicalEntity
 generated.
+
+## Remediation round 4 — cross-store compensation on all finalize exits
+
+Codex round 4 (P2, `persistence.py:922`, AGENTS.md transaction/rollback): in the
+fresh-publish path, `cleanup_vector_collection` ran only when `run_gate()`
+*returned* a failed result. Any exception in the intervening read-back /
+reconstruction / digest / report / gate setup, or during `session.commit()`,
+bypassed cleanup — SQL rolled back with the session lifecycle, but the
+unpublished `rules_corpus_{pkg}` collection stayed queryable through the
+diagnostic/admin surface with no published SQL release (cross-store leak).
+
+**Root correction.** The fresh-publish vector attempt through the successful SQL
+commit is now **one exception-safe compensation boundary** in `finalize_release`.
+An `cleanup_armed` flag is set **before** `reindex_and_verify` (which can write
+the collection and then raise during read-back before returning) and cleared
+**only after** `session.commit()` returns. Every unsuccessful exit compensates:
+
+- *Failed gate* → `session.rollback()`, disarm, `cleanup_vector_collection`,
+  return the ordinary `FinalizeResult(published=False, …, gate=gate)`. Disarming
+  before this cleanup means a cleanup failure here re-raises via the `except`
+  (no clean failed result is returned while a collection leaked).
+- *Ordinary exception* (read-back / reconstruction / digest / report / gate) →
+  `except`: `session.rollback()`, armed `cleanup_vector_collection`, `raise` — the
+  original exception propagates; a cleanup failure is not swallowed (chains onto
+  it).
+- *Commit exception* → armed is still set (disarm is after commit) → same
+  `except` compensation.
+- *Success* → disarm only after `commit()` returns; no cleanup.
+
+The mis-named `_finalize_vector_or_rollback` wrapper (it never owned rollback) was
+removed; the boundary calls `reindex_and_verify` directly. The reuse path is
+untouched: it verifies only (`verify_only`) and never deletes an existing
+published collection.
+
+### Round 4 regression coverage (`test_persistence_quarantine.py`, fault injection)
+
+- `test_exception_during_reconstruction_rolls_back_and_removes_collection` —
+  `build_report` patched to raise *after* the reindex wrote N>0 docs (so the
+  collection provably existed); asserts SQL rows absent + read-back count 0 +
+  exception propagated.
+- `test_exception_from_run_gate_rolls_back_and_removes_collection` — `run_gate`
+  patched to raise; same compensation.
+- `test_commit_exception_rolls_back_and_removes_collection` — `session.commit`
+  patched to raise (only the publish commits in this path; `reindex_from_sql` /
+  legacy check do not); same compensation.
+- `test_reuse_verification_exception_does_not_delete_published_collection` —
+  after a successful fresh publish (collection retained, count > 0), `verify_only`
+  patched to raise on the reuse attempt; asserts the exception propagates while
+  the published collection and SQL row both survive.
+- The normal *failed-gate* case (ordinary `FinalizeResult`, no exception; no SQL
+  rows, no vectors) remains proven by the existing
+  `test_final_gate_failure_does_not_publish_partial_content` — not duplicated.
+
+Sibling-audit: cross-store compensation family (SQL transaction vs. non-
+transactional Chroma write). The reuse path was inspected and correctly left
+without fresh-attempt cleanup (verification only). `patched` at the root in
+`finalize_release`; no scope beyond Issue 5c; Issue 18's collection
+schema/ID/metadata/writer unchanged.

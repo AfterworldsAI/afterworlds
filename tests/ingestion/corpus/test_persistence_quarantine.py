@@ -12,8 +12,10 @@ from __future__ import annotations
 import dataclasses
 from uuid import UUID
 
+import pytest
 from sqlalchemy import select
 
+import afterworlds.ingestion.corpus.persistence as persistence_mod
 from afterworlds.ingestion.corpus.bundle import persisted_corpus_payload
 from afterworlds.ingestion.corpus.persistence import (
     finalize_release,
@@ -564,3 +566,136 @@ def test_published_package_retrievable_via_rules_package_service(
 
     chunks = svc.get_chunks_by_subsystem(pkg_id, RuleSubsystemEnum.GENERAL)
     assert chunks.chunks
+
+
+# ---------------------------------------------------------------------------
+# Cross-store compensation: the fresh-publish vector attempt through a
+# successful commit is one exception-safe boundary. Cleanup is armed before the
+# reindex and disarmed only after commit, so every unsuccessful exit — failed
+# gate, ordinary exception, or commit exception — rolls back SQL and drops this
+# attempt's rules-corpus collection. Reuse (verification only) never deletes an
+# existing published collection. (PR #134 P2, AGENTS.md transaction/rollback.)
+# ---------------------------------------------------------------------------
+
+
+class _Boom(RuntimeError):
+    """Injected fault, distinct from any real error the pipeline can raise."""
+
+
+def _vcount(chroma_client, pkg, retrieval_config, fake_embedding):
+    return read_actual_vector_state(
+        chroma_client, pkg, retrieval_config, fake_embedding
+    ).count
+
+
+def _pkg_row_absent(session, pkg):
+    return (
+        session.execute(
+            select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+        ).scalar_one_or_none()
+        is None
+    )
+
+
+def test_exception_during_reconstruction_rolls_back_and_removes_collection(
+    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+):
+    """An exception AFTER the reindex wrote the collection (here, during report
+    preparation) rolls back SQL, removes the collection, and propagates."""
+
+    def boom(*args, **kwargs):
+        raise _Boom("report preparation failed after vector write")
+
+    # build_report runs after reindex_and_verify returns (which verified it wrote
+    # N>0 docs), so the collection provably existed → count 0 proves removal.
+    monkeypatch.setattr(persistence_mod, "build_report", boom)
+
+    with pytest.raises(_Boom):
+        _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
+
+    assert _pkg_row_absent(session, candidate.package_uuid)
+    assert (
+        _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
+        == 0
+    )
+
+
+def test_exception_from_run_gate_rolls_back_and_removes_collection(
+    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+):
+    """An exception raised by run_gate receives the same compensation."""
+
+    def boom(*args, **kwargs):
+        raise _Boom("gate execution failed")
+
+    monkeypatch.setattr(persistence_mod, "run_gate", boom)
+
+    with pytest.raises(_Boom):
+        _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
+
+    assert _pkg_row_absent(session, candidate.package_uuid)
+    assert (
+        _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
+        == 0
+    )
+
+
+def test_commit_exception_rolls_back_and_removes_collection(
+    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+):
+    """A session.commit() exception (the last step, after the gate passed and the
+    publish mutations were applied) rolls back SQL, removes the collection, and
+    propagates — compensation is not disarmed until commit actually returns."""
+
+    def boom():
+        raise _Boom("commit failed")
+
+    # Only the publish commits in this path (reindex_from_sql / legacy check do
+    # not commit), so this fires exactly at the publication commit.
+    monkeypatch.setattr(session, "commit", boom)
+
+    with pytest.raises(_Boom):
+        _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
+
+    assert _pkg_row_absent(session, candidate.package_uuid)
+    assert (
+        _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
+        == 0
+    )
+
+
+# The "normal failed gate leaves neither SQL rows nor vectors" case (an ordinary
+# FinalizeResult, no exception) is already proven by
+# test_final_gate_failure_does_not_publish_partial_content above; not duplicated
+# here (each case does a full-corpus reindex).
+
+
+def test_reuse_verification_exception_does_not_delete_published_collection(
+    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+):
+    """A reuse-path verification exception must NOT delete the previously
+    published collection (reuse verifies only, never compensates); and a
+    successful fresh commit retains the collection."""
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert first.published and not first.reused
+    published_count = _vcount(
+        chroma_client, candidate.package_uuid, retrieval_config, fake_embedding
+    )
+    assert published_count > 0  # successful fresh commit retains the collection
+
+    def boom(*args, **kwargs):
+        raise _Boom("reuse verification failed")
+
+    monkeypatch.setattr(persistence_mod, "verify_only", boom)
+
+    with pytest.raises(_Boom):
+        _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
+
+    # The published collection and SQL row both survive — reuse never drops them.
+    assert (
+        _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
+        == published_count
+    )
+    assert not _pkg_row_absent(session, candidate.package_uuid)

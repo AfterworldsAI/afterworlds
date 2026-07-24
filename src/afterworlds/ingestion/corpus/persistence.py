@@ -72,7 +72,6 @@ from afterworlds.ingestion.corpus.report import (
     report_hash,
 )
 from afterworlds.ingestion.corpus.vector_publication import (
-    VectorPublicationResult,
     cleanup_vector_collection,
     reindex_and_verify,
     verify_only,
@@ -913,148 +912,155 @@ def finalize_release(
         now=now,
     )
 
-    # --- c (cont.): actual vector write + read-back verification -------------
-    # Any failure here is captured as evidence and blocks the gate below; the
-    # SQL draft is uncommitted and the vector collection is cleaned up on a
-    # failed gate, so a failed attempt is never runtime-visible in either store.
-    vector_result = _finalize_vector_or_rollback(
-        session, pkg, chroma_client, retrieval_config, embedding_function
-    )
+    # --- c (cont.) through g: one cross-store compensation boundary ----------
+    # The Chroma write is NOT part of the SQL transaction, so from the moment the
+    # reindex may create the collection until session.commit() returns, every
+    # unsuccessful exit — a failed gate, any exception during read-back /
+    # reconstruction / digest / report / gate / publication mutation, or a commit
+    # exception — must roll back SQL and drop this attempt's collection, or a
+    # never-published release would leave the runtime-visible rules-corpus
+    # collection queryable through the diagnostic/admin surface (AGENTS.md
+    # transaction/rollback priority). Cleanup is ARMED before the reindex
+    # (reindex_and_verify can write the collection and then raise during
+    # read-back before returning) and DISARMED only after the publication commit
+    # succeeds.
+    cleanup_armed = True
+    try:
+        vector_result = reindex_and_verify(
+            session, pkg, chroma_client, retrieval_config, embedding_function
+        )
 
-    # --- reconstruct strictly from what was just persisted --------------------
-    membership_violations = verify_chunk_runtime_membership(session, pkg)
-    ledger = _load_ledger(session, pkg)
-    recon = _load_reconciliation(session, pkg, candidate.policy)
-    members = _load_members(session, pkg, ledger)
+        # --- reconstruct strictly from what was just persisted ----------------
+        membership_violations = verify_chunk_runtime_membership(session, pkg)
+        ledger = _load_ledger(session, pkg)
+        recon = _load_reconciliation(session, pkg, candidate.policy)
+        members = _load_members(session, pkg, ledger)
 
-    # --- d: persisted-corpus digest from the actual persisted state (SQL +
-    #        actual verified vector logical state) ----------------------------
-    vector_state = vector_result.state.to_payload()
-    digest = persisted_corpus_digest(
-        pkg,
-        candidate.release_version,
-        ledger,
-        members,
-        recon,
-        candidate.policy,
-        vector_state,
-    )
+        # --- d: persisted-corpus digest from the actual persisted state (SQL +
+        #        actual verified vector logical state) ------------------------
+        vector_state = vector_result.state.to_payload()
+        digest = persisted_corpus_digest(
+            pkg,
+            candidate.release_version,
+            ledger,
+            members,
+            recon,
+            candidate.policy,
+            vector_state,
+        )
 
-    # --- live legacy zero-reachability check (this session, not assumed) -----
-    legacy_violations = check_legacy_reachability(session, repo_root)
+        # --- live legacy zero-reachability check (this session, not assumed) --
+        legacy_violations = check_legacy_reachability(session, repo_root)
 
-    # --- e: post-persistence evidence report; f: hash it ----------------------
-    concordance = check_concordance(members.chunks, candidate.pages)
-    canaries = check_canaries(candidate.pages)
-    report = build_report(
-        ledger=ledger,
-        members=members,
-        recon=recon,
-        policy=candidate.policy,
-        authoritative_source_hash=candidate.authoritative_source_hash,
-        transform_config_hash=candidate.transform_config_hash,
-        transform_config=candidate.transform_config,
-        bundle_root_hash=candidate.bundle.bundle_root_hash,
-        ledger_hash_value=ledger_hash(ledger),
-        persisted_corpus_digest=digest,
-        concordance=concordance,
-        canaries=canaries,
-        legacy_reachability_violations=len(legacy_violations),
-        persisted=True,  # legitimate: computed from the reconstruction above
-    )
-    report_h = report_hash(report)
+        # --- e: post-persistence evidence report; f: hash it ------------------
+        concordance = check_concordance(members.chunks, candidate.pages)
+        canaries = check_canaries(candidate.pages)
+        report = build_report(
+            ledger=ledger,
+            members=members,
+            recon=recon,
+            policy=candidate.policy,
+            authoritative_source_hash=candidate.authoritative_source_hash,
+            transform_config_hash=candidate.transform_config_hash,
+            transform_config=candidate.transform_config,
+            bundle_root_hash=candidate.bundle.bundle_root_hash,
+            ledger_hash_value=ledger_hash(ledger),
+            persisted_corpus_digest=digest,
+            concordance=concordance,
+            canaries=canaries,
+            legacy_reachability_violations=len(legacy_violations),
+            persisted=True,  # legitimate: computed from the reconstruction above
+        )
+        report_h = report_hash(report)
 
-    identity = ReleaseIdentity(
-        authoritative_source_hash=candidate.authoritative_source_hash,
-        transform_config_hash=candidate.transform_config_hash,
-        bundle_root_hash=candidate.bundle.bundle_root_hash,
-        evidence_report_hash=report_h,
-        persisted_corpus_digest=digest,
-    )
-    release_record = ReleaseRecord(
-        package_uuid=pkg,
-        release_version=candidate.release_version,
-        identity=identity,
-        transform_config=candidate.transform_config,
-        ledger_hash=candidate.ledger_hash,
-        policy_hash=candidate.policy_hash,
-        reconciliation_hash=candidate.reconciliation_hash,
-        corpus_report_reference=report_h,
-    )
-    artifacts = ReleaseArtifacts(
-        pages=candidate.pages,
-        ledger=ledger,
-        members=members,
-        reconciliation=recon,
-        policy=candidate.policy,
-        bundle=candidate.bundle,
-        report=report,
-        release=release_record,
-        concordance=concordance,
-        canaries=canaries,
-        vector_state=vector_state,
-    )
+        identity = ReleaseIdentity(
+            authoritative_source_hash=candidate.authoritative_source_hash,
+            transform_config_hash=candidate.transform_config_hash,
+            bundle_root_hash=candidate.bundle.bundle_root_hash,
+            evidence_report_hash=report_h,
+            persisted_corpus_digest=digest,
+        )
+        release_record = ReleaseRecord(
+            package_uuid=pkg,
+            release_version=candidate.release_version,
+            identity=identity,
+            transform_config=candidate.transform_config,
+            ledger_hash=candidate.ledger_hash,
+            policy_hash=candidate.policy_hash,
+            reconciliation_hash=candidate.reconciliation_hash,
+            corpus_report_reference=report_h,
+        )
+        artifacts = ReleaseArtifacts(
+            pages=candidate.pages,
+            ledger=ledger,
+            members=members,
+            reconciliation=recon,
+            policy=candidate.policy,
+            bundle=candidate.bundle,
+            report=report,
+            release=release_record,
+            concordance=concordance,
+            canaries=canaries,
+            vector_state=vector_state,
+        )
 
-    # Real evidence, not a rubber-stamped default: persistence is judged "ok"
-    # only if reconstruction actually reproduced what was just written.
-    sql_persist_ok = (
-        len(ledger.leaves) == len(candidate.ledger.leaves)
-        and len(members.chunks) == len(candidate.members.chunks)
-        and not membership_violations
-    )
-    evidence = PublicationEvidence(
-        sql_persist_ok=sql_persist_ok,
-        vector_write_ok=vector_result.ok,
-        legacy_reachability_violations=len(legacy_violations),
-        chunk_membership_violations=len(membership_violations),
-        vector_verification_failures=vector_result.failures,
-    )
+        # Real evidence, not a rubber-stamped default: persistence is judged "ok"
+        # only if reconstruction actually reproduced what was just written.
+        sql_persist_ok = (
+            len(ledger.leaves) == len(candidate.ledger.leaves)
+            and len(members.chunks) == len(candidate.members.chunks)
+            and not membership_violations
+        )
+        evidence = PublicationEvidence(
+            sql_persist_ok=sql_persist_ok,
+            vector_write_ok=vector_result.ok,
+            legacy_reachability_violations=len(legacy_violations),
+            chunk_membership_violations=len(membership_violations),
+            vector_verification_failures=vector_result.failures,
+        )
 
-    # --- g: fill in the post-persistence identity, then run the final gate ---
-    release_row = session.execute(
-        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
-    ).scalar_one()
-    release_row.evidence_report_hash = report_h
-    release_row.persisted_corpus_digest = digest
-    release_row.corpus_report_reference = report_h
-    release_row.report_payload = report.payload
-    session.flush()
+        # --- g: fill in the post-persistence identity, then run the final gate -
+        release_row = session.execute(
+            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+        ).scalar_one()
+        release_row.evidence_report_hash = report_h
+        release_row.persisted_corpus_digest = digest
+        release_row.corpus_report_reference = report_h
+        release_row.report_payload = report.payload
+        session.flush()
 
-    gate = run_gate(artifacts, evidence)
+        gate = run_gate(artifacts, evidence)
 
-    if not gate.passed:
-        # Roll back SQL and drop the vector collection this attempt wrote, so a
-        # failed gate leaves no runtime-visible content in either store.
+        if gate.passed:
+            package_row = session.execute(
+                select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+            ).scalar_one()
+            package_row.publication_status = "published"
+            package_row.published_at = now
+            package_row.updated_at = now
+            release_row.publication_status = "published"
+            session.commit()
+            # Publication is durable in both stores — only now is it safe to
+            # disarm compensation.
+            cleanup_armed = False
+            return FinalizeResult(
+                published=True, reused=False, artifacts=artifacts, gate=gate
+            )
+
+        # Expected failed gate: roll back SQL and drop this attempt's collection,
+        # then return the ordinary failed result. Disarm first so that if this
+        # cleanup itself fails, the except below re-raises it instead of retrying
+        # — we never return a clean failed result while a collection leaked.
         session.rollback()
+        cleanup_armed = False
         cleanup_vector_collection(chroma_client, pkg)
         return FinalizeResult(published=False, reused=False, artifacts=None, gate=gate)
-
-    package_row = session.execute(
-        select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
-    ).scalar_one()
-    package_row.publication_status = "published"
-    package_row.published_at = now
-    package_row.updated_at = now
-    release_row.publication_status = "published"
-    session.commit()
-
-    return FinalizeResult(published=True, reused=False, artifacts=artifacts, gate=gate)
-
-
-def _finalize_vector_or_rollback(
-    session: Session,
-    pkg: str,
-    chroma_client: ClientAPI,
-    retrieval_config: RetrievalMemoryConfig,
-    embedding_function: RetrievalEmbeddingFunction | None,
-) -> VectorPublicationResult:
-    """Reindex into the real Chroma collection and verify the read-back.
-
-    Returns the :class:`VectorPublicationResult` (state + failures) — failures do
-    not raise here; they are threaded into the gate as evidence so the failure
-    is reported uniformly and the collection is cleaned up on the failed-gate
-    path.
-    """
-    return reindex_and_verify(
-        session, pkg, chroma_client, retrieval_config, embedding_function
-    )
+    except Exception:
+        # Any unsuccessful exit before a successful commit: an ordinary exception,
+        # a commit exception, or a failed-gate cleanup failure. Roll back SQL and,
+        # if still armed, drop this attempt's collection. The original exception
+        # propagates; a cleanup failure is never swallowed (it chains onto it).
+        session.rollback()
+        if cleanup_armed:
+            cleanup_vector_collection(chroma_client, pkg)
+        raise
