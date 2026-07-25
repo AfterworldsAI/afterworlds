@@ -386,3 +386,56 @@ audit (0), typecheck, lint, format:check, Vitest (45), api-types drift (none),
 production build, Playwright e2e (7) all pass with zero application-code edits.
 (The local package-lock prettier warning is a Windows CRLF artifact; committed
 LF passes — CI already showed format:check green.)
+
+## Remediation round 7 — draft read-visibility + non-creating read paths
+
+Codex round 7 (P1 + P2). The canonical `rules_corpus_<pkg>` collection is
+populated in-place during a draft rebuild before SQL publication commits, and two
+paths leaked that draft state / created external state on read.
+
+**P1 — `diagnostic_query` publication-aware (`rules_corpus_service.py`).** It read
+the canonical collection without checking SQL publication status, so a concurrent
+diagnostic/admin query during a multi-batch draft rebuild could observe partial,
+ungated vectors. `diagnostic_query` now requires a SQL `session` and returns no
+results unless BOTH the `RulesPackageORM` row is `published` + enabled AND its
+`CorpusReleaseORM` row is `published` (checked in `_is_published_and_enabled`
+**before** any Chroma access). Missing / draft / disabled / inconsistent records
+return nothing without touching Chroma. Draft visibility is controlled by
+persisted SQL publication state, not Chroma — the canonical in-place reindex is
+unchanged (ADR-018 D11: no staging/swap/rename; not a runtime-pass surface, D10).
+
+**P2 — non-creating verify/diagnostic lookups (`vector_publication.py`,
+`collections.py`).** `read_actual_vector_state` used the creating
+`get_rules_corpus_collection`, so verify-only reuse of a published release whose
+collection was missing *created* an empty canonical collection (new external
+state after a failed verification). New `get_existing_rules_corpus_collection`
+uses the non-creating `client.get_collection`; `read_actual_vector_state` and
+`diagnostic_query` use it. Only `NotFoundError` is ordinary absence (→ empty /
+no results); locked/corrupt/permission and other operational errors propagate; an
+embedding-model mismatch remains an explicit verification failure that creates,
+wipes, or rewrites nothing. `reindex_from_sql` (write/rebuild) keeps the creating
+helper. Reuse is now fully non-mutating: a missing collection fails verification
+while leaving Chroma exactly as it was.
+
+Sibling-audit (recurrence-triggered, complete — settled implementation, not an
+Owner Decision): write/rebuild paths legitimately create; verification and
+diagnostic paths are existing-only; draft visibility is gated by persisted SQL
+publication state. Dispositions: `patched` at the root in `diagnostic_query` /
+`read_actual_vector_state` + the new `get_existing_rules_corpus_collection`. No
+staging/swap architecture; both publication records checked; no `get_or_create`
+on any read path; no operational-error swallowing; no reuse mutation. Issue 18
+schema/ID/metadata/writer/batch unchanged; no scope beyond Issue 5c/18.
+
+### Round 7 regression coverage
+
+- `test_rules_corpus_service.py::TestDiagnosticQueryPublicationAware` — a committed
+  draft package with real canonical vectors is invisible and Chroma is never
+  opened (`get_existing_rules_corpus_collection` never called); each inconsistent
+  publication state fails closed (package-draft / package-disabled / release-draft
+  / release-missing, parametrized) + missing-records; published diagnostics
+  succeed. The reindex round-trip tests now publish (`_publish_release`) and pass
+  a session.
+- `test_vector_publication.py` — `read_actual_vector_state` on a missing
+  collection returns empty **and leaves the collection absent** (non-creating);
+  a non-`NotFoundError` `get_collection` failure propagates. Existing
+  reuse-missing-collection / mismatch fail-closed tests remain green.
