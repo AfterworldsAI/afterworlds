@@ -261,3 +261,57 @@ transactional Chroma write). The reuse path was inspected and correctly left
 without fresh-attempt cleanup (verification only). `patched` at the root in
 `finalize_release`; no scope beyond Issue 5c; Issue 18's collection
 schema/ID/metadata/writer unchanged.
+
+## Remediation round 5 — reindex self-cleans a partial destructive rebuild
+
+Codex round 5 (P2, `rules_corpus_service.py`, ADR-018 D11): the bounded batched
+upsert (added round 3) made `reindex_from_sql` destructive-but-not-atomic. After
+the old collection is wiped, a later-batch `collection.upsert()` failure left the
+earlier successful batches queryable — a partial `rules_corpus_{pkg}` collection
+contradicting SQLite ground truth. `finalize_release` compensated only for its
+own call path; **direct** reindex callers got the exception with partial content
+retained.
+
+**Service-level cleanup invariant.** `reindex_from_sql` is now exception-safe at
+its own public boundary. The initial wipe stays **outside** the compensation
+scope: an operational wipe failure propagates without touching the old
+collection (preserves PR #119 round 7; the old collection is never deleted when
+the wipe itself failed). Once the wipe succeeds the old collection is gone, so
+`cleanup_armed` is set and every collection this attempt creates or partially
+populates is its responsibility — a create / row-transform / embedding / any-
+batch failure removes the attempt's collection (`delete_collection_ignoring_
+absence`) and re-raises. Cleanup is disarmed **only** after every batch succeeds,
+or after a legitimate zero-row rebuild completes with an empty collection. On a
+**cleanup** failure the cleanup error surfaces as the propagating exception with
+the originating failure preserved as `__context__` — nothing swallowed, never a
+clean-failure claim while partial content may remain. ADR-018 D11 honored: still
+in-place re-upsert, no temp/swap collection; no change to reuse path, vector
+schema, deterministic IDs, metadata, or batch size. `finalize_release`'s outer
+boundary is kept unchanged — now redundant for the reindex step but
+absence-tolerant, so the double cleanup is a safe no-op (5c not weakened).
+
+### Round 5 regression coverage (`test_rules_corpus_service.py`, fault injection)
+
+- `test_later_batch_failure_removes_all_partial_documents` — `_MAX_UPSERT_BATCH`
+  forced to 2 over 4 chunks (2 batches); a wrapper fails the 2nd upsert after the
+  1st landed; asserts the exception propagates and the collection is **removed**
+  (`get_collection` → `NotFoundError`, not merely `count == 0` — which could not
+  distinguish removed from emptied).
+- `test_first_batch_failure_removes_the_attempt_collection` — failure on the
+  first upsert (after a successful wipe) still removes the newly created
+  collection. Representative for **all** pre-first-batch failures (creation /
+  transform / first upsert share the one `except`); variants not duplicated.
+- `test_successful_multi_batch_rebuild_writes_exact_complete_set` — 5 chunks over
+  3 batches writes exactly the complete SQL-backed id/document set.
+- `test_cleanup_failure_is_surfaced_not_swallowed` — a later-batch upsert failure
+  plus a failing compensating `delete_collection`; asserts the cleanup error
+  propagates, the originating upsert error is chained (`__context__`), and the
+  partial batch-1 content genuinely remains (`count == 2`) — i.e. a cleanup
+  failure is surfaced, never reported as a clean failed rebuild.
+- Existing `TestReindexPropagatesWipeFailure` (operational wipe failure leaves the
+  prior collection untouched) preserved unchanged.
+
+Sibling-audit: same destructive-rebuild compensation family as round 4's
+finalize boundary, one layer down (the non-transactional Chroma writer itself).
+`patched` at the root in `reindex_from_sql`; reuse path untouched; Issue 18
+schema/ID/metadata/writer/batch-size unchanged; no scope beyond Issue 5c/18.
