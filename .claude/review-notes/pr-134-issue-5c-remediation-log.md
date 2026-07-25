@@ -315,3 +315,74 @@ Sibling-audit: same destructive-rebuild compensation family as round 4's
 finalize boundary, one layer down (the non-transactional Chroma writer itself).
 `patched` at the root in `reindex_from_sql`; reuse path untouched; Issue 18
 schema/ID/metadata/writer/batch-size unchanged; no scope beyond Issue 5c/18.
+
+## Remediation round 6 — three settled families + one unrelated CI unblock
+
+Codex round 6 (three P1s) plus the failed CI at head `4eaa8c9` (unrelated
+frontend advisory). No schema migration.
+
+**P1a — persisted reconciliation policy (`persistence._load_policy`).**
+Reconstruction previously accepted `candidate.policy`/`FROZEN_POLICY` and never
+read `ReconciliationPolicyORM`, so tampering the persisted policy row was
+invisible to the digest/reuse gate. New `policy_from_payload` (in `policy.py`,
+fails closed on malformed shape/unknown enum) + `_load_policy` reconstruct the
+applied policy from the row and validate a closed cross-reference chain: payload
+shape; payload-derived version/hash vs the row; row vs `rp_reconciliations`;
+row vs `rp_corpus_releases`; reconstructed payload vs the policy embedded in the
+stored transform config. Used in `recompute_persisted_digest` /
+`verify_persisted_digest` / `reconstruct_payload` / `_reconstruct_artifacts` and
+both finalize paths; the reuse path catches `PolicyReconstructionError` and
+reports an ordinary failed result. Never substitutes a default/caller policy.
+Tests: `test_load_policy_accepts_clean_release_positive_control` (round-trip +
+digest verifies) and delete / version / hash / payload / rp_reconciliations /
+rp_corpus_releases / transform-config cross-reference tamper each fail closed;
+`test_reuse_fails_closed_on_deleted_policy_row`.
+
+**P1b — vector configuration in the immutable identity
+(`models.retrieval.rules_corpus_vector_identity`).** `embedding_model_id` changes
+the required vector metadata + persisted digest but previously could not change
+the package UUID/version, so a model-only reindex hit the verify-only reuse path
+against a stale digest with no identity to mint a replacement. The vector
+identity — the actual `embedding_model_id` plus the rules-corpus logical
+schema/ID/metadata contract, *sampled from the real builders*
+(`build_rules_corpus_chunk_id`/`rules_corpus_collection_name` with a placeholder
+UUID + `RulesCorpusChunkMetadata` field set / schema_version) — is bound into
+`transform_config_payload`, so it contributes to `transform_config_hash`, package
+UUID, and release version. Resolved before `build_candidate`
+(`retrieval_config`), recorded in the release + report, and the gate ties the
+recorded `embedding_model_id` to the actual persisted vector state. Identity binds
+contract **shape**; per-document values remain the digest's job. No sixth
+top-level hash; no operational/runtime settings or embedding bytes bound; a
+model change mints a new release (predecessor untouched). Bounded sibling: an
+identity-bearing vector schema/ID/metadata change likewise moves the identity, so
+it cannot fall into the "reuse identity, fail digest" dead end. Tests
+(`test_vector_identity`): determinism; identity-inputs-only; model change moves
+hash/UUID/version; coexisting release without collision.
+
+**P1c — Chroma batch capability (`rules_corpus_service.reindex_from_sql`).**
+Removed the hard-coded `_MAX_UPSERT_BATCH = 5000` (would fail on a backend whose
+advertised max is lower). Batch size now derives from the actual client via
+Chroma's supported `create_batches` helper (which slices by
+`get_max_batch_size()`); an invalid/unusable capability (`<= 0`/non-int) fails
+clearly rather than reverting to a fixed size. Deterministic in-order slices,
+the round-5 partial-write cleanup boundary, zero-row behavior, and the outer 5c
+compensation boundary are preserved; reuse path, schema, IDs, metadata unchanged.
+Tests: fake client advertising max 2 produces valid multiple batches + the exact
+complete set; a later dynamically-sized batch failure still receives the
+partial-rebuild cleanup; invalid capability fails clearly.
+
+**Unrelated CI unblock — brace-expansion advisory (GHSA-mh99-v99m-4gvg).** CI's
+`npm audit --audit-level=high` failed on `brace-expansion <=5.0.7`; no frontend
+source file is otherwise in the diff. npm flags every brace-expansion below
+5.0.8, but 5.x is a CJS-named-export rewrite (`exports.expand`) that older
+minimatch (3.1.5 under eslint 9, 5.1.9 under @redocly) call as
+`require('brace-expansion')(...)`, so a blanket `5.0.8` override satisfies audit
+but breaks lint (`expand is not a function`). Smallest verified correction: pin
+`brace-expansion: 5.0.8` **and** consolidate the stale minimatch instances onto
+`^10` (already present via the @typescript-eslint path, compatible with 5.x) —
+keeping eslint 9 and openapi-typescript 7.13.0, avoiding the `npm audit fix
+--force` ESLint-10 major / OpenAPI downgrade the task flagged. Verified: npm
+audit (0), typecheck, lint, format:check, Vitest (45), api-types drift (none),
+production build, Playwright e2e (7) all pass with zero application-code edits.
+(The local package-lock prettier warning is a Windows CRLF artifact; committed
+LF passes — CI already showed format:check green.)
