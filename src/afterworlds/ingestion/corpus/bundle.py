@@ -33,7 +33,9 @@ RELEASE_VERSION_PREFIX = "5.2.1-corpus"
 
 
 def transform_config_payload(
-    extraction_config: dict[str, object], policy: ReconciliationPolicy
+    extraction_config: dict[str, object],
+    policy: ReconciliationPolicy,
+    vector_identity: dict[str, object],
 ) -> dict[str, object]:
     """The committed transform inputs (Component B).
 
@@ -42,18 +44,30 @@ def transform_config_payload(
     identity derivation). ``transform_identity`` binds a source manifest over the
     audited first-party modules, so any covered code change moves this payload's
     hash — hence the package UUID and release version (PR #134 P1).
+
+    ``vector_identity`` binds the identity-bearing rules-corpus vector
+    configuration (embedding model + logical schema/ID/metadata contract, see
+    :func:`afterworlds.models.retrieval.rules_corpus_vector_identity`) so a change
+    to the embedding model or the vector logical schema likewise mints a new
+    immutable release instead of colliding with the predecessor on the reuse
+    path (PR #134 P1). It carries no operational retrieval settings.
     """
     return {
         "extraction_config": extraction_config,
         "reconciliation_policy": policy_payload(policy),
         "transform_identity": transform_identity(),
+        "rules_corpus_vector_identity": vector_identity,
     }
 
 
 def transform_config_hash(
-    extraction_config: dict[str, object], policy: ReconciliationPolicy
+    extraction_config: dict[str, object],
+    policy: ReconciliationPolicy,
+    vector_identity: dict[str, object],
 ) -> str:
-    return hash_obj(transform_config_payload(extraction_config, policy))
+    return hash_obj(
+        transform_config_payload(extraction_config, policy, vector_identity)
+    )
 
 
 # ---------------------------------------------------------------------------

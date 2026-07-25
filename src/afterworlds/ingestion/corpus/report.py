@@ -97,6 +97,12 @@ def build_report(
                 else {}
             ),
         },
+        # Identity-bearing rules-corpus vector configuration (embedding model +
+        # logical schema/ID/metadata contract) bound into the release identity
+        # (PR #134 P1); recorded so a model/schema change is on the record.
+        "rules_corpus_vector_identity": transform_config.get(
+            "rules_corpus_vector_identity"
+        ),
         # The environment needed to reproduce the transform (Component B). Recorded
         # here (not in the corpus content hashes) so an identical corpus keeps the
         # same package identity across platforms while the environment stays on

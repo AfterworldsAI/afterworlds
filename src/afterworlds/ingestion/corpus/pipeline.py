@@ -64,6 +64,8 @@ from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_hash
 from afterworlds.ingestion.corpus.reconcile import reconcile
 from afterworlds.ingestion.corpus.report import EvidenceReport
 from afterworlds.ingestion.corpus.transform import build_corpus
+from afterworlds.models.retrieval import rules_corpus_vector_identity
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,7 @@ def build_candidate(
     pdf_path: Path,
     *,
     policy: ReconciliationPolicy = FROZEN_POLICY,
+    retrieval_config: RetrievalMemoryConfig,
 ) -> CandidateRelease:
     """Execute steps a0–b: the pre-persistence candidate build.
 
@@ -104,12 +107,19 @@ def build_candidate(
     PDF and frozen transform/policy inputs (Owner Decision 1) and are therefore
     already stable at this stage — but nothing about the state described here is
     yet proven persisted or runtime-visible.
+
+    ``retrieval_config`` is resolved by the caller *before* this build so its
+    identity-bearing rules-corpus vector configuration (the embedding model +
+    logical schema/ID/metadata contract) is bound into the transform config,
+    hence the package UUID and release version (PR #134 P1). A model change
+    therefore mints a new immutable release rather than colliding on reuse.
     """
-    # a0 — freeze policy (committed input).
+    # a0 — freeze policy + resolve the vector identity (both committed inputs).
     p_hash = policy_hash(policy)
     ex_cfg = extraction_config()
-    tconfig = transform_config_payload(ex_cfg, policy)
-    thash = transform_config_hash(ex_cfg, policy)
+    vector_identity = rules_corpus_vector_identity(retrieval_config.embedding_model_id)
+    tconfig = transform_config_payload(ex_cfg, policy, vector_identity)
+    thash = transform_config_hash(ex_cfg, policy, vector_identity)
 
     # a1 — derive + hash the frozen source ledger.
     pages = extract_pages(pdf_path)

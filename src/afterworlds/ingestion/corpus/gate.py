@@ -103,6 +103,18 @@ def run_gate(
             f.append("recorded transform config extractor != reconstructed ledger")
         if tconfig.get("reconciliation_policy") != policy_payload(policy):
             f.append("recorded transform config policy != frozen policy")
+        # Identity-bearing vector configuration is present and ties the recorded
+        # embedding model to the ACTUAL persisted vector logical state — so a
+        # model-only reindex cannot pass under an identity minted for a different
+        # model (PR #134 P1). Contribution to package_uuid/version lives in the
+        # transform hash; here the gate confirms recorded identity ↔ real store.
+        vid = tconfig.get("rules_corpus_vector_identity")
+        if not isinstance(vid, dict) or not vid.get("embedding_model_id"):
+            f.append("rules-corpus vector identity missing from transform config")
+        elif vid.get("embedding_model_id") != a.vector_state.get("embedding_model_id"):
+            f.append(
+                "recorded vector embedding_model_id != actual persisted vector state"
+            )
 
     # 3. Policy committed/frozen before output: the applied policy hash must be
     #    the frozen policy hash, and it must be covered by the transform config.

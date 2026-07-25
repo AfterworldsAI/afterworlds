@@ -604,7 +604,9 @@ class TestReindexCompensatesPartialRebuild:
             client, config, DeterministicFakeEmbeddingFunction()
         )
 
-        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)  # 4 chunks -> 2 batches
+        monkeypatch.setattr(
+            client, "get_max_batch_size", lambda: 2
+        )  # 4 chunks -> 2 batches
         real_get = _patch_get_collection_failing_on_batch(monkeypatch, fail_on_call=2)
 
         with pytest.raises(RuntimeError, match="upsert batch 2 failed"):
@@ -650,7 +652,9 @@ class TestReindexCompensatesPartialRebuild:
         ef = DeterministicFakeEmbeddingFunction()
         service = RulesCorpusService(client, config, ef)
 
-        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)  # 5 chunks -> 3 batches
+        monkeypatch.setattr(
+            client, "get_max_batch_size", lambda: 2
+        )  # 5 chunks -> 3 batches
 
         written = service.reindex_from_sql(session, package_id)
 
@@ -659,6 +663,26 @@ class TestReindexCompensatesPartialRebuild:
         stored = get_rules_corpus_collection(client, name, config, ef).get()
         assert len(stored["ids"]) == 5
         assert set(stored["documents"]) == {f"chunk {i}" for i in range(5)}
+
+    def test_invalid_max_batch_size_fails_clearly(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Invalid/unavailable capability data fails clearly (and compensates the
+        attempt collection) — it never silently reverts to a fixed limit."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["c"])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        monkeypatch.setattr(client, "get_max_batch_size", lambda: 0)
+
+        with pytest.raises(RuntimeError, match="max batch size"):
+            service.reindex_from_sql(session, package_id)
+        assert _collection_absent(client, package_id)
 
     def test_cleanup_failure_is_surfaced_not_swallowed(
         self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -675,7 +699,7 @@ class TestReindexCompensatesPartialRebuild:
             client, config, DeterministicFakeEmbeddingFunction()
         )
 
-        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)
+        monkeypatch.setattr(client, "get_max_batch_size", lambda: 2)
         real_get = _patch_get_collection_failing_on_batch(monkeypatch, fail_on_call=2)
 
         # delete_collection: 1st call is the wipe (no prior collection -> Chroma

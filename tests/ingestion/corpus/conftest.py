@@ -46,7 +46,7 @@ NOW = "2026-07-23T00:00:00Z"
 @pytest.fixture(scope="session")
 def candidate() -> CandidateRelease:
     """The real pre-persistence candidate, built once for the whole session."""
-    return build_candidate(PDF_PATH)
+    return build_candidate(PDF_PATH, retrieval_config=RetrievalMemoryConfig())
 
 
 @pytest.fixture()

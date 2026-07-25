@@ -20,6 +20,7 @@ from collections.abc import Mapping
 from uuid import UUID
 
 from chromadb.api import ClientAPI
+from chromadb.utils.batch_utils import create_batches
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -36,12 +37,6 @@ from afterworlds.pipeline.retrieval.collections import (
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
-
-#: Maximum documents per Chroma add/upsert call. Chroma enforces its own
-#: ``max_batch_size`` (5461 on the pinned build); staying under it lets a
-#: full-corpus reindex (~13.6k chunks) proceed in bounded batches. Chunking the
-#: write does not change stored IDs, content, or metadata.
-_MAX_UPSERT_BATCH = 5000
 
 
 class RulesCorpusService:
@@ -145,19 +140,32 @@ class RulesCorpusService:
                 documents.append(row.content)
                 metadatas.append(metadata.model_dump(mode="json"))
 
-            # Chroma caps a single add/upsert at ``max_batch_size`` (a few
-            # thousand); a full Rules Package corpus (CRD Issue 5c: ~13.6k chunks)
-            # exceeds it in one call. Upsert in bounded batches so a large package
-            # reindexes without a ValueError. Schema, deterministic IDs, and
-            # metadata are unchanged -- only the write is chunked (Codex review,
-            # PR #134). A later-batch failure after an earlier batch already
-            # landed is compensated by the boundary below (PR #134 P2).
-            for start in range(0, len(ids), _MAX_UPSERT_BATCH):
-                stop = start + _MAX_UPSERT_BATCH
+            # Chroma caps a single add/upsert at the backend's ``max_batch_size``
+            # (varies by Chroma/backend build); a full Rules Package corpus (CRD
+            # Issue 5c: ~13.6k chunks) exceeds it in one call. Derive the batch
+            # size from the ACTUAL client capability via Chroma's supported
+            # ``create_batches`` helper (which slices by ``get_max_batch_size()``),
+            # never a hard-coded limit that could exceed a smaller backend's cap
+            # (PR #134 P1). Fail clearly if the client reports an invalid capability
+            # rather than silently reverting to a fixed size. Order is preserved
+            # (in-order slices) so stored IDs/content/metadata are unchanged; a
+            # later-batch failure after an earlier batch landed is compensated by
+            # the boundary below (PR #134 P2).
+            max_batch = self._client.get_max_batch_size()
+            if not isinstance(max_batch, int) or max_batch <= 0:
+                raise RuntimeError(
+                    f"Chroma reported an unusable max batch size: {max_batch!r}"
+                )
+            for batch_ids, _emb, batch_metadatas, batch_documents in create_batches(
+                self._client,
+                ids=ids,
+                metadatas=metadatas,  # type: ignore[arg-type]
+                documents=documents,
+            ):
                 collection.upsert(
-                    documents=documents[start:stop],
-                    metadatas=metadatas[start:stop],  # type: ignore[arg-type]
-                    ids=ids[start:stop],
+                    documents=batch_documents,
+                    metadatas=batch_metadatas,
+                    ids=batch_ids,
                 )
             # Every batch landed -- the rebuild is complete and consistent with
             # SQL ground truth; only now is it safe to disarm cleanup.

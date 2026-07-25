@@ -98,10 +98,11 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(tmp_path):
     transform_config_hash and therefore both the package UUID and release
     version — so finalize_release cannot reuse the predecessor's identity."""
     ex = extraction_config()
-    real_hash = transform_config_hash(ex, FROZEN_POLICY)
+    vid = {"embedding_model_id": "m", "metadata_fields": ["subsystem"]}
+    real_hash = transform_config_hash(ex, FROZEN_POLICY, vid)
 
     # Simulate a code-only change by recomputing the payload against a mutated
-    # copy of the source tree (same PDF, extractor config, and policy).
+    # copy of the source tree (same PDF, extractor config, policy, and vector id).
     copy_dir = tmp_path / "corpus"
     copy_dir.mkdir()
     for name in TRANSFORM_SOURCE_MODULES:
@@ -111,10 +112,11 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(tmp_path):
     mutated_identity = transform_identity(copy_dir)
     mutated_payload = {
         "extraction_config": ex,
-        "reconciliation_policy": transform_config_payload(ex, FROZEN_POLICY)[
+        "reconciliation_policy": transform_config_payload(ex, FROZEN_POLICY, vid)[
             "reconciliation_policy"
         ],
         "transform_identity": mutated_identity,
+        "rules_corpus_vector_identity": vid,
     }
     mutated_hash = hash_obj(mutated_payload)
 

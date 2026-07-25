@@ -167,6 +167,73 @@ def policy_hash(policy: ReconciliationPolicy) -> str:
     return hash_obj(policy_payload(policy))
 
 
+class PolicyReconstructionError(RuntimeError):
+    """The persisted reconciliation policy could not be reconstructed/validated.
+
+    Reconstruction fails closed on missing, malformed, deleted, or inconsistent
+    persisted policy state — it never substitutes ``FROZEN_POLICY`` or a caller
+    policy (PR #134 P1).
+    """
+
+
+def policy_from_payload(payload: object) -> ReconciliationPolicy:
+    """Reconstruct a :class:`ReconciliationPolicy` strictly from a persisted
+    payload (the canonical form produced by :func:`policy_payload`).
+
+    Fails closed on any missing key, wrong type, or unknown enum value: a
+    malformed persisted policy must never silently degrade to a partial or
+    default policy. Round-trips exactly — ``policy_payload(policy_from_payload(p))
+    == p`` for any ``p`` this returns — so a recomputed hash matches the stored
+    one iff the payload is untampered.
+    """
+    if not isinstance(payload, dict):
+        raise PolicyReconstructionError("policy payload is not an object")
+    try:
+        version = payload["policy_version"]
+        normalization = payload["normalization_version"]
+        reasons_raw = payload["exclusion_reasons"]
+        roles_raw = payload["projection_roles"]
+    except KeyError as exc:
+        raise PolicyReconstructionError(f"policy payload missing key: {exc}") from exc
+    if not isinstance(version, str) or not isinstance(normalization, str):
+        raise PolicyReconstructionError("policy version fields must be strings")
+    if not isinstance(reasons_raw, list) or not isinstance(roles_raw, list):
+        raise PolicyReconstructionError("policy reason/role lists malformed")
+    try:
+        reasons = tuple(
+            ExclusionReason(
+                code=r["code"],
+                description=r["description"],
+                eligible_leaf_types=tuple(
+                    LeafType(t) for t in r["eligible_leaf_types"]
+                ),
+            )
+            for r in reasons_raw
+        )
+        roles = tuple(
+            ProjectionRole(
+                name=r["name"],
+                description=r["description"],
+                allows_overlap=r["allows_overlap"],
+            )
+            for r in roles_raw
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PolicyReconstructionError(f"malformed policy entry: {exc}") from exc
+    for reason in reasons:
+        if not isinstance(reason.code, str) or not isinstance(reason.description, str):
+            raise PolicyReconstructionError("exclusion reason fields malformed")
+    for role in roles:
+        if not isinstance(role.name, str) or not isinstance(role.allows_overlap, bool):
+            raise PolicyReconstructionError("projection role fields malformed")
+    return ReconciliationPolicy(
+        policy_version=version,
+        normalization_version=normalization,
+        exclusion_reasons=reasons,
+        projection_roles=roles,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Deterministic exclusion predicates (Component D policy application)
 # ---------------------------------------------------------------------------

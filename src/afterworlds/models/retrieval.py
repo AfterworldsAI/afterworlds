@@ -89,6 +89,42 @@ def rules_corpus_collection_name(rules_package_id: UUID) -> str:
     return f"rules_corpus_{rules_package_id.hex}"
 
 
+#: Placeholder UUID used only to sample the deterministic ID/collection formats
+#: below into a stable, content-derived string (never a real package id).
+_IDENTITY_SAMPLE_UUID = UUID(int=0)
+
+
+def rules_corpus_vector_identity(embedding_model_id: str) -> dict[str, object]:
+    """The identity-bearing rules-corpus vector configuration (ADR-018 D2/D4/D11).
+
+    Exactly the inputs that determine the persisted vector *logical* state — the
+    embedding model, the deterministic chunk-ID scheme, the metadata
+    schema/fields, and the collection-naming scheme. Bound into the transform
+    source/configuration payload so a change to any of them mints a **new
+    immutable release** (a model change forces a reindex whose digest describes
+    the new model; without this, that reindex would find the old package and hit
+    the verify-only reuse path with a stale digest — PR #134 P1).
+
+    The ID and collection schemes are *sampled from the real builders* with a
+    placeholder UUID, so a change to either format moves this identity
+    automatically — no hand-maintained constant. This binds contract **shape**
+    only; the actual per-document IDs/content/metadata values are bound by the
+    persisted-corpus digest (``vector_state``), not here. Excludes operational
+    settings (``persist_directory``, ``top_k``, similarity threshold, batch
+    size) and embedding bytes, which do not change the persisted logical state.
+    """
+    zero = _IDENTITY_SAMPLE_UUID
+    return {
+        "embedding_model_id": embedding_model_id,
+        "metadata_schema_version": (
+            RulesCorpusChunkMetadata.model_fields["schema_version"].default
+        ),
+        "metadata_fields": sorted(RulesCorpusChunkMetadata.model_fields),
+        "chunk_id_scheme": build_rules_corpus_chunk_id(zero, zero),
+        "collection_name_scheme": rules_corpus_collection_name(zero),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Metadata DTOs (ADR-018 D2)
 # ---------------------------------------------------------------------------

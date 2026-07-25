@@ -69,8 +69,14 @@ def main() -> int:
         print(f"ERROR: authoritative PDF not found: {pdf_path}", file=sys.stderr)
         return 1
 
+    # Resolve the retrieval config BEFORE building the candidate: its
+    # identity-bearing rules-corpus vector configuration (embedding model +
+    # logical schema/ID/metadata contract) is bound into the release identity
+    # (PR #134 P1), so a model change mints a new immutable release.
+    retrieval_config = RetrievalMemoryConfig.from_env()
+
     print(f"Building corpus candidate from {pdf_path} ...")
-    candidate = build_candidate(pdf_path)
+    candidate = build_candidate(pdf_path, retrieval_config=retrieval_config)
     print(f"  package : {candidate.package_uuid}")
     print(f"  version : {candidate.release_version}")
     print(f"  chunks  : {len(candidate.members.chunks)}")
@@ -81,10 +87,9 @@ def main() -> int:
     engine = create_engine(args.db_url)
     session_factory = create_session_factory(engine)
 
-    # Real embedded Chroma client + config (Issue 18 seam). The default local
-    # ONNX MiniLM embedding function is resolved inside the reindex path; no fake
-    # is ever selected in production (embedding.resolve_default_embedding_function).
-    retrieval_config = RetrievalMemoryConfig.from_env()
+    # Real embedded Chroma client (Issue 18 seam). The default local ONNX MiniLM
+    # embedding function is resolved inside the reindex path; no fake is ever
+    # selected in production (embedding.resolve_default_embedding_function).
     chroma_client = build_chroma_client(retrieval_config)
 
     now = datetime.now(UTC).isoformat()

@@ -64,7 +64,12 @@ from afterworlds.ingestion.corpus.models import (
 )
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease, ReleaseArtifacts
-from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_payload
+from afterworlds.ingestion.corpus.policy import (
+    PolicyReconstructionError,
+    policy_from_payload,
+    policy_hash,
+    policy_payload,
+)
 from afterworlds.ingestion.corpus.quarantine import check_legacy_reachability
 from afterworlds.ingestion.corpus.report import (
     EvidenceReport,
@@ -398,6 +403,74 @@ def _load_ledger(session: Session, pkg: str) -> SourceLedger:
     )
 
 
+def _load_policy(session: Session, pkg: str) -> ReconciliationPolicy:
+    """Reconstruct the applied reconciliation policy from the persisted rows.
+
+    The DB-grounded policy every reconstruction/digest/report/reuse path must
+    use — never ``FROZEN_POLICY`` or a caller policy (PR #134 P1). Reads the
+    ``rp_reconciliation_policies`` row, reconstructs the policy from its payload,
+    and validates a closed chain of cross-references so that a missing, malformed,
+    deleted, or inconsistent persisted policy fails closed:
+
+    * the policy row exists and its payload is a well-formed policy;
+    * the payload-derived version/hash match the row's recorded version/hash;
+    * the row's ``policy_hash`` matches ``rp_reconciliations.policy_hash``;
+    * the row's ``policy_hash`` matches ``rp_corpus_releases.policy_hash``;
+    * the reconstructed policy payload matches the policy embedded in the stored
+      transform configuration.
+
+    Raises:
+        PolicyReconstructionError: on any missing/malformed/inconsistent state.
+    """
+    release = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one_or_none()
+    if release is None:
+        raise PolicyReconstructionError(f"no corpus release row for {pkg}")
+    policy_row = session.execute(
+        select(ReconciliationPolicyORM).where(
+            ReconciliationPolicyORM.package_uuid == pkg
+        )
+    ).scalar_one_or_none()
+    if policy_row is None:
+        raise PolicyReconstructionError(
+            f"missing rp_reconciliation_policies row for {pkg}"
+        )
+
+    policy = policy_from_payload(policy_row.payload)  # fails closed if malformed
+    recomputed_hash = policy_hash(policy)
+
+    if policy.policy_version != policy_row.policy_version:
+        raise PolicyReconstructionError(
+            "policy_version mismatch (payload vs rp_reconciliation_policies row)"
+        )
+    if recomputed_hash != policy_row.policy_hash:
+        raise PolicyReconstructionError(
+            "policy_hash mismatch (payload vs rp_reconciliation_policies row)"
+        )
+
+    recon_row = session.execute(
+        select(ReconciliationORM).where(ReconciliationORM.package_uuid == pkg)
+    ).scalar_one_or_none()
+    if recon_row is None or recon_row.policy_hash != policy_row.policy_hash:
+        raise PolicyReconstructionError(
+            "policy_hash mismatch (policy row vs rp_reconciliations)"
+        )
+    if release.policy_hash != policy_row.policy_hash:
+        raise PolicyReconstructionError(
+            "policy_hash mismatch (policy row vs rp_corpus_releases)"
+        )
+
+    tconfig = release.transform_config
+    if not isinstance(tconfig, dict) or tconfig.get(
+        "reconciliation_policy"
+    ) != policy_payload(policy):
+        raise PolicyReconstructionError(
+            "reconstructed policy != policy embedded in stored transform config"
+        )
+    return policy
+
+
 def _load_reconciliation(
     session: Session, pkg: str, policy: ReconciliationPolicy
 ) -> ReconciliationMember:
@@ -587,19 +660,21 @@ def recompute_persisted_digest(
     session: Session,
     pkg: str,
     vector_state: dict[str, object],
-    *,
-    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> str:
     """Recompute the persisted-corpus digest from the actual DB rows plus the
     actual read-back vector logical state (``vector_state``).
 
-    The caller supplies ``vector_state`` from :func:`read_actual_vector_state`
-    (never a SQL-synthesized fiction), so a missing/stale/tampered Chroma
-    collection recomputes to a different digest and fails verification.
+    The applied policy is reconstructed and validated from the persisted rows
+    (:func:`_load_policy`), never a caller/default policy — so tampering the
+    persisted policy version/hash/payload/cross-reference fails closed here (PR
+    #134 P1). The caller supplies ``vector_state`` from
+    :func:`read_actual_vector_state` (never a SQL-synthesized fiction), so a
+    missing/stale/tampered Chroma collection recomputes to a different digest.
     """
     release = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
+    policy = _load_policy(session, pkg)
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
@@ -618,19 +693,20 @@ def verify_persisted_digest(
     session: Session,
     pkg: str,
     vector_state: dict[str, object],
-    *,
-    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> bool:
     """True iff the recomputed digest matches the stored release digest.
 
     ``vector_state`` is the actual read-back vector logical state; pass the
     output of :func:`read_actual_vector_state` so a divergent Chroma collection
-    (as well as any tampered SQL row) makes this return ``False``.
+    (as well as any tampered SQL row) makes this return ``False``. An
+    inconsistent persisted *policy* fails closed by raising
+    :class:`PolicyReconstructionError` (a stronger signal than a digest
+    mismatch) rather than returning ``False``.
     """
     release = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
-    return recompute_persisted_digest(session, pkg, vector_state, policy=policy) == (
+    return recompute_persisted_digest(session, pkg, vector_state) == (
         release.persisted_corpus_digest
     )
 
@@ -639,13 +715,12 @@ def reconstruct_payload(
     session: Session,
     pkg: str,
     vector_state: dict[str, object],
-    *,
-    policy: ReconciliationPolicy = FROZEN_POLICY,
 ) -> dict[str, object]:
     """Reconstruct the canonical persisted-corpus payload from the DB (debug)."""
     release = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
+    policy = _load_policy(session, pkg)
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
@@ -698,20 +773,23 @@ def _reconstruct_artifacts(
     pkg: str,
     *,
     pages: list[ExtractedPage],
-    policy: ReconciliationPolicy,
     bundle: CanonicalBundle,
     vector_state: dict[str, object],
 ) -> tuple[ReleaseArtifacts, tuple[str, ...]]:
     """Load a fully-persisted release's DB-grounded artifacts + its membership
     violations (used by both the fresh-publish and the idempotent-reuse path).
 
-    ``vector_state`` is the actual read-back vector logical state; it is carried
-    on the artifacts so the gate recomputes the persisted-corpus digest over the
-    real cross-store state (Component A / K step c).
+    The applied policy is reconstructed and validated from the persisted rows
+    (:func:`_load_policy`), never a caller policy — so a tampered persisted policy
+    fails closed here (PR #134 P1). ``vector_state`` is the actual read-back
+    vector logical state; it is carried on the artifacts so the gate recomputes
+    the persisted-corpus digest over the real cross-store state (Component A /
+    K step c).
     """
     release_row = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
     ).scalar_one()
+    policy = _load_policy(session, pkg)
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
@@ -827,14 +905,28 @@ def finalize_release(
         vector_result = verify_only(
             session, pkg, chroma_client, retrieval_config, embedding_function
         )
-        artifacts, membership_violations = _reconstruct_artifacts(
-            session,
-            pkg,
-            pages=candidate.pages,
-            policy=candidate.policy,
-            bundle=candidate.bundle,
-            vector_state=vector_result.state.to_payload(),
-        )
+        try:
+            artifacts, membership_violations = _reconstruct_artifacts(
+                session,
+                pkg,
+                pages=candidate.pages,
+                bundle=candidate.bundle,
+                vector_state=vector_result.state.to_payload(),
+            )
+        except PolicyReconstructionError as exc:
+            # A missing/malformed/inconsistent persisted policy fails reuse closed
+            # (reported as an ordinary failed result, consistent with the other
+            # reuse-rejection cases) — never republished on a caller/default
+            # policy (PR #134 P1).
+            return FinalizeResult(
+                published=False,
+                reused=False,
+                artifacts=None,
+                gate=GateResult(
+                    passed=False,
+                    failures=(f"persisted reconciliation policy invalid: {exc}",),
+                ),
+            )
         legacy_violations = check_legacy_reachability(session, repo_root)
         sql_persist_ok = (
             len(artifacts.ledger.leaves) == len(candidate.ledger.leaves)
@@ -931,9 +1023,13 @@ def finalize_release(
         )
 
         # --- reconstruct strictly from what was just persisted ----------------
+        # The applied policy is reconstructed + validated from the persisted rows
+        # (never candidate.policy), so the digest/report/gate all bind the DB
+        # -grounded policy (PR #134 P1).
+        policy = _load_policy(session, pkg)
         membership_violations = verify_chunk_runtime_membership(session, pkg)
         ledger = _load_ledger(session, pkg)
-        recon = _load_reconciliation(session, pkg, candidate.policy)
+        recon = _load_reconciliation(session, pkg, policy)
         members = _load_members(session, pkg, ledger)
 
         # --- d: persisted-corpus digest from the actual persisted state (SQL +
@@ -945,7 +1041,7 @@ def finalize_release(
             ledger,
             members,
             recon,
-            candidate.policy,
+            policy,
             vector_state,
         )
 
@@ -959,7 +1055,7 @@ def finalize_release(
             ledger=ledger,
             members=members,
             recon=recon,
-            policy=candidate.policy,
+            policy=policy,
             authoritative_source_hash=candidate.authoritative_source_hash,
             transform_config_hash=candidate.transform_config_hash,
             transform_config=candidate.transform_config,
@@ -995,7 +1091,7 @@ def finalize_release(
             ledger=ledger,
             members=members,
             reconciliation=recon,
-            policy=candidate.policy,
+            policy=policy,
             bundle=candidate.bundle,
             report=report,
             release=release_record,

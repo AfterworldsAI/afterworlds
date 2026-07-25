@@ -13,6 +13,7 @@ from afterworlds.ingestion.corpus.concordance import check_canaries, check_conco
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
 from afterworlds.ingestion.corpus.models import Disposition, LeafType
 from afterworlds.ingestion.corpus.pipeline import build_candidate
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 
 from .conftest import PDF_PATH, finalize_in_fresh_db
 
@@ -149,7 +150,9 @@ def test_clean_regeneration_is_byte_for_byte_deterministic(release):
     # One fresh regeneration — full candidate build + finalize into a brand-new
     # DB — must reproduce the session build byte-for-byte, including the
     # post-persistence proof hashes (Component K's full acyclic c-g order).
-    fresh_candidate = build_candidate(PDF_PATH)
+    fresh_candidate = build_candidate(
+        PDF_PATH, retrieval_config=RetrievalMemoryConfig()
+    )
     result = finalize_in_fresh_db(fresh_candidate)
     assert result.published and result.artifacts is not None, result.gate
     b = result.artifacts

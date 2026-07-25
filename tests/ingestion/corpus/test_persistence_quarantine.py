@@ -9,15 +9,17 @@ partial content on a failed gate.
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 from uuid import UUID
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 import afterworlds.ingestion.corpus.persistence as persistence_mod
 from afterworlds.ingestion.corpus.bundle import persisted_corpus_payload
 from afterworlds.ingestion.corpus.persistence import (
+    _load_policy,
     finalize_release,
     persist_release,
     reconstruct_payload,
@@ -25,6 +27,7 @@ from afterworlds.ingestion.corpus.persistence import (
     verify_persisted_digest,
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
+from afterworlds.ingestion.corpus.policy import PolicyReconstructionError
 from afterworlds.ingestion.corpus.quarantine import (
     LEGACY_ARTIFACT_SHA256,
     check_active_store,
@@ -37,6 +40,7 @@ from afterworlds.persistence.orm.corpus import (
     CorpusReleaseORM,
     LedgerLeafORM,
     ReconciliationORM,
+    ReconciliationPolicyORM,
 )
 from afterworlds.persistence.orm.rules_package import (
     RuleChunkORM,
@@ -223,6 +227,159 @@ def test_tamper_chunk_locator_value_breaks_digest(
         "source_locator_value",
         "p. 9999",
     )
+
+
+# --- Persisted reconciliation policy reconstruction (PR #134 P1) --------------
+# Reconstruction reads and validates the persisted rp_reconciliation_policies row
+# and its cross-references, never FROZEN_POLICY / a caller policy. A missing,
+# malformed, deleted, or inconsistent persisted policy fails closed.
+
+
+def _persist_sql_only(session, release):
+    """Persist a finalized release's SQL state (no reindex) and return its pkg.
+
+    The policy-tamper checks below fail closed in ``_load_policy`` *before* any
+    vector state is read, so they need no Chroma collection — passing ``{}`` as
+    the vector state to ``verify_persisted_digest`` is enough."""
+    persist_release(session, release, now=_NOW)
+    session.commit()
+    return release.release.package_uuid
+
+
+def test_load_policy_accepts_clean_release_positive_control(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    """Positive control: a clean release round-trips payload -> policy -> hash
+    back to the stored hash, passes every cross-check, and verifies — so the
+    tamper tests below are rejecting real inconsistencies, not a broken feature."""
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    policy = _load_policy(session, pkg)
+    assert policy.policy_version == release.policy.policy_version
+    assert policy.projection_roles == release.policy.projection_roles
+    assert policy.exclusion_reasons == release.policy.exclusion_reasons
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert verify_persisted_digest(session, pkg, vs)
+
+
+def test_deleting_policy_row_fails_closed(session, release):
+    pkg = _persist_sql_only(session, release)
+    session.execute(
+        delete(ReconciliationPolicyORM).where(
+            ReconciliationPolicyORM.package_uuid == pkg
+        )
+    )
+    session.commit()
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def _tamper_policy_row(session, pkg, mutate):
+    row = session.execute(
+        select(ReconciliationPolicyORM).where(
+            ReconciliationPolicyORM.package_uuid == pkg
+        )
+    ).scalar_one()
+    mutate(row)
+    session.commit()
+
+
+def test_tamper_policy_version_fails_closed(session, release):
+    pkg = _persist_sql_only(session, release)
+
+    def _m(row):
+        row.policy_version = "tampered-version"
+
+    _tamper_policy_row(session, pkg, _m)
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_tamper_policy_hash_fails_closed(session, release):
+    pkg = _persist_sql_only(session, release)
+
+    def _m(row):
+        row.policy_hash = "0" * 64
+
+    _tamper_policy_row(session, pkg, _m)
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_tamper_policy_payload_fails_closed(session, release):
+    pkg = _persist_sql_only(session, release)
+
+    def _m(row):
+        payload = copy.deepcopy(row.payload)
+        payload["exclusion_reasons"][0]["description"] = "TAMPERED REASON"
+        row.payload = payload
+
+    _tamper_policy_row(session, pkg, _m)
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_tamper_reconciliation_policy_cross_reference_fails_closed(session, release):
+    """rp_reconciliations.policy_hash must match the policy row."""
+    pkg = _persist_sql_only(session, release)
+    recon = session.execute(
+        select(ReconciliationORM).where(ReconciliationORM.package_uuid == pkg)
+    ).scalar_one()
+    recon.policy_hash = "0" * 64
+    session.commit()
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_tamper_release_policy_cross_reference_fails_closed(session, release):
+    """rp_corpus_releases.policy_hash must match the policy row."""
+    pkg = _persist_sql_only(session, release)
+    rel = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one()
+    rel.policy_hash = "0" * 64
+    session.commit()
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_tamper_transform_config_policy_cross_reference_fails_closed(session, release):
+    """The reconstructed policy must match the policy embedded in the stored
+    transform configuration."""
+    pkg = _persist_sql_only(session, release)
+    rel = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one()
+    tc = copy.deepcopy(rel.transform_config)
+    tc["reconciliation_policy"]["policy_version"] = "spoofed"
+    rel.transform_config = tc
+    session.commit()
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(session, pkg, {})
+
+
+def test_reuse_fails_closed_on_deleted_policy_row(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """Reuse must not republish against a missing persisted policy — it reports
+    an ordinary failed result (not a raw exception) and never reuses."""
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert first.published and not first.reused
+
+    session.execute(
+        delete(ReconciliationPolicyORM).where(
+            ReconciliationPolicyORM.package_uuid == candidate.package_uuid
+        )
+    )
+    session.commit()
+
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert not result.published and not result.reused
+    assert result.gate is not None
+    assert any("policy" in f for f in result.gate.failures)
 
 
 # --- Legacy quarantine (Component L / Acceptance #12) -------------------------
