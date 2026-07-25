@@ -65,6 +65,21 @@ class RulesCorpusService:
         CRD Issue 5b interim collection without mutating any 5a source
         record. Returns the number of chunks written.
 
+        The rebuild is exception-safe at this public boundary. The initial wipe
+        stays outside the compensation scope (an operational wipe failure
+        propagates without touching the old collection). Once the wipe succeeds,
+        the old collection is gone, so every collection this method then creates
+        or partially populates is this attempt's responsibility: if creation, row
+        transformation, embedding/upsert, or any later batch fails before the
+        complete rebuild lands, the attempt's (possibly partially populated)
+        collection is removed and the failure propagates -- a partial collection
+        that contradicts SQLite ground truth is never left queryable through the
+        diagnostic surface (PR #134 P2, sibling of the finalize cross-store
+        cleanup). Cleanup is disarmed only after every batch succeeds, or after a
+        legitimate zero-row rebuild completes with an empty collection. This does
+        not weaken ``finalize_release``'s outer boundary -- that redundant,
+        absence-tolerant cleanup remains.
+
         Raises:
             Whatever ``delete_collection_ignoring_absence`` propagates (any
                 operational Chroma failure besides a genuinely absent
@@ -72,61 +87,92 @@ class RulesCorpusService:
                 may not have actually happened (Codex review, PR #119 round
                 7), since stale disabled/deleted chunks would then remain
                 silently retrievable through the diagnostic query.
+            Whatever the create/transform/upsert raises, after this attempt's
+                collection has been removed. A cleanup failure is not swallowed;
+                it propagates (chained onto the originating failure), so a
+                partial rebuild is never left behind under a clean-failure claim.
         """
         collection_name = rules_corpus_collection_name(rules_package_id)
+        # Wipe first (surplus removal), OUTSIDE the compensation scope: an
+        # operational wipe failure must propagate without any further deletion --
+        # the old collection is untouched (PR #119 round 7).
         delete_collection_ignoring_absence(self._client, collection_name)
-        collection = get_rules_corpus_collection(
-            self._client, collection_name, self._config, self._embedding_function
-        )
 
-        rows = (
-            session.execute(
-                select(RuleChunkORM)
-                .where(RuleChunkORM.rules_package_id == str(rules_package_id))
-                .where(RuleChunkORM.is_enabled.is_(True))
+        # Wipe succeeded -> the old collection is gone. Arm cleanup: from here any
+        # created/partial collection belongs to this rebuild attempt.
+        cleanup_armed = True
+        try:
+            collection = get_rules_corpus_collection(
+                self._client, collection_name, self._config, self._embedding_function
             )
-            .scalars()
-            .all()
-        )
-        if not rows:
-            return 0
 
-        ids: list[str] = []
-        documents: list[str] = []
-        metadatas: list[Mapping[str, str | int | float | bool | None]] = []
-        for row in rows:
-            locator_type = SourceLocatorTypeEnum(row.source_locator_type)
-            metadata = RulesCorpusChunkMetadata(
-                rules_package_id=rules_package_id,
-                subsystem=row.subsystem,
-                source_document=row.source_document,
-                source_locator_type=locator_type,
-                source_locator_value=row.source_locator_value,
-                embedding_model_id=self._config.embedding_model_id,
+            rows = (
+                session.execute(
+                    select(RuleChunkORM)
+                    .where(RuleChunkORM.rules_package_id == str(rules_package_id))
+                    .where(RuleChunkORM.is_enabled.is_(True))
+                )
+                .scalars()
+                .all()
             )
-            # ID derives from RuleChunkORM.chunk_id -- the row's own durable
-            # primary key -- not a per-run occurrence index (Codex review,
-            # PR #119 round 4): stable regardless of SQL row-iteration order
-            # or how many chunks share the same source locator.
-            ids.append(
-                build_rules_corpus_chunk_id(rules_package_id, UUID(row.chunk_id))
-            )
-            documents.append(row.content)
-            metadatas.append(metadata.model_dump(mode="json"))
+            if not rows:
+                # A package with no enabled chunks rebuilds to an empty
+                # collection -- the complete, correct end state, not a partial
+                # one; disarm and keep it.
+                cleanup_armed = False
+                return 0
 
-        # Chroma caps a single add/upsert at ``max_batch_size`` (a few thousand);
-        # a full Rules Package corpus (CRD Issue 5c: ~13.6k chunks) exceeds it in
-        # one call. Upsert in bounded batches so a large package reindexes without
-        # a ValueError. Schema, deterministic IDs, and metadata are unchanged —
-        # only the write is chunked (Codex review, PR #134).
-        for start in range(0, len(ids), _MAX_UPSERT_BATCH):
-            stop = start + _MAX_UPSERT_BATCH
-            collection.upsert(
-                documents=documents[start:stop],
-                metadatas=metadatas[start:stop],  # type: ignore[arg-type]
-                ids=ids[start:stop],
-            )
-        return len(rows)
+            ids: list[str] = []
+            documents: list[str] = []
+            metadatas: list[Mapping[str, str | int | float | bool | None]] = []
+            for row in rows:
+                locator_type = SourceLocatorTypeEnum(row.source_locator_type)
+                metadata = RulesCorpusChunkMetadata(
+                    rules_package_id=rules_package_id,
+                    subsystem=row.subsystem,
+                    source_document=row.source_document,
+                    source_locator_type=locator_type,
+                    source_locator_value=row.source_locator_value,
+                    embedding_model_id=self._config.embedding_model_id,
+                )
+                # ID derives from RuleChunkORM.chunk_id -- the row's own durable
+                # primary key -- not a per-run occurrence index (Codex review,
+                # PR #119 round 4): stable regardless of SQL row-iteration order
+                # or how many chunks share the same source locator.
+                ids.append(
+                    build_rules_corpus_chunk_id(rules_package_id, UUID(row.chunk_id))
+                )
+                documents.append(row.content)
+                metadatas.append(metadata.model_dump(mode="json"))
+
+            # Chroma caps a single add/upsert at ``max_batch_size`` (a few
+            # thousand); a full Rules Package corpus (CRD Issue 5c: ~13.6k chunks)
+            # exceeds it in one call. Upsert in bounded batches so a large package
+            # reindexes without a ValueError. Schema, deterministic IDs, and
+            # metadata are unchanged -- only the write is chunked (Codex review,
+            # PR #134). A later-batch failure after an earlier batch already
+            # landed is compensated by the boundary below (PR #134 P2).
+            for start in range(0, len(ids), _MAX_UPSERT_BATCH):
+                stop = start + _MAX_UPSERT_BATCH
+                collection.upsert(
+                    documents=documents[start:stop],
+                    metadatas=metadatas[start:stop],  # type: ignore[arg-type]
+                    ids=ids[start:stop],
+                )
+            # Every batch landed -- the rebuild is complete and consistent with
+            # SQL ground truth; only now is it safe to disarm cleanup.
+            cleanup_armed = False
+            return len(rows)
+        except Exception:
+            # Create / transform / embedding / any batch failed before the
+            # rebuild completed. Remove this attempt's (possibly partially
+            # populated) collection and propagate. delete_collection_ignoring_
+            # absence swallows only a genuinely absent collection; a real cleanup
+            # failure propagates (chained onto the originating failure), so a
+            # partial rebuild is never left behind under a clean-failure claim.
+            if cleanup_armed:
+                delete_collection_ignoring_absence(self._client, collection_name)
+            raise
 
     def diagnostic_query(
         self, rules_package_id: UUID, query_text: str, n_results: int = 5

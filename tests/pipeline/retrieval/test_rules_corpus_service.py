@@ -13,8 +13,10 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
+from chromadb.errors import NotFoundError
 from sqlalchemy import delete, select
 
+import afterworlds.pipeline.retrieval.rules_corpus_service as rcs_module
 from afterworlds.models.enums import SourceLocatorTypeEnum
 from afterworlds.models.retrieval import rules_corpus_collection_name
 from afterworlds.persistence.database import create_session_factory
@@ -532,6 +534,175 @@ class TestRulesCorpusIdStability:
 
         assert len(calls) == 1
         assert calls[0][0] == package_id
+
+
+class _FailOnNthUpsertCollection:
+    """Wraps a real Chroma collection; the Nth ``upsert`` call raises.
+
+    Everything else (``get``, ``count``, ``query``) delegates to the real
+    collection, so batches before the Nth genuinely land — letting a test prove
+    that a mid-rebuild failure with earlier batches already written is
+    compensated (the whole attempt collection is removed)."""
+
+    def __init__(self, real, fail_on_call: int) -> None:  # type: ignore[no-untyped-def]
+        self._real = real
+        self._fail_on_call = fail_on_call
+        self.upsert_calls = 0
+
+    def upsert(self, **kwargs):  # type: ignore[no-untyped-def]
+        self.upsert_calls += 1
+        if self.upsert_calls == self._fail_on_call:
+            raise RuntimeError(f"upsert batch {self.upsert_calls} failed")
+        return self._real.upsert(**kwargs)
+
+    def __getattr__(self, name):  # type: ignore[no-untyped-def]
+        return getattr(self._real, name)
+
+
+def _collection_absent(client, package_id) -> bool:  # type: ignore[no-untyped-def]
+    """True iff the rules_corpus collection was removed (not merely emptied)."""
+    name = rules_corpus_collection_name(package_id)
+    try:
+        client.get_collection(name=name)
+        return False
+    except NotFoundError:
+        return True
+
+
+def _patch_get_collection_failing_on_batch(
+    monkeypatch, fail_on_call: int  # type: ignore[no-untyped-def]
+):
+    """Make get_rules_corpus_collection return a wrapper that fails on the Nth
+    upsert; return the original function so a test can read back the real store."""
+    real_get = rcs_module.get_rules_corpus_collection
+
+    def _wrapped(client, name, config, ef=None):  # type: ignore[no-untyped-def]
+        return _FailOnNthUpsertCollection(
+            real_get(client, name, config, ef), fail_on_call=fail_on_call
+        )
+
+    monkeypatch.setattr(rcs_module, "get_rules_corpus_collection", _wrapped)
+    return real_get
+
+
+class TestReindexCompensatesPartialRebuild:
+    """PR #134 P2: reindex_from_sql is exception-safe at its own boundary. After
+    the wipe succeeds, a create/transform/upsert/later-batch failure removes this
+    attempt's (possibly partially populated) collection and propagates — a
+    partial rebuild that contradicts SQLite ground truth is never left queryable.
+    ADR-018 D11: in-place re-upsert, no temp/swap collection."""
+
+    def test_later_batch_failure_removes_all_partial_documents(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, [f"c{i}" for i in range(4)])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)  # 4 chunks -> 2 batches
+        real_get = _patch_get_collection_failing_on_batch(monkeypatch, fail_on_call=2)
+
+        with pytest.raises(RuntimeError, match="upsert batch 2 failed"):
+            service.reindex_from_sql(session, package_id)
+
+        # The whole attempt collection was removed — batch 1's documents are gone.
+        assert _collection_absent(client, package_id)
+        # Re-reading the store (bypassing the wrapper) shows nothing partial.
+        name = rules_corpus_collection_name(package_id)
+        ef = DeterministicFakeEmbeddingFunction()
+        assert real_get(client, name, config, ef).count() == 0
+
+    def test_first_batch_failure_removes_the_attempt_collection(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        """A failure after the successful wipe but before the first batch
+        completes still removes the (newly created, empty-or-partial) collection,
+        so an incomplete rebuild is not left standing as if it were complete."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["only chunk"])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        _patch_get_collection_failing_on_batch(monkeypatch, fail_on_call=1)
+
+        with pytest.raises(RuntimeError, match="upsert batch 1 failed"):
+            service.reindex_from_sql(session, package_id)
+
+        assert _collection_absent(client, package_id)
+
+    def test_successful_multi_batch_rebuild_writes_exact_complete_set(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, [f"chunk {i}" for i in range(5)])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        ef = DeterministicFakeEmbeddingFunction()
+        service = RulesCorpusService(client, config, ef)
+
+        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)  # 5 chunks -> 3 batches
+
+        written = service.reindex_from_sql(session, package_id)
+
+        assert written == 5
+        name = rules_corpus_collection_name(package_id)
+        stored = get_rules_corpus_collection(client, name, config, ef).get()
+        assert len(stored["ids"]) == 5
+        assert set(stored["documents"]) == {f"chunk {i}" for i in range(5)}
+
+    def test_cleanup_failure_is_surfaced_not_swallowed(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        """When compensating cleanup itself fails, the cleanup failure is
+        surfaced (not swallowed) and the originating upsert failure is preserved
+        in the chain — never a clean-failure claim while partial content remains."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, [f"c{i}" for i in range(4)])
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        config = RetrievalMemoryConfig()
+        service = RulesCorpusService(
+            client, config, DeterministicFakeEmbeddingFunction()
+        )
+
+        monkeypatch.setattr(rcs_module, "_MAX_UPSERT_BATCH", 2)
+        real_get = _patch_get_collection_failing_on_batch(monkeypatch, fail_on_call=2)
+
+        # delete_collection: 1st call is the wipe (no prior collection -> Chroma
+        # raises NotFoundError, suppressed by delete_collection_ignoring_absence);
+        # the 2nd call is the compensating cleanup, which fails operationally.
+        real_delete = client.delete_collection
+        calls = {"n": 0}
+
+        def _delete(name):  # type: ignore[no-untyped-def]
+            calls["n"] += 1
+            if calls["n"] >= 2:
+                raise RuntimeError("cleanup boom")
+            return real_delete(name)
+
+        monkeypatch.setattr(client, "delete_collection", _delete)
+
+        with pytest.raises(RuntimeError, match="cleanup boom") as exc_info:
+            service.reindex_from_sql(session, package_id)
+
+        # Originating upsert failure preserved (chained), cleanup failure surfaced.
+        assert isinstance(exc_info.value.__context__, RuntimeError)
+        assert "upsert batch 2 failed" in str(exc_info.value.__context__)
+        # Cleanup genuinely failed, so batch 1's partial content is still present —
+        # the failure was surfaced rather than pretending a clean rollback.
+        name = rules_corpus_collection_name(package_id)
+        ef = DeterministicFakeEmbeddingFunction()
+        assert real_get(client, name, config, ef).count() == 2
 
 
 def test_no_pass_service_imports_rules_corpus_service() -> None:
