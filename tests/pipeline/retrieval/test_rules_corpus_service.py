@@ -20,6 +20,7 @@ import afterworlds.pipeline.retrieval.rules_corpus_service as rcs_module
 from afterworlds.models.enums import SourceLocatorTypeEnum
 from afterworlds.models.retrieval import rules_corpus_collection_name
 from afterworlds.persistence.database import create_session_factory
+from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import (
     RuleChunkORM,
     RuleSourceORM,
@@ -87,6 +88,32 @@ def session_factory(engine):  # type: ignore[no-untyped-def]
     return create_session_factory(engine)
 
 
+def _publish_release(session, package_id):  # type: ignore[no-untyped-def]
+    """Mark the seeded package published+enabled and add a published
+    CorpusReleaseORM row, so publication-aware diagnostic_query can read it.
+    Only publication_status/is_enabled matter to the diagnostic gate; the proof
+    hashes are dummy here."""
+    pkg = session.get(RulesPackageORM, str(package_id))
+    pkg.publication_status = "published"
+    pkg.is_enabled = True
+    session.add(
+        CorpusReleaseORM(
+            package_uuid=str(package_id),
+            release_version="v1",
+            authoritative_source_hash="0" * 64,
+            transform_config_hash="0" * 64,
+            bundle_root_hash="0" * 64,
+            ledger_hash="0" * 64,
+            policy_hash="0" * 64,
+            reconciliation_hash="0" * 64,
+            transform_config={},
+            publication_status="published",
+            created_at=_NOW,
+        )
+    )
+    session.commit()
+
+
 def _seed_package_with_chunks(session, package_id, chunk_contents):  # type: ignore[no-untyped-def]
     # Flushed in separate steps (package, then source, then chunks): SQLAlchemy's
     # unit-of-work dependency sort does not reliably order this schema's
@@ -151,10 +178,11 @@ class TestReindexFromSql:
         )
 
         written = service.reindex_from_sql(session, package_id)
+        _publish_release(session, package_id)
 
         assert written == 2
         results = service.diagnostic_query(
-            package_id, "Fireball deals damage.", n_results=1
+            session, package_id, "Fireball deals damage.", n_results=1
         )
         assert results == ["Fireball deals damage."]
 
@@ -229,8 +257,11 @@ class TestReindexFromSql:
         session.commit()
 
         written = service.reindex_from_sql(session, package_id)
+        _publish_release(session, package_id)
         assert written == 1
-        results = service.diagnostic_query(package_id, "surviving", n_results=10)
+        results = service.diagnostic_query(
+            session, package_id, "surviving", n_results=10
+        )
         assert results == ["Only surviving chunk."]
 
 
@@ -316,7 +347,10 @@ class TestReindexPropagatesWipeFailure:
 
         # The old collection is untouched -- the failure is loud (an
         # exception), not a silently-empty or silently-stale "success".
-        results = service.diagnostic_query(package_id, "Stale content.", n_results=1)
+        _publish_release(session, package_id)
+        results = service.diagnostic_query(
+            session, package_id, "Stale content.", n_results=1
+        )
         assert results == ["Stale content."]
 
     def test_absent_collection_is_ignored_and_reindex_rebuilds_normally(
@@ -333,11 +367,93 @@ class TestReindexPropagatesWipeFailure:
         )
 
         written = service.reindex_from_sql(session, package_id)
+        _publish_release(session, package_id)
 
         assert written == 1
-        assert service.diagnostic_query(package_id, "Fresh content.", n_results=1) == [
-            "Fresh content."
-        ]
+        assert service.diagnostic_query(
+            session, package_id, "Fresh content.", n_results=1
+        ) == ["Fresh content."]
+
+
+class TestDiagnosticQueryPublicationAware:
+    """PR #134: diagnostic_query is publication-aware and read-only. The canonical
+    collection is populated in-place during a draft rebuild before SQL publication
+    commits, so a diagnostic read must be gated on the persisted SQL publication
+    state (both RulesPackageORM published+enabled AND CorpusReleaseORM published)
+    and must never create a collection."""
+
+    def _service(self, tmp_path):  # type: ignore[no-untyped-def]
+        client = build_isolated_test_chroma_client(str(tmp_path))
+        return client, RulesCorpusService(
+            client, RetrievalMemoryConfig(), DeterministicFakeEmbeddingFunction()
+        )
+
+    def test_committed_draft_with_partial_vectors_is_invisible_and_chroma_untouched(
+        self, session_factory, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        """A committed draft package whose canonical vectors are already populated
+        is invisible to diagnostic_query, and Chroma is never even opened."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["secret draft content"])
+        client, service = self._service(tmp_path)
+        service.reindex_from_sql(session, package_id)  # real vectors in Chroma
+        # Package remains 'draft' (default), no CorpusReleaseORM row.
+
+        opened: list[object] = []
+        monkeypatch.setattr(
+            rcs_module,
+            "get_existing_rules_corpus_collection",
+            lambda *a, **k: opened.append(1),
+        )
+        assert service.diagnostic_query(session, package_id, "secret") == []
+        assert opened == []  # publication check fails first; Chroma never touched
+
+    @pytest.mark.parametrize(
+        "break_state",
+        [
+            lambda s, p: setattr(
+                s.get(RulesPackageORM, str(p)), "publication_status", "draft"
+            ),
+            lambda s, p: setattr(s.get(RulesPackageORM, str(p)), "is_enabled", False),
+            lambda s, p: setattr(
+                s.execute(
+                    select(CorpusReleaseORM).where(
+                        CorpusReleaseORM.package_uuid == str(p)
+                    )
+                ).scalar_one(),
+                "publication_status",
+                "draft",
+            ),
+            lambda s, p: s.execute(
+                delete(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == str(p))
+            ),
+        ],
+        ids=["package-draft", "package-disabled", "release-draft", "release-missing"],
+    )
+    def test_each_inconsistent_publication_state_fails_closed(
+        self, session_factory, tmp_path: Path, break_state
+    ) -> None:  # type: ignore[no-untyped-def]
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["content"])
+        client, service = self._service(tmp_path)
+        service.reindex_from_sql(session, package_id)
+        _publish_release(session, package_id)
+        # Sanity: fully published -> visible.
+        assert service.diagnostic_query(session, package_id, "content") == ["content"]
+
+        break_state(session, package_id)
+        session.commit()
+        assert service.diagnostic_query(session, package_id, "content") == []
+
+    def test_missing_package_records_fail_closed(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """No SQL records at all (e.g. a package never ingested) returns nothing."""
+        session = session_factory()
+        _, service = self._service(tmp_path)
+        assert service.diagnostic_query(session, uuid4(), "anything") == []
 
 
 class TestRulesCorpusIdStability:

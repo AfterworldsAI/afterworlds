@@ -15,8 +15,9 @@ its own. It orchestrates the existing CRD Issue 18 rules-corpus seam:
 * :func:`rules_corpus_collection_name` / :func:`build_rules_corpus_chunk_id`
   / :class:`RulesCorpusChunkMetadata` — the canonical naming, deterministic
   IDs, and metadata builder,
-* :func:`get_rules_corpus_collection` — the read-back handle (with its
-  embedding-model compatibility guard).
+* :func:`get_existing_rules_corpus_collection` — the **non-creating** read-back
+  handle (with its embedding-model compatibility guard), so this read-only path
+  never creates a canonical collection.
 
 The digest binds the vector *logical* state (IDs / content / metadata / count /
 model id), never the implementation-dependent embedding bytes (Component A).
@@ -41,7 +42,7 @@ from afterworlds.persistence.orm.rules_package import RuleChunkORM, RuleSourceOR
 from afterworlds.pipeline.retrieval.collections import (
     RetrievalCollectionReindexRequiredError,
     delete_collection_ignoring_absence,
-    get_rules_corpus_collection,
+    get_existing_rules_corpus_collection,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
@@ -168,29 +169,37 @@ def read_actual_vector_state(
     config: RetrievalMemoryConfig,
     embedding_function: RetrievalEmbeddingFunction | None = None,
 ) -> VectorLogicalState:
-    """Read the actual rules-corpus collection back from Chroma.
+    """Read the actual rules-corpus collection back from Chroma (read-only).
 
-    Returns an empty state (count 0, no documents) when the collection does not
-    exist or the embedding-model guard rejects it — both are publication-blocking
-    conditions surfaced by :func:`verify_vector_state`, not silent successes. Any
-    other operational Chroma error propagates.
+    Uses a **non-creating** lookup (:func:`get_existing_rules_corpus_collection`),
+    so the verify-only reuse path never creates an empty canonical collection as
+    a side effect (PR #134). Returns an empty state (count 0, no documents) when
+    the collection is genuinely absent or the embedding-model guard rejects it —
+    both are publication-blocking conditions surfaced by
+    :func:`verify_vector_state`, not silent successes, and neither creates, wipes,
+    or rewrites anything. Any other operational Chroma error propagates.
     """
     package_uuid = UUID(pkg)
     collection_name = rules_corpus_collection_name(package_uuid)
+    empty = VectorLogicalState(
+        collection_name=collection_name,
+        embedding_model_id=None,
+        count=0,
+        documents=(),
+    )
     try:
-        collection = get_rules_corpus_collection(
+        collection = get_existing_rules_corpus_collection(
             client, collection_name, config, embedding_function
         )
     except RetrievalCollectionReindexRequiredError:
-        # A recorded embedding-model mismatch (or absent model marker) — the
-        # collection is not usable at the configured model. Report as empty so
-        # verification fails closed rather than trusting a mismatched store.
-        return VectorLogicalState(
-            collection_name=collection_name,
-            embedding_model_id=None,
-            count=0,
-            documents=(),
-        )
+        # A recorded embedding-model mismatch — the collection is not usable at
+        # the configured model. Report as empty so verification fails closed
+        # rather than trusting a mismatched store; nothing is created or mutated.
+        return empty
+    if collection is None:
+        # Genuinely absent (NotFoundError): verification-blocking, Chroma left
+        # exactly as it was — never created by this read-only path.
+        return empty
     recorded_model = (
         collection.metadata.get(_EMBEDDING_MODEL_ID_METADATA_KEY)
         if collection.metadata

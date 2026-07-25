@@ -215,11 +215,35 @@ def test_verify_flags_embedding_model_mismatch():
 # --- read-back + failure-injection against real Chroma -----------------------
 
 
-def test_read_actual_vector_state_missing_collection_is_empty(tmp_path):
+def test_read_actual_vector_state_missing_collection_is_empty_and_not_created(
+    tmp_path,
+):
+    """Verify-only read of a missing collection returns publication-blocking
+    empty evidence and leaves Chroma exactly as it was — the non-creating lookup
+    must NOT create an empty canonical collection (PR #134)."""
+    from chromadb.errors import NotFoundError
+
     client = build_isolated_test_chroma_client(str(tmp_path))
-    state = read_actual_vector_state(client, str(uuid4()), _config(), _ef())
+    pkg = str(uuid4())
+    state = read_actual_vector_state(client, pkg, _config(), _ef())
     assert state.count == 0
     assert state.documents == ()
+    # The collection was not created as a side effect of the read.
+    with pytest.raises(NotFoundError):
+        client.get_collection(name=rules_corpus_collection_name(UUID(pkg)))
+
+
+def test_read_actual_vector_state_propagates_operational_errors(tmp_path, monkeypatch):
+    """A non-NotFoundError lookup failure (locked/corrupt/permission) propagates
+    rather than being reported as an absent collection."""
+    client = build_isolated_test_chroma_client(str(tmp_path))
+
+    def _boom(*args, **kwargs):  # type: ignore[no-untyped-def]
+        raise RuntimeError("store locked")
+
+    monkeypatch.setattr(client, "get_collection", _boom)
+    with pytest.raises(RuntimeError, match="store locked"):
+        read_actual_vector_state(client, str(uuid4()), _config(), _ef())
 
 
 def test_reindex_failure_blocks_with_failures(seeded, tmp_path, monkeypatch):

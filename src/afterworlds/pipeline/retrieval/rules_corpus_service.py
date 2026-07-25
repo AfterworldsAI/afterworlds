@@ -30,9 +30,11 @@ from afterworlds.models.retrieval import (
     build_rules_corpus_chunk_id,
     rules_corpus_collection_name,
 )
-from afterworlds.persistence.orm.rules_package import RuleChunkORM
+from afterworlds.persistence.orm.corpus import CorpusReleaseORM
+from afterworlds.persistence.orm.rules_package import RuleChunkORM, RulesPackageORM
 from afterworlds.pipeline.retrieval.collections import (
     delete_collection_ignoring_absence,
+    get_existing_rules_corpus_collection,
     get_rules_corpus_collection,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -182,18 +184,60 @@ class RulesCorpusService:
                 delete_collection_ignoring_absence(self._client, collection_name)
             raise
 
+    @staticmethod
+    def _is_published_and_enabled(session: Session, rules_package_id: UUID) -> bool:
+        """True iff BOTH publication records exist in a mutually consistent
+        published state with the package enabled.
+
+        The rules_corpus collection is populated in-place during a draft rebuild
+        before SQL publication commits (ADR-018 D11: canonical in-place reindex,
+        no staging). Draft visibility is therefore controlled by the persisted
+        SQL publication state, not by Chroma: a diagnostic read is allowed only
+        when the ``RulesPackageORM`` row is ``published`` + enabled AND its
+        ``CorpusReleaseORM`` row is ``published`` (PR #134). Missing, draft,
+        disabled, or inconsistent records return False — no Chroma access.
+        """
+        pkg = str(rules_package_id)
+        package = session.execute(
+            select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+        ).scalar_one_or_none()
+        release = session.execute(
+            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+        ).scalar_one_or_none()
+        return (
+            package is not None
+            and package.is_enabled
+            and package.publication_status == "published"
+            and release is not None
+            and release.publication_status == "published"
+        )
+
     def diagnostic_query(
-        self, rules_package_id: UUID, query_text: str, n_results: int = 5
+        self,
+        session: Session,
+        rules_package_id: UUID,
+        query_text: str,
+        n_results: int = 5,
     ) -> list[str]:
         """Internal/admin-only semantic lookup. Never consumed by a runtime pass.
 
-        Returns raw matched documents with no threshold filtering — this is
-        a discovery/diagnostic surface, not a retrieval-eligibility path.
+        Publication-aware and read-only: returns no results unless BOTH SQL
+        publication records are in a mutually consistent published+enabled state
+        (checked BEFORE any Chroma access), so a concurrent read during a draft
+        multi-batch rebuild never observes ungated draft vectors (PR #134). Uses a
+        **non-creating** collection lookup — a missing collection yields no
+        results and is never created. Returns raw matched documents with no
+        threshold filtering: a discovery/diagnostic surface, not a
+        retrieval-eligibility path.
         """
+        if not self._is_published_and_enabled(session, rules_package_id):
+            return []
         collection_name = rules_corpus_collection_name(rules_package_id)
-        collection = get_rules_corpus_collection(
+        collection = get_existing_rules_corpus_collection(
             self._client, collection_name, self._config, self._embedding_function
         )
+        if collection is None:
+            return []
         count = collection.count()
         if count == 0:
             return []
