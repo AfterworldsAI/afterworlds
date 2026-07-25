@@ -59,10 +59,14 @@ def test_model_change_moves_transform_hash_uuid_and_version():
     )
 
 
-def test_model_change_creates_coexisting_release_without_collision():
-    """Two releases differing only in embedding model get distinct
-    (name, version, system) keys and coexist; neither mutates the other (the same
-    DF3 collision surface — the fixed corpus name)."""
+def test_model_change_yields_distinct_name_version_keys():
+    """Narrow scope: two embedding-model-differing releases get distinct
+    (name, version, system) keys on ``rp_packages``; neither mutates the other.
+    This proves ONLY the package-key constraint — full chunk/projection
+    coexistence (including the embedding-model-only case) is proven end-to-end by
+    ``test_persistence_quarantine.py::
+    test_two_releases_coexist_fully_persisted_with_disjoint_chunks`` (PR #134 P1;
+    coexistence is never claimed from ``rp_packages`` alone)."""
     eng = create_engine("sqlite://")
     Base.metadata.create_all(eng)
     session = create_session_factory(eng)()

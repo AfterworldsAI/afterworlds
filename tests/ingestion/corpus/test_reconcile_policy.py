@@ -19,6 +19,10 @@ from afterworlds.ingestion.corpus.transform import build_corpus
 
 from .conftest import make_leaf, simple_container, synthetic_ledger
 
+# These reconciliation/policy tests are release-agnostic; any fixed package
+# identity suffices for the (now package-scoped) output chunk IDs.
+_PKG = "00000000-0000-0000-0000-000000000000"
+
 
 def test_header_footer_is_excluded_under_policy():
     leaves = [
@@ -26,7 +30,7 @@ def test_header_footer_is_excluded_under_policy():
         make_leaf(1, LeafType.PARAGRAPH, "A rule paragraph.", 40, 1),
     ]
     ledger = synthetic_ledger(leaves, [])
-    members = build_corpus(ledger)
+    members = build_corpus(ledger, _PKG)
     recon = reconcile(ledger, members, FROZEN_POLICY)
     by_leaf = {d.leaf_id: d for d in recon.dispositions}
     assert by_leaf[leaves[0].leaf_id].disposition is Disposition.EXCLUDED
@@ -38,10 +42,30 @@ def test_header_footer_is_excluded_under_policy():
 def test_represented_is_the_default_for_substantive_content():
     leaves = [make_leaf(1, LeafType.PARAGRAPH, "Substantive rule.", 0, 0)]
     ledger = synthetic_ledger(leaves, [])
-    recon = reconcile(ledger, build_corpus(ledger), FROZEN_POLICY)
+    recon = reconcile(ledger, build_corpus(ledger, _PKG), FROZEN_POLICY)
     assert recon.represented_leaves == 1
     assert recon.excluded_leaves == 0
     assert recon.unresolved_leaves == 0
+
+
+def test_same_leaf_same_package_yields_same_chunk_id():
+    """Byte-for-byte deterministic under a fixed release identity (PR #134 P1)."""
+    ledger = synthetic_ledger([make_leaf(1, LeafType.PARAGRAPH, "Rule.", 0, 0)], [])
+    a = build_corpus(ledger, _PKG).chunks[0].chunk_id
+    b = build_corpus(ledger, _PKG).chunks[0].chunk_id
+    assert a == b
+
+
+def test_same_leaf_different_package_yields_different_chunk_id():
+    """A new immutable release scopes chunk IDs so identical leaves do not
+    collide on the global rp_chunks PK; leaf_id (provenance) stays release
+    -independent (PR #134 P1)."""
+    ledger = synthetic_ledger([make_leaf(1, LeafType.PARAGRAPH, "Rule.", 0, 0)], [])
+    chunk_a = build_corpus(ledger, "pkg-A").chunks[0]
+    chunk_b = build_corpus(ledger, "pkg-B").chunks[0]
+    assert chunk_a.chunk_id != chunk_b.chunk_id
+    # Source-side leaf_id is unchanged across releases.
+    assert chunk_a.source_leaf_ids == chunk_b.source_leaf_ids
 
 
 def test_toc_listing_excluded_only_under_toc_container():
@@ -61,7 +85,7 @@ def test_one_chunk_per_represented_leaf_and_accounting_balances():
         ),
     ]
     ledger = synthetic_ledger(leaves, [])
-    members = build_corpus(ledger)
+    members = build_corpus(ledger, _PKG)
     recon = reconcile(ledger, members, FROZEN_POLICY)
     assert len(members.chunks) == 2  # heading + paragraph; footer excluded
     assert recon.inventoried_leaves == 3
@@ -75,7 +99,7 @@ def test_reconciliation_covers_exactly_the_ledger_leaves():
         make_leaf(1, LeafType.PARAGRAPH, f"Rule {i}.", i * 10, i) for i in range(5)
     ]
     ledger = synthetic_ledger(leaves, [])
-    recon = reconcile(ledger, build_corpus(ledger), FROZEN_POLICY)
+    recon = reconcile(ledger, build_corpus(ledger, _PKG), FROZEN_POLICY)
     assert {d.leaf_id for d in recon.dispositions} == {leaf.leaf_id for leaf in leaves}
 
 

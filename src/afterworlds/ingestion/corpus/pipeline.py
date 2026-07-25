@@ -129,8 +129,10 @@ def build_candidate(
     package_uuid = derive_package_uuid(PDF_SHA256, thash)
     release_version = derive_release_version(PDF_SHA256, thash)
 
-    # a2 — generate canonical corpus members from the frozen ledger.
-    members = build_corpus(ledger)
+    # a2 — generate canonical corpus members from the frozen ledger. Output chunk
+    # IDs are scoped to this release's package_uuid so a new immutable release
+    # never collides with the predecessor on the global rp_chunks PK (PR #134 P1).
+    members = build_corpus(ledger, package_uuid)
 
     # a3 — reconciliation by applying only the frozen policy.
     recon = reconcile(ledger, members, policy)

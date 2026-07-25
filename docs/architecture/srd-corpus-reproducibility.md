@@ -79,6 +79,25 @@ reproducible for identical inputs (Owner Decision 1). A changed source or
 transform input (including the policy) produces a new draft release and can never
 mutate a published one.
 
+## Leaf identity vs. output chunk identity
+
+Two distinct identities that must not be conflated:
+
+- **Source `leaf_id`** — the provenance identity of a page-content occurrence,
+  derived from source facts only (page, span, type, content). It is
+  **release-independent**: the same occurrence keeps the same `leaf_id` across
+  every release, so later work can consume it as a stable provenance key.
+- **Output `chunk_id`** — the identity of a canonical `RuleChunk` (Component F).
+  It is **release-scoped**: `content_id("chunk", package_uuid, leaf_id)`, so a new
+  immutable release (a changed source, transform config, transform-source
+  manifest, or embedding model — anything that moves `package_uuid`) mints
+  distinct chunk IDs even for identical leaves. Because `rp_chunks.chunk_id` is a
+  global primary key, this is what lets two releases coexist in one database
+  instead of colliding; the downstream rules-corpus vector IDs
+  (`rules:{package_uuid}:chunk:{chunk_id}`) and projection IDs are already/thereby
+  package-scoped. Identical release inputs still regenerate byte-for-byte (the
+  `package_uuid` is itself deterministic).
+
 ## Determinism rules
 
 - **Content-derived identities only** (`uuid5`/SHA-256 over canonical JSON). No

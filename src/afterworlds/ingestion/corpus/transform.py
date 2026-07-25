@@ -63,18 +63,28 @@ def _section_label(leaf: Leaf, container_labels: dict[str, str]) -> str | None:
     return container_labels.get(leaf.container_path[-1])
 
 
-def build_corpus(ledger: SourceLedger) -> CorpusBundleMembers:
+def build_corpus(ledger: SourceLedger, package_uuid: str) -> CorpusBundleMembers:
     """Generate canonical corpus members from the frozen ledger (K a2).
 
     One authoritative chunk per represented leaf, covering the leaf's full span.
     Policy-excluded leaves are skipped. The derivative layer is empty.
+
+    The output ``chunk_id`` is a deterministic function of the immutable
+    ``package_uuid`` **and** the source ``leaf_id`` — so two releases differing
+    only in an identity-bearing input (source, transform config, transform-source
+    manifest, or embedding model) mint distinct chunk IDs and coexist in the
+    global ``rp_chunks`` primary key instead of colliding (PR #134 P1). The
+    source-side ``leaf_id`` stays release-independent (it is the provenance
+    identity later work consumes); only the *output* chunk identity is
+    release-scoped. ``package_uuid`` is computed before a2 and passed in
+    explicitly — there is no package-less default.
     """
     container_labels = {c.container_id: c.label for c in ledger.containers}
     chunks: list[CorpusChunk] = []
     for leaf in ledger.leaves:
         if exclusion_reason_for(leaf, container_labels) is not None:
             continue
-        chunk_id = content_id("chunk", leaf.leaf_id)
+        chunk_id = content_id("chunk", package_uuid, leaf.leaf_id)
         chunks.append(
             CorpusChunk(
                 chunk_id=chunk_id,

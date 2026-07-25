@@ -17,7 +17,16 @@ import pytest
 from sqlalchemy import delete, select
 
 import afterworlds.ingestion.corpus.persistence as persistence_mod
-from afterworlds.ingestion.corpus.bundle import persisted_corpus_payload
+from afterworlds.ingestion.corpus.bundle import (
+    build_bundle,
+    derive_package_uuid,
+    derive_release_version,
+    persisted_corpus_payload,
+    reconciliation_hash,
+    transform_config_hash,
+    transform_config_payload,
+)
+from afterworlds.ingestion.corpus.pdf_source import PDF_SHA256, extraction_config
 from afterworlds.ingestion.corpus.persistence import (
     _load_policy,
     finalize_release,
@@ -27,14 +36,17 @@ from afterworlds.ingestion.corpus.persistence import (
     verify_persisted_digest,
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
-from afterworlds.ingestion.corpus.policy import PolicyReconstructionError
+from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, PolicyReconstructionError
 from afterworlds.ingestion.corpus.quarantine import (
     LEGACY_ARTIFACT_SHA256,
     check_active_store,
     check_legacy_reachability,
 )
+from afterworlds.ingestion.corpus.reconcile import reconcile
+from afterworlds.ingestion.corpus.transform import build_corpus
 from afterworlds.ingestion.corpus.vector_publication import read_actual_vector_state
 from afterworlds.models.enums import PublicationStatusEnum, RuleSubsystemEnum
+from afterworlds.models.retrieval import rules_corpus_vector_identity
 from afterworlds.persistence.orm.corpus import (
     CorpusProjectionORM,
     CorpusReleaseORM,
@@ -47,6 +59,7 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.rules_corpus_service import RulesCorpusService
 from afterworlds.services.rules_package import RulesPackageService
 
@@ -856,3 +869,114 @@ def test_reuse_verification_exception_does_not_delete_published_collection(
         == published_count
     )
     assert not _pkg_row_absent(session, candidate.package_uuid)
+
+
+# --- Full-persistence release coexistence (PR #134 P1) ------------------------
+# Output chunk IDs are now scoped to the immutable package_uuid, so two releases
+# differing only in an identity-bearing input coexist in the global rp_chunks PK.
+# These prove coexistence through the ACTUAL chunk/projection rows, not rp_packages
+# alone (the package-only version-key tests live in test_release_identity.py /
+# test_vector_identity.py).
+
+_COEXIST_MODEL = "coexistence-test-model-v2"
+
+
+def _variant_candidate(candidate, embedding_model_id):
+    """A CandidateRelease differing from *candidate* only in the embedding model
+    (an identity-bearing input) — reuses its expensive pages/ledger and recomputes
+    only the identity-scoped parts (package_uuid, chunk IDs, reconciliation,
+    bundle)."""
+    ex = extraction_config()
+    vid = rules_corpus_vector_identity(embedding_model_id)
+    tconfig = transform_config_payload(ex, FROZEN_POLICY, vid)
+    thash = transform_config_hash(ex, FROZEN_POLICY, vid)
+    pkg = derive_package_uuid(PDF_SHA256, thash)
+    ver = derive_release_version(PDF_SHA256, thash)
+    members = build_corpus(candidate.ledger, pkg)
+    recon = reconcile(candidate.ledger, members, FROZEN_POLICY)
+    bundle = build_bundle(candidate.ledger, members, recon)
+    return CandidateRelease(
+        pages=candidate.pages,
+        ledger=candidate.ledger,
+        members=members,
+        reconciliation=recon,
+        policy=FROZEN_POLICY,
+        bundle=bundle,
+        package_uuid=pkg,
+        release_version=ver,
+        authoritative_source_hash=PDF_SHA256,
+        transform_config_hash=thash,
+        transform_config=tconfig,
+        ledger_hash=candidate.ledger_hash,
+        policy_hash=candidate.policy_hash,
+        reconciliation_hash=reconciliation_hash(recon),
+    )
+
+
+def _chunk_ids(session, pkg):
+    return set(
+        session.execute(
+            select(RuleChunkORM.chunk_id).where(RuleChunkORM.rules_package_id == pkg)
+        ).scalars()
+    )
+
+
+def test_two_releases_coexist_fully_persisted_with_disjoint_chunks(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """A model-only identity change: both releases persist fully (chunks +
+    projections) in ONE database with no IntegrityError; chunk sets are complete
+    and disjoint; the predecessor is untouched; both digests/vectors verify."""
+    # Release A — the default-model candidate.
+    a = _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
+    assert a.published and not a.reused
+
+    # Release B — same leaves, embedding-model-only difference → new package_uuid,
+    # release-scoped chunk IDs.
+    candidate_b = _variant_candidate(candidate, _COEXIST_MODEL)
+    assert candidate_b.package_uuid != candidate.package_uuid
+    assert candidate_b.release_version != candidate.release_version
+    config_b = RetrievalMemoryConfig(embedding_model_id=_COEXIST_MODEL)
+    b = _finalize(session, candidate_b, chroma_client, config_b, fake_embedding)
+    assert b.published and not b.reused  # full persistence: no IntegrityError
+
+    # Both chunk sets complete and disjoint (same leaves -> same count).
+    ids_a = _chunk_ids(session, candidate.package_uuid)
+    ids_b = _chunk_ids(session, candidate_b.package_uuid)
+    assert len(ids_a) == len(candidate.members.chunks)
+    assert len(ids_b) == len(candidate_b.members.chunks)
+    assert len(ids_a) == len(ids_b)
+    assert ids_a.isdisjoint(ids_b)
+
+    # Projections for both packages persist and reference their own chunk IDs.
+    proj_a = set(
+        session.execute(
+            select(CorpusProjectionORM.chunk_id).where(
+                CorpusProjectionORM.package_uuid == candidate.package_uuid
+            )
+        ).scalars()
+    )
+    proj_b = set(
+        session.execute(
+            select(CorpusProjectionORM.chunk_id).where(
+                CorpusProjectionORM.package_uuid == candidate_b.package_uuid
+            )
+        ).scalars()
+    )
+    assert proj_a <= ids_a and proj_b <= ids_b
+    assert proj_a.isdisjoint(proj_b)
+
+    # Predecessor unchanged: A still published + enabled with its own version.
+    pkg_a = session.get(RulesPackageORM, candidate.package_uuid)
+    assert pkg_a.publication_status == "published" and pkg_a.is_enabled
+    assert pkg_a.version == candidate.release_version
+
+    # Both digests still verify against their actual persisted + vector state.
+    vs_a = _vstate(
+        session, candidate.package_uuid, chroma_client, retrieval_config, fake_embedding
+    )
+    vs_b = _vstate(
+        session, candidate_b.package_uuid, chroma_client, config_b, fake_embedding
+    )
+    assert verify_persisted_digest(session, candidate.package_uuid, vs_a)
+    assert verify_persisted_digest(session, candidate_b.package_uuid, vs_b)

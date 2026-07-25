@@ -82,10 +82,14 @@ def _insert(session, uuid_, version):  # type: ignore[no-untyped-def]
     session.commit()
 
 
-def test_source_changed_release_coexists_without_name_version_collision(session):
-    """Two corpus releases differing only in authoritative source must persist
-    side by side: the DF3-derived distinct versions keep their
-    (name, version, system) keys distinct, and the prior release is untouched."""
+def test_source_changed_releases_have_distinct_name_version_keys(session):
+    """Narrow scope: two source-differing releases keep distinct
+    (name, version, system) keys on ``rp_packages`` (the DF3 collision surface),
+    and the prior package row is untouched. This proves ONLY the package-key
+    constraint — full chunk/projection coexistence is proven end-to-end by
+    ``test_persistence_quarantine.py::
+    test_two_releases_coexist_fully_persisted_with_disjoint_chunks`` (PR #134 P1;
+    coexistence is never claimed from ``rp_packages`` alone)."""
     uuid_a = derive_package_uuid(_SOURCE_A, _TRANSFORM)
     ver_a = derive_release_version(_SOURCE_A, _TRANSFORM)
     _insert(session, uuid_a, ver_a)
