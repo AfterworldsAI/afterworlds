@@ -439,3 +439,63 @@ schema/ID/metadata/writer/batch unchanged; no scope beyond Issue 5c/18.
   collection returns empty **and leaves the collection absent** (non-creating);
   a non-`NotFoundError` `get_collection` failure propagates. Existing
   reuse-missing-collection / mismatch fail-closed tests remain green.
+
+## Remediation round 8 — release-scope the output chunk identity
+
+Codex round 8 (P1). `build_corpus` derived `chunk_id = content_id("chunk",
+leaf.leaf_id)` — package-independent. When a source / transform config /
+transform-source manifest / embedding model changed while a leaf stayed
+identical, the new immutable release received the predecessor's chunk ID; since
+`rp_chunks.chunk_id` is a **global primary key**, full persistence of the second
+release raised `IntegrityError`. The prior coexistence tests inserted only
+`rp_packages`, so they never exercised the actual chunk rows.
+
+**Root correction.** `build_corpus(ledger, package_uuid)` now derives
+`chunk_id = content_id("chunk", package_uuid, leaf.leaf_id)`, scoping the output
+chunk identity to the immutable release while leaving the source-side `leaf_id`
+release-independent (it remains the provenance identity later work consumes).
+`package_uuid` is computed before a2 (as today) and passed in explicitly — no
+package-less default. Reconciliation regenerates projection IDs from the newly
+scoped chunk IDs automatically (`projection_id = content_id("projection",
+leaf_id, chunk_id, role)`). Byte-for-byte regeneration for identical inputs is
+preserved (`package_uuid` is itself deterministic); `rp_chunks` schema and the
+global-UUID PK are unchanged (no composite key); Issue 18's vector-ID format is
+unchanged (`rules:{pkg}:chunk:{chunk_id}` was already package-scoped).
+
+### Sibling-audit dispositions (release-identity family)
+
+- **RuleChunk output `chunk_id`** — **patched** (now `content_id("chunk",
+  package_uuid, leaf_id)`).
+- **Rules-corpus vector ID + collection name** — **already package-scoped**:
+  `build_rules_corpus_chunk_id` → `rules:{package_uuid}:chunk:{chunk_id}`,
+  `rules_corpus_collection_name` → `rules_corpus_{package_uuid.hex}`
+  (`models/retrieval.py`); no change.
+- **RuleSource ID + Issue-5c ledger/container/projection persistence** —
+  **already safely package-scoped**: `_persist_package_and_source` sets
+  `source_id = pkg`; every `rp_*` corpus table is `package_uuid`-keyed
+  (`persistence.py` / `orm/corpus.py`). The coexistence test proves this
+  empirically — both releases persist fully with no `IntegrityError` on any table.
+- **MechanicalEntity identity** — **out of scope** for Issue 5c; Issue 5d
+  identity design is not pre-decided.
+
+### Round 8 regression coverage
+
+- `test_reconcile_policy.py` — same leaf + same package → same chunk ID; same leaf
+  + different packages → different chunk IDs, with `leaf_id` (provenance)
+  unchanged across releases.
+- `test_persistence_quarantine.py::
+  test_two_releases_coexist_fully_persisted_with_disjoint_chunks` — two releases
+  differing only in the embedding model (identity-bearing) are **finalized
+  fully** into one database; both `rp_chunks` sets are complete, equal-sized, and
+  disjoint; projections reference their own release's chunk IDs and are disjoint;
+  the predecessor stays published + enabled with its own version; both
+  persisted-digests re-verify against their actual SQL + vector state. No
+  `IntegrityError`.
+- Determinism/reconstruction unchanged:
+  `test_clean_regeneration_is_byte_for_byte_deterministic` and
+  `test_reconstructed_payload_equals_in_memory` still pass (same inputs → same
+  scoped chunk IDs → same bundle root / digest / reconstruction).
+- The two package-only version-key tests were renamed + rescoped to state they
+  prove only the `(name, version, system)` constraint, pointing at the
+  full-persistence test for actual chunk coexistence (no coexistence claim from
+  `rp_packages` alone).
