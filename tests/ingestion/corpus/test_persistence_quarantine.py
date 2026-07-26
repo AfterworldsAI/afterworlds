@@ -68,6 +68,31 @@ from .conftest import REPO_ROOT
 _NOW = "2026-07-23T00:00:00Z"
 
 
+# ---------------------------------------------------------------------------
+# Performance: in THIS module `candidate`/`release` are deliberately the COMPACT
+# (six-canary-page) fixtures — ~250 chunks instead of 13,658 — so the many
+# policy/tamper/rollback/membership/fault-injection tests exercise the genuine,
+# unmocked finalize/gate/persist/reindex path without repeatedly rebuilding the
+# full SRD. The small number of tests that must prove the COMPLETE corpus persists
+# /reconstructs/digests/gates/publishes/reuses request ``full_candidate`` /
+# ``full_release`` explicitly (see test_persist_round_trip_digest_matches,
+# test_repeated_finalize_is_idempotent_and_does_not_mutate,
+# test_published_package_retrievable_via_rules_package_service). The shadows depend
+# on the conftest compact fixtures, which depend on ``full_candidate`` (never
+# shadowed) — no recursion.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def candidate(compact_candidate):  # type: ignore[no-untyped-def]
+    return compact_candidate
+
+
+@pytest.fixture()
+def release(compact_release):  # type: ignore[no-untyped-def]
+    return compact_release
+
+
 def _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding):
     """Publish *candidate* through the real cross-store lifecycle."""
     return finalize_release(
@@ -102,9 +127,13 @@ def _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding):
 
 
 def test_persist_round_trip_digest_matches(
-    session, release, chroma_client, retrieval_config, fake_embedding
+    session, full_release, chroma_client, retrieval_config, fake_embedding
 ):
-    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    """Full-SRD integration: the complete corpus persists, reconstructs, and
+    digest-verifies (with a full vector reindex)."""
+    pkg = _persist(
+        session, full_release, chroma_client, retrieval_config, fake_embedding
+    )
     vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
     assert verify_persisted_digest(session, pkg, vs)
 
@@ -561,16 +590,18 @@ def test_legacy_active_row_blocks_publication(
 
 
 def test_repeated_finalize_is_idempotent_and_does_not_mutate(
-    session, candidate, chroma_client, retrieval_config, fake_embedding
+    session, full_candidate, chroma_client, retrieval_config, fake_embedding
 ):
+    """Full-SRD integration: the complete corpus is finalized/gated/published,
+    then a repeat finalize is an idempotent verified reuse."""
     first = _finalize(
-        session, candidate, chroma_client, retrieval_config, fake_embedding
+        session, full_candidate, chroma_client, retrieval_config, fake_embedding
     )
     assert first.published and not first.reused and first.artifacts is not None
 
     second = finalize_release(
         session,
-        candidate,
+        full_candidate,
         repo_root=REPO_ROOT,
         now="2026-07-24T00:00:00Z",
         chroma_client=chroma_client,
@@ -583,7 +614,7 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(
     rows = (
         session.execute(
             select(CorpusReleaseORM).where(
-                CorpusReleaseORM.package_uuid == candidate.package_uuid
+                CorpusReleaseORM.package_uuid == full_candidate.package_uuid
             )
         )
         .scalars()
@@ -593,7 +624,7 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(
 
     pkg_row = session.execute(
         select(RulesPackageORM).where(
-            RulesPackageORM.rules_package_id == candidate.package_uuid
+            RulesPackageORM.rules_package_id == full_candidate.package_uuid
         )
     ).scalar_one()
     assert pkg_row.published_at == _NOW  # reuse never mutated the publish record
@@ -716,18 +747,19 @@ def test_final_gate_failure_does_not_publish_partial_content(
 
 
 def test_published_package_retrievable_via_rules_package_service(
-    session, candidate, chroma_client, retrieval_config, fake_embedding
+    session, full_candidate, chroma_client, retrieval_config, fake_embedding
 ):
-    """A successful ingest publishes both records, and RulesPackageService's
-    normal published-only play-time path can retrieve the package and its
-    chunks — no draft-visibility backdoor is needed or used."""
+    """Full-SRD integration: a successful ingest of the complete corpus publishes
+    both records, and RulesPackageService's normal published-only play-time path
+    can retrieve the package and its chunks (incl. a GENERAL-subsystem slice) —
+    no draft-visibility backdoor is needed or used."""
     result = _finalize(
-        session, candidate, chroma_client, retrieval_config, fake_embedding
+        session, full_candidate, chroma_client, retrieval_config, fake_embedding
     )
     assert result.published and not result.reused
 
     svc = RulesPackageService(session)
-    pkg_id = UUID(candidate.package_uuid)
+    pkg_id = UUID(full_candidate.package_uuid)
 
     detail = svc.get_package_by_id(pkg_id)
     assert detail is not None

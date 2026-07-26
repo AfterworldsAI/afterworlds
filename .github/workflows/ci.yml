@@ -33,7 +33,9 @@ jobs:
         run: mypy src/
 
       - name: Tests — pytest
-        run: pytest --cov=src
+        # --durations=25 surfaces the slowest tests each run (visibility only; no
+        # wall-clock failure threshold). addopts (pyproject) has no --durations.
+        run: pytest --cov=src --durations=25
 
       - name: Dependency audit — pip-audit
         # CVE-2026-4539: ReDoS in pygments AdlLexer (pygments/lexers/archetype.py).
