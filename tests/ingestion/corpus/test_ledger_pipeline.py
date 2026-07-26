@@ -189,6 +189,67 @@ def test_evidence_report_records_complete_transform_identity(release):
     assert ti["intermediate_representation_committed"] is False
 
 
+def _rebuild_report(a, persisted=True):
+    """Rebuild the evidence report from a release's inputs (R16 F2 host test)."""
+    from afterworlds.ingestion.corpus.report import build_report
+
+    return build_report(
+        ledger=a.ledger,
+        members=a.members,
+        recon=a.reconciliation,
+        policy=a.policy,
+        authoritative_source_hash=a.release.identity.authoritative_source_hash,
+        transform_config_hash=a.release.identity.transform_config_hash,
+        transform_config=a.release.transform_config,
+        bundle_root_hash=a.release.identity.bundle_root_hash,
+        ledger_hash_value=ledger_hash(a.ledger),
+        persisted_corpus_digest=a.release.identity.persisted_corpus_digest,
+        concordance=a.concordance,
+        canaries=a.canaries,
+        legacy_reachability_violations=0,
+        persisted=persisted,
+    )
+
+
+def test_evidence_report_identity_is_host_independent(release, monkeypatch):
+    """R16 F2: the identity-bearing evidence report is byte-identical for identical
+    committed inputs across supported hosts — no runtime host OS/arch/python enters
+    the hashed payload (they were operational diagnostics, now logged only). So the
+    evidence-report hash (one of the five release identities) does not drift by
+    host, and a reuse — which reconstructs from the stored payload — is unaffected."""
+    import afterworlds.ingestion.corpus.report as report_mod
+    from afterworlds.ingestion.corpus.report import report_hash
+
+    def build_under(system, machine, pyver):
+        monkeypatch.setattr(report_mod.platform, "system", lambda: system)
+        monkeypatch.setattr(report_mod.platform, "machine", lambda: machine)
+        monkeypatch.setattr(report_mod.platform, "python_version", lambda: pyver)
+        r = _rebuild_report(release)
+        return r.payload, report_hash(r)
+
+    p1, h1 = build_under("Linux", "x86_64", "3.12.1")
+    p2, h2 = build_under("Windows", "AMD64", "3.12.9")
+    assert p1 == p2  # byte-identical payload across hosts
+    assert h1 == h2  # identical report hash (release identity component)
+    # No host/OS/arch/path/time field leaked into the identity-bearing payload.
+    blob = repr(p1).lower()
+    for banned in (
+        "linux",
+        "windows",
+        "x86_64",
+        "amd64",
+        "platform_system",
+        "platform_machine",
+    ):
+        assert banned not in blob
+    # Only the declared, host-independent reproduction target remains.
+    assert p1["reproduction_target"] == {"python_target": "3.12"}
+    # The report the release actually published carries this same host-independent
+    # hash as its identity component (so reuse, which reads the stored payload, is
+    # host-independent too).
+    assert release.release.identity.evidence_report_hash == report_hash(release.report)
+
+
 def test_authoritative_pdf_path_is_the_canonical_spelling():
     assert PDF_PATH.name == "DnD5_5e_SRD_CC_v5_2_1.pdf"
     assert PDF_PATH.exists()

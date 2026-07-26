@@ -12,8 +12,8 @@ is computed over the completed report (K step f) and recorded externally.
 
 from __future__ import annotations
 
+import logging
 import platform
-import sys
 from collections import Counter
 from dataclasses import dataclass
 
@@ -27,6 +27,14 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash
+
+_log = logging.getLogger(__name__)
+
+# The declared Python target (pyproject ``requires-python``; Python 3.12 only per
+# CLAUDE.md). Recorded as a *declared, host-independent* reproduction target — the
+# actual runtime interpreter/host is a diagnostic and never enters this
+# identity-bearing payload (PR #134 R16).
+PYTHON_TARGET = "3.12"
 
 
 @dataclass(frozen=True)
@@ -103,15 +111,15 @@ def build_report(
         "rules_corpus_vector_identity": transform_config.get(
             "rules_corpus_vector_identity"
         ),
-        # The environment needed to reproduce the transform (Component B). Recorded
-        # here (not in the corpus content hashes) so an identical corpus keeps the
-        # same package identity across platforms while the environment stays on
-        # record; reproducibility is claimed within this recorded environment.
-        "reproduction_environment": {
-            "python": f"{sys.version_info.major}.{sys.version_info.minor}",
-            "platform_system": platform.system(),
-            "platform_machine": platform.machine(),
-        },
+        # The *declared* environment needed to reproduce the transform (Component
+        # B): the Python target here, plus the exact pinned extractor/parser/tool
+        # versions and deterministic invocation already carried by
+        # ``transform_identity`` above. This is host-independent by construction —
+        # no runtime host name, OS, architecture, absolute path, timestamp, or PID
+        # enters this identity-bearing payload, so the same committed inputs yield a
+        # byte-identical evidence report (hence release identity) on every supported
+        # host (PR #134 R16). Actual host diagnostics are logged, never hashed.
+        "reproduction_target": {"python_target": PYTHON_TARGET},
         "reconciliation_policy_reference": {
             "policy_version": policy.policy_version,
             "policy_hash": policy_hash(policy),
@@ -141,6 +149,17 @@ def build_report(
         "legacy_reachability_violations": legacy_reachability_violations,
         "prepublication_validation_status": "pass" if prepublication_ok else "fail",
     }
+    # Actual host as an operational diagnostic ONLY — deliberately outside the
+    # returned payload, so it never reaches the report hash, the persisted-corpus
+    # digest, the package identity, or any publication-gate comparison. Never
+    # labels the real host as the fixed target (PR #134 R16).
+    _log.info(
+        "corpus evidence report built (diagnostic, not hashed): host system=%s "
+        "machine=%s python=%s",
+        platform.system(),
+        platform.machine(),
+        platform.python_version(),
+    )
     return EvidenceReport(payload=payload, persisted=persisted)
 
 
