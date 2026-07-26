@@ -81,6 +81,9 @@ from afterworlds.ingestion.corpus.source_completeness import (
     EXPECTED_PAGE_COUNT,
     verify_source_completeness,
 )
+from afterworlds.ingestion.corpus.table_inventory import (
+    check_against_committed_inventory,
+)
 from afterworlds.ingestion.corpus.vector_publication import (
     cleanup_vector_collection,
     reindex_and_verify,
@@ -999,12 +1002,26 @@ def finalize_release(
     flag, caller boolean, or public shortcut).
     """
     completeness_failures = verify_source_completeness(candidate.pages)
-    if completeness_failures:
+    # Independent table oracle: the live reconstruction must match the committed
+    # expected-table inventory (R15 F4) — a suppressed, flattened, fragmented,
+    # merged, or invented logical table blocks publication before any store
+    # mutation. Full-corpus only; the private core seam (compact lower-layer
+    # tests) legitimately bypasses this partial-corpus-invalid check.
+    inventory = check_against_committed_inventory(candidate.pages)
+    guard_failures = list(completeness_failures)
+    if not inventory.passed:
+        guard_failures.append(
+            "table reconstruction diverges from the committed expected-table "
+            f"inventory (suppressed={len(inventory.suppressed)}, "
+            f"invented={len(inventory.invented)}, "
+            f"mismatched={len(inventory.mismatched)})"
+        )
+    if guard_failures:
         return FinalizeResult(
             published=False,
             reused=False,
             artifacts=None,
-            gate=GateResult(passed=False, failures=completeness_failures),
+            gate=GateResult(passed=False, failures=tuple(guard_failures)),
         )
     return _finalize_core(
         session,

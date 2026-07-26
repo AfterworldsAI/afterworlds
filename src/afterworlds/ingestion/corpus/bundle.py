@@ -23,6 +23,7 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash, policy_payload
+from afterworlds.ingestion.corpus.table_inventory import committed_inventory_hash
 from afterworlds.ingestion.corpus.transform_identity import transform_identity
 
 RELEASE_VERSION_PREFIX = "5.2.1-corpus"
@@ -52,12 +53,19 @@ def transform_config_payload(
     to the embedding model or the vector logical schema likewise mints a new
     immutable release instead of colliding with the predecessor on the reuse
     path (PR #134 P1). It carries no operational retrieval settings.
+
+    ``expected_table_inventory_hash`` binds the committed independent expected-
+    table oracle (``table_inventory.srd_table_inventory.json``): the expected set
+    of logical tables is a candidate-affecting configuration, so changing it
+    (regenerating the inventory after a reviewed table-reconstruction change)
+    mints a new immutable release (PR #134 R15 F4).
     """
     return {
         "extraction_config": extraction_config,
         "reconciliation_policy": policy_payload(policy),
         "transform_identity": transform_identity(),
         "rules_corpus_vector_identity": vector_identity,
+        "expected_table_inventory_hash": committed_inventory_hash(),
     }
 
 
