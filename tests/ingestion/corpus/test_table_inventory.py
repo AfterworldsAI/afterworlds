@@ -99,3 +99,18 @@ def test_merging_two_tables_fails(live_inventory, committed):
 def test_committed_inventory_hash_is_stable_and_content_derived(committed):
     """The bound identity hash is a pure function of the committed inventory."""
     assert committed_inventory_hash() == committed_inventory_hash()
+
+
+def test_magma_and_steam_mephit_statblocks_are_distinct_tables(committed):
+    """Closure for the stale Magma/Steam false-merge thread (fixed by e25f877):
+    the page-307 Magma Mephit and page-308 Steam Mephit stat blocks are distinct
+    single-page logical tables, not one merged (307, 308) table. Asserted against
+    the committed inventory (the independent oracle), NOT the linker/heading
+    heuristic."""
+    # No committed logical table spans printed pages 307 and 308.
+    assert not any(t["printed_pages"] == [307, 308] for t in committed)
+    ids_307 = {t["logical_table_id"] for t in committed if t["printed_pages"] == [307]}
+    ids_308 = {t["logical_table_id"] for t in committed if t["printed_pages"] == [308]}
+    # Both pages carry tables, and their logical IDs are disjoint (distinct).
+    assert ids_307 and ids_308
+    assert ids_307.isdisjoint(ids_308)
