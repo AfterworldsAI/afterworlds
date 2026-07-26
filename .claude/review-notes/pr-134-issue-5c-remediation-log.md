@@ -499,3 +499,58 @@ unchanged (`rules:{pkg}:chunk:{chunk_id}` was already package-scoped).
   prove only the `(name, version, system)` constraint, pointing at the
   full-persistence test for actual chunk coexistence (no coexistence claim from
   `rp_packages` alone).
+
+## Remediation round 9 — compact canary-page fixtures (non-blocking test-perf)
+
+Non-blocking improvement (test architecture; production contract unchanged).
+`test_persistence_quarantine.py` was ~13m51s of a 24m25s CI pytest run: its 39
+tests each re-persisted/re-reindexed the full 14,023-leaf / 13,658-chunk SRD into
+fresh SQLite+Chroma even for policy/rollback/tamper/fault-injection cases whose
+assertions do not depend on full-SRD cardinality.
+
+**Fixture split.** New session-scoped `compact_candidate` / `compact_release`
+(conftest) build a REAL, gate-passing release restricted to the six version-canary
+pages (~250 chunks vs 13,658) via the production pipeline (`build_ledger` →
+`build_corpus` → `reconcile` → `build_bundle`), binding the real
+`PDF_SHA256`/extraction config so it passes the genuine finalize/gate/persist/
+reindex path — **no mocks**. `test_persistence_quarantine.py` shadows
+`candidate`/`release` with the compact fixtures for this module only; the fixture
+chain is shadow-safe (`compact_candidate` → `full_candidate`, never the shadowed
+`candidate` → no recursion). Fresh per-test SQLite/Chroma isolation is preserved;
+the session-scoped fixtures are immutable candidate/release objects, not shared
+databases (no state leakage; no test-order dependence). No production batching/
+persistence/publication/digest behavior changed.
+
+**Retained full-SRD integration guarantees.** Three tests request
+`full_candidate`/`full_release` explicitly and prove the complete corpus can be
+persisted, reconstructed, digest-verified, and vector-indexed
+(`test_persist_round_trip_digest_matches`); gated, published, and reused
+(`test_repeated_finalize_is_idempotent_and_does_not_mutate`); and retrieved
+through `RulesPackageService` including a GENERAL-subsystem slice
+(`test_published_package_retrievable_via_rules_package_service`). The neighboring
+`test_ledger_pipeline::test_clean_regeneration_is_byte_for_byte_deterministic`
+also finalizes the full corpus and confirms the conftest restructure preserved
+byte-for-byte identity.
+
+**No assertion loss / stronger isolation.** 39 tests preserved (verified via
+`--co`); none skipped, optional, or excluded. Because the compact candidate passes
+the gate with ZERO failures, failure-injection tests isolate *only* the injected
+fault (legacy-block fails only on legacy; `test_final_gate_failure` fails only on
+the tampered `transform_config_hash`) — tighter than the full corpus gave. The
+compact positive control (`verify_persisted_digest` True on the clean release)
+keeps every compact tamper/digest/policy test non-vacuous. Two-release coexistence
+still persists complete, disjoint chunk/projection state for both releases (not
+package rows), consolidated in one test. Multi-batch behavior elsewhere uses a
+compact corpus + an artificially small advertised Chroma batch limit (round 5),
+not thousands of documents.
+
+**Consolidated/replaced tests:** none removed or merged — this is a pure
+fixture swap (compact vs full), so every test and assertion is retained. Three
+tests were explicitly pinned to the full corpus (listed above); all others route
+through the compact shadow.
+
+**Measured timing (module, local):** 39 passed **307.18s → 74.46s (~4.1×)**.
+Slowest remaining: the one-time full-corpus fixture build (~38s setup, shared) and
+the three retained full-SRD tests (~7–13s each); all 36 compact tests ≤0.5s.
+`--durations=25` added to the CI pytest invocation (`.github/workflows/ci.yml`;
+no existing `--durations` in `addopts` to duplicate); no wall-clock threshold.
