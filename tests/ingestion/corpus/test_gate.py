@@ -19,6 +19,7 @@ def _evidence(
     vector_write_ok: bool = True,
     legacy: int = 0,
     membership: int = 0,
+    source_membership: int = 0,
     vector_failures: tuple[str, ...] = (),
 ) -> PublicationEvidence:
     """Explicit all-passing evidence for gate unit tests (each scenario breaks
@@ -30,6 +31,7 @@ def _evidence(
         vector_write_ok=vector_write_ok,
         legacy_reachability_violations=legacy,
         chunk_membership_violations=membership,
+        source_membership_violations=source_membership,
         vector_verification_failures=vector_failures,
     )
 
@@ -171,6 +173,14 @@ def test_gate_fails_on_vector_verification_failure(release):
 
 def test_gate_fails_on_chunk_membership_violation(release):
     assert not run_gate(release, _evidence(membership=1)).passed
+
+
+def test_gate_fails_on_source_membership_violation(release):
+    # An extra/missing/altered/disabled/reassigned source raises the count
+    # (persistence.verify_single_source); the gate must fail closed (PR #134 D3).
+    result = run_gate(release, _evidence(source_membership=1))
+    assert not result.passed
+    assert any("source-membership" in f for f in result.failures)
 
 
 def test_gate_fails_on_empty_findings_replaced_unresolved(release):

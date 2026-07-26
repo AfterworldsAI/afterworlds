@@ -55,6 +55,7 @@ class PublicationEvidence:
     vector_write_ok: bool
     legacy_reachability_violations: int
     chunk_membership_violations: int
+    source_membership_violations: int
     vector_verification_failures: tuple[str, ...]
 
 
@@ -228,6 +229,7 @@ def run_gate(
         a.members,
         recon,
         policy,
+        a.sources,
         a.vector_state,
     )
     if ident.persisted_corpus_digest != recomputed_digest:
@@ -282,6 +284,17 @@ def run_gate(
     #     in-memory artifacts alone).
     if chunk_membership_violations != 0:
         f.append("persisted rp_chunks runtime-membership violation present")
+
+    # 24. Single authoritative source, deterministic source_id == package_uuid,
+    #     expected metadata + enabled, and every persisted chunk assigned to it
+    #     (checked against the live DB by persistence.verify_single_source; not
+    #     recomputable from in-memory artifacts alone). An extra/missing/altered/
+    #     disabled/reassigned source fails closed (PR #134 defect family 3). The
+    #     full ordered source set is *also* bound into the persisted-corpus digest
+    #     (condition 17), so a silent metadata edit is caught even without this
+    #     structural count.
+    if evidence.source_membership_violations != 0:
+        f.append("persisted source-membership invariant violation present")
 
     return GateResult(passed=not f, failures=tuple(f))
 

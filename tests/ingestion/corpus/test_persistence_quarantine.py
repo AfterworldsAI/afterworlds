@@ -34,6 +34,7 @@ from afterworlds.ingestion.corpus.persistence import (
     reconstruct_payload,
     verify_chunk_runtime_membership,
     verify_persisted_digest,
+    verify_single_source,
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, PolicyReconstructionError
@@ -150,6 +151,7 @@ def test_reconstructed_payload_equals_in_memory(
         release.members,
         release.reconciliation,
         release.policy,
+        release.sources,
         vs,
     )
     assert reconstruct_payload(session, pkg, vs) == in_mem
@@ -269,6 +271,100 @@ def test_tamper_chunk_locator_value_breaks_digest(
         "source_locator_value",
         "p. 9999",
     )
+
+
+# --- Persisted source membership bound into the release proof (PR #134 DF3) ---
+# The digest binds every chunk's actual source_id AND the complete canonically
+# ordered logical RuleSource set (id/package/name/category/precedence/enabled,
+# excluding created_at). The Issue-5c single-source invariant (exactly one
+# source, source_id == package_uuid, expected metadata, enabled, every chunk
+# assigned to it) is verified from persisted state. Extra/missing/altered/
+# disabled/reassigned source state fails both.
+
+
+def _second_source(session, pkg):
+    """Insert a second, otherwise-valid RuleSource for *pkg* and return its id."""
+    sid = "1" * 36
+    session.add(
+        RuleSourceORM(
+            source_id=sid,
+            rules_package_id=pkg,
+            name="Interloper Source",
+            category="supplement",
+            precedence_rank=2,
+            is_enabled=True,
+            created_at=_NOW,
+        )
+    )
+    session.flush()
+    return sid
+
+
+def test_clean_source_membership_positive_control(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    """Untampered: exactly one authoritative source and a matching digest."""
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert verify_single_source(session, pkg) == ()
+    assert verify_persisted_digest(session, pkg, vs)
+
+
+def test_extra_source_fails_invariant_and_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    _second_source(session, pkg)
+    session.commit()
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert verify_single_source(session, pkg)  # non-empty violations
+    assert not verify_persisted_digest(session, pkg, vs)
+
+
+def test_reassigned_chunk_source_fails_invariant_and_digest(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    sid = _second_source(session, pkg)  # a valid FK target to reassign to
+    chunk = session.execute(
+        select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg).limit(1)
+    ).scalar_one()
+    chunk.source_id = sid
+    session.commit()
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    violations = verify_single_source(session, pkg)
+    assert any("other than the single authoritative source" in v for v in violations)
+    assert not verify_persisted_digest(session, pkg, vs)
+
+
+@pytest.mark.parametrize(
+    "field,newvalue,marker",
+    [
+        ("name", "Forged Name", "name"),
+        ("category", "supplement", "category"),
+        ("precedence_rank", 7, "precedence_rank"),
+        ("is_enabled", False, "disabled"),
+    ],
+)
+def test_altered_source_metadata_fails_invariant_and_digest(
+    session,
+    release,
+    chroma_client,
+    retrieval_config,
+    fake_embedding,
+    field,
+    newvalue,
+    marker,
+):
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    source = session.execute(
+        select(RuleSourceORM).where(RuleSourceORM.rules_package_id == pkg)
+    ).scalar_one()
+    setattr(source, field, newvalue)
+    session.commit()
+    vs = _vstate(session, pkg, chroma_client, retrieval_config, fake_embedding)
+    assert any(marker in v for v in verify_single_source(session, pkg))
+    assert not verify_persisted_digest(session, pkg, vs)
 
 
 # --- Persisted reconciliation policy reconstruction (PR #134 P1) --------------

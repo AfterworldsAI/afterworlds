@@ -17,6 +17,7 @@ from afterworlds.ingestion.corpus.models import (
     BundleMember,
     CanonicalBundle,
     CorpusBundleMembers,
+    PersistedSource,
     ReconciliationMember,
     ReconciliationPolicy,
     SourceLedger,
@@ -226,19 +227,44 @@ def _chunk_provenance_payload(members: CorpusBundleMembers) -> list[dict[str, ob
     """The runtime-visible RuleChunk provenance/source-membership (Component G).
 
     Bound into the digest so that tampering any persisted citation field
-    (``source_document``, ``source_locator_type``, ``source_locator_value``)
-    changes the digest and fails verification/gating (PR #134 defect family 2).
-    ``members`` here are the *reconstructed* members, whose provenance was read
-    back from the actual ``rp_chunks`` rows.
+    (``source_document``, ``source_locator_type``, ``source_locator_value``) or
+    reassigning a chunk to a different ``source_id`` (PR #134 defect family 3)
+    changes the digest and fails verification/gating. ``members`` here are the
+    *reconstructed* members, whose provenance was read back from the actual
+    ``rp_chunks`` rows.
     """
     return [
         {
             "chunk_id": c.chunk_id,
+            "source_id": c.source_id,
             "source_document": c.source_document,
             "source_locator_type": c.source_locator_type,
             "source_locator_value": c.source_locator_value,
         }
         for c in members.chunks
+    ]
+
+
+def source_membership_payload(
+    sources: tuple[PersistedSource, ...],
+) -> list[dict[str, object]]:
+    """The complete canonically-ordered logical ``RuleSource`` set (Component G).
+
+    Bound into the digest so an extra, missing, altered (name/category/
+    precedence), disabled, or reassigned source fails verification (PR #134
+    defect family 3). Operational fields (``created_at``) are excluded — the
+    proof binds logical source identity/authority/enablement, not row timing.
+    """
+    return [
+        {
+            "source_id": s.source_id,
+            "rules_package_id": s.rules_package_id,
+            "name": s.name,
+            "category": s.category,
+            "precedence_rank": s.precedence_rank,
+            "is_enabled": s.is_enabled,
+        }
+        for s in sources
     ]
 
 
@@ -249,6 +275,7 @@ def persisted_corpus_payload(
     members: CorpusBundleMembers,
     recon: ReconciliationMember,
     policy: ReconciliationPolicy,
+    sources: tuple[PersistedSource, ...],
     vector_state: dict[str, object],
 ) -> dict[str, object]:
     """The complete authoritative logical persisted state (Component A).
@@ -278,6 +305,7 @@ def persisted_corpus_payload(
         },
         "chunks": corpus_members_payload(members)["chunks"],
         "chunk_provenance": _chunk_provenance_payload(members),
+        "source_membership": source_membership_payload(sources),
         "vector_logical_state": vector_state,
     }
 
@@ -289,10 +317,18 @@ def persisted_corpus_digest(
     members: CorpusBundleMembers,
     recon: ReconciliationMember,
     policy: ReconciliationPolicy,
+    sources: tuple[PersistedSource, ...],
     vector_state: dict[str, object],
 ) -> str:
     return hash_obj(
         persisted_corpus_payload(
-            package_uuid, release_version, ledger, members, recon, policy, vector_state
+            package_uuid,
+            release_version,
+            ledger,
+            members,
+            recon,
+            policy,
+            sources,
+            vector_state,
         )
     )

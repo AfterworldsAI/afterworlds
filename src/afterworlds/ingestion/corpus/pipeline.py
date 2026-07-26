@@ -49,6 +49,7 @@ from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
     CorpusBundleMembers,
+    PersistedSource,
     ReconciliationMember,
     ReconciliationPolicy,
     ReleaseRecord,
@@ -178,6 +179,11 @@ class ReleaseArtifacts:
     release: ReleaseRecord
     concordance: ConcordanceResult
     canaries: tuple[CanaryResult, ...]
+    # The complete canonically-ordered persisted RuleSource set, reconstructed
+    # from the actual rp_sources rows (Component G, PR #134 defect family 3).
+    # Bound into the persisted-corpus digest so an extra/missing/altered/disabled/
+    # reassigned source fails the gate.
+    sources: tuple[PersistedSource, ...]
     # The actual verified vector logical state read back from the real Chroma
     # collection at publish/reuse time (Component K step c + digest, PR #134
     # defect family 1). A plain serializable payload so the gate can recompute

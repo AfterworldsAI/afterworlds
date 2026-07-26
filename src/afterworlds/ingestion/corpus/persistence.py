@@ -54,6 +54,7 @@ from afterworlds.ingestion.corpus.models import (
     Leaf,
     LeafDisposition,
     LeafType,
+    PersistedSource,
     ProjectionEdge,
     ReconciliationFindings,
     ReconciliationMember,
@@ -582,11 +583,105 @@ def _load_members(
                 source_document=chunk_row.source_document,
                 source_locator_type=chunk_row.source_locator_type,
                 source_locator_value=chunk_row.source_locator_value,
+                # Persisted source membership read back from the actual rp_chunks
+                # row (Component G, PR #134 defect family 3). Bound into the
+                # digest so reassigning a chunk to a different source_id after
+                # persistence breaks verify_persisted_digest and the gate.
+                source_id=chunk_row.source_id,
             )
         )
     # Restore canonical (build_corpus) order: by primary leaf occurrence index.
     chunks.sort(key=lambda c: occ[c.source_leaf_ids[0]])
     return CorpusBundleMembers(chunks=tuple(chunks), derivative_notes=())
+
+
+def _load_sources(session: Session, pkg: str) -> tuple[PersistedSource, ...]:
+    """Reconstruct the complete logical RuleSource set from persisted rows.
+
+    Canonically ordered by ``(precedence_rank, source_id)`` so the bound set is
+    deterministic. Excludes ``created_at`` (operational, not part of the logical
+    source identity/authority the proof binds — PR #134 defect family 3).
+    """
+    rows = session.execute(
+        select(RuleSourceORM).where(RuleSourceORM.rules_package_id == pkg)
+    ).scalars()
+    sources = [
+        PersistedSource(
+            source_id=row.source_id,
+            rules_package_id=row.rules_package_id,
+            name=row.name,
+            category=row.category,
+            precedence_rank=row.precedence_rank,
+            is_enabled=row.is_enabled,
+        )
+        for row in rows
+    ]
+    sources.sort(key=lambda s: (s.precedence_rank, s.source_id))
+    return tuple(sources)
+
+
+# Expected single-source metadata for the SRD corpus, mirroring the values
+# _persist_package_and_source writes. The Issue-5c invariant is that the release
+# has exactly this one authoritative source and every chunk is assigned to it.
+_SOURCE_NAME = "SRD 5.2.1"
+_SOURCE_CATEGORY = "core_rulebook"
+_SOURCE_PRECEDENCE = 1
+
+
+def verify_single_source(session: Session, pkg: str) -> tuple[str, ...]:
+    """Fail-closed Issue-5c single-source invariant over the persisted rows.
+
+    The corpus release must have **exactly one** authoritative RuleSource, with a
+    deterministic ``source_id == package_uuid``, the expected metadata, enabled,
+    and **every** persisted chunk assigned to it (PR #134 defect family 3).
+    Reconstructed from persisted state — never trusting candidate assertions.
+    Returns the list of violations; publication must fail closed when non-empty.
+    """
+    sources = list(
+        session.execute(
+            select(RuleSourceORM).where(RuleSourceORM.rules_package_id == pkg)
+        ).scalars()
+    )
+    violations: list[str] = []
+    # The authoritative source is deterministically the one whose id == the
+    # package uuid; any other source row is an unexpected extra (checked
+    # explicitly rather than via a bare count so the reassigned-chunk case —
+    # whose target source must exist to satisfy the composite FK — reports the
+    # specific chunk violation too).
+    authoritative = next((s for s in sources if s.source_id == pkg), None)
+    for extra in sorted(s.source_id for s in sources if s.source_id != pkg):
+        violations.append(f"unexpected extra source {extra} (only one is allowed)")
+    if authoritative is None:
+        violations.append(f"no authoritative source with source_id == {pkg}")
+    else:
+        if authoritative.name != _SOURCE_NAME:
+            violations.append(
+                f"authoritative source name {authoritative.name!r} unexpected"
+            )
+        if authoritative.category != _SOURCE_CATEGORY:
+            violations.append(
+                f"authoritative source category {authoritative.category!r} unexpected"
+            )
+        if authoritative.precedence_rank != _SOURCE_PRECEDENCE:
+            violations.append(
+                f"authoritative source precedence_rank "
+                f"{authoritative.precedence_rank} unexpected"
+            )
+        if not authoritative.is_enabled:
+            violations.append("authoritative source is disabled")
+    mismatched = sorted(
+        (row.chunk_id, row.source_id)
+        for row in session.execute(
+            select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg)
+        ).scalars()
+        if row.source_id != pkg
+    )
+    for cid, wrong_source in mismatched:
+        violations.append(
+            f"chunk {cid} assigned to source {wrong_source} other than the "
+            "single authoritative source"
+        )
+    return tuple(violations)
 
 
 def verify_chunk_runtime_membership(session: Session, pkg: str) -> tuple[str, ...]:
@@ -678,6 +773,7 @@ def recompute_persisted_digest(
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
+    sources = _load_sources(session, pkg)
     return persisted_corpus_digest(
         release.package_uuid,
         release.release_version,
@@ -685,6 +781,7 @@ def recompute_persisted_digest(
         members,
         recon,
         policy,
+        sources,
         vector_state,
     )
 
@@ -724,6 +821,7 @@ def reconstruct_payload(
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
+    sources = _load_sources(session, pkg)
     return persisted_corpus_payload(
         release.package_uuid,
         release.release_version,
@@ -731,6 +829,7 @@ def reconstruct_payload(
         members,
         recon,
         policy,
+        sources,
         vector_state,
     )
 
@@ -775,9 +874,10 @@ def _reconstruct_artifacts(
     pages: list[ExtractedPage],
     bundle: CanonicalBundle,
     vector_state: dict[str, object],
-) -> tuple[ReleaseArtifacts, tuple[str, ...]]:
-    """Load a fully-persisted release's DB-grounded artifacts + its membership
-    violations (used by both the fresh-publish and the idempotent-reuse path).
+) -> tuple[ReleaseArtifacts, tuple[str, ...], tuple[str, ...]]:
+    """Load a fully-persisted release's DB-grounded artifacts + its chunk-runtime
+    membership and single-source violations (used by both the fresh-publish and
+    the idempotent-reuse path).
 
     The applied policy is reconstructed and validated from the persisted rows
     (:func:`_load_policy`), never a caller policy — so a tampered persisted policy
@@ -793,7 +893,9 @@ def _reconstruct_artifacts(
     ledger = _load_ledger(session, pkg)
     recon = _load_reconciliation(session, pkg, policy)
     members = _load_members(session, pkg, ledger)
+    sources = _load_sources(session, pkg)
     membership_violations = verify_chunk_runtime_membership(session, pkg)
+    source_violations = verify_single_source(session, pkg)
     concordance = check_concordance(members.chunks, pages)
     canaries = check_canaries(pages)
 
@@ -831,9 +933,10 @@ def _reconstruct_artifacts(
         release=release_record,
         concordance=concordance,
         canaries=canaries,
+        sources=sources,
         vector_state=vector_state,
     )
-    return artifacts, membership_violations
+    return artifacts, membership_violations, source_violations
 
 
 def finalize_release(
@@ -906,12 +1009,14 @@ def finalize_release(
             session, pkg, chroma_client, retrieval_config, embedding_function
         )
         try:
-            artifacts, membership_violations = _reconstruct_artifacts(
-                session,
-                pkg,
-                pages=candidate.pages,
-                bundle=candidate.bundle,
-                vector_state=vector_result.state.to_payload(),
+            artifacts, membership_violations, source_violations = (
+                _reconstruct_artifacts(
+                    session,
+                    pkg,
+                    pages=candidate.pages,
+                    bundle=candidate.bundle,
+                    vector_state=vector_result.state.to_payload(),
+                )
             )
         except PolicyReconstructionError as exc:
             # A missing/malformed/inconsistent persisted policy fails reuse closed
@@ -938,6 +1043,7 @@ def finalize_release(
             vector_write_ok=vector_result.ok,
             legacy_reachability_violations=len(legacy_violations),
             chunk_membership_violations=len(membership_violations),
+            source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
         )
         # Re-run the *full* gate against the reconstructed existing release —
@@ -1028,9 +1134,11 @@ def finalize_release(
         # -grounded policy (PR #134 P1).
         policy = _load_policy(session, pkg)
         membership_violations = verify_chunk_runtime_membership(session, pkg)
+        source_violations = verify_single_source(session, pkg)
         ledger = _load_ledger(session, pkg)
         recon = _load_reconciliation(session, pkg, policy)
         members = _load_members(session, pkg, ledger)
+        sources = _load_sources(session, pkg)
 
         # --- d: persisted-corpus digest from the actual persisted state (SQL +
         #        actual verified vector logical state) ------------------------
@@ -1042,6 +1150,7 @@ def finalize_release(
             members,
             recon,
             policy,
+            sources,
             vector_state,
         )
 
@@ -1097,6 +1206,7 @@ def finalize_release(
             release=release_record,
             concordance=concordance,
             canaries=canaries,
+            sources=sources,
             vector_state=vector_state,
         )
 
@@ -1112,6 +1222,7 @@ def finalize_release(
             vector_write_ok=vector_result.ok,
             legacy_reachability_violations=len(legacy_violations),
             chunk_membership_violations=len(membership_violations),
+            source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
         )
 

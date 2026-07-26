@@ -200,6 +200,30 @@ class CorpusChunk:
     source_document: str = ""
     source_locator_type: str = ""
     source_locator_value: str = ""
+    # The persisted ``rp_chunks.source_id`` this chunk is assigned to (Component
+    # G, PR #134 defect family 3). Bound into the persisted-corpus digest so a
+    # chunk reassigned to a different source after persistence breaks
+    # verification. Empty on the pre-persistence build path (provenance enters
+    # the proof only through the reconstructed persisted state).
+    source_id: str = ""
+
+
+@dataclass(frozen=True)
+class PersistedSource:
+    """The persisted logical ``RuleSource`` state bound into the release proof.
+
+    Reconstructed from the actual ``rp_sources`` rows (PR #134 defect family 3)
+    and bound, as the complete canonically-ordered set, into the persisted-corpus
+    digest — so an extra, missing, altered, disabled, or reassigned source fails
+    verification. Operational fields (``created_at``) are deliberately excluded.
+    """
+
+    source_id: str
+    rules_package_id: str
+    name: str
+    category: str
+    precedence_rank: int
+    is_enabled: bool
 
 
 @dataclass(frozen=True)
