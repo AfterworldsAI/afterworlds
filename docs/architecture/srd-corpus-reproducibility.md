@@ -28,16 +28,20 @@ byte-identity has not been independently proven and is verified per environment.
 - **First-party transform source manifest:** the transform identity binds a
   canonical manifest over the committed first-party modules that produce the
   candidate corpus or its canonical identities (steps a0–b) — `pdf_source`,
-  `ledger`, `transform`, `reconcile`, `policy`, `bundle`, `hashing`, `models`,
-  `pipeline`, `transform_identity` (verification/persistence/publication modules
-  are excluded because they cannot change the candidate bytes). Each entry is a
-  repo-relative path + SHA-256 of that file's newline-normalized source, sorted
-  by path; the aggregate `transform_source_hash` is a pure function of those
-  bytes. A change to **any** covered module moves the hash automatically — no
-  manual version bump — so a transform-code change (e.g. a segmentation or
-  chunk-generation fix) yields a **new draft release** rather than reusing the
-  predecessor's identity. Implemented in
+  `ledger`, `tables`, `transform`, `reconcile`, `policy`, `bundle`, `hashing`,
+  `models`, `pipeline`, `transform_identity` (verification/persistence/publication
+  modules are excluded because they cannot change the candidate bytes). Each entry
+  is a repo-relative path + SHA-256 of that file's newline-normalized source,
+  sorted by path; the aggregate `transform_source_hash` is a pure function of
+  those bytes. A change to **any** covered module — including `tables` (table
+  segmentation, cell contents/ids, row/column metadata) — moves the hash
+  automatically, so a transform-code change yields a **new draft release** rather
+  than reusing the predecessor's identity. Implemented in
   `afterworlds.ingestion.corpus.transform_identity`.
+- **Expected-table inventory:** the committed frozen oracle
+  (`srd_table_inventory.json`) is a candidate-affecting *data* input; its content
+  hash is bound into the transform configuration, so regenerating it (after a
+  reviewed table-reconstruction change) mints a new release.
 
 ## Exhaustive authoritative-source extraction (Component A)
 
@@ -56,13 +60,17 @@ the real PDF hash would otherwise pass. `afterworlds.ingestion.corpus`
   `page_index == printed_page - 1`, so an **omitted, duplicated, reordered, or
   substituted** page each produces a diagnosable failure.
 
-`finalize_release` runs this proof **before any SQL or Chroma mutation**, so an
-unproven candidate is rejected leaving no package/release/vector state; the reuse
-path additionally re-checks that the persisted ledger covers every printed page.
-The proof is over pre-segmentation **page** text, so it is stable across
-downstream leaf/table segmentation changes — it attests exhaustive ordered
-extraction, while concordance and the table row/cell accounting separately attest
-structural fidelity.
+The manifest binds the full normalized extraction **geometry** every heading/
+table/ledger step consumes — per-line `top`/`x0`/`x1`/`size` + char span + text,
+per-word `text`/`x0`/`x1` + char span, and each rect's geometry — not just page
+text, so a geometry-only change (a moved coordinate, a resized font, a shifted
+word span, an added/removed rect) that leaves the page text unchanged still fails
+completeness (it could otherwise silently alter headings and table cells). It
+stays pre-segmentation, so downstream leaf/table *segmentation* changes do not
+perturb it. `finalize_release` runs this proof **before any SQL or Chroma
+mutation**, so an unproven candidate is rejected leaving no package/release/vector
+state; the reuse path additionally re-checks that the persisted ledger covers
+every printed page.
 
 ## Structurally faithful tables (Component F)
 
@@ -78,15 +86,36 @@ multi-line cell folds its continuation into one leaf, and a page-spanning table
 continues as the same logical grid. Detection only ever consumes a maximal
 contiguous line run and discards any candidate table whose cells fail span
 validity or page concordance, so a mis-detection falls back to paragraph
-segmentation and never corrupts tiling. Each cell records its table identity and
-0-based row/column on the ledger leaf (`rp_ledger_leaves.table_id/table_row/
-table_col`, migration 0019), under a `TABLE` container nested in its section.
-Full-PDF `check_table_concordance` verifies every emitted cell's structural
-consistency (unique row/col, in-range, non-empty) and on-page presence from the
-reconstructed tables (independent of the generated RuleChunks) and surfaces the
-detection coverage tally — candidate regions it cannot cleanly reconstruct
-(shaded prose spanning both body columns) deliberately fall back to paragraph
-segmentation, counted rather than silently capped.
+segmentation and never corrupts tiling.
+
+**Cross-page logical tables.** `assemble_tables` links per-page segments into one
+logical table: the geometrically lowest table on page N continues into the highest
+on page N+1 iff they share column count and normalized header (never column
+x-positions — a table shifts body column between pages; the Actions table is the
+right body column on page 9, the left on page 10). A logical table has a stable id
+(from its first segment), continuous logical row numbering that does not restart at
+the page boundary, and a retained-and-flagged repeated continuation header (sharing
+logical row 0, never counted as a new data row). Leaves stay per-page (the tiling
+invariant is untouched); logical identity is metadata on the leaf
+(`rp_ledger_leaves.table_id`=logical id, `table_row`=logical row, `table_col`,
+`table_segment`; migrations 0019/0020), under a shared `TABLE` container — all bound
+into the digest and surviving persistence, reconstruction, publication, and reuse.
+A colored title bar sitting well above the column-header row is geometrically
+indistinguishable from adjacent prose, so it falls to a caption/paragraph leaf; the
+table reconstructs faithfully from its column-header row down.
+
+**Independent expected-table oracle.** `table_inventory` supplies a committed,
+frozen inventory (`srd_table_inventory.json`) of every expected logical table (page
+span, header, column/row counts, segment count, cell-detail hash), generated by a
+documented offline procedure (`scripts/regen_table_inventory.py`) and compared
+against the live reconstruction — **never** regenerated by the detector at check
+time — so a suppressed, flattened, fragmented, merged, or invented table diverges
+and fails (prose is excluded by construction, distinguishing tables from prose).
+Its hash is bound into the transform/configuration identity, and `finalize_release`
+rejects a full-corpus candidate that diverges from it before any store mutation.
+Per-page `check_table_concordance` additionally verifies emitted-cell structural
+consistency and surfaces the detection coverage tally — regions that cannot be
+cleanly reconstructed fall back to paragraphs, counted rather than silently capped.
 
 ## Persisted source membership (Component G)
 
