@@ -316,6 +316,29 @@ def table_detection_coverage(page: ExtractedPage) -> DetectionCoverage:
     return _detect(page)[1]
 
 
+# A section/subsection/entry heading font floor for the cross-page continuation
+# guard: above running-header/body size (~9-11pt) so class/section headings (14pt+
+# — e.g. "Cleric Spell List", "Paladin Subclass") register while body text does not.
+_SECTION_HEADING_SIZE = 12.0
+# Running header/footer lines sit in the extreme top/bottom margins; the continuation
+# guard ignores anything above this top margin so they never count as a heading.
+_TOP_MARGIN = 40.0
+
+
+def _has_heading_above(page: ExtractedPage, start_line: int) -> bool:
+    """True iff a section heading sits physically above line *start_line* on *page*.
+
+    Signals that the line begins a new section rather than continuing a table from
+    the previous page (the cross-page false-merge guard). Ignores the top-margin
+    running header.
+    """
+    seg_top = page.lines[start_line].top
+    return any(
+        ln.size >= _SECTION_HEADING_SIZE and _TOP_MARGIN < ln.top < seg_top
+        for ln in page.lines
+    )
+
+
 def _logical_table_id(first: DetectedTable) -> str:
     """Stable logical id from the first segment's page + header + column count."""
     return content_id(
@@ -423,6 +446,14 @@ def assemble_tables(pages: list[ExtractedPage]) -> tuple[LogicalTable, ...]:
                 and open_id is not None
                 and header_by_id[open_id] == table.header()
                 and segments_by_id[open_id][-1].column_count == table.column_count
+                # ...and no section heading governs the continuation. Tables that
+                # merely share a column header across a section break (every spell
+                # list is `spell/school/special`; the level/class lives in a
+                # heading above the table) must NOT merge — a heading physically
+                # above the continuation segment means it begins a new section, not
+                # a continuation of the previous page's table (R15 F3 false-merge
+                # guard).
+                and not _has_heading_above(page, table.start_line)
             )
             if continues:
                 assert open_id is not None

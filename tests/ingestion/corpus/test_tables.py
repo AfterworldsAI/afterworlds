@@ -99,6 +99,27 @@ def test_actions_table_spans_pages_9_and_10_as_one_logical_table(full_candidate)
     assert len(occ) == len(set(occ))
 
 
+def test_no_cross_page_table_merges_across_a_section_heading(full_candidate):
+    """A page-spanning link is only made when the continuation is genuinely the
+    same table — never two tables that merely share a column header across a
+    section break. Every spell list is ``spell/school/special``; the class/level
+    lives in a heading above the table, so a continuation segment with any section
+    heading physically above it would be a false merge (R15 F3 false-merge guard).
+    """
+    from afterworlds.ingestion.corpus.tables import (
+        _has_heading_above,
+        assemble_tables,
+    )
+
+    by_pp = {p.printed_page: p for p in full_candidate.pages}
+    for lt in assemble_tables(full_candidate.pages):
+        for seg in lt.segments[1:]:
+            assert not _has_heading_above(by_pp[seg.printed_page], seg.start_line), (
+                f"logical table {lt.printed_pages} continuation on page "
+                f"{seg.printed_page} has a section heading above it (false merge)"
+            )
+
+
 def test_actions_wrapped_summary_folds_to_one_cell(full_candidate):
     """The Disengage summary wraps two visual lines but reconstructs as one
     de-hyphenated cell (continuation folded, not duplicated)."""
