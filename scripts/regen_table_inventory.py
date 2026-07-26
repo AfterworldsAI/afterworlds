@@ -15,9 +15,9 @@ from pathlib import Path
 
 from afterworlds.ingestion.corpus.pdf_source import extract_pages
 from afterworlds.ingestion.corpus.table_inventory import (
-    INVENTORY_PATH,
     build_table_inventory,
     inventory_hash,
+    source_inventory_path,
 )
 
 _PDF = (
@@ -43,11 +43,12 @@ def main() -> None:
         "table_count": len(inventory),
         "tables": inventory,
     }
-    INVENTORY_PATH.write_text(
+    out_path = source_inventory_path()
+    out_path.write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     print(
-        f"wrote {len(inventory)} tables to {INVENTORY_PATH} "
+        f"wrote {len(inventory)} tables to {out_path} "
         f"(hash {payload['inventory_hash']})"
     )
 

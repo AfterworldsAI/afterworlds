@@ -36,13 +36,22 @@ dev = [
     "pip-audit>=2.7",
     "detect-secrets>=1.5",
     "httpx>=0.27",
+    # Packaging smoke test (CRD Issue 5c): builds wheel+sdist to verify the
+    # committed table inventory ships and loads from an installed distribution.
+    "build>=1.0",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-afterworlds = ["modes/personas/profiles/*.json"]
+afterworlds = [
+    "modes/personas/profiles/*.json",
+    # CRD Issue 5c committed expected-table oracle, read at runtime via
+    # importlib.resources (table_inventory.py); required by candidate
+    # construction/finalization, so it must ship in the wheel.
+    "ingestion/corpus/srd_table_inventory.json",
+]
 
 # ---------------------------------------------------------------------------
 # Black

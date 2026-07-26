@@ -14,8 +14,9 @@ the committed one and fails.
 
 Provenance / regeneration (recorded, not hand-authored): the inventory is the
 deterministic output of :func:`build_table_inventory` over the committed
-authoritative PDF with the frozen extraction + detection code, written to
-:data:`INVENTORY_PATH`. Regenerate with ``python scripts/regen_table_inventory.py``
+authoritative PDF with the frozen extraction + detection code, written to the
+source-tree file (:func:`source_inventory_path`). Regenerate with
+``python scripts/regen_table_inventory.py``
 after an intentional, reviewed table-reconstruction change; the committed file is
 then the reviewed expectation. Non-table shaded prose is excluded by construction
 (detection drops it to paragraph segmentation, so it never enters the inventory),
@@ -27,6 +28,7 @@ immutable release.
 
 from __future__ import annotations
 
+import importlib.resources
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +37,20 @@ from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
 from afterworlds.ingestion.corpus.tables import LogicalTable, assemble_tables
 
-INVENTORY_PATH = Path(__file__).with_name("srd_table_inventory.json")
+# The committed oracle is packaged data (``[tool.setuptools.package-data]`` +
+# ``MANIFEST.in``) read at runtime via ``importlib.resources`` — so it resolves
+# from an installed wheel/sdist, not only a repository checkout or CWD.
+INVENTORY_FILENAME = "srd_table_inventory.json"
+
+
+def source_inventory_path() -> Path:
+    """The source-tree path of the committed inventory — **for regeneration only**.
+
+    Used by ``scripts/regen_table_inventory.py`` to (over)write the committed file
+    in a checkout. Runtime reads must go through :func:`load_committed_inventory`
+    (packaged-resource access), never this path.
+    """
+    return Path(__file__).with_name(INVENTORY_FILENAME)
 
 
 def _cells_hash(lt: LogicalTable) -> str:
@@ -86,8 +101,16 @@ def inventory_hash(inventory: list[dict[str, object]]) -> str:
 
 
 def load_committed_inventory() -> list[dict[str, object]]:
-    """Load the frozen committed expected-table inventory (fails closed if absent)."""
-    data = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    """Load the frozen committed expected-table inventory (fails closed if absent).
+
+    Reads the packaged JSON via ``importlib.resources`` so it resolves from an
+    installed distribution (wheel/sdist), not only a source checkout. A missing or
+    corrupt resource propagates (``FileNotFoundError`` / ``json.JSONDecodeError``)
+    — fail-closed, so candidate construction/finalization cannot proceed without
+    the exact committed oracle.
+    """
+    resource = importlib.resources.files(__package__).joinpath(INVENTORY_FILENAME)
+    data = json.loads(resource.read_text(encoding="utf-8"))
     return list(data["tables"])
 
 
