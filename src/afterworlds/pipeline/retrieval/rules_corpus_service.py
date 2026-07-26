@@ -186,16 +186,26 @@ class RulesCorpusService:
 
     @staticmethod
     def _is_published_and_enabled(session: Session, rules_package_id: UUID) -> bool:
-        """True iff BOTH publication records exist in a mutually consistent
-        published state with the package enabled.
+        """True iff the package is published+enabled and any Issue-5c corpus
+        release it carries is itself published.
 
-        The rules_corpus collection is populated in-place during a draft rebuild
-        before SQL publication commits (ADR-018 D11: canonical in-place reindex,
-        no staging). Draft visibility is therefore controlled by the persisted
-        SQL publication state, not by Chroma: a diagnostic read is allowed only
-        when the ``RulesPackageORM`` row is ``published`` + enabled AND its
-        ``CorpusReleaseORM`` row is ``published`` (PR #134). Missing, draft,
-        disabled, or inconsistent records return False — no Chroma access.
+        This service is **package-generic** (Issue 18): it diagnostically serves
+        *every* rules package published through any path — including the
+        pre-existing generic ``IngestionService.publish`` path, which never
+        creates an Issue-5c ``CorpusReleaseORM`` row. So the required condition is
+        that the ``RulesPackageORM`` row is ``published`` + enabled; a corpus
+        release row is only *additionally* required to be ``published`` **when one
+        exists** (PR #134). Concretely:
+
+        * package missing / disabled / not published  → False (no Chroma access);
+        * published+enabled package, no corpus release → True (generic package);
+        * published+enabled package, corpus release *not* published (a draft or
+          otherwise-inconsistent Issue-5c release) → False — draft corpus vectors
+          written in-place during a rebuild (ADR-018 D11, no staging) stay hidden
+          until the release itself publishes.
+
+        Completeness/table-fidelity checks are Issue-5c publication concerns and
+        deliberately live in ``finalize_release``, never in this generic surface.
         """
         pkg = str(rules_package_id)
         package = session.execute(
@@ -208,8 +218,7 @@ class RulesCorpusService:
             package is not None
             and package.is_enabled
             and package.publication_status == "published"
-            and release is not None
-            and release.publication_status == "published"
+            and (release is None or release.publication_status == "published")
         )
 
     def diagnostic_query(

@@ -425,11 +425,8 @@ class TestDiagnosticQueryPublicationAware:
                 "publication_status",
                 "draft",
             ),
-            lambda s, p: s.execute(
-                delete(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == str(p))
-            ),
         ],
-        ids=["package-draft", "package-disabled", "release-draft", "release-missing"],
+        ids=["package-draft", "package-disabled", "release-draft"],
     )
     def test_each_inconsistent_publication_state_fails_closed(
         self, session_factory, tmp_path: Path, break_state
@@ -446,6 +443,38 @@ class TestDiagnosticQueryPublicationAware:
         break_state(session, package_id)
         session.commit()
         assert service.diagnostic_query(session, package_id, "content") == []
+
+    def test_generic_published_package_without_corpus_release_is_queryable(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """A package published through the pre-existing generic
+        ``IngestionService.publish`` path never has an Issue-5c
+        ``CorpusReleaseORM`` row, yet must remain diagnostically queryable
+        (Issue 18 regression, PR #134). No corpus-release row is fabricated here —
+        the generic path simply doesn't create one."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, ["Fireball deals damage."])
+        client, service = self._service(tmp_path)
+        service.reindex_from_sql(session, package_id)
+        # Generic publish: package flips to published+enabled, NO corpus release.
+        pkg = session.get(RulesPackageORM, str(package_id))
+        pkg.publication_status = "published"
+        pkg.is_enabled = True
+        session.commit()
+        assert (
+            session.execute(
+                select(CorpusReleaseORM).where(
+                    CorpusReleaseORM.package_uuid == str(package_id)
+                )
+            ).scalar_one_or_none()
+            is None
+        )
+
+        results = service.diagnostic_query(
+            session, package_id, "Fireball deals damage.", n_results=1
+        )
+        assert results == ["Fireball deals damage."]
 
     def test_missing_package_records_fail_closed(
         self, session_factory, tmp_path: Path
