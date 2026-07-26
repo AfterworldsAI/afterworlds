@@ -139,65 +139,102 @@ def _band(anchor_rows: list[float]) -> tuple[float, float]:
     return min(anchor_rows) - _BAND_PAD, max(anchor_rows) + _BAND_PAD
 
 
-def detect_page_tables(page: ExtractedPage) -> tuple[DetectedTable, ...]:
-    """Reconstruct every rect-anchored table on *page* as contiguous line runs."""
-    anchors = _rect_column_anchors(page.rects)
-    if not anchors:
-        return ()
+@dataclass(frozen=True)
+class DetectionCoverage:
+    """Per-page tally of rect anchors vs. tables emitted vs. dropped-to-paragraph.
 
-    page_compact = compact(page.canonical_text())
+    Detection deliberately falls back to normal paragraph segmentation for a
+    candidate region it cannot cleanly reconstruct (no valid line run, inverted/
+    overlapping spans, or a cell that isn't on the page — typically a shaded
+    *prose* region spanning both body columns, not a real table). Surfacing these
+    counts keeps the fallback explicit rather than a silent cap (PR #134).
+    """
+
+    anchors: int
+    emitted: int
+    dropped_no_run: int  # no clean contiguous row run (or no cells)
+    dropped_span_invalid: int  # inverted/overlapping cell spans
+    dropped_off_page: int  # a reconstructed cell isn't on the page
+
+
+def _detect(page: ExtractedPage) -> tuple[tuple[DetectedTable, ...], DetectionCoverage]:
+    """Reconstruct tables and tally detection coverage in one pass."""
+    anchors = _rect_column_anchors(page.rects)
     tables: list[DetectedTable] = []
     used_lines: set[int] = set()
-    for ai, bounds in enumerate(anchors):
-        # y-band = vertical extent of the shaded rects whose left edge belongs to
-        # this anchor's column signature (padded to catch header + trailing rows).
-        sig = set(bounds[:-1])
-        rect_ys = [r.top for r in page.rects if r.x0 in sig] + [
-            r.bottom for r in page.rects if r.x0 in sig
-        ]
-        if not rect_ys:
-            continue
-        lo, hi = _band(rect_ys)
-        col_count = len(bounds) - 1
-        # Candidate table lines: within the y-band, every word fits the grid.
-        run = _maximal_run(page, bounds, lo, hi, used_lines)
-        if run is None:
-            continue
-        start, end = run
-        cells, row_count = _build_cells(page, bounds, start, end)
-        if not cells:
-            continue
-        # Span-validity: the cells must tile the table's char range monotonically —
-        # adjacent within a row (gap 0), one "\n" between rows (gap 1), each span
-        # non-empty. A spanning title row or mis-aligned header yields inverted/
-        # overlapping spans; discard the whole table so those lines fall back to
-        # paragraph segmentation and the page tiling stays disjoint+exhaustive.
-        if not _spans_tile(page, cells, start, end):
-            continue
-        # Self-validation: every reconstructed cell's text must actually appear
-        # (whitespace/hyphen-insensitively) on the page. A cell that fails is a
-        # mis-reconstruction (e.g. an adjacent-column heading folded in on an
-        # atypically-laid-out page); discard the whole table so those lines fall
-        # back to normal paragraph segmentation rather than emit a false cell.
-        if any(compact(c.text) not in page_compact for c in cells):
-            continue
-        table_id = content_id(
-            "table", page.printed_page, ai, col_count, page.lines[start].char_start
-        )
-        tables.append(
-            DetectedTable(
-                table_id=table_id,
-                printed_page=page.printed_page,
-                start_line=start,
-                end_line=end,
-                column_count=col_count,
-                row_count=row_count,
-                cells=tuple(cells),
+    no_run = span_bad = off_page = 0
+    if anchors:
+        page_compact = compact(page.canonical_text())
+        for ai, bounds in enumerate(anchors):
+            # y-band = vertical extent of the shaded rects whose left edge belongs
+            # to this anchor's signature (padded to catch header + trailing rows).
+            sig = set(bounds[:-1])
+            rect_ys = [r.top for r in page.rects if r.x0 in sig] + [
+                r.bottom for r in page.rects if r.x0 in sig
+            ]
+            if not rect_ys:
+                no_run += 1
+                continue
+            lo, hi = _band(rect_ys)
+            col_count = len(bounds) - 1
+            run = _maximal_run(page, bounds, lo, hi, used_lines)
+            if run is None:
+                no_run += 1
+                continue
+            start, end = run
+            cells, row_count = _build_cells(page, bounds, start, end)
+            if not cells:
+                no_run += 1
+                continue
+            # Span-validity: cells must tile the table's char range monotonically —
+            # adjacent within a row (gap 0), one "\n" between rows (gap 1). A
+            # spanning title/mis-aligned header yields inverted/overlapping spans;
+            # discard so those lines fall back to paragraphs and page tiling stays
+            # disjoint+exhaustive.
+            if not _spans_tile(page, cells, start, end):
+                span_bad += 1
+                continue
+            # Self-validation: every reconstructed cell must actually appear on the
+            # page. A cell that fails is a mis-reconstruction (e.g. a shaded prose
+            # region spanning both body columns); discard so those lines fall back
+            # to paragraphs rather than emit a false cell.
+            if any(compact(c.text) not in page_compact for c in cells):
+                off_page += 1
+                continue
+            table_id = content_id(
+                "table", page.printed_page, ai, col_count, page.lines[start].char_start
             )
-        )
-        used_lines.update(range(start, end + 1))
+            tables.append(
+                DetectedTable(
+                    table_id=table_id,
+                    printed_page=page.printed_page,
+                    start_line=start,
+                    end_line=end,
+                    column_count=col_count,
+                    row_count=row_count,
+                    cells=tuple(cells),
+                )
+            )
+            used_lines.update(range(start, end + 1))
     tables.sort(key=lambda t: t.start_line)
-    return tuple(tables)
+    coverage = DetectionCoverage(
+        anchors=len(anchors),
+        emitted=len(tables),
+        dropped_no_run=no_run,
+        dropped_span_invalid=span_bad,
+        dropped_off_page=off_page,
+    )
+    return tuple(tables), coverage
+
+
+def detect_page_tables(page: ExtractedPage) -> tuple[DetectedTable, ...]:
+    """Reconstruct every rect-anchored table on *page* as contiguous line runs."""
+    return _detect(page)[0]
+
+
+def table_detection_coverage(page: ExtractedPage) -> DetectionCoverage:
+    """The rect-anchor → emitted-table → dropped-to-paragraph tally for *page*."""
+    return _detect(page)[1]
 
 
 def _line_kind(line: PageLine, bounds: list[float]) -> str | None:

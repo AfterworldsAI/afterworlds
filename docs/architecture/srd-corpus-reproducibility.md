@@ -81,8 +81,12 @@ validity or page concordance, so a mis-detection falls back to paragraph
 segmentation and never corrupts tiling. Each cell records its table identity and
 0-based row/column on the ledger leaf (`rp_ledger_leaves.table_id/table_row/
 table_col`, migration 0019), under a `TABLE` container nested in its section.
-Full-PDF `check_table_concordance` verifies cell accounting independently of the
-generated RuleChunks.
+Full-PDF `check_table_concordance` verifies every emitted cell's structural
+consistency (unique row/col, in-range, non-empty) and on-page presence from the
+reconstructed tables (independent of the generated RuleChunks) and surfaces the
+detection coverage tally — candidate regions it cannot cleanly reconstruct
+(shaded prose spanning both body columns) deliberately fall back to paragraph
+segmentation, counted rather than silently capped.
 
 ## Persisted source membership (Component G)
 

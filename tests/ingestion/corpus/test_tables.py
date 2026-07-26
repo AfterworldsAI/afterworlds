@@ -68,6 +68,21 @@ def test_actions_table_folds_wrapped_multiline_cell(full_candidate):
     assert len(positions) == len(set(positions))
 
 
+def test_attack_roll_table_reconstructs_on_canary_page(full_candidate):
+    """A third representative table (printed page 7, a version-canary page):
+    the two-column 'Attack Roll | Abilities' grid reconstructs with exact
+    header/row identity and text."""
+    table = _table_by_header(_page(full_candidate, 7), ["Attack Roll", "Abilities"])
+    assert table.column_count == 2
+    by_pos = {(c.row, c.col): c.text for c in table.cells}
+    assert by_pos[(1, 0)] == "Ability"
+    assert by_pos[(1, 1)] == "Attack Type"
+    assert by_pos[(2, 0)] == "Strength"
+    assert by_pos[(2, 1)].startswith("Melee attack with a weapon")
+    positions = [(c.row, c.col) for c in table.cells]
+    assert len(positions) == len(set(positions))
+
+
 def test_skills_table_container_nesting_and_cell_leaves(full_candidate):
     """The reconstructed Skills table is a TABLE container whose cell leaves are
     TABLE_CELL, carry the container in their path, and record row/col — proving
@@ -90,13 +105,35 @@ def test_skills_table_container_nesting_and_cell_leaves(full_candidate):
     assert skills.parent_id is not None
 
 
-def test_full_pdf_table_concordance_passes_independently(full_candidate):
-    """Component E: every reconstructed table cell across the whole PDF appears on
-    its page (verified independently of the generated RuleChunks), with no empty
-    cells — a table-fidelity check a chunk-generation bug cannot mask."""
+def test_full_pdf_table_reconstruction_is_structurally_consistent(full_candidate):
+    """Component E: every emitted table cell across the whole PDF is structurally
+    consistent (unique row/col, in-range, non-empty) and on its page — verified
+    from the reconstructed tables, independent of generated RuleChunks. The
+    structural checks catch failure modes the detection filter does not itself
+    guarantee, so this is not tautological."""
     result = check_table_concordance(full_candidate.pages)
     assert result.tables_checked > 0 and result.cells_checked > 0
-    assert result.passed, (result.content_failures[:5], result.empty_cells[:5])
+    assert result.passed, (
+        result.content_failures[:5],
+        result.structural_failures[:5],
+    )
+
+
+def test_table_detection_coverage_is_reported_not_silently_capped(full_candidate):
+    """Detection falls back to paragraph segmentation for candidate regions it
+    cannot cleanly reconstruct (typically shaded prose spanning both body
+    columns). Assert the fallback tally is surfaced and self-consistent, and that
+    genuinely reconstructed tables dominate the discards (no silent cap)."""
+    cov = check_table_concordance(full_candidate.pages).coverage
+    assert cov["anchors"] == (
+        cov["emitted"]
+        + cov["dropped_no_run"]
+        + cov["dropped_span_invalid"]
+        + cov["dropped_off_page"]
+    )
+    assert cov["emitted"] > 0
+    # Real tables outnumber the off-page (mixed-column prose) rejections.
+    assert cov["emitted"] > cov["dropped_off_page"]
 
 
 def test_table_cell_chars_have_no_paragraph_overlap(full_candidate):

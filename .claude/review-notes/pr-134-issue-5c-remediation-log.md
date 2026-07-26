@@ -592,11 +592,20 @@ cells folded, page-spanning tables continued, `TABLE` containers nested. Ledger
 leaves gain `table_id/table_row/table_col` (migration 0019); bound into the digest
 via the ledger payload. Mis-detections discard the table (span-validity + page
 concordance) and fall back to paragraphs — tiling never sacrificed. `check_table_
-concordance` verifies cell accounting independently of RuleChunks. Exact oracles:
-page-9 Skills (3-col) and page-10 Actions (wrapped multi-line cell). Full-corpus:
-364 pages → 28,750 leaves (was 14,023) = 28,385 represented + 365 excluded + 0
-unresolved; 640 tables / 16,095 cells; 0 gaps/overlaps/orphans/duplications;
-concordance + table-concordance + canaries pass; byte-for-byte deterministic.
+concordance` verifies every emitted cell's **structural consistency** (unique
+row/col, in-range, non-empty) and on-page presence from the reconstructed tables
+(independent of RuleChunks) — the structural checks catch failure modes the
+detection filter does not itself guarantee, so it is non-tautological — and
+surfaces the detection coverage tally. **Coverage (no silent cap):** 1,571 rect
+anchors → 640 tables emitted; 931 candidate regions correctly fall back to
+paragraphs (743 no clean contiguous row run, 2 inverted/overlapping spans, 186 a
+reconstructed cell not on-page — verified to be shaded *prose* spanning both body
+columns, e.g. "teristics, as shown Ability Descriptions", not real tables). Exact
+oracles: page-9 Skills (3-col), page-10 Actions (wrapped multi-line cell), page-7
+Attack Roll (2-col, canary page). Full-corpus: 364 pages → 28,750 leaves (was
+14,023) = 28,385 represented + 365 excluded + 0 unresolved; 640 tables / 16,095
+cells; 0 gaps/overlaps/orphans/duplications; concordance + table structural
+consistency + canaries pass; byte-for-byte deterministic.
 
 *Component C sibling audit (defect family: source content flattened / mis-typed).*
 Searched: table containers, list containers, multi-paragraph list items, stat-block

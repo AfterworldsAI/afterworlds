@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from afterworlds.ingestion.corpus.models import CorpusChunk
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
 from afterworlds.ingestion.corpus.policy import compact, normalize
-from afterworlds.ingestion.corpus.tables import detect_page_tables
+from afterworlds.ingestion.corpus.tables import _detect
 
 # ``compact`` is re-exported from policy (shared with tables without an import
 # cycle); kept importable from concordance for existing callers/tests.
@@ -84,44 +84,76 @@ def check_concordance(
 class TableConcordanceResult:
     """Whole-corpus table reconstruction check (Component E, PR #134).
 
-    Re-detects tables directly from the extracted pages and verifies every
-    reconstructed cell's text appears on its page — deliberately independent of
-    the generated ``RuleChunk`` set, so a chunk-generation bug cannot mask a
-    table-fidelity regression. Also reports per-table row/cell tallies.
+    Verifies every emitted table cell's **structural consistency** — unique
+    ``(row, col)`` per table, ``row``/``col`` within the declared grid, non-empty
+    text — plus that each cell's text appears on its page, working directly from
+    the reconstructed tables rather than the generated ``RuleChunk`` set (so a
+    chunk-generation bug cannot mask a table regression). The structural checks
+    catch failure modes the detection filter does **not** already guarantee (a
+    duplicated/out-of-range/empty cell), so the result is not tautological.
+
+    ``coverage`` surfaces the rect-anchor → emitted → dropped-to-paragraph tally:
+    detection deliberately falls back to paragraph segmentation for a candidate
+    region it cannot cleanly reconstruct (typically a shaded prose region
+    spanning both body columns), and this makes that fallback explicit rather
+    than a silent cap.
     """
 
     tables_checked: int
     cells_checked: int
-    content_failures: tuple[str, ...]  # "p{page}:table{n}:r{row}c{col}" that miss
-    empty_cells: tuple[str, ...]  # cells with no text
+    content_failures: tuple[str, ...]  # "p{page}:table{n}:r{row}c{col}" not on page
+    structural_failures: tuple[str, ...]  # dup / out-of-range / empty cell
+    coverage: dict[str, int]
 
     @property
     def passed(self) -> bool:
-        return not self.content_failures and not self.empty_cells
+        return not self.content_failures and not self.structural_failures
 
 
 def check_table_concordance(pages: list[ExtractedPage]) -> TableConcordanceResult:
-    """Verify reconstructed table cells against the page text (Component E)."""
+    """Verify reconstructed table cells and report detection coverage (E)."""
     content_failures: list[str] = []
-    empty_cells: list[str] = []
+    structural_failures: list[str] = []
     tables = 0
     cells = 0
+    anchors = emitted = drop_no_run = drop_span = drop_off = 0
     for page in pages:
         haystack = compact(page.canonical_text())
-        for ti, table in enumerate(detect_page_tables(page)):
+        detected, cov = _detect(page)
+        anchors += cov.anchors
+        emitted += cov.emitted
+        drop_no_run += cov.dropped_no_run
+        drop_span += cov.dropped_span_invalid
+        drop_off += cov.dropped_off_page
+        for ti, table in enumerate(detected):
             tables += 1
+            seen: set[tuple[int, int]] = set()
             for cell in table.cells:
                 cells += 1
                 tag = f"p{page.printed_page}:table{ti}:r{cell.row}c{cell.col}"
+                if (cell.row, cell.col) in seen:
+                    structural_failures.append(f"{tag}:duplicate")
+                seen.add((cell.row, cell.col))
+                if not (0 <= cell.row < table.row_count):
+                    structural_failures.append(f"{tag}:row-out-of-range")
+                if not (0 <= cell.col < table.column_count):
+                    structural_failures.append(f"{tag}:col-out-of-range")
                 if not cell.text.strip():
-                    empty_cells.append(tag)
+                    structural_failures.append(f"{tag}:empty")
                 elif compact(cell.text) not in haystack:
                     content_failures.append(tag)
     return TableConcordanceResult(
         tables_checked=tables,
         cells_checked=cells,
         content_failures=tuple(content_failures),
-        empty_cells=tuple(empty_cells),
+        structural_failures=tuple(structural_failures),
+        coverage={
+            "anchors": anchors,
+            "emitted": emitted,
+            "dropped_no_run": drop_no_run,
+            "dropped_span_invalid": drop_span,
+            "dropped_off_page": drop_off,
+        },
     )
 
 
