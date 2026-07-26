@@ -276,6 +276,7 @@ def _persist_bundle_rows(
             table_id=leaf.table_id,
             table_row=leaf.table_row,
             table_col=leaf.table_col,
+            table_segment=leaf.table_segment,
         )
         for leaf in ledger.leaves
     )
@@ -401,6 +402,7 @@ def _load_ledger(session: Session, pkg: str) -> SourceLedger:
             table_id=row.table_id,
             table_row=row.table_row,
             table_col=row.table_col,
+            table_segment=row.table_segment,
         )
         for row in leaf_rows
     )

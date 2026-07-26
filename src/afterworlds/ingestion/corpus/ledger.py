@@ -47,7 +47,10 @@ from afterworlds.ingestion.corpus.pdf_source import (
     PageLine,
     extraction_config,
 )
-from afterworlds.ingestion.corpus.tables import DetectedTable, detect_page_tables
+from afterworlds.ingestion.corpus.tables import (
+    TableSegment,
+    assemble_tables,
+)
 
 # Running header/footer: "N System Reference Document 5.2.1" (bottom) and
 # "System Reference Document 5.2.1 N" (top). Verified present on all 364 pages.
@@ -174,6 +177,7 @@ class _LedgerBuilder:
         table_id: str | None = None,
         table_row: int | None = None,
         table_col: int | None = None,
+        table_segment: int | None = None,
     ) -> None:
         """Record a leaf spanning [char_start, char_end) with optional table pos."""
         leaf_id = content_id(
@@ -193,67 +197,72 @@ class _LedgerBuilder:
                 table_id=table_id,
                 table_row=table_row,
                 table_col=table_col,
+                table_segment=table_segment,
             )
         )
         self._occurrence += 1
 
-    def _emit_table(self, page: ExtractedPage, table: DetectedTable) -> None:
-        """Emit a TABLE container + one TABLE_CELL leaf per cell (Component F).
+    def _emit_segment(self, page: ExtractedPage, segment: TableSegment) -> None:
+        """Emit a logical TABLE container + one TABLE_CELL leaf per cell (F/R15 F3).
 
-        The table nests under the current container stack; each cell's char span
-        comes from the reconstructed grid, so the cells tile exactly the same
-        characters the region's lines would otherwise occupy (no cell also becomes
-        a paragraph leaf). Cells are emitted in (row, col) order.
+        The container id is the **logical** table id, shared across page segments —
+        the first segment adds it; a continuation segment on a later page references
+        the same id (so the two page grids are one logical table, not two unrelated
+        ones). Each cell's char span comes from the reconstructed grid, so the cells
+        tile exactly the same characters the region's lines would otherwise occupy
+        (no cell also becomes a paragraph leaf). Cell metadata carries the logical
+        row (continuous across segments; a repeated continuation header keeps row 0),
+        column, and segment index.
         """
-        cid = table.table_id
+        cid = segment.logical_table_id
         container = Container(
             container_id=cid,
             container_type=ContainerType.TABLE,
-            label=self._table_label(page, table),
-            printed_page=table.printed_page,
+            label=self._segment_label(segment),
+            printed_page=segment.printed_page,
             parent_id=self._stack[-1].container_id if self._stack else None,
         )
         self._stack.append(container)
         if cid not in self._seen_container_ids:
             self._seen_container_ids.add(cid)
             self.containers.append(container)
-        for cell in table.cells:
+        for cell in segment.cells:
             self._emit_span(
                 LeafType.TABLE_CELL,
                 cell.text,
-                table.printed_page,
-                page.page_index,
+                segment.printed_page,
+                segment.page_index,
                 cell.char_start,
                 cell.char_end,
                 table_id=cid,
-                table_row=cell.row,
+                table_row=cell.logical_row,
                 table_col=cell.col,
+                table_segment=segment.segment_index,
             )
         self._stack.pop()
 
     @staticmethod
-    def _table_label(page: ExtractedPage, table: DetectedTable) -> str:
-        """Deterministic table label: its header (row-0) cell texts joined."""
-        header = [c.text for c in table.cells if c.row == 0]
-        return " | ".join(header) if header else f"table p{table.printed_page}"
+    def _segment_label(segment: TableSegment) -> str:
+        """Deterministic table label: the logical header (row-0) cell texts."""
+        header = [c.text for c in segment.cells if c.logical_row == 0]
+        return " | ".join(header) if header else f"table p{segment.printed_page}"
 
-    def add_page(self, page: ExtractedPage) -> None:
+    def add_page(self, page: ExtractedPage, segments: list[TableSegment]) -> None:
         lines = page.lines
-        # Reconstructed tables map to contiguous line-index ranges; a table's
-        # lines are consumed as TABLE_CELL leaves and skipped by the paragraph/
-        # list/stat branches so no cell also becomes a paragraph leaf.
-        detected = detect_page_tables(page)
-        tables_by_start = {t.start_line: t for t in detected}
-        table_end_by_start = {t.start_line: t.end_line for t in detected}
+        # Reconstructed table segments map to contiguous line-index ranges; a
+        # segment's lines are consumed as TABLE_CELL leaves and skipped by the
+        # paragraph/list/stat branches so no cell also becomes a paragraph leaf.
+        seg_by_start = {s.start_line: s for s in segments}
+        seg_end_by_start = {s.start_line: s.end_line for s in segments}
         table_lines = {
-            idx for t in detected for idx in range(t.start_line, t.end_line + 1)
+            idx for s in segments for idx in range(s.start_line, s.end_line + 1)
         }
         i = 0
         n = len(lines)
         while i < n:
-            if i in tables_by_start:
-                self._emit_table(page, tables_by_start[i])
-                i = table_end_by_start[i] + 1
+            if i in seg_by_start:
+                self._emit_segment(page, seg_by_start[i])
+                i = seg_end_by_start[i] + 1
                 continue
             line = lines[i]
             if _is_header_footer(line):
@@ -313,10 +322,20 @@ class _LedgerBuilder:
 
 
 def build_ledger(pages: list[ExtractedPage]) -> SourceLedger:
-    """Build the frozen source ledger from extracted pages (Component C)."""
+    """Build the frozen source ledger from extracted pages (Component C).
+
+    Cross-page table assembly runs once over all pages (``assemble_tables``) so a
+    page-spanning table becomes one logical table with continuous logical rows;
+    each page's segments are then emitted in extraction order (R15 F3).
+    """
+    logical = assemble_tables(pages)
+    segments_by_page: dict[int, list[TableSegment]] = {}
+    for lt in logical:
+        for seg in lt.segments:
+            segments_by_page.setdefault(seg.printed_page, []).append(seg)
     builder = _LedgerBuilder()
     for page in pages:
-        builder.add_page(page)
+        builder.add_page(page, segments_by_page.get(page.printed_page, []))
     return builder.build()
 
 
@@ -351,6 +370,7 @@ def ledger_payload(ledger: SourceLedger) -> dict[str, object]:
                 "table_id": leaf.table_id,
                 "table_row": leaf.table_row,
                 "table_col": leaf.table_col,
+                "table_segment": leaf.table_segment,
             }
             for leaf in ledger.leaves
         ],

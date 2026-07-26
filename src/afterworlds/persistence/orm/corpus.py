@@ -143,6 +143,10 @@ class LedgerLeafORM(Base):
     table_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
     table_row: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     table_col: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    # Page-segment index of a page-spanning logical table (0 = first page, 1+ =
+    # continuation); NULL for non-table leaves. A repeated continuation header is
+    # ``table_row == 0`` with ``table_segment > 0`` (PR #134 R15 F3).
+    table_segment: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 
 
 class ReconciliationPolicyORM(Base):

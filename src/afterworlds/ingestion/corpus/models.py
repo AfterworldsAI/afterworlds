@@ -97,12 +97,18 @@ class Leaf:
     occurrence_index: int
     container_path: tuple[str, ...]
     # Table position for ``TABLE_CELL`` leaves (Component F, PR #134 table
-    # fidelity): the reconstructed table's deterministic id and the cell's 0-based
-    # row/column. ``None`` for every non-table leaf. Recorded in the ledger/
-    # persistence so table structure is attested, not flattened into paragraphs.
+    # fidelity): the reconstructed **logical** table's deterministic id (stable
+    # across page segments), the cell's 0-based logical row (continuous across
+    # segments; a repeated continuation header keeps row 0), column, and the page
+    # ``table_segment`` index (0 = first page, 1+ = continuation). ``None`` for
+    # every non-table leaf. A repeated continuation header is ``table_row == 0``
+    # with ``table_segment > 0`` — retained with its own page locator, never a new
+    # data row. Recorded in the ledger/persistence so cross-page table structure
+    # is attested, not flattened into paragraphs or split into unrelated grids.
     table_id: str | None = None
     table_row: int | None = None
     table_col: int | None = None
+    table_segment: int | None = None
 
 
 @dataclass(frozen=True)

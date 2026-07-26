@@ -52,33 +52,79 @@ def test_skills_table_reconstructs_three_columns_exactly(full_candidate):
     assert len(positions) == len(set(positions))
 
 
-def test_actions_table_folds_wrapped_multiline_cell(full_candidate):
-    """Printed page 10 Actions table: a wrapped summary spanning two visual lines
-    reconstructs as one cell (continuation folded, de-hyphenated), not two."""
-    table = _table_by_header(_page(full_candidate, 10), ["Action", "Summary"])
-    assert table.column_count == 2
-    by_pos = {(c.row, c.col): c.text for c in table.cells}
-    assert by_pos[(1, 0)] == "Disengage"
-    # "Your movement doesn't provoke Oppor-\ntunity Attacks for the rest of the
-    # turn." → one de-hyphenated cell.
-    assert by_pos[(1, 1)] == (
-        "Your movement doesn’t provoke Opportunity Attacks for the rest of " "the turn."
+def _actions_logical_table(full_candidate):
+    from afterworlds.ingestion.corpus.policy import compact
+    from afterworlds.ingestion.corpus.tables import assemble_tables
+
+    want = (compact("Action"), compact("Summary"))
+    return next(lt for lt in assemble_tables(full_candidate.pages) if lt.header == want)
+
+
+def test_actions_table_spans_pages_9_and_10_as_one_logical_table(full_candidate):
+    """The Actions table continues from printed page 9 (header/Attack/Dash) to
+    page 10 (Disengage…): one logical table, two segments sharing the logical
+    identity, with continuous logical rows that do NOT restart at the page
+    boundary and a repeated continuation header that is retained and flagged, not
+    double-counted (R15 F3)."""
+    lt = _actions_logical_table(full_candidate)
+    assert lt.printed_pages == (9, 10)
+    assert lt.column_count == 2
+    assert len(lt.segments) == 2
+
+    seg0, seg1 = lt.segments
+    assert (
+        seg0.printed_page == 9 and seg0.segment_index == 0 and not seg0.is_continuation
     )
-    positions = [(c.row, c.col) for c in table.cells]
-    assert len(positions) == len(set(positions))
+    assert seg1.printed_page == 10 and seg1.segment_index == 1 and seg1.is_continuation
+
+    def col0(seg):
+        return {c.logical_row: c for c in seg.cells if c.col == 0}
+
+    s0, s1 = col0(seg0), col0(seg1)
+    # Page-9 segment: header (row 0) then Attack (1), Dash (2).
+    assert s0[0].text == "Action" and not s0[0].is_continuation_header
+    assert s0[1].text == "Attack"
+    assert s0[2].text == "Dash"
+    # Page-10 continuation: the repeated "Action" header keeps logical row 0 and
+    # is flagged (retained, not a new data row); Disengage CONTINUES at row 3.
+    assert s1[0].text == "Action" and s1[0].is_continuation_header
+    assert s1[3].text == "Disengage"
+    assert s1[4].text == "Dodge"
+    # Every (segment, logical_row, col) occurrence is unique — nothing double-counted.
+    occ = [
+        (seg.segment_index, c.logical_row, c.col)
+        for seg in lt.segments
+        for c in seg.cells
+    ]
+    assert len(occ) == len(set(occ))
+
+
+def test_actions_wrapped_summary_folds_to_one_cell(full_candidate):
+    """The Disengage summary wraps two visual lines but reconstructs as one
+    de-hyphenated cell (continuation folded, not duplicated)."""
+    lt = _actions_logical_table(full_candidate)
+    seg1 = lt.segments[1]
+    disengage_summary = next(
+        c.text for c in seg1.cells if c.logical_row == 3 and c.col == 1
+    )
+    assert disengage_summary == (
+        "Your movement doesn’t provoke Opportunity Attacks for the rest of the turn."
+    )
 
 
 def test_attack_roll_table_reconstructs_on_canary_page(full_candidate):
-    """A third representative table (printed page 7, a version-canary page):
-    the two-column 'Attack Roll | Abilities' grid reconstructs with exact
-    header/row identity and text."""
-    table = _table_by_header(_page(full_candidate, 7), ["Attack Roll", "Abilities"])
+    """A third representative table (printed page 7, a version-canary page): the
+    two-column attack-roll ability grid reconstructs from its column-header row
+    down with exact header/row identity and text. (Its colored full-width title
+    bar "Attack Roll Abilities" sits above the two-column shaded region and is
+    inventoried as a caption/paragraph leaf, not a table row — see R15 log.)"""
+    table = _table_by_header(_page(full_candidate, 7), ["Ability", "Attack Type"])
     assert table.column_count == 2
     by_pos = {(c.row, c.col): c.text for c in table.cells}
-    assert by_pos[(1, 0)] == "Ability"
-    assert by_pos[(1, 1)] == "Attack Type"
-    assert by_pos[(2, 0)] == "Strength"
-    assert by_pos[(2, 1)].startswith("Melee attack with a weapon")
+    assert by_pos[(0, 0)] == "Ability"
+    assert by_pos[(0, 1)] == "Attack Type"
+    assert by_pos[(1, 0)] == "Strength"
+    assert by_pos[(1, 1)].startswith("Melee attack with a weapon")
     positions = [(c.row, c.col) for c in table.cells]
     assert len(positions) == len(set(positions))
 

@@ -16,11 +16,20 @@ boundaries. This module reconstructs table structure geometrically:
   page tiling. A cell is emitted exactly once; wrapped continuation text folds
   into the last column's cell rather than duplicating it.
 
-Detection only ever consumes a **maximal contiguous run** of table-aligned lines
-(in extraction/flow order), so a table maps to a contiguous ``page.lines`` index
-range and its cell spans form one contiguous char range. A region that does not
-form such a clean run is left to normal paragraph segmentation — the tiling
-invariant is never sacrificed for table fidelity.
+Per-page detection consumes a **maximal contiguous run** of table-aligned lines
+within the rect y-band (in extraction/flow order), so a segment maps to a
+contiguous ``page.lines`` index range and its cell spans form one contiguous char
+range. On-page row trimming drops any adjacent-column prose the band still admits
+at the run boundary; a region that does not form a clean run is left to normal
+paragraph segmentation — the tiling invariant is never sacrificed for fidelity.
+
+:func:`assemble_tables` then links per-page segments into **cross-page logical
+tables** (R15 F3): the geometrically lowest table on page ``N`` continues into the
+geometrically highest table on page ``N+1`` iff they share column count and
+normalized header. A logical table has a stable id (from its first segment),
+continuous logical row numbering that does not restart at a page boundary, and
+retains a repeated continuation header (flagged ``is_continuation_header``,
+sharing logical row 0) without double-counting it as a data row.
 """
 
 from __future__ import annotations
@@ -66,6 +75,64 @@ class DetectedTable:
     column_count: int
     row_count: int
     cells: tuple[DetectedCell, ...]
+
+    def header(self) -> tuple[str, ...]:
+        """Normalized row-0 cell texts — the cross-page continuation key."""
+        return tuple(compact(c.text) for c in self.cells if c.row == 0)
+
+
+@dataclass(frozen=True)
+class AssembledCell:
+    """A cell with cross-page logical coordinates (Component F, R15 F3).
+
+    ``logical_row`` continues across page segments and does not restart at a page
+    boundary; a repeated continuation header keeps ``logical_row == 0`` (shared
+    with the original header) and ``is_continuation_header`` set, so it is retained
+    with its own page locator but never counted as a new data row.
+    """
+
+    logical_row: int
+    col: int
+    is_continuation_header: bool
+    text: str
+    char_start: int
+    char_end: int
+
+
+@dataclass(frozen=True)
+class TableSegment:
+    """One page's portion of a logical (possibly page-spanning) table."""
+
+    logical_table_id: str
+    segment_index: int  # 0 = first page, 1+ = continuation
+    printed_page: int
+    page_index: int
+    start_line: int  # inclusive index into that page's lines
+    end_line: int  # inclusive
+    column_count: int
+    is_continuation: bool  # segment_index > 0
+    cells: tuple[AssembledCell, ...]
+
+
+@dataclass(frozen=True)
+class LogicalTable:
+    """A logical table spanning one or more page segments with a stable identity.
+
+    The identity is derived from the *first* segment's page + normalized header +
+    column count, so continuation segments on later pages share it. Every source
+    occurrence is retained (including a repeated continuation header); logical row
+    numbering is continuous across segments.
+    """
+
+    logical_table_id: str
+    header: tuple[str, ...]
+    column_count: int
+    logical_row_count: int
+    segments: tuple[TableSegment, ...]
+
+    @property
+    def printed_pages(self) -> tuple[int, ...]:
+        return tuple(s.printed_page for s in self.segments)
 
 
 def _rect_column_anchors(rects: tuple[Rect, ...]) -> list[list[float]]:
@@ -182,40 +249,52 @@ def _detect(page: ExtractedPage) -> tuple[tuple[DetectedTable, ...], DetectionCo
                 no_run += 1
                 continue
             start, end = run
-            cells, row_count = _build_cells(page, bounds, start, end)
+            rows = _group_rows(page, bounds, start, end)
+            # On-page row trimming: greedy growth can swallow adjacent-column prose
+            # at the run's top/bottom. Drop off-page boundary rows (they are the
+            # swallowed prose) so those lines fall back to paragraph segmentation,
+            # keeping the valid table core. A table's own on-page title/header row
+            # is retained; an interior off-page row (a genuine mis-reconstruction)
+            # still drops the whole table.
+            kept, interior_bad = _trim_offpage_rows(page, bounds, rows, page_compact)
+            if interior_bad:
+                off_page += 1
+                continue
+            if not kept:
+                no_run += 1
+                continue
+            cells, row_count = _build_cells(page, bounds, kept)
             if not cells:
                 no_run += 1
                 continue
+            t_start, t_end = kept[0][0], kept[-1][-1]
             # Span-validity: cells must tile the table's char range monotonically —
             # adjacent within a row (gap 0), one "\n" between rows (gap 1). A
             # spanning title/mis-aligned header yields inverted/overlapping spans;
             # discard so those lines fall back to paragraphs and page tiling stays
             # disjoint+exhaustive.
-            if not _spans_tile(page, cells, start, end):
+            if not _spans_tile(page, cells, t_start, t_end):
                 span_bad += 1
                 continue
-            # Self-validation: every reconstructed cell must actually appear on the
-            # page. A cell that fails is a mis-reconstruction (e.g. a shaded prose
-            # region spanning both body columns); discard so those lines fall back
-            # to paragraphs rather than emit a false cell.
-            if any(compact(c.text) not in page_compact for c in cells):
-                off_page += 1
-                continue
             table_id = content_id(
-                "table", page.printed_page, ai, col_count, page.lines[start].char_start
+                "table",
+                page.printed_page,
+                ai,
+                col_count,
+                page.lines[t_start].char_start,
             )
             tables.append(
                 DetectedTable(
                     table_id=table_id,
                     printed_page=page.printed_page,
-                    start_line=start,
-                    end_line=end,
+                    start_line=t_start,
+                    end_line=t_end,
                     column_count=col_count,
                     row_count=row_count,
                     cells=tuple(cells),
                 )
             )
-            used_lines.update(range(start, end + 1))
+            used_lines.update(range(t_start, t_end + 1))
     tables.sort(key=lambda t: t.start_line)
     coverage = DetectionCoverage(
         anchors=len(anchors),
@@ -235,6 +314,156 @@ def detect_page_tables(page: ExtractedPage) -> tuple[DetectedTable, ...]:
 def table_detection_coverage(page: ExtractedPage) -> DetectionCoverage:
     """The rect-anchor → emitted-table → dropped-to-paragraph tally for *page*."""
     return _detect(page)[1]
+
+
+def _logical_table_id(first: DetectedTable) -> str:
+    """Stable logical id from the first segment's page + header + column count."""
+    return content_id(
+        "logical_table", first.printed_page, first.column_count, *first.header()
+    )
+
+
+def _assemble_segment(
+    logical_id: str,
+    segment_index: int,
+    table: DetectedTable,
+    page_index: int,
+    header: tuple[str, ...],
+    next_data_row: int,
+) -> tuple[TableSegment, int]:
+    """Build a TableSegment with continuous logical rows; return it + the updated
+    running data-row counter.
+
+    Row 0 is the header on the first segment, or a *repeated continuation header*
+    on a later segment iff its normalized row-0 matches the logical header — in
+    which case it keeps ``logical_row == 0`` and is flagged, neither discarded nor
+    counted as a data row. Every other row is a data row that continues the
+    running logical-row counter across the page boundary.
+    """
+    row0_is_header = segment_index == 0 or table.header() == header
+    # Map each page-local row index to a logical row.
+    logical_of_row: dict[int, tuple[int, bool]] = {}
+    running = next_data_row
+    for r in range(table.row_count):
+        if r == 0 and row0_is_header:
+            logical_of_row[r] = (0, segment_index > 0)
+        else:
+            logical_of_row[r] = (running, False)
+            running += 1
+    cells = tuple(
+        AssembledCell(
+            logical_row=logical_of_row[c.row][0],
+            col=c.col,
+            is_continuation_header=logical_of_row[c.row][1],
+            text=c.text,
+            char_start=c.char_start,
+            char_end=c.char_end,
+        )
+        for c in table.cells
+    )
+    segment = TableSegment(
+        logical_table_id=logical_id,
+        segment_index=segment_index,
+        printed_page=table.printed_page,
+        page_index=page_index,
+        start_line=table.start_line,
+        end_line=table.end_line,
+        column_count=table.column_count,
+        is_continuation=segment_index > 0,
+        cells=cells,
+    )
+    return segment, running
+
+
+def assemble_tables(pages: list[ExtractedPage]) -> tuple[LogicalTable, ...]:
+    """Assemble per-page detected tables into cross-page logical tables (R15 F3).
+
+    Deterministic linking rule: the **first** table on page ``N+1`` continues the
+    **last** table on page ``N`` iff they share column count and normalized header
+    (row-0 cell texts). Continuation keys on header + structure, never on column
+    x-positions — a table legitimately shifts body column between pages (the
+    Actions table is the right body column on page 9, the left on page 10). Logical
+    row numbering is continuous across segments; a repeated continuation header is
+    retained and flagged, not double-counted.
+    """
+    # Accumulate segments per logical id in page order.
+    segments_by_id: dict[str, list[TableSegment]] = {}
+    header_by_id: dict[str, tuple[str, ...]] = {}
+    running_by_id: dict[str, int] = {}
+    order: list[str] = []  # logical ids in first-seen order
+
+    # The logical table whose last segment was the last table on the previous
+    # page — the only continuation candidate for the next page's first table.
+    open_id: str | None = None
+
+    for page in pages:
+        tables = detect_page_tables(page)  # sorted by start_line (flow order)
+        if not tables:
+            open_id = None
+            continue
+
+        # Geometric top/bottom (flow order != y order on two-column pages): only
+        # the page's geometrically lowest table can continue onto the next page,
+        # and only the next page's geometrically highest table can be that
+        # continuation. The page-9 Actions fragment is at the page bottom but has a
+        # smaller flow index than the top-of-page Skills table, so keying on flow
+        # order would miss the 9→10 continuation.
+        def _top_y(t: DetectedTable, page: ExtractedPage = page) -> float:
+            return page.lines[t.start_line].top
+
+        def _bottom_y(t: DetectedTable, page: ExtractedPage = page) -> float:
+            return page.lines[t.end_line].top
+
+        top_table = min(tables, key=_top_y)
+        bottom_table = max(tables, key=_bottom_y)
+        lid_by_table: dict[int, str] = {}
+        for table in tables:
+            continues = (
+                table is top_table
+                and open_id is not None
+                and header_by_id[open_id] == table.header()
+                and segments_by_id[open_id][-1].column_count == table.column_count
+            )
+            if continues:
+                assert open_id is not None
+                lid = open_id
+                segment_index = len(segments_by_id[lid])
+                segment, running_by_id[lid] = _assemble_segment(
+                    lid,
+                    segment_index,
+                    table,
+                    page.page_index,
+                    header_by_id[lid],
+                    running_by_id[lid],
+                )
+                segments_by_id[lid].append(segment)
+            else:
+                lid = _logical_table_id(table)
+                # Distinct concurrent logical tables could theoretically collide on
+                # (page, header, col count); disambiguate by start line so each gets
+                # a distinct id.
+                if lid in segments_by_id:
+                    lid = content_id("logical_table", lid, table.start_line)
+                header = table.header()
+                header_by_id[lid] = header
+                segment, running_by_id[lid] = _assemble_segment(
+                    lid, 0, table, page.page_index, header, 1
+                )
+                segments_by_id[lid] = [segment]
+                order.append(lid)
+            lid_by_table[id(table)] = lid
+        open_id = lid_by_table[id(bottom_table)]
+
+    return tuple(
+        LogicalTable(
+            logical_table_id=lid,
+            header=header_by_id[lid],
+            column_count=segments_by_id[lid][0].column_count,
+            logical_row_count=running_by_id[lid],
+            segments=tuple(segments_by_id[lid]),
+        )
+        for lid in order
+    )
 
 
 def _line_kind(line: PageLine, bounds: list[float]) -> str | None:
@@ -283,12 +512,35 @@ def _maximal_run(
     if not seeds:
         return None
     seed = min(seeds)
-    # Grow a contiguous block of table lines outward from the seed.
+
+    def in_band(i: int) -> bool:
+        return lo <= page.lines[i].top <= hi
+
+    # Grow a contiguous block of grid-fitting lines outward from the seed, staying
+    # within the rect-anchored y-band. Adjacent-column *prose* above/below the
+    # shaded region also fits the column grid *and* often reconstructs to on-page
+    # text (so on-page trimming alone can't reject it); the band is what keeps it
+    # out. The cost is that a colored title bar sitting well above the column-
+    # header row (e.g. page-7 "Attack Roll Abilities", 27pt above the first shaded
+    # rect) falls to a caption/paragraph leaf rather than a table row — an accepted
+    # boundary (captions are inventoried as paragraph leaves; see the R15 log).
+    # On-page row trimming (:func:`_detect`) then removes any residual boundary
+    # prose the band still admits.
     s = seed
-    while s - 1 >= 0 and s - 1 not in used and _line_kind(page.lines[s - 1], bounds):
+    while (
+        s - 1 >= 0
+        and s - 1 not in used
+        and in_band(s - 1)
+        and _line_kind(page.lines[s - 1], bounds)
+    ):
         s -= 1
     e = seed
-    while e + 1 < n and e + 1 not in used and _line_kind(page.lines[e + 1], bounds):
+    while (
+        e + 1 < n
+        and e + 1 not in used
+        and in_band(e + 1)
+        and _line_kind(page.lines[e + 1], bounds)
+    ):
         e += 1
     # Trim leading continuation lines so the run starts at a real row.
     while s <= e and _line_kind(page.lines[s], bounds) != "row":
@@ -298,26 +550,62 @@ def _maximal_run(
     return s, e
 
 
-def _build_cells(
+def _group_rows(
     page: ExtractedPage, bounds: list[float], start: int, end: int
-) -> tuple[list[DetectedCell], int]:
-    """Partition each row's char span into per-column cell sub-spans.
-
-    Rows are delimited by row-start lines; continuation lines fold into the
-    preceding row (their single-column text extends that column's cell). Each
-    row's ``[row_start.char_start, row_end.char_end)`` span is partitioned at the
-    char position of the first word of each column>0 in the row-start line, so
-    the cells exactly tile the row (no gap/overlap).
-    """
-    # Group the run's line indices into rows: a "row" line starts a new row; a
-    # "cont" (wrapped continuation) line folds into the current row.
+) -> list[list[int]]:
+    """Group the run's line indices into rows: a ``"row"`` line starts a new row;
+    a ``"cont"`` (wrapped continuation) line folds into the current row."""
     rows: list[list[int]] = []
     for i in range(start, end + 1):
         if _line_kind(page.lines[i], bounds) == "row" or not rows:
             rows.append([i])
         else:
             rows[-1].append(i)
+    return rows
 
+
+def _trim_offpage_rows(
+    page: ExtractedPage,
+    bounds: list[float],
+    rows: list[list[int]],
+    page_compact: str,
+) -> tuple[list[list[int]], bool]:
+    """Trim off-page rows from the run's top and bottom; report interior badness.
+
+    Returns ``(kept_rows, interior_bad)``. A row is off-page iff any of its
+    reconstructed cells' text is not on the page (the signature of swallowed
+    adjacent-column prose). Contiguous off-page rows at either end are dropped;
+    if an *interior* row is off-page after trimming, the whole table is a genuine
+    mis-reconstruction (``interior_bad = True``) and is discarded by the caller.
+    """
+
+    def row_on_page(row: list[int]) -> bool:
+        cells, _ = _build_cells(page, bounds, [row])
+        return all(compact(c.text) in page_compact for c in cells)
+
+    on = [row_on_page(r) for r in rows]
+    a = 0
+    while a < len(rows) and not on[a]:
+        a += 1
+    b = len(rows) - 1
+    while b >= a and not on[b]:
+        b -= 1
+    if a > b:
+        return [], False
+    return rows[a : b + 1], not all(on[a : b + 1])
+
+
+def _build_cells(
+    page: ExtractedPage, bounds: list[float], rows: list[list[int]]
+) -> tuple[list[DetectedCell], int]:
+    """Partition each row's char span into per-column cell sub-spans.
+
+    *rows* is the grouped line-index list (:func:`_group_rows`), possibly already
+    trimmed of off-page boundary rows. Each row's ``[row_start.char_start,
+    row_end.char_end)`` span is partitioned at the char position of the first word
+    of each column>0 in the row-start line, so the cells exactly tile the row (no
+    gap/overlap). Rows are renumbered ``0..len(rows)-1``.
+    """
     cells: list[DetectedCell] = []
     for r_idx, line_idxs in enumerate(rows):
         head = page.lines[line_idxs[0]]
