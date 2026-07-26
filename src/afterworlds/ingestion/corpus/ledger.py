@@ -47,6 +47,7 @@ from afterworlds.ingestion.corpus.pdf_source import (
     PageLine,
     extraction_config,
 )
+from afterworlds.ingestion.corpus.tables import DetectedTable, detect_page_tables
 
 # Running header/footer: "N System Reference Document 5.2.1" (bottom) and
 # "System Reference Document 5.2.1 N" (top). Verified present on all 364 pages.
@@ -152,34 +153,108 @@ class _LedgerBuilder:
         self, leaf_type: LeafType, content: str, anchor: PageLine, end: int
     ) -> None:
         """Record a leaf spanning [anchor.char_start, end) on anchor's page."""
-        leaf_id = content_id(
-            "leaf",
+        self._emit_span(
+            leaf_type,
+            content,
             anchor.printed_page,
+            anchor.page_index,
             anchor.char_start,
             end,
-            leaf_type.value,
-            content,
+        )
+
+    def _emit_span(
+        self,
+        leaf_type: LeafType,
+        content: str,
+        printed_page: int,
+        page_index: int,
+        char_start: int,
+        char_end: int,
+        *,
+        table_id: str | None = None,
+        table_row: int | None = None,
+        table_col: int | None = None,
+    ) -> None:
+        """Record a leaf spanning [char_start, char_end) with optional table pos."""
+        leaf_id = content_id(
+            "leaf", printed_page, char_start, char_end, leaf_type.value, content
         )
         self.leaves.append(
             Leaf(
                 leaf_id=leaf_id,
-                printed_page=anchor.printed_page,
-                page_index=anchor.page_index,
+                printed_page=printed_page,
+                page_index=page_index,
                 leaf_type=leaf_type,
                 content=content,
-                char_start=anchor.char_start,
-                char_end=end,
+                char_start=char_start,
+                char_end=char_end,
                 occurrence_index=self._occurrence,
                 container_path=self._path(),
+                table_id=table_id,
+                table_row=table_row,
+                table_col=table_col,
             )
         )
         self._occurrence += 1
 
+    def _emit_table(self, page: ExtractedPage, table: DetectedTable) -> None:
+        """Emit a TABLE container + one TABLE_CELL leaf per cell (Component F).
+
+        The table nests under the current container stack; each cell's char span
+        comes from the reconstructed grid, so the cells tile exactly the same
+        characters the region's lines would otherwise occupy (no cell also becomes
+        a paragraph leaf). Cells are emitted in (row, col) order.
+        """
+        cid = table.table_id
+        container = Container(
+            container_id=cid,
+            container_type=ContainerType.TABLE,
+            label=self._table_label(page, table),
+            printed_page=table.printed_page,
+            parent_id=self._stack[-1].container_id if self._stack else None,
+        )
+        self._stack.append(container)
+        if cid not in self._seen_container_ids:
+            self._seen_container_ids.add(cid)
+            self.containers.append(container)
+        for cell in table.cells:
+            self._emit_span(
+                LeafType.TABLE_CELL,
+                cell.text,
+                table.printed_page,
+                page.page_index,
+                cell.char_start,
+                cell.char_end,
+                table_id=cid,
+                table_row=cell.row,
+                table_col=cell.col,
+            )
+        self._stack.pop()
+
+    @staticmethod
+    def _table_label(page: ExtractedPage, table: DetectedTable) -> str:
+        """Deterministic table label: its header (row-0) cell texts joined."""
+        header = [c.text for c in table.cells if c.row == 0]
+        return " | ".join(header) if header else f"table p{table.printed_page}"
+
     def add_page(self, page: ExtractedPage) -> None:
         lines = page.lines
+        # Reconstructed tables map to contiguous line-index ranges; a table's
+        # lines are consumed as TABLE_CELL leaves and skipped by the paragraph/
+        # list/stat branches so no cell also becomes a paragraph leaf.
+        detected = detect_page_tables(page)
+        tables_by_start = {t.start_line: t for t in detected}
+        table_end_by_start = {t.start_line: t.end_line for t in detected}
+        table_lines = {
+            idx for t in detected for idx in range(t.start_line, t.end_line + 1)
+        }
         i = 0
         n = len(lines)
         while i < n:
+            if i in tables_by_start:
+                self._emit_table(page, tables_by_start[i])
+                i = table_end_by_start[i] + 1
+                continue
             line = lines[i]
             if _is_header_footer(line):
                 self._emit(LeafType.HEADER_FOOTER, line.text, line, line.char_end)
@@ -208,7 +283,8 @@ class _LedgerBuilder:
             while j < n:
                 nxt = lines[j]
                 if (
-                    _is_header_footer(nxt)
+                    j in table_lines
+                    or _is_header_footer(nxt)
                     or _is_heading(nxt)
                     or _ATTRIBUTION_RE.search(nxt.text)
                     or _LIST_MARKER_RE.match(nxt.text)
@@ -272,6 +348,9 @@ def ledger_payload(ledger: SourceLedger) -> dict[str, object]:
                 "char_end": leaf.char_end,
                 "occurrence_index": leaf.occurrence_index,
                 "container_path": list(leaf.container_path),
+                "table_id": leaf.table_id,
+                "table_row": leaf.table_row,
+                "table_col": leaf.table_col,
             }
             for leaf in ledger.leaves
         ],

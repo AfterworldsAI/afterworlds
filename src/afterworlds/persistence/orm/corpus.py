@@ -136,6 +136,13 @@ class LedgerLeafORM(Base):
     exclusion_reason_code: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
+    # Table position for TABLE_CELL leaves (Component F, PR #134 table fidelity):
+    # the reconstructed table's id and the cell's 0-based row/column. NULL for
+    # every non-table leaf. Persisting these attests table structure so it is not
+    # flattened into paragraphs, and the digest binds them via the ledger payload.
+    table_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
+    table_row: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    table_col: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 
 
 class ReconciliationPolicyORM(Base):

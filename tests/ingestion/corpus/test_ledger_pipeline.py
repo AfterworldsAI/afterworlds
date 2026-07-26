@@ -31,12 +31,16 @@ def test_ledger_partitions_every_page_disjointly_and_exhaustively(release):
         leaves.sort(key=lambda leaf: leaf.char_start)
         cursor = 0
         for leaf in leaves:
-            # Disjoint + gap-free: each leaf begins exactly where the previous
-            # (plus its "\n" join) ended.
-            assert leaf.char_start == cursor
+            # Disjoint + exhaustive: each leaf begins either exactly where the
+            # previous one ended (adjacent — sibling TABLE_CELL leaves splitting a
+            # single line at column boundaries) or one char later (the "\n" that
+            # joins two lines). A skipped char is always that line-boundary "\n".
+            assert leaf.char_start in (cursor, cursor + 1)
+            if leaf.char_start == cursor + 1:
+                assert text[cursor] == "\n"
             assert 0 <= leaf.char_start <= leaf.char_end <= len(text)
-            cursor = leaf.char_end + 1
-        assert leaves[-1].char_end == len(text)
+            cursor = leaf.char_end
+        assert cursor == len(text)
 
 
 def test_ledger_leaf_ids_are_unique_and_content_derived(release):

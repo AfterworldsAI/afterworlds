@@ -96,6 +96,13 @@ class Leaf:
     char_end: int
     occurrence_index: int
     container_path: tuple[str, ...]
+    # Table position for ``TABLE_CELL`` leaves (Component F, PR #134 table
+    # fidelity): the reconstructed table's deterministic id and the cell's 0-based
+    # row/column. ``None`` for every non-table leaf. Recorded in the ledger/
+    # persistence so table structure is attested, not flattened into paragraphs.
+    table_id: str | None = None
+    table_row: int | None = None
+    table_col: int | None = None
 
 
 @dataclass(frozen=True)

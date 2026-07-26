@@ -17,24 +17,26 @@ extraction to itself and prove nothing.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from afterworlds.ingestion.corpus.models import CorpusChunk
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
-from afterworlds.ingestion.corpus.policy import normalize
+from afterworlds.ingestion.corpus.policy import compact, normalize
+from afterworlds.ingestion.corpus.tables import detect_page_tables
 
-_STRIP_RE = re.compile(r"[\s\-]+")
-
-
-def compact(text: str) -> str:
-    """Whitespace/hyphen-insensitive, case-folded comparison key.
-
-    Removes spaces and hyphens (so line-wrap hyphenation and column flow can
-    never cause a spurious mismatch) after unicode/ligature folding. Used for
-    presence checks only, never to author content.
-    """
-    return _STRIP_RE.sub("", normalize(text)).casefold()
+# ``compact`` is re-exported from policy (shared with tables without an import
+# cycle); kept importable from concordance for existing callers/tests.
+__all__ = [
+    "compact",
+    "normalize",
+    "ConcordanceResult",
+    "check_concordance",
+    "TableConcordanceResult",
+    "check_table_concordance",
+    "Canary",
+    "VERSION_CANARIES",
+    "check_canaries",
+]
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,56 @@ def check_concordance(
         chunks_checked=len(chunks),
         locator_failures=tuple(locator_failures),
         content_failures=tuple(content_failures),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Table row/cell accounting (Component E) — independent of generated RuleChunks.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class TableConcordanceResult:
+    """Whole-corpus table reconstruction check (Component E, PR #134).
+
+    Re-detects tables directly from the extracted pages and verifies every
+    reconstructed cell's text appears on its page — deliberately independent of
+    the generated ``RuleChunk`` set, so a chunk-generation bug cannot mask a
+    table-fidelity regression. Also reports per-table row/cell tallies.
+    """
+
+    tables_checked: int
+    cells_checked: int
+    content_failures: tuple[str, ...]  # "p{page}:table{n}:r{row}c{col}" that miss
+    empty_cells: tuple[str, ...]  # cells with no text
+
+    @property
+    def passed(self) -> bool:
+        return not self.content_failures and not self.empty_cells
+
+
+def check_table_concordance(pages: list[ExtractedPage]) -> TableConcordanceResult:
+    """Verify reconstructed table cells against the page text (Component E)."""
+    content_failures: list[str] = []
+    empty_cells: list[str] = []
+    tables = 0
+    cells = 0
+    for page in pages:
+        haystack = compact(page.canonical_text())
+        for ti, table in enumerate(detect_page_tables(page)):
+            tables += 1
+            for cell in table.cells:
+                cells += 1
+                tag = f"p{page.printed_page}:table{ti}:r{cell.row}c{cell.col}"
+                if not cell.text.strip():
+                    empty_cells.append(tag)
+                elif compact(cell.text) not in haystack:
+                    content_failures.append(tag)
+    return TableConcordanceResult(
+        tables_checked=tables,
+        cells_checked=cells,
+        content_failures=tuple(content_failures),
+        empty_cells=tuple(empty_cells),
     )
 
 

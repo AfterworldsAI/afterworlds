@@ -19,6 +19,7 @@ roles, or overlap permissions after examining output (Component D).
 
 from __future__ import annotations
 
+import re
 import unicodedata
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
@@ -63,6 +64,21 @@ def normalize(text: str) -> str:
     folded = "".join(_LIGATURES.get(ch, ch) for ch in text)
     folded = unicodedata.normalize("NFKC", folded)
     return " ".join(folded.split())
+
+
+_STRIP_RE = re.compile(r"[\s\-]+")
+
+
+def compact(text: str) -> str:
+    """Whitespace/hyphen-insensitive, case-folded comparison key.
+
+    Removes spaces and hyphens (so line-wrap hyphenation and column flow cannot
+    cause a spurious mismatch) after unicode/ligature folding. Used for presence
+    checks only (concordance, table-cell reconstruction validation), never to
+    author content. Lives here so both ``concordance`` and ``tables`` can share
+    it without an import cycle.
+    """
+    return _STRIP_RE.sub("", normalize(text)).casefold()
 
 
 def equivalence_key(text: str) -> str:

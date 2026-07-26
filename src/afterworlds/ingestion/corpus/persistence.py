@@ -273,6 +273,9 @@ def _persist_bundle_rows(
             container_path=list(leaf.container_path),
             disposition=disp_by_leaf[leaf.leaf_id].disposition.value,
             exclusion_reason_code=disp_by_leaf[leaf.leaf_id].exclusion_reason_code,
+            table_id=leaf.table_id,
+            table_row=leaf.table_row,
+            table_col=leaf.table_col,
         )
         for leaf in ledger.leaves
     )
@@ -395,6 +398,9 @@ def _load_ledger(session: Session, pkg: str) -> SourceLedger:
             char_end=row.char_end,
             occurrence_index=row.occurrence_index,
             container_path=tuple(row.container_path),
+            table_id=row.table_id,
+            table_row=row.table_row,
+            table_col=row.table_col,
         )
         for row in leaf_rows
     )

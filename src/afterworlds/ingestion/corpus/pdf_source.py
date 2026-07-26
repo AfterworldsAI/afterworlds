@@ -79,13 +79,32 @@ def extraction_config() -> dict[str, object]:
 
 
 @dataclass(frozen=True)
+class WordSpan:
+    """One extracted word with its x-geometry and canonical-text char span.
+
+    ``char_start``/``char_end`` are the half-open span of this word within the
+    page's canonical text — the geometry the table reconstructor needs to split a
+    table-row line into cell sub-spans at column boundaries (Component F, PR #134
+    table fidelity).
+    """
+
+    text: str
+    x0: float
+    x1: float
+    char_start: int
+    char_end: int
+
+
+@dataclass(frozen=True)
 class PageLine:
     """One visual line of source text with its geometry.
 
     ``top``/``x0``/``x1``/``size`` support deterministic leaf segmentation in the
     ledger (headings by font size, list items by indent). ``char_start``/
     ``char_end`` are the half-open span of this line within the page's canonical
-    text (see :meth:`ExtractedPage.canonical_text`).
+    text (see :meth:`ExtractedPage.canonical_text`). ``words`` carries each
+    word's x-geometry and char span so a table-region line can be split into cell
+    leaves at rect-derived column boundaries.
     """
 
     page_index: int
@@ -98,6 +117,23 @@ class PageLine:
     size: float
     char_start: int
     char_end: int
+    words: tuple[WordSpan, ...] = ()
+
+
+@dataclass(frozen=True)
+class Rect:
+    """A filled rectangle (table cell shading) with rounded geometry.
+
+    SRD tables shade their cells with filled rects; a row's per-column rects give
+    deterministic table column boundaries and a y-band anchor (PR #134 table
+    fidelity). Only shaded (alternating) rows carry rects, so they anchor the
+    grid — the rows themselves come from the text lines.
+    """
+
+    x0: float
+    top: float
+    x1: float
+    bottom: float
 
 
 @dataclass(frozen=True)
@@ -109,6 +145,7 @@ class ExtractedPage:
     width: float
     height: float
     lines: tuple[PageLine, ...]
+    rects: tuple[Rect, ...] = ()
 
     def canonical_text(self) -> str:
         """The page's full text as ``\\n``-joined lines, in reading order."""
@@ -162,6 +199,25 @@ def _group_lines(
         # the accounting below is corrected once at the end for the final line.
         start = char_cursor
         end = start + len(text)
+        # Per-word char spans within this line (word k follows a single joining
+        # space after word k-1), so the table reconstructor can split the line at
+        # column boundaries without re-deriving offsets.
+        word_spans: list[WordSpan] = []
+        pos = start
+        for i, wt in enumerate(cur_texts):
+            if i > 0:
+                pos += 1  # the joining space
+            w_start = pos
+            pos += len(wt)
+            word_spans.append(
+                WordSpan(
+                    text=wt,
+                    x0=_round(cur_x0[i]),
+                    x1=_round(cur_x1[i]),
+                    char_start=w_start,
+                    char_end=pos,
+                )
+            )
         lines.append(
             PageLine(
                 page_index=page_index,
@@ -174,6 +230,7 @@ def _group_lines(
                 size=_round(max(cur_size)),
                 char_start=start,
                 char_end=end,
+                words=tuple(word_spans),
             )
         )
         char_cursor = end + 1  # account for the joining "\n"
@@ -217,6 +274,15 @@ def extract_pages(pdf_path: Path) -> list[ExtractedPage]:
                 extra_attrs=["size"],
             )
             lines = _group_lines(words, page_index, printed_page)
+            rects = tuple(
+                Rect(
+                    x0=_round(float(r["x0"])),
+                    top=_round(float(r["top"])),
+                    x1=_round(float(r["x1"])),
+                    bottom=_round(float(r["bottom"])),
+                )
+                for r in page.rects
+            )
             pages.append(
                 ExtractedPage(
                     page_index=page_index,
@@ -224,6 +290,7 @@ def extract_pages(pdf_path: Path) -> list[ExtractedPage]:
                     width=_round(float(page.width)),
                     height=_round(float(page.height)),
                     lines=lines,
+                    rects=rects,
                 )
             )
     return pages
