@@ -40,7 +40,7 @@ from afterworlds.ingestion.corpus.pdf_source import (
     ExtractedPage,
     extraction_config,
 )
-from afterworlds.ingestion.corpus.persistence import finalize_release
+from afterworlds.ingestion.corpus.persistence import _finalize_core, finalize_release
 from afterworlds.ingestion.corpus.pipeline import (
     CandidateRelease,
     ReleaseArtifacts,
@@ -62,11 +62,13 @@ PDF_PATH = REPO_ROOT / "docs" / "sources" / "DnD5_5e_SRD_CC_v5_2_1.pdf"
 NOW = "2026-07-23T00:00:00Z"
 
 
-# The six version-canary pages (Component J) — the minimum real SRD pages a
-# candidate must contain to pass the production publication gate's canary +
-# concordance checks. A candidate restricted to just these pages (~250 chunks vs
-# 13,658) still exercises the *complete, unmocked* finalize/gate/persist/reindex
-# path — see ``compact_candidate``.
+# The six version-canary pages (Component J). A candidate restricted to just
+# these pages (~250 chunks vs 13,658) is a *partial* corpus: it exercises the
+# complete, unmocked persist/reconstruct/digest/gate/reindex machinery via the
+# private ``_finalize_core`` seam at a fraction of the cost, but it is NOT
+# authoritative-source-complete, so the public ``finalize_release`` correctly
+# rejects it (PR #134 completeness proof) — see ``compact_candidate`` and the
+# six-page negative control in test_persistence_quarantine.
 _CANARY_PAGES = frozenset(c.printed_page for c in VERSION_CANARIES)
 
 
@@ -76,7 +78,9 @@ def _candidate_from_pages(
     """Assemble a real CandidateRelease from a subset of already-extracted PDF
     pages via the production pipeline (build_ledger → build_corpus → reconcile →
     build_bundle). No mocks: the result binds the real ``PDF_SHA256`` and
-    extraction config, so a canary-page subset passes the genuine gate."""
+    extraction config and exercises the genuine build machinery — but a canary-
+    page subset is a *partial* corpus that the public completeness proof rejects;
+    it is finalized only via the private ``_finalize_core`` seam."""
     ledger = build_ledger(pages)
     ex = extraction_config()
     vid = rules_corpus_vector_identity(embedding_model_id)
@@ -123,11 +127,13 @@ def candidate(full_candidate: CandidateRelease) -> CandidateRelease:
 
 @pytest.fixture(scope="session")
 def compact_candidate(full_candidate: CandidateRelease) -> CandidateRelease:
-    """A real, gate-passing candidate restricted to the six version-canary pages
-    (~250 chunks vs 13,658). Reuses ``full_candidate``'s already-extracted pages
-    (no extra PDF work) and runs the full production pipeline, so tests using it
-    exercise the genuine finalize/gate/persist/reindex path at a fraction of the
-    cost. Depends on ``full_candidate`` (never shadowed), not ``candidate``."""
+    """A real candidate restricted to the six version-canary pages (~250 chunks
+    vs 13,658). Reuses ``full_candidate``'s already-extracted pages (no extra PDF
+    work) and runs the full production build pipeline, so tests using it exercise
+    the genuine persist/digest/gate/reindex machinery via ``_finalize_core`` at a
+    fraction of the cost. It is a *partial* corpus (six of 364 pages), so the
+    public ``finalize_release`` completeness proof rejects it. Depends on
+    ``full_candidate`` (never shadowed), not ``candidate``."""
     subset = [p for p in full_candidate.pages if p.printed_page in _CANARY_PAGES]
     return _candidate_from_pages(subset, RetrievalMemoryConfig().embedding_model_id)
 
@@ -150,13 +156,16 @@ def chroma_client(tmp_path):  # type: ignore[no-untyped-def]
     return build_isolated_test_chroma_client(str(tmp_path / "chroma"))
 
 
-def finalize_in_fresh_db(candidate: CandidateRelease):  # type: ignore[no-untyped-def]
+def finalize_in_fresh_db(candidate: CandidateRelease, *, core: bool = False):  # type: ignore[no-untyped-def]
     """Finalize *candidate* against a brand-new, already-committed in-memory DB
     plus a private, isolated on-disk Chroma store and the deterministic offline
     embedding function.
 
-    Returns the ``FinalizeResult``; the caller is responsible for asserting
-    ``published``/``reused`` as appropriate to the test.
+    ``core=False`` (default) uses the production ``finalize_release`` (with its
+    completeness guard) — for the full-SRD candidate. ``core=True`` uses the
+    private ``_finalize_core`` seam, which skips the completeness guard so a
+    compact (partial) candidate can still exercise the persist/gate lifecycle.
+    Returns the ``FinalizeResult``; the caller asserts ``published``/``reused``.
     """
     eng = create_engine("sqlite://")
 
@@ -169,8 +178,9 @@ def finalize_in_fresh_db(candidate: CandidateRelease):  # type: ignore[no-untype
     sess = factory()
     chroma_dir = tempfile.mkdtemp(prefix="corpus-chroma-")
     client = build_isolated_test_chroma_client(chroma_dir)
+    finalize = _finalize_core if core else finalize_release
     try:
-        result = finalize_release(
+        result = finalize(
             sess,
             candidate,
             repo_root=REPO_ROOT,
@@ -208,10 +218,13 @@ def release(full_release: ReleaseArtifacts) -> ReleaseArtifacts:
 
 @pytest.fixture(scope="session")
 def compact_release(compact_candidate: CandidateRelease) -> ReleaseArtifacts:
-    """The compact (canary-page) candidate finalized once — a genuine publish
-    through the real gate, not an in-memory assembly, so persist/reconstruct/
-    digest tests exercise the true lifecycle on a small corpus."""
-    result = finalize_in_fresh_db(compact_candidate)
+    """The compact (canary-page) candidate finalized once through the private
+    ``_finalize_core`` seam — a genuine persist→reconstruct→digest→gate→publish,
+    not an in-memory assembly, so persist/reconstruct/digest/tamper tests
+    exercise the true lifecycle on a small corpus. The public completeness proof
+    is intentionally bypassed here (this is a partial corpus); production
+    publication of a partial corpus is proven to fail by the negative control."""
+    result = finalize_in_fresh_db(compact_candidate, core=True)
     assert result.published and result.artifacts is not None, result.gate
     return result.artifacts
 

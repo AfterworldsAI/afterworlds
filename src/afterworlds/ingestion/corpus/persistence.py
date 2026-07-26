@@ -77,6 +77,10 @@ from afterworlds.ingestion.corpus.report import (
     build_report,
     report_hash,
 )
+from afterworlds.ingestion.corpus.source_completeness import (
+    EXPECTED_PAGE_COUNT,
+    verify_source_completeness,
+)
 from afterworlds.ingestion.corpus.vector_publication import (
     cleanup_vector_collection,
     reindex_and_verify,
@@ -628,6 +632,30 @@ _SOURCE_CATEGORY = "core_rulebook"
 _SOURCE_PRECEDENCE = 1
 
 
+def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...]:
+    """Cheap DB-grounded completeness check on the reuse path.
+
+    ``finalize_release`` guards fresh publication on ``candidate.pages``, but the
+    reuse path reconstructs an *already-persisted* release; a release persisted
+    incompletely (not through a full candidate) would otherwise pass reuse on a
+    full candidate. This asserts the persisted ledger leaves cover every printed
+    page ``1..EXPECTED_PAGE_COUNT`` — an omitted authoritative page fails reuse
+    closed. Returns the list of violations (empty iff fully covered).
+    """
+    persisted_pages = set(
+        session.execute(
+            select(LedgerLeafORM.printed_page).where(LedgerLeafORM.package_uuid == pkg)
+        ).scalars()
+    )
+    missing = sorted(set(range(1, EXPECTED_PAGE_COUNT + 1)) - persisted_pages)
+    if missing:
+        return (
+            f"persisted ledger omits authoritative printed pages {missing[:8]}"
+            + (" …" if len(missing) > 8 else ""),
+        )
+    return ()
+
+
 def verify_single_source(session: Session, pkg: str) -> tuple[str, ...]:
     """Fail-closed Issue-5c single-source invariant over the persisted rows.
 
@@ -949,7 +977,55 @@ def finalize_release(
     retrieval_config: RetrievalMemoryConfig,
     embedding_function: RetrievalEmbeddingFunction | None = None,
 ) -> FinalizeResult:
+    """Production publication entry: prove authoritative-source completeness,
+    then finalize.
+
+    The sole production path. Before any SQL flush or Chroma write, it rejects a
+    candidate that does not exhaustively match the authoritative 364-page PDF —
+    an omitted, duplicated, reordered, or substituted page (PR #134 completeness
+    defect). Because the guard runs before persistence, a rejected candidate
+    leaves no package, release, or vector state (nothing to roll back). The
+    persist→reconstruct→digest→report→gate→publish machinery lives in the private
+    :func:`_finalize_core`; only that already-validated core is reachable to
+    lower-layer tests, and it is never a production validation bypass (no test
+    flag, caller boolean, or public shortcut).
+    """
+    completeness_failures = verify_source_completeness(candidate.pages)
+    if completeness_failures:
+        return FinalizeResult(
+            published=False,
+            reused=False,
+            artifacts=None,
+            gate=GateResult(passed=False, failures=completeness_failures),
+        )
+    return _finalize_core(
+        session,
+        candidate,
+        repo_root=repo_root,
+        now=now,
+        chroma_client=chroma_client,
+        retrieval_config=retrieval_config,
+        embedding_function=embedding_function,
+    )
+
+
+def _finalize_core(
+    session: Session,
+    candidate: CandidateRelease,
+    *,
+    repo_root: Path,
+    now: str,
+    chroma_client: ClientAPI,
+    retrieval_config: RetrievalMemoryConfig,
+    embedding_function: RetrievalEmbeddingFunction | None = None,
+) -> FinalizeResult:
     """Persist, reconstruct, prove, gate, and (only if the gate passes) publish.
+
+    Private core assuming the candidate's authoritative-source completeness has
+    already been proven by :func:`finalize_release` (production) — or that the
+    caller is a lower-layer test deliberately exercising the persist/reconstruct/
+    digest/gate lifecycle on a compact, partial corpus through this internal seam.
+    It is NOT a production entry point and performs no completeness check itself.
 
     Executes Component K steps c–g in the mandated order, across **both** stores:
 
@@ -1060,7 +1136,8 @@ def finalize_release(
             and package_row.is_enabled
             and package_row.publication_status == "published"
         )
-        if not gate.passed or not package_state_ok:
+        page_coverage_violations = verify_persisted_page_coverage(session, pkg)
+        if not gate.passed or not package_state_ok or page_coverage_violations:
             failures = list(gate.failures)
             if not package_state_ok:
                 failures.append(
@@ -1068,6 +1145,7 @@ def finalize_release(
                     "published+enabled state consistent with its published "
                     "rp_corpus_releases row"
                 )
+            failures.extend(page_coverage_violations)
             return FinalizeResult(
                 published=False,
                 reused=False,

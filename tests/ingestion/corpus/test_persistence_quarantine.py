@@ -28,12 +28,14 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.pdf_source import PDF_SHA256, extraction_config
 from afterworlds.ingestion.corpus.persistence import (
+    _finalize_core,
     _load_policy,
     finalize_release,
     persist_release,
     reconstruct_payload,
     verify_chunk_runtime_membership,
     verify_persisted_digest,
+    verify_persisted_page_coverage,
     verify_single_source,
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
@@ -95,8 +97,15 @@ def release(compact_release):  # type: ignore[no-untyped-def]
 
 
 def _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding):
-    """Publish *candidate* through the real cross-store lifecycle."""
-    return finalize_release(
+    """Publish *candidate* through the real cross-store persist/gate lifecycle.
+
+    Uses the private ``_finalize_core`` seam — the sanctioned lower-layer entry
+    that runs the genuine persist→reconstruct→digest→gate→publish machinery
+    without the public completeness guard — so these lifecycle/rollback/reuse
+    tests can exercise it on the COMPACT (six-page) corpus. The public
+    ``finalize_release`` completeness guard is proven separately by the negative
+    control and the completeness regressions below (PR #134)."""
+    return _finalize_core(
         session,
         candidate,
         repo_root=REPO_ROOT,
@@ -644,6 +653,136 @@ def test_candidate_release_carries_no_persistence_claim():
     assert "release" not in field_names
     assert "persisted_corpus_digest" not in field_names
     assert "evidence_report_hash" not in field_names
+
+
+# --- Authoritative-source completeness proof (PR #134 completeness defect) ----
+# The public finalize_release rejects a candidate that does not exhaustively
+# match the exact 364-page authoritative PDF — before any SQL or Chroma
+# mutation, so a rejected candidate leaves no package/release/vector state. The
+# six-canary-page compact candidate (which passes the internal _finalize_core
+# seam) is the canonical negative control: it must NOT pass production
+# finalization.
+
+
+def _finalize_public(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    return finalize_release(
+        session,
+        candidate,
+        repo_root=REPO_ROOT,
+        now=_NOW,
+        chroma_client=chroma_client,
+        retrieval_config=retrieval_config,
+        embedding_function=fake_embedding,
+    )
+
+
+def _assert_left_no_state(
+    session, chroma_client, pkg, retrieval_config, fake_embedding
+):
+    assert (
+        session.execute(
+            select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+        ).scalar_one_or_none()
+        is None
+    )
+    assert (
+        session.execute(
+            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+        ).scalar_one_or_none()
+        is None
+    )
+    # No vector collection was created (guard runs before any reindex).
+    assert (
+        read_actual_vector_state(
+            chroma_client, pkg, retrieval_config, fake_embedding
+        ).count
+        == 0
+    )
+
+
+def test_six_canary_page_candidate_is_rejected_by_production_finalize(
+    session, compact_candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """Negative control: the compact six-page candidate carries the real PDF hash
+    yet does not exhaust the authoritative PDF, so production finalization must
+    reject it and persist nothing (PR #134 completeness proof)."""
+    result = _finalize_public(
+        session, compact_candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert not result.published and not result.reused
+    assert result.gate is not None and not result.gate.passed
+    assert any(
+        "extraction hash" in f or "page sequence" in f or "extracted pages" in f
+        for f in result.gate.failures
+    )
+    _assert_left_no_state(
+        session,
+        chroma_client,
+        compact_candidate.package_uuid,
+        retrieval_config,
+        fake_embedding,
+    )
+
+
+def _corruption_cases(full_pages):
+    """Return (id, corrupted-pages) for each completeness failure mode."""
+    omitted = full_pages[:-1]
+    duplicated = full_pages + [full_pages[-1]]
+    reordered = list(full_pages)
+    reordered[10], reordered[20] = reordered[20], reordered[10]
+    # Substituted: keep the exact page sequence but swap one page's *content*
+    # (lines) for another page's, so only the content hash diverges.
+    substituted = list(full_pages)
+    substituted[30] = dataclasses.replace(substituted[30], lines=substituted[31].lines)
+    return [
+        ("omitted", omitted),
+        ("duplicated", duplicated),
+        ("reordered", reordered),
+        ("substituted", substituted),
+    ]
+
+
+def test_persisted_page_coverage_flags_partial_corpus(
+    session, release, chroma_client, retrieval_config, fake_embedding
+):
+    """Reuse-path DB-grounded complement: a partial persisted corpus (the compact
+    six-page release) does not cover printed pages 1..364, so the reuse-path page
+    coverage check flags it (PR #134)."""
+    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
+    assert verify_persisted_page_coverage(session, pkg)  # non-empty violations
+
+
+@pytest.mark.parametrize(
+    "mode",
+    ["omitted", "duplicated", "reordered", "substituted"],
+)
+def test_completeness_rejects_page_corruption_and_leaves_no_state(
+    session,
+    full_candidate,
+    chroma_client,
+    retrieval_config,
+    fake_embedding,
+    mode,
+):
+    """An omitted, duplicated, reordered, or substituted page fails production
+    finalization before any mutation (PR #134). Only ``.pages`` is corrupted; the
+    guard runs on that, so the rest of the (valid) candidate never persists."""
+    cases = dict(_corruption_cases(full_candidate.pages))
+    corrupted = dataclasses.replace(full_candidate, pages=cases[mode])
+    result = _finalize_public(
+        session, corrupted, chroma_client, retrieval_config, fake_embedding
+    )
+    assert not result.published and not result.reused
+    assert result.gate is not None and not result.gate.passed
+    _assert_left_no_state(
+        session,
+        chroma_client,
+        corrupted.package_uuid,
+        retrieval_config,
+        fake_embedding,
+    )
 
 
 # --- finalize_release lifecycle: legacy blocking, idempotency, rollback ------
