@@ -713,3 +713,48 @@ excluded + 0 unresolved; 0 gaps/overlaps/orphans/duplications; 15,715 table cell
 consistency + independent inventory (683/683) + 6 canaries all pass; byte-for-byte
 deterministic (same UUID/version/hashes on rebuild). package_uuid re-minted (tables.py +
 inventory hash now in identity).
+
+---
+
+## Round 16 — three review threads (host-independent identity, packaging, stale-thread closure)
+
+**F1 (closure) — stale Magma/Steam false-merge.** The comment predated `e25f877`
+(the cross-page section-heading continuation guard). At head the page-307 Magma
+Mephit and page-308 Steam Mephit stat blocks are distinct single-page logical
+tables; the committed inventory records distinct IDs. No linker/inventory change.
+Independent negative regression `test_magma_and_steam_mephit_statblocks_are_distinct_tables`
+asserts (against the committed inventory, not `_has_heading_above`) that no logical
+table spans `(307, 308)` and that the page-307/308 table IDs are disjoint.
+
+**F2 (merge-blocking) — host-dependent release identity.** `build_report` placed
+`platform.system()`/`platform.machine()` (and a runtime `sys.version_info`) into
+the hashed `EvidenceReport` payload, so `report_hash` — one of the five top-level
+release identities — could differ across supported hosts for identical committed
+inputs. Fix: the payload records only the declared, host-independent reproduction
+target (`{"python_target": "3.12"}`) plus the pinned extractor/parser versions +
+deterministic invocation already carried by `transform_identity`; the actual host
+is emitted as an operational log line only, never in any canonical artifact/hash/
+digest/gate. *Audit of the five identity payloads:* `evidence_report_hash` carried
+host data → **patched**; authoritative-source hash, transform-config hash,
+bundle-root hash, persisted-corpus digest are all deterministic (repo-relative
+source manifest, pinned-dep versions, no host/path/time) → **already safe**.
+Regression `test_evidence_report_identity_is_host_independent` proves byte-identical
+payload + `report_hash` under monkeypatched OS/arch/python. No package-UUID/version
+move (the report is not in the transform config); no golden rebaseline (the hash is
+runtime-computed and DB-stored, not a literal).
+
+**F3 (merge-blocking) — package the committed inventory.** `srd_table_inventory.json`
+is read at runtime and finalization fails without it, but it was in neither
+`package-data` nor `MANIFEST.in`. Fix: added to both (wheel + sdist);
+`load_committed_inventory()` reads via `importlib.resources` (resolves from an
+installed distribution, not a checkout/CWD), fail-closed on missing/corrupt; the
+runtime read is decoupled from the regen write (`source_inventory_path()` used
+only by the regen script). *Resource audit (Issue-5c corpus subsystem):* inventory
+JSON = **included**; authoritative PDF = **out of scope** (separate source-path/
+deployment contract, caller-supplied path); `transform_identity` reading sibling
+`.py` modules = **already safe** (code always ships); `quarantine.check_source_references`
+= **out of scope** (repo-scan verification taking an explicit `repo_root`, not a
+packaged resource). Smoke test `test_packaging.py` builds wheel+sdist, asserts both
+contain the JSON, installs into an isolated target, and imports from there (not the
+editable checkout, via `-S` + explicit `PYTHONPATH`) to reload all 683 entries and
+reproduce the committed inventory hash. `build` added to dev dependencies.

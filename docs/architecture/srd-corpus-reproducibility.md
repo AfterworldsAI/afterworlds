@@ -5,14 +5,23 @@ derived deterministically from the authoritative PDF. This document defines the
 acyclic proof lifecycle (Component K) and the determinism rules that make a clean
 checkout regenerate an identical release.
 
-**Scope of the claim.** Reproducibility is byte-for-byte **within the recorded
-reproduction environment**: the pinned extractor (below), Python 3.12, and the
-platform recorded in the evidence report (`reproduction_environment`). The corpus
-content identities (ledger, bundle root, persisted-corpus digest, package UUID)
-depend only on the PDF and the transform configuration, not on the platform; the
-environment is recorded so a divergence — should a future extractor or platform
-change extraction output — is observable rather than silent. Cross-platform
-byte-identity has not been independently proven and is verified per environment.
+**Scope of the claim.** Every one of the five top-level release identities —
+authoritative-source hash, transform-config hash, bundle-root hash,
+evidence-report hash, and persisted-corpus digest — is a function of the committed
+inputs only (the PDF, the transform source manifest, the frozen policy, the vector
+identity, and the committed table inventory), never of the runtime host. The
+identity-bearing evidence report records only the **declared, host-independent
+reproduction target**: the declared Python target (3.12) plus the exact pinned
+extractor/parser versions and deterministic invocation carried by
+`transform_identity`. It contains **no** runtime host name, OS, architecture,
+absolute path, timestamp, or PID, so the same committed inputs produce a
+byte-identical release identity on every supported host (proven by
+`test_evidence_report_identity_is_host_independent`). Actual host details are
+emitted as an operational log line only — a diagnostic that never enters any
+canonical artifact, report hash, persisted-corpus digest, package identity, or
+publication-gate comparison (R16 F2). A future extractor/toolchain change that
+altered extraction output would move the pinned versions (hence the identity),
+so a divergence is observable rather than silent.
 
 ## Inputs (committed)
 
@@ -41,7 +50,10 @@ byte-identity has not been independently proven and is verified per environment.
 - **Expected-table inventory:** the committed frozen oracle
   (`srd_table_inventory.json`) is a candidate-affecting *data* input; its content
   hash is bound into the transform configuration, so regenerating it (after a
-  reviewed table-reconstruction change) mints a new release.
+  reviewed table-reconstruction change) mints a new release. It ships in the wheel
+  and sdist (`package-data` + `MANIFEST.in`) and is read at runtime via
+  `importlib.resources`, so it resolves from an installed distribution — not only a
+  source checkout — and stays fail-closed if absent.
 
 ## Exhaustive authoritative-source extraction (Component A)
 
