@@ -39,6 +39,63 @@ byte-identity has not been independently proven and is verified per environment.
   predecessor's identity. Implemented in
   `afterworlds.ingestion.corpus.transform_identity`.
 
+## Exhaustive authoritative-source extraction (Component A)
+
+Source completeness is proven independently, not self-asserted. Because the
+authoritative source hash is a bound constant rather than a function of the pages
+actually extracted, a candidate covering only a *subset* of pages while carrying
+the real PDF hash would otherwise pass. `afterworlds.ingestion.corpus`
+`.source_completeness` closes this:
+
+- an ordered per-page **extraction manifest** — `(page_index, printed_page,
+  geometry, sha256(canonical_text))` for every page in order — is hashed to a
+  single `source_extraction_hash`, compared to the golden
+  `AUTHORITATIVE_SOURCE_EXTRACTION_HASH` derived once from a full extraction of
+  the committed PDF (same hardcoded-verified-fact pattern as `PDF_SHA256`);
+- structural checks assert the page sequence is exactly `1..364` contiguous with
+  `page_index == printed_page - 1`, so an **omitted, duplicated, reordered, or
+  substituted** page each produces a diagnosable failure.
+
+`finalize_release` runs this proof **before any SQL or Chroma mutation**, so an
+unproven candidate is rejected leaving no package/release/vector state; the reuse
+path additionally re-checks that the persisted ledger covers every printed page.
+The proof is over pre-segmentation **page** text, so it is stable across
+downstream leaf/table segmentation changes — it attests exhaustive ordered
+extraction, while concordance and the table row/cell accounting separately attest
+structural fidelity.
+
+## Structurally faithful tables (Component F)
+
+SRD tables shade their cells with filled rectangles; a shaded row's per-column
+rects give deterministic **column boundaries** and a y-band anchor, while the
+**rows** come from the text lines that align to those columns
+(`afterworlds.ingestion.corpus.tables`). Each row's canonical-text char span is
+partitioned at the column boundaries into `TABLE_CELL` sub-spans, so the cells
+exactly tile the same characters the row would otherwise occupy — the ledger's
+disjoint+exhaustive page tiling is preserved (sibling cells adjacent within a
+row, a single `\n` between rows). A cell is emitted exactly once; a wrapped
+multi-line cell folds its continuation into one leaf, and a page-spanning table
+continues as the same logical grid. Detection only ever consumes a maximal
+contiguous line run and discards any candidate table whose cells fail span
+validity or page concordance, so a mis-detection falls back to paragraph
+segmentation and never corrupts tiling. Each cell records its table identity and
+0-based row/column on the ledger leaf (`rp_ledger_leaves.table_id/table_row/
+table_col`, migration 0019), under a `TABLE` container nested in its section.
+Full-PDF `check_table_concordance` verifies cell accounting independently of the
+generated RuleChunks.
+
+## Persisted source membership (Component G)
+
+The persisted-corpus digest binds every chunk's actual persisted `source_id` and
+the complete canonically-ordered logical `RuleSource` set (`source_id`,
+`rules_package_id`, `name`, `category`, `precedence_rank`, `is_enabled`;
+operational `created_at` excluded), and `verify_single_source` enforces the
+Issue-5c single-source invariant (exactly one authoritative source, deterministic
+`source_id == package_uuid`, expected metadata, enabled, every chunk assigned to
+it). Both are reconstructed from persisted state and gate publication/reuse, so a
+chunk reassigned to a different source, or altered/disabled/extra/missing source
+state, fails verification.
+
 ## Acyclic proof lifecycle (Component K, steps a0–g)
 
 Implemented by `afterworlds.ingestion.corpus.pipeline.build_release`:

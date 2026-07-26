@@ -554,3 +554,78 @@ Slowest remaining: the one-time full-corpus fixture build (~38s setup, shared) a
 the three retained full-SRD tests (~7–13s each); all 36 compact tests ≤0.5s.
 `--durations=25` added to the CI pytest invocation (`.github/workflows/ci.yml`;
 no existing `--durations` in `addopts` to duplicate); no wall-clock threshold.
+
+---
+
+## Round 14 — Four coordinated merge-blocking/regression findings (completeness, tables, source membership, Issue 18)
+
+Four findings in the bounded authoritative-corpus attestation chain (authoritative
+PDF → exhaustive ordered extraction → structurally faithful ledger → correctly
+persisted source membership → verified immutable release), plus one Issue-18
+ownership correction. No Owner Decision / ADR redesign required (settled Issue-5c
+obligations).
+
+**Round-9 correction (completeness defect, no Codex thread).** Round 9 rested on
+"a six-canary-page candidate passes the genuine `finalize_release`/publication
+gate." That was itself the completeness hole: the authoritative-source hash is a
+bound constant, not a function of the pages actually extracted, so a partial
+corpus carrying the real PDF hash could publish. It is **corrected here** — a
+partial corpus is now rejected by production finalization; the six-page fixture is
+a **negative control**, and finalizes only through the private `_finalize_core`
+seam used by lower-layer compact tests (no test flag / caller boolean / public
+bypass). The round-9 speedup is retained (compact fixtures still exercise
+persist/reconstruct/digest/gate on the partial corpus via the seam).
+
+**1. Exhaustive extraction (MERGE-BLOCKING).** `source_completeness`: an ordered
+per-page extraction manifest hashed to a golden `AUTHORITATIVE_SOURCE_EXTRACTION_
+HASH` + structural `1..364` sequence checks, detecting omitted/duplicated/
+reordered/substituted pages. Enforced in `finalize_release` before any SQL/Chroma
+mutation (rejected candidate leaves no state); reuse path adds a DB-grounded
+persisted-page-coverage check. Proof is over pre-segmentation page text (stable
+across Finding 2). Regressions: six-page negative control + each corruption mode
+leaving no package/release/vector state.
+
+**2. Structurally faithful tables (MERGE-BLOCKING).** `tables`: rect-anchored
+column boundaries + text-line rows → `TABLE_CELL` leaves partitioning each row's
+char span (tiling preserved: adjacent within a row, one `\n` between rows), wrapped
+cells folded, page-spanning tables continued, `TABLE` containers nested. Ledger
+leaves gain `table_id/table_row/table_col` (migration 0019); bound into the digest
+via the ledger payload. Mis-detections discard the table (span-validity + page
+concordance) and fall back to paragraphs — tiling never sacrificed. `check_table_
+concordance` verifies cell accounting independently of RuleChunks. Exact oracles:
+page-9 Skills (3-col) and page-10 Actions (wrapped multi-line cell). Full-corpus:
+364 pages → 28,750 leaves (was 14,023) = 28,385 represented + 365 excluded + 0
+unresolved; 640 tables / 16,095 cells; 0 gaps/overlaps/orphans/duplications;
+concordance + table-concordance + canaries pass; byte-for-byte deterministic.
+
+*Component C sibling audit (defect family: source content flattened / mis-typed).*
+Searched: table containers, list containers, multi-paragraph list items, stat-block
+fields + action lines, captions/titles/labels.
+- table containers/cells — **patched** (this finding).
+- list containers — **out of scope**: list *items* are already atomic `LIST_ITEM`
+  leaves (inventoried, no content loss); a grouping `LIST` container is not required
+  by #132 and would not change the accounting equation.
+- multi-paragraph list items — **already safe**: each paragraph is an atomic leaf;
+  nothing is dropped or double-counted.
+- stat-block fields / action lines — **already safe**: `STAT_FIELD` leaves (2,102)
+  plus paragraph leaves inventory them exhaustively; #132 requires no cell grid here.
+- captions / titles / labels — **already safe**: inventoried as heading/paragraph
+  leaves (no loss); a dedicated `CAPTION` type is out of scope for #132.
+No MechanicalEntity / executable interpretation / 5d work entered.
+
+**3. Persisted source membership (MERGE-BLOCKING).** Digest binds every chunk's
+persisted `source_id` and the complete ordered logical `RuleSource` set
+(id/package/name/category/precedence/enabled; `created_at` excluded);
+`verify_single_source` enforces the single-source invariant. Reconstructed from
+persisted state; gates publication + reuse. No Issue-5a schema change (`source_id`
+already on `rp_chunks`). Regressions: extra/missing/altered/disabled/reassigned
+source all fail; clean positive control.
+
+**4. Package-generic Issue 18 diagnostics (P2 regression).** `_is_published_and_
+enabled` no longer unconditionally requires a `CorpusReleaseORM`: the package must
+be published+enabled, and a corpus release is required to be published only *when
+one exists*. A generic package published through the pre-existing
+`IngestionService.publish` path (no corpus release) is diagnostically queryable
+again; a draft/inconsistent 5c release still stays hidden with no Chroma access.
+No completeness/table checks in this generic surface. Non-creating Chroma lookup
+preserved.
