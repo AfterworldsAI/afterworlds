@@ -17,15 +17,25 @@ aggregate ``transform_source_hash`` is a pure function of those files' bytes, so
 editing any of them moves the hash with no human action. ``TRANSFORM_TOOL_VERSION``
 is a descriptive label only and gates nothing.
 
-Manifest audit (each module included iff it can affect the candidate corpus or a
-canonical identity in steps a0–b; verification/persistence/publication code that
-cannot change the candidate bytes is excluded — see the review-note remediation
-log for the recorded dispositions):
+Manifest audit (bounded transitive walk of Component K steps a0–b; each first-
+party corpus module inspected and dispositioned — see the review-note remediation
+log for the full table). A module is *included* iff its source bytes can change
+the candidate corpus or a canonical identity; *already-covered* iff its effect is
+bound some other way; *verification-only* iff it cannot change the candidate bytes:
 
-    included  pdf_source, ledger, transform, reconcile, policy, bundle,
-              hashing, models, pipeline, transform_identity
-    excluded  concordance, report, gate, persistence, vector_publication,
-              quarantine  (verification / post-persistence / runtime only)
+    included         pdf_source, ledger, tables, transform, reconcile, policy,
+                     bundle, hashing, models, pipeline, transform_identity
+    already-covered  models.retrieval.rules_corpus_vector_identity (its *output*,
+                     the vector identity, is bound into transform_config directly)
+    verification-only  concordance, report, gate, persistence, vector_publication,
+                     quarantine, source_completeness  (verification / post-
+                     persistence / runtime only)
+
+``tables`` reached the manifest via ``ledger`` (a1→a2 segmentation): it owns table
+segmentation, cell contents/ids, and row/column metadata, so a change there must
+mint a new release (PR #134 R15 F1). The Finding-4 expected-table inventory is a
+candidate-affecting *data* input; its hash is bound into the transform config
+payload alongside this source hash (see ``bundle.transform_config_payload``).
 """
 
 from __future__ import annotations
@@ -51,6 +61,7 @@ TRANSFORM_SOURCE_MODULES: tuple[str, ...] = (
     "pipeline.py",
     "policy.py",
     "reconcile.py",
+    "tables.py",
     "transform.py",
     "transform_identity.py",
 )

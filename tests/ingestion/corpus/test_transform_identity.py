@@ -93,10 +93,15 @@ def test_changing_any_covered_source_byte_moves_transform_source_hash(tmp_path, 
     assert changed != real
 
 
-def test_transform_code_change_moves_config_hash_uuid_and_version(tmp_path):
+@pytest.mark.parametrize("mutated_module", ["ledger.py", "tables.py"])
+def test_transform_code_change_moves_config_hash_uuid_and_version(
+    tmp_path, mutated_module
+):
     """A transform-source change (PDF + extractor config + policy fixed) moves the
     transform_config_hash and therefore both the package UUID and release
-    version — so finalize_release cannot reuse the predecessor's identity."""
+    version — so finalize_release cannot reuse the predecessor's identity.
+    ``tables.py`` (table segmentation/ids/row-col metadata) is covered explicitly
+    (PR #134 R15 F1)."""
     ex = extraction_config()
     vid = {"embedding_model_id": "m", "metadata_fields": ["subsystem"]}
     real_hash = transform_config_hash(ex, FROZEN_POLICY, vid)
@@ -107,7 +112,7 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(tmp_path):
     copy_dir.mkdir()
     for name in TRANSFORM_SOURCE_MODULES:
         shutil.copy(_CORPUS_DIR / name, copy_dir / name)
-    p = copy_dir / "ledger.py"
+    p = copy_dir / mutated_module
     p.write_bytes(p.read_bytes() + b"\n# segmentation tweak\n")
     mutated_identity = transform_identity(copy_dir)
     mutated_payload = {

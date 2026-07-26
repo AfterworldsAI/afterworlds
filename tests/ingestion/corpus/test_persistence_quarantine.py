@@ -736,11 +736,18 @@ def _corruption_cases(full_pages):
     # (lines) for another page's, so only the content hash diverges.
     substituted = list(full_pages)
     substituted[30] = dataclasses.replace(substituted[30], lines=substituted[31].lines)
+    # Geometry-only: same page text, but a moved line coordinate (R15 F2) — must
+    # still be rejected before any store mutation.
+    geometry = list(full_pages)
+    pg = geometry[40]
+    moved = dataclasses.replace(pg.lines[0], top=pg.lines[0].top + 5.0)
+    geometry[40] = dataclasses.replace(pg, lines=(moved, *pg.lines[1:]))
     return [
         ("omitted", omitted),
         ("duplicated", duplicated),
         ("reordered", reordered),
         ("substituted", substituted),
+        ("geometry", geometry),
     ]
 
 
@@ -756,7 +763,7 @@ def test_persisted_page_coverage_flags_partial_corpus(
 
 @pytest.mark.parametrize(
     "mode",
-    ["omitted", "duplicated", "reordered", "substituted"],
+    ["omitted", "duplicated", "reordered", "substituted", "geometry"],
 )
 def test_completeness_rejects_page_corruption_and_leaves_no_state(
     session,
