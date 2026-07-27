@@ -26,6 +26,7 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.pipeline.retrieval.baseline_reset import reset_chroma_store
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.collections import get_rules_corpus_collection
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -910,3 +911,63 @@ def test_no_pass_service_imports_rules_corpus_service() -> None:
                         if "rules_corpus_service" in alias.name:
                             offending.append(str(file_path))
     assert offending == []
+
+
+# --- Pre-release baseline: reset-then-rebuild + removed interim reader (R18) ---
+
+
+def test_full_reset_then_rebuild_rules_corpus_from_sql(session_factory, tmp_path):
+    """Regression 3/4: a store with arbitrary pre-baseline collections is reset in
+    full (no legacy-UUID/name knowledge), then the rules corpus is rebuilt ONLY
+    from current SQLite-authoritative records via the Issue 18 reindex path."""
+    session = session_factory()
+    package_id = uuid4()
+    _seed_package_with_chunks(
+        session, package_id, ["Fireball deals fire damage.", "Shield blocks."]
+    )
+    client = build_isolated_test_chroma_client(str(tmp_path))
+    service = RulesCorpusService(
+        client, RetrievalMemoryConfig(), DeterministicFakeEmbeddingFunction()
+    )
+    service.reindex_from_sql(session, package_id)
+    client.create_collection("arbitrary-interim-collection")
+    assert len(client.list_collections()) >= 2
+
+    assert client.list_collections() != []
+    reset_chroma_store(client)
+    assert client.list_collections() == []  # full reset
+
+    written = service.reindex_from_sql(session, package_id)  # rebuild from SQL
+    assert written == 2
+    _publish_release(session, package_id)
+    assert service.diagnostic_query(
+        session, package_id, "Fireball deals fire damage.", n_results=1
+    ) == ["Fireball deals fire damage."]
+
+
+def test_removed_interim_reader_and_no_recreate_by_deleted_uuid(
+    session_factory, tmp_path
+):
+    """Regression 7: the superseded interim direct reader is gone (cannot retrieve),
+    and the supported diagnostic reader is non-creating — after a store reset it
+    returns nothing for a deleted package UUID and does NOT recreate the
+    collection."""
+    from afterworlds.ingestion import vector_writer as vw
+
+    assert not hasattr(vw.VectorWriter, "query")  # interim reader removed
+    assert not hasattr(vw, "QueryResult")
+
+    session = session_factory()
+    package_id = uuid4()
+    _seed_package_with_chunks(session, package_id, ["secret content"])
+    client = build_isolated_test_chroma_client(str(tmp_path))
+    service = RulesCorpusService(
+        client, RetrievalMemoryConfig(), DeterministicFakeEmbeddingFunction()
+    )
+    service.reindex_from_sql(session, package_id)
+    _publish_release(session, package_id)
+
+    reset_chroma_store(client)  # deletes the package's rules-corpus collection
+    assert service.diagnostic_query(session, package_id, "secret") == []
+    with pytest.raises(NotFoundError):
+        client.get_collection(rules_corpus_collection_name(package_id))
