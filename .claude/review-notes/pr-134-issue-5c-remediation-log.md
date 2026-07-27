@@ -800,3 +800,52 @@ add `setuptools>=68` + `wheel` to `[project.optional-dependencies].dev` (making 
 no-isolation contract explicit) and surface build stdout+stderr on failure. The
 wheel/sdist installed-artifact assertions are unchanged (not skipped/xfailed/mocked/
 weakened); confirmed in a clean env that both archives build and contain the oracle.
+
+---
+
+## Round 18 — pre-release clean baseline (owner-approved specification correction)
+
+Owner decision (Issue 5c Rev7 / Issue 18 Rev6): Afterworlds is pre-release, so
+persistence created before Issue 5c receives no upgrade-compatibility or
+preservation guarantee. The strict cross-store quarantine contract (the Round-18
+P1 was valid *under that contract*) is explicitly **replaced** by a breaking clean
+baseline. The superseded UUID-handoff / selective-quarantine / retryable
+cross-store workflow design was **not** implemented. Deleted complexity, not added.
+
+**Retired.** `ingestion/corpus/quarantine.py` (repo/runtime zero-reachability scan
++ active-store check); the publication-time legacy-reachability check in
+`finalize_release` (both paths), the evidence report, and the publication gate
+(condition 22); the now-dead `repo_root` parameter on `finalize_release`/
+`_finalize_core` and its callers; the obsolete quarantined structured JSON
+(`docs/legacy/quarantine/srd_5_2_1_structured.legacy.json` — kept only in Git
+history); and the superseded interim direct reader `VectorWriter.query()` +
+`QueryResult` (no production caller; the supported diagnostic reader remains
+`RulesCorpusService.diagnostic_query()`).
+
+**Kept / added.** Migration `0018`'s targeted deletion of the incomplete legacy SQL
+package + dependent rows (docstring reframed; no random-UUID handoff for later
+Chroma cleanup). `EVIDENCE_REPORT_SCHEMA_VERSION` bumped `5c-evidence-2` →
+`5c-evidence-3` (R17 mechanism): dropping the legacy-reachability status changes
+the canonical report schema, so transform hash / package UUID / release version
+remint and a former-schema report cannot be reused. New guarded one-time reset:
+`pipeline/retrieval/baseline_reset` (`resolve_reset_target` validates the exact
+configured `persist_directory`, refusing empty/root/home/cwd/ancestor;
+`reset_chroma_store` deletes **every** collection through the client — never
+filesystem/rmtree/prefix) driven by the explicit CLI
+`scripts/reset_corpus_baseline.py` (validate → full reset → rebuild the rules
+corpus from the published SQL package via Issue 18's reindex path; never startup).
+
+**Docs reconciled** with the owner decision (quoted, not fabricated from the
+external Rev7/Rev6 text): dated correction notes in ADR-005c, ADR-018, the
+reproducibility doc, `known_unknowns.md`, migration 0018's docstring, and the
+legacy README (retained as concise documentation minus the deleted bytes).
+
+**Regressions.** (1) obsolete JSON + every production reference absent (a repo-tree
+scan replacing the deleted reachability checker); (2) migration 0018 deletes the
+incomplete package + dependent rows; (3) an arbitrary-collection store is reset in
+full then rebuilt from current SQLite records; (4) no legacy UUID/collection-name
+knowledge required (reset takes none); (5) idempotent reset; (6) generic packages
++ story-memory reindex remain valid; (7) removed reader is absent and the diagnostic
+reader neither retrieves nor recreates a deleted package UUID's collection; (8) new
+report schema remints identity and former-schema reports cannot be reused. Guard
+negative test: `resolve_reset_target` refuses root/home/cwd/ancestor/empty.

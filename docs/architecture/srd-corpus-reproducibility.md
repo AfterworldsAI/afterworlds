@@ -217,9 +217,21 @@ Two distinct identities that must not be conflated:
 python scripts/ingest_srd.py --db-url sqlite:///afterworlds.db
 ```
 
-This builds the release from the PDF, runs the publication gate, and persists a
-new immutable release only if the gate passes. It never reads the quarantined
-legacy artifact (Owner Decision 1); see `docs/legacy/quarantine/README.md`.
+This builds the release solely from the PDF, runs the publication gate, and
+persists a new immutable release only if the gate passes. There is no legacy
+structured-JSON ingestion path.
+
+**Pre-release clean baseline (R18; Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds
+is pre-release, so persistence created before Issue 5c gets no
+upgrade/preservation guarantee, and the former strict cross-store quarantine
+(repo/runtime zero-reachability scan + a publication-time legacy check) is
+superseded by a clean baseline: migration `0018` deletes the incomplete legacy SQL
+package and its dependent rows; the obsolete structured JSON and its loaders are
+deleted (kept only in Git history); and the configured development Chroma store is
+reset in full **once** — an explicit one-time step
+(`scripts/reset_corpus_baseline.py`), never automatic startup — before the
+corrected rules corpus is rebuilt from the published SQLite-authoritative package
+via Issue 18's reindex path. No legacy UUID or collection-name handoff is used.
 
 ## What corpus publication proves — and does not
 

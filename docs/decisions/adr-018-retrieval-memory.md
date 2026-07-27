@@ -8,6 +8,16 @@ https://github.com/AfterworldsAI/afterworlds/pull/118#issuecomment-4883951215. A
 Phase 1 ADR/documentation gate only; Phase 2 implementation (`feature/issue-18-retrieval-memory`) may
 begin only after this Phase 1 PR is merged.
 
+> **Correction — pre-release clean baseline (2026-07-27, Issue 18 Rev6 / Issue 5c Rev7).** Because
+> Afterworlds is pre-release, the corrected rules-corpus projection is established by a clean baseline
+> rather than by migrating or inspecting the interim/pre-baseline vector collections: the configured
+> development Chroma store is reset in full **once** (an explicit one-time step,
+> `scripts/reset_corpus_baseline.py`; never automatic startup), then the rules corpus is rebuilt from the
+> published Issue-5c SQLite-authoritative package via the existing reindex path
+> (`RulesCorpusService.reindex_from_sql`). The superseded interim direct reader (`VectorWriter.query()`)
+> was removed; the supported diagnostic reader remains `RulesCorpusService.diagnostic_query()`
+> (publication-gated, non-creating). Story-memory restoration uses the same Issue 18 reindex path.
+
 ---
 
 ## Central Invariant

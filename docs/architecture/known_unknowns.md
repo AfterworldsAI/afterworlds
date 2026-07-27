@@ -219,8 +219,12 @@ execute against real Rules Package content, and why that authority must never si
 prose, retrieval, or model inference — is resolved by ADR-005c (Decisions 1, 2, 4, 5, 6).
 **Source-corpus layer implemented by CRD Issue 5c (#132).** The authoritative full-corpus ingestion,
 frozen source ledger, frozen reconciliation policy, deterministic reconciliation, source-to-corpus
-concordance, byte-for-byte reproducible acyclic build, corpus-publication gate, and strict legacy
-quarantine are delivered under ADR-005c Completion Contract A. This establishes the source-corpus layer
+concordance, byte-for-byte reproducible acyclic build, and corpus-publication gate are delivered under
+ADR-005c Completion Contract A. (R18 / Issue 5c Rev7 / Issue 18 Rev6: the former *strict legacy
+quarantine* — a repo/runtime zero-reachability scan + publication-time legacy check — was superseded by a
+breaking pre-release clean baseline: the incomplete legacy SQL package is deleted by migration 0018, the
+obsolete structured JSON and its loaders are deleted, and the development Chroma store is reset in full
+once before the corrected corpus is rebuilt.) This establishes the source-corpus layer
 and the new package UUID/release-version seam only; it does **not** provide executable mechanical
 authority (no MechanicalEntity, no DC/dice typing — Owner Decision 2). **Implementation remains pending**
 CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b (D&D 5e
