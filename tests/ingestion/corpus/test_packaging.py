@@ -26,9 +26,16 @@ _COMMITTED = _REPO_ROOT / "src" / _INVENTORY_REL
 
 
 def _build_dists(out_dir: Path) -> tuple[Path, Path]:
-    """Build wheel + sdist into *out_dir* (no build isolation → uses the dev env)."""
+    """Build wheel + sdist into *out_dir* (no build isolation → uses the dev env).
+
+    ``--no-isolation`` requires the declared build backend (``setuptools>=68``,
+    ``wheel`` — see ``[build-system].requires``) to be importable in the current
+    environment; the dev extra installs them explicitly. On any build failure the
+    captured stdout+stderr are surfaced (they were swallowed before, hiding the CI
+    root cause — R17).
+    """
     pytest.importorskip("build")
-    subprocess.run(
+    proc = subprocess.run(
         [
             sys.executable,
             "-m",
@@ -38,9 +45,12 @@ def _build_dists(out_dir: Path) -> tuple[Path, Path]:
             str(out_dir),
             str(_REPO_ROOT),
         ],
-        check=True,
         capture_output=True,
         text=True,
+    )
+    assert proc.returncode == 0, (
+        f"`python -m build --no-isolation` failed (exit {proc.returncode}).\n"
+        f"--- stdout ---\n{proc.stdout}\n--- stderr ---\n{proc.stderr}"
     )
     wheels = list(out_dir.glob("*.whl"))
     sdists = list(out_dir.glob("*.tar.gz"))
