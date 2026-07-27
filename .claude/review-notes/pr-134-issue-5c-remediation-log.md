@@ -758,3 +758,45 @@ packaged resource). Smoke test `test_packaging.py` builds wheel+sdist, asserts b
 contain the JSON, installs into an isolated target, and imports from there (not the
 editable checkout, via `-S` + explicit `PYTHONPATH`) to reload all 683 entries and
 reproduce the committed inventory hash. `build` added to dev dependencies.
+
+---
+
+## Round 17 — evidence-report schema identity + clean-runner packaging
+
+**P2 — evidence-report schema changes did not mint/invalidate release identity.**
+`report.py` was verification-only, so R16's canonical report shape change
+(`reproduction_environment` → `reproduction_target`) left the package UUID/version
+unchanged. A pre-R16 published release keeps the same UUID → `finalize_release`
+enters reuse, validates the stored obsolete-shape report against its stored hash
+(both old → passes), and returns `reused=True` with the obsolete evidence identity.
+Fix: an explicit canonical `EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-2"`
+(bumped for the R16 shape), recorded in the report payload and bound into
+`transform_config_payload` → transform hash → package UUID → release version, so
+the R16 schema change mints a new immutable release. *Bounded analysis:* explicit
+schema identity (not adding all of `report.py` to the byte-level transform-source
+manifest) — only an intentional canonical-shape change should remint; a comment or
+operational-logging edit must not. Reuse backstop `_report_schema_ok` fails closed
+unless the persisted report **and** transform config both record the supported
+version (missing/obsolete/contradictory/malformed → reject). *Sibling
+post-persistence schemas:* persisted-corpus digest and bundle root are `already
+safe` (reuse recomputes them from persisted state and compares to the stored value,
+so a shape change fails closed); only the evidence report — validated against its
+own stored hash on reuse — needed explicit versioning (`patched`). The identity
+test helper now builds the complete production transform payload (all identity
+fields incl. inventory hash + schema version), so its inequality assertions are
+non-vacuous. Regressions: schema-version change moves transform hash/UUID/version;
+obsolete pre-R16 report not reused; current-schema identical inputs reuse
+byte-identically (full idempotency test); tampered/contradictory/missing/malformed
+schema fails closed (`_report_schema_ok` unit + reuse integration).
+
+**CI — clean-runner packaging build.** GitHub Actions run 30216668887's only Python
+failure was `test_packaging.py::test_wheel_and_sdist_include_inventory_and_load_from_install`;
+`_build_dists()` captured and suppressed the build's stdout/stderr, hiding the
+cause. Root cause (reproduced in a clean venv): `python -m build --no-isolation`
+requires the declared build backend (`[build-system].requires`: `setuptools>=68`,
+`wheel`) to be importable in the current environment, but the dev extra added only
+`build>=1.0` — a clean runner raised `Cannot import 'setuptools.build_meta'`. Fix:
+add `setuptools>=68` + `wheel` to `[project.optional-dependencies].dev` (making the
+no-isolation contract explicit) and surface build stdout+stderr on failure. The
+wheel/sdist installed-artifact assertions are unchanged (not skipped/xfailed/mocked/
+weakened); confirmed in a clean env that both archives build and contain the oracle.
