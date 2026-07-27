@@ -23,6 +23,7 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash, policy_payload
+from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION
 from afterworlds.ingestion.corpus.table_inventory import committed_inventory_hash
 from afterworlds.ingestion.corpus.transform_identity import transform_identity
 
@@ -59,6 +60,15 @@ def transform_config_payload(
     of logical tables is a candidate-affecting configuration, so changing it
     (regenerating the inventory after a reviewed table-reconstruction change)
     mints a new immutable release (PR #134 R15 F4).
+
+    ``evidence_report_schema_version`` binds the canonical evidence-report schema
+    version (Component H). The evidence-report hash is a post-persistence proof
+    identity, so a *schema* change (e.g. the R16 ``reproduction_environment`` →
+    ``reproduction_target`` shape change) must mint a new immutable release rather
+    than being validated-and-reused under a predecessor's identity — otherwise
+    reuse loads the obsolete-shape stored report and accepts it (PR #134 R17). An
+    explicit version (not a byte-level hash of ``report.py``) is bound so only an
+    intentional schema change remints, never a comment/logging edit.
     """
     return {
         "extraction_config": extraction_config,
@@ -66,6 +76,7 @@ def transform_config_payload(
         "transform_identity": transform_identity(),
         "rules_corpus_vector_identity": vector_identity,
         "expected_table_inventory_hash": committed_inventory_hash(),
+        "evidence_report_schema_version": EVIDENCE_REPORT_SCHEMA_VERSION,
     }
 
 

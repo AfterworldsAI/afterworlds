@@ -73,6 +73,7 @@ from afterworlds.ingestion.corpus.policy import (
 )
 from afterworlds.ingestion.corpus.quarantine import check_legacy_reachability
 from afterworlds.ingestion.corpus.report import (
+    EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_report,
     report_hash,
@@ -667,6 +668,30 @@ def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...
     return ()
 
 
+def _report_schema_ok(report_payload: object, transform_config: object) -> bool:
+    """Reuse-compatibility check for the evidence-report schema (R17).
+
+    Reuse validates the *stored* report against its *stored* hash, so an
+    obsolete-schema report (e.g. the pre-R16 host-dependent ``reproduction_environment``
+    shape) would pass that check and be silently reused. Binding the schema version
+    into the transform identity already gives a differently-schema'd release a
+    different ``package_uuid`` (so it is not matched on the fresh path); this is the
+    fail-closed backstop on the reuse path.
+
+    True iff the persisted report's recorded ``report_version`` equals the currently
+    supported :data:`EVIDENCE_REPORT_SCHEMA_VERSION` **and** the persisted transform
+    config records the same version. Missing / obsolete / contradictory / malformed
+    → False.
+    """
+    if not isinstance(report_payload, dict) or not isinstance(transform_config, dict):
+        return False
+    return (
+        report_payload.get("report_version") == EVIDENCE_REPORT_SCHEMA_VERSION
+        and transform_config.get("evidence_report_schema_version")
+        == EVIDENCE_REPORT_SCHEMA_VERSION
+    )
+
+
 def verify_single_source(session: Session, pkg: str) -> tuple[str, ...]:
     """Fail-closed Issue-5c single-source invariant over the persisted rows.
 
@@ -1162,7 +1187,15 @@ def _finalize_core(
             and package_row.publication_status == "published"
         )
         page_coverage_violations = verify_persisted_page_coverage(session, pkg)
-        if not gate.passed or not package_state_ok or page_coverage_violations:
+        schema_ok = _report_schema_ok(
+            artifacts.report.payload, artifacts.release.transform_config
+        )
+        if (
+            not gate.passed
+            or not package_state_ok
+            or page_coverage_violations
+            or not schema_ok
+        ):
             failures = list(gate.failures)
             if not package_state_ok:
                 failures.append(
@@ -1171,6 +1204,13 @@ def _finalize_core(
                     "rp_corpus_releases row"
                 )
             failures.extend(page_coverage_violations)
+            if not schema_ok:
+                failures.append(
+                    "persisted evidence-report schema version "
+                    f"(report={artifacts.report.payload.get('report_version')!r}) is "
+                    "missing/obsolete/contradictory vs the supported "
+                    f"{EVIDENCE_REPORT_SCHEMA_VERSION!r} — refusing to reuse"
+                )
             return FinalizeResult(
                 published=False,
                 reused=False,

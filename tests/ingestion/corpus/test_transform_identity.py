@@ -104,9 +104,17 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(
     (PR #134 R15 F1)."""
     ex = extraction_config()
     vid = {"embedding_model_id": "m", "metadata_fields": ["subsystem"]}
+    # Build the COMPLETE production transform payload (all identity fields —
+    # extractor config, policy, transform identity, vector identity, expected-table
+    # inventory hash, evidence-report schema version). Mutating only the transform
+    # identity keeps every other field equal, so the inequality below is a genuine
+    # difference in the transform-source hash, not an artifact of an omitted field
+    # (R17: don't let a partial payload make the assertion vacuous).
+    real_payload = transform_config_payload(ex, FROZEN_POLICY, vid)
     real_hash = transform_config_hash(ex, FROZEN_POLICY, vid)
+    assert hash_obj(real_payload) == real_hash  # helper builds the production shape
 
-    # Simulate a code-only change by recomputing the payload against a mutated
+    # Simulate a code-only change by recomputing the identity against a mutated
     # copy of the source tree (same PDF, extractor config, policy, and vector id).
     copy_dir = tmp_path / "corpus"
     copy_dir.mkdir()
@@ -115,14 +123,7 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(
     p = copy_dir / mutated_module
     p.write_bytes(p.read_bytes() + b"\n# segmentation tweak\n")
     mutated_identity = transform_identity(copy_dir)
-    mutated_payload = {
-        "extraction_config": ex,
-        "reconciliation_policy": transform_config_payload(ex, FROZEN_POLICY, vid)[
-            "reconciliation_policy"
-        ],
-        "transform_identity": mutated_identity,
-        "rules_corpus_vector_identity": vid,
-    }
+    mutated_payload = {**real_payload, "transform_identity": mutated_identity}
     mutated_hash = hash_obj(mutated_payload)
 
     assert mutated_hash != real_hash
@@ -131,6 +132,26 @@ def test_transform_code_change_moves_config_hash_uuid_and_version(
     )
     assert derive_release_version(PDF_SHA256, mutated_hash) != derive_release_version(
         PDF_SHA256, real_hash
+    )
+
+
+def test_report_schema_version_is_bound_into_identity():
+    """R17: the canonical evidence-report schema version is part of the transform
+    payload, so changing it moves the transform hash, package UUID, and release
+    version — a report-schema change mints a new immutable release instead of
+    being reused under a predecessor's identity."""
+    ex = extraction_config()
+    vid = {"embedding_model_id": "m", "metadata_fields": ["subsystem"]}
+    base = transform_config_payload(ex, FROZEN_POLICY, vid)
+    # Present in the production shape (and the inventory hash too — completeness).
+    assert base["evidence_report_schema_version"]
+    assert base["expected_table_inventory_hash"]
+    variant = {**base, "evidence_report_schema_version": "5c-evidence-OTHER"}
+    bh, vh = hash_obj(base), hash_obj(variant)
+    assert bh != vh
+    assert derive_package_uuid(PDF_SHA256, bh) != derive_package_uuid(PDF_SHA256, vh)
+    assert derive_release_version(PDF_SHA256, bh) != derive_release_version(
+        PDF_SHA256, vh
     )
 
 

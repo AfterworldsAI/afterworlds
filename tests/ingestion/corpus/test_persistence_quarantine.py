@@ -831,11 +831,76 @@ def test_legacy_active_row_blocks_publication(
     )
 
 
+def test_report_schema_ok_fails_closed_on_bad_schema():
+    """R17 unit: ``_report_schema_ok`` is the reuse-path backstop for the evidence-
+    report schema. Current + matching (report AND transform config) → True;
+    obsolete, contradictory, missing, or malformed → False (fail closed)."""
+    from afterworlds.ingestion.corpus.persistence import _report_schema_ok
+    from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION as V
+
+    assert _report_schema_ok(
+        {"report_version": V}, {"evidence_report_schema_version": V}
+    )
+    # obsolete pre-R16 report version
+    assert not _report_schema_ok(
+        {"report_version": "5c-evidence-1"}, {"evidence_report_schema_version": V}
+    )
+    # contradictory: report current, transform config stale or absent
+    assert not _report_schema_ok({"report_version": V}, {})
+    assert not _report_schema_ok(
+        {"report_version": V}, {"evidence_report_schema_version": "5c-evidence-1"}
+    )
+    # missing report version
+    assert not _report_schema_ok({}, {"evidence_report_schema_version": V})
+    # malformed payloads
+    assert not _report_schema_ok(None, {"evidence_report_schema_version": V})
+    assert not _report_schema_ok({"report_version": V}, None)
+
+
+def test_reuse_rejects_obsolete_evidence_report_schema(
+    session, candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """R17: reuse fails closed when the persisted evidence report is a valid but
+    *obsolete* (pre-R16) schema whose stored hash still matches — the case the
+    report-hash check cannot catch. Simulate a pre-R16 ``report_version`` on the
+    published release (recomputing the stored hash so the gate's hash check passes,
+    isolating the schema backstop) and assert the reuse attempt surfaces the schema
+    failure and does not reuse."""
+    from afterworlds.ingestion.corpus.report import EvidenceReport, report_hash
+
+    first = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert first.published and not first.reused
+    row = session.execute(
+        select(CorpusReleaseORM).where(
+            CorpusReleaseORM.package_uuid == candidate.package_uuid
+        )
+    ).scalar_one()
+    payload = dict(row.report_payload)
+    payload["report_version"] = "5c-evidence-1"  # obsolete pre-R16 shape marker
+    row.report_payload = payload
+    # Keep the stored hash consistent with the tampered payload so the gate's
+    # evidence_report_hash check passes — this isolates the schema backstop.
+    row.evidence_report_hash = report_hash(
+        EvidenceReport(payload=payload, persisted=True)
+    )
+    session.commit()
+
+    result = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert not result.published and not result.reused
+    assert result.gate is not None
+    assert any("schema version" in f for f in result.gate.failures)
+
+
 def test_repeated_finalize_is_idempotent_and_does_not_mutate(
     session, full_candidate, chroma_client, retrieval_config, fake_embedding
 ):
     """Full-SRD integration: the complete corpus is finalized/gated/published,
-    then a repeat finalize is an idempotent verified reuse."""
+    then a repeat finalize is an idempotent verified reuse (current schema on both
+    sides — R17 byte-identical reuse positive control)."""
     first = _finalize(
         session, full_candidate, chroma_client, retrieval_config, fake_embedding
     )

@@ -36,6 +36,17 @@ _log = logging.getLogger(__name__)
 # identity-bearing payload (PR #134 R16).
 PYTHON_TARGET = "3.12"
 
+# Canonical evidence-report schema version. Bumped to "2" for the R16 shape change
+# (host-dependent ``reproduction_environment`` → host-independent
+# ``reproduction_target``). This version is bound into ``transform_config_payload``
+# (hence the transform hash / package UUID / release version), so an evidence-
+# report *schema* change mints a NEW immutable release instead of being reused
+# under a predecessor's identity — the recurring reuse-compatibility defect (R17).
+# It is deliberately an *explicit* schema identity rather than a byte-level hash of
+# report.py: only an intentional canonical-shape change should remint, never a
+# comment, docstring, or operational-logging edit.
+EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-2"
+
 
 @dataclass(frozen=True)
 class EvidenceReport:
@@ -87,7 +98,9 @@ def build_report(
     )
 
     payload: dict[str, object] = {
-        "report_version": "5c-evidence-1",
+        # Canonical schema version, also bound into the transform identity so a
+        # schema change remints the release rather than being reused (R17).
+        "report_version": EVIDENCE_REPORT_SCHEMA_VERSION,
         # Proof hashes (NOT this report's own hash).
         "authoritative_source_hash": authoritative_source_hash,
         "transform_config_hash": transform_config_hash,
