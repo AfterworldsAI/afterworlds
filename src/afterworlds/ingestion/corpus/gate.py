@@ -6,8 +6,10 @@ artifacts and fails when any listed condition is absent or violated. Publication
 proves corpus publication only — never adapter support (ADR-005c Decisions 1, 6).
 
 The gate is a pure function of the artifacts (plus the independently supplied
-legacy-reachability violation count), so each failure condition can be exercised
-in isolation and the whole gate passes only when every condition holds.
+publication evidence: SQL/vector persistence and chunk/source runtime membership),
+so each failure condition can be exercised in isolation and the whole gate passes
+only when every condition holds. (The pre-release clean baseline — Issue 5c Rev7 /
+Issue 18 Rev6 — retired the strict legacy-reachability check that was here.)
 """
 
 from __future__ import annotations
@@ -45,7 +47,7 @@ class PublicationEvidence:
 
     Every field must be supplied explicitly by the caller from an actual
     operation — there are **no defaults**, so no production caller can obtain a
-    successful SQL/vector/legacy/membership verdict by omitting an argument or
+    successful SQL/vector/membership verdict by omitting an argument or
     hard-coding ``True`` (PR #134 remediation, defect family 1). ``finalize_release``
     builds this from the real reindex/read-back/reconstruction results; gate
     unit tests construct it explicitly per scenario.
@@ -53,7 +55,6 @@ class PublicationEvidence:
 
     sql_persist_ok: bool
     vector_write_ok: bool
-    legacy_reachability_violations: int
     chunk_membership_violations: int
     source_membership_violations: int
     vector_verification_failures: tuple[str, ...]
@@ -65,7 +66,6 @@ def run_gate(
 ) -> GateResult:
     """Run the publication gate over the release record (Component I)."""
     a = artifacts
-    legacy_reachability_violations = evidence.legacy_reachability_violations
     chunk_membership_violations = evidence.chunk_membership_violations
     sql_persist_ok = evidence.sql_persist_ok
     vector_write_ok = evidence.vector_write_ok
@@ -272,11 +272,7 @@ def run_gate(
     ):
         f.append("a top-level release hash is missing")
 
-    # 22. Zero legacy-reachability violations (Owner Decision 1 / Component L).
-    if legacy_reachability_violations != 0:
-        f.append("legacy-reachability violation present")
-
-    # 23. Persisted rp_chunks exactly matches the declared projection set, and
+    # 22. Persisted rp_chunks exactly matches the declared projection set, and
     #     every declared-projected chunk and its source are runtime-enabled —
     #     otherwise the digest/report can pass while runtime reads omit or add
     #     content (checked against the live DB by
@@ -285,7 +281,7 @@ def run_gate(
     if chunk_membership_violations != 0:
         f.append("persisted rp_chunks runtime-membership violation present")
 
-    # 24. Single authoritative source, deterministic source_id == package_uuid,
+    # 23. Single authoritative source, deterministic source_id == package_uuid,
     #     expected metadata + enabled, and every persisted chunk assigned to it
     #     (checked against the live DB by persistence.verify_single_source; not
     #     recomputable from in-memory artifacts alone). An extra/missing/altered/

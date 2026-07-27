@@ -7,18 +7,16 @@ deterministic corpus pipeline directly from the authoritative PDF
 proves, and gates the release strictly from the target database's actual
 state (Component K steps c-g) before publishing.
 
-It does **not** read the quarantined legacy artifact. The former ``--data-path``
-default (the legacy structured JSON under ``data/srd/``) was removed under Owner
-Decision 1 (strict legacy quarantine); that artifact is inert evidence at
-``docs/legacy/quarantine/`` and is unreachable from every executable path.
+It builds the corpus solely from the authoritative PDF — there is no legacy
+structured-JSON ingestion path (the obsolete artifact and its loaders were
+removed under the pre-release clean baseline; Issue 5c Rev7 / Issue 18 Rev6
+superseded the former strict cross-store quarantine contract).
 
 The target database is brought to the repository's current Alembic head before
-the final gate runs — including migration 0018's legacy-package purge — via the
-same ``upgrade_to_head`` the application uses at startup
-(``afterworlds.api.db_bootstrap``). This is not assumed to be sufficient on its
-own: the gate also runs a live zero-reachability check against the same session
-(Component L) and fails closed if an active legacy row remains regardless of
-migration state.
+the final gate runs — including migration 0018's targeted deletion of the
+incomplete legacy package and its dependent rows — via the same
+``upgrade_to_head`` the application uses at startup
+(``afterworlds.api.db_bootstrap``).
 
 Usage
 -----
@@ -49,7 +47,6 @@ from afterworlds.pipeline.retrieval.config import (  # noqa: E402
     RetrievalMemoryConfig,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
 _DEFAULT_PDF = "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
 
 
@@ -97,7 +94,6 @@ def main() -> int:
         result = finalize_release(
             session,
             candidate,
-            repo_root=_REPO_ROOT,
             now=now,
             chroma_client=chroma_client,
             retrieval_config=retrieval_config,

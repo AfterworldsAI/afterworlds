@@ -206,7 +206,6 @@ def _rebuild_report(a, persisted=True):
         persisted_corpus_digest=a.release.identity.persisted_corpus_digest,
         concordance=a.concordance,
         canaries=a.canaries,
-        legacy_reachability_violations=0,
         persisted=persisted,
     )
 

@@ -28,8 +28,8 @@ bound some other way; *verification-only* iff it cannot change the candidate byt
     already-covered  models.retrieval.rules_corpus_vector_identity (its *output*,
                      the vector identity, is bound into transform_config directly)
     verification-only  concordance, report, gate, persistence, vector_publication,
-                     quarantine, source_completeness  (verification / post-
-                     persistence / runtime only)
+                     source_completeness  (verification / post-persistence /
+                     runtime only)
 
 ``tables`` reached the manifest via ``ledger`` (a1→a2 segmentation): it owns table
 segmentation, cell contents/ids, and row/column metadata, so a change there must

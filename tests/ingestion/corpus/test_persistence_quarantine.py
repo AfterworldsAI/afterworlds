@@ -1,20 +1,26 @@
-"""Persistence, tamper-detection, and legacy-quarantine tests — Issue 5c.
+"""Persistence, tamper-detection, and pre-release clean-baseline tests — Issue 5c.
 
 Maps to Acceptance #1/#8 (persisted-corpus digest round-trip), the tamper-
-detection test requirement, Acceptance #12 (legacy zero-reachability), and the
-PR #134 remediation regression set: DB-grounded final gating, fail-closed
-chunk-runtime-membership verification, idempotent republication, and no
-partial content on a failed gate.
+detection test requirement, and the PR #134 remediation regression set:
+DB-grounded final gating, fail-closed chunk-runtime-membership verification,
+idempotent republication, and no partial content on a failed gate.
+
+The former strict cross-store quarantine (repo/runtime zero-reachability scan +
+publication-gate legacy check) was superseded by a breaking pre-release clean
+baseline (Issue 5c Rev7 / Issue 18 Rev6): the obsolete SRD JSON and its
+machinery are deleted, and the incomplete legacy SQL package is removed by
+migration 0018 rather than blocked at publication time.
 """
 
 from __future__ import annotations
 
 import copy
 import dataclasses
+import re
 from uuid import UUID
 
 import pytest
-from sqlalchemy import delete, select
+from sqlalchemy import delete, event, select
 
 import afterworlds.ingestion.corpus.persistence as persistence_mod
 from afterworlds.ingestion.corpus.bundle import (
@@ -40,11 +46,6 @@ from afterworlds.ingestion.corpus.persistence import (
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, PolicyReconstructionError
-from afterworlds.ingestion.corpus.quarantine import (
-    LEGACY_ARTIFACT_SHA256,
-    check_active_store,
-    check_legacy_reachability,
-)
 from afterworlds.ingestion.corpus.reconcile import reconcile
 from afterworlds.ingestion.corpus.transform import build_corpus
 from afterworlds.ingestion.corpus.vector_publication import read_actual_vector_state
@@ -108,7 +109,6 @@ def _finalize(session, candidate, chroma_client, retrieval_config, fake_embeddin
     return _finalize_core(
         session,
         candidate,
-        repo_root=REPO_ROOT,
         now=_NOW,
         chroma_client=chroma_client,
         retrieval_config=retrieval_config,
@@ -529,26 +529,80 @@ def test_reuse_fails_closed_on_deleted_policy_row(
     assert any("policy" in f for f in result.gate.failures)
 
 
-# --- Legacy quarantine (Component L / Acceptance #12) -------------------------
+# --- Pre-release clean baseline: obsolete SRD artifact retired (R18) ----------
+# Issue 5c Rev7 / Issue 18 Rev6 replaced the strict cross-store quarantine
+# (repo/runtime zero-reachability scan + publication-gate legacy check) with a
+# breaking pre-release clean baseline: the obsolete structured JSON and every
+# production loader/reader/default/fallback for it are deleted (preserved only in
+# Git history + concise docs). The former reachability *machinery* is retired; its
+# intent — no runnable path reads the legacy artifact — is now enforced by absence.
+
+_BANNED = re.compile(
+    r"srd_5_2_1_structured|corpus\.quarantine|check_legacy_reachability"
+)
 
 
-def test_zero_legacy_reachability_in_repo():
-    assert check_legacy_reachability(None, REPO_ROOT) == []
-
-
-def test_legacy_artifact_not_at_default_ingestion_path():
+def test_obsolete_srd_artifact_absent_from_repo():
+    """Regression 1: the obsolete JSON is gone from its old default path AND the
+    former quarantine location (retained only in Git history)."""
     assert not (REPO_ROOT / "data" / "srd" / "srd_5_2_1_structured.json").exists()
+    assert not (
+        REPO_ROOT
+        / "docs"
+        / "legacy"
+        / "quarantine"
+        / "srd_5_2_1_structured.legacy.json"
+    ).exists()
 
 
-def test_quarantined_evidence_documented_with_hash():
-    readme = (REPO_ROOT / "docs" / "legacy" / "quarantine" / "README.md").read_text(
-        encoding="utf-8"
+def test_no_production_reference_to_obsolete_artifact_or_retired_quarantine():
+    """Regression 1: no production code (src/ or scripts/) references the obsolete
+    artifact or the retired quarantine module/reachability checker. This replaces
+    the deleted repo-scan reachability checker with an absence guarantee."""
+    hits = []
+    for base in ("src", "scripts"):
+        root = REPO_ROOT / base
+        if not root.exists():
+            continue
+        for path in root.rglob("*.py"):
+            if _BANNED.search(path.read_text(encoding="utf-8")):
+                hits.append(str(path.relative_to(REPO_ROOT)))
+    assert (
+        hits == []
+    ), f"obsolete-artifact / retired-quarantine references remain: {hits}"
+
+
+def test_migration_0018_deletes_incomplete_package_and_dependent_rows(tmp_path):
+    """Regression 2: the SQL migration removes the incomplete legacy package and
+    its dependent RuleChunk/MechanicalEntity/manifest rows (FK cascade), and never
+    touches the Issue-5c corpus release (different name/version)."""
+    from afterworlds.persistence.database import (
+        create_engine as _create_engine,
     )
-    assert LEGACY_ARTIFACT_SHA256 in readme
+    from afterworlds.persistence.database import (
+        create_session_factory as _factory,
+    )
 
+    db_url = f"sqlite:///{tmp_path / 'baseline.db'}"
+    # Bring a fresh DB to the revision *before* 0018, seed the legacy package +
+    # dependent rows, then run 0018 and confirm the targeted deletion.
+    from alembic.config import Config
 
-def test_active_store_flags_a_legacy_package_row(session):
-    session.add(
+    from alembic import command
+
+    cfg = Config(str(REPO_ROOT / "alembic.ini"))
+    cfg.set_main_option("script_location", str(REPO_ROOT / "alembic"))
+    cfg.set_main_option("sqlalchemy.url", db_url)
+    command.upgrade(cfg, "0017")
+
+    eng = _create_engine(db_url)
+
+    @event.listens_for(eng, "connect")
+    def _fk(dbapi, _rec):  # type: ignore[no-untyped-def]
+        dbapi.execute("PRAGMA foreign_keys=ON")
+
+    sess = _factory(eng)()
+    sess.add(
         RulesPackageORM(
             rules_package_id="legacy-1",
             name="D&D SRD 5.2.1",
@@ -561,18 +615,55 @@ def test_active_store_flags_a_legacy_package_row(session):
             updated_at=_NOW,
         )
     )
-    session.commit()
-    violations = check_active_store(session)
-    assert any("legacy-1" in v for v in violations)
+    sess.flush()
+    sess.add(
+        RuleSourceORM(
+            source_id="legacy-src-1",
+            rules_package_id="legacy-1",
+            name="legacy",
+            category="core_rulebook",
+            precedence_rank=1,
+            is_enabled=True,
+            created_at=_NOW,
+        )
+    )
+    sess.flush()
+    sess.add(
+        RuleChunkORM(
+            chunk_id="legacy-chunk-1",
+            rules_package_id="legacy-1",
+            source_id="legacy-src-1",
+            subsystem="combat",
+            content="obsolete",
+            source_document="legacy",
+            source_locator_type="page",
+            source_locator_value="p. 1",
+            is_enabled=True,
+            created_at=_NOW,
+        )
+    )
+    sess.commit()
+    sess.close()
+    eng.dispose()
 
+    command.upgrade(cfg, "0018")
 
-def test_corpus_release_is_not_flagged_as_legacy(
-    session, release, chroma_client, retrieval_config, fake_embedding
-):
-    pkg = _persist(session, release, chroma_client, retrieval_config, fake_embedding)
-    # The new corpus release uses a different package name; never flagged.
-    assert check_active_store(session) == []
-    assert pkg
+    sess = _factory(_create_engine(db_url))()
+    assert (
+        sess.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == "legacy-1"
+            )
+        ).scalar_one_or_none()
+        is None
+    )
+    assert (
+        sess.execute(
+            select(RuleChunkORM).where(RuleChunkORM.chunk_id == "legacy-chunk-1")
+        ).scalar_one_or_none()
+        is None
+    )
+    sess.close()
 
 
 # --- Chunk runtime-membership verification (PR #134 remediation, req. 4) -----
@@ -670,7 +761,6 @@ def _finalize_public(
     return finalize_release(
         session,
         candidate,
-        repo_root=REPO_ROOT,
         now=_NOW,
         chroma_client=chroma_client,
         retrieval_config=retrieval_config,
@@ -792,43 +882,10 @@ def test_completeness_rejects_page_corruption_and_leaves_no_state(
     )
 
 
-# --- finalize_release lifecycle: legacy blocking, idempotency, rollback ------
-
-
-def test_legacy_active_row_blocks_publication(
-    session, candidate, chroma_client, retrieval_config, fake_embedding
-):
-    session.add(
-        RulesPackageORM(
-            rules_package_id="legacy-active-1",
-            name="D&D SRD 5.2.1",
-            system="d20",
-            version="5.2.1",
-            is_enabled=True,
-            publication_status="published",
-            published_at=None,
-            created_at=_NOW,
-            updated_at=_NOW,
-        )
-    )
-    session.commit()
-
-    result = _finalize(
-        session, candidate, chroma_client, retrieval_config, fake_embedding
-    )
-
-    assert not result.published
-    assert result.gate is not None
-    assert any("legacy" in f for f in result.gate.failures)
-    # No partial content: the new release never became visible.
-    assert (
-        session.execute(
-            select(CorpusReleaseORM).where(
-                CorpusReleaseORM.package_uuid == candidate.package_uuid
-            )
-        ).scalar_one_or_none()
-        is None
-    )
+# --- finalize_release lifecycle: idempotency, rollback -----------------------
+# (Under the pre-release clean baseline the publication-time legacy-reachability
+#  gate is retired; the incomplete legacy package is removed by migration 0018 —
+#  see test_migration_0018_deletes_incomplete_package_and_dependent_rows.)
 
 
 def test_report_schema_ok_fails_closed_on_bad_schema():
@@ -909,7 +966,6 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(
     second = finalize_release(
         session,
         full_candidate,
-        repo_root=REPO_ROOT,
         now="2026-07-24T00:00:00Z",
         chroma_client=chroma_client,
         retrieval_config=retrieval_config,

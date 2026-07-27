@@ -183,7 +183,6 @@ def finalize_in_fresh_db(candidate: CandidateRelease, *, core: bool = False):  #
         result = finalize(
             sess,
             candidate,
-            repo_root=REPO_ROOT,
             now=NOW,
             chroma_client=client,
             retrieval_config=RetrievalMemoryConfig(),

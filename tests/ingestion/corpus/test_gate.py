@@ -17,7 +17,6 @@ def _evidence(
     *,
     sql_persist_ok: bool = True,
     vector_write_ok: bool = True,
-    legacy: int = 0,
     membership: int = 0,
     source_membership: int = 0,
     vector_failures: tuple[str, ...] = (),
@@ -29,7 +28,6 @@ def _evidence(
     return PublicationEvidence(
         sql_persist_ok=sql_persist_ok,
         vector_write_ok=vector_write_ok,
-        legacy_reachability_violations=legacy,
         chunk_membership_violations=membership,
         source_membership_violations=source_membership,
         vector_verification_failures=vector_failures,
@@ -152,10 +150,6 @@ def test_gate_fails_when_report_predates_persistence(release):
     result = run_gate(broken, _evidence())
     assert not result.passed
     assert any("predates persistence" in f for f in result.failures)
-
-
-def test_gate_fails_on_legacy_reachability_violation(release):
-    assert not run_gate(release, _evidence(legacy=1)).passed
 
 
 def test_gate_fails_when_sql_or_vector_persist_incomplete(release):

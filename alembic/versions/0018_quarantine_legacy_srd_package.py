@@ -1,14 +1,21 @@
-"""Quarantine the legacy SRD package — CRD Issue 5c (#132), Owner Decision 1.
+"""Delete the incomplete legacy SRD package — CRD Issue 5c (#132).
 
-Removes any active-store rows bound to the incomplete legacy SRD package
-(name ``D&D SRD 5.2.1``, version ``5.2.1``) that predate the Issue 5c corpus
-release. The delete cascades to that package's sources, chunks, mechanical
-entities, and manifest via existing ``ondelete=CASCADE`` foreign keys.
+Pre-release clean baseline (Issue 5c Rev7 / Issue 18 Rev6): Afterworlds is
+pre-release, so persistence created before Issue 5c gets no upgrade/preservation
+guarantee. This targeted deletion removes any active-store rows bound to the
+incomplete legacy SRD package (name ``D&D SRD 5.2.1``, version ``5.2.1``); the
+delete cascades to that package's sources, chunks, mechanical entities, and
+manifest via existing ``ondelete=CASCADE`` foreign keys.
 
-This is idempotent and a no-op on a fresh database (no migration ever seeded the
-legacy package; it could only enter via the removed legacy ingestion default).
-It never matches the new corpus release, whose package name is ``SRD 5.2.1
-Corpus`` and whose version is ``5.2.1-corpus.*``.
+Its random package UUID is NOT recorded or handed off for any later cross-store
+cleanup — the corrected corpus is a clean rebuild and the development Chroma
+store is reset in full by an explicit one-time step (see
+``scripts/reset_corpus_baseline.py``), not by tracking legacy UUIDs.
+
+Idempotent and a no-op on a fresh database (no migration ever seeded the legacy
+package; it could only enter via the removed legacy ingestion default). Never
+matches the new corpus release (name ``SRD 5.2.1 Corpus``, version
+``5.2.1-corpus.*``).
 
 Revision ID: 0018
 Revises: 0017

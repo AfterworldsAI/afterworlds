@@ -36,16 +36,17 @@ _log = logging.getLogger(__name__)
 # identity-bearing payload (PR #134 R16).
 PYTHON_TARGET = "3.12"
 
-# Canonical evidence-report schema version. Bumped to "2" for the R16 shape change
-# (host-dependent ``reproduction_environment`` → host-independent
-# ``reproduction_target``). This version is bound into ``transform_config_payload``
-# (hence the transform hash / package UUID / release version), so an evidence-
-# report *schema* change mints a NEW immutable release instead of being reused
-# under a predecessor's identity — the recurring reuse-compatibility defect (R17).
-# It is deliberately an *explicit* schema identity rather than a byte-level hash of
-# report.py: only an intentional canonical-shape change should remint, never a
-# comment, docstring, or operational-logging edit.
-EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-2"
+# Canonical evidence-report schema version. Bumped across canonical-shape changes:
+# "2" for the R16 host-independent ``reproduction_target`` change; "3" for the R18
+# pre-release clean-baseline change that removed the legacy-reachability status
+# (Issue 5c Rev7 / Issue 18 Rev6 supersede the strict cross-store quarantine
+# contract). This version is bound into ``transform_config_payload`` (hence the
+# transform hash / package UUID / release version), so an evidence-report *schema*
+# change mints a NEW immutable release instead of being reused under a
+# predecessor's identity (R17 mechanism). It is deliberately an *explicit* schema
+# identity rather than a byte-level hash of report.py: only an intentional
+# canonical-shape change should remint, never a comment/docstring/logging edit.
+EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-3"
 
 
 @dataclass(frozen=True)
@@ -70,7 +71,6 @@ def build_report(
     persisted_corpus_digest: str,
     concordance: ConcordanceResult,
     canaries: tuple[CanaryResult, ...],
-    legacy_reachability_violations: int,
     persisted: bool,
 ) -> EvidenceReport:
     """Build the evidence report after persistence (K step e)."""
@@ -93,7 +93,6 @@ def build_report(
         and not recon.findings.duplications
         and concordance.passed
         and all(c.passed for c in canaries)
-        and legacy_reachability_violations == 0
         and persisted
     )
 
@@ -159,7 +158,6 @@ def build_report(
         "invalid_locators": len(concordance.locator_failures),
         "concordance_failures": len(concordance.content_failures),
         "version_canaries": {c.name: c.passed for c in canaries},
-        "legacy_reachability_violations": legacy_reachability_violations,
         "prepublication_validation_status": "pass" if prepublication_ok else "fail",
     }
     # Actual host as an operational diagnostic ONLY — deliberately outside the

@@ -1,36 +1,36 @@
-# Quarantined Legacy SRD Artifact — CRD Issue 5c (#132), ADR-005c Owner Decision 1
+# Retired Legacy SRD Artifact — CRD Issue 5c (#132)
 
-This directory holds **inert historical evidence only**. Nothing in the running
-system reads, ingests, selects, publishes, or regenerates from it. It is retained
-solely to document the defect that CRD Issue 5c remediated.
+This directory is a historical note only. The obsolete legacy SRD artifact and
+its strict cross-store quarantine machinery have been **deleted** under the
+pre-release clean baseline (Issue 5c Rev7 / Issue 18 Rev6). Nothing in the
+running system reads, ingests, selects, publishes, or regenerates from the old
+artifact; it survives only in Git history.
 
-## Artifact identity
+## What existed
 
-- **File:** `srd_5_2_1_structured.legacy.json` (moved here from the former
-  default ingestion location `data/srd/srd_5_2_1_structured.json`).
-- **SHA-256:** `3d1e7de02a2d37f6a4aadec01d8854aec7fda6a7c7ec765ca1d3a942b9187e02`
-- **Size:** 58,686 bytes
-- **Former package identity (Issue 5b path):** name `D&D SRD 5.2.1`, version `5.2.1`.
+- **File (deleted):** `srd_5_2_1_structured.legacy.json` — formerly the default
+  ingestion input at `data/srd/srd_5_2_1_structured.json`, then quarantined here.
+  It held 54 sections / 50 entities against a 364-page authoritative PDF; no code
+  path or test ever derived, checked, or reconciled it against the source. Issue
+  5c's concordance audit confirmed content/locator defects consistent with
+  pre-5.2.1 (2014) material under a `5.2.1` tag (e.g. Cure Wounds `1d8` with an
+  undead/construct exclusion vs SRD 5.2.1's `2d8` and no exclusion).
+- **Former package identity:** name `D&D SRD 5.2.1`, version `5.2.1`.
 
-## Why it is quarantined (not authoritative)
+## Pre-release clean baseline (owner decision)
 
-ADR-005c found CRD Issue 5b's full-corpus contract unmet: this artifact holds 54
-sections / 50 entities against a 364-page authoritative PDF, and no code path or
-test ever derived, checked, or reconciled it against the source. CRD Issue 5c's
-concordance audit further confirmed content and locator defects consistent with
-pre-5.2.1 (2014) material under a `5.2.1` tag — e.g. Cure Wounds `1d8` with an
-undead/construct exclusion (SRD 5.2.1: `2d8`, no exclusion), and `page_ref`
-values that match none of their actual PDF locations.
+Afterworlds is pre-release, so persistence created before Issue 5c receives no
+upgrade-compatibility or preservation guarantee. The former strict
+quarantine/zero-reachability contract (a repo+runtime reachability scan and a
+publication-time legacy check) is **superseded**. The baseline instead:
 
-## Quarantine rule (Owner Decision 1)
-
-This material is **never eligible** for publication, ingestion, package
-selection, fallback, seed, migration input, or regeneration. It must remain
-unreachable from every executable path — production code, scripts, CLI defaults,
-seed operations, package manifests, test fixtures, and runtime lookups. The
-zero-reachability rule is machine-checked by
-`afterworlds.ingestion.corpus.quarantine.check_legacy_reachability` and covered
-by the Issue 5c test suite (Acceptance #12).
+1. deletes the incomplete SQL package and its dependent rows (migration `0018`);
+2. deletes the obsolete JSON and retires every loader/default/seed/fallback/reader
+   for it;
+3. resets the configured development Chroma store in full once
+   (`scripts/reset_corpus_baseline.py`) before rebuilding the corrected corpus;
+4. rebuilds the rules-corpus projection only from the published Issue-5c
+   SQLite-authoritative package.
 
 Downstream consumers bind only to the new immutable corpus release produced by
-the Issue 5c pipeline, which supersedes this artifact.
+the Issue 5c pipeline, which supersedes the retired artifact.

@@ -30,7 +30,6 @@ back in the exact order the in-memory payload used.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import delete, select
@@ -71,7 +70,6 @@ from afterworlds.ingestion.corpus.policy import (
     policy_hash,
     policy_payload,
 )
-from afterworlds.ingestion.corpus.quarantine import check_legacy_reachability
 from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
@@ -1007,7 +1005,6 @@ def finalize_release(
     session: Session,
     candidate: CandidateRelease,
     *,
-    repo_root: Path,
     now: str,
     chroma_client: ClientAPI,
     retrieval_config: RetrievalMemoryConfig,
@@ -1051,7 +1048,6 @@ def finalize_release(
     return _finalize_core(
         session,
         candidate,
-        repo_root=repo_root,
         now=now,
         chroma_client=chroma_client,
         retrieval_config=retrieval_config,
@@ -1063,7 +1059,6 @@ def _finalize_core(
     session: Session,
     candidate: CandidateRelease,
     *,
-    repo_root: Path,
     now: str,
     chroma_client: ClientAPI,
     retrieval_config: RetrievalMemoryConfig,
@@ -1158,7 +1153,6 @@ def _finalize_core(
                     failures=(f"persisted reconciliation policy invalid: {exc}",),
                 ),
             )
-        legacy_violations = check_legacy_reachability(session, repo_root)
         sql_persist_ok = (
             len(artifacts.ledger.leaves) == len(candidate.ledger.leaves)
             and len(artifacts.members.chunks) == len(candidate.members.chunks)
@@ -1167,7 +1161,6 @@ def _finalize_core(
         evidence = PublicationEvidence(
             sql_persist_ok=sql_persist_ok,
             vector_write_ok=vector_result.ok,
-            legacy_reachability_violations=len(legacy_violations),
             chunk_membership_violations=len(membership_violations),
             source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
@@ -1297,9 +1290,6 @@ def _finalize_core(
             vector_state,
         )
 
-        # --- live legacy zero-reachability check (this session, not assumed) --
-        legacy_violations = check_legacy_reachability(session, repo_root)
-
         # --- e: post-persistence evidence report; f: hash it ------------------
         concordance = check_concordance(members.chunks, candidate.pages)
         canaries = check_canaries(candidate.pages)
@@ -1316,7 +1306,6 @@ def _finalize_core(
             persisted_corpus_digest=digest,
             concordance=concordance,
             canaries=canaries,
-            legacy_reachability_violations=len(legacy_violations),
             persisted=True,  # legitimate: computed from the reconstruction above
         )
         report_h = report_hash(report)
@@ -1363,7 +1352,6 @@ def _finalize_core(
         evidence = PublicationEvidence(
             sql_persist_ok=sql_persist_ok,
             vector_write_ok=vector_result.ok,
-            legacy_reachability_violations=len(legacy_violations),
             chunk_membership_violations=len(membership_violations),
             source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
