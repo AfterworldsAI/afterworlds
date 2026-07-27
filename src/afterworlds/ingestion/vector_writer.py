@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Mapping
-from dataclasses import dataclass
 
 from chromadb.api import ClientAPI as ChromaClientAPI
 from chromadb.api.models.Collection import Collection as ChromaCollection
@@ -60,26 +59,16 @@ def _collection_name(package_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Result type
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class QueryResult:
-    """Result of a semantic query against a package's vector collection."""
-
-    chunk_ids: list[str]
-    distances: list[float]
-    documents: list[str]
-
-
-# ---------------------------------------------------------------------------
 # VectorWriter
 # ---------------------------------------------------------------------------
 
 
 class VectorWriter:
-    """Interim ChromaDB write/query path for rule chunks.
+    """Interim ChromaDB write path for rule chunks (generic ingestion service).
+
+    The superseded interim semantic reader (``query()``) was removed under the
+    pre-release clean baseline; the supported diagnostic reader is
+    ``RulesCorpusService.diagnostic_query()`` (publication-gated, non-creating).
 
     KNOWN UNKNOWN: collection schema, naming, metadata fields, and embedding
     model are all designated for CRD Issue 18 revision.
@@ -184,41 +173,6 @@ class VectorWriter:
             )
         ]
         collection.upsert(documents=contents, metadatas=metadatas, ids=chunk_ids)
-
-    def query(
-        self,
-        query_text: str,
-        package_id: str,
-        n_results: int = 5,
-    ) -> QueryResult:
-        """Basic semantic query against the package's interim collection.
-
-        Returns up to *n_results* nearest neighbours.
-
-        KNOWN UNKNOWN: scoring thresholds and retrieval strategy — see module
-        docstring.
-        """
-        collection = self._get_or_create_collection(package_id)
-        count = collection.count()
-        if count == 0:
-            return QueryResult(chunk_ids=[], distances=[], documents=[])
-        actual_n = min(n_results, count)
-        results = collection.query(
-            query_texts=[query_text],
-            n_results=actual_n,
-        )
-        chunk_ids: list[str] = []
-        distances: list[float] = []
-        documents: list[str] = []
-        if results["ids"] and results["ids"][0]:
-            chunk_ids = list(results["ids"][0])
-        if results["distances"] and results["distances"][0]:
-            distances = [float(d) for d in results["distances"][0]]
-        if results["documents"] and results["documents"][0]:
-            documents = [str(d) for d in results["documents"][0]]
-        return QueryResult(
-            chunk_ids=chunk_ids, distances=distances, documents=documents
-        )
 
     def count_chunks(self, package_id: str) -> int:
         """Return the number of documents in the collection for *package_id*.
