@@ -124,11 +124,13 @@ class _Client:
 
 
 def _run_main(  # type: ignore[no-untyped-def]
-    script, monkeypatch, tmp_path, stub_resolver=True
+    script, monkeypatch, tmp_path, stub_resolver=True, db_url=None
 ):
     """Run main() with the *destructive* steps (client construction + store reset)
     recorded instead of performed. The resolver is real unless stubbed, so a test
-    can prove the configured target genuinely validates."""
+    can prove the configured target genuinely validates. *db_url* defaults to an
+    empty DB; pass a seeded one to exercise the rebuild loop through the same
+    recorded path."""
     seen: dict[str, object] = {}
     # Ordered trace of what the operator sees vs. what is destroyed, so a test can
     # assert the warning precedes the deletion rather than merely co-occurring.
@@ -162,7 +164,7 @@ def _run_main(  # type: ignore[no-untyped-def]
     monkeypatch.setattr(
         sys,
         "argv",
-        ["reset_corpus_baseline.py", "--db-url", _empty_db_url(tmp_path)],
+        ["reset_corpus_baseline.py", "--db-url", db_url or _empty_db_url(tmp_path)],
     )
 
     assert script.main() == 0
@@ -267,7 +269,6 @@ def test_reset_rebuilds_only_published_rules_corpora_and_never_story_memory(
     enumeration, no story reindex. Owner Decision 1 keeps that on Issue 18's CLI."""
     script = _load_script()
     monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
-    db_url = _seeded_db_url(tmp_path)
 
     reindexed: list[str] = []
 
@@ -280,14 +281,21 @@ def test_reset_rebuilds_only_published_rules_corpora_and_never_story_memory(
             return 7
 
     monkeypatch.setattr(script, "RulesCorpusService", _Service)
-    monkeypatch.setattr(script, "build_chroma_client", lambda config: _Client())
-    monkeypatch.setattr(script, "reset_chroma_store", lambda client: [])
-    monkeypatch.setattr(sys, "argv", ["reset_corpus_baseline.py", "--db-url", db_url])
 
-    assert script.main() == 0
+    seen = _run_main(script, monkeypatch, tmp_path, db_url=_seeded_db_url(tmp_path))
 
     # Exactly the published package — the draft one is not rebuilt.
     assert reindexed == [_PUBLISHED_PKG]
+    # And the operator's warning still precedes the deletion in the scenario that
+    # actually has something to rebuild, not only on an empty store.
+    events = seen["events"]
+    assert next(
+        i
+        for i, e in enumerate(events)  # type: ignore[arg-type]
+        if "story_memory" in e and "DESTRUCTIVE" in e
+    ) < events.index(
+        "RESET"
+    )  # type: ignore[union-attr]
     # And no story-memory machinery is reachable from this command at all.
     source = _SCRIPT_PATH.read_text(encoding="utf-8")
     for forbidden in (
@@ -306,14 +314,15 @@ def test_usage_states_story_memory_is_deleted_and_not_rebuilt(
     story_memory is deleted, that only rules corpora are rebuilt, and name the
     separate per-story restoration command."""
     script = _load_script()
-    monkeypatch.setenv("COLUMNS", "200")
     monkeypatch.setattr(sys, "argv", ["reset_corpus_baseline.py", "--help"])
 
     with pytest.raises(SystemExit):
         script.main()
 
-    out = capsys.readouterr().out
+    # Assert on meaning, not on markdown emphasis: a reworded docstring that still
+    # discloses the loss must keep passing. Markup is normalized away first.
+    out = capsys.readouterr().out.replace("*", "").replace("`", "")
     assert "story_memory" in out
-    assert "does **not** restore story memory" in out
-    assert "published Issue-5c rules-corpus projections only" in out
+    assert "not restore story memory" in out
+    assert "rules-corpus projections only" in out
     assert "retrieval_backfill.py --story-id <uuid> --mode reindex" in out
