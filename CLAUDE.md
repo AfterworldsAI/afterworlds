@@ -146,5 +146,7 @@ After each task, append dated one-line lessons when corrected, an assumption fai
 * [2026-04-02] When CI reports a file, verify the fix is staged, committed, and pushed by checking `git diff`, `git status`, and commit contents.
 * [2026-04-02] Pin Black exactly in dev dependencies to reduce CI/local drift, but prove drift before blaming it.
 * [2026-04-07] CRD issue numbers and GitHub issue/PR numbers are different namespaces; always write `CRD Issue N` or `#N`.
+* [2026-07-28] An operator-facing configuration name (env var, flag, path) is only correct if a test reads it through the same code the operator's command runs; documenting one name while `from_env()` reads another is invisible to every unit test that sets the name itself.
+* [2026-07-28] When a `try` block owns cross-store compensation, the boundary must open before the *first* mutation of the transactional store, and each compensating action must be armed only across the window in which its resource can exist.
 
 <!-- Claude Code appends dated one-line lessons here as they are learned -->

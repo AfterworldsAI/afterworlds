@@ -28,6 +28,7 @@ import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
 from afterworlds.persistence.database import create_engine
 from afterworlds.persistence.orm.base import Base
+from afterworlds.pipeline.retrieval.config import DEFAULT_PERSIST_DIRECTORY
 
 CANONICAL_ENV = "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY"
 MISTAKEN_ENV = "AFTERWORLDS_RETRIEVAL_PERSIST_DIR"
@@ -130,8 +131,10 @@ def test_mistaken_short_name_is_not_an_alias(
 
     seen = _run_main(script, monkeypatch, tmp_path)
 
-    assert seen["resolved_from"] != str(tmp_path / "decoy_store")
-    assert seen["client_config"].persist_directory != str(tmp_path / "decoy_store")  # type: ignore[union-attr]
+    # Positive, not merely "not the decoy": with the canonical variable unset the
+    # script falls through to the documented default, exactly as it always did.
+    assert seen["resolved_from"] == DEFAULT_PERSIST_DIRECTORY
+    assert seen["client_config"].persist_directory == DEFAULT_PERSIST_DIRECTORY  # type: ignore[union-attr]
 
 
 def test_usage_documents_only_the_canonical_variable(
