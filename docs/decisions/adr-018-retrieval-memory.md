@@ -16,7 +16,18 @@ begin only after this Phase 1 PR is merged.
 > published Issue-5c SQLite-authoritative package via the existing reindex path
 > (`RulesCorpusService.reindex_from_sql`). The superseded interim direct reader (`VectorWriter.query()`)
 > was removed; the supported diagnostic reader remains `RulesCorpusService.diagnostic_query()`
-> (publication-gated, non-creating). Story-memory restoration uses the same Issue 18 reindex path.
+> (publication-gated, non-creating).
+>
+> **Clarification (2026-07-28).** The full-store reset deletes **every** collection, including the
+> shared `story_memory` collection, and the baseline command rebuilds **published rules-corpus
+> projections only**. "Story-memory restoration uses the same Issue 18 reindex path" names the
+> *optional recovery mechanism* — `scripts/retrieval_backfill.py --mode reindex`, run per story — and
+> does **not** make restoration a step of the Issue-5c baseline command, which deliberately does not
+> enumerate or reindex stories (GitHub #132 Owner Decision 1: "any desired story-memory backfill uses
+> Issue 18's existing reindex path and is not redesigned here"). Nothing is lost that SQLite cannot
+> regenerate — story memory is a rebuildable projection of SQLite-authoritative turns — but it is
+> regenerated only when an operator asks for it. The reset command warns of exactly this before it
+> deletes anything.
 
 ---
 

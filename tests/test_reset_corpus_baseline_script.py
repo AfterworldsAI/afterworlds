@@ -1,4 +1,4 @@
-"""Tests for scripts/reset_corpus_baseline.py — CRD Issue 5c (#132), PR #134 R19.
+"""Tests for scripts/reset_corpus_baseline.py — CRD Issue 5c (#132), PR #134 R19/R20.
 
 Codex review: the destructive reset's operator-facing configuration contract must
 name the variable the code actually reads. ``RetrievalMemoryConfig.from_env()``
@@ -26,9 +26,13 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
-from afterworlds.persistence.database import create_engine
+from afterworlds.persistence.crud.story import create_story
+from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
+from afterworlds.persistence.orm.corpus import CorpusReleaseORM
+from afterworlds.persistence.orm.rules_package import RulesPackageORM
 from afterworlds.pipeline.retrieval.config import DEFAULT_PERSIST_DIRECTORY
+from tests.persistence.conftest import make_story
 
 CANONICAL_ENV = "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY"
 MISTAKEN_ENV = "AFTERWORLDS_RETRIEVAL_PERSIST_DIR"
@@ -63,6 +67,58 @@ def _empty_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
     return url
 
 
+_PUBLISHED_PKG = "11111111-1111-4111-8111-111111111111"
+_DRAFT_PKG = "22222222-2222-4222-8222-222222222222"
+
+
+def _seeded_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
+    """A DB holding one published + one draft corpus release and a real story, so
+    the rebuild loop's selectivity and its indifference to stories are both
+    observable."""
+    db_path = tmp_path / "seeded.db"
+    url = f"sqlite:///{db_path}"
+    engine = create_engine(url)
+    Base.metadata.create_all(engine)
+    factory = create_session_factory(engine)
+    now = "2026-07-28T00:00:00Z"
+    with factory() as session:
+        statuses = ((_PUBLISHED_PKG, "published"), (_DRAFT_PKG, "draft"))
+        for pkg, status in statuses:
+            session.add(
+                RulesPackageORM(
+                    rules_package_id=pkg,
+                    name=f"pkg-{status}",
+                    system="dnd5e",
+                    version="1.0.0",
+                    is_enabled=True,
+                    publication_status=status,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+        session.flush()  # packages must exist before the FK-referencing releases
+        for pkg, status in statuses:
+            session.add(
+                CorpusReleaseORM(
+                    package_uuid=pkg,
+                    release_version="1.0.0",
+                    authoritative_source_hash="a" * 64,
+                    transform_config_hash="b" * 64,
+                    bundle_root_hash="c" * 64,
+                    ledger_hash="d" * 64,
+                    policy_hash="e" * 64,
+                    reconciliation_hash="f" * 64,
+                    transform_config={},
+                    publication_status=status,
+                    created_at=now,
+                )
+            )
+        create_story(session, make_story())
+        session.commit()
+    engine.dispose()
+    return url
+
+
 class _Client:
     """Stand-in for the constructed Chroma client (identity is what matters)."""
 
@@ -74,6 +130,14 @@ def _run_main(  # type: ignore[no-untyped-def]
     recorded instead of performed. The resolver is real unless stubbed, so a test
     can prove the configured target genuinely validates."""
     seen: dict[str, object] = {}
+    # Ordered trace of what the operator sees vs. what is destroyed, so a test can
+    # assert the warning precedes the deletion rather than merely co-occurring.
+    events: list[str] = []
+    seen["events"] = events
+
+    def recording_print(*args, **kwargs):  # type: ignore[no-untyped-def]
+        events.append("print: " + " ".join(str(a) for a in args))
+        print(*args, **kwargs)
 
     def fake_resolve(persist_directory):  # type: ignore[no-untyped-def]
         seen["resolved_from"] = persist_directory
@@ -84,9 +148,13 @@ def _run_main(  # type: ignore[no-untyped-def]
         return _Client()
 
     def fake_reset(client):  # type: ignore[no-untyped-def]
+        events.append("RESET")
         seen["reset_client"] = client
         return []
 
+    # The script's module globals shadow the builtin, so this captures its prints
+    # in order without suppressing them.
+    monkeypatch.setattr(script, "print", recording_print, raising=False)
     if stub_resolver:
         monkeypatch.setattr(script, "resolve_reset_target", fake_resolve)
     monkeypatch.setattr(script, "build_chroma_client", fake_build_client)
@@ -154,3 +222,98 @@ def test_usage_documents_only_the_canonical_variable(
     out = capsys.readouterr().out
     assert CANONICAL_ENV in out
     assert out.count(MISTAKEN_ENV) == out.count(CANONICAL_ENV)
+
+
+# ---------------------------------------------------------------------------
+# Round 20: the full-store reset also deletes the shared story_memory collection.
+# Ownership was already settled — GitHub #132 Owner Decision 1 keeps story-memory
+# restoration on Issue 18's existing per-story reindex path ("any desired
+# story-memory backfill ... is not redesigned here"), so this command must NOT
+# enumerate or reindex stories. What was missing is operator disclosure: the loss
+# has to be stated BEFORE the deletion, and --help has to say it too.
+# ---------------------------------------------------------------------------
+
+
+def test_warns_that_story_memory_is_deleted_before_deleting_anything(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The warning is a warning, not a post-mortem: it must be printed before
+    reset_chroma_store() runs, and it must name what is lost and how to get it
+    back."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+
+    seen = _run_main(script, monkeypatch, tmp_path)
+    events = seen["events"]
+
+    reset_at = events.index("RESET")  # type: ignore[union-attr]
+    warned_at = next(
+        i
+        for i, e in enumerate(events)  # type: ignore[arg-type]
+        if "story_memory" in e and "DESTRUCTIVE" in e
+    )
+    assert warned_at < reset_at
+
+    warning = events[warned_at]  # type: ignore[index]
+    assert "does NOT restore story memory" in warning
+    assert "retrieval_backfill.py" in warning and "--mode reindex" in warning
+
+
+def test_reset_rebuilds_only_published_rules_corpora_and_never_story_memory(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With a published corpus release AND a story present, the command rebuilds
+    exactly the published rules-corpus projection and touches no story: no story
+    enumeration, no story reindex. Owner Decision 1 keeps that on Issue 18's CLI."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+    db_url = _seeded_db_url(tmp_path)
+
+    reindexed: list[str] = []
+
+    class _Service:
+        def __init__(self, client, config):  # type: ignore[no-untyped-def]
+            pass
+
+        def reindex_from_sql(self, session, pkg):  # type: ignore[no-untyped-def]
+            reindexed.append(str(pkg))
+            return 7
+
+    monkeypatch.setattr(script, "RulesCorpusService", _Service)
+    monkeypatch.setattr(script, "build_chroma_client", lambda config: _Client())
+    monkeypatch.setattr(script, "reset_chroma_store", lambda client: [])
+    monkeypatch.setattr(sys, "argv", ["reset_corpus_baseline.py", "--db-url", db_url])
+
+    assert script.main() == 0
+
+    # Exactly the published package — the draft one is not rebuilt.
+    assert reindexed == [_PUBLISHED_PKG]
+    # And no story-memory machinery is reachable from this command at all.
+    source = _SCRIPT_PATH.read_text(encoding="utf-8")
+    for forbidden in (
+        "reindex_story",
+        "backfill_story",
+        "StoryORM",
+        "RetrievalMemoryWriteService",
+    ):
+        assert forbidden not in source
+
+
+def test_usage_states_story_memory_is_deleted_and_not_rebuilt(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--help is the operator's contract for a destructive command: it must say
+    story_memory is deleted, that only rules corpora are rebuilt, and name the
+    separate per-story restoration command."""
+    script = _load_script()
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.setattr(sys, "argv", ["reset_corpus_baseline.py", "--help"])
+
+    with pytest.raises(SystemExit):
+        script.main()
+
+    out = capsys.readouterr().out
+    assert "story_memory" in out
+    assert "does **not** restore story memory" in out
+    assert "published Issue-5c rules-corpus projections only" in out
+    assert "retrieval_backfill.py --story-id <uuid> --mode reindex" in out

@@ -921,3 +921,42 @@ not a publication path; `delete_release` (deletes + flush, caller-owned
 transaction, no vector side) — **already safe**; broader
 cross-store/two-phase publication semantics — **out of scope** (Issue 5d /
 retrieval redesign, explicitly excluded this round).
+
+---
+
+## Round 20 — reset-command disclosure (ownership already settled)
+
+**Boundary, not a redesign.** Codex correctly observed that the full-store reset
+deletes the shared `story_memory` collection while the command rebuilds only the
+Issue-5c rules corpus. The suggested remedy — reindex all persisted stories inside
+this command — is **not** the accepted contract: GitHub #132 Owner Decision 1 states
+"any desired story-memory backfill uses Issue 18's existing reindex path and is not
+redesigned here", and pre-5c development persistence carries no preservation
+guarantee. Enumerating and reindexing every story here would turn the Issue-5c
+baseline into Issue-18 restoration orchestration. Ownership is unchanged; what was
+genuinely missing was **operator disclosure**.
+
+**Corrected.** `scripts/reset_corpus_baseline.py` now states, in both `--help` and a
+runtime warning, that the reset is full-store and deletes every collection
+**including `story_memory`**; that the command rebuilds published rules-corpus
+projections **only**; that it does **not** restore story memory and deliberately does
+not enumerate or reindex stories; and that restoration is the existing per-story
+`scripts/retrieval_backfill.py --story-id <uuid> --mode reindex`. The warning is
+printed **before** `reset_chroma_store()` — a notice printed after deletion is a
+report, not a warning — and a closing line repeats it. `--help` uses
+`RawDescriptionHelpFormatter` so the section reaches the operator as written. ADR-018's
+2026-07-27 correction gained a dated clarification: "story-memory restoration uses the
+same Issue 18 reindex path" names the *optional recovery mechanism*, not a step of the
+Issue-5c command. Nothing about corpus publication, evidence-report identity, or the
+clean-baseline Owner Decision changed.
+
+**Regressions.** `test_warns_that_story_memory_is_deleted_before_deleting_anything`
+records an ordered trace of the script's prints against the reset call and asserts the
+`story_memory` warning precedes `RESET` (and names the restoration command);
+`test_usage_states_story_memory_is_deleted_and_not_rebuilt` pins the same disclosure in
+`--help`; `test_reset_rebuilds_only_published_rules_corpora_and_never_story_memory`
+seeds a published release, a draft release, and a real story, then asserts exactly the
+published package is reindexed and that no story-memory machinery (`reindex_story`,
+`backfill_story`, `StoryORM`, `RetrievalMemoryWriteService`) is reachable from the
+script at all. The Round-18/19 reset-safety, idempotency, env-var, and rules-corpus
+rebuild tests are unchanged and green.

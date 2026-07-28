@@ -20,6 +20,25 @@ The Chroma target is the configured ``RetrievalMemoryConfig.persist_directory``
 destructive action and the reset only ever deletes collections through the
 configured client. Idempotent: safe to re-run (a reset of an empty store is a
 no-op, and reindex is deterministic).
+
+DESTRUCTIVE — what this deletes and what it does NOT rebuild
+------------------------------------------------------------
+The reset is a **full-store** reset: it deletes **every** collection in the
+configured store, **including the shared ``story_memory`` collection**. This
+command then rebuilds **published Issue-5c rules-corpus projections only**. It
+does **not** restore story memory, and it deliberately does not enumerate or
+reindex stories — restoration is an existing per-story Issue 18 operation, not
+part of the Issue-5c baseline (GitHub #132 Owner Decision 1: "any desired
+story-memory backfill uses Issue 18's existing reindex path and is not
+redesigned here").
+
+Story memory is a rebuildable projection of SQLite-authoritative turns, so
+nothing is lost that SQLite cannot regenerate — but it is regenerated only when
+an operator asks for it. To restore it, run the existing Issue 18 CLI once per
+surviving story::
+
+    python scripts/retrieval_backfill.py --story-id <uuid> --mode reindex \\
+        --db-url sqlite:///afterworlds.db
 """
 
 from __future__ import annotations
@@ -48,9 +67,24 @@ from afterworlds.pipeline.retrieval.rules_corpus_service import (  # noqa: E402
     RulesCorpusService,
 )
 
+WARNING = """\
+DESTRUCTIVE: this is a FULL-STORE reset — every collection in the configured
+Chroma store is deleted, INCLUDING the shared 'story_memory' collection.
+This command rebuilds published Issue-5c rules-corpus projections ONLY.
+It does NOT restore story memory and does not enumerate or reindex stories.
+Story memory is a rebuildable projection of SQLite-authoritative turns; to
+restore it, run the existing Issue 18 CLI once per surviving story:
+    python scripts/retrieval_backfill.py --story-id <uuid> --mode reindex \\
+        --db-url <same db url>
+"""
+
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
+    # Raw formatter: the destructive-behaviour section above must reach --help
+    # laid out as written, not reflowed into one paragraph.
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--db-url", required=True, help="SQLAlchemy DB URL (authoritative)")
     args = ap.parse_args()
 
@@ -61,7 +95,10 @@ def main() -> int:
     print(f"Chroma target validated: {target}")
 
     # Step 3: full reset of the configured store (delete every collection).
+    # The operator is told what this destroys BEFORE anything is destroyed — a
+    # warning printed after the deletion would be a report, not a warning.
     client = build_chroma_client(config)
+    print(WARNING)
     deleted = reset_chroma_store(client)
     print(f"Reset complete: deleted {len(deleted)} collection(s).")
 
@@ -85,6 +122,11 @@ def main() -> int:
             rebuilt += 1
     if rebuilt == 0:
         print("No published corpus release found — store reset only (idempotent).")
+    print(
+        "Story memory was NOT restored (rules corpus only). Reindex any story you "
+        "still want with: scripts/retrieval_backfill.py --story-id <uuid> "
+        "--mode reindex"
+    )
     return 0
 
 
