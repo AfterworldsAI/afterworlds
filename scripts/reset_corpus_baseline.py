@@ -16,7 +16,7 @@ Usage
     python scripts/reset_corpus_baseline.py --db-url sqlite:///afterworlds.db
 
 The Chroma target is the configured ``RetrievalMemoryConfig.persist_directory``
-(``AFTERWORLDS_RETRIEVAL_PERSIST_DIR``); it is resolved and validated before any
+(``AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY``); it is resolved and validated before any
 destructive action and the reset only ever deletes collections through the
 configured client. Idempotent: safe to re-run (a reset of an empty store is a
 no-op, and reindex is deterministic).

@@ -1134,10 +1134,13 @@ def test_published_package_retrievable_via_rules_package_service(
 
 
 # ---------------------------------------------------------------------------
-# Cross-store compensation: the fresh-publish vector attempt through a
-# successful commit is one exception-safe boundary. Cleanup is armed before the
-# reindex and disarmed only after commit, so every unsuccessful exit — failed
-# gate, ordinary exception, or commit exception — rolls back SQL and drops this
+# Cross-store compensation: the WHOLE fresh-publish path — from the first SQL
+# mutation (draft package/source/release/bundle persistence) through a successful
+# commit — is one exception-safe boundary. Vector cleanup starts DISARMED, is
+# armed only immediately before the reindex, and is disarmed only after commit.
+# So a pre-vector SQL failure rolls back SQL and touches no collection at all,
+# while every unsuccessful exit from the vector attempt onward — failed gate,
+# ordinary exception, or commit exception — rolls back SQL and drops this
 # attempt's rules-corpus collection. Reuse (verification only) never deletes an
 # existing published collection. (PR #134 P2, AGENTS.md transaction/rollback.)
 # ---------------------------------------------------------------------------
@@ -1162,67 +1165,122 @@ def _pkg_row_absent(session, pkg):
     )
 
 
-def test_exception_during_reconstruction_rolls_back_and_removes_collection(
-    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+def _draft_rows_absent(session, pkg):
+    """No trace of the aborted attempt in any table the fresh path writes."""
+    return (
+        _pkg_row_absent(session, pkg)
+        and session.execute(
+            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+        ).scalar_one_or_none()
+        is None
+        and session.execute(
+            select(RuleSourceORM).where(RuleSourceORM.rules_package_id == pkg)
+        ).first()
+        is None
+        and session.execute(
+            select(LedgerLeafORM).where(LedgerLeafORM.package_uuid == pkg)
+        ).first()
+        is None
+        and session.execute(
+            select(RuleChunkORM).where(RuleChunkORM.rules_package_id == pkg)
+        ).first()
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["_persist_package_and_source", "_persist_release_record", "_persist_bundle_rows"],
+)
+def test_pre_vector_persistence_failure_rolls_back_sql_and_never_touches_chroma(
+    session,
+    candidate,
+    chroma_client,
+    retrieval_config,
+    fake_embedding,
+    monkeypatch,
+    target,
 ):
-    """An exception AFTER the reindex wrote the collection (here, during report
-    preparation) rolls back SQL, removes the collection, and propagates."""
+    """A failure during fresh-release draft persistence — before the vector
+    attempt — is inside the boundary: SQL is rolled back and the exception
+    propagates, but because cleanup is still DISARMED no collection is created,
+    inspected, or deleted. The session stays immediately reusable and a clean
+    retry publishes."""
+    original = getattr(persistence_mod, target)
+    fired = []
+    cleanup_calls = []
 
-    def boom(*args, **kwargs):
-        raise _Boom("report preparation failed after vector write")
+    def fault(*args, **kwargs):
+        # Fail AFTER the real writes so the aborted attempt genuinely has pending
+        # ORM state (its own rows plus any earlier step's) to roll back.
+        result = original(*args, **kwargs)
+        if not fired:
+            fired.append(target)
+            raise _Boom(f"{target} failed")
+        return result
 
-    # build_report runs after reindex_and_verify returns (which verified it wrote
-    # N>0 docs), so the collection provably existed → count 0 proves removal.
-    monkeypatch.setattr(persistence_mod, "build_report", boom)
+    def record_cleanup(*args, **kwargs):
+        cleanup_calls.append(args)
+
+    monkeypatch.setattr(persistence_mod, target, fault)
+    monkeypatch.setattr(persistence_mod, "cleanup_vector_collection", record_cleanup)
 
     with pytest.raises(_Boom):
         _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
 
-    assert _pkg_row_absent(session, candidate.package_uuid)
+    # Chroma was never touched: not armed, so not cleaned up — and nothing was
+    # written to clean up in the first place.
+    assert cleanup_calls == []
     assert (
         _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
         == 0
     )
+    # The session is immediately reusable (these queries run on it) and no draft
+    # rows or pending ORM state survived the rollback.
+    assert _draft_rows_absent(session, candidate.package_uuid)
+    assert not session.new and not session.dirty and not session.deleted
 
-
-def test_exception_from_run_gate_rolls_back_and_removes_collection(
-    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
-):
-    """An exception raised by run_gate receives the same compensation."""
-
-    def boom(*args, **kwargs):
-        raise _Boom("gate execution failed")
-
-    monkeypatch.setattr(persistence_mod, "run_gate", boom)
-
-    with pytest.raises(_Boom):
-        _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
-
-    assert _pkg_row_absent(session, candidate.package_uuid)
+    # A clean retry on the same session publishes normally.
+    retry = _finalize(
+        session, candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert retry.published and not retry.reused, retry.gate
     assert (
         _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
-        == 0
+        > 0
     )
 
 
-def test_commit_exception_rolls_back_and_removes_collection(
-    session, candidate, chroma_client, retrieval_config, fake_embedding, monkeypatch
+@pytest.mark.parametrize("checkpoint", ["build_report", "run_gate", "commit"])
+def test_post_vector_failure_rolls_back_sql_and_removes_collection(
+    session,
+    candidate,
+    chroma_client,
+    retrieval_config,
+    fake_embedding,
+    monkeypatch,
+    checkpoint,
 ):
-    """A session.commit() exception (the last step, after the gate passed and the
-    publish mutations were applied) rolls back SQL, removes the collection, and
-    propagates — compensation is not disarmed until commit actually returns."""
+    """Once the reindex has run, cleanup is ARMED: an exception during report
+    preparation, during the gate, or from the publication commit itself rolls back
+    SQL, removes this attempt's collection, and propagates. ``build_report`` and
+    ``run_gate`` both execute after reindex_and_verify returned (having verified
+    it wrote N>0 docs), so the collection provably existed → count 0 proves
+    removal. ``commit`` is the last step: compensation is not disarmed until it
+    actually returns, and it is the only commit on this path."""
 
-    def boom():
-        raise _Boom("commit failed")
+    def boom(*args, **kwargs):
+        raise _Boom(f"{checkpoint} failed")
 
-    # Only the publish commits in this path (reindex_from_sql / legacy check do
-    # not commit), so this fires exactly at the publication commit.
-    monkeypatch.setattr(session, "commit", boom)
+    if checkpoint == "commit":
+        monkeypatch.setattr(session, "commit", boom)
+    else:
+        monkeypatch.setattr(persistence_mod, checkpoint, boom)
 
     with pytest.raises(_Boom):
         _finalize(session, candidate, chroma_client, retrieval_config, fake_embedding)
 
-    assert _pkg_row_absent(session, candidate.package_uuid)
+    assert _draft_rows_absent(session, candidate.package_uuid)
     assert (
         _vcount(chroma_client, candidate.package_uuid, retrieval_config, fake_embedding)
         == 0

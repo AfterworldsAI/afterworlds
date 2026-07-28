@@ -1097,6 +1097,12 @@ def _finalize_core(
        ``published_at``, and commit. If it fails: roll the SQL transaction back
        **and** drop the vector collection this attempt created — no partial
        content survives a failed gate in either store.
+
+    The fresh path from step 2's first SQL mutation through the commit in step 8
+    is a single exception boundary; the only SQL touched before it is the
+    read-only idempotency ``select``. Vector cleanup is armed only across the
+    window where a collection can exist, so a pre-vector failure rolls back SQL
+    without creating, inspecting, or deleting anything in Chroma.
     """
     pkg = candidate.package_uuid
 
@@ -1214,52 +1220,54 @@ def _finalize_core(
             published=True, reused=True, artifacts=artifacts, gate=gate
         )
 
-    # --- c: persist the candidate as a non-runtime-visible SQL draft ---------
-    source_id = _persist_package_and_source(
-        session, pkg, candidate.release_version, now=now
-    )
-    _persist_release_record(
-        session,
-        pkg,
-        release_version=candidate.release_version,
-        authoritative_source_hash=candidate.authoritative_source_hash,
-        transform_config_hash=candidate.transform_config_hash,
-        bundle_root_hash=candidate.bundle.bundle_root_hash,
-        evidence_report_hash=None,
-        persisted_corpus_digest=None,
-        ledger_hash=candidate.ledger_hash,
-        policy_hash=candidate.policy_hash,
-        reconciliation_hash=candidate.reconciliation_hash,
-        corpus_report_reference=None,
-        transform_config=candidate.transform_config,
-        report_payload=None,
-        now=now,
-    )
-    _persist_bundle_rows(
-        session,
-        pkg,
-        source_id,
-        ledger=candidate.ledger,
-        recon=candidate.reconciliation,
-        policy=candidate.policy,
-        members=candidate.members,
-        now=now,
-    )
-
-    # --- c (cont.) through g: one cross-store compensation boundary ----------
-    # The Chroma write is NOT part of the SQL transaction, so from the moment the
-    # reindex may create the collection until session.commit() returns, every
-    # unsuccessful exit — a failed gate, any exception during read-back /
-    # reconstruction / digest / report / gate / publication mutation, or a commit
-    # exception — must roll back SQL and drop this attempt's collection, or a
-    # never-published release would leave the runtime-visible rules-corpus
-    # collection queryable through the diagnostic/admin surface (AGENTS.md
-    # transaction/rollback priority). Cleanup is ARMED before the reindex
-    # (reindex_and_verify can write the collection and then raise during
-    # read-back before returning) and DISARMED only after the publication commit
-    # succeeds.
-    cleanup_armed = True
+    # --- c–g: one exception + cross-store compensation boundary ----------
+    # The boundary begins BEFORE the first fresh-release SQL mutation, so a
+    # failure during draft persistence (package/source/release/bundle rows) is
+    # rolled back too — not only the vector attempt (PR #134 R19). Vector cleanup
+    # starts DISARMED: a pre-vector SQL failure must never create, inspect, or
+    # delete a Chroma collection. It is ARMED immediately before reindex_and_verify
+    # (which may write the collection and then raise during read-back) and DISARMED
+    # only after a successful publication commit. The Chroma write is not part of
+    # the SQL transaction, so from arming until commit every unsuccessful exit rolls
+    # back SQL and drops this attempt's collection (AGENTS.md rollback priority).
+    cleanup_armed = False
     try:
+        # --- c: persist the candidate as a non-runtime-visible SQL draft ---------
+        source_id = _persist_package_and_source(
+            session, pkg, candidate.release_version, now=now
+        )
+        _persist_release_record(
+            session,
+            pkg,
+            release_version=candidate.release_version,
+            authoritative_source_hash=candidate.authoritative_source_hash,
+            transform_config_hash=candidate.transform_config_hash,
+            bundle_root_hash=candidate.bundle.bundle_root_hash,
+            evidence_report_hash=None,
+            persisted_corpus_digest=None,
+            ledger_hash=candidate.ledger_hash,
+            policy_hash=candidate.policy_hash,
+            reconciliation_hash=candidate.reconciliation_hash,
+            corpus_report_reference=None,
+            transform_config=candidate.transform_config,
+            report_payload=None,
+            now=now,
+        )
+        _persist_bundle_rows(
+            session,
+            pkg,
+            source_id,
+            ledger=candidate.ledger,
+            recon=candidate.reconciliation,
+            policy=candidate.policy,
+            members=candidate.members,
+            now=now,
+        )
+
+        # Arm vector cleanup now: reindex_and_verify can write the collection and
+        # then raise during read-back. A pre-vector SQL failure above never reaches
+        # here, so it can never create/inspect/delete a collection.
+        cleanup_armed = True
         vector_result = reindex_and_verify(
             session, pkg, chroma_client, retrieval_config, embedding_function
         )
