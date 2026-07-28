@@ -849,3 +849,75 @@ knowledge required (reset takes none); (5) idempotent reset; (6) generic package
 reader neither retrieves nor recreates a deleted package UUID's collection; (8) new
 report schema remints identity and former-schema reports cannot be reused. Guard
 negative test: `resolve_reset_target` refuses root/home/cwd/ancestor/empty.
+
+---
+
+## Round 19 — fresh-publish rollback boundary + reset configuration contract
+
+**P2 (a) — every fresh-publication SQL write is now inside the compensation
+boundary.** `_finalize_core` opened its `try` *after* `_persist_package_and_source`,
+`_persist_release_record`, and `_persist_bundle_rows`, so an exception during draft
+persistence propagated with no `session.rollback()` — pending ORM state survived on
+a session the caller may keep using. The boundary now opens before the first
+fresh-release SQL mutation and closes only after a successful publication commit or
+completed failed-gate compensation. Audited for the "first mutation" claim: between
+the function signature and the boundary the only SQL is the read-only idempotency
+`select`; every other statement above it belongs to the reuse branch, which returns.
+Vector cleanup is initialised **disarmed** and armed immediately before
+`reindex_and_verify` (which can write the collection and then raise during
+read-back), disarmed only after commit — so a pre-vector SQL failure rolls back SQL
+and never creates, inspects, or deletes a Chroma collection. Failed-gate, post-vector,
+and commit compensation are behaviourally unchanged; reuse still verifies only.
+
+**P2 (b) — the destructive reset documented a variable nothing reads.**
+`scripts/reset_corpus_baseline.py` documented `AFTERWORLDS_RETRIEVAL_PERSIST_DIR`
+while `RetrievalMemoryConfig.from_env()` reads
+`AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY`; an operator following the documented
+command would have exported an ignored variable and reset the **default** store.
+Corrected to the canonical name — deliberately **not** aliased. Repo-wide audit of
+both spellings (all file types, excluding `venv/`/`.git/`): the docstring was the
+sole occurrence of the short name anywhere in the repo; all 12 other files (script,
+config, frontend e2e harness, API/backfill tests) already used the canonical name.
+Resolution, validation, client construction, reset, and rebuild all remain on the
+same `config.persist_directory`.
+
+**Regressions.** Parametrized fault injection at each pre-vector persistence step
+(package/source, release record, bundle rows), each failing *after* its real writes
+so genuine pending state must be rolled back, proving: the exception propagates; the
+session is immediately reusable; no draft rows survive in `rp_packages`,
+`rp_corpus_releases`, `rp_sources`, `rp_ledger_leaves`, or `rp_chunks`;
+`session.new/dirty/deleted` are empty; `cleanup_vector_collection` was never called
+and the collection count is 0; and a clean retry on the same session publishes. The
+post-vector (`build_report`), gate (`run_gate`), and `commit` checkpoints are
+parametrized alongside them (same coverage as the three Round-18 cases they replace).
+Script-level: the canonical variable's target is what the **real** guard validates
+and what the reset client is built from; the mistaken spelling alone does not
+redirect the reset; `--help` shows only the canonical name.
+
+**Sibling audit (gate: repeated rounds on `_finalize_core` cross-store
+compensation).** Defect family: *SQL mutation reachable outside the
+rollback/compensation boundary, or compensation armed outside the window where the
+compensated resource can exist*. Triggering rounds: R18 P2 (vector attempt →
+commit boundary) and R19 P2(a) (draft persistence outside it). Searched:
+`_finalize_core` (both branches), `finalize_release`, `persist_release`,
+`_persist_package_and_source`, `_persist_release_record`, `_persist_bundle_rows`,
+`reindex_and_verify` / `verify_only` / `cleanup_vector_collection`, and every
+`session.add`/`add_all`/`flush`/`execute(delete)`/`commit`/`rollback` in
+`ingestion/corpus/persistence.py` (enumerated and attributed to its owning
+function: all 14 draft-write statements belong to the three persist helpers, the
+rest are `delete_release`'s two deletes + flush and `_finalize_core`'s own
+flush/commit/rollback — no fourth writer exists).
+Dispositions: fresh path draft persistence — **patched**; fresh path arming window —
+**patched**; fresh path post-vector/gate/commit — **already safe** (R18, re-proven
+by the parametrized checkpoints); idempotency `select` before the boundary —
+**already safe** (read-only, no mutation to roll back); reuse branch — **already
+safe** (verifies and reconstructs only, performs no SQL mutation and no vector
+write, so it has nothing to compensate and must never delete the published
+collection — pinned by the reuse-exception regression); `persist_release` (the
+non-publication re-persist helper: it calls the same three helpers but commits
+nothing and owns no boundary — the caller's transaction is the boundary) —
+**already safe** by construction, and out of scope for this finding since it is
+not a publication path; `delete_release` (deletes + flush, caller-owned
+transaction, no vector side) — **already safe**; broader
+cross-store/two-phase publication semantics — **out of scope** (Issue 5d /
+retrieval redesign, explicitly excluded this round).
