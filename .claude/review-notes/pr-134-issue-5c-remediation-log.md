@@ -995,3 +995,69 @@ constructed, no reset, no rebuild, and the explicit "NOT modified" message;
 path still resets and that the rebuilt set equals what `preflight` returns. The R18–R20
 reset-safety, idempotency, env-var, story-memory-disclosure, and rules-corpus rebuild
 tests are unchanged and green.
+
+---
+
+## Round 22 — accepted sibling audit + validate the corpus payload before the reset
+
+### Sibling audit (recurring-hotspot gate; owner-accepted)
+
+**Defect family.** *Destructive baseline action taken before its own precondition is
+proven* — the reset command acting on configuration, disclosure, or data it had not
+yet validated, so a failure surfaced only after deletion.
+
+**Triggering rounds/comments.** R19 (env var naming the wrong configuration key —
+`3654869875`), R20 (silent `story_memory` destruction — `3669671271`), R21 (rebuild
+source unvalidated before reset — `3669952798`), R22 (chunk payload unvalidated
+before reset — `3670131538`). Three consecutive rounds on the same file and family
+tripped the gate; the audit request is `3670131532`.
+
+**Searched seams.** `scripts/reset_corpus_baseline.py` (target resolution, disclosure,
+preflight, rebuild loop); `pipeline/retrieval/baseline_reset.py`
+(`resolve_reset_target`, `reset_chroma_store`); `RulesCorpusService.reindex_from_sql`;
+`scripts/retrieval_backfill.py` (per-story reindex); and every startup/app-wiring path
+for an automatic reset (`api/`, `pipeline/retrieval/client.py`).
+
+**Dispositions (accepted by the owner).**
+
+| Sibling | Disposition |
+|---|---|
+| Reset target resolution (`resolve_reset_target`) | **patched** (R19: canonical env var; validated target is the one reset) |
+| Full-store deletion helper (`reset_chroma_store`) | **already safe** (list-and-delete through the client; no filesystem/prefix/rmtree) |
+| Issue-5c SQLite reconstruction payload | **patch here** (R22, below) |
+| Generic `RulesCorpusService.reindex_from_sql` | **already safe** under its broader contract — a generic Rules Package may legitimately hold zero chunks; semantics unchanged |
+| Per-story reindexing (`retrieval_backfill.py`) | **out of scope** (#132 Owner Decision 1) |
+| Automatic startup reset | **already safe/absent** — no startup path invokes the reset; the command is explicit and one-time |
+
+### P2 — validate the chunk payload, not just the release identity
+
+A published `rp_corpus_releases` row is an *identity*. Its enabled `rp_chunks` may have
+been deleted, disabled, corrupted, orphaned, misattributed, or left only partially
+schema-compatible — none of which R21's preflight saw, because it materialized package
+UUIDs only. The command would then clear every collection and either raise mid-rebuild
+or produce a legitimate-looking empty collection, with the prior projection already
+gone: exactly the ordering preflight exists to prevent.
+
+**Corrected.** New `validate_corpus_payload(session, pkg)` fully materializes the
+enabled `rp_chunks` rows the rebuild will read and applies (a) the reindex's own row
+contract — the same `UUID(chunk_id)` / `SourceLocatorTypeEnum(...)` transformation
+`reindex_from_sql` performs, plus required content/provenance — and (b) Issue 5c's
+existing persisted-state requirements: `verify_chunk_runtime_membership`,
+`verify_single_source`, and `verify_persisted_page_coverage`. `preflight` runs it for
+every published package and raises `PreflightError` on any violation, so the command
+exits 1 with Chroma untouched before the client is constructed. Issue-5c-specific by
+construction: it runs only over packages selected from `rp_corpus_releases`, so generic
+Rules Packages are never subjected to it and `reindex_from_sql` keeps its zero-chunk
+contract unchanged.
+
+**Regressions.** `test_invalid_or_incomplete_corpus_payload_leaves_chroma_untouched`
+parametrizes seven ways a payload can be unrebuildable (chunks deleted, chunks
+disabled, malformed locator type, missing provenance, orphaned chunk with no declared
+projection, chunk reassigned to a second source, incomplete page coverage), each
+asserting exit 1 with no client, no reset, and no rebuild;
+`test_payload_validation_completes_before_the_reset` pins validation → client → reset
+as a sequence; `test_valid_payload_passes_validation_and_only_the_published_package_is_checked`
+is the positive control (a complete payload yields no violations, while the draft
+package — never selected — has none); and
+`test_generic_package_with_zero_chunks_still_reindexes_to_empty` pins the untouched
+generic contract in the Issue 18 service's own suite.

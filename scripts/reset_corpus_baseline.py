@@ -22,11 +22,13 @@ configured client. Idempotent: safe to re-run against the same database (deletin
 an already-empty *store* is a no-op and reindex is deterministic). Note this is
 about the Chroma store, not the database — an empty *database* aborts, see below.
 
-Preflight: the ``--db-url`` reconstruction source is opened, validated, and its
-published rules-corpus package identities fully materialized **before** anything is
-deleted, using the same engine/session configuration the rebuild then uses. If the
-database is unavailable, incompatible (e.g. unmigrated), or holds no published
-corpus release, the command exits non-zero with Chroma untouched — it never erases
+Preflight: the ``--db-url`` reconstruction source is opened and validated, and the
+published rules-corpus packages **and their actual chunk payloads** are fully loaded
+and checked **before** anything is deleted, using the same engine/session
+configuration the rebuild then uses. If the database is unavailable, incompatible
+(e.g. unmigrated), holds no published corpus release, or holds one whose payload is
+missing/unreadable/malformed/orphaned or fails Issue 5c's completeness and integrity
+requirements, the command exits non-zero with Chroma untouched — it never erases
 projections it could not rebuild.
 
 DESTRUCTIVE — what this deletes and what it does NOT rebuild
@@ -62,11 +64,18 @@ from sqlalchemy import Engine, select  # noqa: E402
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
+from afterworlds.ingestion.corpus.persistence import (  # noqa: E402
+    verify_chunk_runtime_membership,
+    verify_persisted_page_coverage,
+    verify_single_source,
+)
+from afterworlds.models.enums import SourceLocatorTypeEnum  # noqa: E402
 from afterworlds.persistence.database import (  # noqa: E402
     create_engine,
     create_session_factory,
 )
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM  # noqa: E402
+from afterworlds.persistence.orm.rules_package import RuleChunkORM  # noqa: E402
 from afterworlds.pipeline.retrieval.baseline_reset import (  # noqa: E402
     reset_chroma_store,
     resolve_reset_target,
@@ -97,20 +106,78 @@ class PreflightError(RuntimeError):
     """
 
 
+def validate_corpus_payload(session: Session, pkg: str) -> list[str]:
+    """Fully load and validate the SQL chunk payload the rebuild will read.
+
+    A published ``rp_corpus_releases`` row is an *identity*, not a payload: its
+    enabled ``rp_chunks`` may have been deleted, corrupted, orphaned, or left
+    only partially schema-compatible. Reindexing such a package after the reset
+    either raises mid-rebuild or produces a legitimate-looking empty collection,
+    with the prior projection already gone — so every row is materialized and
+    checked here, before anything is deleted.
+
+    Applies the reindex's own row contract (the exact transformation
+    ``RulesCorpusService.reindex_from_sql`` performs) plus Issue 5c's existing
+    persisted-state requirements: declared-projection/runtime membership, the
+    single-source invariant, and authoritative-page coverage. Returns the list of
+    violations (empty iff this package is rebuildable).
+
+    Issue-5c-specific by construction — it runs only over packages selected from
+    ``rp_corpus_releases``. Generic Rules Packages have no corpus release row,
+    are never selected here, and keep their broader contract (a generic package
+    may legitimately hold zero chunks); ``reindex_from_sql`` is unchanged.
+    """
+    # Exactly what reindex_from_sql will read — materialized, not counted.
+    rows = list(
+        session.execute(
+            select(RuleChunkORM)
+            .where(RuleChunkORM.rules_package_id == pkg)
+            .where(RuleChunkORM.is_enabled.is_(True))
+        ).scalars()
+    )
+    violations: list[str] = []
+    if not rows:
+        violations.append(
+            f"{pkg}: no enabled rp_chunks rows — a published Issue-5c corpus "
+            "would rebuild to an empty collection"
+        )
+    for row in rows:
+        try:
+            UUID(row.chunk_id)
+            SourceLocatorTypeEnum(row.source_locator_type)
+        except ValueError as exc:
+            violations.append(
+                f"{pkg}: chunk {row.chunk_id!r} is not rebuildable: {exc}"
+            )
+        if not (row.content and row.source_document and row.source_locator_value):
+            violations.append(
+                f"{pkg}: chunk {row.chunk_id!r} is missing required content or "
+                "provenance"
+            )
+    violations.extend(verify_chunk_runtime_membership(session, pkg))
+    violations.extend(verify_single_source(session, pkg))
+    violations.extend(verify_persisted_page_coverage(session, pkg))
+    return violations
+
+
 def preflight(db_url: str) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
     """Prove the rebuild source is usable BEFORE the reset, and materialize it.
 
     Chroma is a rebuildable projection of SQLite — but only while SQLite is
-    actually reachable and holds the published releases to rebuild from. This
-    connects through the same engine/session configuration the rebuild will use
-    (a mistyped/unreachable/unmigrated URL therefore fails here, not after the
-    deletion) and returns the **fully materialized** package identities, so the
-    rebuild never depends on a lazy cursor opened across the reset.
+    actually reachable and holds a *complete, valid* payload to rebuild from.
+    This connects through the same engine/session configuration the rebuild will
+    use (a mistyped/unreachable/unmigrated URL therefore fails here, not after
+    the deletion), materializes the published package identities, and then fully
+    loads and validates each one's chunk payload
+    (:func:`validate_corpus_payload`), so the rebuild never depends on a lazy
+    cursor — or on unverified rows — read across the reset.
 
     Raises :class:`PreflightError` if the database is unavailable, incompatible
-    (e.g. unmigrated — no ``rp_corpus_releases``), or holds no published corpus
-    release to rebuild. On failure the engine is disposed here; on success the
-    caller owns it (returned alongside the factory) and disposes it when done.
+    (e.g. unmigrated — no ``rp_corpus_releases``), holds no published corpus
+    release, or holds one whose payload is missing/unreadable/malformed/orphaned
+    or fails Issue 5c's completeness and integrity requirements. On failure the
+    engine is disposed here; on success the caller owns it (returned alongside
+    the factory) and disposes it when done.
     """
     engine = None
     try:
@@ -125,17 +192,28 @@ def preflight(db_url: str) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
                     )
                 ).scalars()
             ]
+            if not packages:
+                raise PreflightError(
+                    f"{db_url!r} holds no published corpus release — there would "
+                    "be nothing to rebuild the rules corpus from"
+                )
+            violations: list[str] = []
+            for pkg_uuid in packages:
+                violations.extend(validate_corpus_payload(session, str(pkg_uuid)))
+    except PreflightError:
+        engine.dispose()  # type: ignore[union-attr]
+        raise
     except (SQLAlchemyError, ValueError) as exc:
         if engine is not None:
             engine.dispose()
         raise PreflightError(
-            f"cannot read published corpus releases from {db_url!r}: {exc}"
+            f"cannot read the published corpus payload from {db_url!r}: {exc}"
         ) from exc
-    if not packages:
+    if violations:
         engine.dispose()
         raise PreflightError(
-            f"{db_url!r} holds no published corpus release — there would be "
-            "nothing to rebuild the rules corpus from"
+            "published corpus payload is not rebuildable:\n  - "
+            + "\n  - ".join(violations)
         )
     return engine, factory, packages
 
@@ -164,7 +242,8 @@ def main() -> int:
         print(f"Preflight FAILED — Chroma was NOT modified: {exc}")
         return 1
     print(
-        f"Preflight OK: {len(packages)} published rules-corpus package(s) to rebuild."
+        f"Preflight OK: {len(packages)} published rules-corpus package(s) "
+        "validated and materialized; ready to rebuild."
     )
 
     # Step 3: full reset of the configured store (delete every collection).

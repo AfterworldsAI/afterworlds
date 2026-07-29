@@ -477,6 +477,24 @@ class TestDiagnosticQueryPublicationAware:
         )
         assert results == ["Fireball deals damage."]
 
+    def test_generic_package_with_zero_chunks_still_reindexes_to_empty(
+        self, session_factory, tmp_path: Path
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Generic contract, unchanged by the Issue-5c baseline command's payload
+        preflight (PR #134 R22): a generic Rules Package may legitimately hold no
+        chunks, and reindexing it is a successful zero-row rebuild — not an error.
+        The stricter "a published Issue-5c corpus must have a rebuildable payload"
+        rule lives in scripts/reset_corpus_baseline.py, which only ever selects
+        packages that have a CorpusReleaseORM row; it does not reach here."""
+        session = session_factory()
+        package_id = uuid4()
+        _seed_package_with_chunks(session, package_id, [])
+        session.commit()
+        _, service = self._service(tmp_path)
+
+        assert service.reindex_from_sql(session, package_id) == 0
+        assert service.diagnostic_query(session, package_id, "anything") == []
+
     def test_missing_package_records_fail_closed(
         self, session_factory, tmp_path: Path
     ) -> None:  # type: ignore[no-untyped-def]
