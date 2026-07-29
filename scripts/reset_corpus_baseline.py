@@ -11,6 +11,20 @@ legacy cleanup, no legacy-UUID handoff, and no prefix-based deletion.
 This is **not** startup behavior — never wire it into ordinary application startup;
 resetting on startup could later erase valid user data.
 
+OFFLINE-EXCLUSIVE — stop the application first
+----------------------------------------------
+This is a one-time, pre-release, **offline** maintenance operation, supported only
+while the Afterworlds API, workers, and every other process that writes to this
+SQLite database or Chroma store are **stopped**. Do not start them until the command
+completes. Concurrent writes are neither detected nor locked out: the command does
+not hold a SQLite snapshot across the rebuild, so a write landing between the
+preflight proof and the reindex would rebuild an unproven corpus — and concurrent
+Chroma/story-memory writes have no protection at all. Rebuilding a **live**
+production store is deliberately out of scope and deferred; if it is ever required
+it needs a separately designed maintenance mode, or an online build-and-swap /
+catch-up workflow with its own data-preservation guarantees, not a longer-lived
+snapshot bolted onto this command.
+
 Usage
 -----
     python scripts/reset_corpus_baseline.py --db-url sqlite:///afterworlds.db
@@ -92,6 +106,19 @@ from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa:
 from afterworlds.pipeline.retrieval.rules_corpus_service import (  # noqa: E402
     RulesCorpusService,
 )
+
+PRECONDITION = """\
+OFFLINE-EXCLUSIVE: stop the Afterworlds API, workers, and any other process that
+writes to this SQLite database or Chroma store BEFORE running this command, and
+do not start them until it finishes. This is a one-time, pre-release, offline
+maintenance operation; it is supported only with all other writers stopped.
+Concurrent writes are not detected, not locked out, and not made safe: a write
+landing between the preflight proof and the rebuild would silently rebuild an
+unproven corpus, and concurrent Chroma/story-memory writes have no protection at
+all. Rebuilding a live production store is out of scope and deferred — it would
+need a separately designed maintenance mode or an online build-and-swap/catch-up
+workflow with its own data-preservation guarantees.
+"""
 
 WARNING = """\
 DESTRUCTIVE: this is a FULL-STORE reset — every collection in the configured
@@ -253,6 +280,11 @@ def main() -> int:
     )
     ap.add_argument("--db-url", required=True, help="SQLAlchemy DB URL (authoritative)")
     args = ap.parse_args()
+
+    # Step 0: the operational precondition, stated before ANY work — including
+    # preflight. The proof preflight establishes is only meaningful while nothing
+    # else writes; this command is offline-exclusive by design (see PRECONDITION).
+    print(PRECONDITION)
 
     config = RetrievalMemoryConfig.from_env()
     # Resolve + validate the exact configured target before any destructive action;

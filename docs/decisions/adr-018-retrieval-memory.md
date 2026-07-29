@@ -30,6 +30,17 @@ begin only after this Phase 1 PR is merged.
 > regenerate — story memory is a rebuildable projection of SQLite-authoritative turns — but it is
 > regenerated only when an operator asks for it. The reset command warns of exactly this before it
 > deletes anything.
+>
+> **Owner decision — offline-exclusive (2026-07-29).** The baseline reset is a one-time, pre-release,
+> **offline** maintenance operation, supported only while the API, workers, and every other
+> SQLite/Chroma writer are stopped, and they must stay stopped until the rebuild completes. The command
+> verifies each published corpus against its canonical digest proof before deleting anything, but it
+> does not hold that SQLite snapshot across the rebuild, detect other processes, or take a
+> cross-process lock — concurrent writes are out of contract, not defended against. Making the reset
+> safe under live traffic is **deferred**: a longer-lived snapshot would protect only the rules-corpus
+> read while leaving concurrent Chroma and story-memory writes unresolved, so live/production
+> rebuilding, if ever required, needs a separately designed maintenance mode or an online
+> build-and-swap / catch-up workflow with its own data-preservation guarantees.
 
 ---
 

@@ -494,3 +494,76 @@ def test_valid_database_resets_and_rebuilds_the_preflighted_packages(
         assert [str(p) for p in packages] == seen["reindexed"]
     finally:
         engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# Round 24: the preflight proof is only meaningful while nothing else writes.
+# Owner decision: this is a one-time, pre-release, OFFLINE maintenance command —
+# supported only with the API, workers, and every other SQLite/Chroma writer
+# stopped. It is not made safe for live traffic (a longer-lived SQLite snapshot
+# would protect only the rules-corpus read and leave concurrent Chroma and
+# story-memory writes unresolved), and no process detector or cross-process lock
+# is built for it. What it owes the operator is an unmistakable precondition,
+# stated before any work begins.
+# ---------------------------------------------------------------------------
+
+
+def test_offline_precondition_is_stated_before_any_work_begins(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The precondition must precede everything the command does — including the
+    preflight read whose proof it protects, and long before the reset."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+
+    seen = _run_main(script, monkeypatch, tmp_path)
+    events = seen["events"]
+
+    precondition_at = next(
+        i
+        for i, e in enumerate(events)  # type: ignore[arg-type]
+        if "OFFLINE-EXCLUSIVE" in e
+    )
+    preflight_at = next(
+        i for i, e in enumerate(events) if "Preflight OK" in e  # type: ignore[arg-type]
+    )
+    assert precondition_at == 0
+    assert precondition_at < preflight_at < events.index("CLIENT")  # type: ignore[union-attr]
+    assert events.index("CLIENT") < events.index("RESET")  # type: ignore[union-attr]
+
+    warning = events[precondition_at]  # type: ignore[index]
+    assert "stop the Afterworlds API, workers" in warning
+    assert "writes to this SQLite database or Chroma store" in warning
+
+
+def test_offline_precondition_survives_a_preflight_failure(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Even on the abort path the operator has already been told the command is
+    offline-exclusive — the precondition is not a consequence of getting far."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+
+    seen = _arm(script, monkeypatch, tmp_path, db_url=_empty_db_url(tmp_path))
+
+    assert script.main() == 1
+    assert "OFFLINE-EXCLUSIVE" in seen["events"][0]  # type: ignore[index]
+
+
+def test_usage_states_the_offline_exclusive_precondition(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--help is where an operator plans the run: it must say the application must
+    be stopped, that concurrent writes are not made safe, and that live/production
+    rebuilding is deferred to a separately designed workflow."""
+    script = _load_script()
+    monkeypatch.setattr(sys, "argv", ["reset_corpus_baseline.py", "--help"])
+
+    with pytest.raises(SystemExit):
+        script.main()
+
+    out = capsys.readouterr().out.replace("*", "").replace("`", "")
+    assert "OFFLINE-EXCLUSIVE" in out
+    assert "stop the application first" in out
+    assert "neither detected nor locked out" in out
+    assert "deferred" in out and "maintenance mode" in out

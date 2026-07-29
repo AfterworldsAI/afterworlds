@@ -233,6 +233,21 @@ reset in full **once** — an explicit one-time step
 corrected rules corpus is rebuilt from the published SQLite-authoritative package
 via Issue 18's reindex path. No legacy UUID or collection-name handoff is used.
 
+**Offline-exclusive (owner decision, 2026-07-29).** The baseline reset is a one-time,
+pre-release, **offline** maintenance operation. It is supported only while the
+Afterworlds API, workers, and every other process that writes to the SQLite database
+or the Chroma store are stopped, and they must stay stopped until the rebuild
+completes. The command verifies the published corpus against its canonical digest
+proof before deleting anything, but it does **not** hold that SQLite snapshot across
+the rebuild, detect other processes, or take a cross-process lock: a concurrent write
+landing between the proof and the reindex would rebuild an unproven corpus, and
+concurrent Chroma/story-memory writes have no protection at all. Making the reset safe
+under live traffic is **deferred** — a longer-lived snapshot would protect only the
+rules-corpus read while leaving the other writers unresolved, so if live rebuilding is
+ever required it needs a separately designed maintenance mode, or an online
+build-and-swap / catch-up workflow with its own data-preservation guarantees. The
+command states this precondition in `--help` and prints it before any work begins.
+
 ## What corpus publication proves — and does not
 
 Publication proves **source-corpus integrity only**: authoritative-source

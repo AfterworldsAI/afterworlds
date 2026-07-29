@@ -1111,3 +1111,47 @@ into a file-backed SQLite DB once per module and copied per test:
 unusable-source, and selection tests and stubs the payload proof (documented in its
 docstring), so those stay cheap. Generic behaviour is unchanged and still pinned by
 `test_generic_package_with_zero_chunks_still_reindexes_to_empty`.
+
+### Amendment (R24) — the preflight→rebuild transaction boundary is an operational boundary
+
+Codex's follow-up is technically right about the mechanism: `preflight` closes its
+session, the rebuild opens a new one, and SQLite runs in WAL — so a write landing in
+between would be reindexed without passing the digest proof. Recorded here as a
+further amendment to the accepted audit (same family, same rounds, same seams; this
+adds the transaction-boundary sibling Codex asked the audit to cover), **not** a new
+audit round.
+
+**Owner decision — resolved as an operational boundary, not a locking problem.** The
+Issue-5c baseline reset is a one-time, pre-release, **offline** maintenance operation,
+supported only while the API, workers, and every other SQLite/Chroma writer are
+stopped, and they must stay stopped through the rebuild. The proposed stable-snapshot
+remedy is explicitly **superseded**: holding a long-lived SQLite snapshot would protect
+only the rules-corpus read while leaving concurrent Chroma and story-memory writes
+entirely unresolved, i.e. it would buy a false sense of safety. Live/production
+rebuilding is **deferred**; if ever required it needs a separately designed maintenance
+mode, or an online build-and-swap / catch-up workflow with its own data-preservation
+guarantees.
+
+**Dispositions for this sibling.** Preflight→rebuild transaction boundary —
+**owner decision: out of contract** (offline-exclusive precondition, documented and
+warned, rather than locked). Concurrent Chroma/story-memory writers — **out of scope**,
+same decision. No snapshot-lifetime machinery was ever added for this finding, so
+there was none to remove; the R23 proof-bound payload validation and the normal Issue-18
+reindex path are untouched. No process detector, cross-process lock, recurring rebuild
+service, or automatic story-memory restoration was built.
+
+**Corrected.** A `PRECONDITION` block is printed **before any work at all** — before
+the target resolution and before the preflight read whose proof it protects — telling
+the operator to stop the API, workers, and every other SQLite/Chroma writer and not
+restart them until the command completes, that concurrent writes are neither detected
+nor locked out, and that live rebuilding is deferred. The same statement is an
+`--help` section and is recorded in the reproducibility doc, ADR-018, and the PR
+Architecture Notes.
+
+**Regressions.** `test_offline_precondition_is_stated_before_any_work_begins` (the
+precondition is event 0, strictly before preflight → client → reset, and names the
+processes to stop); `test_offline_precondition_survives_a_preflight_failure` (it is
+not a consequence of getting far — the abort path shows it too);
+`test_usage_states_the_offline_exclusive_precondition` (`--help` states the stop-the-
+application requirement, that concurrent writes are not made safe, and that live
+rebuilding is deferred to a separately designed workflow).
