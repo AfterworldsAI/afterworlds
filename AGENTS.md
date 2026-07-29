@@ -2,22 +2,21 @@
 
 Read this file fully before reviewing an Afterworlds PR.
 
-## Role
+## Role and Authority
 
-Review as Codex/review agent, not as primary implementer. Your job is to find correctness, security, maintainability, test, scope, and architecture problems before merge. Prefer high-signal findings over nitpicks.
+Review as Codex/review agent, not as primary implementer. Find correctness, security, maintainability, test, scope, and architecture problems before merge. Prefer high-signal findings over nitpicks.
 
-The authoritative sources are:
+Apply authority in this order:
 
-1. Current PR diff and tests.
-2. The governing CRD issue spec.
-3. ADRs in `/docs/decisions/`.
-4. `/docs/architecture/construction_readiness.md`.
-5. `/docs/architecture/design.md`.
-6. `/docs/architecture/known_unknowns.md`.
-7. Prompt contracts in `/docs/prompts/`.
-8. `CLAUDE.md` and this file.
+1. The governing CRD issue and recorded Owner Decisions.
+2. Accepted ADRs in `/docs/decisions/`.
+3. `/docs/architecture/construction_readiness.md`.
+4. `/docs/architecture/design.md`.
+5. `/docs/architecture/known_unknowns.md`.
+6. Prompt contracts in `/docs/prompts/`.
+7. `CLAUDE.md` and this file.
 
-Do not review from memory when the issue, ADR, or changed code gives the answer.
+The PR diff, implementation, and tests are evidence of what was built and whether it works. They do not redefine what should have been built. Do not review from memory when governing authority or repository inspection gives the answer.
 
 ## Review Priorities
 
@@ -53,50 +52,22 @@ Flag violations explicitly.
 11. Operational state affecting money, access, user data, or auditability must be reconstructable from explicit event logs.
 12. Known Unknowns and scope boundaries must be surfaced, not silently resolved.
 
-## Context-Process Review
+## Reviewer Discretion
 
-For non-trivial PRs, verify that the implementation process did not create context-degradation risk.
+Use Graphify, subagents, advisor consultation, invariant cards, or other tools when they materially improve the review. None is mandatory unless the governing issue or an accepted ADR explicitly requires it.
 
-Look for PR evidence that Claude Code:
-
-* used a briefing subagent or equivalent summarized reconnaissance for broad docs/source/Graphify reading;
-* kept the main implementation context focused on issue spec, invariant card, plan, target files, failing tests, and current diff;
-* consulted advisor after briefing/planning when architecture, ownership, safety, entitlement, provider routing, RPG adjudication, migrations, or Known Unknowns were involved;
-* used phase commits or coherent phase boundaries for large issues;
-* ran local gates on the final branch head;
-* recorded unresolved process or boundary issues in Architecture Notes.
-
-Absence of this evidence is not automatically merge-blocking for small PRs. For large invariant-heavy issues, missing process evidence is review-relevant because it increases the chance of quiet spec drift. Ask for a short clarification before turning process opacity into a blocking finding.
-
-## Graphify Review Preflight
-
-Before reviewing a non-trivial PR, use Graphify when available.
-
-Graphify is a review aid only. It is not an architectural authority and never replaces source, tests, issue specs, ADRs, `AGENTS.md`, `CLAUDE.md`, or architecture docs.
-
-Required sequence:
-
-1. Read `AGENTS.md`, the PR description, and the diff first.
-2. Query Graphify before broad manual spelunking.
-3. Use narrow review-specific queries for changed-file impact, ownership seams, downstream callers, related tests, and likely sibling defects.
-4. Verify Graphify output against source, tests, issue specs, and docs before writing findings.
-5. If blocked by sandbox, request approval/escalation once. If still unavailable, stale, or failing, state that and continue normal review.
-
-```powershell
-cd D:\AI\Claude\afterworlds\src
-graphify query "Summarize changed-file impact, ownership seams, downstream callers, related tests, and architecture risks for this PR."
-```
+Tool choice, subagent use, advisor consultation, plan format, context-management method, and commit structure are not review findings unless explicitly required by governing authority or their absence caused a concrete correctness, scope, or verification defect. Review results and evidence, not ritual compliance.
 
 ## Review Method
 
-Use this order for substantive reviews:
+For substantive reviews:
 
 1. Identify the governing CRD issue and PR scope.
-2. Read Architecture Notes and compare them to the diff.
-3. Check new/changed migrations, schemas, DTOs, enums, and service interfaces.
-4. Check transaction and rollback behavior before style issues.
+2. Read Architecture Notes and compare them to the authority, diff, and tests.
+3. Inspect changed migrations, schemas, DTOs, enums, service interfaces, and affected production paths.
+4. Check transaction and rollback behavior before style.
 5. Check tests against acceptance criteria and likely failure modes.
-6. Audit sibling structures when one defect suggests a pattern.
+6. Audit sibling structures only when recurrence or evidence suggests a defect family.
 7. Classify each finding before commenting.
 
 Finding classes:
@@ -111,53 +82,38 @@ Do not inflate severity because a comment is interesting.
 
 ## Boundary-over-Patch Rule
 
-Distinguish concrete defects from boundary problems.
-
-Trigger this check when:
+Trigger a boundary check when:
 
 * the same PR receives repeated review/fix/re-review cycles;
 * the same file, function, query path, schema hotspot, or service hotspot is revised across multiple rounds;
 * feedback shifts from defects to semantics, ownership, architecture placement, or which issue owns behavior;
 * a proposed fix would move behavior into an issue that does not clearly own it;
-* the implementation appears to resolve a Known Unknown without owner approval.
+* implementation appears to resolve a Known Unknown without owner approval.
 
 When triggered:
 
 1. Stop treating the latest review comment as automatically the next patch.
-2. Classify remaining feedback as merge-blocking defect, scope boundary, Known Unknown, owner decision needed, or non-blocking improvement.
-3. Surface the boundary explicitly in PR comments or Architecture Notes.
-4. Use `[OWNER DECISION]:` for ownership/scope/policy questions.
-5. Defer implementation until the owner narrows scope, defers behavior, or defines the missing rule.
+2. Rebuild the defect-family and sibling map.
+3. Classify the residue as issue-scoped implementation, specification correction, scope leak, Known Unknown, Owner Decision, or non-blocking improvement.
+4. Surface the boundary in PR comments or Architecture Notes.
+5. Resume remediation only after boundary or owner residue is resolved or explicitly deferred.
 
-Repeated hotspot churn is a coordination signal, not just a coding task.
+Repeated hotspot churn is a coordination signal, not just another coding task.
 
 ## Recurring Defect Family Gate
 
 Codex comments are symptoms. First classify the defect family, then check sibling structures before handing fixes to Claude.
 
-A formal sibling audit is not required for every isolated comment. The gate applies only after recurrence:
+A formal sibling audit is not required for an isolated comment. Trigger the gate only when:
 
 * the same defect family appears in two or more review rounds;
 * the same hotspot file/function/service/DTO/validator/test seam is implicated again;
 * the same invariant is violated in multiple places;
 * a narrow fix is followed by a sibling defect that should have been checked with it.
 
-When the gate triggers, stop the narrow patch/re-review loop until Claude produces a short sibling-audit note and the owner accepts it or explicitly waives it.
+When triggered, stop the narrow patch/re-review loop and inspect representative parallel structures until the defect is confidently isolated or systemic. Record a lightweight note naming the defect family, trigger, structures sampled, regression coverage, and each disposition: `patched`, `already safe`, `out of scope`, `Known Unknown`, or `owner decision needed`.
 
-The note must identify:
-
-1. defect family;
-2. triggering review comments or rounds;
-3. sibling paths, functions, services, DTOs, validators, tests, prompts, or transaction seams searched;
-4. disposition for each sibling, using only `patched`, `already safe`, `out of scope`, `Known Unknown`, or `owner decision needed`.
-
-The audit should be lightweight: a PR comment, handoff note, or implementation note is enough. Do not turn the PR body into a remediation diary.
-
-This gate controls scope; it does not expand it. A sibling marked `out of scope`, `Known Unknown`, or `owner decision needed` must not be silently fixed as part of the current PR unless the owner explicitly authorizes that expansion.
-
-When recurrence is concrete and in scope, request one bundled sibling fix. When it shifts into semantics, ownership, architecture placement, or issue boundary, switch to `[OWNER DECISION]:`.
-
-Examples of recurring defect families include fail-open fallback paths, stale metadata authority, missing corrective notes, usage preservation gaps, parser/selection grammar inconsistencies, nondeterministic ordering, missing tie-breakers, rollback gaps, and inconsistent equivalent inputs.
+Stop once the defect family and in-scope remedy are established and more searching is unlikely to change either. This gate controls scope; it does not expand it. Do not silently fix `out of scope`, `Known Unknown`, or `owner decision needed` items.
 
 ## Comment Rules
 
@@ -167,22 +123,23 @@ Examples of recurring defect families include fail-open fallback paths, stale me
 * Avoid style-only comments unless they obscure correctness or maintainability.
 * Do not ask for broad refactors outside issue scope.
 * Do not suggest resolving Known Unknowns in code.
-* If the PR discovers a better architecture than the spec, require ADR/spec revision in the same PR or owner-approved follow-up before merge.
+* If a materially better architecture contradicts the accepted specification or ADR, require authority to be reconciled in the same PR or through an Owner Decision before implementation.
 
 ## Tests and CI
 
-Check that tests cover the issue’s required behavior, not merely the happy path.
+Check that tests cover the issue’s promised system, not merely isolated components or the happy path.
 
 Call out missing tests for:
 
 * acceptance criteria;
-* migration round trips and DB constraints;
-* transaction rollback / savepoint behavior;
+* production entry points and authoritative inputs;
+* migration round trips and database constraints;
+* transaction rollback and savepoint behavior;
 * typed parser failures and provider refusal paths;
-* cache-boundary/stable-prefix identity;
+* cache-boundary and stable-prefix identity;
 * entitlement settlement and event replay;
-* safety/contradiction blocking behavior;
-* RPG dice/adjudication invariants;
+* safety and contradiction blocking behavior;
+* RPG dice and adjudication invariants;
 * sibling defect classes revealed during review.
 
 Passing CI is required but not sufficient. A green build can still be wrong.
@@ -207,7 +164,7 @@ or explicitly describe:
 
 * what drift or unresolved boundary exists;
 * why it was necessary or unavoidable;
-* which issue/ADR/owner decision authorizes it;
+* which issue, ADR, or Owner Decision authorizes it;
 * what remains deferred or risky.
 
 If the diff and Architecture Notes disagree, review the disagreement, not just the code. That is usually where the skeleton is politely wearing a hat.

@@ -2,9 +2,19 @@
 
 Read this file fully at the start of every Claude Code session before taking action.
 
-## Project
+## Project and Authority
 
-Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. Users are **Sojourners**. Modes are RPG, Branching, and Writing. Authoritative sources live in `/docs/architecture/`, `/docs/decisions/`, and `/docs/prompts/`. The CRD issue spec governs the current task. If implementation would deviate from these sources, flag it in Architecture Notes; do not resolve drift silently.
+Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. Users are **Sojourners**. Modes are RPG, Branching, and Writing.
+
+Implement the governing CRD issue against repository reality. Apply authority in this order:
+
+1. The governing CRD issue and recorded Owner Decisions.
+2. Accepted ADRs in `/docs/decisions/`.
+3. Architecture and Known Unknowns in `/docs/architecture/`.
+4. Prompt contracts in `/docs/prompts/`.
+5. This file and other standing repository guidance.
+
+Source code and tests are evidence of the current implementation, not authority to redefine an accepted contract. If authorities conflict or implementation would deviate from them, surface the conflict in Architecture Notes; do not resolve drift silently.
 
 ## Stack and Local Gates
 
@@ -24,7 +34,7 @@ pytest -q
 pip-audit
 ```
 
-Run gates on the exact branch head before pushing. If blocked, say what could not run.
+Run applicable gates on the exact branch head before pushing. If blocked, say what could not run.
 
 ## Architecture Invariants
 
@@ -43,88 +53,48 @@ These are non-negotiable. Violations must be surfaced, not quietly patched.
 11. Operational state affecting money, access, user data, or auditability must be reconstructable from explicit event logs, not inferred from opaque state.
 12. Scope creep and Known Unknowns must be surfaced, not silently resolved.
 
-## Context Discipline
+## Engineering Discretion
 
-Claude Code context is a build resource. Do not waste it on raw archaeology.
+You own ordinary engineering choices, including investigation order, algorithms, internal organization, helper boundaries, tool use, test organization, and commit decomposition. Choose the lowest-complexity repository-native approach that satisfies the governing contract.
 
-* Use `/context` before large implementation phases. Note major context costs.
-* Do not dump broad docs, Graphify output, or large source sweeps into the main implementation thread when a subagent can summarize them.
-* Use subagents for reconnaissance: architecture-doc reading, source seam discovery, Graphify orientation, sibling-structure audits, and review triage.
-* Keep the main implementation context focused on the issue spec, invariant card, accepted plan, target files, failing tests, and current diff.
-* Consult `/advisor` after briefing and planning, not after raw doc ingestion. Advisor is for judgment forks; subagents are for context isolation.
-* Prefer manual `/compact` or `/clear` at phase boundaries. Do not wait for auto-compact to fire mid-edit.
-* For large issues, use fresh phases rather than one long invariant-heavy pass.
+Use Graphify, subagents, advisor consultation, invariant cards, context compaction, and phased delivery when they materially improve the work. They are not required unless the governing issue or an accepted ADR explicitly requires them. Read `AGENTS.md` when performing or responding to PR review; it is not mandatory startup reading for ordinary implementation.
 
-## Compact Instructions
+Issue- and ADR-specific requirements remain authoritative. This standing guidance does not retroactively remove procedures explicitly required by accepted work already in progress.
 
-When compacting, preserve these items exactly:
+Before handoff:
 
-1. CRD issue number, GitHub issue/PR number, branch, and implementation phase.
-2. In-scope and out-of-scope boundaries.
-3. Owner decisions, ADR decisions, and Known Unknowns touched by the work.
-4. Narrow issue-specific invariants; do not replace them with vague summaries.
-5. Exact service, DTO, enum, migration, prompt, and test names changed.
-6. Files changed and why each file changed.
-7. Test commands run and results.
-8. Current failing tests, reviewer comments, and unresolved boundary questions.
-9. Architecture Notes content that must appear in the PR.
-
-## Graphify Preflight
-
-Use Graphify before non-trivial implementation or review when available. It is an orientation aid only, not an authority and not a runtime dependency.
-
-1. Read governing instructions and the issue/PR first.
-2. Refresh or query the graph before broad file inspection.
-3. Use narrow, task-specific queries for files, services, models, tests, callers, and ownership seams.
-4. Verify Graphify output against source, tests, issue specs, ADRs, and docs.
-5. If blocked, request approval/escalation once. If still unavailable, state that and continue with normal source inspection.
-
-```powershell
-cd D:\AI\Claude\afterworlds\src
-graphify .
-graphify cluster-only D:\AI\Claude\afterworlds\src
-graphify query "Describe the files, services, models, tests, and ownership seams relevant to this task."
-```
-
-## Implementation Workflow
-
-For small fixes, work directly and keep the diff tight. For non-trivial CRD issues, use this sequence:
-
-1. Read `CLAUDE.md`, `AGENTS.md`, the issue spec, relevant ADRs, and Known Unknowns.
-2. Run Graphify/subagent briefing before broad manual spelunking.
-3. Produce an invariant card: scope, seams, affected services, tests, risks.
-4. Make an implementation plan and consult advisor when the issue involves architecture, ownership, routing, entitlement, safety, orchestration, RPG adjudication, migrations, or a Known Unknown.
-5. Implement in phases. End each phase with gates, `git diff --stat`, and `git status`.
-6. Commit coherent phases with conventional commits.
-7. Before PR handoff, verify tests, Architecture Notes, acceptance criteria, and no unrelated drift.
-
-## Repository and PR Rules
-
-* Feature branches: `feature/issue-N-short-description`; no direct commits to `main`.
-* Open a PR for every issue; do not merge without passing CI and Codex review.
-* PR description must include what was built, acceptance criteria coverage, test coverage summary, and **Architecture Notes**.
-* Architecture Notes must say either `No drift from design principles` or describe the deviation/rationale explicitly.
-* Conventional commits only: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
-* Use `CRD Issue N` for construction issues and `#N` for GitHub issues/PRs. Never use bare `Issue N`.
+* verify the requested observable behavior and required failure cases;
+* verify production entry points and downstream consumers affected by the change;
+* run the applicable repository gates on the final branch head;
+* report acceptance coverage, test evidence, and any unresolved boundary.
 
 ## Boundary, Sibling Audit, and Known Unknown Rules
 
-See `/docs/architecture/known_unknowns.md`. If implementation touches a listed unknown, stop and flag it; do not decide it in code. Codex comments are symptoms: classify the defect family, then check sibling structures before handing fixes back.
+See `/docs/architecture/known_unknowns.md`. If implementation touches a listed unknown, stop and flag it; do not decide it in code. Surface product semantics, ownership changes, specification contradictions, and materially different architectures rather than deciding them as ordinary implementation details. If a better architecture contradicts the accepted specification or ADR, reconcile the authority in the same PR or obtain an Owner Decision before implementing it.
 
-Trigger a boundary check when repeated review/fix rounds hit the same file, function, query, schema, service hotspot, invariant, or feedback shifts from defects to ownership, semantics, placement, issue scope, or a materially better architecture than the spec.
+Trigger a boundary check when repeated review/fix rounds hit the same file, function, query, schema, service hotspot, or invariant, or when feedback shifts from defects to ownership, semantics, placement, issue scope, or architecture.
 
 When triggered:
 
 1. Stop treating the latest comment as automatically the next patch.
-2. Classify remaining work: merge-blocking defect, scope boundary, Known Unknown, owner decision needed, or non-blocking improvement.
+2. Classify remaining work: merge-blocking defect, scope boundary, Known Unknown, Owner Decision, or non-blocking improvement.
 3. Surface the boundary in PR comments or Architecture Notes.
-4. Wait for owner decision when ownership, scope, or Known Unknowns are involved.
+4. Resume remediation only after boundary or owner residue is resolved or explicitly deferred.
 
-A sibling-audit gate is required when two or more review rounds on the same PR hit the same defect family, hotspot, or invariant, or when a narrow fix is followed by a sibling defect that should have been checked with it. Do not produce more one-off patches until the owner accepts or waives a short sibling-audit note.
+Codex comments are symptoms. Classify the defect family before fixing the quoted line. Run a bounded sibling audit only when two or more review rounds hit the same defect family, hotspot, or invariant, or when a narrow fix is followed by a sibling defect that should have been checked with it.
 
-The sibling-audit note may be a PR comment, handoff note, or implementation note. It must name: defect family; triggering review comments/rounds; searched sibling paths/functions; and each sibling disposition: `patched`, `already safe`, `out of scope`, `Known Unknown`, or `owner decision needed`.
+A sibling-audit note may be a PR comment, handoff note, or implementation note. Name the defect family, trigger, representative sibling structures inspected, regression coverage, and each disposition: `patched`, `already safe`, `out of scope`, `Known Unknown`, or `owner decision needed`.
 
-This gate controls scope; it does not expand it. Classify siblings before continuing. Do not silently fix `out of scope`, `Known Unknown`, or `owner decision needed` items without owner approval.
+This audit controls scope; it does not expand it. Do not silently fix `out of scope`, `Known Unknown`, or `owner decision needed` items.
+
+## Repository and PR Rules
+
+* Work on a topic branch; no direct commits to `main`.
+* Open a PR for every CRD issue; do not merge without passing CI and Codex review.
+* PR descriptions must include what was built, acceptance-criteria coverage, test evidence, and **Architecture Notes**.
+* Architecture Notes must say either `No drift from design principles` or describe the deviation and rationale explicitly.
+* Use conventional commit prefixes: `feat`, `fix`, `refactor`, `test`, `docs`, or `chore`.
+* Use `CRD Issue N` for construction issues and `#N` for GitHub issues/PRs. Never use bare `Issue N`.
 
 ## Business and Access Invariants
 
@@ -135,18 +105,5 @@ There is one canonical Sojourn orchestration path across paying access paths. No
 * Cloud Services are separable from perpetual license rights. Lapse may gate hosted storage/sync/backup/remote access/hosted ingestion, but not owned-work read/export/download.
 * Starter Access, if offered, is paid entry access using the same full pipeline and normal hosted credits. It is not a degraded free tier.
 * Extended TTL caching is required wherever provider support and adapter verification allow it; cache correctness belongs to provider adapters.
-* Entitlement routing governs access path, credits, Cloud Services, and settlement. Provider routing governs model/provider choice. Do not conflate.
+* Entitlement routing governs access path, credits, Cloud Services, and settlement. Provider routing governs model/provider choice. Do not conflate them.
 * No dark patterns in top-up, renewal, cancellation, export, or data retention.
-
-## Lessons and Self-Improvement
-
-After each task, append dated one-line lessons when corrected, an assumption fails, a pattern is discovered, or a better approach should persist. Format: `[YYYY-MM-DD] <lesson learned>`. Avoid duplicates. Preserve unless superseded:
-
-* [2026-04-02] Run the full local gate sequence on the exact branch head before pushing; a green formatter alone does not mean CI-clean.
-* [2026-04-02] When CI reports a file, verify the fix is staged, committed, and pushed by checking `git diff`, `git status`, and commit contents.
-* [2026-04-02] Pin Black exactly in dev dependencies to reduce CI/local drift, but prove drift before blaming it.
-* [2026-04-07] CRD issue numbers and GitHub issue/PR numbers are different namespaces; always write `CRD Issue N` or `#N`.
-* [2026-07-28] An operator-facing configuration name (env var, flag, path) is only correct if a test reads it through the same code the operator's command runs; documenting one name while `from_env()` reads another is invisible to every unit test that sets the name itself.
-* [2026-07-28] When a `try` block owns cross-store compensation, the boundary must open before the *first* mutation of the transactional store, and each compensating action must be armed only across the window in which its resource can exist.
-
-<!-- Claude Code appends dated one-line lessons here as they are learned -->
