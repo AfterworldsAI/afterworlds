@@ -960,3 +960,38 @@ published package is reindexed and that no story-memory machinery (`reindex_stor
 `backfill_story`, `StoryORM`, `RetrievalMemoryWriteService`) is reachable from the
 script at all. The Round-18/19 reset-safety, idempotency, env-var, and rules-corpus
 rebuild tests are unchanged and green.
+
+---
+
+## Round 21 — validate the rebuild source before clearing Chroma
+
+**P2.** The command deleted every collection and only then opened SQL. A mistyped,
+unreachable, unmigrated, or empty `--db-url` therefore erased the rules-corpus
+projections and *then* failed (or found nothing) — destroying a projection with no
+source left to rebuild it from. Chroma's rebuildability depends on SQLite actually
+being reachable and holding the published releases; that precondition was never
+checked while it still mattered.
+
+**Corrected.** New `preflight(db_url)` in the baseline command opens the
+reconstruction source through the **same** engine/session configuration the rebuild
+then uses, and returns the **fully materialized** published package identities
+(`list[UUID]`, not a lazy cursor carried across the reset). It raises `PreflightError`
+when the database is unavailable, incompatible (unmigrated — no `rp_corpus_releases`),
+or holds no published corpus release; `main` catches that, prints
+"Preflight FAILED — Chroma was NOT modified", and returns 1 **before** the Chroma
+client is even constructed. Only after a successful preflight does the command build
+the client, warn, reset, and rebuild — and it rebuilds exactly the preflighted
+identities rather than re-querying after the deletion. Behaviour change worth noting:
+an empty database now aborts instead of resetting the store as a no-op; that is the
+point (a reset with nothing to rebuild is pure loss). Scope held: no recurring rebuild
+service, no cross-store rollback, no legacy preservation, no story-memory restoration.
+
+**Regressions.** `test_unusable_rebuild_source_leaves_chroma_untouched` parametrizes
+unreachable / unmigrated / empty databases and asserts exit 1 with no client
+constructed, no reset, no rebuild, and the explicit "NOT modified" message;
+`test_database_is_validated_and_materialized_before_the_reset` pins the ordering
+(preflight reports its materialized count → client → reset), not merely the outcome;
+`test_valid_database_resets_and_rebuilds_the_preflighted_packages` proves the happy
+path still resets and that the rebuilt set equals what `preflight` returns. The R18–R20
+reset-safety, idempotency, env-var, story-memory-disclosure, and rules-corpus rebuild
+tests are unchanged and green.

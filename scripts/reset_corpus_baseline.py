@@ -21,6 +21,13 @@ destructive action and the reset only ever deletes collections through the
 configured client. Idempotent: safe to re-run (a reset of an empty store is a
 no-op, and reindex is deterministic).
 
+Preflight: the ``--db-url`` reconstruction source is opened, validated, and its
+published rules-corpus package identities fully materialized **before** anything is
+deleted, using the same engine/session configuration the rebuild then uses. If the
+database is unavailable, incompatible (e.g. unmigrated), or holds no published
+corpus release, the command exits non-zero with Chroma untouched — it never erases
+projections it could not rebuild.
+
 DESTRUCTIVE — what this deletes and what it does NOT rebuild
 ------------------------------------------------------------
 The reset is a **full-store** reset: it deletes **every** collection in the
@@ -51,6 +58,8 @@ from uuid import UUID
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from sqlalchemy import select  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
+from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 from afterworlds.persistence.database import (  # noqa: E402
     create_engine,
@@ -79,6 +88,56 @@ restore it, run the existing Issue 18 CLI once per surviving story:
 """
 
 
+class PreflightError(RuntimeError):
+    """The configured SQLite reconstruction source cannot support the rebuild.
+
+    Raised before anything is deleted, so the caller can exit with Chroma
+    untouched rather than erasing projections it then cannot rebuild.
+    """
+
+
+def preflight(db_url: str) -> tuple[sessionmaker[Session], list[UUID]]:
+    """Prove the rebuild source is usable BEFORE the reset, and materialize it.
+
+    Chroma is a rebuildable projection of SQLite — but only while SQLite is
+    actually reachable and holds the published releases to rebuild from. This
+    connects through the same engine/session configuration the rebuild will use
+    (a mistyped/unreachable/unmigrated URL therefore fails here, not after the
+    deletion) and returns the **fully materialized** package identities, so the
+    rebuild never depends on a lazy cursor opened across the reset.
+
+    Raises :class:`PreflightError` if the database is unavailable, incompatible
+    (e.g. unmigrated — no ``rp_corpus_releases``), or holds no published corpus
+    release to rebuild.
+    """
+    engine = None
+    try:
+        engine = create_engine(db_url)
+        factory = create_session_factory(engine)
+        with factory() as session:
+            packages = [
+                UUID(pkg)
+                for pkg in session.execute(
+                    select(CorpusReleaseORM.package_uuid).where(
+                        CorpusReleaseORM.publication_status == "published"
+                    )
+                ).scalars()
+            ]
+    except (SQLAlchemyError, ValueError) as exc:
+        if engine is not None:
+            engine.dispose()
+        raise PreflightError(
+            f"cannot read published corpus releases from {db_url!r}: {exc}"
+        ) from exc
+    if not packages:
+        engine.dispose()
+        raise PreflightError(
+            f"{db_url!r} holds no published corpus release — there would be "
+            "nothing to rebuild the rules corpus from"
+        )
+    return factory, packages
+
+
 def main() -> int:
     # Raw formatter: the destructive-behaviour section above must reach --help
     # laid out as written, not reflowed into one paragraph.
@@ -94,6 +153,18 @@ def main() -> int:
     target = resolve_reset_target(config.persist_directory)
     print(f"Chroma target validated: {target}")
 
+    # Step 2: prove the rebuild source before deleting the thing it rebuilds.
+    # An unreachable/unmigrated/empty database discovered *after* the reset would
+    # leave the rules-corpus projections erased with nothing to restore them from.
+    try:
+        factory, packages = preflight(args.db_url)
+    except PreflightError as exc:
+        print(f"Preflight FAILED — Chroma was NOT modified: {exc}")
+        return 1
+    print(
+        f"Preflight OK: {len(packages)} published rules-corpus package(s) to rebuild."
+    )
+
     # Step 3: full reset of the configured store (delete every collection).
     # The operator is told what this destroys BEFORE anything is destroyed — a
     # warning printed after the deletion would be a report, not a warning.
@@ -102,26 +173,14 @@ def main() -> int:
     deleted = reset_chroma_store(client)
     print(f"Reset complete: deleted {len(deleted)} collection(s).")
 
-    # Step 4: rebuild the rules-corpus projection only from the published,
-    # SQLite-authoritative Issue-5c corpus package(s) via the Issue 18 reindex path.
-    engine = create_engine(args.db_url)
-    factory = create_session_factory(engine)
+    # Step 4: rebuild exactly the package identities proven above — the same
+    # SQLite-authoritative releases, via the Issue 18 reindex path. No re-query:
+    # the rebuild set is the preflighted set.
     service = RulesCorpusService(client, config)
-    rebuilt = 0
     with factory() as session:
-        published = list(
-            session.execute(
-                select(CorpusReleaseORM.package_uuid).where(
-                    CorpusReleaseORM.publication_status == "published"
-                )
-            ).scalars()
-        )
-        for pkg in published:
-            written = service.reindex_from_sql(session, UUID(pkg))
+        for pkg in packages:
+            written = service.reindex_from_sql(session, pkg)
             print(f"Rebuilt rules corpus for {pkg}: {written} chunks.")
-            rebuilt += 1
-    if rebuilt == 0:
-        print("No published corpus release found — store reset only (idempotent).")
     print(
         "Story memory was NOT restored (rules corpus only). Reindex any story you "
         "still want with: scripts/retrieval_backfill.py --story-id <uuid> "

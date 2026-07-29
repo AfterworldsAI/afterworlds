@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text as sa_text
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.corpus  # noqa: F401
@@ -57,8 +58,8 @@ def _load_script():  # type: ignore[no-untyped-def]
 
 
 def _empty_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
-    """A real, schema-created SQLite DB with no published release, so main()
-    reaches its idempotent 'store reset only' tail without a rebuild."""
+    """A real, schema-created SQLite DB with no published release — reachable and
+    migrated, but with nothing to rebuild the rules corpus from."""
     db_path = tmp_path / "baseline.db"
     url = f"sqlite:///{db_path}"
     engine = create_engine(url)
@@ -123,19 +124,24 @@ class _Client:
     """Stand-in for the constructed Chroma client (identity is what matters)."""
 
 
-def _run_main(  # type: ignore[no-untyped-def]
+def _arm(  # type: ignore[no-untyped-def]
     script, monkeypatch, tmp_path, stub_resolver=True, db_url=None
 ):
-    """Run main() with the *destructive* steps (client construction + store reset)
-    recorded instead of performed. The resolver is real unless stubbed, so a test
-    can prove the configured target genuinely validates. *db_url* defaults to an
-    empty DB; pass a seeded one to exercise the rebuild loop through the same
-    recorded path."""
+    """Arm main() with the *destructive* steps (client construction + store reset)
+    and the rebuild recorded instead of performed, and return the trace dict.
+
+    The resolver is real unless stubbed, so a test can prove the configured target
+    genuinely validates. *db_url* defaults to a seeded (valid) DB — the rebuild
+    source must be usable or the command now refuses to touch Chroma at all.
+    Does not run main(); callers assert on its exit code themselves.
+    """
     seen: dict[str, object] = {}
     # Ordered trace of what the operator sees vs. what is destroyed, so a test can
     # assert the warning precedes the deletion rather than merely co-occurring.
     events: list[str] = []
     seen["events"] = events
+    reindexed: list[str] = []
+    seen["reindexed"] = reindexed
 
     def recording_print(*args, **kwargs):  # type: ignore[no-untyped-def]
         events.append("print: " + " ".join(str(a) for a in args))
@@ -146,6 +152,7 @@ def _run_main(  # type: ignore[no-untyped-def]
         return Path(persist_directory)
 
     def fake_build_client(config):  # type: ignore[no-untyped-def]
+        events.append("CLIENT")
         seen["client_config"] = config
         return _Client()
 
@@ -154,6 +161,14 @@ def _run_main(  # type: ignore[no-untyped-def]
         seen["reset_client"] = client
         return []
 
+    class _Service:
+        def __init__(self, client, config):  # type: ignore[no-untyped-def]
+            pass
+
+        def reindex_from_sql(self, session, pkg):  # type: ignore[no-untyped-def]
+            reindexed.append(str(pkg))
+            return 7
+
     # The script's module globals shadow the builtin, so this captures its prints
     # in order without suppressing them.
     monkeypatch.setattr(script, "print", recording_print, raising=False)
@@ -161,12 +176,20 @@ def _run_main(  # type: ignore[no-untyped-def]
         monkeypatch.setattr(script, "resolve_reset_target", fake_resolve)
     monkeypatch.setattr(script, "build_chroma_client", fake_build_client)
     monkeypatch.setattr(script, "reset_chroma_store", fake_reset)
+    monkeypatch.setattr(script, "RulesCorpusService", _Service)
     monkeypatch.setattr(
         sys,
         "argv",
-        ["reset_corpus_baseline.py", "--db-url", db_url or _empty_db_url(tmp_path)],
+        ["reset_corpus_baseline.py", "--db-url", db_url or _seeded_db_url(tmp_path)],
     )
+    return seen
 
+
+def _run_main(  # type: ignore[no-untyped-def]
+    script, monkeypatch, tmp_path, stub_resolver=True, db_url=None
+):
+    """:func:`_arm` plus a successful run."""
+    seen = _arm(script, monkeypatch, tmp_path, stub_resolver, db_url)
     assert script.main() == 0
     return seen
 
@@ -270,22 +293,10 @@ def test_reset_rebuilds_only_published_rules_corpora_and_never_story_memory(
     script = _load_script()
     monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
 
-    reindexed: list[str] = []
-
-    class _Service:
-        def __init__(self, client, config):  # type: ignore[no-untyped-def]
-            pass
-
-        def reindex_from_sql(self, session, pkg):  # type: ignore[no-untyped-def]
-            reindexed.append(str(pkg))
-            return 7
-
-    monkeypatch.setattr(script, "RulesCorpusService", _Service)
-
-    seen = _run_main(script, monkeypatch, tmp_path, db_url=_seeded_db_url(tmp_path))
+    seen = _run_main(script, monkeypatch, tmp_path)
 
     # Exactly the published package — the draft one is not rebuilt.
-    assert reindexed == [_PUBLISHED_PKG]
+    assert seen["reindexed"] == [_PUBLISHED_PKG]
     # And the operator's warning still precedes the deletion in the scenario that
     # actually has something to rebuild, not only on an empty store.
     events = seen["events"]
@@ -326,3 +337,91 @@ def test_usage_states_story_memory_is_deleted_and_not_rebuilt(
     assert "not restore story memory" in out
     assert "rules-corpus projections only" in out
     assert "retrieval_backfill.py --story-id <uuid> --mode reindex" in out
+
+
+# ---------------------------------------------------------------------------
+# Round 21: Chroma is a rebuildable projection of SQLite — but only while SQLite
+# is actually reachable and holds something to rebuild from. A mistyped,
+# unreachable, unmigrated, or empty --db-url discovered AFTER the full-store
+# reset would leave the rules-corpus projections erased with no source to restore
+# them. The reconstruction source is therefore opened, validated, and fully
+# materialized BEFORE anything is deleted.
+# ---------------------------------------------------------------------------
+
+
+def _unmigrated_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
+    """A real SQLite file with no schema at all — reachable but incompatible."""
+    db_path = tmp_path / "unmigrated.db"
+    engine = create_engine(f"sqlite:///{db_path}")
+    with engine.connect() as conn:
+        conn.execute(sa_text("CREATE TABLE unrelated (x INTEGER)"))
+        conn.commit()
+    engine.dispose()
+    return f"sqlite:///{db_path}"
+
+
+@pytest.mark.parametrize("kind", ["unreachable", "unmigrated", "empty"])
+def test_unusable_rebuild_source_leaves_chroma_untouched(
+    tmp_path, monkeypatch: pytest.MonkeyPatch, kind
+) -> None:
+    """Unavailable, incompatible, and no-published-corpus databases all abort
+    before the store is touched: non-zero exit, no client constructed, no reset,
+    no rebuild — never erase projections that cannot then be rebuilt."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+    db_url = {
+        # A directory that does not exist — SQLite cannot open the file.
+        "unreachable": f"sqlite:///{tmp_path / 'missing_dir' / 'nope.db'}",
+        "unmigrated": _unmigrated_db_url(tmp_path),
+        "empty": _empty_db_url(tmp_path),
+    }[kind]
+
+    seen = _arm(script, monkeypatch, tmp_path, db_url=db_url)
+
+    assert script.main() == 1
+    assert "CLIENT" not in seen["events"]  # type: ignore[operator]
+    assert "RESET" not in seen["events"]  # type: ignore[operator]
+    assert seen["reindexed"] == []
+    assert "reset_client" not in seen and "client_config" not in seen
+    assert any(
+        "Preflight FAILED" in e and "NOT modified" in e
+        for e in seen["events"]  # type: ignore[union-attr]
+    )
+
+
+def test_database_is_validated_and_materialized_before_the_reset(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ordering, not merely outcome: preflight reports the materialized package
+    count before the client is built and before the store is reset."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+
+    seen = _run_main(script, monkeypatch, tmp_path)
+    events = seen["events"]
+
+    preflight_at = next(
+        i
+        for i, e in enumerate(events)  # type: ignore[arg-type]
+        if "Preflight OK" in e and "1 published" in e
+    )
+    assert preflight_at < events.index("CLIENT") < events.index("RESET")  # type: ignore[union-attr]
+
+
+def test_valid_database_resets_and_rebuilds_the_preflighted_packages(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The happy path is unchanged in effect: the store is reset and exactly the
+    package identities proven during preflight are rebuilt afterwards."""
+    script = _load_script()
+    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
+    db_url = _seeded_db_url(tmp_path)
+
+    seen = _run_main(script, monkeypatch, tmp_path, db_url=db_url)
+
+    assert "RESET" in seen["events"]  # type: ignore[operator]
+    assert seen["reindexed"] == [_PUBLISHED_PKG]
+    # The rebuild set IS the preflighted set: what preflight() hands main() is
+    # exactly what gets rebuilt, not a second query issued after the deletion.
+    _, packages = script.preflight(db_url)
+    assert [str(p) for p in packages] == seen["reindexed"]
