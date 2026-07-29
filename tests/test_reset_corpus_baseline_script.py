@@ -360,16 +360,18 @@ def _unmigrated_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
     return f"sqlite:///{db_path}"
 
 
-@pytest.mark.parametrize("kind", ["unreachable", "unmigrated", "empty"])
+@pytest.mark.parametrize("kind", ["mistyped", "unreachable", "unmigrated", "empty"])
 def test_unusable_rebuild_source_leaves_chroma_untouched(
     tmp_path, monkeypatch: pytest.MonkeyPatch, kind
 ) -> None:
-    """Unavailable, incompatible, and no-published-corpus databases all abort
-    before the store is touched: non-zero exit, no client constructed, no reset,
-    no rebuild — never erase projections that cannot then be rebuilt."""
+    """Mistyped, unavailable, incompatible, and no-published-corpus databases all
+    abort before the store is touched: non-zero exit, no client constructed, no
+    reset, no rebuild — never erase projections that cannot then be rebuilt."""
     script = _load_script()
     monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
     db_url = {
+        # Fails at engine construction, before any connection is attempted.
+        "mistyped": "not-a-dialect:///typo.db",
         # A directory that does not exist — SQLite cannot open the file.
         "unreachable": f"sqlite:///{tmp_path / 'missing_dir' / 'nope.db'}",
         "unmigrated": _unmigrated_db_url(tmp_path),
@@ -423,5 +425,8 @@ def test_valid_database_resets_and_rebuilds_the_preflighted_packages(
     assert seen["reindexed"] == [_PUBLISHED_PKG]
     # The rebuild set IS the preflighted set: what preflight() hands main() is
     # exactly what gets rebuilt, not a second query issued after the deletion.
-    _, packages = script.preflight(db_url)
-    assert [str(p) for p in packages] == seen["reindexed"]
+    engine, _, packages = script.preflight(db_url)
+    try:
+        assert [str(p) for p in packages] == seen["reindexed"]
+    finally:
+        engine.dispose()

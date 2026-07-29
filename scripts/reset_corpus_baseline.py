@@ -18,8 +18,9 @@ Usage
 The Chroma target is the configured ``RetrievalMemoryConfig.persist_directory``
 (``AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY``); it is resolved and validated before any
 destructive action and the reset only ever deletes collections through the
-configured client. Idempotent: safe to re-run (a reset of an empty store is a
-no-op, and reindex is deterministic).
+configured client. Idempotent: safe to re-run against the same database (deleting
+an already-empty *store* is a no-op and reindex is deterministic). Note this is
+about the Chroma store, not the database — an empty *database* aborts, see below.
 
 Preflight: the ``--db-url`` reconstruction source is opened, validated, and its
 published rules-corpus package identities fully materialized **before** anything is
@@ -57,7 +58,7 @@ from uuid import UUID
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from sqlalchemy import select  # noqa: E402
+from sqlalchemy import Engine, select  # noqa: E402
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
@@ -96,7 +97,7 @@ class PreflightError(RuntimeError):
     """
 
 
-def preflight(db_url: str) -> tuple[sessionmaker[Session], list[UUID]]:
+def preflight(db_url: str) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
     """Prove the rebuild source is usable BEFORE the reset, and materialize it.
 
     Chroma is a rebuildable projection of SQLite — but only while SQLite is
@@ -108,7 +109,8 @@ def preflight(db_url: str) -> tuple[sessionmaker[Session], list[UUID]]:
 
     Raises :class:`PreflightError` if the database is unavailable, incompatible
     (e.g. unmigrated — no ``rp_corpus_releases``), or holds no published corpus
-    release to rebuild.
+    release to rebuild. On failure the engine is disposed here; on success the
+    caller owns it (returned alongside the factory) and disposes it when done.
     """
     engine = None
     try:
@@ -135,7 +137,7 @@ def preflight(db_url: str) -> tuple[sessionmaker[Session], list[UUID]]:
             f"{db_url!r} holds no published corpus release — there would be "
             "nothing to rebuild the rules corpus from"
         )
-    return factory, packages
+    return engine, factory, packages
 
 
 def main() -> int:
@@ -157,7 +159,7 @@ def main() -> int:
     # An unreachable/unmigrated/empty database discovered *after* the reset would
     # leave the rules-corpus projections erased with nothing to restore them from.
     try:
-        factory, packages = preflight(args.db_url)
+        engine, factory, packages = preflight(args.db_url)
     except PreflightError as exc:
         print(f"Preflight FAILED — Chroma was NOT modified: {exc}")
         return 1
@@ -177,10 +179,15 @@ def main() -> int:
     # SQLite-authoritative releases, via the Issue 18 reindex path. No re-query:
     # the rebuild set is the preflighted set.
     service = RulesCorpusService(client, config)
-    with factory() as session:
-        for pkg in packages:
-            written = service.reindex_from_sql(session, pkg)
-            print(f"Rebuilt rules corpus for {pkg}: {written} chunks.")
+    try:
+        with factory() as session:
+            for pkg in packages:
+                written = service.reindex_from_sql(session, pkg)
+                print(f"Rebuilt rules corpus for {pkg}: {written} chunks.")
+    finally:
+        # The preflight engine is owned here; release it (it holds a SQLite/WAL
+        # connection) rather than relying on process exit.
+        engine.dispose()
     print(
         "Story memory was NOT restored (rules corpus only). Reindex any story you "
         "still want with: scripts/retrieval_backfill.py --story-id <uuid> "
