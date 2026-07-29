@@ -1433,21 +1433,3 @@ def test_two_releases_coexist_fully_persisted_with_disjoint_chunks(
     )
     assert verify_persisted_digest(session, candidate.package_uuid, vs_a)
     assert verify_persisted_digest(session, candidate_b.package_uuid, vs_b)
-
-
-def test_baseline_reset_preflight_accepts_the_real_published_corpus(
-    session, full_release, chroma_client, retrieval_config, fake_embedding
-):
-    """Non-circular control for the R22 baseline-reset payload gate: the gate
-    stands between an operator and the one-time reset, so the REAL full-SRD
-    published corpus — not a hand-built fixture shaped to satisfy the checks —
-    must pass it. If any of the row contract, runtime membership, single-source,
-    or page-coverage requirements rejected the genuine corpus, the command would
-    be unusable and would only fail when someone ran it."""
-    from tests.test_reset_corpus_baseline_script import _load_script
-
-    pkg = _persist(
-        session, full_release, chroma_client, retrieval_config, fake_embedding
-    )
-
-    assert _load_script().validate_corpus_payload(session, pkg) == []

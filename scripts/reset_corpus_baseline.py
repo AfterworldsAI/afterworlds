@@ -23,13 +23,17 @@ an already-empty *store* is a no-op and reindex is deterministic). Note this is
 about the Chroma store, not the database — an empty *database* aborts, see below.
 
 Preflight: the ``--db-url`` reconstruction source is opened and validated, and the
-published rules-corpus packages **and their actual chunk payloads** are fully loaded
-and checked **before** anything is deleted, using the same engine/session
-configuration the rebuild then uses. If the database is unavailable, incompatible
-(e.g. unmigrated), holds no published corpus release, or holds one whose payload is
-missing/unreadable/malformed/orphaned or fails Issue 5c's completeness and integrity
-requirements, the command exits non-zero with Chroma untouched — it never erases
-projections it could not rebuild.
+published rules-corpus packages **and their proof-bound persisted corpora** are fully
+loaded and verified **before** anything is deleted, using the same engine/session and
+retrieval configuration the rebuild then uses. Verification is Issue 5c's own
+canonical proof — the expected vector logical state is built from SQL, the
+persisted-corpus digest is recomputed from the persisted rows, and it must equal the
+digest recorded at publication — so tampered content, provenance, or locator values
+are rejected even when perfectly well-formed. If the database is unavailable,
+incompatible (e.g. unmigrated), holds no published corpus release, or holds one whose
+persisted corpus cannot be reconstructed or no longer matches its proof, the command
+exits non-zero with Chroma untouched — it never erases projections it could not
+faithfully rebuild.
 
 DESTRUCTIVE — what this deletes and what it does NOT rebuild
 ------------------------------------------------------------
@@ -66,10 +70,13 @@ from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 
 from afterworlds.ingestion.corpus.persistence import (  # noqa: E402
     verify_chunk_runtime_membership,
+    verify_persisted_digest,
     verify_persisted_page_coverage,
     verify_single_source,
 )
-from afterworlds.models.enums import SourceLocatorTypeEnum  # noqa: E402
+from afterworlds.ingestion.corpus.vector_publication import (  # noqa: E402
+    expected_vector_state_from_sql,
+)
 from afterworlds.persistence.database import (  # noqa: E402
     create_engine,
     create_session_factory,
@@ -106,28 +113,40 @@ class PreflightError(RuntimeError):
     """
 
 
-def validate_corpus_payload(session: Session, pkg: str) -> list[str]:
-    """Fully load and validate the SQL chunk payload the rebuild will read.
+def validate_corpus_payload(
+    session: Session, pkg: str, config: RetrievalMemoryConfig
+) -> list[str]:
+    """Verify the published release's **proof-bound** persisted corpus.
 
-    A published ``rp_corpus_releases`` row is an *identity*, not a payload: its
-    enabled ``rp_chunks`` may have been deleted, corrupted, orphaned, or left
-    only partially schema-compatible. Reindexing such a package after the reset
-    either raises mid-rebuild or produces a legitimate-looking empty collection,
-    with the prior projection already gone — so every row is materialized and
-    checked here, before anything is deleted.
+    A published ``rp_corpus_releases`` row is an *identity*, not a payload, and a
+    structurally well-formed payload is not the same as the proven one: content,
+    provenance, or a locator can be swapped for another perfectly valid value and
+    every structural check still passes. Reindexing that after the reset writes a
+    silently wrong projection, with the proven one already deleted.
 
-    Applies the reindex's own row contract (the exact transformation
-    ``RulesCorpusService.reindex_from_sql`` performs) plus Issue 5c's existing
-    persisted-state requirements: declared-projection/runtime membership, the
-    single-source invariant, and authoritative-page coverage. Returns the list of
-    violations (empty iff this package is rebuildable).
+    So the check is Issue 5c's own canonical proof, not a parallel one. The
+    expected vector logical state is built from SQL through the same retrieval
+    configuration the rebuild will use
+    (:func:`expected_vector_state_from_sql`) — the Chroma store is about to be
+    cleared, so what must be proven is the state the rebuild will *write*. The
+    persisted-corpus digest is then recomputed from the persisted rows by the
+    canonical implementation and compared against the release's stored digest
+    (:func:`verify_persisted_digest`). One proof therefore governs content,
+    provenance, locator values, membership, policy, ledger, reconciliation,
+    source state, and expected vector state; a reconstruction failure (missing,
+    malformed, or inconsistent persisted state) is itself a violation.
+
+    Returns the list of violations (empty iff this package is rebuildable and
+    still matches what publication proved).
 
     Issue-5c-specific by construction — it runs only over packages selected from
     ``rp_corpus_releases``. Generic Rules Packages have no corpus release row,
     are never selected here, and keep their broader contract (a generic package
     may legitimately hold zero chunks); ``reindex_from_sql`` is unchanged.
     """
-    # Exactly what reindex_from_sql will read — materialized, not counted.
+    violations: list[str] = []
+    # Materialize exactly what reindex_from_sql will read, so a missing payload is
+    # named plainly rather than surfacing only as a digest mismatch.
     rows = list(
         session.execute(
             select(RuleChunkORM)
@@ -135,32 +154,38 @@ def validate_corpus_payload(session: Session, pkg: str) -> list[str]:
             .where(RuleChunkORM.is_enabled.is_(True))
         ).scalars()
     )
-    violations: list[str] = []
     if not rows:
         violations.append(
             f"{pkg}: no enabled rp_chunks rows — a published Issue-5c corpus "
             "would rebuild to an empty collection"
         )
-    for row in rows:
-        try:
-            UUID(row.chunk_id)
-            SourceLocatorTypeEnum(row.source_locator_type)
-        except ValueError as exc:
-            violations.append(
-                f"{pkg}: chunk {row.chunk_id!r} is not rebuildable: {exc}"
-            )
-        if not (row.content and row.source_document and row.source_locator_value):
-            violations.append(
-                f"{pkg}: chunk {row.chunk_id!r} is missing required content or "
-                "provenance"
-            )
     violations.extend(verify_chunk_runtime_membership(session, pkg))
     violations.extend(verify_single_source(session, pkg))
     violations.extend(verify_persisted_page_coverage(session, pkg))
+
+    # The canonical proof. Any reconstruction failure is a violation in itself —
+    # an unprovable corpus must not be rebuilt over a store we are about to wipe.
+    try:
+        expected_vectors = expected_vector_state_from_sql(
+            session, pkg, config
+        ).to_payload()
+        if not verify_persisted_digest(session, pkg, expected_vectors):
+            violations.append(
+                f"{pkg}: recomputed persisted-corpus digest does not match the "
+                "digest recorded at publication — the persisted corpus is not "
+                "the one that was proven"
+            )
+    except Exception as exc:  # noqa: BLE001 — any failure to reconstruct is fatal
+        violations.append(
+            f"{pkg}: persisted corpus cannot be reconstructed for proof: "
+            f"{type(exc).__name__}: {exc}"
+        )
     return violations
 
 
-def preflight(db_url: str) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
+def preflight(
+    db_url: str, config: RetrievalMemoryConfig
+) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
     """Prove the rebuild source is usable BEFORE the reset, and materialize it.
 
     Chroma is a rebuildable projection of SQLite — but only while SQLite is
@@ -199,7 +224,9 @@ def preflight(db_url: str) -> tuple[Engine, sessionmaker[Session], list[UUID]]:
                 )
             violations: list[str] = []
             for pkg_uuid in packages:
-                violations.extend(validate_corpus_payload(session, str(pkg_uuid)))
+                violations.extend(
+                    validate_corpus_payload(session, str(pkg_uuid), config)
+                )
     except PreflightError:
         engine.dispose()  # type: ignore[union-attr]
         raise
@@ -237,7 +264,7 @@ def main() -> int:
     # An unreachable/unmigrated/empty database discovered *after* the reset would
     # leave the rules-corpus projections erased with nothing to restore them from.
     try:
-        engine, factory, packages = preflight(args.db_url)
+        engine, factory, packages = preflight(args.db_url, config)
     except PreflightError as exc:
         print(f"Preflight FAILED — Chroma was NOT modified: {exc}")
         return 1

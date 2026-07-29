@@ -13,7 +13,14 @@ what the command must establish before it deletes anything —
   does not restore it — before the deletion, not after.
 * R21: the SQLite rebuild source is reachable, compatible, and holds published
   releases.
-* R22: those releases' actual chunk payloads are fully loaded and valid.
+* R22/R23: those releases' persisted corpora are fully loaded and verified
+  against Issue 5c's canonical digest proof.
+
+The payload proof itself needs a genuinely proof-bound corpus, so it is exercised
+against the real published full-SRD release in
+``tests/ingestion/corpus/test_baseline_reset_script.py``. The tests here pin
+configuration, operator disclosure, unusable rebuild sources, and rebuild
+selection, and stub the payload proof so a lightweight seeded database suffices.
 """
 
 from __future__ import annotations
@@ -23,8 +30,6 @@ import sys
 from pathlib import Path
 
 import pytest
-from sqlalchemy import delete as sa_delete
-from sqlalchemy import select
 from sqlalchemy import text as sa_text
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
@@ -36,21 +41,21 @@ import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
-from afterworlds.ingestion.corpus.source_completeness import EXPECTED_PAGE_COUNT
 from afterworlds.persistence.crud.story import create_story
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import (
-    CorpusProjectionORM,
     CorpusReleaseORM,
-    LedgerLeafORM,
 )
 from afterworlds.persistence.orm.rules_package import (
     RuleChunkORM,
     RuleSourceORM,
     RulesPackageORM,
 )
-from afterworlds.pipeline.retrieval.config import DEFAULT_PERSIST_DIRECTORY
+from afterworlds.pipeline.retrieval.config import (
+    DEFAULT_PERSIST_DIRECTORY,
+    RetrievalMemoryConfig,
+)
 from tests.persistence.conftest import make_story
 
 CANONICAL_ENV = "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY"
@@ -132,8 +137,9 @@ def _seeded_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
                     created_at=now,
                 )
             )
-        # A published corpus release is an identity; the rebuild reads a payload.
-        # Only the published package gets a complete, valid one.
+        # Enough payload for the rebuild loop to have something to select. It is
+        # deliberately NOT proof-bound — the canonical digest proof is stubbed in
+        # these tests and exercised against the real corpus elsewhere.
         _seed_payload(session, _PUBLISHED_PKG, now)
         create_story(session, make_story())
         session.commit()
@@ -142,11 +148,8 @@ def _seeded_db_url(tmp_path) -> str:  # type: ignore[no-untyped-def]
 
 
 def _seed_payload(session, pkg, now, *, chunk_count=2):  # type: ignore[no-untyped-def]
-    """Seed a payload that satisfies Issue 5c's persisted-state requirements:
-    the single authoritative source (``source_id == package_uuid``, expected
-    metadata, enabled), enabled chunks all assigned to it, a declared projection
-    per chunk so runtime membership coincides, and ledger coverage of every
-    authoritative page."""
+    """A minimal enabled-chunk payload under a single source, so the rebuild loop
+    has something to select. Not proof-bound (see the module docstring)."""
     session.add(
         RuleSourceORM(
             rules_package_id=pkg,
@@ -160,10 +163,9 @@ def _seed_payload(session, pkg, now, *, chunk_count=2):  # type: ignore[no-untyp
     )
     session.flush()
     for i in range(chunk_count):
-        chunk_id = f"{i:08d}-0000-4000-8000-000000000000"
         session.add(
             RuleChunkORM(
-                chunk_id=chunk_id,
+                chunk_id=f"{i:08d}-0000-4000-8000-000000000000",
                 rules_package_id=pkg,
                 source_id=pkg,
                 subsystem="general",
@@ -175,34 +177,7 @@ def _seed_payload(session, pkg, now, *, chunk_count=2):  # type: ignore[no-untyp
                 created_at=now,
             )
         )
-        session.add(
-            CorpusProjectionORM(
-                package_uuid=pkg,
-                projection_id=f"proj-{i}",
-                leaf_id=f"leaf-{i}",
-                chunk_id=chunk_id,
-                role="primary",
-                cover_start=0,
-                cover_end=7,
-            )
-        )
     session.flush()
-    session.add_all(
-        LedgerLeafORM(
-            package_uuid=pkg,
-            leaf_id=f"leaf-page-{page}",
-            printed_page=page,
-            page_index=page - 1,
-            leaf_type="paragraph",
-            content=f"page {page}",
-            char_start=0,
-            char_end=6,
-            occurrence_index=0,
-            container_path=[],
-            disposition="represented",
-        )
-        for page in range(1, EXPECTED_PAGE_COUNT + 1)
-    )
 
 
 class _Client:
@@ -262,6 +237,10 @@ def _arm(  # type: ignore[no-untyped-def]
     monkeypatch.setattr(script, "build_chroma_client", fake_build_client)
     monkeypatch.setattr(script, "reset_chroma_store", fake_reset)
     monkeypatch.setattr(script, "RulesCorpusService", _Service)
+    # The canonical digest proof needs a real proof-bound corpus; it is exercised
+    # in tests/ingestion/corpus/test_baseline_reset_script.py. Here it is stubbed
+    # so these configuration/disclosure/selection tests stay cheap and focused.
+    monkeypatch.setattr(script, "validate_corpus_payload", lambda s, p, c: [])
     monkeypatch.setattr(
         sys,
         "argv",
@@ -510,162 +489,8 @@ def test_valid_database_resets_and_rebuilds_the_preflighted_packages(
     assert seen["reindexed"] == [_PUBLISHED_PKG]
     # The rebuild set IS the preflighted set: what preflight() hands main() is
     # exactly what gets rebuilt, not a second query issued after the deletion.
-    engine, _, packages = script.preflight(db_url)
+    engine, _, packages = script.preflight(db_url, RetrievalMemoryConfig())
     try:
         assert [str(p) for p in packages] == seen["reindexed"]
-    finally:
-        engine.dispose()
-
-
-# ---------------------------------------------------------------------------
-# Round 22: a published rp_corpus_releases row is an *identity*, not a payload.
-# If its enabled rp_chunks were deleted, corrupted, orphaned, or left only
-# partially schema-compatible, resetting first and discovering that during
-# reindex leaves the prior projection gone — either raising mid-rebuild or
-# producing a legitimate-looking empty collection. The payload is therefore
-# fully loaded and validated before the client is built. Issue-5c-specific:
-# only packages selected from rp_corpus_releases are checked, so a generic
-# Rules Package (no corpus release row) keeps its broader zero-chunk contract.
-# ---------------------------------------------------------------------------
-
-
-def _mutate(db_url, fn):  # type: ignore[no-untyped-def]
-    """Apply *fn(session)* to the seeded DB and commit."""
-    engine = create_engine(db_url)
-    factory = create_session_factory(engine)
-    with factory() as session:
-        fn(session)
-        session.commit()
-    engine.dispose()
-
-
-def _delete_chunks(session):  # type: ignore[no-untyped-def]
-    session.execute(sa_delete(RuleChunkORM))
-
-
-def _disable_chunks(session):  # type: ignore[no-untyped-def]
-    for row in session.execute(select(RuleChunkORM)).scalars():
-        row.is_enabled = False
-
-
-def _corrupt_locator_type(session):  # type: ignore[no-untyped-def]
-    row = session.execute(select(RuleChunkORM)).scalars().first()
-    row.source_locator_type = "not-a-locator-type"
-
-
-def _blank_provenance(session):  # type: ignore[no-untyped-def]
-    row = session.execute(select(RuleChunkORM)).scalars().first()
-    row.source_document = ""
-
-
-def _orphan_chunk(session):  # type: ignore[no-untyped-def]
-    """Drop a chunk's declared projection: runtime reads would serve a chunk the
-    digest/report never proved."""
-    session.execute(
-        sa_delete(CorpusProjectionORM).where(CorpusProjectionORM.leaf_id == "leaf-0")
-    )
-
-
-def _reassign_source(session):  # type: ignore[no-untyped-def]
-    session.add(
-        RuleSourceORM(
-            rules_package_id=_PUBLISHED_PKG,
-            source_id=_DRAFT_PKG,
-            name="Interloper",
-            category="core_rulebook",
-            precedence_rank=2,
-            is_enabled=True,
-            created_at="2026-07-28T00:00:00Z",
-        )
-    )
-    session.flush()
-    row = session.execute(select(RuleChunkORM)).scalars().first()
-    row.source_id = _DRAFT_PKG
-
-
-def _drop_a_page(session):  # type: ignore[no-untyped-def]
-    session.execute(sa_delete(LedgerLeafORM).where(LedgerLeafORM.printed_page == 7))
-
-
-@pytest.mark.parametrize(
-    "corrupt",
-    [
-        _delete_chunks,
-        _disable_chunks,
-        _corrupt_locator_type,
-        _blank_provenance,
-        _orphan_chunk,
-        _reassign_source,
-        _drop_a_page,
-    ],
-    ids=[
-        "chunks-deleted",
-        "chunks-disabled",
-        "malformed-locator-type",
-        "missing-provenance",
-        "orphan-chunk",
-        "reassigned-source",
-        "incomplete-page-coverage",
-    ],
-)
-def test_invalid_or_incomplete_corpus_payload_leaves_chroma_untouched(
-    tmp_path, monkeypatch: pytest.MonkeyPatch, corrupt
-) -> None:
-    """Every way an Issue-5c payload can be unrebuildable — missing, disabled,
-    malformed, missing provenance, orphaned, misattributed, or incomplete —
-    aborts before the store is touched: exit 1, no client, no reset, no rebuild."""
-    script = _load_script()
-    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
-    db_url = _seeded_db_url(tmp_path)
-    _mutate(db_url, corrupt)
-
-    seen = _arm(script, monkeypatch, tmp_path, db_url=db_url)
-
-    assert script.main() == 1
-    assert "CLIENT" not in seen["events"]  # type: ignore[operator]
-    assert "RESET" not in seen["events"]  # type: ignore[operator]
-    assert seen["reindexed"] == []
-    assert any(
-        "Preflight FAILED" in e and "NOT modified" in e
-        for e in seen["events"]  # type: ignore[union-attr]
-    )
-
-
-def test_payload_validation_completes_before_the_reset(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Ordering: the payload is reported validated and materialized before the
-    Chroma client is constructed and before the store is reset."""
-    script = _load_script()
-    monkeypatch.setenv(CANONICAL_ENV, str(tmp_path / "isolated_chroma"))
-
-    seen = _run_main(script, monkeypatch, tmp_path)
-    events = seen["events"]
-
-    validated_at = next(
-        i
-        for i, e in enumerate(events)  # type: ignore[arg-type]
-        if "Preflight OK" in e and "validated and materialized" in e
-    )
-    assert validated_at < events.index("CLIENT") < events.index("RESET")  # type: ignore[union-attr]
-
-
-def test_valid_payload_passes_validation_and_only_the_published_package_is_checked(
-    tmp_path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """The positive control: a complete payload yields no violations, while the
-    draft package — which has none — is never validated, because only published
-    corpus releases are selected."""
-    script = _load_script()
-    db_url = _seeded_db_url(tmp_path)
-    engine = create_engine(db_url)
-    factory = create_session_factory(engine)
-    try:
-        with factory() as session:
-            assert script.validate_corpus_payload(session, _PUBLISHED_PKG) == []
-            # The draft package has no payload at all — proof the corrupted-payload
-            # cases above fail for the reason claimed, and that selection (not
-            # validation) is what keeps it out of the rebuild.
-            assert script.validate_corpus_payload(session, _DRAFT_PKG)
     finally:
         engine.dispose()

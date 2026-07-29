@@ -1024,7 +1024,7 @@ for an automatic reset (`api/`, `pipeline/retrieval/client.py`).
 |---|---|
 | Reset target resolution (`resolve_reset_target`) | **patched** (R19: canonical env var; validated target is the one reset) |
 | Full-store deletion helper (`reset_chroma_store`) | **already safe** (list-and-delete through the client; no filesystem/prefix/rmtree) |
-| Issue-5c SQLite reconstruction payload | **patch here** (R22, below) |
+| Issue-5c SQLite reconstruction payload | **patch here** (R22 structural checks, below; **amended R23** — the payload must be verified against Issue 5c's canonical digest proof, not merely its structure) |
 | Generic `RulesCorpusService.reindex_from_sql` | **already safe** under its broader contract — a generic Rules Package may legitimately hold zero chunks; semantics unchanged |
 | Per-story reindexing (`retrieval_backfill.py`) | **out of scope** (#132 Owner Decision 1) |
 | Automatic startup reset | **already safe/absent** — no startup path invokes the reset; the command is explicit and one-time |
@@ -1061,3 +1061,53 @@ is the positive control (a complete payload yields no violations, while the draf
 package — never selected — has none); and
 `test_generic_package_with_zero_chunks_still_reindexes_to_empty` pins the untouched
 generic contract in the Issue 18 service's own suite.
+
+### Amendment (R23) — the payload sibling needed the canonical proof, not structure
+
+Recorded as an amendment to the accepted audit above, **not** a new audit round: the
+family, triggering rounds, searched seams, and every other disposition are unchanged
+and remain owner-accepted. Only the "Issue-5c SQLite reconstruction payload"
+disposition needed strengthening.
+
+R22 validated that the payload was *structurally* rebuildable. That is not the same
+as *proven*: chunk content, provenance, or a locator value can each be replaced by
+another perfectly valid value, and every structural check still passes — so the
+command would clear the store and rebuild a silently wrong projection, with the
+proven one already deleted.
+
+**Corrected.** `validate_corpus_payload` now verifies the release's **proof-bound**
+persisted corpus using the existing canonical implementation, with no parallel hash
+and no chunk-only proof: the expected vector logical state is built from SQL through
+the same `RetrievalMemoryConfig` the rebuild will use (`expected_vector_state_from_sql`
+— the store is about to be cleared, so what must be proven is the state the rebuild
+will *write*), the persisted-corpus digest is recomputed from the persisted rows, and
+it must equal the digest recorded at publication (`verify_persisted_digest`). A
+reconstruction failure is itself a violation. One proof therefore governs content,
+provenance, locator values, membership, policy, ledger, reconciliation, source state,
+and expected vector state. The R22 structural checks are kept only as precise
+diagnostics for the coarse cases (empty payload, membership, single source, page
+coverage), not as the proof. `preflight` threads the retrieval config through;
+nothing else about the command changed.
+
+**Regressions** (`tests/ingestion/corpus/test_baseline_reset_script.py` — new module,
+because this cannot be exercised by a hand-built fixture: only a genuinely
+proof-bound corpus has a digest to match). The real full-SRD release is persisted
+into a file-backed SQLite DB once per module and copied per test:
+
+* chunk content swapped for another well-formed string → exit 1, no client
+  constructed, no reset, no rebuild, rejected explicitly for the digest mismatch;
+* a locator value swapped for another syntactically valid one → same;
+* chunks deleted / a page dropped / a chunk orphaned → same, each reported by its
+  precise diagnostic;
+* the untampered published corpus passes preflight and rebuilds (the control that
+  matters operationally — a gate that rejected real data would look green in every
+  negative test and fail only when an operator ran the command);
+* the validator's verdict agrees with `verify_persisted_digest` over the
+  expected-from-SQL vector state, pinning it as the canonical proof rather than a
+  local reimplementation;
+* proof completes before the client is constructed and before the reset.
+
+`tests/test_reset_corpus_baseline_script.py` keeps the configuration, disclosure,
+unusable-source, and selection tests and stubs the payload proof (documented in its
+docstring), so those stay cheap. Generic behaviour is unchanged and still pinned by
+`test_generic_package_with_zero_chunks_still_reindexes_to_empty`.
