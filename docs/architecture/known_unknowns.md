@@ -224,7 +224,23 @@ ADR-005c Completion Contract A. (R18 / Issue 5c Rev7 / Issue 18 Rev6: the former
 quarantine* — a repo/runtime zero-reachability scan + publication-time legacy check — was superseded by a
 breaking pre-release clean baseline: the incomplete legacy SQL package is deleted by migration 0018, the
 obsolete structured JSON and its loaders are deleted, and the development Chroma store is reset in full
-once before the corrected corpus is rebuilt.) This establishes the source-corpus layer
+once before the corrected corpus is rebuilt.)
+
+**Scope of the baseline reset (owner decision, 2026-07-29).** That reset is implemented
+**only** as a one-time, pre-release, **offline-exclusive** operation
+(`scripts/reset_corpus_baseline.py`): the API, workers, and every other process that writes to the
+SQLite database or the Chroma store must remain **stopped** from preflight through completion of the
+rebuild. The command verifies each published corpus against its canonical digest proof before deleting
+anything, but it does not hold that SQLite snapshot across the rebuild, detect other processes, or take
+a cross-process lock — concurrent writes are out of contract, not defended against. Rebuilding a **live
+/ production** store is therefore **deferred**: no such maintenance functionality exists today, and if
+it is ever required it needs a separately designed maintenance mode, or an online
+build-and-swap / catch-up workflow with its own data-preservation guarantees. This is a bounded
+*operational* deferral only; it leaves nothing about the source-corpus **architecture** unresolved
+(that is settled by ADR-005c, above, and delivered by Issue 5c). See ADR-018's 2026-07-29 owner
+decision and `srd-corpus-reproducibility.md`.
+
+The Issue-5c delivery establishes the source-corpus layer
 and the new package UUID/release-version seam only; it does **not** provide executable mechanical
 authority (no MechanicalEntity, no DC/dice typing — Owner Decision 2). **Implementation remains pending**
 CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b (D&D 5e

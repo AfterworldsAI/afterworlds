@@ -143,7 +143,11 @@ state, fails verification.
 
 ## Acyclic proof lifecycle (Component K, steps a0–g)
 
-Implemented by `afterworlds.ingestion.corpus.pipeline.build_release`:
+Implemented across two entry points, split at the persistence boundary:
+`afterworlds.ingestion.corpus.pipeline.build_candidate` performs **a0–b** and returns
+a candidate that structurally cannot claim persistence;
+`afterworlds.ingestion.corpus.persistence.finalize_release` performs **c–g** against
+the persisted state and publishes only if the final gate passes.
 
 | Step | Action | Module |
 |------|--------|--------|
