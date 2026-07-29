@@ -1582,21 +1582,6 @@ class TestVectorIndex:
         vector_writer = VectorWriter(chroma_client)
         assert vector_writer.has_chunks(ingestion_result.package_id)
 
-    def test_basic_semantic_query_returns_results(
-        self,
-        ingestion_result: Any,
-        chroma_client: chromadb.ClientAPI,
-    ) -> None:
-        """Basic semantic query returns results without error."""
-        vector_writer = VectorWriter(chroma_client)
-        result = vector_writer.query(
-            query_text="fire damage spell",
-            package_id=ingestion_result.package_id,
-            n_results=3,
-        )
-        assert len(result.chunk_ids) > 0
-        assert len(result.documents) > 0
-
     def test_vector_metadata_source_document_is_file_name(
         self,
         ingestion_result: Any,

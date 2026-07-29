@@ -1,1 +1,4 @@
 recursive-include src/afterworlds/modes/personas/profiles *.json
+# CRD Issue 5c committed expected-table oracle, read at runtime by
+# table_inventory.py (candidate construction/finalization fail without it).
+include src/afterworlds/ingestion/corpus/srd_table_inventory.json

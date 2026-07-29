@@ -7,6 +7,17 @@ a single CRD issue; this ADR establishes the repair order for CRD Issues 5c, 5d,
 **Status:** Accepted — owner directive dated 2026-07-21 authorizing the seven decisions recorded here.
 Repository adoption proceeds through the documentation PR that introduces this ADR.
 
+> **Correction — pre-release clean baseline (2026-07-27, Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds is
+> pre-release, so persistence created before Issue 5c gets no upgrade-compatibility or preservation
+> guarantee. The owner replaced the earlier *strict legacy quarantine / zero-reachability* contract with a
+> breaking clean baseline: (1) migration `0018` deletes the incomplete legacy SQL package and its
+> dependent rows; (2) the obsolete structured JSON and every production loader/default/reader for it are
+> deleted (kept only in Git history); (3) the configured development Chroma store is reset in full **once**
+> — an explicit one-time step (`scripts/reset_corpus_baseline.py`), never automatic startup — before the
+> corrected rules corpus is rebuilt from the published SQLite-authoritative package via Issue 18's reindex
+> path. No legacy UUID or collection-name handoff, pending-cleanup registry, or publication-time
+> legacy-reachability check is used. Historical knowledge is preserved in Git history and this note only.
+
 ---
 
 ## Central Invariant
@@ -353,8 +364,9 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
 - Full-corpus ingestion and executable projection need separate tests and manifests.
 - Every supported adapter/package combination requires explicit certification.
 - Some SRD mechanics will remain present in the corpus but unsupported by deterministic adjudication.
-- The existing curated package artifact (`data/srd/srd_5_2_1_structured.json`) must be rebuilt or
-  replaced against the full-corpus contract.
+- The existing curated package artifact was replaced by the authoritative PDF-derived corpus and then,
+  under the R18 pre-release clean baseline (see the correction note below), deleted outright rather than
+  rebuilt (Issue 5c Rev7).
 - Existing tests and acceptance claims for Issues 5b, 15, and 15b will require reevaluation — not because
   those issues were decided incorrectly at the time, but because a later-discovered gap changes what
   "acceptance" now requires downstream.

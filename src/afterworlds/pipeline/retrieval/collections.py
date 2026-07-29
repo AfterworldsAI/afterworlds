@@ -190,3 +190,35 @@ def get_rules_corpus_collection(
     )
     _require_matching_embedding_model(collection, config, collection_name)
     return collection
+
+
+def get_existing_rules_corpus_collection(
+    client: ClientAPI,
+    collection_name: str,
+    config: RetrievalMemoryConfig,
+    embedding_function: RetrievalEmbeddingFunction | None = None,
+) -> Collection | None:
+    """Open an **existing** rules_corpus collection WITHOUT creating it.
+
+    The read-only counterpart to :func:`get_rules_corpus_collection` for the
+    verify-only reuse and diagnostic-query paths, which must never create a
+    canonical collection as a side effect (PR #134). Uses the non-creating
+    ``client.get_collection`` — never ``get_or_create_collection``.
+
+    Returns ``None`` only for a genuinely absent collection
+    (``chromadb.errors.NotFoundError``); a locked/corrupt/permission or any other
+    operational error propagates rather than being reported as absence. An
+    embedding-model mismatch raises
+    :class:`RetrievalCollectionReindexRequiredError` (an explicit
+    verification/publication failure) and creates, wipes, or rewrites nothing.
+    """
+    ef = embedding_function or resolve_default_embedding_function()
+    try:
+        collection = client.get_collection(
+            name=collection_name,
+            embedding_function=ef,  # type: ignore[arg-type]
+        )
+    except NotFoundError:
+        return None
+    _require_matching_embedding_model(collection, config, collection_name)
+    return collection

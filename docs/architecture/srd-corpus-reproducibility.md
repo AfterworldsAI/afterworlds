@@ -1,0 +1,262 @@
+# SRD Corpus Reproducibility — CRD Issue 5c (#132), ADR-005c Completion Contract A
+
+The authoritative SRD 5.2.1 corpus is a **byte-for-byte reproducible** release
+derived deterministically from the authoritative PDF. This document defines the
+acyclic proof lifecycle (Component K) and the determinism rules that make a clean
+checkout regenerate an identical release.
+
+**Scope of the claim.** Every one of the five top-level release identities —
+authoritative-source hash, transform-config hash, bundle-root hash,
+evidence-report hash, and persisted-corpus digest — is a function of the committed
+inputs only (the PDF, the transform source manifest, the frozen policy, the vector
+identity, and the committed table inventory), never of the runtime host. The
+identity-bearing evidence report records only the **declared, host-independent
+reproduction target**: the declared Python target (3.12) plus the exact pinned
+extractor/parser versions and deterministic invocation carried by
+`transform_identity`. It contains **no** runtime host name, OS, architecture,
+absolute path, timestamp, or PID, so the same committed inputs produce a
+byte-identical release identity on every supported host (proven by
+`test_evidence_report_identity_is_host_independent`). Actual host details are
+emitted as an operational log line only — a diagnostic that never enters any
+canonical artifact, report hash, persisted-corpus digest, package identity, or
+publication-gate comparison (R16 F2). A future extractor/toolchain change that
+altered extraction output would move the pinned versions (hence the identity),
+so a divergence is observable rather than silent.
+
+## Inputs (committed)
+
+- **Authoritative source:** `docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf`
+  (SHA-256 `8974902d…3d87`, 6,031,375 bytes, CC BY 4.0). Verified before any
+  extraction; a mismatch fails closed.
+- **Pinned extractor:** `pdfplumber==0.11.10` / `pdfminer.six==20260107`
+  (`pyproject.toml`). The transform records these identities; bumping either is a
+  transform-config change that yields a **new draft release**.
+- **Frozen reconciliation policy:** committed source in
+  `afterworlds.ingestion.corpus.policy` (closed exclusion-reason set, projection
+  roles + overlap semantics, normalization identity). Frozen before any output.
+- **First-party transform source manifest:** the transform identity binds a
+  canonical manifest over the committed first-party modules that produce the
+  candidate corpus or its canonical identities (steps a0–b) — `pdf_source`,
+  `ledger`, `tables`, `transform`, `reconcile`, `policy`, `bundle`, `hashing`,
+  `models`, `pipeline`, `transform_identity` (verification/persistence/publication
+  modules are excluded because they cannot change the candidate bytes). Each entry
+  is a repo-relative path + SHA-256 of that file's newline-normalized source,
+  sorted by path; the aggregate `transform_source_hash` is a pure function of
+  those bytes. A change to **any** covered module — including `tables` (table
+  segmentation, cell contents/ids, row/column metadata) — moves the hash
+  automatically, so a transform-code change yields a **new draft release** rather
+  than reusing the predecessor's identity. Implemented in
+  `afterworlds.ingestion.corpus.transform_identity`.
+- **Expected-table inventory:** the committed frozen oracle
+  (`srd_table_inventory.json`) is a candidate-affecting *data* input; its content
+  hash is bound into the transform configuration, so regenerating it (after a
+  reviewed table-reconstruction change) mints a new release. It ships in the wheel
+  and sdist (`package-data` + `MANIFEST.in`) and is read at runtime via
+  `importlib.resources`, so it resolves from an installed distribution — not only a
+  source checkout — and stays fail-closed if absent.
+
+## Exhaustive authoritative-source extraction (Component A)
+
+Source completeness is proven independently, not self-asserted. Because the
+authoritative source hash is a bound constant rather than a function of the pages
+actually extracted, a candidate covering only a *subset* of pages while carrying
+the real PDF hash would otherwise pass. `afterworlds.ingestion.corpus`
+`.source_completeness` closes this:
+
+- an ordered per-page **extraction manifest** — `(page_index, printed_page,
+  geometry, sha256(canonical_text))` for every page in order — is hashed to a
+  single `source_extraction_hash`, compared to the golden
+  `AUTHORITATIVE_SOURCE_EXTRACTION_HASH` derived once from a full extraction of
+  the committed PDF (same hardcoded-verified-fact pattern as `PDF_SHA256`);
+- structural checks assert the page sequence is exactly `1..364` contiguous with
+  `page_index == printed_page - 1`, so an **omitted, duplicated, reordered, or
+  substituted** page each produces a diagnosable failure.
+
+The manifest binds the full normalized extraction **geometry** every heading/
+table/ledger step consumes — per-line `top`/`x0`/`x1`/`size` + char span + text,
+per-word `text`/`x0`/`x1` + char span, and each rect's geometry — not just page
+text, so a geometry-only change (a moved coordinate, a resized font, a shifted
+word span, an added/removed rect) that leaves the page text unchanged still fails
+completeness (it could otherwise silently alter headings and table cells). It
+stays pre-segmentation, so downstream leaf/table *segmentation* changes do not
+perturb it. `finalize_release` runs this proof **before any SQL or Chroma
+mutation**, so an unproven candidate is rejected leaving no package/release/vector
+state; the reuse path additionally re-checks that the persisted ledger covers
+every printed page.
+
+## Structurally faithful tables (Component F)
+
+SRD tables shade their cells with filled rectangles; a shaded row's per-column
+rects give deterministic **column boundaries** and a y-band anchor, while the
+**rows** come from the text lines that align to those columns
+(`afterworlds.ingestion.corpus.tables`). Each row's canonical-text char span is
+partitioned at the column boundaries into `TABLE_CELL` sub-spans, so the cells
+exactly tile the same characters the row would otherwise occupy — the ledger's
+disjoint+exhaustive page tiling is preserved (sibling cells adjacent within a
+row, a single `\n` between rows). A cell is emitted exactly once; a wrapped
+multi-line cell folds its continuation into one leaf, and a page-spanning table
+continues as the same logical grid. Detection only ever consumes a maximal
+contiguous line run and discards any candidate table whose cells fail span
+validity or page concordance, so a mis-detection falls back to paragraph
+segmentation and never corrupts tiling.
+
+**Cross-page logical tables.** `assemble_tables` links per-page segments into one
+logical table: the geometrically lowest table on page N continues into the highest
+on page N+1 iff they share column count and normalized header (never column
+x-positions — a table shifts body column between pages; the Actions table is the
+right body column on page 9, the left on page 10). A logical table has a stable id
+(from its first segment), continuous logical row numbering that does not restart at
+the page boundary, and a retained-and-flagged repeated continuation header (sharing
+logical row 0, never counted as a new data row). Leaves stay per-page (the tiling
+invariant is untouched); logical identity is metadata on the leaf
+(`rp_ledger_leaves.table_id`=logical id, `table_row`=logical row, `table_col`,
+`table_segment`; migrations 0019/0020), under a shared `TABLE` container — all bound
+into the digest and surviving persistence, reconstruction, publication, and reuse.
+A colored title bar sitting well above the column-header row is geometrically
+indistinguishable from adjacent prose, so it falls to a caption/paragraph leaf; the
+table reconstructs faithfully from its column-header row down.
+
+**Independent expected-table oracle.** `table_inventory` supplies a committed,
+frozen inventory (`srd_table_inventory.json`) of every expected logical table (page
+span, header, column/row counts, segment count, cell-detail hash), generated by a
+documented offline procedure (`scripts/regen_table_inventory.py`) and compared
+against the live reconstruction — **never** regenerated by the detector at check
+time — so a suppressed, flattened, fragmented, merged, or invented table diverges
+and fails (prose is excluded by construction, distinguishing tables from prose).
+Its hash is bound into the transform/configuration identity, and `finalize_release`
+rejects a full-corpus candidate that diverges from it before any store mutation.
+Per-page `check_table_concordance` additionally verifies emitted-cell structural
+consistency and surfaces the detection coverage tally — regions that cannot be
+cleanly reconstructed fall back to paragraphs, counted rather than silently capped.
+
+## Persisted source membership (Component G)
+
+The persisted-corpus digest binds every chunk's actual persisted `source_id` and
+the complete canonically-ordered logical `RuleSource` set (`source_id`,
+`rules_package_id`, `name`, `category`, `precedence_rank`, `is_enabled`;
+operational `created_at` excluded), and `verify_single_source` enforces the
+Issue-5c single-source invariant (exactly one authoritative source, deterministic
+`source_id == package_uuid`, expected metadata, enabled, every chunk assigned to
+it). Both are reconstructed from persisted state and gate publication/reuse, so a
+chunk reassigned to a different source, or altered/disabled/extra/missing source
+state, fails verification.
+
+## Acyclic proof lifecycle (Component K, steps a0–g)
+
+Implemented across two entry points, split at the persistence boundary:
+`afterworlds.ingestion.corpus.pipeline.build_candidate` performs **a0–b** and returns
+a candidate that structurally cannot claim persistence;
+`afterworlds.ingestion.corpus.persistence.finalize_release` performs **c–g** against
+the persisted state and publishes only if the final gate passes.
+
+| Step | Action | Module |
+|------|--------|--------|
+| a0 | Freeze the reconciliation policy (covered by the transform-config hash) | `policy` |
+| a1 | Extract the PDF and derive + hash the frozen source ledger | `pdf_source`, `ledger` |
+| a2 | Generate canonical corpus members **from the frozen ledger** | `transform` |
+| a3 | Reconcile by applying **only** the frozen policy → reconciliation member | `reconcile` |
+| b | Compute the bundle-root hash (excludes itself and the report) | `bundle` |
+| c | Persist the canonical logical state into SQL (+ informational vectors) | `persistence` |
+| d | Compute the persisted-corpus digest from the persisted state | `bundle` |
+| e | Generate the post-persistence evidence report (no self-hash) | `report` |
+| f | Hash the completed evidence report | `report` |
+| g | Record the five top-level hashes and run the publication gate | `gate` |
+
+No artifact is ever covered by a hash it contains, and the evidence report is
+never generated before persistence. The ledger is derived from the PDF
+independent of any output; the corpus is generated from the frozen ledger; the
+reconciliation checks output-vs-ledger — so gap-free, zero-unresolved coverage is
+honest-by-construction, and concordance + six version canaries (Component E/J)
+independently verify correspondence to the real PDF.
+
+## The five top-level release identities (Component A)
+
+Recorded in the external release/publication record (`rp_corpus_releases`):
+
+1. authoritative source hash;
+2. transform source/configuration hash (covers the extractor config, the frozen
+   policy, **and the first-party transform source manifest/hash**);
+3. canonical corpus-bundle root hash;
+4. evidence-report hash;
+5. persisted-corpus digest.
+
+The package UUID is `uuid5(source_hash, transform_hash)` — new for new inputs yet
+reproducible for identical inputs (Owner Decision 1). A changed source or
+transform input (including the policy) produces a new draft release and can never
+mutate a published one.
+
+## Leaf identity vs. output chunk identity
+
+Two distinct identities that must not be conflated:
+
+- **Source `leaf_id`** — the provenance identity of a page-content occurrence,
+  derived from source facts only (page, span, type, content). It is
+  **release-independent**: the same occurrence keeps the same `leaf_id` across
+  every release, so later work can consume it as a stable provenance key.
+- **Output `chunk_id`** — the identity of a canonical `RuleChunk` (Component F).
+  It is **release-scoped**: `content_id("chunk", package_uuid, leaf_id)`, so a new
+  immutable release (a changed source, transform config, transform-source
+  manifest, or embedding model — anything that moves `package_uuid`) mints
+  distinct chunk IDs even for identical leaves. Because `rp_chunks.chunk_id` is a
+  global primary key, this is what lets two releases coexist in one database
+  instead of colliding; the downstream rules-corpus vector IDs
+  (`rules:{package_uuid}:chunk:{chunk_id}`) and projection IDs are already/thereby
+  package-scoped. Identical release inputs still regenerate byte-for-byte (the
+  `package_uuid` is itself deterministic).
+
+## Determinism rules
+
+- **Content-derived identities only** (`uuid5`/SHA-256 over canonical JSON). No
+  `uuid4`, no wall-clock timestamps in any hashed artifact or the digest.
+- **Canonical serialization**: sorted keys, compact separators, UTF-8, `\n`
+  newlines (`afterworlds.ingestion.corpus.hashing`).
+- **Geometry rounding**: extracted coordinates are rounded before hashing so
+  float rendering cannot perturb a proof identity.
+- **Reading order**: content-stream flow (`use_text_flow=True`), lines grouped by
+  vertical proximity — verified faithful against the six canary pages.
+
+## Regenerating the corpus
+
+```bash
+python scripts/ingest_srd.py --db-url sqlite:///afterworlds.db
+```
+
+This builds the release solely from the PDF, runs the publication gate, and
+persists a new immutable release only if the gate passes. There is no legacy
+structured-JSON ingestion path.
+
+**Pre-release clean baseline (R18; Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds
+is pre-release, so persistence created before Issue 5c gets no
+upgrade/preservation guarantee, and the former strict cross-store quarantine
+(repo/runtime zero-reachability scan + a publication-time legacy check) is
+superseded by a clean baseline: migration `0018` deletes the incomplete legacy SQL
+package and its dependent rows; the obsolete structured JSON and its loaders are
+deleted (kept only in Git history); and the configured development Chroma store is
+reset in full **once** — an explicit one-time step
+(`scripts/reset_corpus_baseline.py`), never automatic startup — before the
+corrected rules corpus is rebuilt from the published SQLite-authoritative package
+via Issue 18's reindex path. No legacy UUID or collection-name handoff is used.
+
+**Offline-exclusive (owner decision, 2026-07-29).** The baseline reset is a one-time,
+pre-release, **offline** maintenance operation. It is supported only while the
+Afterworlds API, workers, and every other process that writes to the SQLite database
+or the Chroma store are stopped, and they must stay stopped until the rebuild
+completes. The command verifies the published corpus against its canonical digest
+proof before deleting anything, but it does **not** hold that SQLite snapshot across
+the rebuild, detect other processes, or take a cross-process lock: a concurrent write
+landing between the proof and the reindex would rebuild an unproven corpus, and
+concurrent Chroma/story-memory writes have no protection at all. Making the reset safe
+under live traffic is **deferred** — a longer-lived snapshot would protect only the
+rules-corpus read while leaving the other writers unresolved, so if live rebuilding is
+ever required it needs a separately designed maintenance mode, or an online
+build-and-swap / catch-up workflow with its own data-preservation guarantees. The
+command states this precondition in `--help` and prints it before any work begins.
+
+## What corpus publication proves — and does not
+
+Publication proves **source-corpus integrity only**: authoritative-source
+identity, complete atomic-leaf accounting with zero unresolved leaves, gap-free
+declared-projection coverage, passing concordance, and byte-for-byte
+reproducibility. It does **not** certify that any mechanic is deterministically
+executable — that is Issue 5d's and Issue 15c's separate, later claim
+(ADR-005c Decisions 1, 6).

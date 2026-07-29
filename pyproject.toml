@@ -17,6 +17,12 @@ dependencies = [
     "openai>=1.0",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    # SRD corpus transform (CRD Issue 5c). Pinned exactly: the corpus release is
+    # byte-for-byte reproducible only against a fixed extractor version. The
+    # transform records these identities (Component B); bumping either version is
+    # a transform-config change that yields a new draft release (Component A).
+    "pdfplumber==0.11.10",
+    "pdfminer.six==20260107",
 ]
 
 [project.optional-dependencies]
@@ -30,13 +36,27 @@ dev = [
     "pip-audit>=2.7",
     "detect-secrets>=1.5",
     "httpx>=0.27",
+    # Packaging smoke test (CRD Issue 5c): builds wheel+sdist to verify the
+    # committed table inventory ships and loads from an installed distribution.
+    # `build --no-isolation` uses the current env's build backend, so the declared
+    # `[build-system].requires` (setuptools>=68, wheel) must be present here too
+    # (R17: a clean CI runner lacked `wheel`, so the build exited 1).
+    "build>=1.0",
+    "setuptools>=68",
+    "wheel",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-afterworlds = ["modes/personas/profiles/*.json"]
+afterworlds = [
+    "modes/personas/profiles/*.json",
+    # CRD Issue 5c committed expected-table oracle, read at runtime via
+    # importlib.resources (table_inventory.py); required by candidate
+    # construction/finalization, so it must ship in the wheel.
+    "ingestion/corpus/srd_table_inventory.json",
+]
 
 # ---------------------------------------------------------------------------
 # Black

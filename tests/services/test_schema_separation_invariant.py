@@ -17,6 +17,7 @@ Architecture invariant (CRD Issue 5a):
 from __future__ import annotations
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
+import afterworlds.persistence.orm.corpus  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
@@ -139,6 +140,14 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_mechanical_entities",
         "rp_overrides",
         "rp_manifests",
+        # CRD Issue 5c (#132) corpus-integrity release tables.
+        "rp_corpus_releases",
+        "rp_source_ledgers",
+        "rp_ledger_containers",
+        "rp_ledger_leaves",
+        "rp_reconciliation_policies",
+        "rp_reconciliations",
+        "rp_corpus_projections",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

@@ -217,10 +217,35 @@ non-consumed termination path.
 architectural question — how DC and dice-term authority should be modeled and bound so an adapter can
 execute against real Rules Package content, and why that authority must never silently fall back to
 prose, retrieval, or model inference — is resolved by ADR-005c (Decisions 1, 2, 4, 5, 6).
-**Implementation remains pending** CRD Issue 5c (SRD corpus integrity / reproducible full-corpus
-ingestion), CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b
-(D&D 5e character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20
-adapter production reachability).
+**Source-corpus layer implemented by CRD Issue 5c (#132).** The authoritative full-corpus ingestion,
+frozen source ledger, frozen reconciliation policy, deterministic reconciliation, source-to-corpus
+concordance, byte-for-byte reproducible acyclic build, and corpus-publication gate are delivered under
+ADR-005c Completion Contract A. (R18 / Issue 5c Rev7 / Issue 18 Rev6: the former *strict legacy
+quarantine* — a repo/runtime zero-reachability scan + publication-time legacy check — was superseded by a
+breaking pre-release clean baseline: the incomplete legacy SQL package is deleted by migration 0018, the
+obsolete structured JSON and its loaders are deleted, and the development Chroma store is reset in full
+once before the corrected corpus is rebuilt.)
+
+**Scope of the baseline reset (owner decision, 2026-07-29).** That reset is implemented
+**only** as a one-time, pre-release, **offline-exclusive** operation
+(`scripts/reset_corpus_baseline.py`): the API, workers, and every other process that writes to the
+SQLite database or the Chroma store must remain **stopped** from preflight through completion of the
+rebuild. The command verifies each published corpus against its canonical digest proof before deleting
+anything, but it does not hold that SQLite snapshot across the rebuild, detect other processes, or take
+a cross-process lock — concurrent writes are out of contract, not defended against. Rebuilding a **live
+/ production** store is therefore **deferred**: no such maintenance functionality exists today, and if
+it is ever required it needs a separately designed maintenance mode, or an online
+build-and-swap / catch-up workflow with its own data-preservation guarantees. This is a bounded
+*operational* deferral only; it leaves nothing about the source-corpus **architecture** unresolved
+(that is settled by ADR-005c, above, and delivered by Issue 5c). See ADR-018's 2026-07-29 owner
+decision and `srd-corpus-reproducibility.md`.
+
+The Issue-5c delivery establishes the source-corpus layer
+and the new package UUID/release-version seam only; it does **not** provide executable mechanical
+authority (no MechanicalEntity, no DC/dice typing — Owner Decision 2). **Implementation remains pending**
+CRD Issue 5d (structured mechanical authority and deterministic rule binding), CRD Issue 2b (D&D 5e
+character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
+production reachability).
 
 **Surfaced during:** Issue 15b Phase 2 implementation on frozen PR #129 (`D20RulesSystemAdapter.
 _verify_dc` unconditionally returns `None`; Rules Package entities carry no `dc`/`difficulty_class` field

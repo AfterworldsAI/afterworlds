@@ -8,6 +8,40 @@ https://github.com/AfterworldsAI/afterworlds/pull/118#issuecomment-4883951215. A
 Phase 1 ADR/documentation gate only; Phase 2 implementation (`feature/issue-18-retrieval-memory`) may
 begin only after this Phase 1 PR is merged.
 
+> **Correction — pre-release clean baseline (2026-07-27, Issue 18 Rev6 / Issue 5c Rev7).** Because
+> Afterworlds is pre-release, the corrected rules-corpus projection is established by a clean baseline
+> rather than by migrating or inspecting the interim/pre-baseline vector collections: the configured
+> development Chroma store is reset in full **once** (an explicit one-time step,
+> `scripts/reset_corpus_baseline.py`; never automatic startup), then the rules corpus is rebuilt from the
+> published Issue-5c SQLite-authoritative package via the existing reindex path
+> (`RulesCorpusService.reindex_from_sql`). The superseded interim direct reader (`VectorWriter.query()`)
+> was removed; the supported diagnostic reader remains `RulesCorpusService.diagnostic_query()`
+> (publication-gated, non-creating). Story-memory restoration, **if desired**, uses the same Issue 18
+> reindex path — an optional, separate per-story operation, not a step of the baseline command (see
+> the clarification below).
+>
+> **Clarification (2026-07-28).** The full-store reset deletes **every** collection, including the
+> shared `story_memory` collection, and the baseline command rebuilds **published rules-corpus
+> projections only**. The sentence above names the *optional recovery mechanism* —
+> `scripts/retrieval_backfill.py --mode reindex`, run per story — and
+> does **not** make restoration a step of the Issue-5c baseline command, which deliberately does not
+> enumerate or reindex stories (GitHub #132 Owner Decision 1: "any desired story-memory backfill uses
+> Issue 18's existing reindex path and is not redesigned here"). Nothing is lost that SQLite cannot
+> regenerate — story memory is a rebuildable projection of SQLite-authoritative turns — but it is
+> regenerated only when an operator asks for it. The reset command warns of exactly this before it
+> deletes anything.
+>
+> **Owner decision — offline-exclusive (2026-07-29).** The baseline reset is a one-time, pre-release,
+> **offline** maintenance operation, supported only while the API, workers, and every other
+> SQLite/Chroma writer are stopped, and they must stay stopped until the rebuild completes. The command
+> verifies each published corpus against its canonical digest proof before deleting anything, but it
+> does not hold that SQLite snapshot across the rebuild, detect other processes, or take a
+> cross-process lock — concurrent writes are out of contract, not defended against. Making the reset
+> safe under live traffic is **deferred**: a longer-lived snapshot would protect only the rules-corpus
+> read while leaving concurrent Chroma and story-memory writes unresolved, so live/production
+> rebuilding, if ever required, needs a separately designed maintenance mode or an online
+> build-and-swap / catch-up workflow with its own data-preservation guarantees.
+
 ---
 
 ## Central Invariant
