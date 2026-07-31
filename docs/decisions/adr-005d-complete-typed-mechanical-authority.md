@@ -3,7 +3,8 @@
 **Issue:** CRD Issue 5d  
 **Date:** 2026-07-30  
 **Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
-review) so the effective runtime binding also carries an immutable override-set identity  
+review) so the effective runtime binding also carries an immutable override-set identity, and clarified
+in the same review so the contents that identity names are retained as immutable replay evidence  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -187,11 +188,31 @@ enablement, and validated payloads. Adding, removing, enabling, disabling, repri
 changing the payload of an applicable override yields a different override-set UUID. The no-overrides
 state has its own deterministic override-set UUID; it is not the absence of one.
 
+Each override-set UUID identifies one immutable, content-addressed override-set **version**. That version
+preserves — or is deterministically reconstructable from append-only retained evidence that preserves —
+the exact canonical ordered override state the UUID was derived from: targets, operations,
+precedence/order, enablement state, and complete validated payloads. Historical override-set versions
+remain retrievable after the source `RuleOverride` rows are edited, disabled, reprioritized, retargeted,
+or deleted. Recording the override-set UUID while retaining only mutable current override rows is
+insufficient. Current override rows remain the authoring surface; they are not historical replay evidence.
+Whether that retention takes the shape of immutable content-addressed snapshots, append-only version
+records, or an event history that deterministically reconstructs the canonical set is an implementation
+choice this ADR does not make. Override-set version retention is runtime state and is separate from the
+Decision 8 projection publication lifecycle.
+
 Rule slices, deterministic-consumer views, GameMaster authority views, applied-override provenance,
 stale/mismatch validation, and replay/audit evidence identify the exact effective binding — all four
-components — that produced them. A recorded binding whose override-set UUID no longer matches the
-recomputed effective override state is `STALE` and fails explicitly; it is never silently re-resolved
-against current overrides. Overrides never mutate or remint the base projection UUID.
+components — that produced them. Two operations follow, and they are distinct:
+
+- **Runtime resolution and adjudication.** A recorded binding whose override-set UUID no longer matches
+  the override-set UUID recomputed from current override state is `STALE` and fails explicitly; it is
+  never silently re-resolved against current overrides.
+- **Audit, replay, and provenance reads.** These resolve against the retained immutable override-set
+  version and must succeed, reconstructing the exact effective mechanical authority originally applied
+  rather than merely reporting that it differs from current override state. `STALE` is not a valid answer
+  here; a failure to reconstruct is a retention defect, not a divergence signal.
+
+Overrides never mutate or remint the base projection UUID.
 
 A human-facing slug may resolve through one code-owned service but cannot serve as canonical authority.
 Every rule-slice request carries the exact effective binding plus deterministic selectors or an explicit
@@ -207,6 +228,11 @@ effective mechanical view. Existing override precedence and `DISABLE` / `REPLACE
 remain unchanged. Overrides never mutate the immutable base projection and never remint its identity;
 the applied ordered override state is identified instead by the override-set UUID of the effective
 binding (Decision 9), and applied-override provenance is reported against that binding.
+
+Applied-override provenance resolves through the retained immutable override-set version, not through
+current override rows, so an effective view recorded earlier remains reconstructable after the source
+overrides are edited, disabled, reprioritized, retargeted, or deleted. The base projection and its
+identity are unaffected either way.
 
 `DISABLE` suppresses an exact typed target; `REPLACE` supplies a complete validated replacement for a
 component or fact; and `APPEND` adds a complete typed component or fact only where the owning schema
@@ -297,9 +323,10 @@ narrowly scoped cross-reference as of this change.
 - Deterministic consumers receive typed, source-linked facts instead of parsing prose.
 - Missing or ambiguous authority becomes visible and typed.
 - Mechanical corrections mint new immutable identity rather than silently reusing stale releases.
-- Replay, audit, and stale detection reconstruct the exact effective authority — base projection plus the
-  identified applied override set — instead of an ambiguous package/release pair that could resolve to
-  different trust-relevant values over time.
+- Replay and audit reconstruct the exact effective authority — base projection plus the retained
+  override-set version — instead of an ambiguous package/release pair that could resolve to different
+  trust-relevant values over time, and they keep working after the current override rows are edited or
+  deleted. Runtime stale detection remains a separate fail-closed check against current override state.
 - 2b and 15c receive stable upstream contracts.
 
 ### Costs
@@ -310,6 +337,8 @@ narrowly scoped cross-reference as of this change.
 - Typed fact and override families require maintenance as new authorized Rules Packages add mechanics.
 - Every effective override change mints a new override-set identity, so consumers that record or cache an
   effective binding must revalidate it rather than assume stability across override edits.
+- Retained override-set versions accumulate alongside override authoring, and pruning them forfeits the
+  replay and audit reconstruction they exist to provide.
 - Delivery requires multiple PRs before 5d is complete.
 
 ### Rejected alternatives
@@ -335,6 +364,12 @@ narrowly scoped cross-reference as of this change.
     2026-07-30 (PR #138): overrides change the effective mechanical view, so one such binding could
     resolve to different DCs, effects, or disabled mechanics over time and neither stale detection nor
     replay could reconstruct the authority actually used.
+12. **Record the override-set identity but retain only current override rows.** Rejected in the same
+    review: the identifier would name state that no longer exists once an override is edited, disabled,
+    reprioritized, retargeted, or deleted, leaving audit and replay able to detect divergence but not to
+    reconstruct the authority actually applied. This is the standing auditability invariant — operational
+    state must be reconstructable from explicit retained evidence, not inferred from mutable current
+    state — applied to override sets.
 
 ---
 
