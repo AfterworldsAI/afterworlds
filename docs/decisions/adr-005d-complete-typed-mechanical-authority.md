@@ -256,8 +256,8 @@ ADR-0007 remains a correct historical deferral for CRD Issue 5a. This ADR record
 the first issue requiring typed entity/component/fact override application and therefore **discharges**
 the deferral.
 
-ADR-0007 carries this status note as of this change, with its historical Context, Decision, and
-Consequences text preserved:
+ADR-0007 carries this status note as of this change — followed there by a link to Decisions 9 and 10 and
+a statement that its historical Context, Decision, and Consequences text is preserved:
 
 > **Discharged by ADR-005d / CRD Issue 5d.** The typed mechanical projection now defines the concrete
 > record/component/fact patch families and applies them while preserving existing override precedence and
