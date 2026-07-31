@@ -666,6 +666,12 @@ service, or runtime mechanical decision may consume semantic rules retrieval as 
 rule inclusion remains exclusively through `get_active_rule_slice`. Wiring semantic rules discovery
 into any runtime path — even as a "hint" — is a future issue plus ADR.
 
+**Cross-reference (ADR-005d, 2026-07-30):** this boundary is unchanged by
+[ADR-005d](adr-005d-complete-typed-mechanical-authority.md). Retrieval may locate candidate governing
+prose for the ADR-005d GameMaster authority view, but the returned authority must resolve to the exact
+effective Rules Package binding (package, release, mechanical projection, and override set); retrieval
+never supplies or selects a trust-relevant mechanical value.
+
 ## Decision 11 (D11) — Update/Delete/Reindex Semantics
 
 **Decision:** In-place re-upsert keyed by deterministic IDs, with orphan sweep by `story_id` filter,
