@@ -9,6 +9,7 @@ that each negative control can perturb exactly one thing.
 from __future__ import annotations
 
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
+from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
@@ -49,6 +50,30 @@ PROSE_LEAF = "leaf-prose"
 SUPPORT_LEAF = "leaf-support"
 
 LEAF_LENGTHS = {SPELL_LEAF: 40, PROSE_LEAF: 30, SUPPORT_LEAF: 20}
+
+PACKAGE_UUID = "pkg-5c"
+RELEASE_VERSION = "rel-5c"
+WISH_CHUNK = "chunk-wish-0001"
+SECOND_CHUNK = "chunk-wish-0002"
+
+
+def bound_corpus(
+    *,
+    leaf_lengths: dict[str, int] | None = None,
+    chunk_ids: frozenset[str] | None = None,
+    package_uuid: str = PACKAGE_UUID,
+    release_version: str = RELEASE_VERSION,
+) -> BoundCorpusSnapshot:
+    """The resolved 5c release the synthetic candidate is validated against."""
+    return BoundCorpusSnapshot(
+        package_uuid=package_uuid,
+        release_version=release_version,
+        leaf_lengths=dict(LEAF_LENGTHS if leaf_lengths is None else leaf_lengths),
+        authoritative_chunk_ids=(
+            frozenset({WISH_CHUNK, SECOND_CHUNK}) if chunk_ids is None else chunk_ids
+        ),
+    )
+
 
 SPELL_SPAN = derive_span_id(SPELL_LEAF, 0, 40)
 PROSE_SPAN = derive_span_id(PROSE_LEAF, 0, 30)

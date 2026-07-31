@@ -25,7 +25,6 @@ persistence and gate layers. Nothing here activates anything.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
@@ -36,6 +35,7 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_policy_binding,
     validate_reason_codes,
 )
+from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
@@ -294,22 +294,51 @@ def identify_projection(candidate: ProjectionCandidate) -> IdentifiedProjection:
 
 
 def validate_candidate(
-    candidate: ProjectionCandidate, leaf_lengths: Mapping[str, int]
+    candidate: ProjectionCandidate, corpus: BoundCorpusSnapshot
 ) -> tuple[str, ...]:
     """Return every violation that blocks this candidate from being published.
 
-    Covers the declared policy binding, the span partition over each
-    represented leaf, closed reason codes, explicit acceptance, and the keyed
-    representation. An empty result means the candidate is internally honest —
-    it does *not* mean the projection is complete, persisted, reconstructable,
-    or publishable. Those are proven by the persistence layer and the exact
-    completeness gate, against reconstructed state.
+    Covers the bound release's agreement with the candidate, the declared
+    policy binding, the span partition over each represented leaf, closed
+    reason codes, explicit acceptance, and the keyed representation. An empty
+    result means the candidate is internally honest — it does *not* mean the
+    projection is complete, persisted, reconstructable, or publishable. Those
+    are proven by the persistence layer and the exact completeness gate,
+    against reconstructed state.
+
+    *corpus* is the single resolved view of the bound 5c release, so every
+    release-scoped check reads the same source rather than querying its own.
     """
     findings: list[str] = []
     ledger = candidate.classification
+    binding = candidate.binding
+
+    # The candidate, its classification, and the snapshot must all name one
+    # release. Two of the three agreeing is not agreement.
+    if binding.package_uuid != corpus.package_uuid:
+        findings.append(
+            f"binding names package {binding.package_uuid}, corpus snapshot is "
+            f"{corpus.package_uuid}"
+        )
+    if binding.release_version != corpus.release_version:
+        findings.append(
+            f"binding names release {binding.release_version}, corpus snapshot is "
+            f"{corpus.release_version}"
+        )
+    if ledger.package_uuid != binding.package_uuid:
+        findings.append(
+            f"classification names package {ledger.package_uuid}, binding is "
+            f"{binding.package_uuid}"
+        )
+    if ledger.release_version != binding.release_version:
+        findings.append(
+            f"classification names release {ledger.release_version}, binding is "
+            f"{binding.release_version}"
+        )
 
     findings.extend(validate_policy_binding(ledger))
 
+    leaf_lengths = corpus.leaf_lengths
     claimed_leaves = {s.leaf_id for s in ledger.spans}
     for leaf_id in sorted(claimed_leaves | set(leaf_lengths)):
         if leaf_id not in leaf_lengths:
@@ -321,5 +350,5 @@ def validate_candidate(
 
     findings.extend(validate_reason_codes(ledger.spans))
     findings.extend(validate_acceptance(ledger))
-    findings.extend(validate_representation(candidate.representation, ledger))
+    findings.extend(validate_representation(candidate.representation, ledger, corpus))
     return tuple(findings)

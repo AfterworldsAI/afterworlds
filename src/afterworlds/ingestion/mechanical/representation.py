@@ -31,7 +31,7 @@ as prose-bound.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from enum import StrEnum
 from typing import Any, ClassVar, cast
 
@@ -59,8 +59,10 @@ __all__ = [
     "RepresentationDraft",
     "SpellDescriptorFact",
     "SpellSchool",
+    "MalformedFactPayloadError",
     "UnknownFactFamilyError",
     "fact_from_payload",
+    "fact_invariant_violations",
     "fact_key",
     "fact_payload",
 ]
@@ -239,6 +241,86 @@ class UnknownFactFamilyError(TypeError):
     """Raised when a structure outside the closed union is offered as a fact."""
 
 
+class MalformedFactPayloadError(ValueError):
+    """Raised when a persisted payload cannot rebuild its declared family."""
+
+
+# ---------------------------------------------------------------------------
+# Intrinsic family invariants
+# ---------------------------------------------------------------------------
+#
+# Class membership is not validity. A fact can belong to the closed union and
+# still contradict its own declared contract, and such a fact would persist as
+# mechanically unusable authority. Each family therefore declares its intrinsic
+# invariants here, next to the family itself, so adding a family without
+# thinking about its invariants is a visible omission rather than a silent one.
+#
+# Only constraints intrinsic to the declared fields belong here. Corpus-specific
+# limits — the SRD's 0–9 spell levels, its 1–30 ability scores — are policy about
+# a particular Rules Package, not properties of the type, and enforcing them here
+# would make the union quietly SRD-only. Bounds below are limited to what the
+# field's own meaning requires: an ordinal or magnitude cannot be negative, a
+# semantic key cannot be blank, and a stated quantity cannot be zero or less.
+
+
+def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
+    findings: list[str] = []
+    if fact.dc_kind is DcKind.FIXED:
+        if fact.dc_value is None:
+            findings.append("fixed DC without a dc_value")
+    elif fact.dc_value is not None:
+        findings.append(
+            f"{fact.dc_kind.value} DC carries dc_value {fact.dc_value}; the "
+            "value comes from the named source, not from the fact"
+        )
+    return findings
+
+
+def _check_creature_ability_score(fact: CreatureAbilityScoreFact) -> list[str]:
+    if fact.score < 0:
+        return [f"negative ability score {fact.score}"]
+    return []
+
+
+def _check_spell_descriptor(fact: SpellDescriptorFact) -> list[str]:
+    if fact.level < 0:
+        return [f"negative spell level {fact.level}"]
+    return []
+
+
+def _check_progression_entry(fact: ProgressionEntryFact) -> list[str]:
+    findings: list[str] = []
+    if fact.level < 0:
+        findings.append(f"negative progression level {fact.level}")
+    if not fact.entitlement_key.strip():
+        findings.append("progression entry without an entitlement key")
+    if fact.quantity is not None and fact.quantity < 1:
+        findings.append(f"progression quantity {fact.quantity} grants nothing")
+    return findings
+
+
+_FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
+    FactFamily.ABILITY_CHECK: _check_ability_check,
+    FactFamily.CREATURE_ABILITY_SCORE: _check_creature_ability_score,
+    FactFamily.SPELL_DESCRIPTOR: _check_spell_descriptor,
+    FactFamily.PROGRESSION_ENTRY: _check_progression_entry,
+}
+
+
+def fact_invariant_violations(fact: object) -> tuple[str, ...]:
+    """Return violations of *fact*'s own family contract.
+
+    Membership of the closed union is checked first: an unknown family has no
+    invariants to check because it has no contract.
+    """
+    family = getattr(fact, "FAMILY", None)
+    if not isinstance(family, FactFamily) or _FACT_TYPES.get(family) is not type(fact):
+        return (
+            f"{type(fact).__name__} is not a member of the closed typed-fact union",
+        )
+    return tuple(_FACT_INVARIANTS[family](fact))
+
+
 def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
     return AbilityCheckFact(
         ability=AbilityScore(p["ability"]),
@@ -278,14 +360,27 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
 }
 
 
-def fact_from_payload(payload: Mapping[str, Any]) -> MechanicalFact:
+def fact_from_payload(
+    payload: Mapping[str, Any], *, declared_family: str | None = None
+) -> MechanicalFact:
     """Rebuild a typed fact from its persisted payload.
 
-    Explicit per-family builders rather than reflection: a persisted row with a
-    missing or extra field fails loudly here instead of being coerced into
-    something that merely resembles a fact. An unknown family is not a
-    forward-compatible unknown — it is a fact this build cannot honestly
-    represent, so it raises.
+    Strict by design. A persisted payload is only authority if it still says
+    exactly what it said when it was written, so this rejects rather than
+    repairs:
+
+    * an unknown family — not a forward-compatible unknown, but a fact this
+      build cannot honestly represent;
+    * a missing field, which would otherwise rebuild into a fact with a
+      silently defaulted value;
+    * an extra field, which would otherwise be dropped, hiding whatever was
+      added to the row; and
+    * a payload discriminator that disagrees with the column that stores it
+      alongside — one of the two has been rewritten, and guessing which is
+      not reconstruction.
+
+    Explicit per-family builders rather than reflection, so each family states
+    the exact field set it accepts.
     """
     raw = payload.get("family")
     try:
@@ -294,7 +389,26 @@ def fact_from_payload(payload: Mapping[str, Any]) -> MechanicalFact:
         raise UnknownFactFamilyError(
             f"{raw!r} is not a member of the closed typed-fact union"
         ) from None
-    return _FACT_BUILDERS[family](payload)
+
+    if declared_family is not None and declared_family != family.value:
+        raise MalformedFactPayloadError(
+            f"persisted family {declared_family!r} disagrees with payload family "
+            f"{family.value!r}"
+        )
+
+    expected = {f.name for f in fields(_FACT_TYPES[family])} | {"family"}
+    supplied = set(payload)
+    if missing := sorted(expected - supplied):
+        raise MalformedFactPayloadError(f"{family.value} payload is missing {missing}")
+    if extra := sorted(supplied - expected):
+        raise MalformedFactPayloadError(f"{family.value} payload carries extra {extra}")
+
+    try:
+        return _FACT_BUILDERS[family](payload)
+    except (TypeError, ValueError) as exc:
+        raise MalformedFactPayloadError(
+            f"{family.value} payload does not rebuild its declared family: {exc}"
+        ) from exc
 
 
 def fact_key(fact: object) -> str:

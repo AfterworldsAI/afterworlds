@@ -26,6 +26,7 @@ here means the representation is internally honest, not that it is finished.
 
 from __future__ import annotations
 
+from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.models import (
     ClassificationLedger,
     ComponentHandling,
@@ -37,6 +38,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     RepresentationDraft,
     UnknownFactFamilyError,
+    fact_invariant_violations,
     fact_key,
     fact_payload,
 )
@@ -93,11 +95,14 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
 
         fact_keys: set[str] = set()
         for fact in component.facts:
-            try:
-                key_ = fact_key(fact)
-            except UnknownFactFamilyError as exc:
-                findings.append(f"{tag}: {exc}")
+            # Family membership *and* the family's own contract: a fact can
+            # belong to the closed union and still contradict itself, and such
+            # a fact would persist as mechanically unusable authority.
+            violations = fact_invariant_violations(fact)
+            if violations:
+                findings.extend(f"{tag}: {v}" for v in violations)
                 continue
+            key_ = fact_key(fact)
             # Facts are identified by content, so a repeat is not a second
             # claim — it is the same claim counted twice, which is exactly the
             # duplicate-as-coverage inflation the completeness proof rejects.
@@ -106,46 +111,73 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
             fact_keys.add(key_)
 
         has_prose = key in bound_prose
+        code = component.irreducibility_reason_code
         if component.handling is ComponentHandling.STRUCTURED:
             if not component.facts:
                 findings.append(f"{tag}: structured handling with no typed facts")
             if has_prose:
                 findings.append(f"{tag}: structured handling with a prose binding")
-            if component.irreducibility_reason_code is not None:
+            if code is not None:
                 findings.append(
                     f"{tag}: structured handling with an irreducibility reason"
                 )
-        elif component.handling is ComponentHandling.PROSE_BOUND:
-            if component.facts:
-                findings.append(f"{tag}: prose-bound handling with typed facts")
-            if not has_prose:
-                findings.append(f"{tag}: prose-bound handling with no bound prose")
-        else:  # MIXED
-            if not component.facts:
+        else:
+            handling = component.handling.value
+            if component.handling is ComponentHandling.PROSE_BOUND:
+                if component.facts:
+                    findings.append(f"{tag}: {handling} handling with typed facts")
+            elif not component.facts:
                 findings.append(f"{tag}: mixed handling with no typed facts")
             if not has_prose:
-                findings.append(f"{tag}: mixed handling with no bound prose")
+                findings.append(f"{tag}: {handling} handling with no bound prose")
+            # A component that says its meaning is irreducible must say *why*,
+            # under the closed catalog. Silence here is the backlog state
+            # PROSE_BOUND must never become.
+            if code is None or not code.strip():
+                findings.append(
+                    f"{tag}: {handling} handling with no irreducibility reason"
+                )
 
-        code = component.irreducibility_reason_code
-        if code is not None and irreducibility_reason_for(code) is None:
+        if (
+            code is not None
+            and code.strip()
+            and irreducibility_reason_for(code) is None
+        ):
             findings.append(f"{tag}: irreducibility reason {code!r} is not closed")
 
     return findings
 
 
-def _validate_prose_bindings(draft: RepresentationDraft) -> list[str]:
+def _validate_prose_bindings(
+    draft: RepresentationDraft, corpus: BoundCorpusSnapshot
+) -> list[str]:
     findings: list[str] = []
-    component_keys = {(c.record_key, c.semantic_key) for c in draft.components}
+    components = {(c.record_key, c.semantic_key): c for c in draft.components}
     for binding in draft.prose_bindings:
         tag = f"prose binding {binding.record_key}/{binding.component_key}"
-        if (binding.record_key, binding.component_key) not in component_keys:
+        component = components.get((binding.record_key, binding.component_key))
+        if component is None:
             findings.append(f"{tag}: unknown component")
-        if not binding.chunk_id.strip():
-            findings.append(f"{tag}: no authoritative chunk bound")
-        if irreducibility_reason_for(binding.irreducibility_reason_code) is None:
+
+        # Exact governing prose resolves through the bound release's own
+        # authoritative chunk population. A non-empty string is not resolution:
+        # a fabricated id, another package's chunk, and a chunk that exists but
+        # was never projected into this release all fail here.
+        if binding.chunk_id not in corpus.authoritative_chunk_ids:
             findings.append(
-                f"{tag}: irreducibility reason "
-                f"{binding.irreducibility_reason_code!r} is not closed"
+                f"{tag}: chunk {binding.chunk_id!r} is not authoritative prose of "
+                f"release {corpus.package_uuid}/{corpus.release_version}"
+            )
+
+        code = binding.irreducibility_reason_code
+        if irreducibility_reason_for(code) is None:
+            findings.append(f"{tag}: irreducibility reason {code!r} is not closed")
+        elif component is not None and code != component.irreducibility_reason_code:
+            # Two independently valid reasons that disagree are a contradiction
+            # about *why* this authority is prose-bound. Neither copy wins.
+            findings.append(
+                f"{tag}: reason {code!r} disagrees with its component's "
+                f"{component.irreducibility_reason_code!r}"
             )
     return findings
 
@@ -269,13 +301,20 @@ def _payloadable(fact: object) -> bool:
 
 
 def validate_representation(
-    draft: RepresentationDraft, ledger: ClassificationLedger
+    draft: RepresentationDraft,
+    ledger: ClassificationLedger,
+    corpus: BoundCorpusSnapshot,
 ) -> tuple[str, ...]:
-    """Return every violation of the keyed representation's internal honesty."""
+    """Return every violation of the keyed representation's internal honesty.
+
+    *corpus* is the resolved snapshot of the bound 5c release — the one source
+    of release-scoped truth these validators read, so no validator needs a
+    database of its own.
+    """
     findings: list[str] = []
     findings.extend(_validate_records(draft))
     findings.extend(_validate_components(draft))
-    findings.extend(_validate_prose_bindings(draft))
+    findings.extend(_validate_prose_bindings(draft, corpus))
     findings.extend(_validate_relationships_and_references(draft))
     findings.extend(_validate_provenance(draft, ledger))
     return tuple(findings)

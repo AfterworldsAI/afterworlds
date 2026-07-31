@@ -185,8 +185,10 @@ def test_tampered_fact_payload_is_detected(session: Session) -> None:
     ).scalar_one()
     row.payload = {**row.payload, "level": 1}
     session.flush()
+    # Caught at rebuild: the row's own fact_key column no longer agrees with
+    # its payload, so the state does not reconstruct at all.
     findings = verify_reconstruction(session, identified)
-    assert any("derives" in f for f in findings)
+    assert any("does not reconstruct" in f for f in findings)
 
 
 def test_corrupted_derived_record_id_is_detected(session: Session) -> None:

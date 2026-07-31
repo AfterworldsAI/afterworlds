@@ -38,6 +38,7 @@ from tests.ingestion.mechanical.conftest import (
     OPEN_ENDED_KEY,
     SPELL_KEY,
     SPELL_LEAF,
+    bound_corpus,
     build_candidate,
     build_ledger,
     build_representation,
@@ -218,7 +219,7 @@ def test_identity_changes_when_the_accepted_classification_changes() -> None:
 
 
 def test_honest_candidate_has_no_blocking_findings() -> None:
-    assert validate_candidate(build_candidate(), LEAF_LENGTHS) == ()
+    assert validate_candidate(build_candidate(), bound_corpus()) == ()
 
 
 def test_a_dishonest_candidate_still_computes_an_identity() -> None:
@@ -230,19 +231,23 @@ def test_a_dishonest_candidate_still_computes_an_identity() -> None:
         )
     )
     assert projection_uuid(broken)
-    assert validate_candidate(broken, LEAF_LENGTHS) != ()
+    assert validate_candidate(broken, bound_corpus()) != ()
 
 
 def test_classified_leaf_outside_the_bound_release_is_rejected() -> None:
     findings = validate_candidate(
-        build_candidate(), {k: v for k, v in LEAF_LENGTHS.items() if k != SPELL_LEAF}
+        build_candidate(),
+        bound_corpus(
+            leaf_lengths={k: v for k, v in LEAF_LENGTHS.items() if k != SPELL_LEAF}
+        ),
     )
     assert any("classified but not in the bound release" in f for f in findings)
 
 
 def test_release_leaf_with_no_classification_is_rejected() -> None:
     findings = validate_candidate(
-        build_candidate(), {**LEAF_LENGTHS, "leaf-unreviewed": 12}
+        build_candidate(),
+        bound_corpus(leaf_lengths={**LEAF_LENGTHS, "leaf-unreviewed": 12}),
     )
     assert any("leaf-unreviewed: no semantic spans" in f for f in findings)
 
@@ -260,7 +265,7 @@ def test_candidate_under_a_stale_policy_declaration_is_rejected() -> None:
     )
     findings = validate_candidate(
         ProjectionCandidate(build_candidate().binding, stale, build_representation()),
-        LEAF_LENGTHS,
+        bound_corpus(),
     )
     assert any("build uses" in f for f in findings)
 

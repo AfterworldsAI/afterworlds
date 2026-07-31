@@ -46,6 +46,7 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 
 __all__ = [
+    "acceptance_evidence_payload",
     "batch_diff_hash",
     "batch_diff_payload",
     "classification_identity",
@@ -382,3 +383,50 @@ def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
 def classification_identity(ledger: ClassificationLedger) -> str:
     """SHA-256 of the accepted classification payload."""
     return hash_obj(classification_payload(ledger))
+
+
+def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, object]:
+    """Canonical payload of the retained review evidence.
+
+    Deliberately *not* part of semantic identity — two ledgers that reviewed
+    their way to the same accepted result are the same authority. But the
+    evidence is still retained, and retained evidence that can be rewritten
+    without detection is not evidence. This payload is what the persisted-state
+    proof digests, so a reviewer, timestamp, batch rule, scope membership,
+    scope order, diff entry, or review state cannot be silently edited after
+    the fact.
+
+    Scope order is preserved rather than sorted: the reviewer's recorded scope
+    is evidence, and a reordered scope is a different record of what happened.
+    """
+    return {
+        "review_states": sorted(
+            ([s.span_id, s.review_state.value] for s in ledger.spans),
+            key=lambda pair: pair[0],
+        ),
+        "batches": sorted(
+            (
+                {
+                    "batch_id": b.batch_id,
+                    "rule": b.rule,
+                    "resolved_scope": list(b.resolved_scope),
+                    "diff": batch_diff_payload(b),
+                    "semantic_diff_hash": b.semantic_diff_hash,
+                }
+                for b in ledger.batches
+            ),
+            key=lambda d: str(d["batch_id"]),
+        ),
+        "acceptances": sorted(
+            (
+                {
+                    "span_id": a.span_id,
+                    "batch_id": a.batch_id,
+                    "reviewer": a.reviewer,
+                    "accepted_at": a.accepted_at,
+                }
+                for a in ledger.acceptances
+            ),
+            key=lambda d: (str(d["span_id"]), str(d["batch_id"])),
+        ),
+    }

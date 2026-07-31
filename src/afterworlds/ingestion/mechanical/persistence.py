@@ -24,6 +24,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
+from afterworlds.ingestion.mechanical.accounting import acceptance_evidence_payload
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
@@ -43,6 +44,8 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
+    MalformedFactPayloadError,
+    MechanicalFact,
     ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
@@ -53,6 +56,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    UnknownFactFamilyError,
     fact_from_payload,
     fact_key,
     fact_payload,
@@ -272,6 +276,25 @@ def persist_draft(
     session.flush()
 
 
+def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
+    """Rebuild one typed fact from its row, checking the duplicated columns.
+
+    ``family`` and ``fact_key`` are stored alongside the payload for querying,
+    which means they can be rewritten independently of it. Reconstruction
+    checks both against the payload rather than trusting either: a row whose
+    columns disagree with its own content has been altered, and picking a
+    winner would be repair, not reconstruction.
+    """
+    fact = fact_from_payload(row.payload, declared_family=row.family)
+    recomputed = fact_key(fact)
+    if row.fact_key != recomputed:
+        raise MalformedFactPayloadError(
+            f"persisted fact_key {row.fact_key!r} disagrees with payload "
+            f"({recomputed!r})"
+        )
+    return fact
+
+
 def _header(session: Session, projection_uuid: str) -> MechanicalProjectionORM:
     row = session.execute(
         select(MechanicalProjectionORM).where(
@@ -367,7 +390,7 @@ def reconstruct_candidate(
             handling=ComponentHandling(c.handling),
             irreducibility_reason_code=c.irreducibility_reason_code,
             facts=tuple(
-                fact_from_payload(f.payload)
+                _fact_from_row(f)
                 for f in fact_rows
                 if (f.record_key, f.component_key) == (c.record_key, c.semantic_key)
             ),
@@ -446,11 +469,26 @@ def reconstruct_candidate(
 
 
 def compute_persisted_state_digest(session: Session, projection_uuid: str) -> str:
-    """Digest the reconstructed state, including the persisted derived IDs.
+    """Digest the reconstructed state: semantics, subidentities, and evidence.
 
-    The payload alone would not notice a corrupted ``record_id`` column, so the
-    digest covers the stored subidentities too: a tampered derived ID changes
-    the digest even when every semantic value survives intact.
+    Three layers, because each covers what the others cannot:
+
+    * the **semantic payload** — what the projection means;
+    * the **persisted derived IDs** — a corrupted ``record_id`` leaves every
+      semantic value intact and would otherwise pass; and
+    * the **retained acceptance evidence** — reviewer, timestamp, batch rule,
+      ordered scope, diff, and review state are deliberately outside semantic
+      identity, so without this layer they could be rewritten after the digest
+      was recorded and nothing would notice.
+
+    The last layer is why this digest and the projection UUID are different
+    things. The UUID answers "is this the same authority"; the digest answers
+    "is this the same persisted state, including how it was reviewed".
+
+    ``created_at`` is excluded: it is build wall-clock, and the CRD Issue 5c
+    determinism rule keeps timestamps out of hashed artifacts so an identical
+    rebuild stays comparable. ``accepted_at`` is different — it is reviewer-
+    supplied evidence of an acceptance action, so it is covered above.
     """
     candidate = reconstruct_candidate(session, projection_uuid)
     stored_ids = {
@@ -490,6 +528,9 @@ def compute_persisted_state_digest(session: Session, projection_uuid: str) -> st
             "projection_uuid": projection_uuid,
             "payload": projection_payload(candidate),
             "derived_ids": stored_ids,
+            "acceptance_evidence": acceptance_evidence_payload(
+                candidate.classification
+            ),
         }
     )
 
@@ -519,7 +560,14 @@ def verify_reconstruction(
     except ProjectionNotPersistedError:
         return (f"projection {uuid_}: no persisted header row",)
 
-    reconstructed = reconstruct_candidate(session, uuid_)
+    try:
+        reconstructed = reconstruct_candidate(session, uuid_)
+    except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
+        # A row that cannot rebuild is tamper or omission, which is exactly
+        # what this check reports — reporting it beats propagating an
+        # exception to a caller collecting findings.
+        return (f"projection {uuid_}: persisted state does not reconstruct: {exc}",)
+
     reidentified = identify_projection(reconstructed)
 
     if reidentified.projection_uuid != uuid_:

@@ -37,13 +37,17 @@ from tests.ingestion.mechanical.conftest import (
     SPELL_KEY,
     SPELL_SPAN,
     SUPPORT_SPAN,
+    WISH_CHUNK,
+    bound_corpus,
     build_ledger,
     build_representation,
 )
 
 
 def _findings(**overrides: object) -> tuple[str, ...]:
-    return validate_representation(build_representation(**overrides), build_ledger())
+    return validate_representation(
+        build_representation(**overrides), build_ledger(), bound_corpus()
+    )
 
 
 # -- the closed typed-fact union ---------------------------------------------
@@ -175,7 +179,7 @@ def test_structured_component_without_facts_is_rejected() -> None:
 
 def test_prose_bound_component_without_bound_prose_is_rejected() -> None:
     findings = _findings(prose_bindings=())
-    assert any("prose-bound handling with no bound prose" in f for f in findings)
+    assert any("prose_bound handling with no bound prose" in f for f in findings)
 
 
 def test_prose_bound_component_carrying_facts_is_rejected() -> None:
@@ -190,7 +194,7 @@ def test_prose_bound_component_carrying_facts_is_rejected() -> None:
             ),
         )
     )
-    assert any("prose-bound handling with typed facts" in f for f in findings)
+    assert any("prose_bound handling with typed facts" in f for f in findings)
 
 
 def test_mixed_component_requires_both() -> None:
@@ -213,7 +217,7 @@ def test_irreducibility_reason_must_be_closed() -> None:
             ProseBindingDraft(
                 component_key=OPEN_ENDED_KEY,
                 record_key=SPELL_KEY,
-                chunk_id="chunk-wish-0001",
+                chunk_id=WISH_CHUNK,
                 irreducibility_reason_code="too_hard",
             ),
         )
@@ -224,10 +228,12 @@ def test_irreducibility_reason_must_be_closed() -> None:
 def test_prose_binding_requires_an_authoritative_chunk() -> None:
     findings = _findings(
         prose_bindings=(
-            ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, "  ", "open_ended_effect"),
+            ProseBindingDraft(
+                OPEN_ENDED_KEY, SPELL_KEY, "fabricated", "open_ended_effect"
+            ),
         )
     )
-    assert any("no authoritative chunk bound" in f for f in findings)
+    assert any("is not authoritative prose of release" in f for f in findings)
 
 
 # -- relationships and references --------------------------------------------
