@@ -30,6 +30,7 @@ as prose-bound.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any, ClassVar, cast
@@ -59,6 +60,7 @@ __all__ = [
     "SpellDescriptorFact",
     "SpellSchool",
     "UnknownFactFamilyError",
+    "fact_from_payload",
     "fact_key",
     "fact_payload",
 ]
@@ -235,6 +237,64 @@ _FACT_TYPES: dict[FactFamily, type] = {
 
 class UnknownFactFamilyError(TypeError):
     """Raised when a structure outside the closed union is offered as a fact."""
+
+
+def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
+    return AbilityCheckFact(
+        ability=AbilityScore(p["ability"]),
+        dc_kind=DcKind(p["dc_kind"]),
+        dc_value=p["dc_value"],
+    )
+
+
+def _build_creature_ability_score(p: Mapping[str, Any]) -> CreatureAbilityScoreFact:
+    return CreatureAbilityScoreFact(
+        ability=AbilityScore(p["ability"]), score=p["score"]
+    )
+
+
+def _build_spell_descriptor(p: Mapping[str, Any]) -> SpellDescriptorFact:
+    return SpellDescriptorFact(
+        level=p["level"],
+        school=SpellSchool(p["school"]),
+        ritual=p["ritual"],
+        concentration=p["concentration"],
+    )
+
+
+def _build_progression_entry(p: Mapping[str, Any]) -> ProgressionEntryFact:
+    return ProgressionEntryFact(
+        level=p["level"],
+        entitlement_key=p["entitlement_key"],
+        quantity=p["quantity"],
+    )
+
+
+_FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
+    FactFamily.ABILITY_CHECK: _build_ability_check,
+    FactFamily.CREATURE_ABILITY_SCORE: _build_creature_ability_score,
+    FactFamily.SPELL_DESCRIPTOR: _build_spell_descriptor,
+    FactFamily.PROGRESSION_ENTRY: _build_progression_entry,
+}
+
+
+def fact_from_payload(payload: Mapping[str, Any]) -> MechanicalFact:
+    """Rebuild a typed fact from its persisted payload.
+
+    Explicit per-family builders rather than reflection: a persisted row with a
+    missing or extra field fails loudly here instead of being coerced into
+    something that merely resembles a fact. An unknown family is not a
+    forward-compatible unknown — it is a fact this build cannot honestly
+    represent, so it raises.
+    """
+    raw = payload.get("family")
+    try:
+        family = FactFamily(str(raw))
+    except ValueError:
+        raise UnknownFactFamilyError(
+            f"{raw!r} is not a member of the closed typed-fact union"
+        ) from None
+    return _FACT_BUILDERS[family](payload)
 
 
 def fact_key(fact: object) -> str:
