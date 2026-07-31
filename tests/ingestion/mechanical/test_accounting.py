@@ -22,6 +22,7 @@ from afterworlds.ingestion.mechanical.accounting import (
     derive_span_id,
     validate_acceptance,
     validate_partition,
+    validate_policy_binding,
     validate_reason_codes,
 )
 from afterworlds.ingestion.mechanical.models import (
@@ -35,6 +36,7 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.policy import (
     NON_MECHANICAL_REASONS,
+    SEMANTIC_POLICY_VERSION,
     canonical_span_text,
     semantic_policy_hash,
 )
@@ -113,6 +115,8 @@ def _ledger(
     *,
     batches: tuple[AcceptanceBatch, ...] = (),
     acceptances: tuple[AcceptanceRecord, ...] | None = None,
+    policy_version: str = SEMANTIC_POLICY_VERSION,
+    policy_hash: str | None = None,
 ) -> ClassificationLedger:
     if acceptances is None:
         acceptances = tuple(
@@ -127,7 +131,8 @@ def _ledger(
     return ClassificationLedger(
         package_uuid="pkg-1",
         release_version="rel-1",
-        policy_version="5d-semantic-policy-1",
+        policy_version=policy_version,
+        policy_hash=policy_hash if policy_hash is not None else semantic_policy_hash(),
         spans=spans,
         batches=batches,
         acceptances=acceptances,
@@ -384,6 +389,55 @@ def test_forged_semantic_diff_digest_is_rejected() -> None:
     assert any("digest does not match retained diff" in f for f in findings)
 
 
+def test_orphan_batch_with_no_acceptance_records_is_rejected() -> None:
+    spans = (_span(0, 10),)
+    findings = validate_acceptance(_ledger(spans, batches=(_batch(spans),)))
+    assert any("no acceptance record names this batch" in f for f in findings)
+
+
+def test_scope_member_accepted_individually_is_rejected() -> None:
+    a, b = _span(0, 10), _span(10, 25)
+    spans = (a, b)
+    # The batch claims both spans, but only one was accepted under it.
+    findings = validate_acceptance(
+        _ledger(
+            spans,
+            batches=(_batch(spans),),
+            acceptances=_batch_acceptances((a,), "batch-1")
+            + (AcceptanceRecord(b.span_id, None, "owner", "2026-07-31T00:00:00Z"),),
+        )
+    )
+    assert any("was accepted individually" in f for f in findings)
+
+
+def test_scope_member_accepted_under_another_batch_is_rejected() -> None:
+    a, b = _span(0, 10), _span(10, 25)
+    spans = (a, b)
+    findings = validate_acceptance(
+        _ledger(
+            spans,
+            batches=(
+                _batch(spans, batch_id="claiming"),
+                _batch((b,), batch_id="actual"),
+            ),
+            acceptances=_batch_acceptances((a,), "claiming")
+            + _batch_acceptances((b,), "actual"),
+        )
+    )
+    assert any("was accepted under batch actual" in f for f in findings)
+
+
+def test_duplicate_span_ids_in_resolved_scope_are_rejected() -> None:
+    spans = (_span(0, 10),)
+    batch = _batch(spans, scope=(spans[0].span_id, spans[0].span_id))
+    findings = validate_acceptance(
+        _ledger(
+            spans, batches=(batch,), acceptances=_batch_acceptances(spans, "batch-1")
+        )
+    )
+    assert any("duplicate span ids in resolved scope" in f for f in findings)
+
+
 def test_acceptance_without_reviewer_or_timestamp_is_rejected() -> None:
     span = _span(0, 10)
     findings = validate_acceptance(
@@ -487,13 +541,29 @@ def test_identity_changes_when_a_reason_assignment_changes() -> None:
     assert classification_identity(base) != classification_identity(changed)
 
 
-def test_identity_changes_when_the_semantic_policy_changes(
+def test_identity_changes_when_the_semantic_policy_changes() -> None:
+    ledger = _ledger((_span(0, 10),))
+    under_other_policy = _ledger(
+        (_span(0, 10),), policy_version="5d-semantic-policy-0", policy_hash="0" * 64
+    )
+    assert classification_identity(ledger) != classification_identity(
+        under_other_policy
+    )
+
+
+def test_identity_uses_the_declared_policy_not_current_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # A later policy edit must not silently re-identify a historical ledger:
+    # the payload states what the ledger declared, and validation is what
+    # catches the disagreement.
     ledger = _ledger((_span(0, 10),))
     before = classification_identity(ledger)
     monkeypatch.setattr(accounting, "semantic_policy_hash", lambda: "0" * 64)
-    assert classification_identity(ledger) != before
+    assert classification_identity(ledger) == before
+    assert any(
+        "committed policy hashes to" in f for f in validate_policy_binding(ledger)
+    )
 
 
 def test_identity_ignores_acceptance_history_entirely() -> None:
@@ -516,9 +586,30 @@ def test_identity_is_order_independent() -> None:
     )
 
 
-def test_payload_binds_the_frozen_policy_hash() -> None:
-    payload = classification_payload(_ledger((_span(0, 10),)))
-    assert payload["semantic_policy_hash"] == semantic_policy_hash()
+def test_payload_binds_the_declared_policy_hash() -> None:
+    ledger = _ledger((_span(0, 10),))
+    payload = classification_payload(ledger)
+    assert payload["semantic_policy_hash"] == ledger.policy_hash
+    assert payload["semantic_policy_version"] == ledger.policy_version
+
+
+# -- declared policy binding -------------------------------------------------
+
+
+def test_matching_policy_declaration_passes() -> None:
+    assert validate_policy_binding(_ledger((_span(0, 10),))) == ()
+
+
+def test_stale_declared_policy_version_is_rejected() -> None:
+    ledger = _ledger((_span(0, 10),), policy_version="5d-semantic-policy-0")
+    assert any("build uses" in f for f in validate_policy_binding(ledger))
+
+
+def test_mismatched_declared_policy_hash_is_rejected() -> None:
+    ledger = _ledger((_span(0, 10),), policy_hash="0" * 64)
+    assert any(
+        "committed policy hashes to" in f for f in validate_policy_binding(ledger)
+    )
 
 
 # -- canonicalization --------------------------------------------------------

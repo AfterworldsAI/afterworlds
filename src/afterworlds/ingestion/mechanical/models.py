@@ -170,11 +170,19 @@ class ClassificationLedger:
     result is identity-bearing; the evidence is immutable, persisted, and
     reconstructable for audit, but two ledgers that reviewed their way to the
     same accepted classification are the same authority.
+
+    ``policy_version`` and ``policy_hash`` are the ledger's own declaration of
+    the semantic policy it was accepted under. They are retained and travel
+    with the projection, so a historical projection states the policy it used
+    instead of being reinterpreted under whatever policy code is current later;
+    the build verifies the declaration against the committed policy and fails
+    when they disagree.
     """
 
     package_uuid: str
     release_version: str
     policy_version: str
+    policy_hash: str
     spans: tuple[SemanticSpan, ...]
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]

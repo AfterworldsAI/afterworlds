@@ -53,6 +53,7 @@ __all__ = [
     "derive_span_id",
     "validate_acceptance",
     "validate_partition",
+    "validate_policy_binding",
     "validate_reason_codes",
 ]
 
@@ -136,6 +137,31 @@ def validate_reason_codes(spans: tuple[SemanticSpan, ...]) -> tuple[str, ...]:
     return tuple(findings)
 
 
+def validate_policy_binding(ledger: ClassificationLedger) -> tuple[str, ...]:
+    """Return violations of the ledger's declared semantic-policy binding.
+
+    An accepted classification is only meaningful under the policy it was
+    accepted against: the closed reason catalogs and the canonicalization rule
+    are what make its dispositions checkable. A ledger accepted under an older
+    policy must fail here rather than be quietly reinterpreted under current
+    code — that is how a catalog change that invalidates past acceptances
+    becomes visible instead of silent.
+    """
+    findings: list[str] = []
+    if ledger.policy_version != SEMANTIC_POLICY_VERSION:
+        findings.append(
+            f"ledger declares semantic policy {ledger.policy_version!r}, "
+            f"build uses {SEMANTIC_POLICY_VERSION!r}"
+        )
+    expected = semantic_policy_hash()
+    if ledger.policy_hash != expected:
+        findings.append(
+            f"ledger declares semantic policy hash {ledger.policy_hash!r}, "
+            f"committed policy hashes to {expected!r}"
+        )
+    return tuple(findings)
+
+
 def batch_diff_payload(batch: AcceptanceBatch) -> list[dict[str, object]]:
     """Canonical serialization of a batch's retained semantic diff."""
     return sorted(
@@ -163,8 +189,16 @@ def batch_diff_hash(batch: AcceptanceBatch) -> str:
 def _validate_batch(
     batch: AcceptanceBatch,
     spans_by_id: dict[str, SemanticSpan],
+    linked_spans: set[str],
+    batch_by_span: dict[str, str | None],
 ) -> list[str]:
-    """Return violations of one batch's retained acceptance evidence."""
+    """Return violations of one batch's retained acceptance evidence.
+
+    ``resolved_scope``, the retained diff, and the acceptance records naming
+    this batch must describe exactly the same span set. Any two of them
+    agreeing while the third does not means the retained evidence no longer
+    shows what was actually accepted.
+    """
     findings: list[str] = []
     tag = f"batch {batch.batch_id}"
 
@@ -176,6 +210,8 @@ def _validate_batch(
         findings.append(f"{tag}: no semantic diff retained")
 
     scope = set(batch.resolved_scope)
+    if len(scope) != len(batch.resolved_scope):
+        findings.append(f"{tag}: duplicate span ids in resolved scope")
     for span_id in sorted(scope - spans_by_id.keys()):
         findings.append(f"{tag}: scope names unknown span {span_id}")
 
@@ -208,6 +244,17 @@ def _validate_batch(
     for span_id in sorted(scope - diff_ids):
         findings.append(f"{tag}: scope member {span_id} has no accepted diff entry")
 
+    if not linked_spans:
+        findings.append(f"{tag}: no acceptance record names this batch")
+    for span_id in sorted(scope - linked_spans):
+        named = batch_by_span.get(span_id)
+        if span_id not in batch_by_span:
+            continue  # already reported as an unknown/unaccepted span
+        findings.append(
+            f"{tag}: scope member {span_id} was accepted "
+            + ("individually" if named is None else f"under batch {named}")
+        )
+
     if batch.semantic_diff_hash != batch_diff_hash(batch):
         findings.append(f"{tag}: semantic diff digest does not match retained diff")
 
@@ -220,9 +267,9 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
     Blocks publication on unreviewed residue, unresolved classification,
     acceptance records pointing at spans that do not exist, and batch
     acceptances whose retained evidence would not let a reviewer re-check what
-    was accepted: a missing or forged diff, an acceptance outside the resolved
-    scope, a scope member with nothing accepted for it, or a blank record of
-    who accepted it and when.
+    was accepted: a missing or forged diff, a scope that disagrees with the
+    diff or with the acceptance actions that named the batch, or a blank record
+    of who accepted it and when.
     """
     findings: list[str] = []
     spans_by_id = {s.span_id: s for s in ledger.spans}
@@ -230,11 +277,27 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
     batch_ids: set[str] = set()
     accepted: set[str] = set()
 
+    # Acceptance links read once, so each batch can be checked against the
+    # actions that actually named it rather than only against its own claims.
+    linked_by_batch: dict[str, set[str]] = {}
+    batch_by_span: dict[str, str | None] = {}
+    for record in ledger.acceptances:
+        batch_by_span.setdefault(record.span_id, record.batch_id)
+        if record.batch_id is not None:
+            linked_by_batch.setdefault(record.batch_id, set()).add(record.span_id)
+
     for batch in ledger.batches:
         if batch.batch_id in batch_ids:
             findings.append(f"batch {batch.batch_id}: duplicate batch id")
         batch_ids.add(batch.batch_id)
-        findings.extend(_validate_batch(batch, spans_by_id))
+        findings.extend(
+            _validate_batch(
+                batch,
+                spans_by_id,
+                linked_by_batch.get(batch.batch_id, set()),
+                batch_by_span,
+            )
+        )
 
     scope_by_batch = {b.batch_id: set(b.resolved_scope) for b in ledger.batches}
 
@@ -286,12 +349,19 @@ def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
     timestamps are all deliberately absent: they are retained, validated review
     evidence, not authority. Review state is likewise absent, because a
     publishable ledger has no unaccepted span left to distinguish.
+
+    The policy identity comes from the ledger's *declaration*, not from the
+    module's current constants. A projection built today and read back in a
+    year states the policy it was accepted under; substituting current code
+    here would silently re-identify history.
+    :func:`validate_policy_binding` is what proves the declaration matches the
+    committed policy at build time.
     """
     return {
         "package_uuid": ledger.package_uuid,
         "release_version": ledger.release_version,
-        "semantic_policy_version": SEMANTIC_POLICY_VERSION,
-        "semantic_policy_hash": semantic_policy_hash(),
+        "semantic_policy_version": ledger.policy_version,
+        "semantic_policy_hash": ledger.policy_hash,
         "spans": sorted(
             (
                 {
