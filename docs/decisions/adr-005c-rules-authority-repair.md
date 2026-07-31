@@ -234,6 +234,11 @@ sentence into executable mechanics. This directly targets defect items 1 and 6: 
 repair efforts with separate acceptance criteria — conflating them is what let a 50-entity subset with
 prose-only mechanics stand in for both at once.
 
+**Forward reference (ADR-005d, 2026-07-30):** the executable mechanical projection layer is specified by
+[ADR-005d](adr-005d-complete-typed-mechanical-authority.md), which settles complete 5d scope as the full
+mechanically substantive SRD 5.2.1 corpus represented as typed facts, exact prose-bound GameMaster
+authority, or both. This decision's text is unchanged.
+
 ### Decision 3 — Ingestion does not generate a rules engine
 
 The ingestion pipeline may produce declarative, typed mechanical facts. It must not produce or execute
@@ -283,6 +288,11 @@ deterministic package-reference resolution and authoritative selector constructi
 either by requiring non-default selectors before a slice request is honored, or by a documented, explicit
 "whole-package slice" request shape distinguishable from an accidentally-empty one. CRD Issue 15c owns
 ensuring adjudication fails closed when the resolved authority is absent or empty.
+
+**Forward reference (ADR-005d, 2026-07-30):** [ADR-005d](adr-005d-complete-typed-mechanical-authority.md)
+Decision 9 supplies the deterministic binding this decision requires and extends it: the effective runtime
+binding is package UUID, release version, immutable mechanical-projection UUID, and an immutable
+override-set UUID identifying the exact applied override state. This decision's text is unchanged.
 
 ### Decision 6 — Advertised supported mechanics fail closed when authority is missing
 

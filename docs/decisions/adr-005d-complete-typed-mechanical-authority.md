@@ -2,7 +2,8 @@
 
 **Issue:** CRD Issue 5d  
 **Date:** 2026-07-30  
-**Status:** Accepted — finalized by Owner 2026-07-30  
+**Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
+review) so the effective runtime binding also carries an immutable override-set identity  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -141,6 +142,10 @@ identity unless the accepted semantic content changes.
 Identity derivation is acyclic. Stable record/component/fact IDs derive from the projection UUID and
 committed semantic keys, never local ordinals.
 
+This identity covers the immutable base projection only. `RuleOverride` state is deliberately outside it
+and carries its own separate identity under Decisions 9 and 10, so an override change never mutates or
+remints the base projection UUID.
+
 ### Decision 7 — Build-time reference resolution
 
 Mechanical references resolve at build time through committed source scope, aliases, and exact target
@@ -163,19 +168,35 @@ build candidate
 ```
 
 Draft/partial projections are not active authority. Published projections are immutable. Meaning-changing
-corrections mint a new projection UUID.
+corrections *to the projection itself* mint a new projection UUID; changes to override state do not (see
+Decision 9).
 
-### Decision 9 — Deterministic binding and selector ownership
+### Decision 9 — Deterministic effective binding and selector ownership
 
-5d supplies a typed binding of:
+5d supplies a typed, immutable **effective** binding of:
 
 - package UUID;
-- release version; and
-- mechanical projection UUID.
+- release version;
+- mechanical projection UUID — the immutable base projection; and
+- override-set UUID — the exact applied effective override set.
+
+Base-projection identity and override-set identity remain distinct and are never collapsed into one
+value. The override-set UUID is derived deterministically at binding-resolution time from the canonical
+ordered effective override state that will actually be applied: targets, operations, precedence order,
+enablement, and validated payloads. Adding, removing, enabling, disabling, reprioritizing, retargeting, or
+changing the payload of an applicable override yields a different override-set UUID. The no-overrides
+state has its own deterministic override-set UUID; it is not the absence of one.
+
+Rule slices, deterministic-consumer views, GameMaster authority views, applied-override provenance,
+stale/mismatch validation, and replay/audit evidence identify the exact effective binding — all four
+components — that produced them. A recorded binding whose override-set UUID no longer matches the
+recomputed effective override state is `STALE` and fails explicitly; it is never silently re-resolved
+against current overrides. Overrides never mutate or remint the base projection UUID.
 
 A human-facing slug may resolve through one code-owned service but cannot serve as canonical authority.
-Every rule-slice request carries deterministic selectors or an explicit whole-package flag. Invalid slugs,
-accidentally empty selectors, stale bindings, and mismatched releases fail explicitly.
+Every rule-slice request carries the exact effective binding plus deterministic selectors or an explicit
+whole-package flag. Invalid slugs, accidentally empty selectors, stale bindings, and mismatched releases
+fail explicitly.
 
 ### Decision 10 — Typed override completion
 
@@ -183,7 +204,9 @@ ADR-0007's entity-targeting override deferral is discharged by 5d.
 
 5d defines typed patch shapes for the new record/component/fact representation and applies them in the
 effective mechanical view. Existing override precedence and `DISABLE` / `REPLACE` / `APPEND` semantics
-remain unchanged. Overrides never mutate the immutable base projection.
+remain unchanged. Overrides never mutate the immutable base projection and never remint its identity;
+the applied ordered override state is identified instead by the override-set UUID of the effective
+binding (Decision 9), and applied-override provenance is reported against that binding.
 
 `DISABLE` suppresses an exact typed target; `REPLACE` supplies a complete validated replacement for a
 component or fact; and `APPEND` adds a complete typed component or fact only where the owning schema
@@ -197,7 +220,7 @@ authority. Unmappable development targets are not guessed into new identities.
 
 5d does not decide:
 
-- Character Sheet Model completeness or storage of the typed binding (2b);
+- Character Sheet Model completeness or storage and revalidation of the typed effective binding (2b);
 - adapter capability, certification, or execution (15c);
 - how GameMaster-adjudicated outcomes become trusted mechanical state or narrative canon (15c and the
   applicable canon/state owners); or
@@ -219,13 +242,13 @@ ADR-005c remains authoritative and is not superseded.
 | **D2 — Source corpus and executable mechanical projection are distinct** | Clarified. "Executable projection" means typed executable-facing authority, not that every represented component is code-executable. Complete 5d scope includes prose-bound GameMaster authority as part of the mechanical projection. |
 | **D3 — Ingestion does not generate a rules engine** | Preserved. Typed facts are declarative; execution remains hand-authored adapter code. |
 | **D4 — Semantic retrieval is never mechanical authority** | Preserved. GameMaster prose retrieval resolves to exact source-bound authority; retrieval never supplies a trust-relevant value. |
-| **D5 — Deterministic binding** | Implemented by 5d's package/release/projection binding and selector contract. |
+| **D5 — Deterministic binding** | Implemented by 5d's package/release/base-projection/override-set effective binding and selector contract. |
 | **D6 — Advertised mechanics fail closed** | Preserved for 15c. 5d supplies typed absence/ambiguity/stale/mismatch failures but does not certify adapter capability. |
 | **D7 — #129 remains frozen** | Unchanged. |
 | **Pre-release clean-baseline correction** | Governs 5d legacy removal. Obsolete mechanical entities and development rows receive no compatibility guarantee. |
 
-No historical ADR-005c text is deleted. Add a forward reference from ADR-005c Decisions 2 and 5 to this
-ADR when repository documentation is updated.
+No historical ADR-005c text is deleted. ADR-005c Decisions 2 and 5 carry forward references to this ADR
+as of this change.
 
 ### ADR-0007
 
@@ -233,7 +256,8 @@ ADR-0007 remains a correct historical deferral for CRD Issue 5a. This ADR record
 the first issue requiring typed entity/component/fact override application and therefore **discharges**
 the deferral.
 
-Add a status note to ADR-0007:
+ADR-0007 carries this status note as of this change, with its historical Context, Decision, and
+Consequences text preserved:
 
 > **Discharged by ADR-005d / CRD Issue 5d.** The typed mechanical projection now defines the concrete
 > record/component/fact patch families and applies them while preserving existing override precedence and
@@ -250,13 +274,15 @@ ADR-015 remains authoritative.
 - 5d projection publication does not convert ADR-015's `undetermined` behavior into adapter support.
 - 15c still distinguishes truly unsupported mechanics from missing/incomplete authority.
 
-Add a forward reference to ADR-005d from ADR-015 Decision 7 when repository documentation is updated.
+ADR-015 Decision 7 carries a forward reference to this ADR as of this change; its historical text and
+`Accepted` status are otherwise unchanged.
 
 ### ADR-018
 
 ADR-018's semantic-retrieval boundary remains unchanged. Exact governing prose may be located for
 GameMaster context, but no semantic retrieval path may author, infer, or select a trust-relevant
-mechanical value. No amendment beyond a cross-reference is required.
+mechanical value. No amendment beyond a cross-reference is required, and ADR-018 Decision 10 carries that
+narrowly scoped cross-reference as of this change.
 
 ---
 
@@ -271,6 +297,9 @@ mechanical value. No amendment beyond a cross-reference is required.
 - Deterministic consumers receive typed, source-linked facts instead of parsing prose.
 - Missing or ambiguous authority becomes visible and typed.
 - Mechanical corrections mint new immutable identity rather than silently reusing stale releases.
+- Replay, audit, and stale detection reconstruct the exact effective authority — base projection plus the
+  identified applied override set — instead of an ambiguous package/release pair that could resolve to
+  different trust-relevant values over time.
 - 2b and 15c receive stable upstream contracts.
 
 ### Costs
@@ -279,6 +308,8 @@ mechanical value. No amendment beyond a cross-reference is required.
 - Full semantic review cannot be replaced by a corpus count or unattended classifier.
 - Table/stat-block reconstruction and scoped reference resolution require committed domain work.
 - Typed fact and override families require maintenance as new authorized Rules Packages add mechanics.
+- Every effective override change mints a new override-set identity, so consumers that record or cache an
+  effective binding must revalidate it rather than assume stability across override edits.
 - Delivery requires multiple PRs before 5d is complete.
 
 ### Rejected alternatives
@@ -300,6 +331,10 @@ mechanical value. No amendment beyond a cross-reference is required.
    authorized for removal under the pre-release clean baseline.
 10. **Compile the SRD into a universal rules engine.** Rejected: many mechanics are contextual or
     open-ended, and execution remains hand-authored.
+11. **Bind runtime authority to package, release, and base projection alone.** Rejected by Owner Decision
+    2026-07-30 (PR #138): overrides change the effective mechanical view, so one such binding could
+    resolve to different DCs, effects, or disabled mechanics over time and neither stale detection nor
+    replay could reconstruct the authority actually used.
 
 ---
 

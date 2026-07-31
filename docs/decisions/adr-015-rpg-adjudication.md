@@ -188,6 +188,14 @@ supported boundary, rather than inventing a result.
 RPG dice-handling Known Unknown resolution. Hand-authored adapters prevent
 mechanic drift and keep auditability deterministic.
 
+**Forward reference (ADR-005d, 2026-07-30):**
+[ADR-005d](adr-005d-complete-typed-mechanical-authority.md) supplies the typed
+Rules Package authority a later CRD Issue 15c adapter verifies against, and keeps
+representation separate from execution: projection publication never converts
+`undetermined` into adapter support. Adjudication records the exact effective
+binding — package, release, mechanical projection, and override set — that
+supplied its authority. This decision's boundary is unchanged.
+
 ---
 
 ## Decision 8: Active mechanical conditions/effects are sheet-owned concrete d20 state (owner decision)

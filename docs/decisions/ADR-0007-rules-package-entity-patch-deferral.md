@@ -1,8 +1,15 @@
 # ADR-0007 — Rules Package: Entity-Targeting Override Patch Shape Deferral
 
-**Status:** Accepted  
+**Status:** Accepted — **discharged by ADR-005d / CRD Issue 5d (2026-07-30)**  
 **Date:** 2026-04-09  
 **Issue:** CRD Issue 5a (Rules Package Schema and Data Model)
+
+> **Discharged by ADR-005d / CRD Issue 5d.** The typed mechanical projection now defines the concrete
+> record/component/fact patch families and applies them while preserving existing override precedence and
+> operations. See [ADR-005d](adr-005d-complete-typed-mechanical-authority.md) Decisions 9 and 10; the
+> effective runtime binding identifies the applied override set by its own immutable override-set UUID.
+> The historical Context, Decision, and Consequences below record the CRD Issue 5a deferral as made and
+> are unchanged.
 
 ## Context
 
