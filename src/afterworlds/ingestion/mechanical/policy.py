@@ -45,9 +45,12 @@ SEMANTIC_POLICY_VERSION = "5d-semantic-policy-1"
 # ---------------------------------------------------------------------------
 
 # Headings, examples, cross-references, explanatory clauses, GameMaster
-# guidance, and repeated wording are deliberately *absent* here: they are
-# supporting authority, not blanket non-mechanical categories. Classifying them
-# away is the failure mode this catalog exists to prevent.
+# guidance, and repeated wording are deliberately *absent* here. They are not
+# blanket non-mechanical categories (#137 contract 2) and may well be
+# supporting authority, so nothing may be discarded merely for having one of
+# those forms. Each instance is classified from its actual role: a particular
+# heading or repeated item can still be non-mechanical under a valid closed
+# reason such as ``navigation_only`` when its content supports that.
 NON_MECHANICAL_REASONS: tuple[NonMechanicalReason, ...] = (
     NonMechanicalReason(
         code="legal_licensing",

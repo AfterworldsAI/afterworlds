@@ -34,6 +34,10 @@ class SemanticDisposition(StrEnum):
     """
 
     SUBSTANTIVE = "substantive"
+    # Material that identifies, limits, explains, exemplifies, or contextualizes
+    # a mechanic. Form does not decide this: a heading may be supporting
+    # authority here or non-mechanical under a closed reason there, depending on
+    # what it actually does.
     SUPPORTING_AUTHORITY = "supporting_authority"
     NON_MECHANICAL = "non_mechanical"
     UNRESOLVED = "unresolved"
@@ -99,21 +103,41 @@ class SemanticSpan:
 
 
 @dataclass(frozen=True)
+class SemanticDiffEntry:
+    """One span's transition under a batch acceptance.
+
+    ``prior_*`` is ``None`` when the batch accepted a claim that had no prior
+    proposed disposition, which is different from a batch that changed one.
+    """
+
+    span_id: str
+    prior_disposition: SemanticDisposition | None
+    prior_reason_code: str | None
+    accepted_disposition: SemanticDisposition
+    accepted_reason_code: str | None
+
+
+@dataclass(frozen=True)
 class AcceptanceBatch:
     """A rule-scoped batch acceptance (#137 contract 2).
 
-    Batch acceptance is what makes full-corpus review tractable, but it must
-    record *what rule was applied to what scope* and *what changed*, so a batch
-    can be re-derived and audited rather than taken on trust. A batch whose
-    recorded rule, scope, or semantic diff is missing is not an acceptance.
+    Batch acceptance is what makes full-corpus review tractable, but it has to
+    stay auditable afterwards, which means retaining what was accepted — not a
+    recipe for recomputing it later:
 
-    ``semantic_diff_hash`` covers the exact set of (span, disposition, reason)
-    transitions the batch produced.
+    * ``rule`` explains *how* the batch was selected. It is evidence, not
+      authority, and it is never re-run: a selector re-evaluated against
+      changed inputs would resolve to a different set than the reviewer saw.
+    * ``resolved_scope`` is the exact span set the reviewer accepted.
+    * ``diff`` is the canonical semantic diff itself, retained in full.
+    * ``semantic_diff_hash`` identifies and verifies that diff; it never
+      substitutes for it.
     """
 
     batch_id: str
     rule: str
-    scope: tuple[str, ...]
+    resolved_scope: tuple[str, ...]
+    diff: tuple[SemanticDiffEntry, ...]
     semantic_diff_hash: str
 
 
@@ -122,8 +146,9 @@ class AcceptanceRecord:
     """Evidence that one span's semantic claim was explicitly accepted.
 
     ``batch_id`` is ``None`` for an individually reviewed span and otherwise
-    names an :class:`AcceptanceBatch`. ``reviewer`` and ``accepted_at`` are
-    audit metadata excluded from identity.
+    names an :class:`AcceptanceBatch`. ``reviewer`` and ``accepted_at`` record
+    who took the acceptance action and when; both are required evidence of an
+    explicit action, and neither reaches projection identity.
     """
 
     span_id: str
@@ -139,6 +164,12 @@ class ClassificationLedger:
     This is a committed, meaning-bearing input to the build — never a product
     of it (#137 contract 4: the oracle is not regenerated from the output it
     checks).
+
+    The ledger carries both the accepted semantic *result* (``spans``) and the
+    review evidence that produced it (``batches``, ``acceptances``). Only the
+    result is identity-bearing; the evidence is immutable, persisted, and
+    reconstructable for audit, but two ledgers that reviewed their way to the
+    same accepted classification are the same authority.
     """
 
     package_uuid: str

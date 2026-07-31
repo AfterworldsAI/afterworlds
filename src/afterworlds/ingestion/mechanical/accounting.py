@@ -13,16 +13,27 @@ Both return violation strings rather than raising, matching the CRD Issue 5c
 ``verify_*`` convention: a caller collects every violation in one pass instead
 of discovering them one exception at a time, and the gate reports all of them.
 
-Identity is derived from accepted semantic content only. Reviewer names and
-acceptance timestamps travel in the ledger but never reach the payload, so
-re-reviewing an unchanged classification does not mint a new projection
+Identity is derived from the accepted semantic *result* only — span boundaries,
+dispositions, reason assignments, and the identity-bound semantic policy. The
+acceptance *process* is not identity-bearing: individual versus batch review,
+batch grouping, batch rule wording, resolved scope, reviewer, timestamp, and
+acceptance history all stay out of the payload. Two ledgers that reviewed their
+way to the same accepted classification are the same authority
 (#137 acceptance criterion 11).
+
+That is a boundary, not an exemption. Acceptance evidence is validated here as
+strictly as the result — a batch retains the canonical diff it claims, not just
+a digest of it — and it is retained for audit. If a batch rule should govern
+future classification, it is promoted into the frozen semantic policy
+explicitly, where it *is* identity-bearing, rather than leaking in through
+acceptance history.
 """
 
 from __future__ import annotations
 
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
 from afterworlds.ingestion.mechanical.models import (
+    AcceptanceBatch,
     ClassificationLedger,
     ReviewState,
     SemanticDisposition,
@@ -35,6 +46,8 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 
 __all__ = [
+    "batch_diff_hash",
+    "batch_diff_payload",
     "classification_identity",
     "classification_payload",
     "derive_span_id",
@@ -123,35 +136,126 @@ def validate_reason_codes(spans: tuple[SemanticSpan, ...]) -> tuple[str, ...]:
     return tuple(findings)
 
 
+def batch_diff_payload(batch: AcceptanceBatch) -> list[dict[str, object]]:
+    """Canonical serialization of a batch's retained semantic diff."""
+    return sorted(
+        (
+            {
+                "span_id": e.span_id,
+                "prior_disposition": (
+                    e.prior_disposition.value if e.prior_disposition else None
+                ),
+                "prior_reason_code": e.prior_reason_code,
+                "accepted_disposition": e.accepted_disposition.value,
+                "accepted_reason_code": e.accepted_reason_code,
+            }
+            for e in batch.diff
+        ),
+        key=lambda d: str(d["span_id"]),
+    )
+
+
+def batch_diff_hash(batch: AcceptanceBatch) -> str:
+    """SHA-256 over a batch's canonical retained diff."""
+    return hash_obj(batch_diff_payload(batch))
+
+
+def _validate_batch(
+    batch: AcceptanceBatch,
+    spans_by_id: dict[str, SemanticSpan],
+) -> list[str]:
+    """Return violations of one batch's retained acceptance evidence."""
+    findings: list[str] = []
+    tag = f"batch {batch.batch_id}"
+
+    if not batch.rule.strip():
+        findings.append(f"{tag}: no acceptance rule recorded")
+    if not batch.resolved_scope:
+        findings.append(f"{tag}: no resolved scope recorded")
+    if not batch.diff:
+        findings.append(f"{tag}: no semantic diff retained")
+
+    scope = set(batch.resolved_scope)
+    for span_id in sorted(scope - spans_by_id.keys()):
+        findings.append(f"{tag}: scope names unknown span {span_id}")
+
+    diff_ids: set[str] = set()
+    for entry in batch.diff:
+        if entry.span_id in diff_ids:
+            findings.append(f"{tag}: duplicate diff entry for span {entry.span_id}")
+        diff_ids.add(entry.span_id)
+
+        if entry.span_id not in spans_by_id:
+            findings.append(f"{tag}: diff names unknown span {entry.span_id}")
+            continue
+        if entry.span_id not in scope:
+            findings.append(f"{tag}: diff entry {entry.span_id} outside resolved scope")
+
+        span = spans_by_id[entry.span_id]
+        if entry.accepted_disposition is not span.disposition:
+            findings.append(
+                f"{tag}: diff claims {entry.span_id} accepted as "
+                f"{entry.accepted_disposition.value}, ledger has "
+                f"{span.disposition.value}"
+            )
+        if entry.accepted_reason_code != span.non_mechanical_reason_code:
+            findings.append(
+                f"{tag}: diff claims {entry.span_id} reason "
+                f"{entry.accepted_reason_code!r}, ledger has "
+                f"{span.non_mechanical_reason_code!r}"
+            )
+
+    for span_id in sorted(scope - diff_ids):
+        findings.append(f"{tag}: scope member {span_id} has no accepted diff entry")
+
+    if batch.semantic_diff_hash != batch_diff_hash(batch):
+        findings.append(f"{tag}: semantic diff digest does not match retained diff")
+
+    return findings
+
+
 def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
     """Return violations of the explicit-acceptance rule (#137 contract 2).
 
     Blocks publication on unreviewed residue, unresolved classification,
     acceptance records pointing at spans that do not exist, and batch
-    acceptances that fail to record the rule, scope, or semantic diff that
-    would let a reviewer re-derive them.
+    acceptances whose retained evidence would not let a reviewer re-check what
+    was accepted: a missing or forged diff, an acceptance outside the resolved
+    scope, a scope member with nothing accepted for it, or a blank record of
+    who accepted it and when.
     """
     findings: list[str] = []
-    span_ids = {s.span_id for s in ledger.spans}
-    batch_ids = {b.batch_id for b in ledger.batches}
+    spans_by_id = {s.span_id: s for s in ledger.spans}
+    span_ids = spans_by_id.keys()
+    batch_ids: set[str] = set()
     accepted: set[str] = set()
 
     for batch in ledger.batches:
-        if not batch.rule.strip():
-            findings.append(f"batch {batch.batch_id}: no acceptance rule recorded")
-        if not batch.scope:
-            findings.append(f"batch {batch.batch_id}: no acceptance scope recorded")
-        if not batch.semantic_diff_hash.strip():
-            findings.append(f"batch {batch.batch_id}: no semantic diff recorded")
+        if batch.batch_id in batch_ids:
+            findings.append(f"batch {batch.batch_id}: duplicate batch id")
+        batch_ids.add(batch.batch_id)
+        findings.extend(_validate_batch(batch, spans_by_id))
+
+    scope_by_batch = {b.batch_id: set(b.resolved_scope) for b in ledger.batches}
 
     for record in ledger.acceptances:
         if record.span_id not in span_ids:
             findings.append(f"acceptance for unknown span {record.span_id}")
-        if record.batch_id is not None and record.batch_id not in batch_ids:
+        if not record.reviewer.strip() or not record.accepted_at.strip():
             findings.append(
-                f"span {record.span_id}: acceptance names unknown batch "
-                f"{record.batch_id}"
+                f"span {record.span_id}: acceptance without reviewer/timestamp evidence"
             )
+        if record.batch_id is not None:
+            if record.batch_id not in batch_ids:
+                findings.append(
+                    f"span {record.span_id}: acceptance names unknown batch "
+                    f"{record.batch_id}"
+                )
+            elif record.span_id not in scope_by_batch[record.batch_id]:
+                findings.append(
+                    f"span {record.span_id}: acceptance outside the resolved scope "
+                    f"of batch {record.batch_id}"
+                )
         if record.span_id in accepted:
             findings.append(f"span {record.span_id}: duplicate acceptance record")
         accepted.add(record.span_id)
@@ -176,9 +280,12 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
 def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
     """Canonical, identity-bearing payload of the accepted classification.
 
-    Carries accepted semantic content and the batch rules that produced it.
-    Excludes reviewer identity and acceptance timestamps: audit metadata, not
-    meaning.
+    Carries the accepted semantic result and the identity-bound semantic
+    policy — nothing about how review arrived there. Batches, acceptance
+    records, batch grouping and wording, resolved scope, reviewers, and
+    timestamps are all deliberately absent: they are retained, validated review
+    evidence, not authority. Review state is likewise absent, because a
+    publishable ledger has no unaccepted span left to distinguish.
     """
     return {
         "package_uuid": ledger.package_uuid,
@@ -196,25 +303,6 @@ def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
                     "non_mechanical_reason_code": s.non_mechanical_reason_code,
                 }
                 for s in ledger.spans
-            ),
-            key=lambda d: str(d["span_id"]),
-        ),
-        "batches": sorted(
-            (
-                {
-                    "batch_id": b.batch_id,
-                    "rule": b.rule,
-                    "scope": list(b.scope),
-                    "semantic_diff_hash": b.semantic_diff_hash,
-                }
-                for b in ledger.batches
-            ),
-            key=lambda d: str(d["batch_id"]),
-        ),
-        "acceptances": sorted(
-            (
-                {"span_id": a.span_id, "batch_id": a.batch_id}
-                for a in ledger.acceptances
             ),
             key=lambda d: str(d["span_id"]),
         ),
