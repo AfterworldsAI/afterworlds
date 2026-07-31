@@ -23,9 +23,14 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     ProgressionEntryFact,
     ProseBindingDraft,
+    ReferenceDraft,
+    RelationshipDraft,
+    RelationshipKind,
     SpellDescriptorFact,
     SpellSchool,
+    fact_from_payload,
     fact_invariant_violations,
+    fact_payload,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from tests.ingestion.mechanical.conftest import (
@@ -274,3 +279,101 @@ def test_chunk_absent_from_the_bound_population_is_rejected() -> None:
 
 def test_authoritative_chunk_of_the_bound_release_passes() -> None:
     assert _findings() == ()
+
+
+# -- guards that had no negative control -------------------------------------
+
+
+def test_structured_component_carrying_prose_is_rejected() -> None:
+    findings = _findings(
+        components=(
+            ComponentDraft(
+                record_key=SPELL_KEY,
+                semantic_key=OPEN_ENDED_KEY,
+                handling=ComponentHandling.STRUCTURED,
+                facts=(DESCRIPTOR_FACT,),
+            ),
+        )
+    )
+    assert any("structured handling with a prose binding" in f for f in findings)
+
+
+def test_duplicate_component_semantic_key_is_rejected() -> None:
+    duplicate = ComponentDraft(
+        record_key=SPELL_KEY,
+        semantic_key=DESCRIPTOR_KEY,
+        handling=ComponentHandling.STRUCTURED,
+        facts=(DESCRIPTOR_FACT,),
+    )
+    findings = _findings(
+        components=(duplicate, duplicate, build_representation().components[1])
+    )
+    assert any("duplicate semantic key" in f for f in findings)
+
+
+def test_record_related_to_itself_is_rejected() -> None:
+    findings = _findings(
+        relationships=(
+            RelationshipDraft(SPELL_KEY, SPELL_KEY, RelationshipKind.PREREQUISITE),
+        )
+    )
+    assert any("record related to itself" in f for f in findings)
+
+
+def test_reference_from_an_unknown_record_is_rejected() -> None:
+    findings = _findings(
+        references=(
+            ReferenceDraft(
+                "spell:ghost", DESCRIPTOR_KEY, "the servant", "spell:wish", SPELL_KEY
+            ),
+        )
+    )
+    assert any("unknown source record spell:ghost" in f for f in findings)
+
+
+def test_reference_from_an_unknown_component_is_rejected() -> None:
+    findings = _findings(
+        references=(
+            ReferenceDraft(
+                SPELL_KEY, "ghost-component", "the servant", "spell:wish", SPELL_KEY
+            ),
+        )
+    )
+    assert any("unknown source component ghost-component" in f for f in findings)
+
+
+def test_reference_to_an_unknown_record_is_rejected() -> None:
+    findings = _findings(
+        references=(
+            ReferenceDraft(
+                SPELL_KEY, DESCRIPTOR_KEY, "the servant", "spell:wish", "spell:ghost"
+            ),
+        )
+    )
+    assert any("unknown target record spell:ghost" in f for f in findings)
+
+
+def test_negative_progression_level_is_rejected() -> None:
+    fact = ProgressionEntryFact(level=-1, entitlement_key="feature:x")
+    assert any("negative progression level" in f for f in _with_facts(fact))
+
+
+# -- persisted payloads rebuild every declared family -------------------------
+
+
+@pytest.mark.parametrize(
+    "fact",
+    [
+        AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, 15),
+        AbilityCheckFact(AbilityScore.DEXTERITY, DcKind.SPELL_SAVE_DC),
+        CreatureAbilityScoreFact(AbilityScore.CONSTITUTION, 14),
+        SpellDescriptorFact(
+            level=3, school=SpellSchool.ILLUSION, ritual=True, concentration=True
+        ),
+        ProgressionEntryFact(level=5, entitlement_key="feature:extra", quantity=2),
+    ],
+)
+def test_every_declared_family_round_trips_through_its_payload(fact: object) -> None:
+    rebuilt = fact_from_payload(fact_payload(fact))
+    assert rebuilt == fact
+    assert fact_invariant_violations(rebuilt) == ()

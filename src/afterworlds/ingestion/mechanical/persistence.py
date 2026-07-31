@@ -489,6 +489,11 @@ def compute_persisted_state_digest(session: Session, projection_uuid: str) -> st
     determinism rule keeps timestamps out of hashed artifacts so an identical
     rebuild stays comparable. ``accepted_at`` is different — it is reviewer-
     supplied evidence of an acceptance action, so it is covered above.
+
+    Unlike :func:`verify_reconstruction`, this raises rather than reporting when
+    the state will not rebuild. The asymmetry is intentional: verification
+    collects findings for a caller deciding whether state is sound, whereas a
+    digest of unreconstructable state would be a number that means nothing.
     """
     candidate = reconstruct_candidate(session, projection_uuid)
     stored_ids = {

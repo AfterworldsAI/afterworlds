@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from afterworlds.ingestion.corpus.hashing import canonical_json
 from afterworlds.ingestion.mechanical.models import (
+    ClassificationLedger,
     ComponentHandling,
     ReviewState,
     SemanticDisposition,
@@ -294,3 +295,74 @@ def test_fact_families_stay_distinct_under_identity() -> None:
             )
         )
     )
+
+
+# -- release agreement: candidate, ledger, and snapshot must all match -------
+
+
+def _candidate_with_binding(**binding_overrides: str) -> ProjectionCandidate:
+    base = build_candidate().binding
+    fields = {
+        "package_uuid": base.package_uuid,
+        "release_version": base.release_version,
+        "authoritative_source_hash": base.authoritative_source_hash,
+        "transform_config_hash": base.transform_config_hash,
+        "bundle_root_hash": base.bundle_root_hash,
+        "persisted_corpus_digest": base.persisted_corpus_digest,
+    }
+    fields.update(binding_overrides)
+    return ProjectionCandidate(
+        binding=ReleaseBinding(**fields),
+        classification=build_ledger(),
+        representation=build_representation(),
+    )
+
+
+def test_binding_package_disagreeing_with_the_snapshot_is_rejected() -> None:
+    findings = validate_candidate(
+        _candidate_with_binding(package_uuid="pkg-other"), bound_corpus()
+    )
+    assert any("corpus snapshot is pkg-5c" in f for f in findings)
+
+
+def test_binding_release_disagreeing_with_the_snapshot_is_rejected() -> None:
+    findings = validate_candidate(
+        _candidate_with_binding(release_version="rel-other"), bound_corpus()
+    )
+    assert any("corpus snapshot is rel-5c" in f for f in findings)
+
+
+def test_classification_package_disagreeing_with_the_binding_is_rejected() -> None:
+    ledger = build_ledger()
+    strayed = ClassificationLedger(
+        package_uuid="pkg-elsewhere",
+        release_version=ledger.release_version,
+        policy_version=ledger.policy_version,
+        policy_hash=ledger.policy_hash,
+        spans=ledger.spans,
+        batches=ledger.batches,
+        acceptances=ledger.acceptances,
+    )
+    findings = validate_candidate(
+        ProjectionCandidate(build_candidate().binding, strayed, build_representation()),
+        bound_corpus(),
+    )
+    assert any("classification names package pkg-elsewhere" in f for f in findings)
+
+
+def test_classification_release_disagreeing_with_the_binding_is_rejected() -> None:
+    ledger = build_ledger()
+    strayed = ClassificationLedger(
+        package_uuid=ledger.package_uuid,
+        release_version="rel-elsewhere",
+        policy_version=ledger.policy_version,
+        policy_hash=ledger.policy_hash,
+        spans=ledger.spans,
+        batches=ledger.batches,
+        acceptances=ledger.acceptances,
+    )
+    findings = validate_candidate(
+        ProjectionCandidate(build_candidate().binding, strayed, build_representation()),
+        bound_corpus(),
+    )
+    assert any("classification names release rel-elsewhere" in f for f in findings)
