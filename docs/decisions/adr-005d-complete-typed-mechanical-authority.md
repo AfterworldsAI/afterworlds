@@ -4,7 +4,8 @@
 **Date:** 2026-07-30  
 **Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
 review) so the effective runtime binding also carries an immutable override-set identity, and clarified
-in the same review so the contents that identity names are retained as immutable replay evidence  
+in the same review so the contents that identity names are retained as immutable, provenance-exact replay
+evidence  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -182,22 +183,41 @@ Decision 9).
 - override-set UUID — the exact applied effective override set.
 
 Base-projection identity and override-set identity remain distinct and are never collapsed into one
-value. The override-set UUID is derived deterministically at binding-resolution time from the canonical
-ordered effective override state that will actually be applied: targets, operations, precedence order,
-enablement, and validated payloads. Adding, removing, enabling, disabling, reprioritizing, retargeting, or
-changing the payload of an applicable override yields a different override-set UUID. The no-overrides
-state has its own deterministic override-set UUID; it is not the absence of one.
+value. The effective binding is **provenance-exact**, not merely mechanically equivalent: the override-set
+identity names both the exact effective mechanical state applied and the exact authoritative override
+records that supplied it. The canonical identity-bearing representation of every override entry therefore
+carries:
 
-Each override-set UUID identifies one immutable, content-addressed override-set **version**. That version
-preserves — or is deterministically reconstructable from append-only retained evidence that preserves —
-the exact canonical ordered override state the UUID was derived from: targets, operations,
-precedence/order, enablement state, and complete validated payloads. Historical override-set versions
-remain retrievable after the source `RuleOverride` rows are edited, disabled, reprioritized, retargeted,
-or deleted. Recording the override-set UUID while retaining only mutable current override rows is
-insufficient. Current override rows remain the authoring surface; they are not historical replay evidence.
-Whether that retention takes the shape of immutable content-addressed snapshots, append-only version
-records, or an event history that deterministically reconstructs the canonical set is an implementation
-choice this ADR does not make. Override-set version retention is runtime state and is separate from the
+- stable override identity (`override_id` or its repository-native successor);
+- override origin (`house_rule`, `package_patch`, or its typed successor);
+- exact typed target identity;
+- operation;
+- precedence/order;
+- enablement state; and
+- complete validated payload.
+
+The override-set UUID is derived deterministically at binding-resolution time from that canonical ordered
+state. Adding, removing, enabling, disabling, reprioritizing, retargeting, or changing the payload of an
+applicable override yields a different override-set UUID, and so does deleting and recreating an otherwise
+identical override under a different identity or origin: a house rule and a package patch with identical
+mechanical contents are not the same provenance-exact authority. The no-overrides state has its own
+deterministic override-set UUID; it is not the absence of one.
+
+Identity is not silently broadened to incidental audit metadata. Creation timestamps, authors, comments,
+and proposal history remain non-identity audit metadata unless they participate in override applicability,
+ordering, or resolution. The enclosing package UUID already supplies package scope.
+
+Each override-set UUID is the content-derived identity of one immutable, replayable override-set
+**version**. That version preserves — or is deterministically reconstructable from append-only retained
+evidence that preserves — the exact canonical ordered override state enumerated above. Historical
+override-set versions remain retrievable after the source `RuleOverride` rows are edited, disabled,
+reprioritized, retargeted, or deleted. Recording the override-set UUID while retaining only mutable
+current override rows is insufficient. Current override rows remain the authoring surface; they are not
+historical replay evidence. That version may be retained as a content-addressed snapshot, as append-only
+version records, or as append-only events that deterministically reconstruct the canonical version; an
+event log need not itself be content-addressed, but its reconstructed canonical version must reproduce and
+verify the recorded override-set UUID. Which of those shapes a repository uses is an implementation choice
+this ADR does not make. Override-set version retention is runtime state and is separate from the
 Decision 8 projection publication lifecycle.
 
 Rule slices, deterministic-consumer views, GameMaster authority views, applied-override provenance,
@@ -231,8 +251,11 @@ binding (Decision 9), and applied-override provenance is reported against that b
 
 Applied-override provenance resolves through the retained immutable override-set version, not through
 current override rows, so an effective view recorded earlier remains reconstructable after the source
-overrides are edited, disabled, reprioritized, retargeted, or deleted. The base projection and its
-identity are unaffected either way.
+overrides are edited, disabled, reprioritized, retargeted, or deleted. That provenance is
+provenance-exact: it reports the stable override identity and origin of each applied override alongside
+its target, operation, order, enablement, and payload, so an audit can name which authoritative override
+record supplied each change rather than only what the change was. The base projection and its identity are
+unaffected either way.
 
 `DISABLE` suppresses an exact typed target; `REPLACE` supplies a complete validated replacement for a
 component or fact; and `APPEND` adds a complete typed component or fact only where the owning schema
@@ -326,7 +349,9 @@ narrowly scoped cross-reference as of this change.
 - Replay and audit reconstruct the exact effective authority — base projection plus the retained
   override-set version — instead of an ambiguous package/release pair that could resolve to different
   trust-relevant values over time, and they keep working after the current override rows are edited or
-  deleted. Runtime stale detection remains a separate fail-closed check against current override state.
+  deleted. Because the binding is provenance-exact, they also name which override record and origin
+  supplied each applied change. Runtime stale detection remains a separate fail-closed check against
+  current override state.
 - 2b and 15c receive stable upstream contracts.
 
 ### Costs
@@ -339,6 +364,9 @@ narrowly scoped cross-reference as of this change.
   effective binding must revalidate it rather than assume stability across override edits.
 - Retained override-set versions accumulate alongside override authoring, and pruning them forfeits the
   replay and audit reconstruction they exist to provide.
+- Because identity is provenance-exact, recreating an override under a new identity or changing its origin
+  mints a new override-set identity even when the mechanical result is unchanged, so authoring churn is
+  visible in the binding rather than hidden by it.
 - Delivery requires multiple PRs before 5d is complete.
 
 ### Rejected alternatives
@@ -370,6 +398,13 @@ narrowly scoped cross-reference as of this change.
     reconstruct the authority actually applied. This is the standing auditability invariant — operational
     state must be reconstructable from explicit retained evidence, not inferred from mutable current
     state — applied to override sets.
+13. **Identify a retained override-set version by its mechanical contents alone.** Rejected in the same
+    review: deleting and recreating an otherwise identical override, or changing only its origin, would
+    reuse the same identity and leave no evidence of which authoritative record actually applied, which is
+    the applied-override provenance Decision 10 promises. The retained state carries stable override
+    identity and origin as well. Identity is not broadened past that: creation timestamps, authors,
+    comments, and proposal history stay non-identity audit metadata unless they participate in
+    applicability, ordering, or resolution.
 
 ---
 
