@@ -495,13 +495,21 @@ def compute_persisted_state_digest(session: Session, projection_uuid: str) -> st
 
 
 def verify_reconstruction(
-    session: Session, identified: IdentifiedProjection
+    session: Session,
+    identified: IdentifiedProjection,
+    *,
+    expected_status: str = "draft",
 ) -> tuple[str, ...]:
     """Return violations found by rebuilding the projection from the database.
 
     Catches omission (a row that never landed), tamper (a value changed after
     the fact), and stale reuse (a persisted projection whose content no longer
     derives its own identity).
+
+    ``expected_status`` is explicit because the same verification runs before
+    publication and, later, against a published projection; hard-coding
+    ``draft`` here would make every post-publication check report a spurious
+    finding.
     """
     findings: list[str] = []
     uuid_ = identified.projection_uuid
@@ -524,9 +532,9 @@ def verify_reconstruction(
             f"projection {uuid_}: persisted payload hash does not match "
             f"reconstructed state"
         )
-    if header.publication_status != "draft":
+    if header.publication_status != expected_status:
         findings.append(
-            f"projection {uuid_}: expected a draft, found "
+            f"projection {uuid_}: expected {expected_status!r}, found "
             f"{header.publication_status!r}"
         )
 

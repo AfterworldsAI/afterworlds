@@ -8,12 +8,14 @@ that each negative control can perturb exactly one thing.
 
 from __future__ import annotations
 
-from afterworlds.ingestion.mechanical.accounting import derive_span_id
+from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
 from afterworlds.ingestion.mechanical.models import (
+    AcceptanceBatch,
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
     ReviewState,
+    SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
 )
@@ -33,6 +35,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     RecordDraft,
     RecordKind,
+    ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
@@ -104,6 +107,70 @@ def build_ledger(
             for s in spans
         ),
     )
+
+
+def batch_accepted_ledger() -> ClassificationLedger:
+    """The same accepted result, reached through one rule-scoped batch.
+
+    Used to prove the retained evidence survives persistence, and that the
+    review path does not change the projection identity.
+    """
+    base = build_ledger()
+    diff = tuple(
+        SemanticDiffEntry(
+            span_id=s.span_id,
+            prior_disposition=None,
+            prior_reason_code=None,
+            accepted_disposition=s.disposition,
+            accepted_reason_code=s.non_mechanical_reason_code,
+        )
+        for s in base.spans
+    )
+    unhashed = AcceptanceBatch(
+        batch_id="batch-wish",
+        rule="every span of the Wish authority reviewed together",
+        resolved_scope=tuple(s.span_id for s in base.spans),
+        diff=diff,
+        semantic_diff_hash="",
+    )
+    batch = AcceptanceBatch(
+        batch_id=unhashed.batch_id,
+        rule=unhashed.rule,
+        resolved_scope=unhashed.resolved_scope,
+        diff=unhashed.diff,
+        semantic_diff_hash=batch_diff_hash(unhashed),
+    )
+    return ClassificationLedger(
+        package_uuid=base.package_uuid,
+        release_version=base.release_version,
+        policy_version=base.policy_version,
+        policy_hash=base.policy_hash,
+        spans=base.spans,
+        batches=(batch,),
+        acceptances=tuple(
+            AcceptanceRecord(s.span_id, batch.batch_id, "owner", "2026-07-31T00:00:00Z")
+            for s in base.spans
+        ),
+    )
+
+
+#: Two references whose identical wording resolves per committed scope.
+SCOPED_REFERENCES = (
+    ReferenceDraft(
+        from_record_key=SPELL_KEY,
+        from_component_key=DESCRIPTOR_KEY,
+        source_text="the servant",
+        scope_key="spell:wish",
+        target_record_key=CREATURE_KEY,
+    ),
+    ReferenceDraft(
+        from_record_key=SPELL_KEY,
+        from_component_key=DESCRIPTOR_KEY,
+        source_text="the servant",
+        scope_key="chapter:appendix",
+        target_record_key=SPELL_KEY,
+    ),
+)
 
 
 def build_representation(**overrides: object) -> RepresentationDraft:

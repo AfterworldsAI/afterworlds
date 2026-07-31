@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import pytest
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.mechanical.accounting import validate_acceptance
 from afterworlds.ingestion.mechanical.persistence import (
     ProjectionNotPersistedError,
     compute_persisted_state_digest,
@@ -25,11 +27,15 @@ from afterworlds.ingestion.mechanical.projection import (
     identify_projection,
     projection_payload,
 )
-from afterworlds.ingestion.mechanical.representation import fact_from_payload
+from afterworlds.ingestion.mechanical.representation import (
+    RelationshipKind,
+    fact_from_payload,
+)
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.mechanical import (
+    MechanicalBatchDiffORM,
     MechanicalFactORM,
     MechanicalProjectionORM,
     MechanicalProvenanceORM,
@@ -37,7 +43,13 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalSpanORM,
 )
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
-from tests.ingestion.mechanical.conftest import SPELL_KEY, build_candidate
+from tests.ingestion.mechanical.conftest import (
+    CREATURE_KEY,
+    SCOPED_REFERENCES,
+    SPELL_KEY,
+    batch_accepted_ledger,
+    build_candidate,
+)
 
 NOW = "2026-07-31T00:00:00Z"
 
@@ -219,11 +231,75 @@ def test_delete_removes_every_scoped_row(session: Session) -> None:
 
 def test_two_projections_over_one_release_coexist(session: Session) -> None:
     first = _persist(session)
-    other = identify_projection(build_candidate(references=()))
     second = identify_projection(
         build_candidate(provenance=build_candidate().representation.provenance[:2])
     )
-    assert other.projection_uuid == first.projection_uuid  # references were empty
-    persist_draft(session, second, now=NOW)
     assert second.projection_uuid != first.projection_uuid
+    persist_draft(session, second, now=NOW)
     assert verify_reconstruction(session, first) == ()
+    assert verify_reconstruction(session, second) == ()
+
+
+def test_re_persisting_the_same_projection_conflicts(session: Session) -> None:
+    # The UUID is the primary key, so an identical rebuild collides rather than
+    # silently duplicating. Making that idempotent is publication/activation
+    # work and belongs to the next PR; what matters here is that it cannot
+    # quietly write a second copy.
+    identified = _persist(session)
+    with pytest.raises(IntegrityError):
+        persist_draft(session, identified, now=NOW)
+
+
+# -- retained acceptance evidence and references round-trip -------------------
+
+
+def test_batch_acceptance_evidence_round_trips(session: Session) -> None:
+    identified = identify_projection(build_candidate(ledger=batch_accepted_ledger()))
+    persist_draft(session, identified, now=NOW)
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+
+    (batch,) = rebuilt.classification.batches
+    original = identified.candidate.classification.batches[0]
+    # Ordered scope, the canonical diff, and the digest all survive intact —
+    # the retained evidence is what replay reads, so a lossy round-trip here
+    # would be the identifier-without-contents failure again.
+    assert batch.resolved_scope == original.resolved_scope
+    assert batch.diff == original.diff
+    assert batch.semantic_diff_hash == original.semantic_diff_hash
+    assert validate_acceptance(rebuilt.classification) == ()
+    assert verify_reconstruction(session, identified) == ()
+
+
+def test_omitted_batch_diff_row_is_detected(session: Session) -> None:
+    identified = identify_projection(build_candidate(ledger=batch_accepted_ledger()))
+    persist_draft(session, identified, now=NOW)
+    session.execute(
+        delete(MechanicalBatchDiffORM).where(
+            MechanicalBatchDiffORM.projection_uuid == identified.projection_uuid
+        )
+    )
+    session.flush()
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    # The diff is acceptance evidence, not identity, so the projection UUID is
+    # unchanged — the loss surfaces as an acceptance-evidence violation.
+    assert identify_projection(rebuilt).projection_uuid == identified.projection_uuid
+    findings = validate_acceptance(rebuilt.classification)
+    assert any("no semantic diff retained" in f for f in findings)
+
+
+def test_resolved_references_round_trip(session: Session) -> None:
+    identified = identify_projection(build_candidate(references=SCOPED_REFERENCES))
+    persist_draft(session, identified, now=NOW)
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    assert sorted(r.scope_key for r in rebuilt.representation.references) == sorted(
+        r.scope_key for r in SCOPED_REFERENCES
+    )
+    assert verify_reconstruction(session, identified) == ()
+
+
+def test_relationships_round_trip(session: Session) -> None:
+    identified = _persist(session)
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    (relationship,) = rebuilt.representation.relationships
+    assert relationship.kind is RelationshipKind.SCOPED_WITHIN
+    assert relationship.source_record_key == CREATURE_KEY

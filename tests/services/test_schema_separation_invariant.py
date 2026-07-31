@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.corpus  # noqa: F401
+import afterworlds.persistence.orm.mechanical  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
@@ -148,6 +149,20 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_reconciliation_policies",
         "rp_reconciliations",
         "rp_corpus_projections",
+        # CRD Issue 5d (#137) mechanical-authority projection tables.
+        "rp_mech_projections",
+        "rp_mech_spans",
+        "rp_mech_acceptance_batches",
+        "rp_mech_batch_scope",
+        "rp_mech_batch_diff",
+        "rp_mech_acceptances",
+        "rp_mech_records",
+        "rp_mech_components",
+        "rp_mech_facts",
+        "rp_mech_prose_bindings",
+        "rp_mech_relationships",
+        "rp_mech_references",
+        "rp_mech_provenance",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (
