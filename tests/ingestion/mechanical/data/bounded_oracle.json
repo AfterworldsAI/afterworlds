@@ -4,7 +4,7 @@
     "release_version": "rel-5c",
     "authoritative_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "transform_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "bundle_root_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "bundle_root_hash": "5f4471769d7ebf6650c3d07ba0093803b3032e71c4ebd5a4039da0aac372bbfd",
     "persisted_corpus_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   },
   "semantic_policy_version": "5d-semantic-policy-1",

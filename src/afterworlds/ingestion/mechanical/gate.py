@@ -10,6 +10,12 @@ Neither is derived from the projection under test. That is the whole point: a
 gate whose expectations come from the output it checks reports only that the
 build is self-consistent.
 
+The bound release is itself proven before anything is read from it
+(:func:`afterworlds.ingestion.corpus.persistence.verify_published_release`).
+A projection and an oracle can state the same six-value binding and still be
+describing a release that was never published, or one whose rows no longer
+derive their recorded proof; agreement between two claims is not authority.
+
 **What this module does not re-implement.** The persisted-state proof
 (:func:`verify_persisted_state`) and the candidate's internal honesty
 (:func:`validate_candidate`) already exist and already run against reconstructed
@@ -41,6 +47,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
+from afterworlds.ingestion.corpus.persistence import verify_published_release
 from afterworlds.ingestion.mechanical.accounting import span_payload
 from afterworlds.ingestion.mechanical.bound_corpus import load_bound_corpus
 from afterworlds.ingestion.mechanical.canonical import canonical_order
@@ -95,6 +102,10 @@ class GateFailureCategory(StrEnum):
     #: No persisted header, an unreadable row set, a status outside
     #: PUBLISHABLE_STATUSES, or a missing/mismatched persisted-state digest.
     PERSISTED_STATE = "persisted_state"
+    #: The 5c release the projection binds is not an exactly-published,
+    #: reconstructable release: absent, still draft, not matching the declared
+    #: six values, or no longer deriving its own recorded proof.
+    BOUND_RELEASE = "bound_release"
     #: The oracle was accepted over a different 5c release than the projection
     #: is bound to, so it judges nothing here.
     MISMATCHED_RELEASE = "mismatched_release"
@@ -304,6 +315,10 @@ def _check_obligations(
     by references, or re-described entirely as prose, satisfies nothing — which
     is how reference-only coverage and all-prose under-extraction fail here by
     name rather than as an anonymous element difference.
+
+    Reads structured families and prose-bound handling the same way
+    :func:`oracle.derive_obligations` does, which is what makes every obligation
+    that survives loading one this evaluation can actually satisfy.
     """
     draft = candidate.representation
     records = {r.semantic_key: r for r in draft.records}
@@ -455,6 +470,34 @@ def run_publication_gate(
             ),
         )
 
+    # 0. The 5c release itself, before anything derived from it is read. The
+    #    binding comes from *reconstructed* state, never from the oracle, so
+    #    this is the one comparison the candidate and the oracle cannot satisfy
+    #    between themselves: a six-value binding both of them state is checked
+    #    against the authoritative published release, and that release must
+    #    still derive its own recorded proof. A release that fails here has no
+    #    trustworthy represented-leaf population, so the gate stops rather than
+    #    accepting a population from a forged or draft release.
+    binding = candidate.binding
+    bound_release = verify_published_release(
+        session,
+        binding.package_uuid,
+        release_version=binding.release_version,
+        authoritative_source_hash=binding.authoritative_source_hash,
+        transform_config_hash=binding.transform_config_hash,
+        bundle_root_hash=binding.bundle_root_hash,
+        corpus_digest=binding.persisted_corpus_digest,
+    )
+    if bound_release:
+        return _failed(
+            projection_uuid,
+            oracle,
+            *(
+                GateFailure(GateFailureCategory.BOUND_RELEASE, detail)
+                for detail in bound_release
+            ),
+        )
+
     findings: list[GateFailure] = []
 
     # 1. The persisted-state proof itself: tamper, omission, stale identity,
@@ -476,7 +519,6 @@ def run_publication_gate(
     # 2. The oracle must be accepted over this exact release, under this exact
     #    policy. Comparing accepted semantics across either boundary would be
     #    judging one release's content by another's authority.
-    binding = candidate.binding
     if oracle.binding != binding:
         _fail(
             findings,

@@ -5,20 +5,29 @@ of:
 
 ``build → persist draft → reconstruct → prove → gate → atomically publish``
 
+**The supported surface is one function.** :func:`publish_from_committed_oracle`
+resolves the judging authority from the packaged committed-oracle directory
+using the release the persisted header actually binds. Nothing exported here
+accepts an oracle, an oracle directory, or an activation request, because a
+publication API whose caller supplies the authority that judges its own output
+proves only that the caller is self-consistent. Gating and activation are
+private steps of that one operation; tests that need to publish against a
+fixture oracle reach for the private seam deliberately and visibly.
+
 Four properties are load-bearing, and each is enforced by structure rather than
 by discipline:
 
 * **A draft never becomes active before the gate succeeds.** The gate is
   read-only, so a failing run leaves the database exactly as it found it —
-  there is no partial write to undo. Activation is a separate, publicly
-  callable step that independently refuses any projection whose header is not
-  already ``published`` with recorded evidence, so it cannot be reached around
-  the gate.
+  there is no partial write to undo. Activation is reachable only from a
+  publication operation that has just completed the full committed-oracle gate,
+  so there is no path that activates on a status column alone.
 * **Published projections are immutable.** Re-running publication re-runs the
-  *complete* gate against reconstructed state and additionally requires the
-  recorded evidence-report hash and oracle identity to still match the
-  re-derived ones. A projection edited after publication therefore stops being
-  publishable and stops verifying.
+  *complete* gate against reconstructed state and additionally re-derives the
+  evidence report, requiring the recorded payload to be exactly that report, to
+  hash to the recorded hash, and to have been judged by the same oracle. A
+  projection — or its recorded evidence — edited after publication therefore
+  stops being publishable and stops verifying.
   ``ponytail: enforced at this seam, not by a database trigger — SQLite has no
   cheap column-level immutability. If direct row edits ever become a real
   threat model, the upgrade path is an append-only published-state table.``
@@ -39,7 +48,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -51,6 +59,7 @@ from afterworlds.ingestion.mechanical.gate import (
 )
 from afterworlds.ingestion.mechanical.oracle import AcceptedOracle, committed_oracle_for
 from afterworlds.ingestion.mechanical.report import (
+    EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_evidence_report,
     report_hash,
@@ -64,9 +73,7 @@ __all__ = [
     "ActiveProjection",
     "PublicationOutcome",
     "PublicationResult",
-    "activate_projection",
     "publish_from_committed_oracle",
-    "publish_projection",
     "resolve_active_projection",
 ]
 
@@ -94,7 +101,10 @@ class PublicationOutcome(StrEnum):
     UNRESOLVED = "unresolved"
     #: The projection does not exactly match the accepted authority.
     INCOMPLETE = "incomplete"
-    #: Persisted state no longer derives its own identity or recorded evidence.
+    #: Persisted state no longer derives its own identity or recorded evidence,
+    #: or the 5c release it binds is not an exactly-published, reconstructable
+    #: release. Both are the same finding from an auditor's seat: something the
+    #: decision rests on is not what the record says it is.
     STALE = "stale"
     #: Another projection already holds this package's active authority.
     ACTIVE_CONFLICT = "active_conflict"
@@ -116,7 +126,12 @@ _OUTCOME_PRECEDENCE: tuple[
     tuple[frozenset[GateFailureCategory], PublicationOutcome], ...
 ] = (
     (
-        frozenset({GateFailureCategory.PERSISTED_STATE}),
+        frozenset(
+            {
+                GateFailureCategory.PERSISTED_STATE,
+                GateFailureCategory.BOUND_RELEASE,
+            }
+        ),
         PublicationOutcome.STALE,
     ),
     (
@@ -193,18 +208,141 @@ def _active_row(
     ).scalar_one_or_none()
 
 
+#: Every top-level key :func:`build_evidence_report` produces. A payload missing
+#: any of them is not this schema, whatever its recorded version claims.
+_REQUIRED_REPORT_KEYS = frozenset(
+    {
+        "report_version",
+        "source_release",
+        "mechanical_projection",
+        "accepted_oracle",
+        "gate",
+        "obligations",
+        "drift_diagnostics",
+    }
+)
+
+
+def _recorded_evidence_closure(
+    header: MechanicalProjectionORM,
+) -> tuple[str, ...]:
+    """Is the projection's *recorded* publication evidence internally closed?
+
+    The half of evidence verification that needs nothing but the row itself:
+    the payload is present and is the supported schema, the recorded hash is
+    the hash *of that payload*, and the publication fields that must exist
+    together do.
+
+    The stored hash is never trusted on its own. A hash column identifies a
+    payload; checking only the column and ignoring the payload it identifies
+    means a cleared or edited ``report_payload`` still reports as verified, and
+    the recorded evidence stops being reconstructable from the database while
+    publication keeps claiming it is.
+    """
+    failures: list[str] = []
+    if header.evidence_report_hash is None:
+        failures.append("no recorded evidence_report_hash")
+    if header.oracle_identity is None:
+        failures.append("no recorded judging-oracle identity")
+    if header.published_at is None:
+        failures.append("published projection records no published_at")
+    if header.persisted_state_digest is None:
+        failures.append("no recorded persisted-state digest")
+
+    payload = header.report_payload
+    if payload is None:
+        failures.append("no recorded evidence-report payload")
+    elif (
+        not isinstance(payload, dict)
+        or payload.get("report_version") != EVIDENCE_REPORT_SCHEMA_VERSION
+        or not set(payload) >= _REQUIRED_REPORT_KEYS
+    ):
+        failures.append(
+            "recorded evidence-report payload is not the supported "
+            f"{EVIDENCE_REPORT_SCHEMA_VERSION!r} schema"
+        )
+    elif report_hash(EvidenceReport(payload=payload)) != header.evidence_report_hash:
+        failures.append(
+            "recorded evidence-report payload does not hash to the recorded "
+            "evidence_report_hash"
+        )
+    return tuple(failures)
+
+
+def _recorded_evidence_failures(
+    header: MechanicalProjectionORM,
+    gate: GateResult,
+    report: EvidenceReport,
+    digest: str,
+) -> tuple[str, ...]:
+    """Is the recorded evidence closed *and* still the evidence this state derives?
+
+    Adds the comparisons that need a completed gate run: the persisted payload
+    must be exactly the report freshly derived from the current reconstructed
+    state under the current committed oracle, its hash must be the recorded
+    one, and the judging oracle must be the same authority. A published
+    projection whose state, evidence, or judging authority has drifted is
+    stale — not reusable, and not re-activatable.
+    """
+    failures = list(_recorded_evidence_closure(header))
+    if header.report_payload != report.payload:
+        failures.append(
+            "recorded evidence-report payload is not the report this "
+            "reconstructed state and committed oracle derive"
+        )
+    if header.evidence_report_hash != digest:
+        failures.append(
+            f"recorded evidence_report_hash {header.evidence_report_hash!r} is "
+            f"not the freshly derived {digest!r}"
+        )
+    if header.oracle_identity != gate.oracle_identity:
+        failures.append(
+            f"recorded judging oracle {header.oracle_identity!r} is not the "
+            f"committed oracle {gate.oracle_identity!r}"
+        )
+    return tuple(dict.fromkeys(failures))
+
+
 def resolve_active_projection(session: Session, package_uuid: str) -> ActiveProjection:
     """Return the package's active mechanical authority.
 
     ``UNPUBLISHED`` is a typed answer, not ``None`` and not an empty result: a
     caller that cannot tell "no authority is published" from "the query
     returned nothing" is one step from treating absence as permission.
+
+    An activation row is not by itself an authority claim. This resolves the
+    projection it names and requires that projection to be published with
+    internally closed recorded evidence; a row pointing at a draft, at another
+    package's projection, or at one whose evidence was cleared or edited
+    resolves to ``STALE``, never to ``PUBLISHED``.
+
+    **The contract this asserts** is recorded-evidence closure, not a re-run of
+    the publication proof: it does not resolve the committed oracle or re-gate
+    reconstructed state, so evidence edited *consistently* (payload and hash
+    together) is caught by :func:`publish_from_committed_oracle` rather than
+    here. Re-proof is a publication operation, and runtime binding resolution
+    is CRD Issue 5d PR 3's; this stays a read-only assertion about what the
+    database records.
     """
     row = _active_row(session, package_uuid)
     if row is None:
         return ActiveProjection(
             outcome=PublicationOutcome.UNPUBLISHED, package_uuid=package_uuid
         )
+    header = _header(session, row.projection_uuid)
+    stale = ActiveProjection(
+        outcome=PublicationOutcome.STALE,
+        package_uuid=package_uuid,
+        projection_uuid=row.projection_uuid,
+        activated_at=row.activated_at,
+    )
+    if (
+        header is None
+        or header.package_uuid != package_uuid
+        or header.publication_status != "published"
+        or _recorded_evidence_closure(header)
+    ):
+        return stale
     return ActiveProjection(
         outcome=PublicationOutcome.PUBLISHED,
         package_uuid=package_uuid,
@@ -213,19 +351,23 @@ def resolve_active_projection(session: Session, package_uuid: str) -> ActiveProj
     )
 
 
-def activate_projection(
+def _activate_projection(
     session: Session, projection_uuid: str, *, now: str
 ) -> PublicationResult:
-    """Make an already-published projection its package's active authority.
+    """Make a just-proven projection its package's active authority.
 
-    Independently fail-closed, and public for exactly that reason: this is the
-    step that would be dangerous if it trusted its caller. It refuses any
-    projection whose header is not already ``published`` with recorded
-    evidence, so a projection that failed the gate cannot be activated by
-    calling activation directly — the check does not depend on the caller
-    having run the gate, or on having run it honestly.
+    Private, and reachable only from :func:`_publish_projection` after the full
+    committed-oracle gate has passed against reconstructed state and the
+    recorded evidence has been verified. It is not a step a caller may perform
+    on its own: ``publication_status``, a non-NULL hash, and the presence of an
+    evidence column are what a successful publication *leaves behind*, not
+    proof that one happened, and a function that activated on them would make a
+    hand-edited or partially migrated header active authority.
 
-    Flushes rather than commits; :func:`publish_projection` owns the commit.
+    The header checks below are the residue of that ordering, kept as a
+    same-transaction assertion rather than as the gate.
+
+    Flushes rather than commits; :func:`_publish_projection` owns the commit.
     """
     header = _header(session, projection_uuid)
     if header is None:
@@ -262,7 +404,7 @@ def activate_projection(
     )
 
 
-def publish_projection(
+def _publish_projection(
     session: Session,
     projection_uuid: str,
     oracle: AcceptedOracle | None,
@@ -270,6 +412,14 @@ def publish_projection(
     now: str,
 ) -> PublicationResult:
     """Gate a persisted projection and, only if it passes, publish it atomically.
+
+    Private: *oracle* is the authority that judges the projection, so exporting
+    this would restore exactly the bypass removing the oracle-directory
+    parameter closes — a caller able to author the authority its own output is
+    measured against. :func:`publish_from_committed_oracle` is the supported
+    entry, and it resolves the oracle from the committed directory rather than
+    accepting one. Tests reach for this seam directly and visibly, which is a
+    property of the test, not an API a production caller can use by accident.
 
     Commits on success, which is what makes publication the durability boundary
     rather than something a caller can forget to finish. On any refusal nothing
@@ -298,17 +448,14 @@ def publish_projection(
 
     if header.publication_status == "published":
         # Idempotent reuse, but only after the full gate above re-proved the
-        # persisted state. The recorded evidence must also still be the
-        # evidence this state derives — a published projection whose report
-        # hash or judging oracle has drifted is stale, not reusable.
-        if (
-            header.evidence_report_hash != digest
-            or header.oracle_identity != gate.oracle_identity
-        ):
+        # persisted state *and* the recorded evidence proves closed against the
+        # freshly derived report. Reuse is the path an auditor is most likely to
+        # take on trust, so it is the one that must not accept a stored claim.
+        if _recorded_evidence_failures(header, gate, report, digest):
             return PublicationResult(
                 PublicationOutcome.STALE, projection_uuid, gate=gate, report=report
             )
-        result = activate_projection(session, projection_uuid, now=now)
+        result = _activate_projection(session, projection_uuid, now=now)
         session.commit()
         return PublicationResult(
             (
@@ -340,7 +487,7 @@ def publish_projection(
         header.publication_status = "published"
         header.published_at = now
         session.flush()
-        activation = activate_projection(session, projection_uuid, now=now)
+        activation = _activate_projection(session, projection_uuid, now=now)
         if activation.outcome is not PublicationOutcome.PUBLISHED:
             # Unreachable through this path (the conflict was checked above),
             # but a partially published header must never survive a surprise.
@@ -363,17 +510,19 @@ def publish_projection(
 
 
 def publish_from_committed_oracle(
-    session: Session,
-    projection_uuid: str,
-    *,
-    now: str,
-    directory: Path | None = None,
+    session: Session, projection_uuid: str, *, now: str
 ) -> PublicationResult:
-    """Production entry: judge a projection against *committed* accepted authority.
+    """The production publication entry — the only supported one.
 
-    The oracle is resolved from the committed oracle directory using the
-    release the persisted header actually binds — not from a caller argument,
-    so no caller can supply the authority that judges its own output.
+    The oracle is resolved from :data:`oracle.COMMITTED_ORACLE_DIR`, the fixed
+    packaged location, using the release the persisted header actually binds.
+    There is deliberately no directory parameter: one would let a caller point
+    publication at a writable directory holding a self-authored oracle that
+    matches its own projection, which is the guarantee this function exists to
+    make — and a guarantee with an override is a default.
+
+    Re-publication and re-activation enter here too, and re-run the complete
+    proof. There is no cheaper door.
 
     No accepted oracle is committed for the production SRD 5.2.1 release, so
     this path currently returns ``ABSENT`` for it. That is the honest state:
@@ -383,7 +532,5 @@ def publish_from_committed_oracle(
     header = _header(session, projection_uuid)
     if header is None:
         return PublicationResult(PublicationOutcome.ABSENT, projection_uuid)
-    oracle = committed_oracle_for(
-        header.package_uuid, header.release_version, directory=directory
-    )
-    return publish_projection(session, projection_uuid, oracle, now=now)
+    oracle = committed_oracle_for(header.package_uuid, header.release_version)
+    return _publish_projection(session, projection_uuid, oracle, now=now)

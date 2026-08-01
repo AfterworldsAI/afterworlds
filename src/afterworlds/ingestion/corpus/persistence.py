@@ -33,11 +33,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.bundle import (
+    build_bundle,
     persisted_corpus_digest,
     persisted_corpus_payload,
+    reconciliation_hash,
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
@@ -868,6 +871,168 @@ def verify_persisted_digest(
     return recompute_persisted_digest(session, pkg, vector_state) == (
         release.persisted_corpus_digest
     )
+
+
+#: What a downstream consumer must be able to prove about a release before it
+#: may treat that release as authority. Each entry is
+#: ``(evidence-report key, rp_corpus_releases column)``: the recorded report and
+#: the recorded release row must state the same proof identity, or one of them
+#: has been edited since publication.
+_REPORT_PROOF_COLUMNS = (
+    ("authoritative_source_hash", "authoritative_source_hash"),
+    ("transform_config_hash", "transform_config_hash"),
+    ("bundle_root_hash", "bundle_root_hash"),
+    ("frozen_source_ledger_hash", "ledger_hash"),
+    ("persisted_corpus_digest", "persisted_corpus_digest"),
+)
+
+
+def verify_published_release(
+    session: Session,
+    pkg: str,
+    *,
+    release_version: str,
+    authoritative_source_hash: str,
+    transform_config_hash: str,
+    bundle_root_hash: str,
+    corpus_digest: str,
+) -> tuple[str, ...]:
+    """Prove that *pkg* is an exactly-published, reconstructable 5c release.
+
+    The seam a downstream subsystem calls before treating this release as
+    authority — CRD Issue 5d binds its mechanical projections to a release by
+    six values, and comparing those values only against each other proves that
+    two claims agree, not that the release they name exists and is published.
+    Owned here because every reconstruction and proof primitive it needs is
+    already here; 5d calls it rather than re-deriving a second opinion about
+    what a published 5c release is.
+
+    The five declared values (plus *pkg* itself) must equal the authoritative
+    ``rp_corpus_releases`` row, that row must be published under a
+    published/enabled ``rp_packages`` row, its recorded evidence report must
+    still hash to its recorded hash and state the same proof identities as the
+    row, and the ledger, reconciliation, and bundle-root identities must be
+    exactly what the persisted rows reconstruct to.
+
+    **What this cannot re-prove.** ``persisted_corpus_digest`` binds the actual
+    read-back *vector* logical state as well as SQL (Component A), so it is not
+    recomputable from a session alone. It is verified here as an exact recorded
+    value, cross-checked against the recorded evidence report, and its
+    cross-store half remains proven by :func:`finalize_release`, which is the
+    only path that may set it. Re-proving that half needs a Chroma client and
+    belongs to a caller that has one.
+
+    Returns the violations, empty iff the release is publishable authority.
+    """
+    violations: list[str] = []
+    release = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one_or_none()
+    if release is None:
+        # Nothing further is meaningful: there is no authoritative release to
+        # compare a declaration with.
+        return (f"no rp_corpus_releases row for package {pkg}",)
+    if release.publication_status != "published":
+        violations.append(
+            f"release {pkg} is in publication_status "
+            f"{release.publication_status!r}, not 'published'"
+        )
+
+    package_row = session.execute(
+        select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+    ).scalar_one_or_none()
+    if package_row is None:
+        violations.append(f"no rp_packages row for {pkg}")
+    elif package_row.publication_status != "published" or not package_row.is_enabled:
+        violations.append(
+            f"rp_packages row for {pkg} is not published and enabled "
+            f"(publication_status={package_row.publication_status!r}, "
+            f"is_enabled={package_row.is_enabled})"
+        )
+
+    for field, declared in (
+        ("release_version", release_version),
+        ("authoritative_source_hash", authoritative_source_hash),
+        ("transform_config_hash", transform_config_hash),
+        ("bundle_root_hash", bundle_root_hash),
+        ("persisted_corpus_digest", corpus_digest),
+    ):
+        recorded = getattr(release, field)
+        if recorded != declared:
+            violations.append(
+                f"declared {field} {declared!r} is not the authoritative "
+                f"release's {recorded!r}"
+            )
+
+    payload = release.report_payload
+    if release.evidence_report_hash is None or payload is None:
+        violations.append(
+            f"release {pkg} carries no recorded evidence report "
+            "(hash and/or payload absent)"
+        )
+    elif not _report_schema_ok(payload, release.transform_config):
+        violations.append(
+            "recorded evidence-report schema version "
+            f"(report={payload.get('report_version')!r}) is missing, obsolete, "
+            f"or contradictory vs the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
+        )
+    else:
+        if (
+            report_hash(EvidenceReport(payload=payload, persisted=True))
+            != release.evidence_report_hash
+        ):
+            violations.append(
+                "recorded evidence-report payload does not hash to the recorded "
+                "evidence_report_hash"
+            )
+        for report_key, column in _REPORT_PROOF_COLUMNS:
+            if payload.get(report_key) != getattr(release, column):
+                violations.append(
+                    f"recorded evidence report states {report_key}="
+                    f"{payload.get(report_key)!r}, release row records "
+                    f"{column}={getattr(release, column)!r}"
+                )
+
+    try:
+        policy = _load_policy(session, pkg)
+        ledger = _load_ledger(session, pkg)
+        recon = _load_reconciliation(session, pkg, policy)
+        members = _load_members(session, pkg, ledger)
+    except (PolicyReconstructionError, SQLAlchemyError, KeyError, ValueError) as exc:
+        # Deliberately broad: this runs over rows that may have been partially
+        # migrated or edited directly, and every way that can fail — a missing
+        # row, an unreadable enum, a findings key that is gone — means the same
+        # thing, that the release does not reconstruct.
+        violations.append(
+            f"release {pkg} does not reconstruct from persisted rows: {exc}"
+        )
+        return tuple(violations)
+
+    # ``_load_policy`` already fails closed on a policy_hash that disagrees with
+    # the policy row, the reconciliation row, or the release row, so the policy
+    # identity is proven by having got here at all.
+    for label, recomputed, recorded in (
+        ("ledger_hash", ledger_hash(ledger), release.ledger_hash),
+        (
+            "reconciliation_hash",
+            reconciliation_hash(recon),
+            release.reconciliation_hash,
+        ),
+        (
+            "bundle_root_hash",
+            build_bundle(ledger, members, recon).bundle_root_hash,
+            release.bundle_root_hash,
+        ),
+    ):
+        if recomputed != recorded:
+            violations.append(
+                f"recorded {label} {recorded!r} is not what the reconstructed "
+                f"5c state derives ({recomputed!r})"
+            )
+
+    violations.extend(verify_single_source(session, pkg))
+    violations.extend(verify_chunk_runtime_membership(session, pkg))
+    return tuple(violations)
 
 
 def reconstruct_payload(

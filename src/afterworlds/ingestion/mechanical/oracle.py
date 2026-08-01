@@ -77,6 +77,7 @@ __all__ = [
     "OracleLoadError",
     "RecordObligation",
     "committed_oracle_for",
+    "derive_obligations",
     "load_oracle",
     "obligation_payload",
     "oracle_identity",
@@ -139,6 +140,52 @@ class AcceptedOracle:
     spans: tuple[SemanticSpan, ...]
     representation: RepresentationDraft
     obligations: tuple[RecordObligation, ...]
+
+
+#: Handlings whose accepted meaning is carried, wholly or partly, by governing
+#: prose — so the component must still resolve to exact prose.
+_PROSE_BOUND_HANDLINGS = frozenset(
+    {ComponentHandling.PROSE_BOUND, ComponentHandling.MIXED}
+)
+
+
+def derive_obligations(
+    representation: RepresentationDraft,
+) -> tuple[RecordObligation, ...]:
+    """The exact obligations one accepted representation states, one per record.
+
+    The single definition of "what this accepted authority claims about record
+    R", used twice for one reason: :func:`load_oracle` requires a committed
+    file's declared obligations to equal it exactly, and :mod:`gate` evaluates
+    obligations against *persisted* state. Deriving the expectation in one place
+    means an obligation that loads is an obligation the gate can actually
+    satisfy — two hand-written derivations would eventually disagree and produce
+    an oracle nothing can pass.
+
+    Requiring equality does not make obligations redundant. The independence
+    that matters is oracle-versus-projection, and it is untouched; what this
+    forecloses is a committed file whose per-record claim silently understates
+    or overstates the representation it ships with, which would let the gate
+    report satisfied obligations that assert less than the accepted authority.
+    """
+    families: dict[str, set[FactFamily]] = {}
+    prose: dict[str, set[str]] = {}
+    for component in representation.components:
+        for fact in component.facts:
+            family = getattr(fact, "FAMILY", None)
+            if isinstance(family, FactFamily):
+                families.setdefault(component.record_key, set()).add(family)
+        if component.handling in _PROSE_BOUND_HANDLINGS:
+            prose.setdefault(component.record_key, set()).add(component.semantic_key)
+    return tuple(
+        RecordObligation(
+            record_key=record.semantic_key,
+            kind=record.kind,
+            structured_fact_families=frozenset(families.get(record.semantic_key, ())),
+            prose_bound_components=frozenset(prose.get(record.semantic_key, ())),
+        )
+        for record in representation.records
+    )
 
 
 def obligation_payload(obligation: RecordObligation) -> dict[str, object]:
@@ -404,6 +451,49 @@ def _obligation(payload: object, index: int) -> RecordObligation:
     )
 
 
+def _check_obligations_closed(
+    representation: RepresentationDraft,
+    obligations: tuple[RecordObligation, ...],
+    where: str,
+) -> None:
+    """Reject a committed oracle whose obligation relation is not total and exact.
+
+    Shape validation cannot catch this. A file that parses perfectly but omits
+    an obligation — or all of them — yields an oracle the gate evaluates against
+    an emptier claim than the reviewer accepted, and an otherwise-matching
+    projection then passes with less per-record evidence than ADR-005d
+    Decision 5 requires. So the relation must be *closed*: exactly one
+    obligation per accepted record, each reconciling exactly with what that
+    record's accepted representation states.
+    """
+    accepted = {o.record_key: o for o in derive_obligations(representation)}
+    seen: set[str] = set()
+    for obligation in obligations:
+        if obligation.record_key in seen:
+            raise OracleLoadError(
+                f"{where}: duplicate obligation for record "
+                f"{obligation.record_key!r}"
+            )
+        seen.add(obligation.record_key)
+        expected = accepted.get(obligation.record_key)
+        if expected is None:
+            raise OracleLoadError(
+                f"{where}: obligation targets record {obligation.record_key!r}, "
+                "which the accepted representation does not declare"
+            )
+        if obligation != expected:
+            raise OracleLoadError(
+                f"{where}: obligation for record {obligation.record_key!r} does "
+                f"not reconcile with the accepted representation: declared "
+                f"{obligation_payload(obligation)}, accepted "
+                f"{obligation_payload(expected)}"
+            )
+    if uncovered := sorted(set(accepted) - seen):
+        raise OracleLoadError(
+            f"{where}: accepted records carry no obligation: {uncovered}"
+        )
+
+
 def load_oracle(path: Path) -> AcceptedOracle:
     """Load one committed accepted oracle from JSON.
 
@@ -439,30 +529,48 @@ def load_oracle(path: Path) -> AcceptedOracle:
         ),
         "release_binding",
     )
+    representation = _representation(p["representation"])
+    obligations = tuple(_obligation(o, i) for i, o in enumerate(p["obligations"]))
+    _check_obligations_closed(representation, obligations, path.name)
     return AcceptedOracle(
         binding=ReleaseBinding(**binding),
         policy_version=p["semantic_policy_version"],
         policy_hash=p["semantic_policy_hash"],
         spans=tuple(_span(s, i) for i, s in enumerate(p["spans"])),
-        representation=_representation(p["representation"]),
-        obligations=tuple(_obligation(o, i) for i, o in enumerate(p["obligations"])),
+        representation=representation,
+        obligations=obligations,
     )
 
 
 def committed_oracle_for(
-    package_uuid: str, release_version: str, *, directory: Path | None = None
+    package_uuid: str, release_version: str
 ) -> AcceptedOracle | None:
     """Return the committed oracle for one 5c release, or ``None``.
+
+    Resolves from :data:`COMMITTED_ORACLE_DIR` and nowhere else. There is no
+    directory argument, because an exported helper that accepts one is the same
+    bypass as a publication entry that accepts one: a caller could resolve a
+    self-authored oracle from a writable directory and hand it to the gate as
+    committed authority.
 
     ``None`` here means "no accepted authority is committed for this release",
     which callers turn into a typed ``ABSENT`` publication outcome. It is never
     an empty oracle: an empty oracle would compare equal to an empty projection
     and publish nothing as if it were everything.
+    """
+    return _resolve_committed_oracle(
+        package_uuid, release_version, COMMITTED_ORACLE_DIR
+    )
+
+
+def _resolve_committed_oracle(
+    package_uuid: str, release_version: str, directory: Path
+) -> AcceptedOracle | None:
+    """Resolution semantics, parameterized by directory for tests only.
 
     Two committed oracles for one release is a rejection, not a choice. Picking
     one would make publication depend on filesystem ordering.
     """
-    directory = COMMITTED_ORACLE_DIR if directory is None else directory
     matches = [
         oracle
         for oracle in (load_oracle(p) for p in sorted(directory.glob("*.json")))

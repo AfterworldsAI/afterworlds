@@ -16,7 +16,7 @@ from afterworlds.ingestion.mechanical.gate import run_publication_gate
 from afterworlds.ingestion.mechanical.oracle import AcceptedOracle, oracle_identity
 from afterworlds.ingestion.mechanical.publication import (
     PublicationOutcome,
-    publish_projection,
+    _publish_projection,
 )
 from afterworlds.ingestion.mechanical.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
@@ -100,17 +100,17 @@ def test_the_report_hash_survives_publication(
 ) -> None:
     """Publication status is not in the payload, so the hash does not move.
 
-    Asserted through ``publish_projection`` itself, because that is where the
+    Asserted through ``_publish_projection`` itself, because that is where the
     property is relied on: the reuse path compares the hash it re-derives from
     a *published* header against the one recorded when the header was still a
     draft, and treats a difference as divergence. If the payload carried the
     status, every republication would look like tamper.
     """
     uuid = persist(session)
-    first = publish_projection(session, uuid, committed_oracle, now=NOW)
+    first = _publish_projection(session, uuid, committed_oracle, now=NOW)
     assert first.outcome is PublicationOutcome.PUBLISHED
 
-    second = publish_projection(session, uuid, committed_oracle, now=LATER)
+    second = _publish_projection(session, uuid, committed_oracle, now=LATER)
     assert second.outcome is PublicationOutcome.ALREADY_PUBLISHED
     assert second.evidence_report_hash == first.evidence_report_hash
     assert second.report is not None and first.report is not None
@@ -178,7 +178,7 @@ def test_the_stored_report_is_the_returned_report(
     session: Session, committed_oracle: AcceptedOracle
 ) -> None:
     uuid = persist(session)
-    result = publish_projection(session, uuid, committed_oracle, now=NOW)
+    result = _publish_projection(session, uuid, committed_oracle, now=NOW)
     assert result.report is not None
     header = session.execute(
         select(MechanicalProjectionORM).where(

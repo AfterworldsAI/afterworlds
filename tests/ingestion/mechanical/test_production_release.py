@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.persistence import persist_release
@@ -62,13 +63,15 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.publication import (
     PublicationOutcome,
+    _publish_projection,
     publish_from_committed_oracle,
-    publish_projection,
     resolve_active_projection,
 )
 from afterworlds.ingestion.mechanical.representation import RepresentationDraft
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
+from afterworlds.persistence.orm.corpus import CorpusReleaseORM
+from afterworlds.persistence.orm.rules_package import RulesPackageORM
 from tests.ingestion.mechanical.conftest import NOW
 
 #: How many real leaves the incomplete projection classifies. Three, for the
@@ -110,6 +113,19 @@ def _binding(release: ReleaseArtifacts) -> ReleaseBinding:
     )
 
 
+def _publish_persisted_release(session: Session, pkg: str) -> None:
+    """Transition a re-persisted 5c release to published, as finalize does."""
+    session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one().publication_status = "published"
+    package_row = session.execute(
+        select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+    ).scalar_one()
+    package_row.publication_status = "published"
+    package_row.published_at = NOW
+    session.flush()
+
+
 @pytest.fixture(scope="module")
 def production(full_release: ReleaseArtifacts):  # type: ignore[no-untyped-def]
     """The real release persisted into a private store, plus one draft over it.
@@ -122,6 +138,12 @@ def production(full_release: ReleaseArtifacts):  # type: ignore[no-untyped-def]
     Base.metadata.create_all(engine)
     with create_session_factory(engine)() as session:
         persist_release(session, full_release, now=NOW)
+        # ``persist_release`` writes step-c drafts; in 5c the transition to
+        # published is the last step of a gate that has already passed. This
+        # store is a re-persist of an already-finalized release, so the
+        # transition is restated here rather than left implied — the 5d gate
+        # now refuses to publish over a draft 5c release, and it is right to.
+        _publish_persisted_release(session, full_release.release.package_uuid)
         binding = _binding(full_release)
         corpus = load_bound_corpus(
             session, binding.package_uuid, binding.release_version
@@ -305,7 +327,7 @@ def test_the_incomplete_production_projection_is_refused_as_incomplete(
     production: ProductionFixture,
 ) -> None:
     """Typed refusal, nothing written, nothing activated."""
-    result = publish_projection(
+    result = _publish_projection(
         production.session, production.projection_uuid, production.oracle, now=NOW
     )
     assert result.outcome is PublicationOutcome.INCOMPLETE
@@ -368,7 +390,7 @@ def test_classifying_more_leaves_does_not_help(
     record_persisted_state_digest(production.session, identified.projection_uuid)
 
     oracle = replace(production.oracle, spans=spans)
-    result = publish_projection(
+    result = _publish_projection(
         production.session, identified.projection_uuid, oracle, now=NOW
     )
     assert result.outcome is PublicationOutcome.INCOMPLETE
@@ -380,7 +402,7 @@ def test_the_evidence_report_names_the_exact_production_release(
     production: ProductionFixture,
 ) -> None:
     """A refusal is auditable: the report says what was judged, and by what."""
-    result = publish_projection(
+    result = _publish_projection(
         production.session, production.projection_uuid, production.oracle, now=NOW
     )
     assert result.report is not None

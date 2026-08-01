@@ -18,7 +18,8 @@ from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
     AcceptedOracle,
     OracleLoadError,
-    committed_oracle_for,
+    _resolve_committed_oracle,
+    derive_obligations,
     load_oracle,
     oracle_identity,
     oracle_payload,
@@ -196,15 +197,15 @@ def test_review_state_is_not_a_field_a_file_may_set(tmp_path: Path) -> None:
 
 
 def test_release_with_no_committed_oracle_resolves_to_none(tmp_path: Path) -> None:
-    assert committed_oracle_for("other-pkg", "rel-9", directory=tmp_path) is None
+    assert _resolve_committed_oracle("other-pkg", "rel-9", tmp_path) is None
 
 
 def test_committed_oracle_resolves_by_exact_release(tmp_path: Path) -> None:
     _write(tmp_path, _payload(), "bounded.json")
-    resolved = committed_oracle_for(PACKAGE_UUID, RELEASE_VERSION, directory=tmp_path)
+    resolved = _resolve_committed_oracle(PACKAGE_UUID, RELEASE_VERSION, tmp_path)
     assert resolved is not None
     assert resolved.binding.release_version == RELEASE_VERSION
-    assert committed_oracle_for(PACKAGE_UUID, "rel-other", directory=tmp_path) is None
+    assert _resolve_committed_oracle(PACKAGE_UUID, "rel-other", tmp_path) is None
 
 
 def test_two_oracles_for_one_release_is_rejected(tmp_path: Path) -> None:
@@ -212,8 +213,110 @@ def test_two_oracles_for_one_release_is_rejected(tmp_path: Path) -> None:
     _write(tmp_path, _payload(), "a.json")
     _write(tmp_path, _payload(), "b.json")
     with pytest.raises(OracleLoadError) as exc:
-        committed_oracle_for(PACKAGE_UUID, RELEASE_VERSION, directory=tmp_path)
+        _resolve_committed_oracle(PACKAGE_UUID, RELEASE_VERSION, tmp_path)
     assert "2 committed oracles" in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# The obligation relation must be total and exact
+# ---------------------------------------------------------------------------
+#
+# Shape validation cannot see any of this. Every payload below parses perfectly
+# and describes a real accepted representation; what is wrong is the *relation*
+# between the declared obligations and that representation, which is where a
+# per-record completeness control silently loses its teeth.
+
+SPELL_OBLIGATION = {
+    "record_key": "spell:wish",
+    "kind": "spell",
+    "structured_fact_families": ["spell_descriptor"],
+    "prose_bound_components": ["open-ended-clause"],
+}
+
+
+def _with_obligations(obligations: list[dict[str, object]]) -> dict[str, object]:
+    payload = _payload()
+    payload["obligations"] = obligations
+    return payload
+
+
+def test_the_bounded_oracle_declares_exactly_what_it_represents() -> None:
+    """The committed file's obligations are the derived ones, not a subset."""
+    oracle = load_oracle(BOUNDED_ORACLE_PATH)
+    assert set(oracle.obligations) == set(derive_obligations(oracle.representation))
+
+
+@pytest.mark.parametrize(
+    ("obligations", "expected"),
+    [
+        pytest.param([], "carry no obligation", id="none-at-all"),
+        pytest.param(
+            [SPELL_OBLIGATION],
+            "carry no obligation",
+            id="one-record-uncovered",
+        ),
+        pytest.param(
+            [SPELL_OBLIGATION, SPELL_OBLIGATION],
+            "duplicate obligation",
+            id="duplicate",
+        ),
+        pytest.param(
+            [
+                SPELL_OBLIGATION,
+                {
+                    "record_key": "spell:invented",
+                    "kind": "spell",
+                    "structured_fact_families": [],
+                    "prose_bound_components": [],
+                },
+            ],
+            "does not declare",
+            id="targets-a-nonexistent-record",
+        ),
+        pytest.param(
+            [{**SPELL_OBLIGATION, "kind": "creature"}],
+            "does not reconcile",
+            id="wrong-record-kind",
+        ),
+        pytest.param(
+            [{**SPELL_OBLIGATION, "structured_fact_families": []}],
+            "does not reconcile",
+            id="understated-fact-family",
+        ),
+        pytest.param(
+            [
+                {
+                    **SPELL_OBLIGATION,
+                    "structured_fact_families": ["spell_descriptor", "ability_check"],
+                }
+            ],
+            "does not reconcile",
+            id="overstated-fact-family",
+        ),
+        pytest.param(
+            [{**SPELL_OBLIGATION, "prose_bound_components": []}],
+            "does not reconcile",
+            id="understated-prose-bound-set",
+        ),
+        pytest.param(
+            [{**SPELL_OBLIGATION, "prose_bound_components": ["descriptor"]}],
+            "does not reconcile",
+            id="prose-bound-names-a-structured-component",
+        ),
+        pytest.param(
+            [{**SPELL_OBLIGATION, "prose_bound_components": ["no-such-component"]}],
+            "does not reconcile",
+            id="prose-bound-names-a-nonexistent-component",
+        ),
+    ],
+)
+def test_an_unclosed_obligation_relation_fails_to_load(
+    tmp_path: Path, obligations: list[dict[str, object]], expected: str
+) -> None:
+    """Malformed accepted authority is no oracle, never a weaker one."""
+    with pytest.raises(OracleLoadError) as exc:
+        load_oracle(_write(tmp_path, _with_obligations(obligations)))
+    assert expected in str(exc.value)
 
 
 def test_identity_changes_with_accepted_meaning(tmp_path: Path) -> None:

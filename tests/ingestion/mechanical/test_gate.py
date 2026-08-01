@@ -69,6 +69,8 @@ from tests.ingestion.mechanical.conftest import (
     build_candidate,
     build_ledger,
     build_representation,
+    current_release_binding,
+    rerecord_release_proof,
 )
 
 
@@ -415,7 +417,13 @@ def test_an_unexpected_record_fails(
 def test_a_stale_5c_binding_fails(
     session: Session, committed_oracle: AcceptedOracle
 ) -> None:
-    """A projection built over a different source hash of the same release."""
+    """A projection built over a different source hash of the same release.
+
+    Refused as a bound-release failure rather than as a mismatch against the
+    oracle: the declared binding names no published 5c release at all, which is
+    a stronger statement than "the oracle judges something else" and is decided
+    before any accepted-authority comparison runs.
+    """
     stale = dataclasses.replace(
         build_candidate(),
         binding=dataclasses.replace(
@@ -423,7 +431,7 @@ def test_a_stale_5c_binding_fails(
         ),
     )
     uuid = persist(session, stale)
-    assert GateFailureCategory.MISMATCHED_RELEASE.value in categories(
+    assert GateFailureCategory.BOUND_RELEASE.value in categories(
         session, uuid, committed_oracle
     )
 
@@ -561,12 +569,23 @@ def test_diagnostics_are_reported_but_never_decide(
 def test_a_leaf_classified_outside_the_release_fails(
     session: Session, committed_oracle: AcceptedOracle
 ) -> None:
-    """5c decides the population; a projection cannot add to it."""
-    uuid = persist(session)
+    """5c decides the population; a projection cannot add to it.
+
+    The release is re-proven after the edit and the projection is rebuilt
+    against *that* release, so this asserts the population rule rather than the
+    bound-release refusal: a 5c release that legitimately represents two
+    leaves, and a projection genuinely bound to it that classifies three.
+    """
     session.execute(
         LedgerLeafORM.__table__.delete().where(LedgerLeafORM.leaf_id == "leaf-support")
     )
-    session.flush()
+    rerecord_release_proof(session)
+    uuid = persist(
+        session,
+        dataclasses.replace(
+            build_candidate(), binding=current_release_binding(session)
+        ),
+    )
     found = categories(session, uuid, committed_oracle)
     assert GateFailureCategory.POPULATION_MISMATCH.value in found
 
