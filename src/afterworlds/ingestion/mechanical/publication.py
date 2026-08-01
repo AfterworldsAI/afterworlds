@@ -317,12 +317,15 @@ def resolve_active_projection(session: Session, package_uuid: str) -> ActiveProj
     resolves to ``STALE``, never to ``PUBLISHED``.
 
     **The contract this asserts** is recorded-evidence closure, not a re-run of
-    the publication proof: it does not resolve the committed oracle or re-gate
-    reconstructed state, so evidence edited *consistently* (payload and hash
-    together) is caught by :func:`publish_from_committed_oracle` rather than
-    here. Re-proof is a publication operation, and runtime binding resolution
-    is CRD Issue 5d PR 3's; this stays a read-only assertion about what the
-    database records.
+    the publication proof. It does not resolve the committed oracle, re-gate
+    reconstructed state, or re-verify the bound 5c release, so two things are
+    deliberately outside what it can detect: evidence edited *consistently*
+    (payload and hash together), and a release retired or edited *after* this
+    projection was published over it. Both are caught by
+    :func:`publish_from_committed_oracle`, which re-runs the complete proof.
+    Re-proof is a publication operation, and revalidating the effective runtime
+    binding on read is CRD Issue 5d PR 3's; this stays a read-only assertion
+    about what the database records.
     """
     row = _active_row(session, package_uuid)
     if row is None:
