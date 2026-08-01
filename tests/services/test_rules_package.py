@@ -25,6 +25,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 import afterworlds.persistence.orm.corpus  # noqa: F401
+import afterworlds.persistence.orm.mechanical  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -242,6 +243,20 @@ class TestRpTablePrefix:
             "rp_reconciliation_policies",
             "rp_reconciliations",
             "rp_corpus_projections",
+            # CRD Issue 5d (#137) mechanical-authority projection tables.
+            "rp_mech_projections",
+            "rp_mech_spans",
+            "rp_mech_acceptance_batches",
+            "rp_mech_batch_scope",
+            "rp_mech_batch_diff",
+            "rp_mech_acceptances",
+            "rp_mech_records",
+            "rp_mech_components",
+            "rp_mech_facts",
+            "rp_mech_prose_bindings",
+            "rp_mech_relationships",
+            "rp_mech_references",
+            "rp_mech_provenance",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
