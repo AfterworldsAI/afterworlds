@@ -1,0 +1,151 @@
+{
+  "release_binding": {
+    "package_uuid": "pkg-5c",
+    "release_version": "rel-5c",
+    "authoritative_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "transform_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "bundle_root_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "persisted_corpus_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "semantic_policy_version": "5d-semantic-policy-1",
+  "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+  "spans": [
+    {
+      "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+      "leaf_id": "leaf-spell",
+      "char_start": 0,
+      "char_end": 40,
+      "disposition": "substantive",
+      "non_mechanical_reason_code": null
+    },
+    {
+      "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+      "leaf_id": "leaf-prose",
+      "char_start": 0,
+      "char_end": 30,
+      "disposition": "substantive",
+      "non_mechanical_reason_code": null
+    },
+    {
+      "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
+      "leaf_id": "leaf-support",
+      "char_start": 0,
+      "char_end": 20,
+      "disposition": "supporting_authority",
+      "non_mechanical_reason_code": null
+    }
+  ],
+  "representation": {
+    "records": [
+      {
+        "semantic_key": "spell:wish",
+        "kind": "spell",
+        "parent_key": null
+      },
+      {
+        "semantic_key": "creature:wish-scoped-servant",
+        "kind": "creature",
+        "parent_key": "spell:wish"
+      }
+    ],
+    "components": [
+      {
+        "record_key": "spell:wish",
+        "semantic_key": "descriptor",
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "facts": [
+          {
+            "family": "spell_descriptor",
+            "concentration": false,
+            "level": 9,
+            "ritual": false,
+            "school": "conjuration"
+          }
+        ]
+      },
+      {
+        "record_key": "spell:wish",
+        "semantic_key": "open-ended-clause",
+        "handling": "prose_bound",
+        "irreducibility_reason_code": "open_ended_effect",
+        "facts": []
+      }
+    ],
+    "prose_bindings": [
+      {
+        "record_key": "spell:wish",
+        "component_key": "open-ended-clause",
+        "chunk_id": "chunk-wish-0001",
+        "irreducibility_reason_code": "open_ended_effect"
+      }
+    ],
+    "relationships": [
+      {
+        "source_record_key": "creature:wish-scoped-servant",
+        "target_record_key": "spell:wish",
+        "kind": "scoped_within"
+      }
+    ],
+    "references": [],
+    "provenance": [
+      {
+        "target_kind": "fact",
+        "target_key": [
+          "spell:wish",
+          "descriptor",
+          "79b28acf072dd442"
+        ],
+        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+        "role": "primary"
+      },
+      {
+        "target_kind": "prose_binding",
+        "target_key": [
+          "spell:wish",
+          "open-ended-clause",
+          "chunk-wish-0001",
+          "open_ended_effect"
+        ],
+        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+        "role": "primary"
+      },
+      {
+        "target_kind": "record",
+        "target_key": [
+          "spell:wish"
+        ],
+        "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
+        "role": "contextual"
+      },
+      {
+        "target_kind": "relationship",
+        "target_key": [
+          "creature:wish-scoped-servant",
+          "spell:wish",
+          "scoped_within"
+        ],
+        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+        "role": "contextual"
+      }
+    ]
+  },
+  "obligations": [
+    {
+      "record_key": "spell:wish",
+      "kind": "spell",
+      "structured_fact_families": [
+        "spell_descriptor"
+      ],
+      "prose_bound_components": [
+        "open-ended-clause"
+      ]
+    },
+    {
+      "record_key": "creature:wish-scoped-servant",
+      "kind": "creature",
+      "structured_fact_families": [],
+      "prose_bound_components": []
+    }
+  ]
+}

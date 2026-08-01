@@ -4,10 +4,29 @@ One small honest candidate: a spell record with a structured descriptor
 component and a prose-bound open-ended clause, plus a scoped creature record —
 the shape the Wish and spell-scoped-creature canaries exercise, small enough
 that each negative control can perturb exactly one thing.
+
+The same content appears twice on purpose, and the duplication is the point:
+
+* :func:`build_candidate` is what a **build** produces from the accepted
+  inputs; and
+* ``data/bounded_oracle.json`` is the committed **accepted authority** stating
+  the same content independently, loaded through the production
+  :func:`load_oracle` path.
+
+Negative controls perturb the candidate or the persisted rows and never the
+oracle, so every one of them is a comparison against authority that did not
+move. :func:`accepted_oracle` builds the equivalent in memory purely so the
+committed file can be checked for drift in one place with a clear message.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+from sqlalchemy.orm import Session
+
+from afterworlds.ingestion.corpus.models import Disposition
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
 from afterworlds.ingestion.mechanical.bound_corpus import (
     BoundCorpusSnapshot,
@@ -22,6 +41,11 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+)
+from afterworlds.ingestion.mechanical.oracle import (
+    AcceptedOracle,
+    RecordObligation,
+    load_oracle,
 )
 from afterworlds.ingestion.mechanical.policy import (
     SEMANTIC_POLICY_VERSION,
@@ -50,6 +74,22 @@ from afterworlds.ingestion.mechanical.representation import (
     reference_target_key,
     relationship_target_key,
 )
+from afterworlds.persistence.database import create_engine, create_session_factory
+from afterworlds.persistence.orm.base import Base
+from afterworlds.persistence.orm.corpus import (
+    CorpusProjectionORM,
+    CorpusReleaseORM,
+    LedgerLeafORM,
+)
+from afterworlds.persistence.orm.rules_package import (
+    RuleChunkORM,
+    RuleSourceORM,
+    RulesPackageORM,
+)
+
+NOW = "2026-07-31T00:00:00Z"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -346,17 +386,183 @@ def build_representation(**overrides: object) -> RepresentationDraft:
     return RepresentationDraft(**fields)  # type: ignore[arg-type]
 
 
+RELEASE_BINDING = ReleaseBinding(
+    package_uuid=PACKAGE_UUID,
+    release_version=RELEASE_VERSION,
+    authoritative_source_hash="a" * 64,
+    transform_config_hash="b" * 64,
+    bundle_root_hash="c" * 64,
+    persisted_corpus_digest="d" * 64,
+)
+
+
 def build_candidate(**overrides: object) -> ProjectionCandidate:
     ledger = overrides.pop("ledger", None)
     return ProjectionCandidate(
-        binding=ReleaseBinding(
-            package_uuid="pkg-5c",
-            release_version="rel-5c",
-            authoritative_source_hash="a" * 64,
-            transform_config_hash="b" * 64,
-            bundle_root_hash="c" * 64,
-            persisted_corpus_digest="d" * 64,
-        ),
+        binding=RELEASE_BINDING,
         classification=ledger if ledger is not None else build_ledger(),  # type: ignore[arg-type]
         representation=build_representation(**overrides),
     )
+
+
+# ---------------------------------------------------------------------------
+# The accepted authority, and the 5c release it was accepted over
+# ---------------------------------------------------------------------------
+
+
+#: The accepted per-record obligations. ``spell:wish`` must carry structured
+#: spell-descriptor authority *and* keep its open-ended clause prose-bound —
+#: which is what makes all-prose under-extraction and reference-only coverage
+#: fail by name rather than only as an element difference.
+OBLIGATIONS = (
+    RecordObligation(
+        record_key=SPELL_KEY,
+        kind=RecordKind.SPELL,
+        structured_fact_families=frozenset({DESCRIPTOR_FACT.FAMILY}),
+        prose_bound_components=frozenset({OPEN_ENDED_KEY}),
+    ),
+    RecordObligation(
+        record_key=CREATURE_KEY,
+        kind=RecordKind.CREATURE,
+        structured_fact_families=frozenset(),
+        prose_bound_components=frozenset(),
+    ),
+)
+
+
+def accepted_oracle() -> AcceptedOracle:
+    """The accepted authority for the bounded fixture, in memory.
+
+    Exists to check the committed JSON for drift in one place. Tests that gate
+    or publish use :func:`committed_oracle`, which goes through the real
+    committed-file path.
+    """
+    return AcceptedOracle(
+        binding=RELEASE_BINDING,
+        policy_version=SEMANTIC_POLICY_VERSION,
+        policy_hash=semantic_policy_hash(),
+        spans=build_ledger().spans,
+        representation=build_representation(),
+        obligations=OBLIGATIONS,
+    )
+
+
+@pytest.fixture()
+def committed_oracle() -> AcceptedOracle:
+    """The bounded accepted oracle, loaded from its committed JSON file."""
+    return load_oracle(BOUNDED_ORACLE_PATH)
+
+
+def _seed_bound_release(session: Session) -> None:
+    """Write the published 5c release the bounded fixture is bound to.
+
+    Mirrors what CRD Issue 5c persists: the package, its single authoritative
+    source, the release record the projection FKs, the ``REPRESENTED`` leaves
+    that form the accounting population, and the chunk/projection edges that
+    make exact governing prose resolvable. ``load_bound_corpus`` reads these,
+    so the gate sees the same release the in-memory ``bound_corpus()``
+    describes — no validator gets a hand-built snapshot.
+    """
+    session.add(
+        RulesPackageORM(
+            rules_package_id=PACKAGE_UUID,
+            name="SRD 5.2.1",
+            system="dnd5e",
+            version="5.2.1",
+            is_enabled=True,
+            publication_status="published",
+            created_at=NOW,
+            updated_at=NOW,
+        )
+    )
+    session.flush()
+    session.add(
+        RuleSourceORM(
+            source_id=PACKAGE_UUID,
+            rules_package_id=PACKAGE_UUID,
+            name="SRD 5.2.1",
+            category="srd",
+            precedence_rank=0,
+            is_enabled=True,
+            created_at=NOW,
+        )
+    )
+    session.add(
+        CorpusReleaseORM(
+            package_uuid=PACKAGE_UUID,
+            release_version=RELEASE_VERSION,
+            authoritative_source_hash=RELEASE_BINDING.authoritative_source_hash,
+            transform_config_hash=RELEASE_BINDING.transform_config_hash,
+            bundle_root_hash=RELEASE_BINDING.bundle_root_hash,
+            persisted_corpus_digest=RELEASE_BINDING.persisted_corpus_digest,
+            ledger_hash="1" * 64,
+            policy_hash="2" * 64,
+            reconciliation_hash="3" * 64,
+            transform_config={},
+            publication_status="published",
+            created_at=NOW,
+        )
+    )
+    session.flush()
+
+    for index, (leaf_id, length) in enumerate(sorted(LEAF_LENGTHS.items())):
+        session.add(
+            LedgerLeafORM(
+                package_uuid=PACKAGE_UUID,
+                leaf_id=leaf_id,
+                printed_page=1,
+                page_index=0,
+                leaf_type="paragraph",
+                content="x" * length,
+                char_start=0,
+                char_end=length,
+                occurrence_index=index,
+                container_path=[],
+                disposition=Disposition.REPRESENTED.value,
+            )
+        )
+
+    for chunk_id in (WISH_CHUNK, SECOND_CHUNK):
+        session.add(
+            RuleChunkORM(
+                chunk_id=chunk_id,
+                rules_package_id=PACKAGE_UUID,
+                source_id=PACKAGE_UUID,
+                subsystem="spells",
+                content="x" * LEAF_LENGTHS[PROSE_LEAF],
+                source_document="D&D SRD 5.2.1",
+                source_locator_type="page",
+                source_locator_value="p. 1",
+                is_enabled=True,
+                created_at=NOW,
+            )
+        )
+    for edge in DEFAULT_COVERAGE:
+        session.add(
+            CorpusProjectionORM(
+                package_uuid=PACKAGE_UUID,
+                projection_id=edge.projection_id,
+                leaf_id=edge.leaf_id,
+                chunk_id=edge.chunk_id,
+                role=edge.role,
+                cover_start=edge.cover_start,
+                cover_end=edge.cover_end,
+            )
+        )
+    session.flush()
+
+
+@pytest.fixture()
+def session(tmp_path) -> Session:  # type: ignore[no-untyped-def]
+    """A fresh database holding the published 5c release, and nothing else.
+
+    Per-test rather than session-scoped: publication commits, so a shared
+    database would let one test's published projection decide another's
+    activation outcome.
+    """
+    engine = create_engine(f"sqlite:///{tmp_path / 'mech.db'}")
+    Base.metadata.create_all(engine)
+    factory = create_session_factory(engine)
+    with factory() as s:
+        _seed_bound_release(s)
+        yield s
