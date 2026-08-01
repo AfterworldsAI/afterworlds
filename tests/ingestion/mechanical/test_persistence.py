@@ -142,10 +142,9 @@ def test_digest_covers_reconstructed_state(session: Session) -> None:
 
 def test_digest_is_recorded_once(session: Session) -> None:
     identified = _persist(session)
-    digest = compute_persisted_state_digest(session, identified.projection_uuid)
-    record_persisted_state_digest(session, identified.projection_uuid, digest)
+    record_persisted_state_digest(session, identified.projection_uuid)
     with pytest.raises(ValueError):
-        record_persisted_state_digest(session, identified.projection_uuid, digest)
+        record_persisted_state_digest(session, identified.projection_uuid)
 
 
 # -- omission, tamper, corrupted identity ------------------------------------

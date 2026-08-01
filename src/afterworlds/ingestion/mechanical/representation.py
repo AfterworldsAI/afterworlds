@@ -263,8 +263,66 @@ class MalformedFactPayloadError(ValueError):
 # semantic key cannot be blank, and a stated quantity cannot be zero or less.
 
 
+# Shared primitive checks. Python's ``bool`` is a subclass of ``int``, so a bare
+# ``isinstance(value, int)`` accepts ``True`` — and a string like ``"false"`` is
+# truthy, so a mistyped Boolean silently inverts a rule downstream. Every
+# integer check below therefore excludes ``bool`` explicitly, and no check ever
+# coerces: ``"12"`` is not 12, ``1`` is not ``True``, and normalizing either
+# would be inventing authority the source never stated.
+
+
+def _is_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _int_field(value: object, field: str) -> list[str]:
+    if not _is_int(value):
+        return [f"{field} must be an integer, got {type(value).__name__} {value!r}"]
+    return []
+
+
+def _optional_int_field(value: object, field: str) -> list[str]:
+    if value is None:
+        return []
+    return _int_field(value, field)
+
+
+def _bool_field(value: object, field: str) -> list[str]:
+    if not isinstance(value, bool):
+        return [f"{field} must be a boolean, got {type(value).__name__} {value!r}"]
+    return []
+
+
+def _str_field(value: object, field: str) -> list[str]:
+    if not isinstance(value, str) or isinstance(value, StrEnum):
+        return [f"{field} must be a string, got {type(value).__name__} {value!r}"]
+    return []
+
+
+def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]:
+    """The field must hold the declared enum member, not a look-alike string.
+
+    ``StrEnum`` members *are* strings, so a plain ``"wisdom"`` would satisfy a
+    string check while carrying none of the enum's guarantees.
+    """
+    if not isinstance(value, enum_cls):
+        return [
+            f"{field} must be {enum_cls.__name__}, got "
+            f"{type(value).__name__} {value!r}"
+        ]
+    return []
+
+
 def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
-    findings: list[str] = []
+    findings = [
+        *_enum_field(fact.ability, AbilityScore, "ability"),
+        *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
+        *_optional_int_field(fact.dc_value, "dc_value"),
+    ]
+    if findings:
+        # The DC relationship below reads dc_kind and dc_value; checking it
+        # against mistyped values would report a second, misleading violation.
+        return findings
     if fact.dc_kind is DcKind.FIXED:
         if fact.dc_value is None:
             findings.append("fixed DC without a dc_value")
@@ -277,19 +335,39 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
 
 
 def _check_creature_ability_score(fact: CreatureAbilityScoreFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.ability, AbilityScore, "ability"),
+        *_int_field(fact.score, "score"),
+    ]
+    if findings:
+        return findings
     if fact.score < 0:
-        return [f"negative ability score {fact.score}"]
-    return []
+        findings.append(f"negative ability score {fact.score}")
+    return findings
 
 
 def _check_spell_descriptor(fact: SpellDescriptorFact) -> list[str]:
+    findings = [
+        *_int_field(fact.level, "level"),
+        *_enum_field(fact.school, SpellSchool, "school"),
+        *_bool_field(fact.ritual, "ritual"),
+        *_bool_field(fact.concentration, "concentration"),
+    ]
+    if findings:
+        return findings
     if fact.level < 0:
-        return [f"negative spell level {fact.level}"]
-    return []
+        findings.append(f"negative spell level {fact.level}")
+    return findings
 
 
 def _check_progression_entry(fact: ProgressionEntryFact) -> list[str]:
-    findings: list[str] = []
+    findings = [
+        *_int_field(fact.level, "level"),
+        *_str_field(fact.entitlement_key, "entitlement_key"),
+        *_optional_int_field(fact.quantity, "quantity"),
+    ]
+    if findings:
+        return findings
     if fact.level < 0:
         findings.append(f"negative progression level {fact.level}")
     if not fact.entitlement_key.strip():
@@ -321,7 +399,43 @@ def fact_invariant_violations(fact: object) -> tuple[str, ...]:
     return tuple(_FACT_INVARIANTS[family](fact))
 
 
+# JSON-side primitive checks. A persisted payload arrives as plain JSON values,
+# so each builder states the exact primitive shape it accepts before it
+# constructs anything. Nothing is coerced: ``"12"`` stays a string and fails,
+# because turning it into 12 would be this layer inventing a mechanical value
+# the persisted row does not contain.
+
+
+def _json_enum(value: object, enum_cls: type[StrEnum], field: str) -> list[str]:
+    """The stored value must be a plain string naming a declared member."""
+    if type(value) is not str:
+        return [
+            f"{field} must be a string {enum_cls.__name__} value, got "
+            f"{type(value).__name__} {value!r}"
+        ]
+    try:
+        enum_cls(value)
+    except ValueError:
+        return [f"{field} {value!r} is not a declared {enum_cls.__name__}"]
+    return []
+
+
+def _reject(family: FactFamily, findings: list[str]) -> None:
+    if findings:
+        raise MalformedFactPayloadError(
+            f"{family.value} payload has mistyped fields: {'; '.join(findings)}"
+        )
+
+
 def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
+    _reject(
+        FactFamily.ABILITY_CHECK,
+        [
+            *_json_enum(p["ability"], AbilityScore, "ability"),
+            *_json_enum(p["dc_kind"], DcKind, "dc_kind"),
+            *_optional_int_field(p["dc_value"], "dc_value"),
+        ],
+    )
     return AbilityCheckFact(
         ability=AbilityScore(p["ability"]),
         dc_kind=DcKind(p["dc_kind"]),
@@ -330,12 +444,28 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
 
 
 def _build_creature_ability_score(p: Mapping[str, Any]) -> CreatureAbilityScoreFact:
+    _reject(
+        FactFamily.CREATURE_ABILITY_SCORE,
+        [
+            *_json_enum(p["ability"], AbilityScore, "ability"),
+            *_int_field(p["score"], "score"),
+        ],
+    )
     return CreatureAbilityScoreFact(
         ability=AbilityScore(p["ability"]), score=p["score"]
     )
 
 
 def _build_spell_descriptor(p: Mapping[str, Any]) -> SpellDescriptorFact:
+    _reject(
+        FactFamily.SPELL_DESCRIPTOR,
+        [
+            *_int_field(p["level"], "level"),
+            *_json_enum(p["school"], SpellSchool, "school"),
+            *_bool_field(p["ritual"], "ritual"),
+            *_bool_field(p["concentration"], "concentration"),
+        ],
+    )
     return SpellDescriptorFact(
         level=p["level"],
         school=SpellSchool(p["school"]),
@@ -345,6 +475,14 @@ def _build_spell_descriptor(p: Mapping[str, Any]) -> SpellDescriptorFact:
 
 
 def _build_progression_entry(p: Mapping[str, Any]) -> ProgressionEntryFact:
+    _reject(
+        FactFamily.PROGRESSION_ENTRY,
+        [
+            *_int_field(p["level"], "level"),
+            *_str_field(p["entitlement_key"], "entitlement_key"),
+            *_optional_int_field(p["quantity"], "quantity"),
+        ],
+    )
     return ProgressionEntryFact(
         level=p["level"],
         entitlement_key=p["entitlement_key"],

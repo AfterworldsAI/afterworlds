@@ -16,6 +16,22 @@ Reconstruction is deliberately blind. If it took the candidate as a hint, a row
 that failed to persist or was altered afterwards could be silently repaired
 from memory and the digest would still match — which is exactly the tamper and
 omission case the reconstruct-before-publish step exists to catch.
+
+Hash-shaped values in this package are not all the same kind of thing, and the
+distinction decides which may be supplied by a caller:
+
+* ``payload_hash`` — a *pre-persistence* hash of the candidate. Supplied at
+  write time and later checked against reconstruction by
+  :func:`verify_reconstruction`, so a wrong value is caught, not trusted.
+* ``semantic_diff_hash`` — retained review evidence. Supplied with the batch
+  and independently recomputed from the retained diff during acceptance
+  validation, so it identifies evidence rather than asserting it.
+* ``persisted_corpus_digest`` — CRD Issue 5c's own proof, carried in the
+  binding as part of the projection's meaning. Equality against the bound 5c
+  release is the publication gate's job, not this module's.
+* ``persisted_state_digest`` — the only *post-persistence* proof this package
+  records, and therefore the only one no caller may supply. It is derived at
+  the seam that records it, from the state it claims to prove.
 """
 
 from __future__ import annotations
@@ -642,17 +658,31 @@ def verify_reconstruction(
     return tuple(findings)
 
 
-def record_persisted_state_digest(
-    session: Session, projection_uuid: str, digest: str
-) -> None:
-    """Record the digest computed from reconstructed state, exactly once."""
+def record_persisted_state_digest(session: Session, projection_uuid: str) -> str:
+    """Derive and record this projection's persisted-state digest, exactly once.
+
+    The digest is computed *here*, from this projection's own reconstructed
+    state inside the recording transaction, and returned. There is deliberately
+    no digest parameter: a caller-supplied value can be stale, computed before
+    an intervening mutation, or belong to a different projection, and the
+    exactly-once guard would then freeze that false proof in place. A proof
+    that does not derive from the state it claims to prove is not a proof.
+
+    Pending session changes are flushed first so the reconstruction sees the
+    same state the transaction holds. If reconstruction or digest computation
+    fails, the exception propagates and the header keeps ``NULL`` — an
+    unprovable projection must not carry a recorded proof.
+    """
     header = _header(session, projection_uuid)
     if header.persisted_state_digest is not None:
         raise ValueError(
             f"projection {projection_uuid}: persisted-state digest already recorded"
         )
+    session.flush()
+    digest = compute_persisted_state_digest(session, projection_uuid)
     header.persisted_state_digest = digest
     session.flush()
+    return digest
 
 
 def delete_projection(session: Session, projection_uuid: str) -> None:
