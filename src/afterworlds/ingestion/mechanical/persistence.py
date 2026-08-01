@@ -31,7 +31,10 @@ distinction decides which may be supplied by a caller:
   release is the publication gate's job, not this module's.
 * ``persisted_state_digest`` — the only *post-persistence* proof this package
   records, and therefore the only one no caller may supply. It is derived at
-  the seam that records it, from the state it claims to prove.
+  the seam that records it, from the state it claims to prove, and
+  :func:`verify_reconstruction` re-derives it whenever one is present. What PR 1
+  does *not* do is decide whether a proven projection may be published or
+  activated; that gate is the next PR's.
 """
 
 from __future__ import annotations
@@ -57,6 +60,12 @@ from afterworlds.ingestion.mechanical.projection import (
     ReleaseBinding,
     identify_projection,
     projection_payload,
+)
+from afterworlds.ingestion.mechanical.raw_state import (
+    PersistedStateReconstructionError,
+    load_raw_state,
+    parse_enum,
+    validate_raw_closure,
 )
 from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
@@ -94,6 +103,7 @@ from afterworlds.persistence.orm.mechanical import (
 )
 
 __all__ = [
+    "PersistedStateReconstructionError",
     "ProjectionNotPersistedError",
     "compute_persisted_state_digest",
     "delete_projection",
@@ -301,12 +311,17 @@ def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     columns disagree with its own content has been altered, and picking a
     winner would be repair, not reconstruction.
     """
-    fact = fact_from_payload(row.payload, declared_family=row.family)
+    try:
+        fact = fact_from_payload(row.payload, declared_family=row.family)
+    except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
+        raise PersistedStateReconstructionError(
+            f"rp_mech_facts {row.record_key}/{row.component_key}: {exc}"
+        ) from exc
     recomputed = fact_key(fact)
     if row.fact_key != recomputed:
-        raise MalformedFactPayloadError(
-            f"persisted fact_key {row.fact_key!r} disagrees with payload "
-            f"({recomputed!r})"
+        raise PersistedStateReconstructionError(
+            f"rp_mech_facts {row.record_key}/{row.component_key}: persisted "
+            f"fact_key {row.fact_key!r} disagrees with payload ({recomputed!r})"
         )
     return fact
 
@@ -327,20 +342,22 @@ def reconstruct_candidate(
 ) -> ProjectionCandidate:
     """Rebuild the complete candidate from persisted rows alone.
 
+    Two stages, in this order: the complete raw row set is loaded and proven
+    closed, and only then is semantic meaning imposed on it. Doing it the other
+    way round is what let an orphan child row vanish during a join instead of
+    failing - invisible to the candidate, and therefore invisible to the digest
+    computed over it.
+
     Takes no in-memory candidate: what comes back is what the database holds,
     which is the only way the digest can prove persistence rather than prove
-    that the builder still remembers what it meant to write.
+    that the builder still remembers what it meant to write. Every typed column
+    is parsed strictly, so a corrupted enum raises
+    PersistedStateReconstructionError rather than letting an unclassified
+    exception escape an API whose contract is to report findings.
     """
     header = _header(session, projection_uuid)
-
-    def rows(model: type) -> list:  # type: ignore[type-arg]
-        return list(
-            session.execute(
-                select(model).where(model.projection_uuid == projection_uuid)  # type: ignore[attr-defined]
-            )
-            .scalars()
-            .all()
-        )
+    raw = load_raw_state(session, projection_uuid, header)
+    validate_raw_closure(raw)
 
     spans = tuple(
         SemanticSpan(
@@ -348,15 +365,21 @@ def reconstruct_candidate(
             leaf_id=r.leaf_id,
             char_start=r.char_start,
             char_end=r.char_end,
-            disposition=SemanticDisposition(r.disposition),
-            review_state=ReviewState(r.review_state),
+            disposition=parse_enum(
+                SemanticDisposition,
+                r.disposition,
+                "rp_mech_spans",
+                r.span_id,
+                "disposition",
+            ),
+            review_state=parse_enum(
+                ReviewState, r.review_state, "rp_mech_spans", r.span_id, "review_state"
+            ),
             non_mechanical_reason_code=r.non_mechanical_reason_code,
         )
-        for r in rows(MechanicalSpanORM)
+        for r in raw.spans
     )
 
-    scope_rows = rows(MechanicalBatchScopeORM)
-    diff_rows = rows(MechanicalBatchDiffORM)
     batches = tuple(
         AcceptanceBatch(
             batch_id=b.batch_id,
@@ -364,7 +387,7 @@ def reconstruct_candidate(
             resolved_scope=tuple(
                 s.span_id
                 for s in sorted(
-                    (s for s in scope_rows if s.batch_id == b.batch_id),
+                    (s for s in raw.batch_scope if s.batch_id == b.batch_id),
                     key=lambda s: s.ordinal,
                 )
             ),
@@ -372,20 +395,32 @@ def reconstruct_candidate(
                 SemanticDiffEntry(
                     span_id=d.span_id,
                     prior_disposition=(
-                        SemanticDisposition(d.prior_disposition)
+                        parse_enum(
+                            SemanticDisposition,
+                            d.prior_disposition,
+                            "rp_mech_batch_diff",
+                            f"{d.batch_id}/{d.span_id}",
+                            "prior_disposition",
+                        )
                         if d.prior_disposition
                         else None
                     ),
                     prior_reason_code=d.prior_reason_code,
-                    accepted_disposition=SemanticDisposition(d.accepted_disposition),
+                    accepted_disposition=parse_enum(
+                        SemanticDisposition,
+                        d.accepted_disposition,
+                        "rp_mech_batch_diff",
+                        f"{d.batch_id}/{d.span_id}",
+                        "accepted_disposition",
+                    ),
                     accepted_reason_code=d.accepted_reason_code,
                 )
-                for d in diff_rows
+                for d in raw.batch_diff
                 if d.batch_id == b.batch_id
             ),
             semantic_diff_hash=b.semantic_diff_hash,
         )
-        for b in rows(MechanicalAcceptanceBatchORM)
+        for b in raw.batches
     )
 
     acceptances = tuple(
@@ -395,33 +430,40 @@ def reconstruct_candidate(
             reviewer=a.reviewer,
             accepted_at=a.accepted_at,
         )
-        for a in rows(MechanicalAcceptanceORM)
+        for a in raw.acceptances
     )
 
-    fact_rows = rows(MechanicalFactORM)
     components = tuple(
         ComponentDraft(
             record_key=c.record_key,
             semantic_key=c.semantic_key,
-            handling=ComponentHandling(c.handling),
+            handling=parse_enum(
+                ComponentHandling,
+                c.handling,
+                "rp_mech_components",
+                f"{c.record_key}/{c.semantic_key}",
+                "handling",
+            ),
             irreducibility_reason_code=c.irreducibility_reason_code,
             facts=tuple(
                 _fact_from_row(f)
-                for f in fact_rows
+                for f in raw.facts
                 if (f.record_key, f.component_key) == (c.record_key, c.semantic_key)
             ),
         )
-        for c in rows(MechanicalComponentORM)
+        for c in raw.components
     )
 
     representation = RepresentationDraft(
         records=tuple(
             RecordDraft(
                 semantic_key=r.semantic_key,
-                kind=RecordKind(r.kind),
+                kind=parse_enum(
+                    RecordKind, r.kind, "rp_mech_records", r.semantic_key, "kind"
+                ),
                 parent_key=r.parent_key,
             )
-            for r in rows(MechanicalRecordORM)
+            for r in raw.records
         ),
         components=components,
         prose_bindings=tuple(
@@ -431,15 +473,21 @@ def reconstruct_candidate(
                 chunk_id=p.chunk_id,
                 irreducibility_reason_code=p.irreducibility_reason_code,
             )
-            for p in rows(MechanicalProseBindingORM)
+            for p in raw.prose_bindings
         ),
         relationships=tuple(
             RelationshipDraft(
                 source_record_key=r.source_record_key,
                 target_record_key=r.target_record_key,
-                kind=RelationshipKind(r.kind),
+                kind=parse_enum(
+                    RelationshipKind,
+                    r.kind,
+                    "rp_mech_relationships",
+                    f"{r.source_record_key}->{r.target_record_key}",
+                    "kind",
+                ),
             )
-            for r in rows(MechanicalRelationshipORM)
+            for r in raw.relationships
         ),
         references=tuple(
             ReferenceDraft(
@@ -449,16 +497,24 @@ def reconstruct_candidate(
                 scope_key=r.scope_key,
                 target_record_key=r.target_record_key,
             )
-            for r in rows(MechanicalReferenceORM)
+            for r in raw.references
         ),
         provenance=tuple(
             ProvenanceClaim(
-                target_kind=ProvenanceTargetKind(p.target_kind),
+                target_kind=parse_enum(
+                    ProvenanceTargetKind,
+                    p.target_kind,
+                    "rp_mech_provenance",
+                    str(p.row_id),
+                    "target_kind",
+                ),
                 target_key=tuple(p.target_key),
                 span_id=p.span_id,
-                role=ProvenanceRole(p.role),
+                role=parse_enum(
+                    ProvenanceRole, p.role, "rp_mech_provenance", str(p.row_id), "role"
+                ),
             )
-            for p in rows(MechanicalProvenanceORM)
+            for p in raw.provenance
         ),
     )
 
@@ -583,7 +639,7 @@ def verify_reconstruction(
 
     try:
         reconstructed = reconstruct_candidate(session, uuid_)
-    except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
+    except PersistedStateReconstructionError as exc:
         # A row that cannot rebuild is tamper or omission, which is exactly
         # what this check reports — reporting it beats propagating an
         # exception to a caller collecting findings.
@@ -601,6 +657,18 @@ def verify_reconstruction(
             f"projection {uuid_}: persisted payload hash does not match "
             f"reconstructed state"
         )
+    # Once a proof is recorded it is a claim about persisted state, so
+    # verification re-derives it. Without this, evidence-only tamper after
+    # recording would leave the recorded digest stale but unchallenged: the
+    # payload hash and derived IDs do not cover review evidence.
+    if header.persisted_state_digest is not None:
+        current = compute_persisted_state_digest(session, uuid_)
+        if current != header.persisted_state_digest:
+            findings.append(
+                f"projection {uuid_}: recorded persisted-state digest no longer "
+                f"matches current persisted state"
+            )
+
     if header.publication_status != expected_status:
         findings.append(
             f"projection {uuid_}: expected {expected_status!r}, found "

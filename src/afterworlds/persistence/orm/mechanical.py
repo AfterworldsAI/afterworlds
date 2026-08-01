@@ -105,9 +105,20 @@ class MechanicalSpanORM(_ProjectionScoped):
 
 
 class MechanicalAcceptanceBatchORM(_ProjectionScoped):
-    """Retained batch-acceptance evidence header."""
+    """Retained batch-acceptance evidence header.
+
+    ``(projection_uuid, batch_id)`` is the logical identity its scope and diff
+    rows are matched on, so it is unique at the database level too. Defence in
+    depth only: reconstruction still proves the relation, because a corrupted
+    database or one created with constraints disabled must still be detected.
+    """
 
     __tablename__ = "rp_mech_acceptance_batches"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "projection_uuid", "batch_id", name="uq_rp_mech_batch_identity"
+        ),
+    )
 
     projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
     batch_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)

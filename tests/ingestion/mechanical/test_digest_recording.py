@@ -23,7 +23,9 @@ from afterworlds.ingestion.mechanical.persistence import (
     record_persisted_state_digest,
 )
 from afterworlds.ingestion.mechanical.projection import identify_projection
-from afterworlds.ingestion.mechanical.representation import MalformedFactPayloadError
+from afterworlds.ingestion.mechanical.raw_state import (
+    PersistedStateReconstructionError,
+)
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
@@ -156,7 +158,7 @@ def test_reconstruction_failure_leaves_the_digest_unrecorded(
     row.family = "progression_entry"  # disagrees with its own payload
     session.flush()
 
-    with pytest.raises(MalformedFactPayloadError):
+    with pytest.raises(PersistedStateReconstructionError):
         record_persisted_state_digest(session, identified.projection_uuid)
     assert _header(session, identified.projection_uuid).persisted_state_digest is None
 
@@ -167,7 +169,7 @@ def test_mistyped_persisted_fact_blocks_recording(session: Session) -> None:
     row.payload = {**row.payload, "ritual": "false"}
     session.flush()
 
-    with pytest.raises(MalformedFactPayloadError):
+    with pytest.raises(PersistedStateReconstructionError):
         record_persisted_state_digest(session, identified.projection_uuid)
     assert _header(session, identified.projection_uuid).persisted_state_digest is None
 

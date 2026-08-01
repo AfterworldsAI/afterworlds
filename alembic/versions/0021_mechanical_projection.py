@@ -91,6 +91,11 @@ def upgrade() -> None:
             sa.Column("rule", sa.Text, nullable=False),
             sa.Column("semantic_diff_hash", sa.String(64), nullable=False),
         ),
+        # The logical identity scope and diff rows are matched on. Defence in
+        # depth; reconstruction proves the relation regardless.
+        sa.UniqueConstraint(
+            "projection_uuid", "batch_id", name="uq_rp_mech_batch_identity"
+        ),
     )
 
     op.create_table(
