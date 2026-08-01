@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.representation import (
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
+    prose_bindings_by_target_key,
 )
 
 __all__ = ["validate_representation"]
@@ -242,7 +243,9 @@ _ADMISSIBLE_ROLES: dict[SemanticDisposition, frozenset[ProvenanceRole]] = {
 
 
 def _validate_provenance(
-    draft: RepresentationDraft, ledger: ClassificationLedger
+    draft: RepresentationDraft,
+    ledger: ClassificationLedger,
+    corpus: BoundCorpusSnapshot,
 ) -> list[str]:
     """Validate provenance as a closed relation, not a one-way check.
 
@@ -250,8 +253,15 @@ def _validate_provenance(
     for anything:
 
     * **forward** — the claim names a declared element and an existing span;
-    * **admissible** — the span's accepted disposition permits that role; and
+    * **admissible** — the span's accepted disposition permits that role, and a
+      prose binding's claim cites text its own chunk actually covers; and
     * **reverse** — every authoritative element carries at least one edge.
+
+    The chunk-locality half is what closes the relation over the 5c projection.
+    A prose binding names an exact chunk and a provenance edge names an exact
+    span; without joining them, a binding to chunk A could cite a span that
+    only ever projected into chunk B, and the candidate would persist governing
+    prose that does not contain the text it claims to govern.
 
     Admissibility is decided *before* an edge joins any coverage set, so an
     inadmissible claim cannot satisfy substantive coverage, supporting linkage,
@@ -261,6 +271,7 @@ def _validate_provenance(
     findings: list[str] = []
     spans_by_id = {s.span_id: s for s in ledger.spans}
     declared = declared_provenance_targets(draft)
+    bindings_by_key = prose_bindings_by_target_key(draft)
 
     primary_by_span: dict[str, list[tuple[str, ...]]] = {}
     claimed: set[str] = set()
@@ -298,6 +309,17 @@ def _validate_provenance(
             findings.append(
                 f"{tag}: {claim.role.value} claim on a "
                 f"{span.disposition.value} span {claim.span_id}"
+            )
+            admissible = False
+
+        binding = bindings_by_key.get(claim.target_key)
+        if binding is not None and not corpus.covers_span(
+            binding.chunk_id, span.leaf_id, span.char_start, span.char_end
+        ):
+            findings.append(
+                f"{tag}: span {claim.span_id} "
+                f"[{span.char_start},{span.char_end}) of leaf {span.leaf_id} is not "
+                f"covered by bound chunk {binding.chunk_id}"
             )
             admissible = False
 
@@ -357,5 +379,5 @@ def validate_representation(
     findings.extend(_validate_components(draft))
     findings.extend(_validate_prose_bindings(draft, corpus))
     findings.extend(_validate_relationships_and_references(draft))
-    findings.extend(_validate_provenance(draft, ledger))
+    findings.extend(_validate_provenance(draft, ledger, corpus))
     return tuple(findings)

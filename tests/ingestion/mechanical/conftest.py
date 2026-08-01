@@ -9,7 +9,10 @@ that each negative control can perturb exactly one thing.
 from __future__ import annotations
 
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
-from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
+from afterworlds.ingestion.mechanical.bound_corpus import (
+    BoundCorpusSnapshot,
+    ChunkCoverage,
+)
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
@@ -60,10 +63,38 @@ WISH_CHUNK = "chunk-wish-0001"
 SECOND_CHUNK = "chunk-wish-0002"
 
 
+def coverage(
+    chunk_id: str,
+    leaf_id: str,
+    cover_start: int,
+    cover_end: int,
+    role: str = "authoritative",
+) -> ChunkCoverage:
+    """One synthetic 5c projection edge."""
+    return ChunkCoverage(
+        chunk_id=chunk_id,
+        leaf_id=leaf_id,
+        cover_start=cover_start,
+        cover_end=cover_end,
+        role=role,
+        projection_id=f"proj-{chunk_id}-{leaf_id}-{cover_start}",
+    )
+
+
+#: Default synthetic coverage. Stated explicitly per chunk and leaf rather than
+#: defaulting every chunk to every leaf, so a cross-chunk claim is actually
+#: wrong here instead of accidentally allowed. Both chunks legitimately cover
+#: the prose leaf — different chunks may cover the same source range.
+DEFAULT_COVERAGE = (
+    coverage(WISH_CHUNK, PROSE_LEAF, 0, 30),
+    coverage(SECOND_CHUNK, PROSE_LEAF, 0, 30),
+)
+
+
 def bound_corpus(
     *,
     leaf_lengths: dict[str, int] | None = None,
-    chunk_ids: frozenset[str] | None = None,
+    chunk_coverage: tuple[ChunkCoverage, ...] | None = None,
     package_uuid: str = PACKAGE_UUID,
     release_version: str = RELEASE_VERSION,
 ) -> BoundCorpusSnapshot:
@@ -72,9 +103,7 @@ def bound_corpus(
         package_uuid=package_uuid,
         release_version=release_version,
         leaf_lengths=dict(LEAF_LENGTHS if leaf_lengths is None else leaf_lengths),
-        authoritative_chunk_ids=(
-            frozenset({WISH_CHUNK, SECOND_CHUNK}) if chunk_ids is None else chunk_ids
-        ),
+        chunk_coverage=(DEFAULT_COVERAGE if chunk_coverage is None else chunk_coverage),
     )
 
 

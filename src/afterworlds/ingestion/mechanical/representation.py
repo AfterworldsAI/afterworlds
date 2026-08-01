@@ -63,6 +63,7 @@ __all__ = [
     "UnknownFactFamilyError",
     "fact_from_payload",
     "fact_invariant_violations",
+    "prose_bindings_by_target_key",
     "fact_key",
     "fact_payload",
 ]
@@ -737,6 +738,18 @@ def reference_target_key(reference: ReferenceDraft) -> tuple[str, ...]:
         reference.scope_key,
         reference.target_record_key,
     )
+
+
+def prose_bindings_by_target_key(
+    draft: RepresentationDraft,
+) -> dict[tuple[str, ...], ProseBindingDraft]:
+    """Map each prose binding's provenance key back to the binding itself.
+
+    Provenance validation needs the binding, not just its key, to check that a
+    claimed span lies inside the chunk that binding names. Recovering it
+    through the same key function keeps one definition of "the same element".
+    """
+    return {prose_binding_target_key(b): b for b in draft.prose_bindings}
 
 
 def declared_provenance_targets(

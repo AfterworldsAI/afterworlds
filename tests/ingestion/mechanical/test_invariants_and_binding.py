@@ -279,7 +279,7 @@ def test_fabricated_chunk_is_rejected() -> None:
 
 def test_chunk_absent_from_the_bound_population_is_rejected() -> None:
     findings = validate_representation(
-        build_representation(), build_ledger(), bound_corpus(chunk_ids=frozenset())
+        build_representation(), build_ledger(), bound_corpus(chunk_coverage=())
     )
     assert any("is not authoritative prose of release" in f for f in findings)
 

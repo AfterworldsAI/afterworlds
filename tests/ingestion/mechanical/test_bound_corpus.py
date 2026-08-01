@@ -178,3 +178,41 @@ def test_unknown_package_resolves_to_an_empty_snapshot(session: Session) -> None
     snapshot = load_bound_corpus(session, "pkg-missing", "rel-1")
     assert snapshot.leaf_lengths == {}
     assert snapshot.authoritative_chunk_ids == frozenset()
+
+
+def test_coverage_edges_round_trip_from_real_projection_rows(session: Session) -> None:
+    snapshot = load_bound_corpus(session, BOUND, "rel-1")
+    edges = {
+        (c.chunk_id, c.leaf_id, c.cover_start, c.cover_end, c.role)
+        for c in snapshot.chunk_coverage
+    }
+    assert edges == {("chunk-projected", "leaf-represented", 0, 10, "primary")}
+    # projection_id survives too, so the relation is not a lossy copy.
+    assert all(c.projection_id for c in snapshot.chunk_coverage)
+
+
+def test_phantom_and_unprojected_chunks_carry_no_coverage(session: Session) -> None:
+    snapshot = load_bound_corpus(session, BOUND, "rel-1")
+    assert not snapshot.covers_span("chunk-phantom", "leaf-represented", 0, 5)
+    assert not snapshot.covers_span("chunk-unprojected", "leaf-represented", 0, 5)
+    assert "chunk-phantom" not in snapshot.authoritative_chunk_ids
+    assert "chunk-unprojected" not in snapshot.authoritative_chunk_ids
+
+
+def test_coverage_answers_containment_for_the_bound_release(session: Session) -> None:
+    snapshot = load_bound_corpus(session, BOUND, "rel-1")
+    assert snapshot.covers_span("chunk-projected", "leaf-represented", 0, 10)
+    assert snapshot.covers_span("chunk-projected", "leaf-represented", 2, 8)
+    assert not snapshot.covers_span("chunk-projected", "leaf-represented", 0, 11)
+    assert not snapshot.covers_span("chunk-projected", "leaf-elsewhere", 0, 5)
+
+
+def test_another_packages_projection_edges_are_never_read(session: Session) -> None:
+    # The validator must not claim to resolve one release while reading
+    # another package's edges.
+    snapshot = load_bound_corpus(session, BOUND, "rel-1")
+    assert all(c.chunk_id != "chunk-other-package" for c in snapshot.chunk_coverage)
+    other = load_bound_corpus(session, OTHER, "rel-1")
+    assert other.authoritative_chunk_ids == frozenset({"chunk-other-package"})
+    assert other.covers_span("chunk-other-package", "leaf-elsewhere", 0, 10)
+    assert not other.covers_span("chunk-projected", "leaf-represented", 0, 10)
