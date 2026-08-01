@@ -32,6 +32,7 @@ acceptance history.
 from __future__ import annotations
 
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
+from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     ClassificationLedger,
@@ -165,20 +166,17 @@ def validate_policy_binding(ledger: ClassificationLedger) -> tuple[str, ...]:
 
 def batch_diff_payload(batch: AcceptanceBatch) -> list[dict[str, object]]:
     """Canonical serialization of a batch's retained semantic diff."""
-    return sorted(
-        (
-            {
-                "span_id": e.span_id,
-                "prior_disposition": (
-                    e.prior_disposition.value if e.prior_disposition else None
-                ),
-                "prior_reason_code": e.prior_reason_code,
-                "accepted_disposition": e.accepted_disposition.value,
-                "accepted_reason_code": e.accepted_reason_code,
-            }
-            for e in batch.diff
-        ),
-        key=lambda d: str(d["span_id"]),
+    return canonical_order(
+        {
+            "span_id": e.span_id,
+            "prior_disposition": (
+                e.prior_disposition.value if e.prior_disposition else None
+            ),
+            "prior_reason_code": e.prior_reason_code,
+            "accepted_disposition": e.accepted_disposition.value,
+            "accepted_reason_code": e.accepted_reason_code,
+        }
+        for e in batch.diff
     )
 
 
@@ -363,19 +361,16 @@ def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
         "release_version": ledger.release_version,
         "semantic_policy_version": ledger.policy_version,
         "semantic_policy_hash": ledger.policy_hash,
-        "spans": sorted(
-            (
-                {
-                    "span_id": s.span_id,
-                    "leaf_id": s.leaf_id,
-                    "char_start": s.char_start,
-                    "char_end": s.char_end,
-                    "disposition": s.disposition.value,
-                    "non_mechanical_reason_code": s.non_mechanical_reason_code,
-                }
-                for s in ledger.spans
-            ),
-            key=lambda d: str(d["span_id"]),
+        "spans": canonical_order(
+            {
+                "span_id": s.span_id,
+                "leaf_id": s.leaf_id,
+                "char_start": s.char_start,
+                "char_end": s.char_end,
+                "disposition": s.disposition.value,
+                "non_mechanical_reason_code": s.non_mechanical_reason_code,
+            }
+            for s in ledger.spans
         ),
     }
 
@@ -400,33 +395,29 @@ def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, objec
     is evidence, and a reordered scope is a different record of what happened.
     """
     return {
-        "review_states": sorted(
-            ([s.span_id, s.review_state.value] for s in ledger.spans),
-            key=lambda pair: pair[0],
+        "review_states": canonical_order(
+            {"span_id": s.span_id, "review_state": s.review_state.value}
+            for s in ledger.spans
         ),
-        "batches": sorted(
-            (
-                {
-                    "batch_id": b.batch_id,
-                    "rule": b.rule,
-                    "resolved_scope": list(b.resolved_scope),
-                    "diff": batch_diff_payload(b),
-                    "semantic_diff_hash": b.semantic_diff_hash,
-                }
-                for b in ledger.batches
-            ),
-            key=lambda d: str(d["batch_id"]),
+        "batches": canonical_order(
+            {
+                "batch_id": b.batch_id,
+                "rule": b.rule,
+                # Scope order is reviewer evidence, not an unordered set, so it
+                # is retained exactly as recorded rather than canonicalized.
+                "resolved_scope": list(b.resolved_scope),
+                "diff": batch_diff_payload(b),
+                "semantic_diff_hash": b.semantic_diff_hash,
+            }
+            for b in ledger.batches
         ),
-        "acceptances": sorted(
-            (
-                {
-                    "span_id": a.span_id,
-                    "batch_id": a.batch_id,
-                    "reviewer": a.reviewer,
-                    "accepted_at": a.accepted_at,
-                }
-                for a in ledger.acceptances
-            ),
-            key=lambda d: (str(d["span_id"]), str(d["batch_id"])),
+        "acceptances": canonical_order(
+            {
+                "span_id": a.span_id,
+                "batch_id": a.batch_id,
+                "reviewer": a.reviewer,
+                "accepted_at": a.accepted_at,
+            }
+            for a in ledger.acceptances
         ),
     }

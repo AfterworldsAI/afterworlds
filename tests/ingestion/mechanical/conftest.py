@@ -43,6 +43,9 @@ from afterworlds.ingestion.mechanical.representation import (
     SpellDescriptorFact,
     SpellSchool,
     fact_key,
+    prose_binding_target_key,
+    reference_target_key,
+    relationship_target_key,
 )
 
 SPELL_LEAF = "leaf-spell"
@@ -179,6 +182,48 @@ def batch_accepted_ledger() -> ClassificationLedger:
     )
 
 
+WISH_BINDING = ProseBindingDraft(
+    component_key=OPEN_ENDED_KEY,
+    record_key=SPELL_KEY,
+    chunk_id=WISH_CHUNK,
+    irreducibility_reason_code="open_ended_effect",
+)
+
+SCOPED_WITHIN = RelationshipDraft(
+    source_record_key=CREATURE_KEY,
+    target_record_key=SPELL_KEY,
+    kind=RelationshipKind.SCOPED_WITHIN,
+)
+
+
+def binding_claim(
+    binding: ProseBindingDraft,
+    span_id: str = PROSE_SPAN,
+    role: ProvenanceRole = ProvenanceRole.PRIMARY,
+) -> ProvenanceClaim:
+    """A provenance edge for one exact prose binding."""
+    return ProvenanceClaim(
+        ProvenanceTargetKind.PROSE_BINDING,
+        prose_binding_target_key(binding),
+        span_id,
+        role,
+    )
+
+
+def reference_claim(
+    reference: ReferenceDraft,
+    span_id: str = SPELL_SPAN,
+    role: ProvenanceRole = ProvenanceRole.CONTEXTUAL,
+) -> ProvenanceClaim:
+    """A provenance edge for one exact resolved reference."""
+    return ProvenanceClaim(
+        ProvenanceTargetKind.REFERENCE,
+        reference_target_key(reference),
+        span_id,
+        role,
+    )
+
+
 #: Two references whose identical wording resolves per committed scope.
 SCOPED_REFERENCES = (
     ReferenceDraft(
@@ -219,21 +264,8 @@ def build_representation(**overrides: object) -> RepresentationDraft:
             irreducibility_reason_code="open_ended_effect",
         ),
     )
-    prose_bindings = (
-        ProseBindingDraft(
-            component_key=OPEN_ENDED_KEY,
-            record_key=SPELL_KEY,
-            chunk_id="chunk-wish-0001",
-            irreducibility_reason_code="open_ended_effect",
-        ),
-    )
-    relationships = (
-        RelationshipDraft(
-            source_record_key=CREATURE_KEY,
-            target_record_key=SPELL_KEY,
-            kind=RelationshipKind.SCOPED_WITHIN,
-        ),
-    )
+    prose_bindings = (WISH_BINDING,)
+    relationships = (SCOPED_WITHIN,)
     provenance = (
         ProvenanceClaim(
             ProvenanceTargetKind.FACT,
@@ -243,7 +275,7 @@ def build_representation(**overrides: object) -> RepresentationDraft:
         ),
         ProvenanceClaim(
             ProvenanceTargetKind.PROSE_BINDING,
-            (SPELL_KEY, OPEN_ENDED_KEY),
+            prose_binding_target_key(WISH_BINDING),
             PROSE_SPAN,
             ProvenanceRole.PRIMARY,
         ),
@@ -251,6 +283,15 @@ def build_representation(**overrides: object) -> RepresentationDraft:
             ProvenanceTargetKind.RECORD,
             (SPELL_KEY,),
             SUPPORT_SPAN,
+            ProvenanceRole.CONTEXTUAL,
+        ),
+        # Every authoritative element carries its own edge: the relationship is
+        # stated by the spell text, contextually alongside the fact's primary
+        # claim on the same span.
+        ProvenanceClaim(
+            ProvenanceTargetKind.RELATIONSHIP,
+            relationship_target_key(SCOPED_WITHIN),
+            SPELL_SPAN,
             ProvenanceRole.CONTEXTUAL,
         ),
     )

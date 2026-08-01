@@ -49,6 +49,7 @@ from tests.ingestion.mechanical.conftest import (
     SPELL_KEY,
     batch_accepted_ledger,
     build_candidate,
+    build_representation,
 )
 
 NOW = "2026-07-31T00:00:00Z"
@@ -304,3 +305,87 @@ def test_relationships_round_trip(session: Session) -> None:
     (relationship,) = rebuilt.representation.relationships
     assert relationship.kind is RelationshipKind.SCOPED_WITHIN
     assert relationship.source_record_key == CREATURE_KEY
+
+
+# -- corrected provenance target keys survive the database -------------------
+
+
+def test_longer_target_keys_round_trip_without_normalization(
+    session: Session,
+) -> None:
+    from afterworlds.ingestion.mechanical.representation import (
+        prose_binding_target_key,
+        reference_target_key,
+    )
+    from tests.ingestion.mechanical.conftest import (
+        SCOPED_REFERENCES,
+        WISH_BINDING,
+        reference_claim,
+    )
+
+    reference = SCOPED_REFERENCES[0]
+    identified = identify_projection(
+        build_candidate(
+            references=(reference,),
+            provenance=build_representation().provenance
+            + (reference_claim(reference),),
+        )
+    )
+    persist_draft(session, identified, now=NOW)
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+
+    keys = {
+        (c.target_kind.value, c.target_key) for c in rebuilt.representation.provenance
+    }
+    # Four and five members respectively — the JSON column stores the exact
+    # tuple, with no truncation, padding, or repair.
+    assert ("prose_binding", prose_binding_target_key(WISH_BINDING)) in keys
+    assert ("reference", reference_target_key(reference)) in keys
+    assert all(isinstance(k, tuple) for _, k in keys)
+    assert verify_reconstruction(session, identified) == ()
+
+
+def test_digest_changes_when_a_provenance_target_identity_changes(
+    session: Session,
+) -> None:
+    identified = _persist(session)
+    before = compute_persisted_state_digest(session, identified.projection_uuid)
+    row = (
+        session.execute(
+            select(MechanicalProvenanceORM).where(
+                MechanicalProvenanceORM.target_kind == "prose_binding"
+            )
+        )
+        .scalars()
+        .one()
+    )
+    row.target_key = [*row.target_key[:2], "chunk-substituted", row.target_key[3]]
+    session.flush()
+    assert compute_persisted_state_digest(session, identified.projection_uuid) != before
+
+
+def test_digest_changes_when_a_provenance_span_or_role_changes(
+    session: Session,
+) -> None:
+    identified = _persist(session)
+    before = compute_persisted_state_digest(session, identified.projection_uuid)
+    row = (
+        session.execute(
+            select(MechanicalProvenanceORM).where(
+                MechanicalProvenanceORM.target_kind == "record"
+            )
+        )
+        .scalars()
+        .one()
+    )
+    row.role = "primary"
+    session.flush()
+    after_role = compute_persisted_state_digest(session, identified.projection_uuid)
+    assert after_role != before
+
+    row.span_id = "span-substituted"
+    session.flush()
+    assert (
+        compute_persisted_state_digest(session, identified.projection_uuid)
+        != after_role
+    )

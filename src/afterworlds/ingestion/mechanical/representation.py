@@ -668,3 +668,121 @@ class RepresentationDraft:
     relationships: tuple[RelationshipDraft, ...]
     references: tuple[ReferenceDraft, ...]
     provenance: tuple[ProvenanceClaim, ...]
+
+
+# ---------------------------------------------------------------------------
+# Canonical provenance target identities
+# ---------------------------------------------------------------------------
+#
+# One definition per target kind, used everywhere a target is enumerated,
+# required, claimed, or checked. Building these tuples inline in more than one
+# place is how a key drifts: the enumerator and the validator then disagree
+# about what "the same element" means, and a claim can match an element it was
+# never about.
+#
+# Each key must identify exactly one declared element. Two elements that differ
+# semantically must not share a key — that is why a prose binding carries its
+# chunk and reason (one component may bind several passages) and a reference
+# carries its owning component (the same wording in one scope may be cited by
+# more than one component).
+
+
+def record_target_key(record: RecordDraft) -> tuple[str, ...]:
+    """Provenance key of a record."""
+    return (record.semantic_key,)
+
+
+def component_target_key(component: ComponentDraft) -> tuple[str, ...]:
+    """Provenance key of a component."""
+    return (component.record_key, component.semantic_key)
+
+
+def fact_target_key(
+    record_key: str, component_key: str, fact: object
+) -> tuple[str, ...]:
+    """Provenance key of one typed fact, keyed by content rather than position."""
+    return (record_key, component_key, fact_key(fact))
+
+
+def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
+    """Provenance key of one prose binding.
+
+    ``(record_key, component_key)`` alone cannot address a component that binds
+    more than one passage, so the bound chunk and the reason it is bound are
+    part of the identity.
+    """
+    return (
+        binding.record_key,
+        binding.component_key,
+        binding.chunk_id,
+        binding.irreducibility_reason_code,
+    )
+
+
+def relationship_target_key(relationship: RelationshipDraft) -> tuple[str, ...]:
+    """Provenance key of one typed relationship."""
+    return (
+        relationship.source_record_key,
+        relationship.target_record_key,
+        relationship.kind.value,
+    )
+
+
+def reference_target_key(reference: ReferenceDraft) -> tuple[str, ...]:
+    """Provenance key of one resolved reference, including its source ownership."""
+    return (
+        reference.from_record_key,
+        reference.from_component_key,
+        reference.source_text,
+        reference.scope_key,
+        reference.target_record_key,
+    )
+
+
+def declared_provenance_targets(
+    draft: RepresentationDraft,
+) -> dict[ProvenanceTargetKind, set[tuple[str, ...]]]:
+    """Every element a provenance claim may legitimately name.
+
+    Facts whose family is unknown are omitted: they have no content-derived key,
+    and they are reported separately as facts outside the closed union.
+    """
+    facts: set[tuple[str, ...]] = set()
+    for component in draft.components:
+        for fact in component.facts:
+            try:
+                facts.add(
+                    fact_target_key(component.record_key, component.semantic_key, fact)
+                )
+            except UnknownFactFamilyError:
+                continue
+
+    return {
+        ProvenanceTargetKind.RECORD: {record_target_key(r) for r in draft.records},
+        ProvenanceTargetKind.COMPONENT: {
+            component_target_key(c) for c in draft.components
+        },
+        ProvenanceTargetKind.FACT: facts,
+        ProvenanceTargetKind.PROSE_BINDING: {
+            prose_binding_target_key(b) for b in draft.prose_bindings
+        },
+        ProvenanceTargetKind.RELATIONSHIP: {
+            relationship_target_key(r) for r in draft.relationships
+        },
+        ProvenanceTargetKind.REFERENCE: {
+            reference_target_key(r) for r in draft.references
+        },
+    }
+
+
+#: Element kinds that must each carry their own provenance (ADR-005d Decision 3).
+#: Records and components are deliberately absent: their obligation is span
+#: coverage under the classification contract, not a per-element edge, and
+#: conflating the two would let a component claim stand in for the traceability
+#: of every fact beneath it.
+PROVENANCE_REQUIRED_KINDS: tuple[ProvenanceTargetKind, ...] = (
+    ProvenanceTargetKind.FACT,
+    ProvenanceTargetKind.PROSE_BINDING,
+    ProvenanceTargetKind.RELATIONSHIP,
+    ProvenanceTargetKind.REFERENCE,
+)

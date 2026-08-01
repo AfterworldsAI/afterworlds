@@ -34,13 +34,13 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
+    PROVENANCE_REQUIRED_KINDS,
     ProvenanceRole,
     ProvenanceTargetKind,
     RepresentationDraft,
-    UnknownFactFamilyError,
+    declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
-    fact_payload,
 )
 
 __all__ = ["validate_representation"]
@@ -224,46 +224,87 @@ def _validate_relationships_and_references(draft: RepresentationDraft) -> list[s
     return findings
 
 
+#: Which provenance roles a span of each disposition may carry.
+#:
+#: NON_MECHANICAL and UNRESOLVED admit nothing: the accepted classification says
+#: this text states no mechanic, so citing it as governing provenance would let
+#: licensing, navigation, or flavour text back in as authority through a side
+#: door. SUPPORTING_AUTHORITY admits contextual links only — it explains or
+#: bounds a mechanic and must never be counted as the primary statement of one.
+_ADMISSIBLE_ROLES: dict[SemanticDisposition, frozenset[ProvenanceRole]] = {
+    SemanticDisposition.SUBSTANTIVE: frozenset(
+        {ProvenanceRole.PRIMARY, ProvenanceRole.CONTEXTUAL}
+    ),
+    SemanticDisposition.SUPPORTING_AUTHORITY: frozenset({ProvenanceRole.CONTEXTUAL}),
+    SemanticDisposition.NON_MECHANICAL: frozenset(),
+    SemanticDisposition.UNRESOLVED: frozenset(),
+}
+
+
 def _validate_provenance(
     draft: RepresentationDraft, ledger: ClassificationLedger
 ) -> list[str]:
+    """Validate provenance as a closed relation, not a one-way check.
+
+    Three obligations, and an edge must satisfy all of them before it counts
+    for anything:
+
+    * **forward** — the claim names a declared element and an existing span;
+    * **admissible** — the span's accepted disposition permits that role; and
+    * **reverse** — every authoritative element carries at least one edge.
+
+    Admissibility is decided *before* an edge joins any coverage set, so an
+    inadmissible claim cannot satisfy substantive coverage, supporting linkage,
+    or an element's own traceability. An exact duplicate edge is one claim
+    recorded twice, not two, and is rejected rather than counted twice.
+    """
     findings: list[str] = []
     spans_by_id = {s.span_id: s for s in ledger.spans}
-
-    declared: dict[ProvenanceTargetKind, set[tuple[str, ...]]] = {
-        ProvenanceTargetKind.RECORD: {(r.semantic_key,) for r in draft.records},
-        ProvenanceTargetKind.COMPONENT: {
-            (c.record_key, c.semantic_key) for c in draft.components
-        },
-        ProvenanceTargetKind.FACT: {
-            (c.record_key, c.semantic_key, fact_key(f))
-            for c in draft.components
-            for f in c.facts
-            if _payloadable(f)
-        },
-        ProvenanceTargetKind.PROSE_BINDING: {
-            (b.record_key, b.component_key) for b in draft.prose_bindings
-        },
-        ProvenanceTargetKind.RELATIONSHIP: {
-            (r.source_record_key, r.target_record_key, r.kind.value)
-            for r in draft.relationships
-        },
-        ProvenanceTargetKind.REFERENCE: {
-            (r.scope_key, r.source_text, r.target_record_key) for r in draft.references
-        },
-    }
+    declared = declared_provenance_targets(draft)
 
     primary_by_span: dict[str, list[tuple[str, ...]]] = {}
     claimed: set[str] = set()
     linked: set[str] = set()
+    covered: dict[ProvenanceTargetKind, set[tuple[str, ...]]] = {
+        kind: set() for kind in ProvenanceTargetKind
+    }
+    seen_edges: set[tuple[str, tuple[str, ...], str, str]] = set()
 
     for claim in draft.provenance:
         tag = f"provenance {claim.target_kind.value}{list(claim.target_key)}"
+        edge = (
+            claim.target_kind.value,
+            claim.target_key,
+            claim.span_id,
+            claim.role.value,
+        )
+        if edge in seen_edges:
+            findings.append(
+                f"{tag}: duplicate provenance edge for span {claim.span_id}"
+            )
+            continue
+        seen_edges.add(edge)
+
+        admissible = True
         if claim.target_key not in declared[claim.target_kind]:
             findings.append(f"{tag}: claim for an undeclared element")
-        if claim.span_id not in spans_by_id:
+            admissible = False
+
+        span = spans_by_id.get(claim.span_id)
+        if span is None:
             findings.append(f"{tag}: unknown span {claim.span_id}")
             continue
+        if claim.role not in _ADMISSIBLE_ROLES[span.disposition]:
+            findings.append(
+                f"{tag}: {claim.role.value} claim on a "
+                f"{span.disposition.value} span {claim.span_id}"
+            )
+            admissible = False
+
+        if not admissible:
+            continue
+
+        covered[claim.target_kind].add(claim.target_key)
         if claim.role is ProvenanceRole.PRIMARY:
             primary_by_span.setdefault(claim.span_id, []).append(claim.target_key)
             claimed.add(claim.span_id)
@@ -275,6 +316,14 @@ def _validate_provenance(
             findings.append(
                 f"span {span_id}: conflicting primary claims by "
                 f"{sorted(str(list(o)) for o in owners)}"
+            )
+
+    # Reverse obligation. A component claiming the span a fact came from does
+    # not make that fact traceable; the element carries its own evidence.
+    for kind in PROVENANCE_REQUIRED_KINDS:
+        for target in sorted(declared[kind] - covered[kind]):
+            findings.append(
+                f"{kind.value} {list(target)}: no provenance to a 5c leaf subspan"
             )
 
     for span in ledger.spans:
@@ -290,14 +339,6 @@ def _validate_provenance(
             findings.append(f"span {span.span_id}: supporting authority but unlinked")
 
     return findings
-
-
-def _payloadable(fact: object) -> bool:
-    try:
-        fact_payload(fact)
-    except UnknownFactFamilyError:
-        return False
-    return True
 
 
 def validate_representation(

@@ -23,6 +23,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     ProgressionEntryFact,
     ProseBindingDraft,
+    ProvenanceRole,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
@@ -37,9 +38,11 @@ from tests.ingestion.mechanical.conftest import (
     DESCRIPTOR_FACT,
     DESCRIPTOR_KEY,
     OPEN_ENDED_KEY,
+    PROSE_SPAN,
     SECOND_CHUNK,
     SPELL_KEY,
     WISH_CHUNK,
+    binding_claim,
     bound_corpus,
     build_ledger,
     build_representation,
@@ -225,15 +228,19 @@ def test_component_and_binding_reasons_valid_but_unequal_are_rejected() -> None:
 
 
 def test_multiple_bindings_sharing_the_component_reason_pass() -> None:
+    # Two passages bound by one component: each is a distinct authoritative
+    # element with its own provenance, which is why the binding key carries
+    # the chunk rather than stopping at the component.
+    first = ProseBindingDraft(
+        OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "open_ended_effect"
+    )
+    second = ProseBindingDraft(
+        OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
+    )
     findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(
-                OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "open_ended_effect"
-            ),
-            ProseBindingDraft(
-                OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
-            ),
-        )
+        prose_bindings=(first, second),
+        provenance=build_representation().provenance
+        + (binding_claim(second, PROSE_SPAN, ProvenanceRole.CONTEXTUAL),),
     )
     assert findings == ()
 

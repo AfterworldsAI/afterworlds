@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_reason_codes,
 )
 from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
+from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
@@ -102,98 +103,66 @@ def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
 def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
     """Canonical, identity-bearing payload of the keyed representation.
 
-    Sorted throughout, so the order elements were authored in never reaches the
-    identity, and keyed throughout, so nothing derived from the identity is
-    inside the thing the identity is computed from.
+    Every collection here is unordered by meaning, so each is ordered by its
+    elements' complete canonical payload rather than by a chosen subset of
+    fields — see :mod:`canonical` for why a partial sort key is a defect
+    waiting for the next field. Keyed throughout, so nothing derived from the
+    identity is inside the thing the identity is computed from.
     """
     return {
-        "records": sorted(
-            (
-                {
-                    "semantic_key": r.semantic_key,
-                    "kind": r.kind.value,
-                    "parent_key": r.parent_key,
-                }
-                for r in draft.records
-            ),
-            key=lambda d: str(d["semantic_key"]),
+        "records": canonical_order(
+            {
+                "semantic_key": r.semantic_key,
+                "kind": r.kind.value,
+                "parent_key": r.parent_key,
+            }
+            for r in draft.records
         ),
-        "components": sorted(
-            (
-                {
-                    "record_key": c.record_key,
-                    "semantic_key": c.semantic_key,
-                    "handling": c.handling.value,
-                    "irreducibility_reason_code": c.irreducibility_reason_code,
-                    "facts": sorted(
-                        (fact_payload(f) for f in c.facts),
-                        key=lambda d: (str(d["family"]), str(sorted(d.items()))),
-                    ),
-                }
-                for c in draft.components
-            ),
-            key=lambda d: (str(d["record_key"]), str(d["semantic_key"])),
+        "components": canonical_order(
+            {
+                "record_key": c.record_key,
+                "semantic_key": c.semantic_key,
+                "handling": c.handling.value,
+                "irreducibility_reason_code": c.irreducibility_reason_code,
+                "facts": canonical_order(fact_payload(f) for f in c.facts),
+            }
+            for c in draft.components
         ),
-        "prose_bindings": sorted(
-            (
-                {
-                    "record_key": b.record_key,
-                    "component_key": b.component_key,
-                    "chunk_id": b.chunk_id,
-                    "irreducibility_reason_code": b.irreducibility_reason_code,
-                }
-                for b in draft.prose_bindings
-            ),
-            key=lambda d: (str(d["record_key"]), str(d["component_key"])),
+        "prose_bindings": canonical_order(
+            {
+                "record_key": b.record_key,
+                "component_key": b.component_key,
+                "chunk_id": b.chunk_id,
+                "irreducibility_reason_code": b.irreducibility_reason_code,
+            }
+            for b in draft.prose_bindings
         ),
-        "relationships": sorted(
-            (
-                {
-                    "source_record_key": r.source_record_key,
-                    "target_record_key": r.target_record_key,
-                    "kind": r.kind.value,
-                }
-                for r in draft.relationships
-            ),
-            key=lambda d: (
-                str(d["source_record_key"]),
-                str(d["target_record_key"]),
-                str(d["kind"]),
-            ),
+        "relationships": canonical_order(
+            {
+                "source_record_key": r.source_record_key,
+                "target_record_key": r.target_record_key,
+                "kind": r.kind.value,
+            }
+            for r in draft.relationships
         ),
-        "references": sorted(
-            (
-                {
-                    "from_record_key": r.from_record_key,
-                    "from_component_key": r.from_component_key,
-                    "source_text": r.source_text,
-                    "scope_key": r.scope_key,
-                    "target_record_key": r.target_record_key,
-                }
-                for r in draft.references
-            ),
-            key=lambda d: (
-                str(d["scope_key"]),
-                str(d["source_text"]),
-                str(d["from_record_key"]),
-            ),
+        "references": canonical_order(
+            {
+                "from_record_key": r.from_record_key,
+                "from_component_key": r.from_component_key,
+                "source_text": r.source_text,
+                "scope_key": r.scope_key,
+                "target_record_key": r.target_record_key,
+            }
+            for r in draft.references
         ),
-        "provenance": sorted(
-            (
-                {
-                    "target_kind": p.target_kind.value,
-                    "target_key": list(p.target_key),
-                    "span_id": p.span_id,
-                    "role": p.role.value,
-                }
-                for p in draft.provenance
-            ),
-            key=lambda d: (
-                str(d["target_kind"]),
-                str(d["target_key"]),
-                str(d["span_id"]),
-                str(d["role"]),
-            ),
+        "provenance": canonical_order(
+            {
+                "target_kind": p.target_kind.value,
+                "target_key": list(p.target_key),
+                "span_id": p.span_id,
+                "role": p.role.value,
+            }
+            for p in draft.provenance
         ),
     }
 
