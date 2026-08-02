@@ -170,6 +170,58 @@ Four rounds each shut one hole and left the next, and the reason is structural �
 second, partial description of it. Two definitions of one document is the
 defect; the individual omissions were symptoms.
 
+### Why more `_CLOSED_STRUCTURAL_MAPS` entries were rejected
+
+The obvious patch was two more rows in the closed-map table plus a shape loop
+over `OPEN_REPORT_MAPS`. Rejected for three reasons, and the PR's stop condition
+already required the alternative:
+
+1. **It repeats the failure mode.** Rounds 1–4 each added an inventory entry and
+   each left the next omission. The table can only ever describe the fields
+   somebody remembered; the builder's dict literal is what actually defines the
+   document. A fifth entry would have closed `transform_identity` and left its
+   *nested* extractor, manifest, and invocation structures open — which is
+   precisely what Codex would have found next.
+2. **It cannot express nesting.** `_closed_map_violations` compares one key set.
+   Closing `transform_identity` properly needs four levels of key sets and value
+   types; expressing that as constants is a schema language, written badly.
+3. **It leaves two definitions.** The defect named in the stop condition is not
+   any individual omission — it is that `build_report` and the validator each
+   describe the document separately. Adding entries preserves that.
+
+A typed model removes the class of defect rather than its current instance: a
+field that is not on the model does not exist, and one that is on it cannot be
+omitted, retyped, or shadowed.
+
+### Final integration audit
+
+Verified by code search at `05c4e7e`, before requesting review:
+
+| Path | Result |
+| --- | --- |
+| `build_report` | constructs `CorpusEvidenceReport.model_validate` directly — twice, the first only to read the verdict off the assembled document |
+| `EvidenceReport.payload` | typed `CorpusEvidenceReport`; it cannot hold an unparsed dict |
+| `report_hash` | `hash_obj(report.dump())`, nothing else |
+| SQL write | `persist_release` → `artifacts.report.dump()`; `finalize` → `report.dump()` |
+| SQL reconstruction | `_reconstruct_artifacts` → `parse_recorded_report(release_row.report_payload)` |
+| `verify_published_release` | consumes the parsed report for identities, verdict, and recomputation |
+| 5c verified reuse | reaches the same parsed report through `_reconstruct_artifacts` |
+| fixtures | no 5c `EvidenceReport` is built from a raw dict |
+| duplicate key inventories | none remain in 5c |
+| alternate serialization | none; `model_dump` appears only in `dump()` and in the identity comparisons |
+
+Two findings recorded rather than "fixed", because neither is a competing 5c
+schema:
+
+* `mechanical/publication.py::_REQUIRED_REPORT_KEYS` is the **5d** mechanical
+  evidence report's key set — a different document with its own schema and its
+  own hash. Out of scope here; if it deserves the same treatment that is a 5d
+  change, not this one.
+* `_report_schema_ok` survives and still reads the stored dict, because it is a
+  *contextual* check the model cannot make: it compares the report's recorded
+  version with the version recorded in `transform_config`. It duplicates no key
+  list.
+
 ### What replaced it
 
 `report_schema.py`: strict, frozen Pydantic v2 models with `extra="forbid"`.
@@ -225,8 +277,16 @@ over the committed PDF; `build_report` with a fixed placeholder digest; no
 Chroma, no finalize), dumping payload plus every release identity to JSON:
 
 ```
+python parity.py parity_parent.json <PDF>   # at cfade0d
+python parity.py parity_head.json <PDF>     # at 05c4e7e
 diff parity_parent.json parity_head.json
 → (no output; files identical)
+
+report_hash             1b1c26ec4385d034bfb75c8e166ed95f78aa327a74d4b8e95ddb48284079f336
+package_uuid            4458fa10-4a66-5e0e-9ecc-ea37530ad2b4
+release_version         5.2.1-corpus.36b786d8-fa2
+transform_config_hash   77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e
+bundle_root_hash        03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685
 ```
 
 That covers `report_hash`, `package_uuid`, `release_version`,
@@ -290,7 +350,13 @@ an architectural defect in the typed-schema conversion — not patched locally.
 `black` clean · `ruff check` clean · `mypy --strict` clean (211 files) ·
 typed-schema module **89 passed** · mechanical suites **521 passed** ·
 5c corpus + production control + packaging **285 passed** · full default suite
-**3181 passed, 10 skipped** (93.43%) · parent-versus-head parity **identical**.
+**3181 passed, 10 skipped** (93.43%) · parent-versus-head parity **identical**,
+re-run after the final `_finalize_core` edit and again at the committed head.
+
+No test was skipped, weakened, or xfailed to accommodate the conversion. Two
+existing tests changed because they hashed a deliberately-unparseable payload
+through `EvidenceReport`: both now hash the stored dict with `hash_obj`, which
+is what the verifier itself does, so they assert more precisely than before.
 
 No CI runs on this stacked PR: `.github/workflows/ci.yml` triggers only on
 `pull_request` targeting `main`. Left unchanged deliberately — widening it is a
