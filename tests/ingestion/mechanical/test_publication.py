@@ -19,16 +19,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.report import (
     CANONICAL_CANARY_NAMES,
-    REQUIRED_REPORT_KEYS,
     recorded_success_violations,
-)
-from afterworlds.ingestion.corpus.report import (
-    EvidenceReport as CorpusEvidenceReport,
-)
-from afterworlds.ingestion.corpus.report import (
-    report_hash as corpus_report_hash,
 )
 from afterworlds.ingestion.mechanical import publication
 from afterworlds.ingestion.mechanical.gate import (
@@ -629,21 +623,20 @@ def _rewrite_release_report(session: Session, **overrides: object) -> None:
     payload = dict(release.report_payload or {})
     payload.update(overrides)
     release.report_payload = payload
-    release.evidence_report_hash = corpus_report_hash(
-        CorpusEvidenceReport(payload=payload, persisted=True)
-    )
+    # Hashed as stored, exactly as the verifier rehashes it — the payload is
+    # deliberately no longer parseable in some of these cases, so it cannot be
+    # round-tripped through the canonical model first.
+    release.evidence_report_hash = hash_obj(payload)
     release.corpus_report_reference = release.evidence_report_hash
 
 
 def test_the_bounded_release_report_is_a_successful_5c_verdict() -> None:
     """The fixture's report is a real ``build_report`` output, and it passes.
 
-    Also a drift guard: if ``build_report`` gains or renames a key without
-    ``REQUIRED_REPORT_KEYS`` following, this fails rather than quietly letting
-    the recorded-verdict check stop covering the new field.
+    Its stored form re-parses through the canonical model, so the fixture
+    exercises the same construct → dump → persist → parse path production does.
     """
-    assert set(BOUND_REPORT.payload) == REQUIRED_REPORT_KEYS
-    assert recorded_success_violations(BOUND_REPORT.payload) == ()
+    assert recorded_success_violations(BOUND_REPORT.dump()) == ()
 
 
 def test_a_fabricated_binding_both_sides_agree_on_still_fails(

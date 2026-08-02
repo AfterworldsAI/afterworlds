@@ -29,6 +29,7 @@ back in the exact order the in-memory payload used.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -44,6 +45,7 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -77,9 +79,10 @@ from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_report,
-    recorded_success_violations,
+    parse_recorded_report,
     report_hash,
 )
+from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
 from afterworlds.ingestion.corpus.source_completeness import (
     EXPECTED_PAGE_COUNT,
     verify_source_completeness,
@@ -111,6 +114,16 @@ from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
 
 if TYPE_CHECKING:
     from chromadb.api import ClientAPI
+
+
+class PersistedReportError(ValueError):
+    """A stored evidence report that is not the canonical schema.
+
+    Raised rather than reported during reconstruction: a payload that will not
+    parse is not a weaker report, it is not this document, and continuing would
+    build artifacts around a shape nobody published.
+    """
+
 
 # ---------------------------------------------------------------------------
 # Shared row-building primitives
@@ -349,7 +362,7 @@ def persist_release(session: Session, artifacts: ReleaseArtifacts, *, now: str) 
         reconciliation_hash=rel.reconciliation_hash,
         corpus_report_reference=rel.corpus_report_reference,
         transform_config=rel.transform_config,
-        report_payload=artifacts.report.payload,
+        report_payload=artifacts.report.dump(),
         now=now,
     )
     _persist_bundle_rows(
@@ -888,6 +901,127 @@ _REPORT_PROOF_COLUMNS = (
 )
 
 
+def _recorded_identity_violations(
+    report: CorpusEvidenceReport, transform_config: object
+) -> tuple[str, ...]:
+    """Does the report's recorded identity match the recorded transform config?
+
+    The canonical model proves these maps are complete and correctly shaped; it
+    cannot know whether they describe *this* release. That comparison needs the
+    stored transform configuration, which is the authority the release's
+    ``transform_config_hash`` is taken over — so an identity edited in the
+    report and rehashed no longer agrees with the config that minted the
+    package UUID.
+    """
+    if not isinstance(transform_config, dict):
+        return ("recorded transform configuration is not an object",)
+    violations: list[str] = []
+    identity = report.transform_identity
+    if identity.extractor.model_dump(mode="json") != transform_config.get(
+        "extraction_config"
+    ):
+        violations.append(
+            "recorded evidence report's extractor identity != the release's "
+            "recorded transform extraction_config"
+        )
+    recorded = transform_config.get("transform_identity")
+    declared = identity.model_dump(mode="json")
+    declared.pop("extractor")
+    if not isinstance(recorded, dict) or declared != _jsonish(recorded):
+        violations.append(
+            "recorded evidence report's transform identity != the release's "
+            "recorded transform_identity"
+        )
+    vector = transform_config.get("rules_corpus_vector_identity")
+    if report.rules_corpus_vector_identity.model_dump(mode="json") != _jsonish(vector):
+        violations.append(
+            "recorded evidence report's rules-corpus vector identity != the "
+            "release's recorded rules_corpus_vector_identity"
+        )
+    return tuple(violations)
+
+
+def _jsonish(value: object) -> object:
+    """Normalize in-memory tuples to the JSON shape the report round-trips as.
+
+    ``transform_identity()`` returns tuples that JSON renders as arrays, and the
+    two hash identically (:func:`hashing.canonical_bytes`). Comparing the parsed
+    report against the in-memory config therefore needs the same normalization
+    the wire format already applies — not a change to either side.
+    """
+    if isinstance(value, dict):
+        return {k: _jsonish(v) for k, v in value.items()}
+    if isinstance(value, tuple | list):
+        return [_jsonish(v) for v in value]
+    return value
+
+
+def _recomputed_report_violations(
+    report: CorpusEvidenceReport,
+    ledger: SourceLedger,
+    recon: ReconciliationMember,
+    policy: ReconciliationPolicy,
+) -> tuple[str, ...]:
+    """Does the report's arithmetic match the state actually persisted?
+
+    Every summary here is recomputable from reconstructed rows, so a recorded
+    total that was edited and rehashed is caught by *derivation* rather than by
+    a schema rule. What is deliberately not recomputed: the concordance and
+    canary results, which would require reopening the authoritative PDF, and
+    the vector half of the persisted-corpus digest, which would require Chroma
+    (Owner Decision 2026-08-01). Those are verified through their closed
+    successful recorded form instead.
+    """
+    disp_by_leaf = {d.leaf_id: d for d in recon.dispositions}
+    leaf_totals: Counter[str] = Counter()
+    represented: Counter[str] = Counter()
+    excluded: Counter[str] = Counter()
+    for leaf in ledger.leaves:
+        leaf_totals[leaf.leaf_type.value] += 1
+        disposition = disp_by_leaf.get(leaf.leaf_id)
+        if disposition is None:
+            continue
+        if disposition.disposition is Disposition.REPRESENTED:
+            represented[leaf.leaf_type.value] += 1
+        elif (
+            disposition.disposition is Disposition.EXCLUDED
+            and disposition.exclusion_reason_code
+        ):
+            excluded[disposition.exclusion_reason_code] += 1
+
+    expected: dict[str, object] = {
+        "source_ledger_leaf_totals": dict(sorted(leaf_totals.items())),
+        "represented_totals": dict(sorted(represented.items())),
+        "excluded_totals_by_reason": dict(sorted(excluded.items())),
+        "declared_projection_count": len(recon.projections),
+        "unresolved_leaves": recon.unresolved_leaves,
+        "accounting": {
+            "inventoried_leaves": recon.inventoried_leaves,
+            "represented_leaves": recon.represented_leaves,
+            "excluded_leaves": recon.excluded_leaves,
+            "unresolved_leaves": recon.unresolved_leaves,
+        },
+        "findings": {
+            "gaps": len(recon.findings.gaps),
+            "overlaps": len(recon.findings.overlaps),
+            "orphans": len(recon.findings.orphans),
+            "duplications": len(recon.findings.duplications),
+        },
+        "reconciliation_policy_reference": {
+            "policy_version": policy.policy_version,
+            "policy_hash": policy_hash(policy),
+            "applied_policy_hash": recon.policy_hash,
+        },
+    }
+    recorded = report.dump()
+    return tuple(
+        f"recorded evidence report states {field}={recorded[field]!r}, "
+        f"reconstructed 5c state derives {value!r}"
+        for field, value in expected.items()
+        if recorded[field] != value
+    )
+
+
 def verify_published_release(
     session: Session,
     pkg: str,
@@ -984,19 +1118,27 @@ def verify_published_release(
         )
         return tuple(violations)
 
-    if (
-        report_hash(EvidenceReport(payload=payload, persisted=True))
-        != release.evidence_report_hash
-    ):
+    # Intrinsic shape, closed populations, and value domains: the canonical
+    # model's, not this function's. A payload that is not this schema cannot be
+    # compared against anything, so it stops here.
+    report, parse_violations = parse_recorded_report(payload)
+    if report is None:
+        violations.extend(
+            f"recorded evidence report is not the canonical schema: {v}"
+            for v in parse_violations
+        )
+        return tuple(violations)
+
+    if hash_obj(payload) != release.evidence_report_hash:
         violations.append(
             "recorded evidence-report payload does not hash to the recorded "
             "evidence_report_hash"
         )
     for report_key, column in _REPORT_PROOF_COLUMNS:
-        if payload.get(report_key) != getattr(release, column):
+        if getattr(report, report_key) != getattr(release, column):
             violations.append(
                 f"recorded evidence report states {report_key}="
-                f"{payload.get(report_key)!r}, release row records "
+                f"{getattr(report, report_key)!r}, release row records "
                 f"{column}={getattr(release, column)!r}"
             )
     # Identity is necessary but not sufficient. A report edited to "fail" — or to
@@ -1004,8 +1146,9 @@ def verify_published_release(
     # identity intact while recording that publication did not succeed.
     violations.extend(
         f"recorded evidence report is not a successful 5c verdict: {v}"
-        for v in recorded_success_violations(payload)
+        for v in report.success_violations()
     )
+    violations.extend(_recorded_identity_violations(report, release.transform_config))
 
     try:
         policy = _load_policy(session, pkg)
@@ -1044,6 +1187,7 @@ def verify_published_release(
                 f"5c state derives ({recomputed!r})"
             )
 
+    violations.extend(_recomputed_report_violations(report, ledger, recon, policy))
     violations.extend(verify_single_source(session, pkg))
     violations.extend(verify_chunk_runtime_membership(session, pkg))
     return tuple(violations)
@@ -1162,7 +1306,17 @@ def _reconstruct_artifacts(
         reconciliation_hash=release_row.reconciliation_hash,
         corpus_report_reference=release_row.corpus_report_reference,
     )
-    report = EvidenceReport(payload=release_row.report_payload, persisted=True)
+    # The stored payload is parsed back through the canonical model, never
+    # wrapped as-is: reconstruction is a read of unknown-provenance JSON, and a
+    # payload that is not this schema must fail here rather than flow onward as
+    # a report-shaped dict.
+    parsed, parse_violations = parse_recorded_report(release_row.report_payload)
+    if parsed is None:
+        raise PersistedReportError(
+            f"stored evidence report for {pkg} is not the canonical "
+            f"{EVIDENCE_REPORT_SCHEMA_VERSION} schema: {list(parse_violations)}"
+        )
+    report = EvidenceReport(payload=parsed, persisted=True)
     artifacts = ReleaseArtifacts(
         pages=pages,
         ledger=ledger,
@@ -1324,6 +1478,22 @@ def _finalize_core(
                     vector_state=vector_result.state.to_payload(),
                 )
             )
+        except PersistedReportError as exc:
+            # A stored report that is not the canonical schema fails reuse
+            # closed, as an ordinary failed result: publication must never
+            # propagate a parse error to its caller.
+            return FinalizeResult(
+                published=False,
+                reused=False,
+                artifacts=None,
+                gate=GateResult(
+                    passed=False,
+                    failures=(
+                        "persisted evidence-report schema version is not the "
+                        f"supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}: {exc}",
+                    ),
+                ),
+            )
         except PolicyReconstructionError as exc:
             # A missing/malformed/inconsistent persisted policy fails reuse closed
             # (reported as an ordinary failed result, consistent with the other
@@ -1366,7 +1536,7 @@ def _finalize_core(
         )
         page_coverage_violations = verify_persisted_page_coverage(session, pkg)
         schema_ok = _report_schema_ok(
-            artifacts.report.payload, artifacts.release.transform_config
+            artifacts.report.dump(), artifacts.release.transform_config
         )
         if (
             not gate.passed
@@ -1385,7 +1555,7 @@ def _finalize_core(
             if not schema_ok:
                 failures.append(
                     "persisted evidence-report schema version "
-                    f"(report={artifacts.report.payload.get('report_version')!r}) is "
+                    f"(report={artifacts.report.payload.report_version!r}) is "
                     "missing/obsolete/contradictory vs the supported "
                     f"{EVIDENCE_REPORT_SCHEMA_VERSION!r} — refusing to reuse"
                 )
@@ -1551,7 +1721,7 @@ def _finalize_core(
         release_row.evidence_report_hash = report_h
         release_row.persisted_corpus_digest = digest
         release_row.corpus_report_reference = report_h
-        release_row.report_payload = report.payload
+        release_row.report_payload = report.dump()
         session.flush()
 
         gate = run_gate(artifacts, evidence)

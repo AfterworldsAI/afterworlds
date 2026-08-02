@@ -923,7 +923,7 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     published release (recomputing the stored hash so the gate's hash check passes,
     isolating the schema backstop) and assert the reuse attempt surfaces the schema
     failure and does not reuse."""
-    from afterworlds.ingestion.corpus.report import EvidenceReport, report_hash
+    from afterworlds.ingestion.corpus.hashing import hash_obj
 
     first = _finalize(
         session, candidate, chroma_client, retrieval_config, fake_embedding
@@ -939,9 +939,9 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     row.report_payload = payload
     # Keep the stored hash consistent with the tampered payload so the gate's
     # evidence_report_hash check passes — this isolates the schema backstop.
-    row.evidence_report_hash = report_hash(
-        EvidenceReport(payload=payload, persisted=True)
-    )
+    # Hashed as stored: the payload is deliberately an obsolete shape, so it
+    # cannot be round-tripped through the canonical model first.
+    row.evidence_report_hash = hash_obj(payload)
     session.commit()
 
     result = _finalize(

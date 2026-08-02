@@ -46,6 +46,7 @@ from afterworlds.ingestion.corpus.models import (
     ReconciliationMember,
     SourceLedger,
 )
+from afterworlds.ingestion.corpus.pdf_source import extraction_config
 from afterworlds.ingestion.corpus.persistence import (
     _load_ledger,
     _load_members,
@@ -72,6 +73,7 @@ from afterworlds.ingestion.corpus.report import (
 from afterworlds.ingestion.corpus.report import (
     report_hash as corpus_report_hash,
 )
+from afterworlds.ingestion.corpus.transform_identity import transform_identity
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
 from afterworlds.ingestion.mechanical.bound_corpus import (
     BoundCorpusSnapshot,
@@ -119,10 +121,12 @@ from afterworlds.ingestion.mechanical.representation import (
     reference_target_key,
     relationship_target_key,
 )
+from afterworlds.models.retrieval import rules_corpus_vector_identity
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 
 NOW = "2026-07-31T00:00:00Z"
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -259,9 +263,20 @@ BOUND_RECONCILIATION = ReconciliationMember(
 
 BOUND_BUNDLE = build_bundle(BOUND_LEDGER, BOUND_MEMBERS, BOUND_RECONCILIATION)
 
+#: The real production identity builders, not hand-written stand-ins. The typed
+#: evidence-report schema requires the complete transform and vector identities,
+#: and a fixture that invented their shape would be asserting a schema nobody
+#: publishes. ``transform_config_hash`` is the fixture constant above rather than
+#: a hash of this config, so the six binding values — and the committed oracle —
+#: are unaffected.
 BOUND_TRANSFORM_CONFIG: dict[str, object] = {
     "reconciliation_policy": policy_payload(FROZEN_POLICY),
     "evidence_report_schema_version": CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
+    "extraction_config": extraction_config(),
+    "transform_identity": transform_identity(),
+    "rules_corpus_vector_identity": rules_corpus_vector_identity(
+        RetrievalMemoryConfig().embedding_model_id
+    ),
 }
 
 
@@ -727,7 +742,7 @@ def rerecord_release_proof(session: Session) -> None:
         recon=recon,
         bundle_root_hash=bundle.bundle_root_hash,
     )
-    release.report_payload = report.payload
+    release.report_payload = report.dump()
     release.evidence_report_hash = corpus_report_hash(report)
     release.corpus_report_reference = release.evidence_report_hash
     session.flush()
@@ -760,7 +775,7 @@ def _seed_bound_release(session: Session) -> None:
         reconciliation_hash=reconciliation_hash(BOUND_RECONCILIATION),
         corpus_report_reference=BOUND_EVIDENCE_REPORT_HASH,
         transform_config=BOUND_TRANSFORM_CONFIG,
-        report_payload=BOUND_REPORT.payload,
+        report_payload=BOUND_REPORT.dump(),
         now=NOW,
     )
     _persist_bundle_rows(

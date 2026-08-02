@@ -143,3 +143,157 @@ During this audit no part of `report.py` was found reconstructing the canonical
 schema independently: `build_report` assembles the payload, and the declared
 constants above are the single source for every population check. That is why a
 typed schema object is not yet justified.
+
+---
+
+## Round 2 — the stop condition fired: hand-maintained validation replaced
+
+**Both P1s are valid.**
+
+- `transform_identity` and `rules_corpus_vector_identity` were classified as
+  open. They are not: `extraction_config()`, `transform_identity()`, and
+  `rules_corpus_vector_identity()` all return fixed production schemas. An
+  edited-and-rehashed stored report could replace either identity with `{}` or
+  arbitrary keys and still be accepted, so canonical evidence was removable.
+- The remaining open maps were classified by key-population variability and then
+  given **no runtime enforcement at all**: `OPEN_REPORT_MAPS` was consumed only
+  by tests. `transform_identity="deleted"`, `rules_corpus_vector_identity=None`,
+  and `source_ledger_leaf_totals=[]` all passed. "Open" had come to mean
+  unvalidated rather than variably populated.
+
+Together these invalidate the claim that round 1's hand-maintained sibling audit
+closed the report schema. The PR's explicit stop condition therefore applies: an
+executable typed canonical schema, not another inventory patch.
+
+Four rounds each shut one hole and left the next, and the reason is structural —
+`build_report` held the real shape in a dict literal while the validator held a
+second, partial description of it. Two definitions of one document is the
+defect; the individual omissions were symptoms.
+
+### What replaced it
+
+`report_schema.py`: strict, frozen Pydantic v2 models with `extra="forbid"`.
+`CorpusEvidenceReport` **is** the payload. `build_report` constructs it,
+`report_hash` hashes its canonical dump, SQL persists that same dump,
+reconstruction and `verify_published_release` parse stored bytes back through
+it, and fixtures build it the same way. There is no second rendering.
+
+Modelled explicitly: the top-level document; `TransformIdentity` with nested
+`ExtractorConfig`, `SourceManifestEntry`, and `ComponentBInvocation`;
+`RulesCorpusVectorIdentity`; `ReproductionTarget`; `PolicyReference`;
+`Accounting`; `Findings`. `version_canaries` is a `dict[str, bool]` whose key
+set must equal names derived from `VERSION_CANARIES` — no duplicated list.
+
+`strict=True` is what makes `true` fail an integer field (`bool` is an `int`
+subclass), `"0"` fail an integer, and `0.0` fail an integer. Arrays are declared
+`list` with `strict=False` on those fields only: the identity builders return
+tuples in memory and JSON round-trips them to lists, and both canonicalize to
+the same bytes — so this admits the two encodings of one value while lax mode
+still refuses a bare string.
+
+**Variable-population maps are typed, not untyped.** The three totals maps are
+`dict[str, Count]` with `Count = int >= 0`. The two leaf-total maps additionally
+restrict keys to the `LeafType` universe, derived from the enum: any subset is
+legitimate, an invented type name is not. `excluded_totals_by_reason` keeps free
+string keys deliberately — the frozen policy is not available at parse time, and
+reaching for it would create the second policy definition this refactor exists
+to remove. Reason validity is proven contextually instead.
+
+### Intrinsic versus contextual
+
+The model owns shape, types, closed populations, value domains, and the
+cross-field semantics of a successful verdict. `verify_published_release` now
+owns agreement with the release and with reconstructed state:
+
+- five proof identities against the release row (unchanged);
+- `transform_identity.extractor` against recorded `transform_config.extraction_config`;
+- the rest of the transform identity against recorded `transform_config.transform_identity`;
+- `rules_corpus_vector_identity` against the recorded config;
+- policy reference, leaf totals, represented totals, excluded totals, declared
+  projection count, accounting, and findings all **recomputed** from the
+  reconstructed ledger, reconciliation, and policy.
+
+Not recomputed, and stated as such: concordance and canary results would require
+reopening the authoritative PDF, and the vector half of the persisted-corpus
+digest would require Chroma (Owner Decision 2026-08-01 unchanged). Those are
+verified through their closed successful recorded form.
+
+### `5c-evidence-3` retained — parity proven, not asserted
+
+Run at parent `cfade0d` and at head with identical inputs (`build_candidate`
+over the committed PDF; `build_report` with a fixed placeholder digest; no
+Chroma, no finalize), dumping payload plus every release identity to JSON:
+
+```
+diff parity_parent.json parity_head.json
+→ (no output; files identical)
+```
+
+That covers `report_hash`, `package_uuid`, `release_version`,
+`transform_config_hash`, `bundle_root_hash`, and the complete payload. The typed
+model accepts the honestly generated full-SRD report unmodified and its dump is
+byte-identical to the pre-refactor payload, so the version constant stands and
+no release is reminted. The three identity builders were **not** touched:
+normalizing a tuple in a builder would have moved `transform_config_hash` and
+reminted the package.
+
+### Obsolete machinery removed, not kept beside it
+
+`REQUIRED_REPORT_KEYS`, `_CLOSED_VERDICT_MAPS`, `_CLOSED_STRUCTURAL_MAPS`,
+`OPEN_REPORT_MAPS`, `_closed_map_violations`, `_ZERO_COUNTERS`,
+`_ZERO_FINDINGS`, `_ACCOUNTING_KEYS`, and the standalone `verdict_violations`
+walker are gone. `CANONICAL_CANARY_NAMES` survives because it expresses domain
+semantics and is consumed by the model. Two competing schema definitions were
+the defect; leaving the old validator for defence in depth would have preserved
+it.
+
+### Consequences worth naming
+
+- `EvidenceReport.payload` is the typed object; `EvidenceReport.dump()` is the
+  one serialization. Every 5c consumer was moved onto it.
+- Reconstruction raises `PersistedReportError` on an unparseable stored report,
+  and `_finalize_core`'s reuse path converts that to an ordinary failed result —
+  a parse error never propagates out of publication.
+- The bounded mechanical fixture's `transform_config` carried only a policy, so
+  its report had `transform_identity={"extractor": None}` and no vector
+  identity. It now uses the real production builders. `transform_config_hash` is
+  a fixture constant rather than a hash of that config, so the six binding
+  values are untouched and `bounded_oracle.json` needed no regeneration; only
+  `BOUND_EVIDENCE_REPORT_HASH` moved.
+
+### Controls
+
+`tests/ingestion/corpus/test_recorded_evidence.py` (89) replaces the
+field-by-field inventory tests: malformed identity maps at every nesting level
+(empty, scalar, null, array, extra key, wrong nested shape, incomplete manifest
+entry, wrongly typed component-B invocation, string where an array is declared);
+every variable map as null/string/array/scalar and with boolean, float, string,
+null, negative, and object counts; invented leaf-type names rejected while every
+declared subset is accepted; empty, invented, partial, extended, and
+non-boolean canary populations; missing and extra top-level fields; obsolete
+schema version; invalid status; and the verdict controls. Positive controls: the
+honest report parses, its dump round-trips exactly, and the canary set is
+derived rather than restated.
+
+Mechanical bound-release controls drive the contextual path through real
+publication: each tampered-and-rehashed stored payload returns `STALE` with
+exactly `{BOUND_RELEASE}` rather than an uncaught validation exception.
+
+### Escalation rule now standing
+
+If review finds a report field still constructed, serialized, persisted, or
+verified outside the canonical typed object, that competing path is reported as
+an architectural defect in the typed-schema conversion — not patched locally.
+
+### Verification
+
+`black` clean · `ruff check` clean · `mypy --strict` clean (211 files) ·
+typed-schema module **89 passed** · mechanical suites **521 passed** ·
+5c corpus + production control + packaging **285 passed** · full default suite
+**3181 passed, 10 skipped** (93.43%) · parent-versus-head parity **identical**.
+
+No CI runs on this stacked PR: `.github/workflows/ci.yml` triggers only on
+`pull_request` targeting `main`. Left unchanged deliberately — widening it is a
+repository-workflow decision and a separate infrastructure follow-up after
+Issue 5d, not part of this defect. CI covers the merged result when #141 runs
+against `main`.

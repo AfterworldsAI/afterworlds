@@ -8,6 +8,10 @@ It contains the authoritative-source/transform/bundle-root/frozen-ledger hashes
 and the persisted-corpus digest — but **not** its own hash — and is **not** a
 bundle member (it contains the bundle root and cannot be covered by it). Its hash
 is computed over the completed report (K step f) and recorded externally.
+
+The payload's shape lives in exactly one place, :mod:`report_schema`. This
+module builds that typed object and hashes its canonical dump; it holds no
+second description of the document.
 """
 
 from __future__ import annotations
@@ -16,12 +20,9 @@ import logging
 import platform
 from collections import Counter
 from dataclasses import dataclass
+from typing import Any
 
-from afterworlds.ingestion.corpus.concordance import (
-    VERSION_CANARIES,
-    CanaryResult,
-    ConcordanceResult,
-)
+from afterworlds.ingestion.corpus.concordance import CanaryResult, ConcordanceResult
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.models import (
     CorpusBundleMembers,
@@ -31,6 +32,28 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash
+from afterworlds.ingestion.corpus.report_schema import (
+    CANONICAL_CANARY_NAMES,
+    EVIDENCE_REPORT_SCHEMA_VERSION,
+    Accounting,
+    CorpusEvidenceReport,
+    Findings,
+    PolicyReference,
+    ReproductionTarget,
+    parse_recorded_report,
+)
+
+__all__ = [
+    "CANONICAL_CANARY_NAMES",
+    "EVIDENCE_REPORT_SCHEMA_VERSION",
+    "PYTHON_TARGET",
+    "CorpusEvidenceReport",
+    "EvidenceReport",
+    "build_report",
+    "parse_recorded_report",
+    "recorded_success_violations",
+    "report_hash",
+]
 
 _log = logging.getLogger(__name__)
 
@@ -40,272 +63,22 @@ _log = logging.getLogger(__name__)
 # identity-bearing payload (PR #134 R16).
 PYTHON_TARGET = "3.12"
 
-# Canonical evidence-report schema version. Bumped across canonical-shape changes:
-# "2" for the R16 host-independent ``reproduction_target`` change; "3" for the R18
-# pre-release clean-baseline change that removed the legacy-reachability status
-# (Issue 5c Rev7 / Issue 18 Rev6 supersede the strict cross-store quarantine
-# contract). This version is bound into ``transform_config_payload`` (hence the
-# transform hash / package UUID / release version), so an evidence-report *schema*
-# change mints a NEW immutable release instead of being reused under a
-# predecessor's identity (R17 mechanism). It is deliberately an *explicit* schema
-# identity rather than a byte-level hash of report.py: only an intentional
-# canonical-shape change should remint, never a comment/docstring/logging edit.
-EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-3"
-
 
 @dataclass(frozen=True)
 class EvidenceReport:
-    """The completed evidence report payload and the flag that it postdates persist."""
+    """The completed evidence report and the flag that it postdates persist.
 
-    payload: dict[str, object]
+    ``payload`` is the typed canonical object, not a dictionary. Anything that
+    hashes, persists, or transmits the report goes through :meth:`dump`, so
+    there is one serialization and no second rendering that could drift.
+    """
+
+    payload: CorpusEvidenceReport
     persisted: bool
 
-
-# ---------------------------------------------------------------------------
-# What a successful publication looks like in the report's own numbers
-# ---------------------------------------------------------------------------
-#
-# One definition, consumed at two boundaries with different trust levels:
-#
-# * :func:`build_report` derives ``prepublication_validation_status`` from it, so
-#   a report cannot be *written* claiming success alongside contradictory
-#   summaries; and
-# * :func:`recorded_success_violations` applies it to a payload read back out of
-#   the database, whose provenance is unknown — JSON round-tripped, possibly
-#   hand-edited, types unproven.
-#
-# ``gate.run_gate`` deliberately keeps its own one-line status check: it holds
-# the freshly built :class:`EvidenceReport` object, with a live ``persisted``
-# flag and typed sub-objects, so it asks a different question of a value it just
-# produced. What must not diverge is the *semantics* below, and it does not.
-
-#: Top-level payload counters that must be zero for a successful verdict.
-_ZERO_COUNTERS = ("unresolved_leaves", "invalid_locators", "concordance_failures")
-#: Reconciliation findings that must all be zero for a successful verdict.
-_ZERO_FINDINGS = ("gaps", "overlaps", "orphans", "duplications")
-#: Accounting keys, and the equation they must satisfy.
-_ACCOUNTING_KEYS = (
-    "inventoried_leaves",
-    "represented_leaves",
-    "excluded_leaves",
-    "unresolved_leaves",
-)
-#: The canonical version-canary population, derived from the committed canary
-#: definitions rather than restated here. Six names is not a fact this module
-#: gets to hold an opinion about: if a canary is added or retired, the required
-#: population moves with it and no second list has to be remembered.
-CANONICAL_CANARY_NAMES = frozenset(canary.name for canary in VERSION_CANARIES)
-
-# ---------------------------------------------------------------------------
-# Closed inventories versus open diagnostics
-# ---------------------------------------------------------------------------
-#
-# A report carries two kinds of map, and conflating them is how "every value I
-# looked at was fine" gets mistaken for "everything required was there".
-#
-# **Closed**: the key population is fixed by this module or by a committed
-# constant, so a missing key is an omission and an unexpected key is a foreign
-# or tampered payload. Validated by exact set equality.
-#
-# **Open**: the keys derive from the corpus content itself — which leaf types
-# occur, which exclusion reasons were used, what the transform identity
-# records. A release with no table cells legitimately has no ``table_cell``
-# entry, so requiring an exact population would be requiring a particular
-# corpus. Only presence and shape are checked; extra keys are normal.
-
-#: Verdict-bearing closed maps: exact keys *and* success-valued entries.
-_CLOSED_VERDICT_MAPS: dict[str, frozenset[str]] = {
-    "findings": frozenset(_ZERO_FINDINGS),
-    "accounting": frozenset(_ACCOUNTING_KEYS),
-    "version_canaries": CANONICAL_CANARY_NAMES,
-}
-#: Structural closed maps: ``build_report`` fixes their keys, so a recorded
-#: payload carrying different ones was edited after the fact.
-_CLOSED_STRUCTURAL_MAPS: dict[str, frozenset[str]] = {
-    "reproduction_target": frozenset({"python_target"}),
-    "reconciliation_policy_reference": frozenset(
-        {"policy_version", "policy_hash", "applied_policy_hash"}
-    ),
-}
-#: Deliberately open. Named explicitly so the distinction is a decision on the
-#: record rather than an omission someone later "fixes" into a false failure.
-OPEN_REPORT_MAPS = frozenset(
-    {
-        "source_ledger_leaf_totals",
-        "represented_totals",
-        "excluded_totals_by_reason",
-        "transform_identity",
-        "rules_corpus_vector_identity",
-    }
-)
-
-
-def _closed_map_violations(
-    payload: dict[str, object], key: str, required: frozenset[str]
-) -> tuple[str, ...]:
-    """Does *key* hold exactly the canonical population, no more and no less?"""
-    value = payload.get(key)
-    if not isinstance(value, dict):
-        return (f"{key} is missing or not an object",)
-    violations = []
-    if missing := sorted(required - set(value)):
-        violations.append(f"{key} is missing required entries {missing}")
-    if unexpected := sorted(set(value) - required):
-        violations.append(f"{key} carries unrecognised entries {unexpected}")
-    return tuple(violations)
-
-
-#: Every key ``build_report`` produces. A payload missing one is not this shape.
-REQUIRED_REPORT_KEYS = frozenset(
-    {
-        "report_version",
-        "authoritative_source_hash",
-        "transform_config_hash",
-        "bundle_root_hash",
-        "frozen_source_ledger_hash",
-        "persisted_corpus_digest",
-        "transform_identity",
-        "rules_corpus_vector_identity",
-        "reproduction_target",
-        "reconciliation_policy_reference",
-        "source_ledger_leaf_totals",
-        "represented_totals",
-        "excluded_totals_by_reason",
-        "unresolved_leaves",
-        "declared_projection_count",
-        "accounting",
-        "findings",
-        "invalid_locators",
-        "concordance_failures",
-        "version_canaries",
-        "prepublication_validation_status",
-    }
-)
-
-
-def _count(payload: dict[str, object], key: str) -> int | None:
-    """A payload counter as an ``int``, or ``None`` if it is not one.
-
-    ``bool`` is excluded explicitly: it is an ``int`` subclass, so ``True``
-    would otherwise read as the count ``1`` and let a hand-edited report satisfy
-    an equation with a boolean.
-    """
-    value = payload.get(key)
-    return value if type(value) is int else None
-
-
-def verdict_violations(payload: dict[str, object]) -> tuple[str, ...]:
-    """Why these report numbers do not state a successful publication.
-
-    Pure over the payload, so it says the same thing about a report being built
-    and a report being read back. Empty exactly when every verdict-bearing
-    summary is present, correctly typed, and success-valued.
-    """
-    violations: list[str] = []
-    for key in _ZERO_COUNTERS:
-        count = _count(payload, key)
-        if count is None:
-            violations.append(f"{key} is missing or not an integer")
-        elif count != 0:
-            violations.append(f"{key} is {count}, not 0")
-
-    # Population before values: a map holding only entries that happen to be
-    # present can pass every value check while recording none of the required
-    # ones. ``{}`` is the degenerate case — vacuously "all passed".
-    for key, required in _CLOSED_VERDICT_MAPS.items():
-        violations.extend(_closed_map_violations(payload, key, required))
-
-    findings = payload.get("findings")
-    if isinstance(findings, dict):
-        for key in _ZERO_FINDINGS:
-            found = findings.get(key)
-            if type(found) is not int:
-                violations.append(f"findings.{key} is missing or not an integer")
-            elif found != 0:
-                violations.append(f"findings.{key} is {found}, not 0")
-
-    canaries = payload.get("version_canaries")
-    if isinstance(canaries, dict):
-        for name, passed in sorted(canaries.items()):
-            if type(passed) is not bool:
-                violations.append(f"version_canaries.{name} is not a boolean")
-            elif not passed:
-                violations.append(f"version canary {name} did not pass")
-
-    accounting = payload.get("accounting")
-    if isinstance(accounting, dict):
-        counts: dict[str, int] = {}
-        for key in _ACCOUNTING_KEYS:
-            value = accounting.get(key)
-            if type(value) is not int:
-                violations.append(f"accounting.{key} is missing or not an integer")
-            else:
-                counts[key] = value
-        if len(counts) == len(_ACCOUNTING_KEYS):
-            if counts["unresolved_leaves"] != 0:
-                violations.append(
-                    f"accounting.unresolved_leaves is "
-                    f"{counts['unresolved_leaves']}, not 0"
-                )
-            if counts["inventoried_leaves"] != (
-                counts["represented_leaves"]
-                + counts["excluded_leaves"]
-                + counts["unresolved_leaves"]
-            ):
-                violations.append("accounting equation does not balance")
-            top_level = _count(payload, "unresolved_leaves")
-            if top_level is not None and top_level != counts["unresolved_leaves"]:
-                violations.append(
-                    "accounting.unresolved_leaves disagrees with the top-level "
-                    "unresolved_leaves"
-                )
-    return tuple(violations)
-
-
-def recorded_success_violations(payload: object) -> tuple[str, ...]:
-    """Is a *recorded* evidence report a well-formed, successful 5c verdict?
-
-    What a downstream consumer needs before treating a stored report as proof
-    that a release published successfully. Identity — that the payload hashes to
-    its recorded hash and states the release's proof identities — is necessary
-    but not sufficient: a report edited to ``"fail"`` and rehashed keeps every
-    identity intact while recording that publication did *not* succeed.
-
-    Deliberately bounded to what the report actually contains. It reconstructs
-    no history, and it does not reopen the vector store (Owner Decision
-    2026-08-01); the recorded digest is verified as an exact recorded value by
-    the caller.
-    """
-    if not isinstance(payload, dict):
-        return (f"evidence report is {type(payload).__name__}, not an object",)
-    violations: list[str] = []
-    if payload.get("report_version") != EVIDENCE_REPORT_SCHEMA_VERSION:
-        violations.append(
-            f"report_version {payload.get('report_version')!r} is not the supported "
-            f"{EVIDENCE_REPORT_SCHEMA_VERSION!r}"
-        )
-    # Exact, not merely complete. Requiring only that the known keys are present
-    # lets an edited-and-rehashed payload carry an unknown field under the same
-    # schema version, which is a different document claiming to be this one.
-    if missing := sorted(REQUIRED_REPORT_KEYS - set(payload)):
-        violations.append(f"evidence report is missing {missing}")
-    if unexpected := sorted(set(payload) - REQUIRED_REPORT_KEYS):
-        violations.append(
-            f"evidence report carries unrecognised keys {unexpected} under schema "
-            f"{EVIDENCE_REPORT_SCHEMA_VERSION!r}"
-        )
-    for key, required in _CLOSED_STRUCTURAL_MAPS.items():
-        violations.extend(_closed_map_violations(payload, key, required))
-    status = payload.get("prepublication_validation_status")
-    if status != "pass":
-        violations.append(
-            f"prepublication_validation_status is {status!r}, not 'pass' — the "
-            "recorded evidence states this release did not publish successfully"
-        )
-    # Evaluated even when the status already says "pass": the defect being closed
-    # is a payload that *claims* success while its own summaries record failures.
-    violations.extend(verdict_violations(payload))
-    return tuple(violations)
+    def dump(self) -> dict[str, Any]:
+        """The canonical JSON-compatible payload — hashed and persisted."""
+        return self.payload.dump()
 
 
 def build_report(
@@ -324,7 +97,14 @@ def build_report(
     canaries: tuple[CanaryResult, ...],
     persisted: bool,
 ) -> EvidenceReport:
-    """Build the evidence report after persistence (K step e)."""
+    """Build the evidence report after persistence (K step e).
+
+    Constructs the canonical typed object directly — the model is the shape,
+    not a lint pass over a dictionary. The recorded transform and vector
+    identities are validated on the way in rather than copied through, so a
+    config missing either one fails here instead of producing a report
+    describing a release nobody can verify.
+    """
     leaf_totals = Counter(leaf.leaf_type.value for leaf in ledger.leaves)
     disp_by_leaf = {d.leaf_id: d for d in recon.dispositions}
     represented_totals: Counter[str] = Counter()
@@ -336,7 +116,18 @@ def build_report(
         elif d.disposition is Disposition.EXCLUDED and d.exclusion_reason_code:
             excluded_by_reason[d.exclusion_reason_code] += 1
 
-    payload: dict[str, object] = {
+    # Complete Component B transform identity: extractor config + the first-party
+    # source manifest/hash + deterministic invocation + IR flag (not just
+    # ledger.extraction_config — PR #134 P1). The recorded invocation's steps are
+    # a tuple in memory and a list once JSON round-tripped; both canonicalize to
+    # the same bytes, so normalizing here does not move the hash.
+    recorded_identity = transform_config.get("transform_identity")
+    transform_identity: dict[str, object] = {
+        "extractor": transform_config.get("extraction_config"),
+        **(recorded_identity if isinstance(recorded_identity, dict) else {}),
+    }
+
+    fields: dict[str, Any] = {
         # Canonical schema version, also bound into the transform identity so a
         # schema change remints the release rather than being reused (R17).
         "report_version": EVIDENCE_REPORT_SCHEMA_VERSION,
@@ -346,17 +137,7 @@ def build_report(
         "bundle_root_hash": bundle_root_hash,
         "frozen_source_ledger_hash": ledger_hash_value,
         "persisted_corpus_digest": persisted_corpus_digest,
-        # Complete Component B transform identity: extractor config + the
-        # first-party source manifest/hash + deterministic invocation + IR flag
-        # (not just ledger.extraction_config — PR #134 P1).
-        "transform_identity": {
-            "extractor": transform_config.get("extraction_config"),
-            **(
-                transform_config.get("transform_identity", {})  # type: ignore[dict-item]
-                if isinstance(transform_config.get("transform_identity"), dict)
-                else {}
-            ),
-        },
+        "transform_identity": transform_identity,
         # Identity-bearing rules-corpus vector configuration (embedding model +
         # logical schema/ID/metadata contract) bound into the release identity
         # (PR #134 P1); recorded so a model/schema change is on the record.
@@ -371,42 +152,44 @@ def build_report(
         # enters this identity-bearing payload, so the same committed inputs yield a
         # byte-identical evidence report (hence release identity) on every supported
         # host (PR #134 R16). Actual host diagnostics are logged, never hashed.
-        "reproduction_target": {"python_target": PYTHON_TARGET},
-        "reconciliation_policy_reference": {
-            "policy_version": policy.policy_version,
-            "policy_hash": policy_hash(policy),
-            "applied_policy_hash": recon.policy_hash,
-        },
+        "reproduction_target": ReproductionTarget(python_target=PYTHON_TARGET),
+        "reconciliation_policy_reference": PolicyReference(
+            policy_version=policy.policy_version,
+            policy_hash=policy_hash(policy),
+            applied_policy_hash=recon.policy_hash,
+        ),
         # Ledger + reconciliation summary.
         "source_ledger_leaf_totals": dict(sorted(leaf_totals.items())),
         "represented_totals": dict(sorted(represented_totals.items())),
         "excluded_totals_by_reason": dict(sorted(excluded_by_reason.items())),
         "unresolved_leaves": recon.unresolved_leaves,
         "declared_projection_count": len(recon.projections),
-        "accounting": {
-            "inventoried_leaves": recon.inventoried_leaves,
-            "represented_leaves": recon.represented_leaves,
-            "excluded_leaves": recon.excluded_leaves,
-            "unresolved_leaves": recon.unresolved_leaves,
-        },
-        "findings": {
-            "gaps": len(recon.findings.gaps),
-            "overlaps": len(recon.findings.overlaps),
-            "orphans": len(recon.findings.orphans),
-            "duplications": len(recon.findings.duplications),
-        },
+        "accounting": Accounting(
+            inventoried_leaves=recon.inventoried_leaves,
+            represented_leaves=recon.represented_leaves,
+            excluded_leaves=recon.excluded_leaves,
+            unresolved_leaves=recon.unresolved_leaves,
+        ),
+        "findings": Findings(
+            gaps=len(recon.findings.gaps),
+            overlaps=len(recon.findings.overlaps),
+            orphans=len(recon.findings.orphans),
+            duplications=len(recon.findings.duplications),
+        ),
         "invalid_locators": len(concordance.locator_failures),
         "concordance_failures": len(concordance.content_failures),
         "version_canaries": {c.name: c.passed for c in canaries},
     }
-    # The verdict is derived from the payload that has just been assembled, not
-    # from a second predicate over the source objects. One definition (below) of
-    # what a successful publication looks like in the numbers, so a recorded
-    # report claiming "pass" alongside contradictory summaries is impossible to
-    # produce here and detectable everywhere it is read back.
-    payload["prepublication_validation_status"] = (
-        "pass" if persisted and not verdict_violations(payload) else "fail"
+
+    # The verdict is read off the assembled document through the same method a
+    # stored report is measured by, so a report claiming "pass" over
+    # contradictory summaries cannot be produced here — and an incomplete canary
+    # run is refused by the model before the question is even asked.
+    provisional = CorpusEvidenceReport.model_validate(
+        {**fields, "prepublication_validation_status": "fail"}
     )
+    status = "pass" if persisted and not provisional.verdict_violations() else "fail"
+
     # Actual host as an operational diagnostic ONLY — deliberately outside the
     # returned payload, so it never reaches the report hash, the persisted-corpus
     # digest, the package identity, or any publication-gate comparison. Never
@@ -418,9 +201,36 @@ def build_report(
         platform.machine(),
         platform.python_version(),
     )
-    return EvidenceReport(payload=payload, persisted=persisted)
+    return EvidenceReport(
+        payload=CorpusEvidenceReport.model_validate(
+            {**fields, "prepublication_validation_status": status}
+        ),
+        persisted=persisted,
+    )
+
+
+def recorded_success_violations(payload: object) -> tuple[str, ...]:
+    """Is a *recorded* report a well-formed, successful 5c verdict?
+
+    Parse first, then judge. Shape, closed populations, and value domains
+    belong to the typed model; this adds only the verdict question, on a
+    document that has already proven it is this schema.
+
+    Deliberately bounded to what the report contains. It reconstructs no
+    history and does not reopen the vector store (Owner Decision 2026-08-01);
+    agreement with the release row and with reconstructed 5c state is proven
+    contextually by :func:`persistence.verify_published_release`.
+    """
+    parsed, violations = parse_recorded_report(payload)
+    if parsed is None:
+        return violations
+    return parsed.success_violations()
 
 
 def report_hash(report: EvidenceReport) -> str:
-    """Hash the completed evidence report (K step f)."""
-    return hash_obj(report.payload)
+    """Hash the completed evidence report (K step f).
+
+    Over the canonical dump of the typed payload — the same bytes SQL persists,
+    so a stored report always rehashes to the value recorded beside it.
+    """
+    return hash_obj(report.dump())
