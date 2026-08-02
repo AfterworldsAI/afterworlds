@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -215,6 +216,157 @@ def test_two_oracles_for_one_release_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(OracleLoadError) as exc:
         _resolve_committed_oracle(PACKAGE_UUID, RELEASE_VERSION, tmp_path)
     assert "2 committed oracles" in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# Primitive and container types at the JSON boundary
+# ---------------------------------------------------------------------------
+#
+# Key and enum validation was already strict, but a value of the wrong *type*
+# passed straight through: frozen dataclasses do not enforce annotations, so
+# ``"char_start": "0"`` loaded fine and surfaced far away as an unclassified
+# TypeError when the gate compared a string with an integer. Every malformed
+# value must fail here, as OracleLoadError, naming where it was found.
+#
+# Type closure only. Whether spans partition their leaf gap-free is the semantic
+# validator's judgement and is not restated at this boundary — negative offsets
+# are rejected because they are outside the declared domain, not because of a
+# second opinion about partition validity.
+
+
+def _at(payload: dict[str, object], path: str, value: object) -> dict[str, object]:
+    """Set a dotted/indexed *path* inside a payload, returning it."""
+    target: Any = payload
+    parts = path.split(".")
+    for part in parts[:-1]:
+        if part.endswith("]"):
+            name, index = part[:-1].split("[")
+            target = target[name][int(index)] if name else target[int(index)]
+        else:
+            target = target[part]
+    target[parts[-1]] = value
+    return payload
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        # Top-level containers supplied as the wrong shape.
+        pytest.param("spans", "three", id="spans-as-string"),
+        pytest.param("spans", {}, id="spans-as-object"),
+        pytest.param("spans", None, id="spans-as-null"),
+        pytest.param("obligations", "none", id="obligations-as-string"),
+        pytest.param("representation.records", None, id="records-as-null"),
+        pytest.param("representation.components", "c", id="components-as-string"),
+        pytest.param("representation.prose_bindings", 0, id="bindings-as-number"),
+        pytest.param("representation.relationships", {}, id="relationships-as-object"),
+        pytest.param("representation.references", "r", id="references-as-string"),
+        pytest.param("representation.provenance", None, id="provenance-as-null"),
+        # A collection of the right shape holding the wrong element type.
+        pytest.param("spans[0]", "span", id="span-element-as-string"),
+        pytest.param("representation.records[0]", None, id="record-element-as-null"),
+        pytest.param("obligations[0]", 5, id="obligation-element-as-number"),
+        # Release binding and policy strings.
+        pytest.param("release_binding.package_uuid", 5, id="package-uuid-as-number"),
+        pytest.param("release_binding.release_version", None, id="release-as-null"),
+        pytest.param(
+            "release_binding.bundle_root_hash", ["c"], id="bundle-hash-as-array"
+        ),
+        pytest.param("semantic_policy_version", 1, id="policy-version-as-number"),
+        pytest.param("semantic_policy_hash", None, id="policy-hash-as-null"),
+        # Span scalars, including the reported case.
+        pytest.param("spans[0].span_id", 7, id="span-id-as-number"),
+        pytest.param("spans[0].leaf_id", None, id="leaf-id-as-null"),
+        pytest.param("spans[0].char_start", "0", id="char-start-as-string"),
+        pytest.param("spans[0].char_start", True, id="char-start-as-boolean"),
+        pytest.param("spans[0].char_start", 0.0, id="char-start-as-float"),
+        pytest.param("spans[0].char_end", None, id="char-end-as-null"),
+        pytest.param("spans[0].char_start", -1, id="char-start-negative"),
+        pytest.param(
+            "spans[0].non_mechanical_reason_code", 3, id="reason-code-as-number"
+        ),
+        # Record, component, prose-binding, relationship, reference scalars.
+        pytest.param("representation.records[0].semantic_key", 1, id="record-key-num"),
+        pytest.param(
+            "representation.records[0].parent_key", 2, id="parent-key-as-number"
+        ),
+        pytest.param(
+            "representation.components[0].record_key", None, id="component-key-null"
+        ),
+        pytest.param(
+            "representation.components[0].irreducibility_reason_code",
+            4,
+            id="component-reason-as-number",
+        ),
+        pytest.param("representation.components[0].facts", "f", id="facts-as-string"),
+        pytest.param(
+            "representation.components[0].facts[0]", "f", id="fact-element-as-string"
+        ),
+        pytest.param(
+            "representation.prose_bindings[0].chunk_id", 9, id="chunk-id-as-number"
+        ),
+        pytest.param(
+            "representation.prose_bindings[0].irreducibility_reason_code",
+            None,
+            id="binding-reason-as-null",
+        ),
+        pytest.param(
+            "representation.relationships[0].source_record_key",
+            [],
+            id="relationship-source-as-array",
+        ),
+        # Provenance target keys.
+        pytest.param(
+            "representation.provenance[0].target_key",
+            "spell:wish",
+            id="target-key-as-string",
+        ),
+        pytest.param(
+            "representation.provenance[0].target_key", [1], id="target-key-of-numbers"
+        ),
+        pytest.param(
+            "representation.provenance[0].span_id", None, id="provenance-span-null"
+        ),
+        # Obligation collections.
+        pytest.param(
+            "obligations[0].record_key", 1, id="obligation-record-key-as-number"
+        ),
+        pytest.param(
+            "obligations[0].structured_fact_families",
+            "spell_descriptor",
+            id="families-as-string",
+        ),
+        pytest.param(
+            "obligations[0].prose_bound_components",
+            "open-ended-clause",
+            id="prose-components-as-string",
+        ),
+        pytest.param(
+            "obligations[0].prose_bound_components", [7], id="prose-components-numbers"
+        ),
+    ],
+)
+def test_a_wrongly_typed_oracle_value_fails_to_load(
+    tmp_path: Path, path: str, value: object
+) -> None:
+    """Malformed committed authority is an OracleLoadError, never a late crash.
+
+    ``tuple("abc")`` and ``frozenset("abc")`` both succeed on a bare string and
+    invent three elements, so a string supplied where an array is declared would
+    otherwise manufacture accepted authority out of a typo.
+    """
+    with pytest.raises(OracleLoadError) as exc:
+        load_oracle(_write(tmp_path, _at(_payload(), path, value)))
+    assert path.split(".")[0].split("[")[0] in str(exc.value)
+
+
+def test_a_malformed_fact_payload_is_an_oracle_load_error(tmp_path: Path) -> None:
+    """The closed-union parser's own rejections are wrapped, not duplicated."""
+    payload = _payload()
+    facts = payload["representation"]["components"][0]["facts"]  # type: ignore[index]
+    facts[0] = {**facts[0], "family": "not_a_declared_family"}  # type: ignore[index]
+    with pytest.raises(OracleLoadError):
+        load_oracle(_write(tmp_path, payload))
 
 
 # ---------------------------------------------------------------------------

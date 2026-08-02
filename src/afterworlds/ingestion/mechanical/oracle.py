@@ -259,6 +259,75 @@ def _require(payload: object, keys: tuple[str, ...], where: str) -> dict[str, An
     return payload
 
 
+def _string(value: object, where: str) -> str:
+    """A JSON string, exactly. No coercion — ``0`` is not ``"0"``."""
+    if type(value) is not str:
+        raise OracleLoadError(
+            f"{where}: expected a string, got {type(value).__name__} {value!r}"
+        )
+    return value
+
+
+def _optional_string(value: object, where: str) -> str | None:
+    """A JSON string or ``null``, for a declared ``str | None`` field."""
+    return None if value is None else _string(value, where)
+
+
+def _offset(value: object, where: str) -> int:
+    """A non-negative JSON integer character offset.
+
+    ``bool`` is rejected explicitly: it is an ``int`` subclass, so ``true``
+    would otherwise load as the offset ``1``. Floats are rejected too — ``0.0``
+    is not the integer the span contract declares.
+
+    Negativity is a *type-domain* violation and belongs here. Ordering, gap-free
+    coverage, and whether a span partitions its leaf belong to the semantic
+    validator, which already owns partition validity; this boundary does not
+    state a second opinion about it.
+    """
+    if type(value) is not int:
+        raise OracleLoadError(
+            f"{where}: expected an integer, got {type(value).__name__} {value!r}"
+        )
+    if value < 0:
+        raise OracleLoadError(
+            f"{where}: character offsets cannot be negative ({value})"
+        )
+    return value
+
+
+def _list(value: object, where: str) -> list[Any]:
+    """A JSON array, exactly. A string is not an array of its characters."""
+    if not isinstance(value, list):
+        raise OracleLoadError(
+            f"{where}: expected an array, got {type(value).__name__} {value!r}"
+        )
+    return value
+
+
+def _string_list(value: object, where: str) -> list[str]:
+    """A JSON array of strings.
+
+    Guards the constructors that would otherwise manufacture accepted authority
+    out of a bare string: ``tuple("abc")`` and ``frozenset("abc")`` both succeed
+    and silently invent three elements.
+    """
+    return [
+        _string(item, f"{where}[{i}]") for i, item in enumerate(_list(value, where))
+    ]
+
+
+def _object_list(value: object, where: str) -> list[dict[str, Any]]:
+    """A JSON array of objects, checked before anything indexes an element."""
+    items = _list(value, where)
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise OracleLoadError(
+                f"{where}[{i}]: expected an object, got {type(item).__name__} {item!r}"
+            )
+    return items
+
+
 def _enum[E: StrEnum](enum_cls: type[E], value: object, where: str) -> E:
     """Read one closed enum out of a committed file, or reject the file.
 
@@ -295,16 +364,18 @@ def _span(payload: object, index: int) -> SemanticSpan:
         where,
     )
     return SemanticSpan(
-        span_id=p["span_id"],
-        leaf_id=p["leaf_id"],
-        char_start=p["char_start"],
-        char_end=p["char_end"],
+        span_id=_string(p["span_id"], f"{where}.span_id"),
+        leaf_id=_string(p["leaf_id"], f"{where}.leaf_id"),
+        char_start=_offset(p["char_start"], f"{where}.char_start"),
+        char_end=_offset(p["char_end"], f"{where}.char_end"),
         disposition=_enum(SemanticDisposition, p["disposition"], where),
         # An oracle span is accepted authority by construction: an unaccepted
         # claim has no business in a committed oracle, so the review state is
         # not a field a file may set to something else.
         review_state=ReviewState.ACCEPTED,
-        non_mechanical_reason_code=p["non_mechanical_reason_code"],
+        non_mechanical_reason_code=_optional_string(
+            p["non_mechanical_reason_code"], f"{where}.non_mechanical_reason_code"
+        ),
     )
 
 
@@ -323,19 +394,19 @@ def _representation(payload: object) -> RepresentationDraft:
     )
 
     records = []
-    for i, raw in enumerate(p["records"]):
+    for i, raw in enumerate(_object_list(p["records"], "representation.records")):
         where = f"representation.records[{i}]"
         r = _require(raw, ("semantic_key", "kind", "parent_key"), where)
         records.append(
             RecordDraft(
-                semantic_key=r["semantic_key"],
+                semantic_key=_string(r["semantic_key"], f"{where}.semantic_key"),
                 kind=_enum(RecordKind, r["kind"], where),
-                parent_key=r["parent_key"],
+                parent_key=_optional_string(r["parent_key"], f"{where}.parent_key"),
             )
         )
 
     components = []
-    for i, raw in enumerate(p["components"]):
+    for i, raw in enumerate(_object_list(p["components"], "representation.components")):
         where = f"representation.components[{i}]"
         c = _require(
             raw,
@@ -348,8 +419,13 @@ def _representation(payload: object) -> RepresentationDraft:
             ),
             where,
         )
+        # The fact list is shape-checked here *before* delegation, because the
+        # closed-union parser reads a mapping and a non-object element would
+        # reach it as an unclassified AttributeError rather than this loader's
+        # documented error. Family validation itself stays where it is owned.
+        raw_facts = _object_list(c["facts"], f"{where}.facts")
         try:
-            facts = tuple(fact_from_payload(f) for f in c["facts"])
+            facts = tuple(fact_from_payload(f) for f in raw_facts)
         except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
             # Both halves of the closed union's rejection: a payload that will
             # not rebuild its declared family, and a family outside the union.
@@ -358,16 +434,21 @@ def _representation(payload: object) -> RepresentationDraft:
             raise OracleLoadError(f"{where}: {exc}") from exc
         components.append(
             ComponentDraft(
-                record_key=c["record_key"],
-                semantic_key=c["semantic_key"],
+                record_key=_string(c["record_key"], f"{where}.record_key"),
+                semantic_key=_string(c["semantic_key"], f"{where}.semantic_key"),
                 handling=_enum(ComponentHandling, c["handling"], where),
-                irreducibility_reason_code=c["irreducibility_reason_code"],
+                irreducibility_reason_code=_optional_string(
+                    c["irreducibility_reason_code"],
+                    f"{where}.irreducibility_reason_code",
+                ),
                 facts=facts,
             )
         )
 
     prose_bindings = []
-    for i, raw in enumerate(p["prose_bindings"]):
+    for i, raw in enumerate(
+        _object_list(p["prose_bindings"], "representation.prose_bindings")
+    ):
         where = f"representation.prose_bindings[{i}]"
         b = _require(
             raw,
@@ -376,50 +457,60 @@ def _representation(payload: object) -> RepresentationDraft:
         )
         prose_bindings.append(
             ProseBindingDraft(
-                record_key=b["record_key"],
-                component_key=b["component_key"],
-                chunk_id=b["chunk_id"],
-                irreducibility_reason_code=b["irreducibility_reason_code"],
+                record_key=_string(b["record_key"], f"{where}.record_key"),
+                component_key=_string(b["component_key"], f"{where}.component_key"),
+                chunk_id=_string(b["chunk_id"], f"{where}.chunk_id"),
+                irreducibility_reason_code=_string(
+                    b["irreducibility_reason_code"],
+                    f"{where}.irreducibility_reason_code",
+                ),
             )
         )
 
     relationships = []
-    for i, raw in enumerate(p["relationships"]):
+    for i, raw in enumerate(
+        _object_list(p["relationships"], "representation.relationships")
+    ):
         where = f"representation.relationships[{i}]"
         rel = _require(raw, ("source_record_key", "target_record_key", "kind"), where)
         relationships.append(
             RelationshipDraft(
-                source_record_key=rel["source_record_key"],
-                target_record_key=rel["target_record_key"],
+                source_record_key=_string(
+                    rel["source_record_key"], f"{where}.source_record_key"
+                ),
+                target_record_key=_string(
+                    rel["target_record_key"], f"{where}.target_record_key"
+                ),
                 kind=_enum(RelationshipKind, rel["kind"], where),
             )
         )
 
     references = []
-    for i, raw in enumerate(p["references"]):
+    reference_fields = (
+        "from_record_key",
+        "from_component_key",
+        "source_text",
+        "scope_key",
+        "target_record_key",
+    )
+    for i, raw in enumerate(_object_list(p["references"], "representation.references")):
         where = f"representation.references[{i}]"
-        ref = _require(
-            raw,
-            (
-                "from_record_key",
-                "from_component_key",
-                "source_text",
-                "scope_key",
-                "target_record_key",
-            ),
-            where,
+        ref = _require(raw, reference_fields, where)
+        references.append(
+            ReferenceDraft(
+                **{k: _string(ref[k], f"{where}.{k}") for k in reference_fields}
+            )
         )
-        references.append(ReferenceDraft(**ref))
 
     provenance = []
-    for i, raw in enumerate(p["provenance"]):
+    for i, raw in enumerate(_object_list(p["provenance"], "representation.provenance")):
         where = f"representation.provenance[{i}]"
         pr = _require(raw, ("target_kind", "target_key", "span_id", "role"), where)
         provenance.append(
             ProvenanceClaim(
                 target_kind=_enum(ProvenanceTargetKind, pr["target_kind"], where),
-                target_key=tuple(pr["target_key"]),
-                span_id=pr["span_id"],
+                target_key=tuple(_string_list(pr["target_key"], f"{where}.target_key")),
+                span_id=_string(pr["span_id"], f"{where}.span_id"),
                 role=_enum(ProvenanceRole, pr["role"], where),
             )
         )
@@ -442,12 +533,19 @@ def _obligation(payload: object, index: int) -> RecordObligation:
         where,
     )
     return RecordObligation(
-        record_key=o["record_key"],
+        record_key=_string(o["record_key"], f"{where}.record_key"),
         kind=_enum(RecordKind, o["kind"], where),
         structured_fact_families=frozenset(
-            _enum(FactFamily, f, where) for f in o["structured_fact_families"]
+            _enum(FactFamily, f, f"{where}.structured_fact_families")
+            for f in _list(
+                o["structured_fact_families"], f"{where}.structured_fact_families"
+            )
         ),
-        prose_bound_components=frozenset(o["prose_bound_components"]),
+        # A bare string here would become a frozenset of its characters, which
+        # is accepted authority invented out of a typo.
+        prose_bound_components=frozenset(
+            _string_list(o["prose_bound_components"], f"{where}.prose_bound_components")
+        ),
     )
 
 
@@ -517,26 +615,30 @@ def load_oracle(path: Path) -> AcceptedOracle:
         ),
         path.name,
     )
-    binding = _require(
-        p["release_binding"],
-        (
-            "package_uuid",
-            "release_version",
-            "authoritative_source_hash",
-            "transform_config_hash",
-            "bundle_root_hash",
-            "persisted_corpus_digest",
-        ),
-        "release_binding",
+    binding_fields = (
+        "package_uuid",
+        "release_version",
+        "authoritative_source_hash",
+        "transform_config_hash",
+        "bundle_root_hash",
+        "persisted_corpus_digest",
     )
+    binding = _require(p["release_binding"], binding_fields, "release_binding")
     representation = _representation(p["representation"])
-    obligations = tuple(_obligation(o, i) for i, o in enumerate(p["obligations"]))
+    obligations = tuple(
+        _obligation(o, i)
+        for i, o in enumerate(_object_list(p["obligations"], "obligations"))
+    )
     _check_obligations_closed(representation, obligations, path.name)
     return AcceptedOracle(
-        binding=ReleaseBinding(**binding),
-        policy_version=p["semantic_policy_version"],
-        policy_hash=p["semantic_policy_hash"],
-        spans=tuple(_span(s, i) for i, s in enumerate(p["spans"])),
+        binding=ReleaseBinding(
+            **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
+        ),
+        policy_version=_string(p["semantic_policy_version"], "semantic_policy_version"),
+        policy_hash=_string(p["semantic_policy_hash"], "semantic_policy_hash"),
+        spans=tuple(
+            _span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans"))
+        ),
         representation=representation,
         obligations=obligations,
     )
