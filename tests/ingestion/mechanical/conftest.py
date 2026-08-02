@@ -28,7 +28,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.bundle import build_bundle, reconciliation_hash
-from afterworlds.ingestion.corpus.concordance import ConcordanceResult
+from afterworlds.ingestion.corpus.concordance import (
+    VERSION_CANARIES,
+    CanaryResult,
+    ConcordanceResult,
+)
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CorpusBundleMembers,
@@ -261,6 +265,19 @@ BOUND_TRANSFORM_CONFIG: dict[str, object] = {
 }
 
 
+#: Derived from the committed canary definitions, never a second list of names.
+BOUND_CANARIES = tuple(
+    CanaryResult(
+        name=canary.name,
+        printed_page=canary.printed_page,
+        passed=True,
+        missing=(),
+        unexpected=(),
+    )
+    for canary in VERSION_CANARIES
+)
+
+
 def _build_bound_report(
     *,
     ledger: SourceLedger,
@@ -285,7 +302,11 @@ def _build_bound_report(
             locator_failures=(),
             content_failures=(),
         ),
-        canaries=(),
+        # The complete canonical canary population, standing in for a real
+        # canary run exactly as the rest of this release stands in for a real
+        # corpus. An empty tuple would now be refused, and rightly: a report
+        # cannot claim a successful verdict over version checks that never ran.
+        canaries=BOUND_CANARIES,
         persisted=True,
     )
 

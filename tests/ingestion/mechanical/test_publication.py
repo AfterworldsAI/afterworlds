@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.report import (
+    CANONICAL_CANARY_NAMES,
     REQUIRED_REPORT_KEYS,
     recorded_success_violations,
 )
@@ -715,6 +716,43 @@ def test_a_fabricated_binding_both_sides_agree_on_still_fails(
         pytest.param(
             lambda s: _rewrite_release_report(s, concordance_failures=1),
             id="release-evidence-claims-pass-over-concordance-failures",
+        ),
+        # Closed-inventory population: an entry-by-entry check passes on all of
+        # these, because every entry that *is* present is valid.
+        pytest.param(
+            lambda s: _rewrite_release_report(s, version_canaries={}),
+            id="release-evidence-records-no-version-canaries",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, version_canaries={"invented": True}),
+            id="release-evidence-records-only-an-invented-canary",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s,
+                version_canaries=dict.fromkeys(
+                    sorted(CANONICAL_CANARY_NAMES)[1:], True
+                ),
+            ),
+            id="release-evidence-omits-one-canonical-canary",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s,
+                version_canaries={
+                    **dict.fromkeys(sorted(CANONICAL_CANARY_NAMES), True),
+                    "invented": True,
+                },
+            ),
+            id="release-evidence-adds-an-invented-canary",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, findings={"gaps": 0, "overlaps": 0}),
+            id="release-evidence-findings-population-incomplete",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, smuggled_field="value"),
+            id="release-evidence-carries-an-unknown-top-level-key",
         ),
     ],
 )

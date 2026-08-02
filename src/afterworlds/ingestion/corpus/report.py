@@ -17,7 +17,11 @@ import platform
 from collections import Counter
 from dataclasses import dataclass
 
-from afterworlds.ingestion.corpus.concordance import CanaryResult, ConcordanceResult
+from afterworlds.ingestion.corpus.concordance import (
+    VERSION_CANARIES,
+    CanaryResult,
+    ConcordanceResult,
+)
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.models import (
     CorpusBundleMembers,
@@ -86,6 +90,71 @@ _ACCOUNTING_KEYS = (
     "excluded_leaves",
     "unresolved_leaves",
 )
+#: The canonical version-canary population, derived from the committed canary
+#: definitions rather than restated here. Six names is not a fact this module
+#: gets to hold an opinion about: if a canary is added or retired, the required
+#: population moves with it and no second list has to be remembered.
+CANONICAL_CANARY_NAMES = frozenset(canary.name for canary in VERSION_CANARIES)
+
+# ---------------------------------------------------------------------------
+# Closed inventories versus open diagnostics
+# ---------------------------------------------------------------------------
+#
+# A report carries two kinds of map, and conflating them is how "every value I
+# looked at was fine" gets mistaken for "everything required was there".
+#
+# **Closed**: the key population is fixed by this module or by a committed
+# constant, so a missing key is an omission and an unexpected key is a foreign
+# or tampered payload. Validated by exact set equality.
+#
+# **Open**: the keys derive from the corpus content itself — which leaf types
+# occur, which exclusion reasons were used, what the transform identity
+# records. A release with no table cells legitimately has no ``table_cell``
+# entry, so requiring an exact population would be requiring a particular
+# corpus. Only presence and shape are checked; extra keys are normal.
+
+#: Verdict-bearing closed maps: exact keys *and* success-valued entries.
+_CLOSED_VERDICT_MAPS: dict[str, frozenset[str]] = {
+    "findings": frozenset(_ZERO_FINDINGS),
+    "accounting": frozenset(_ACCOUNTING_KEYS),
+    "version_canaries": CANONICAL_CANARY_NAMES,
+}
+#: Structural closed maps: ``build_report`` fixes their keys, so a recorded
+#: payload carrying different ones was edited after the fact.
+_CLOSED_STRUCTURAL_MAPS: dict[str, frozenset[str]] = {
+    "reproduction_target": frozenset({"python_target"}),
+    "reconciliation_policy_reference": frozenset(
+        {"policy_version", "policy_hash", "applied_policy_hash"}
+    ),
+}
+#: Deliberately open. Named explicitly so the distinction is a decision on the
+#: record rather than an omission someone later "fixes" into a false failure.
+OPEN_REPORT_MAPS = frozenset(
+    {
+        "source_ledger_leaf_totals",
+        "represented_totals",
+        "excluded_totals_by_reason",
+        "transform_identity",
+        "rules_corpus_vector_identity",
+    }
+)
+
+
+def _closed_map_violations(
+    payload: dict[str, object], key: str, required: frozenset[str]
+) -> tuple[str, ...]:
+    """Does *key* hold exactly the canonical population, no more and no less?"""
+    value = payload.get(key)
+    if not isinstance(value, dict):
+        return (f"{key} is missing or not an object",)
+    violations = []
+    if missing := sorted(required - set(value)):
+        violations.append(f"{key} is missing required entries {missing}")
+    if unexpected := sorted(set(value) - required):
+        violations.append(f"{key} carries unrecognised entries {unexpected}")
+    return tuple(violations)
+
+
 #: Every key ``build_report`` produces. A payload missing one is not this shape.
 REQUIRED_REPORT_KEYS = frozenset(
     {
@@ -140,10 +209,14 @@ def verdict_violations(payload: dict[str, object]) -> tuple[str, ...]:
         elif count != 0:
             violations.append(f"{key} is {count}, not 0")
 
+    # Population before values: a map holding only entries that happen to be
+    # present can pass every value check while recording none of the required
+    # ones. ``{}`` is the degenerate case — vacuously "all passed".
+    for key, required in _CLOSED_VERDICT_MAPS.items():
+        violations.extend(_closed_map_violations(payload, key, required))
+
     findings = payload.get("findings")
-    if not isinstance(findings, dict):
-        violations.append("findings is missing or not an object")
-    else:
+    if isinstance(findings, dict):
         for key in _ZERO_FINDINGS:
             found = findings.get(key)
             if type(found) is not int:
@@ -152,9 +225,7 @@ def verdict_violations(payload: dict[str, object]) -> tuple[str, ...]:
                 violations.append(f"findings.{key} is {found}, not 0")
 
     canaries = payload.get("version_canaries")
-    if not isinstance(canaries, dict):
-        violations.append("version_canaries is missing or not an object")
-    else:
+    if isinstance(canaries, dict):
         for name, passed in sorted(canaries.items()):
             if type(passed) is not bool:
                 violations.append(f"version_canaries.{name} is not a boolean")
@@ -162,9 +233,7 @@ def verdict_violations(payload: dict[str, object]) -> tuple[str, ...]:
                 violations.append(f"version canary {name} did not pass")
 
     accounting = payload.get("accounting")
-    if not isinstance(accounting, dict):
-        violations.append("accounting is missing or not an object")
-    else:
+    if isinstance(accounting, dict):
         counts: dict[str, int] = {}
         for key in _ACCOUNTING_KEYS:
             value = accounting.get(key)
@@ -215,8 +284,18 @@ def recorded_success_violations(payload: object) -> tuple[str, ...]:
             f"report_version {payload.get('report_version')!r} is not the supported "
             f"{EVIDENCE_REPORT_SCHEMA_VERSION!r}"
         )
+    # Exact, not merely complete. Requiring only that the known keys are present
+    # lets an edited-and-rehashed payload carry an unknown field under the same
+    # schema version, which is a different document claiming to be this one.
     if missing := sorted(REQUIRED_REPORT_KEYS - set(payload)):
         violations.append(f"evidence report is missing {missing}")
+    if unexpected := sorted(set(payload) - REQUIRED_REPORT_KEYS):
+        violations.append(
+            f"evidence report carries unrecognised keys {unexpected} under schema "
+            f"{EVIDENCE_REPORT_SCHEMA_VERSION!r}"
+        )
+    for key, required in _CLOSED_STRUCTURAL_MAPS.items():
+        violations.extend(_closed_map_violations(payload, key, required))
     status = payload.get("prepublication_validation_status")
     if status != "pass":
         violations.append(
