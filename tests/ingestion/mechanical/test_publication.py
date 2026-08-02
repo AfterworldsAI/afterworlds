@@ -19,6 +19,16 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.corpus.report import (
+    REQUIRED_REPORT_KEYS,
+    recorded_success_violations,
+)
+from afterworlds.ingestion.corpus.report import (
+    EvidenceReport as CorpusEvidenceReport,
+)
+from afterworlds.ingestion.corpus.report import (
+    report_hash as corpus_report_hash,
+)
 from afterworlds.ingestion.mechanical import publication
 from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
@@ -53,6 +63,7 @@ from afterworlds.persistence.orm.mechanical import (
 )
 from afterworlds.persistence.orm.rules_package import RuleChunkORM, RulesPackageORM
 from tests.ingestion.mechanical.conftest import (
+    BOUND_REPORT,
     BOUNDED_ORACLE_PATH,
     DESCRIPTOR_FACT,
     DESCRIPTOR_KEY,
@@ -606,6 +617,34 @@ def a_chunk(session: Session) -> RuleChunkORM:
     return session.execute(select(RuleChunkORM)).scalars().first()  # type: ignore[return-value]
 
 
+def _rewrite_release_report(session: Session, **overrides: object) -> None:
+    """Edit the 5c release's recorded report *and* rehash it.
+
+    Deliberately consistent: the payload still hashes to the recorded hash and
+    every one of the five proof identities is untouched, so identity checking
+    alone accepts it. Only the recorded verdict has changed.
+    """
+    release = release_row(session)
+    payload = dict(release.report_payload or {})
+    payload.update(overrides)
+    release.report_payload = payload
+    release.evidence_report_hash = corpus_report_hash(
+        CorpusEvidenceReport(payload=payload, persisted=True)
+    )
+    release.corpus_report_reference = release.evidence_report_hash
+
+
+def test_the_bounded_release_report_is_a_successful_5c_verdict() -> None:
+    """The fixture's report is a real ``build_report`` output, and it passes.
+
+    Also a drift guard: if ``build_report`` gains or renames a key without
+    ``REQUIRED_REPORT_KEYS`` following, this fails rather than quietly letting
+    the recorded-verdict check stop covering the new field.
+    """
+    assert set(BOUND_REPORT.payload) == REQUIRED_REPORT_KEYS
+    assert recorded_success_violations(BOUND_REPORT.payload) == ()
+
+
 def test_a_fabricated_binding_both_sides_agree_on_still_fails(
     session: Session, committed_oracle: AcceptedOracle
 ) -> None:
@@ -655,6 +694,27 @@ def test_a_fabricated_binding_both_sides_agree_on_still_fails(
         pytest.param(
             lambda s: setattr(a_chunk(s), "content", a_chunk(s).content + "!"),
             id="release-content-edited-under-its-recorded-proof",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s, prepublication_validation_status="fail"
+            ),
+            id="release-evidence-records-a-failed-verdict",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, unresolved_leaves=3),
+            id="release-evidence-claims-pass-over-unresolved-leaves",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s,
+                findings={"gaps": 2, "overlaps": 0, "orphans": 0, "duplications": 0},
+            ),
+            id="release-evidence-claims-pass-over-coverage-gaps",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, concordance_failures=1),
+            id="release-evidence-claims-pass-over-concordance-failures",
         ),
     ],
 )

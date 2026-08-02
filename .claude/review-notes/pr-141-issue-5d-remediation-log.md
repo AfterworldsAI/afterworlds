@@ -352,3 +352,212 @@ No new Chroma import or runtime dependency entered the mechanical publication
 path. The round-1 import edge (`mechanical/gate.py` → `corpus/persistence.py` →
 `chromadb` at module scope) is unchanged and remains import-time only; nothing on
 the publication path constructs a client.
+
+---
+
+## Remediation round 3 — three closures: evidence verdict, race outcomes, JSON types
+
+Three findings, treated as three defect families. The first returned to the
+`verify_published_release` authority/evidence seam, so the standing stop
+condition fired again and it was classified before any edit.
+
+### P1a — recorded evidence verdict: classification first
+
+**Classification.** This is *not* another vector-ownership question, and the
+Round 2 Owner Decision is unchanged and remains sufficient. `verify_published_release`
+is correctly owned by 5c and correctly placed. The seam is **incomplete**: it
+validated the recorded report's *identity* — hash of payload, proof identities
+matching the release row — without validating that the recorded evidence
+declares and semantically represents a **successful** 5c publication verdict.
+Identity is necessary and not sufficient: a report edited to `"fail"` and
+rehashed keeps every identity intact.
+
+The correction stays inside PR 2 because 5d is the direct consumer of this
+newly introduced 5c verification seam — the incompleteness ships with the seam
+this PR added, not with pre-existing 5c behaviour. No new Owner Decision, Known
+Unknown, Issue amendment, or ADR amendment.
+
+**One canonical definition, not a `payload.get(...) == "pass"` branch.**
+Inspected together: `build_report`'s `prepublication_ok` predicate,
+`run_gate` condition 18, `_report_schema_ok`, `verify_published_release`, fresh
+finalization, and verified reuse.
+
+`corpus/report.py` now owns the definition:
+
+- `verdict_violations(payload)` — pure over the payload; why these numbers do
+  not state a successful publication. Covers `unresolved_leaves`,
+  `invalid_locators`, `concordance_failures`, the four reconciliation findings,
+  every version canary, the duplicated accounting block (its own
+  `unresolved_leaves`, the accounting equation, and agreement with the top-level
+  count). Every field is type-checked, with `bool` excluded from `int`
+  explicitly — otherwise `true` reads as the count `1`.
+- `build_report` now *derives* `prepublication_validation_status` from that
+  function over the payload it has just assembled, rather than from a second
+  predicate over the source objects. The two were equivalent
+  (`concordance.passed` ⇔ zero locator and content failures; canaries ⇔ all
+  `version_canaries` true), and now they are literally the same code, so a
+  contradictory report cannot be written here at all.
+- `recorded_success_violations(payload)` — the downstream check: supported
+  schema version, every required key, `prepublication_validation_status ==
+  "pass"`, *and* `verdict_violations` empty. Evaluated even when the status
+  already says pass, because the defect is a payload claiming success over
+  summaries that record failure.
+
+**`run_gate` deliberately keeps its own one-line status check.** It holds the
+freshly built `EvidenceReport` object — live `persisted` flag, typed
+sub-objects — and is asking a different question of a value it just produced.
+The recorded-payload validator inspects a payload of unknown provenance: JSON
+round-tripped, possibly hand-edited, types unproven. Routing `run_gate` through
+it would make every 5c gate test that constructs a deliberately-failing report
+fail on shape rather than on the condition under test. There is one definition
+of report *success*, consumed at two boundaries with different trust levels;
+that is stated in the module comment so the next reader does not "fix" it.
+
+**A second early return in `verify_published_release`.** The recorded-evidence
+block now bails after its own violations, like the missing-row case. Previously
+a malformed payload appended a violation and then still drove the proof-column
+loop and reconstruction, so the real finding arrived buried under noise derived
+from it.
+
+**Not done:** no reopening of Chroma; the recorded digest is still verified as
+an exact recorded value under the Round 2 Owner Decision. No historical proof
+invented that the report does not contain — `persisted` is not in the payload,
+so it is not asserted; `prepublication_validation_status == "pass"` already
+implies it held at build time.
+
+**Controls.** `tests/ingestion/corpus/test_recorded_evidence.py` (30):
+status edited to `"fail"` with identities intact; ten payloads holding `"pass"`
+while one success-bearing summary contradicts it; nine wrongly-typed or missing
+verdict fields; non-object payloads; obsolete schema version; and the honest
+report accepted. End-to-end, `test_publication.py`'s bound-release matrix gained
+four cases that rewrite the release's recorded report **and rehash it**, so the
+payload still hashes to its recorded hash and all five proof identities are
+untouched — identity checking alone would accept them, and publication returns
+`STALE` with exactly `{BOUND_RELEASE}`.
+`test_the_bounded_release_report_is_a_successful_5c_verdict` holds a real
+`build_report` output to `REQUIRED_REPORT_KEYS` and to the validator, so a new
+report field cannot silently escape the verdict check.
+
+### P1b — typed outcomes for activation races
+
+**The gap.** The pre-insert active-row observation and the activation insert are
+not one atomic step. Under genuine concurrency the losing publisher's write
+fails at the uniqueness constraint or the SQLite write lock, and the handler
+rolled back and re-raised — so the `ALREADY_PUBLISHED` / `ACTIVE_CONFLICT`
+contract held only for sequential callers.
+
+**Architecture: rollback, then reattempt the whole operation once.** On a
+recognized activation race the transaction is rolled back and
+`_publish_projection` re-enters itself on a clean transaction, bounded by an
+explicit `reattempted` flag rather than by inferring depth from state. The
+second pass sees the winner's commit and reaches the answer through the
+*ordinary* paths — `ALREADY_PUBLISHED` for the same projection (now published,
+via the reuse path, which re-runs the full gate and the recorded-evidence
+closure) or `ACTIVE_CONFLICT` for a competing one. Deliberately not a separate
+"race result" verifier: reconciliation that trusted the active row alone would
+be a second, weaker publication proof. The complete committed-oracle proof still
+governs every returned result.
+
+**Classification is narrow.** `_is_activation_race` accepts an `IntegrityError`
+only when the message names `rp_mech_active_projections`, and an
+`OperationalError` only for `database is locked` / `database table is locked`.
+A blanket catch would relabel an unrelated constraint violation as concurrency
+and retry it. Everything else propagates through the existing handler.
+
+No process-local lock. A `threading.Lock` would not protect separate processes
+and would only hide the database race from the tests.
+
+**Tests** — `tests/ingestion/mechanical/test_concurrent_publication.py` (22).
+File-backed SQLite (an in-memory database is per-connection, so two workers
+would silently use two databases and every race would "pass"), separate sessions
+and connections, `connect_args={"timeout": 0.1}` — at SQLite's default the loser
+simply blocks until the winner commits and succeeds serially, which looks green
+while never exercising contention.
+
+*Barrier placement was the one real design decision here.* The obvious hook —
+wrapping `_activate_projection` — deadlocks: SQLite has a single writer, so a
+worker parked mid-transaction holds the write lock, the other fails its header
+flush, reattempts, fails again while the first is still parked, and the barrier
+never fills. (Observed: 20 failures, `BrokenBarrierError`, 10 minutes of
+timeouts.) The barrier belongs on the **pre-insert observation** — the
+`_active_row` read every publisher performs before deciding to write — so both
+workers provably see the same "no incumbent" state while holding only a read.
+Each worker trips it at most once, so the bounded reattempt runs freely.
+
+Coverage: concurrent identical publication → exactly one active row and
+`{published, already_published}`; concurrent competing publication → exactly one
+active row, `ACTIVE_CONFLICT` for the loser, and the loser still `draft` with
+`evidence_report_hash`, `report_payload`, `oracle_identity`, and `published_at`
+all NULL; an injected unrelated `IntegrityError` propagates; a permanently
+conflicting activation is reattempted exactly once and then raises. Each race is
+parametrized over 10 repeats, and the module was run 6 times in total — **60
+executions of each race**, all green.
+
+### P2 — the complete oracle JSON boundary
+
+Not a `char_start` patch. Frozen dataclasses do not enforce annotations, so
+*every* field the loader read could carry the wrong JSON type and surface far
+away as an unclassified `TypeError`, `KeyError`, or `AttributeError`.
+
+`oracle.py` gained small strict helpers — `_string`, `_optional_string`,
+`_offset`, `_list`, `_string_list`, `_object_list` — and every field read by
+`load_oracle`, `_span`, `_representation`, `_obligation`, `ReleaseBinding`, and
+the record/component/prose-binding/relationship/reference/provenance
+constructors now goes through one. No coercion: `"0"` is not `0`, `0` is not
+`"0"`, `True` is not `1` (rejected explicitly — `bool` is an `int` subclass),
+`0.0` is not `0`, a string is not an array of its characters. Null is accepted
+only where the field is declared optional (`parent_key`,
+`irreducibility_reason_code` on components, `non_mechanical_reason_code`).
+
+Two specific traps closed:
+
+- **`tuple("abc")` / `frozenset("abc")`.** Provenance `target_key` and
+  obligation `prose_bound_components` both feed such constructors, which succeed
+  on a bare string and invent one element per character — accepted authority
+  manufactured from a typo.
+- **`facts` delegation.** `fact_from_payload` reads a mapping and raises a bare
+  `AttributeError` on a non-object element, escaping the loader's documented
+  error. The fact list is now shape-checked with `_object_list` *before*
+  delegation; family validation itself stays where it is owned, and the closed
+  union's declared failures are still wrapped as `OracleLoadError`.
+
+**Range invariants stay out.** `_offset` rejects non-integers and negatives
+because those are outside the declared domain — a type judgement. Ordering,
+gap-free coverage, and whether spans partition their leaf belong to the semantic
+validator, which already owns partition validity; a second definition here is
+exactly what the family rule warns against. Stated in the helper's docstring.
+
+**Controls** — `test_oracle.py` gained a 42-case matrix over the real committed
+fixture: top-level arrays as strings/objects/null; array elements of the wrong
+type; release-binding and policy strings as numbers, arrays, or null; span ids
+mistyped; `char_start` as string, boolean, float, null, and negative;
+record/component/prose-binding/relationship scalars mistyped; optional fields
+given invalid non-null types; `facts` not a list and a fact element not an
+object; provenance `target_key` as a string and as a list of numbers; obligation
+family and component collections as strings and as lists of numbers. Every case
+raises `OracleLoadError` naming where it was found. The committed bounded oracle
+and the packaging sentinel oracle both still load unchanged — checked first,
+before any suite, so a fixture-shape problem could not present as hundreds of
+unrelated failures.
+
+### Gates on the branch head
+
+`black` clean · `ruff check` clean · `mypy --strict` clean (210 files) ·
+mechanical suites incl. concurrency **545 passed** (bounded; excludes the
+real-corpus control) · 5c corpus suite + production control **224 passed** ·
+concurrency module repeated 6× (60 executions of each race) · full default suite **3116 passed, 10 skipped** (93.41%) · wheel and sdist packaging tests pass, which also exercises the stricter
+loader against the sentinel oracle.
+
+No Chroma import or runtime dependency entered the mechanical publication path;
+no process-local lock was introduced; the Round 2 Owner Decision is untouched.
+
+### Renewed stop condition
+
+If a further review finds another authority/evidence omission in
+`verify_published_release`, another transaction-race escape at the same
+publication boundary, or another unvalidated primitive/container path in
+`load_oracle`, the patch cycle stops. The assessment to report at that point is
+whether the verifier should become a separately reviewed 5c hardening change,
+whether the publication transaction needs a different ownership or serialization
+model, or whether the oracle format needs an explicit schema object rather than
+hand-written parsing.

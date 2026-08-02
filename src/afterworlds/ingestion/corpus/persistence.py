@@ -77,6 +77,7 @@ from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_report,
+    recorded_success_violations,
     report_hash,
 )
 from afterworlds.ingestion.corpus.source_completeness import (
@@ -910,9 +911,11 @@ def verify_published_release(
     The five declared values (plus *pkg* itself) must equal the authoritative
     ``rp_corpus_releases`` row, that row must be published under a
     published/enabled ``rp_packages`` row, its recorded evidence report must
-    still hash to its recorded hash and state the same proof identities as the
-    row, and the ledger, reconciliation, and bundle-root identities must be
-    exactly what the persisted rows reconstruct to.
+    still hash to its recorded hash, state the same proof identities as the row,
+    **and record a successful publication verdict**
+    (:func:`report.recorded_success_violations`), and the ledger, reconciliation,
+    and bundle-root identities must be exactly what the persisted rows
+    reconstruct to.
 
     **What this cannot re-prove.** ``persisted_corpus_digest`` binds the actual
     read-back *vector* logical state as well as SQL (Component A), so it is not
@@ -970,28 +973,39 @@ def verify_published_release(
             f"release {pkg} carries no recorded evidence report "
             "(hash and/or payload absent)"
         )
-    elif not _report_schema_ok(payload, release.transform_config):
+        # Everything below reads that payload, so continuing would bury the real
+        # finding under violations derived from it.
+        return tuple(violations)
+    if not _report_schema_ok(payload, release.transform_config):
         violations.append(
             "recorded evidence-report schema version "
             f"(report={payload.get('report_version')!r}) is missing, obsolete, "
             f"or contradictory vs the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
         )
-    else:
-        if (
-            report_hash(EvidenceReport(payload=payload, persisted=True))
-            != release.evidence_report_hash
-        ):
+        return tuple(violations)
+
+    if (
+        report_hash(EvidenceReport(payload=payload, persisted=True))
+        != release.evidence_report_hash
+    ):
+        violations.append(
+            "recorded evidence-report payload does not hash to the recorded "
+            "evidence_report_hash"
+        )
+    for report_key, column in _REPORT_PROOF_COLUMNS:
+        if payload.get(report_key) != getattr(release, column):
             violations.append(
-                "recorded evidence-report payload does not hash to the recorded "
-                "evidence_report_hash"
+                f"recorded evidence report states {report_key}="
+                f"{payload.get(report_key)!r}, release row records "
+                f"{column}={getattr(release, column)!r}"
             )
-        for report_key, column in _REPORT_PROOF_COLUMNS:
-            if payload.get(report_key) != getattr(release, column):
-                violations.append(
-                    f"recorded evidence report states {report_key}="
-                    f"{payload.get(report_key)!r}, release row records "
-                    f"{column}={getattr(release, column)!r}"
-                )
+    # Identity is necessary but not sufficient. A report edited to "fail" — or to
+    # "pass" over summaries that record failures — and rehashed keeps every proof
+    # identity intact while recording that publication did not succeed.
+    violations.extend(
+        f"recorded evidence report is not a successful 5c verdict: {v}"
+        for v in recorded_success_violations(payload)
+    )
 
     try:
         policy = _load_policy(session, pkg)
