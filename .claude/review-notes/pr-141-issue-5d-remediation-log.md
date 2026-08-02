@@ -561,3 +561,53 @@ whether the verifier should become a separately reviewed 5c hardening change,
 whether the publication transaction needs a different ownership or serialization
 model, or whether the oracle format needs an explicit schema object rather than
 hand-written parsing.
+
+---
+
+## Remediation round 4 — stop condition fired: escalated to a stacked 5c hardening PR
+
+**Codex's finding is valid.** `VERSION_CANARIES` defines six required checks;
+Round 3's `verdict_violations` iterates whatever `version_canaries` happens to
+contain and requires each present entry to be `True`. It never requires the map
+to *be* the canonical population. So `{}`, `{"invented": true}`, or a partial
+map satisfies recorded verdict validation once `report_payload` and
+`evidence_report_hash` are edited together — `verify_published_release` accepts
+evidence recording none of the required version checks.
+
+**The renewed stop condition applies and has been honoured.** This is the fourth
+consecutive round in the same 5c recorded-evidence verification seam
+(`verify_published_release` and the report helpers behind it) — Rounds 1, 2, 3,
+and now 4. Under the stated condition, no further local patch was made inside
+this PR.
+
+**Classification.**
+
+- Not an Owner Decision: nothing here concerns who owns proving what.
+- Not a Known Unknown: the required behaviour is fully determined by an existing
+  committed constant.
+- Not an ADR question: no accepted contract changes; a valid report already
+  satisfies the semantics being enforced.
+- Not a 5d ownership dispute: the verifier is correctly owned by 5c and
+  correctly called from 5d.
+- It is a **defect family in the 5c-owned downstream verifier**: *the recorded
+  evidence validator checks required values but does not yet prove the exact
+  population of every closed schema inventory.* `version_canaries` is one
+  instance; the top-level key set, `findings`, and `accounting` are siblings
+  that must be audited with it.
+
+Four rounds in one seam is the signal the stop condition exists to catch: the
+verifier now needs a **separately reviewed 5c hardening change**, not a fifth
+field-by-field patch buried in a 5d publication PR where it competes for review
+attention with concurrency, packaging, and oracle parsing.
+
+**Disposition.** Review of PR #141 is paused. The hardening is delivered as a
+narrow stacked PR branched from `1edc0ec` and based on
+`feature/issue-5d-publication-gate` — not `main`, because the downstream
+verifier and the Round 3 report helpers are introduced by this PR and do not
+exist upstream yet. It is reviewed on its own, merged into this branch, and only
+then does #141 request a fresh review.
+
+If that hardening review finds yet another omitted closed inventory in the same
+report schema, the hand-maintained validation is replaced by an explicit typed
+canonical report schema whose construction, hashing, persistence, and recorded
+verification all use one object.
