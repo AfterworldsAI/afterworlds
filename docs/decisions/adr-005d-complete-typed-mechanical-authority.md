@@ -5,7 +5,8 @@
 **Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
 review) so the effective runtime binding also carries an immutable override-set identity, and clarified
 in the same review so the contents that identity names are retained as immutable, provenance-exact replay
-evidence  
+evidence; amended by Owner Decision 2026-08-01 (PR #141 review) to fix how a downstream 5d consumer
+verifies an already-published 5c release's `persisted_corpus_digest` — see Decisions 6 and 8  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -148,6 +149,15 @@ This identity covers the immutable base projection only. `RuleOverride` state is
 and carries its own separate identity under Decisions 9 and 10, so an override change never mutates or
 remints the base projection UUID.
 
+**Owner Decision 2026-08-01 (PR #141) — the 5c `persisted_corpus_digest` in the 5d binding.** The exact
+`persisted_corpus_digest` recorded by a successfully published 5c release remains part of the immutable
+5d source binding and of mechanical projection identity. Its meaning is unchanged: it is the 5c
+cross-store proof identity, and it still covers the vector logical state 5c bound into it. What this
+amendment fixes is how a *downstream* 5d consumer verifies an already-published release — the digest is
+consumed as immutable release identity and historical publication evidence, verified for exact equality
+against the authoritative 5c release record and its recorded evidence report. 5d does not redefine,
+narrow, or recompute the value.
+
 ### Decision 7 — Build-time reference resolution
 
 Mechanical references resolve at build time through committed source scope, aliases, and exact target
@@ -172,6 +182,25 @@ build candidate
 Draft/partial projections are not active authority. Published projections are immutable. Meaning-changing
 corrections *to the projection itself* mint a new projection UUID; changes to override state do not (see
 Decision 9).
+
+**Owner Decision 2026-08-01 (PR #141) — what the 5d publication gate proves about the bound 5c release.**
+Before publishing a mechanical projection the gate must, through the 5c-owned verification seam:
+
+- verify exact equality of the six-value binding — including `persisted_corpus_digest` — with the
+  authoritative 5c release record;
+- verify that release's recorded evidence payload and proof identities;
+- reconstruct and re-prove all SQLite-authoritative corpus state that seam exposes; and
+- reject missing, mismatched, unpublished, or SQL-inconsistent release state.
+
+The 5d gate **does not** open or depend on ChromaDB to recompute the vector-backed portion of the 5c
+persisted-corpus digest. Chroma remains an informational, rebuildable projection and is not mechanical
+authority (ADR-018 D4/D10). Loss, corruption, or absence of the live rules-corpus vector collection after
+successful 5c publication is a CRD Issue 18 operational/reindex defect; it does not make the 5c source
+authority stale for 5d publication.
+
+This does not weaken CRD Issue 5c. Fresh 5c publication and 5c's own verified-reuse path must continue to
+write, read back, and verify the required vector projection before declaring a 5c release published or
+reusable.
 
 ### Decision 9 — Deterministic effective binding and selector ownership
 
@@ -405,6 +434,13 @@ narrowly scoped cross-reference as of this change.
     identity and origin as well. Identity is not broadened past that: creation timestamps, authors,
     comments, and proposal history stay non-identity audit metadata unless they participate in
     applicability, ordering, or resolution.
+14. **Recompute the vector-backed half of the 5c `persisted_corpus_digest` during 5d publication.**
+    Rejected by Owner Decision 2026-08-01 (PR #141): it would make mechanical authority depend on live
+    Chroma health, contradicting ADR-018 D4/D10 — an informational, rebuildable projection would become a
+    precondition for publishing mechanical canon, so a reindex-able vector defect would present as stale
+    source authority. 5d verifies the recorded digest against the authoritative release record and its
+    evidence report and re-proves the SQLite-authoritative state; proving the live vector projection stays
+    with 5c publication and 5c verified reuse, and its operational health with CRD Issue 18.
 
 ---
 

@@ -109,6 +109,10 @@ nothing on the mechanical publication path opens a Chroma client.
 
 ### Unresolved boundary (not a Known Unknown)
 
+*Superseded by Owner Decision 2026-08-01 — see Remediation round 2. Codex round 2
+correctly objected that this section named a deviation without citing governing
+authority for it. The behaviour below is unchanged; it is now authorized.*
+
 `rp_corpus_releases.persisted_corpus_digest` binds the **actual read-back vector
 logical state** as well as SQL (CRD Issue 5c Component A). It is therefore not
 recomputable from a `Session` alone, and threading a Chroma client into the
@@ -184,6 +188,8 @@ closure** family in `oracle.py`, `gate.py`, or `publication.py`, the patch cycle
 stops before code changes and the remaining feedback is classified as issue
 scope, Known Unknown, or ownership semantics.
 
+*(Round 2 exercised this. See below.)*
+
 Two candidates are already anticipated and would be classified rather than
 patched:
 
@@ -210,3 +216,139 @@ real bundle root, and `data/bounded_oracle.json` carries that one changed value.
 `tests/ingestion/mechanical/test_production_release.py` now restates the
 published transition after `persist_release`, which writes step-c drafts — the
 5d gate refuses to publish over a draft 5c release, correctly.
+
+---
+
+## Remediation round 2 — an ownership boundary and a distribution defect
+
+Two findings. The P1 returned to the round-1 authority/evidence-closure family,
+so the standing **stop condition fired**: no code was changed on that finding
+until it had been classified and an Owner Decision obtained. The P2 is an
+ordinary distribution defect and was fixed in code and tests.
+
+### P1 — recorded vector digest: classified, then authorized
+
+**Codex's evidence was correct.** `_REPORT_PROOF_COLUMNS` compares
+`persisted_corpus_digest` between the SQL release row and its stored evidence
+report and never reads Chroma. If the vector collection is deleted or corrupted
+after `finalize_release`, both recorded values still agree,
+`verify_published_release` succeeds, and the mechanical gate may publish. The
+round-1 Architecture Notes named this as a deviation but cited no governing
+authority for it — which is the actual defect Codex identified.
+
+**Classification** (of the three the stop condition enumerates): not a genuinely
+incomplete proof lifecycle, and not the obligations semantic question. This is an
+**ownership boundary** — who owns proving live vector health, and whether an
+informational rebuildable projection may gate mechanical canon. Escalated rather
+than patched, because both available code answers were wrong in opposite
+directions: recomputing the vector half would make mechanical authority depend on
+live Chroma (contradicting ADR-018 D4/D10), and narrowing the digest would change
+5c identity semantics.
+
+**Owner Decision 2026-08-01.** The recorded `persisted_corpus_digest` of a
+successfully published 5c release is consumed by 5d as immutable release identity
+and historical publication evidence. Before publishing, the 5d gate verifies exact
+equality with the authoritative 5c release record, verifies the recorded evidence
+payload and proof identities, reconstructs and re-proves all SQLite-authoritative
+corpus state exposed by the 5c-owned seam, and rejects missing, mismatched,
+unpublished, or SQL-inconsistent release state. It does not open or depend on
+ChromaDB to recompute the vector-backed portion. Live vector loss or corruption
+after successful 5c publication is a CRD Issue 18 operational/reindex defect, not
+stale 5c source authority for 5d. 5c publication and 5c verified reuse retain
+their existing cross-store obligation.
+
+**Recorded in governing authority, not only in the PR.**
+
+- `docs/decisions/adr-005d-complete-typed-mechanical-authority.md`: the Status
+  line records the 2026-08-01 amendment; Decision 6 gains a paragraph stating the
+  digest remains part of the immutable 5d binding with its meaning unchanged, and
+  that 5d neither redefines, narrows, nor recomputes it; Decision 8 gains the
+  four-item list of what the gate must prove plus the explicit no-Chroma
+  boundary, the Issue 18 ownership statement, and the restatement that 5c is
+  unweakened; Rejected alternatives gains entry 14.
+- GitHub Issue #137: Contracts 1 and 5 amended to the same rule.
+
+**No implementation change was required or made.** `verify_published_release`
+already did exactly what the decision authorizes. What changed is that it is now
+authorized. The Architecture Notes entry no longer reads as an unauthorized
+deviation.
+
+**Deliberately not done:** no Chroma client in `mechanical/gate.py` or on the
+publication path (`grep -rn "chroma\|Chroma\|ClientAPI" src/afterworlds/ingestion/mechanical/`
+returns nothing); no change to 5c finalization, verified reuse, or digest
+identity semantics.
+
+### P2 — committed oracles were absent from both distributions
+
+`oracle.committed_oracle_for` resolves from a fixed directory inside the installed
+package, but `[tool.setuptools.package-data]` listed only the persona JSON and the
+5c table inventory, and `MANIFEST.in` had no mechanical-oracle rule. A source
+checkout would publish; an installed application would return `ABSENT` for every
+projection — publication failing for a reason with nothing to do with the oracle.
+Latent today (the directory is deliberately empty of production content) and
+guaranteed to bite the accepted-content PR.
+
+**Fix.** `pyproject.toml` gains `ingestion/mechanical/oracles/*.json`, preserving
+the persona and 5c table-inventory entries; `MANIFEST.in` gains
+`recursive-include src/afterworlds/ingestion/mechanical/oracles *.json`.
+
+**`importlib.resources` was not required.** `COMMITTED_ORACLE_DIR =
+Path(__file__).resolve().parent / "oracles"` resolves correctly from both an
+installed wheel and an installed sdist — proven by the test below, whose probe
+reports the resolved directory as living under the install target, not the
+checkout. The seam was left unchanged: switching it would have been a change to
+the production resource API with no defect behind it, and the 5c precedent
+(`table_inventory.py`) uses `importlib.resources` for a different shape — a single
+file read through `files(__package__).joinpath(...)`, not directory enumeration.
+If a future distribution shape uses a non-filesystem loader (zipimport, a zipped
+egg), `importlib.resources.files(...).iterdir()` is the upgrade path, and it must
+preserve deterministic sorted enumeration, strict `load_oracle`, duplicate-release
+rejection, the fixed non-overridable production location, and the private
+arbitrary-directory test seam.
+
+### Installed-distribution test
+
+`tests/ingestion/mechanical/test_packaging.py`, extending the CRD Issue 5c pattern
+in `tests/ingestion/corpus/test_packaging.py` rather than introducing a second
+packaging framework.
+
+The real production oracle directory must stay empty of accepted content, so the
+test cannot ship a real oracle to prove packaging. It instead stages a build-able
+**copy** of `pyproject.toml`, `MANIFEST.in`, and `src/` into a tmp tree, writes one
+valid sentinel oracle (`pkg-sentinel-packaging` / `rel-sentinel-packaging`, empty
+spans and representation, so the closed obligation relation is satisfied
+trivially), builds a wheel and an sdist from that copy, and installs each into its
+own isolated target.
+
+Against each install it runs the **genuine production path** in a subprocess with
+`-S` and a `PYTHONPATH` led by the target, from a neutral CWD, so the repository is
+not importable: seed an in-memory SQLite database with a published
+`rp_corpus_releases` row and a draft `rp_mech_projections` header bound to the
+sentinel release, call `committed_oracle_for(...)`, then call
+`publish_from_committed_oracle(...)`. Assertions: the oracle resolves, its release
+version is the sentinel's, the resolved directory lies under the install target,
+the imported module is the installed copy and not `src/`, and the outcome is
+**not** `ABSENT`. The gate refuses the sentinel — it describes no real projection —
+but it refuses *having judged it*, which is the discriminator: without the packaged
+JSON the entry cannot see any accepted authority at all.
+
+Runtime probes run **before** the archive-listing assertions, deliberately, so a
+regression reports the runtime failure rather than a ZIP-manifest mismatch. The
+listings remain as a diagnostic saying which metadata file is at fault.
+
+**Falsification check.** With `pyproject.toml` and `MANIFEST.in` stashed, the probe
+reports `resolved: False`, `outcome: "absent"` from the installed wheel — the exact
+defect. With them restored, both artifacts pass. A separate test asserts the
+checkout's production directory still contains no `*.json`.
+
+### Gates on the branch head
+
+`black` clean · `ruff check` clean · `mypy --strict` clean (210 files) ·
+mechanical + packaging suites **449 passed** (bounded; excludes the real-corpus
+control) · production-corpus control **8 passed** · CRD Issue 5c ingestion/corpus
+suite **186 passed** · full default suite green.
+
+No new Chroma import or runtime dependency entered the mechanical publication
+path. The round-1 import edge (`mechanical/gate.py` → `corpus/persistence.py` →
+`chromadb` at module scope) is unchanged and remains import-time only; nothing on
+the publication path constructs a client.
