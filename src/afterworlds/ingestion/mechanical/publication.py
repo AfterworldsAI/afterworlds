@@ -37,8 +37,15 @@ by discipline:
   never on a status check alone.
 * **Activation cannot split.** ``rp_mech_active_projections`` is keyed by
   ``package_uuid``, so one active projection per package is a database
-  constraint. A competing projection is rejected as ``ACTIVE_CONFLICT`` with
-  the incumbent untouched.
+  constraint, and the database — not a process-local lock — is the arbiter.
+  A competing projection is rejected as ``ACTIVE_CONFLICT`` with the incumbent
+  untouched. Under genuine concurrency the pre-insert observation and the write
+  are not one step, so a losing publisher's activation fails at the constraint
+  or the write lock; that is rolled back and the *whole* operation is reattempted
+  once on a clean transaction, where the winner's commit is visible and the
+  ordinary paths return ``ALREADY_PUBLISHED`` or ``ACTIVE_CONFLICT``. The loser
+  never keeps a partially published header, and only activation-contention
+  errors are treated this way — anything else propagates.
 
 Every outcome is typed. Nothing here returns ``None``, an empty result, or a
 generic exception to mean "not published" (#137 contract 5).
@@ -50,6 +57,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.gate import (
@@ -407,12 +415,34 @@ def _activate_projection(
     )
 
 
+#: SQLite's message when a second connection holds the write lock. Matched by
+#: text because the driver exposes no code for it; both spellings occur.
+_LOCK_MESSAGES = ("database is locked", "database table is locked")
+
+
+def _is_activation_race(exc: IntegrityError | OperationalError) -> bool:
+    """Is this the database refusing a *concurrent activation*, specifically?
+
+    Narrow on purpose. A blanket ``except IntegrityError`` would relabel an
+    unrelated constraint violation — a bad FK, a duplicated projection row — as
+    a race and retry it, turning a real defect into a confusing typed outcome.
+    So an integrity error qualifies only when it names the activation table, and
+    an operational error only when it is the write-lock contention this
+    transaction can genuinely lose.
+    """
+    message = str(getattr(exc, "orig", exc))
+    if isinstance(exc, IntegrityError):
+        return MechanicalActiveProjectionORM.__tablename__ in message
+    return any(lock in message.lower() for lock in _LOCK_MESSAGES)
+
+
 def _publish_projection(
     session: Session,
     projection_uuid: str,
     oracle: AcceptedOracle | None,
     *,
     now: str,
+    reattempted: bool = False,
 ) -> PublicationResult:
     """Gate a persisted projection and, only if it passes, publish it atomically.
 
@@ -449,41 +479,42 @@ def _publish_projection(
             _outcome_for(gate), projection_uuid, gate=gate, report=report
         )
 
-    if header.publication_status == "published":
-        # Idempotent reuse, but only after the full gate above re-proved the
-        # persisted state *and* the recorded evidence proves closed against the
-        # freshly derived report. Reuse is the path an auditor is most likely to
-        # take on trust, so it is the one that must not accept a stored claim.
-        if _recorded_evidence_failures(header, gate, report, digest):
-            return PublicationResult(
-                PublicationOutcome.STALE, projection_uuid, gate=gate, report=report
-            )
-        result = _activate_projection(session, projection_uuid, now=now)
-        session.commit()
-        return PublicationResult(
-            (
-                PublicationOutcome.ALREADY_PUBLISHED
-                if result.outcome is PublicationOutcome.PUBLISHED
-                else result.outcome
-            ),
-            projection_uuid,
-            gate=gate,
-            report=report,
-            evidence_report_hash=digest,
-        )
-
-    active = _active_row(session, header.package_uuid)
-    if active is not None and active.projection_uuid != projection_uuid:
-        # The incumbent is left exactly as it is. Publication of a competing
-        # projection is a decision for whoever retires the active one.
-        return PublicationResult(
-            PublicationOutcome.ACTIVE_CONFLICT,
-            projection_uuid,
-            gate=gate,
-            report=report,
-        )
-
     try:
+        if header.publication_status == "published":
+            # Idempotent reuse, but only after the full gate above re-proved the
+            # persisted state *and* the recorded evidence proves closed against
+            # the freshly derived report. Reuse is the path an auditor is most
+            # likely to take on trust, so it is the one that must not accept a
+            # stored claim.
+            if _recorded_evidence_failures(header, gate, report, digest):
+                return PublicationResult(
+                    PublicationOutcome.STALE, projection_uuid, gate=gate, report=report
+                )
+            result = _activate_projection(session, projection_uuid, now=now)
+            session.commit()
+            return PublicationResult(
+                (
+                    PublicationOutcome.ALREADY_PUBLISHED
+                    if result.outcome is PublicationOutcome.PUBLISHED
+                    else result.outcome
+                ),
+                projection_uuid,
+                gate=gate,
+                report=report,
+                evidence_report_hash=digest,
+            )
+
+        active = _active_row(session, header.package_uuid)
+        if active is not None and active.projection_uuid != projection_uuid:
+            # The incumbent is left exactly as it is. Publication of a competing
+            # projection is a decision for whoever retires the active one.
+            return PublicationResult(
+                PublicationOutcome.ACTIVE_CONFLICT,
+                projection_uuid,
+                gate=gate,
+                report=report,
+            )
+
         header.oracle_identity = gate.oracle_identity
         header.evidence_report_hash = digest
         header.report_payload = report.payload
@@ -499,6 +530,24 @@ def _publish_projection(
                 activation.outcome, projection_uuid, gate=gate, report=report
             )
         session.commit()
+    except (IntegrityError, OperationalError) as exc:
+        # The observation above and the write below are not one atomic step, so
+        # a concurrent publisher can commit between them. The database settles
+        # it — that is the point of the activation key — and this turns losing
+        # into a typed outcome instead of a raw driver error.
+        session.rollback()
+        if reattempted or not _is_activation_race(exc):
+            raise
+        # Re-enter the *whole* operation on a clean transaction rather than
+        # inspecting the active row and inferring a result. The winner's commit
+        # is now visible, so the second pass re-runs the complete committed-oracle
+        # proof and reaches ALREADY_PUBLISHED (same projection, now published) or
+        # ACTIVE_CONFLICT (another projection holds the package) through the
+        # ordinary paths. Bounded to one reattempt by an explicit flag, so it
+        # cannot recurse: a race that recurs on the clean transaction propagates.
+        return _publish_projection(
+            session, projection_uuid, oracle, now=now, reattempted=True
+        )
     except Exception:
         session.rollback()
         raise
