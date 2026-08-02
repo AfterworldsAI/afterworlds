@@ -363,3 +363,126 @@ No CI runs on this stacked PR: `.github/workflows/ci.yml` triggers only on
 repository-workflow decision and a separate infrastructure follow-up after
 Issue 5d, not part of this defect. CI covers the merged result when #141 runs
 against `main`.
+
+---
+
+## Round 3 — final escalation: the value object was incomplete
+
+**All three P1s are valid, and the final escalation condition fired.** Round 2's
+audit concluded that nothing met that rule. **That conclusion is superseded.**
+The audit asked whether every path *reached* the typed object and answered yes;
+it did not ask whether the object was a *value* — deeply immutable, canonically
+serialized, and the only thing hashed. On that question the honest answer was
+no, and the third finding names it exactly: after parsing the stored payload
+into `CorpusEvidenceReport`, `verify_published_release` still hashed the
+original ORM dictionary. A report was still being verified outside the canonical
+serializer.
+
+**One defect, not three.** `CorpusEvidenceReport` validated a value at entry but
+did not yet *constitute* the single deeply immutable canonical value used for
+construction, serialization, hashing, persistence, and verification. The three
+symptoms are the same boundary being incomplete in three directions:
+
+- a canonical semantic constant (`reproduction_target.python_target`) modelled
+  as an unrestricted string, so an edited-and-rehashed report could record a
+  false reproduction target and pass every check;
+- `ConfigDict(frozen=True)` preventing attribute rebinding while nested `dict`
+  and `list` values stayed mutable — `report.version_canaries.clear()` after
+  parsing left `success_violations()` returning nothing and `dump()` emitting
+  the mutated state without revalidation, reopening the exact schema hole the
+  conversion closed;
+- a second serialization route on the read side.
+
+The reproduction-target and shallow-freeze findings are sibling evidence for the
+third: all three are places where the model is a validator that ran once rather
+than a value that cannot be wrong.
+
+**The correction is a deeply immutable canonical report value**, not more
+validators wrapped around mutable Pydantic containers. Revalidating before
+hashing would have been the fifth iteration of "remember to check" — the class
+of fix this PR exists to stop.
+
+### What replaced it, in three directions
+
+**Deep immutability.** Canonical arrays are `tuple` — source manifest, Component
+B steps, metadata fields — so an element cannot be appended or replaced.
+Content-derived maps and the canary map are validated and then wrapped in a
+`MappingProxyType` over a **copy** of the validated dict: the report owns its
+own value, so a caller mutating the dictionary it passed in cannot reach inside
+the parsed report. The proxy has no `__setitem__`, `__delitem__`, or `clear`.
+Nested models stay frozen; every collection they hold is now immutable too.
+Deliberately not chosen: revalidating before hashing. That is "remember to
+check" again, the class of fix this PR exists to end.
+
+**A canonical constant, bound not defaulted.** `PYTHON_TARGET` moved into the
+schema layer, and `ReproductionTarget` rejects anything else during parsing.
+`"99.0"` now fails intrinsically rather than surviving to a contextual
+comparison that did not exist.
+
+**One serializer, one hash.** `verify_published_release` no longer hashes the
+ORM dictionary. The raw payload is input to `parse_recorded_report` and nothing
+else; the stored hash is then checked with `report_hash` over the parsed value —
+the same call publication makes. `_report_schema_ok` was the last raw-dictionary
+report verifier and now takes the parsed report, so its remaining job is purely
+contextual: comparing the report's version with the one recorded in the stored
+transform configuration.
+
+### Integration audit, re-run
+
+- no production `hash_obj` over a report payload remains (the one match is
+  `mechanical/projection.py`, hashing a projection, unrelated);
+- one `report_hash` implementation, over `EvidenceReport.dump()`;
+- SQL writes, stored verification, and reuse reconstruction all use it;
+- `_report_schema_ok` no longer reads raw report fields;
+- no `dict[...]`/`list[...]` field annotations remain in the schema;
+- no duplicate top-level or nested inventory has returned.
+
+`mechanical/publication.py::_REQUIRED_REPORT_KEYS` remains the 5d mechanical
+report's own key set and is out of scope here, as stated in round 2.
+
+### Controls added
+
+Thirteen mutation attempts — canary `clear`, insert, and delete; totals insert
+of an invented key and of a negative count; totals delete and clear; metadata
+fields assign and append; source manifest assign and append; Component B steps
+append; attribute rebind — each asserting the operation raises **and** that the
+canonical dump and hash are unchanged afterwards. Plus: parsing does not alias
+the caller's dictionaries; the canonical collection types are `MappingProxyType`
+and `tuple`; five non-canonical reproduction targets and an extra-keyed target
+fail; and the read-side hash equals the write-side hash over the same dump.
+
+Existing malformed-shape, identity-map, variable-map, canary-population,
+contextual-tamper, and honest-report controls are retained unchanged.
+
+### Identity parity, re-run after the conversion
+
+```
+diff parity_parent.json parity_head3.json
+→ (no output; files identical)
+```
+
+Same payload, `report_hash`, `package_uuid`, `release_version`,
+`transform_config_hash`, `bundle_root_hash`, and persisted-corpus digest as
+`cfade0d`. Immutability and the bound constant changed how the document is
+*held*, not what it *is*, so `5c-evidence-3` stands.
+
+### One existing test rewritten, and why
+
+`test_report_schema_ok_fails_closed_on_bad_schema` called `_report_schema_ok`
+with raw dictionaries — its whole premise was the raw-dictionary report verifier
+this round removes. It is now
+`test_report_schema_ok_compares_the_parsed_report_with_the_transform_config`,
+passing a parsed report and exercising the one question the model cannot answer:
+agreement with the version recorded in the stored transform configuration. The
+cases it dropped — obsolete, missing, and malformed report versions — did not
+lose coverage; they moved to the parse boundary, where
+`test_recorded_evidence`'s `obsolete-schema-version` control already proves
+them. The docstring says so, so the migration is visible rather than a quiet
+deletion.
+
+### Verification (round 3)
+
+`black` clean · `ruff check` clean · `mypy --strict` clean (211 files) ·
+typed-schema module **112 passed** · mechanical suites **521 passed** ·
+5c persistence/quarantine **55 passed** · full default suite **3204 passed,
+10 skipped** (93.43%) · parity **identical**, re-run after the conversion.

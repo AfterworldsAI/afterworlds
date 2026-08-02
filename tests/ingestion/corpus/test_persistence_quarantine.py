@@ -888,29 +888,33 @@ def test_completeness_rejects_page_corruption_and_leaves_no_state(
 #  see test_migration_0018_deletes_incomplete_package_and_dependent_rows.)
 
 
-def test_report_schema_ok_fails_closed_on_bad_schema():
-    """R17 unit: ``_report_schema_ok`` is the reuse-path backstop for the evidence-
-    report schema. Current + matching (report AND transform config) → True;
-    obsolete, contradictory, missing, or malformed → False (fail closed)."""
+def test_report_schema_ok_compares_the_parsed_report_with_the_transform_config():
+    """R17 unit: the reuse-path schema backstop, now purely contextual.
+
+    ``_report_schema_ok`` used to re-verify a raw report dictionary. It takes
+    the parsed canonical report instead, so a report object cannot exist with an
+    obsolete, missing, or malformed version — the model rejects those at the
+    parse boundary, covered by ``test_recorded_evidence``'s
+    ``obsolete-schema-version`` control. What remains here is the one question
+    the model cannot answer: does the report's version agree with the version
+    recorded in the stored transform configuration?
+    """
     from afterworlds.ingestion.corpus.persistence import _report_schema_ok
     from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION as V
+    from afterworlds.ingestion.corpus.report import parse_recorded_report
+    from tests.ingestion.corpus.test_recorded_evidence import payload
 
-    assert _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": V}
-    )
-    # obsolete pre-R16 report version
-    assert not _report_schema_ok(
-        {"report_version": "5c-evidence-1"}, {"evidence_report_schema_version": V}
-    )
+    report, violations = parse_recorded_report(payload())
+    assert report is not None, violations
+
+    assert _report_schema_ok(report, {"evidence_report_schema_version": V})
     # contradictory: report current, transform config stale or absent
-    assert not _report_schema_ok({"report_version": V}, {})
+    assert not _report_schema_ok(report, {})
     assert not _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": "5c-evidence-1"}
+        report, {"evidence_report_schema_version": "5c-evidence-1"}
     )
-    # missing report version
-    assert not _report_schema_ok({}, {"evidence_report_schema_version": V})
-    # malformed payloads
-    assert not _report_schema_ok(None, {"evidence_report_schema_version": V})
+    # malformed transform configuration
+    assert not _report_schema_ok(report, None)
     assert not _report_schema_ok({"report_version": V}, None)
 
 

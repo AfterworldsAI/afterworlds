@@ -18,18 +18,24 @@ Two boundaries, tested separately:
 from __future__ import annotations
 
 import json
+from types import MappingProxyType
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from afterworlds.ingestion.corpus.concordance import VERSION_CANARIES
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.models import LeafType
 from afterworlds.ingestion.corpus.pdf_source import extraction_config
 from afterworlds.ingestion.corpus.report import (
     CANONICAL_CANARY_NAMES,
     EVIDENCE_REPORT_SCHEMA_VERSION,
+    PYTHON_TARGET,
+    EvidenceReport,
     parse_recorded_report,
     recorded_success_violations,
+    report_hash,
 )
 from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
 from afterworlds.ingestion.corpus.transform_identity import transform_identity
@@ -422,3 +428,163 @@ def test_parsing_reports_violations_rather_than_raising() -> None:
     assert all(isinstance(v, str) for v in violations)
     with pytest.raises(Exception, match="validation error"):
         CorpusEvidenceReport.model_validate({"report_version": 1})
+
+
+# ---------------------------------------------------------------------------
+# The report is a value: deeply immutable, canonically serialized
+# ---------------------------------------------------------------------------
+#
+# ``frozen=True`` only stops attribute rebinding. Nested dicts and lists stayed
+# mutable, so a holder could clear the canary map after parsing and ``dump()``
+# would serialize the invalid state without revalidation — reopening the exact
+# hole the typed conversion closed. A validator that ran once is not a value.
+
+
+def parsed() -> CorpusEvidenceReport:
+    report, violations = parse_recorded_report(payload())
+    assert report is not None, violations
+    return report
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        pytest.param(lambda r: r.version_canaries.clear(), id="canaries-clear"),
+        pytest.param(
+            lambda r: r.version_canaries.__setitem__("invented", True),
+            id="canaries-insert",
+        ),
+        pytest.param(
+            lambda r: r.version_canaries.__delitem__("exhaustion"),
+            id="canaries-delete",
+        ),
+        pytest.param(
+            lambda r: r.source_ledger_leaf_totals.__setitem__("invented", 1),
+            id="leaf-totals-insert-invented",
+        ),
+        pytest.param(
+            lambda r: r.source_ledger_leaf_totals.__setitem__("paragraph", -5),
+            id="leaf-totals-insert-negative",
+        ),
+        pytest.param(
+            lambda r: r.represented_totals.__delitem__("paragraph"),
+            id="represented-totals-delete",
+        ),
+        pytest.param(
+            lambda r: r.excluded_totals_by_reason.clear(),
+            id="excluded-totals-clear",
+        ),
+        pytest.param(
+            lambda r: r.rules_corpus_vector_identity.metadata_fields.__setitem__(
+                0, "x"
+            ),
+            id="metadata-fields-assign",
+        ),
+        pytest.param(
+            lambda r: r.rules_corpus_vector_identity.metadata_fields.append("x"),
+            id="metadata-fields-append",
+        ),
+        pytest.param(
+            lambda r: r.transform_identity.source_manifest.append(None),
+            id="source-manifest-append",
+        ),
+        pytest.param(
+            lambda r: r.transform_identity.source_manifest.__setitem__(0, None),
+            id="source-manifest-assign",
+        ),
+        pytest.param(
+            lambda r: r.transform_identity.component_b_invocation.steps.append("x"),
+            id="component-b-steps-append",
+        ),
+        pytest.param(
+            lambda r: setattr(r, "unresolved_leaves", 9), id="attribute-rebind"
+        ),
+    ],
+)
+def test_a_parsed_report_cannot_be_mutated(mutate: Any) -> None:
+    """Every reachable collection refuses mutation, and nothing moves.
+
+    The dump and hash are recorded first and re-checked after, so this proves
+    the report is unchanged rather than merely that an exception was raised.
+    """
+    report = parsed()
+    before_dump = report.dump()
+    before_hash = report_hash(EvidenceReport(payload=report, persisted=True))
+
+    with pytest.raises((AttributeError, TypeError, ValidationError)):
+        mutate(report)
+
+    assert report.dump() == before_dump
+    assert report_hash(EvidenceReport(payload=report, persisted=True)) == before_hash
+
+
+def test_the_report_does_not_alias_the_callers_dictionaries() -> None:
+    """Parsing copies. A proxy over the caller's dict is still the caller's."""
+    document = payload()
+    report = parse_recorded_report(document)[0]
+    assert report is not None
+    document["version_canaries"]["invented"] = True
+    document["source_ledger_leaf_totals"]["paragraph"] = 999
+    assert "invented" not in report.version_canaries
+    assert report.source_ledger_leaf_totals["paragraph"] == 10
+
+
+def test_canonical_collections_are_immutable_types() -> None:
+    report = parsed()
+    assert isinstance(report.version_canaries, MappingProxyType)
+    assert isinstance(report.source_ledger_leaf_totals, MappingProxyType)
+    assert isinstance(report.transform_identity.source_manifest, tuple)
+    assert isinstance(report.transform_identity.component_b_invocation.steps, tuple)
+    assert isinstance(report.rules_corpus_vector_identity.metadata_fields, tuple)
+
+
+# ---------------------------------------------------------------------------
+# The reproduction target is a canonical constant, not a free string
+# ---------------------------------------------------------------------------
+
+
+def test_the_honest_reproduction_target_passes() -> None:
+    assert parsed().reproduction_target.python_target == PYTHON_TARGET
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        pytest.param("99.0", id="false-target"),
+        pytest.param("", id="empty"),
+        pytest.param(None, id="null"),
+        pytest.param(3.12, id="number"),
+        pytest.param("3.13", id="near-miss"),
+    ],
+)
+def test_a_non_canonical_reproduction_target_fails(target: object) -> None:
+    """Bound, not defaulted: a report recording another target is not this schema."""
+    assert (
+        parse_recorded_report(at("reproduction_target.python_target", target))[0]
+        is None
+    )
+
+
+def test_an_extra_key_in_the_reproduction_target_fails() -> None:
+    document = payload()
+    document["reproduction_target"]["host"] = "ci"
+    assert parse_recorded_report(document)[0] is None
+
+
+# ---------------------------------------------------------------------------
+# One serializer, one hash
+# ---------------------------------------------------------------------------
+
+
+def test_the_canonical_hash_is_over_the_model_dump() -> None:
+    """Read side and write side hash the same representation.
+
+    An honest stored payload therefore rehashes to the value publication
+    recorded, without the raw dictionary ever being the thing hashed.
+    """
+    document = payload()
+    report = parse_recorded_report(document)[0]
+    assert report is not None
+    wrapped = EvidenceReport(payload=report, persisted=True)
+    assert wrapped.dump() == report.dump() == document
+    assert report_hash(wrapped) == hash_obj(report.dump())

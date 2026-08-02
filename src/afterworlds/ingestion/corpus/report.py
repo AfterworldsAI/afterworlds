@@ -35,6 +35,7 @@ from afterworlds.ingestion.corpus.policy import policy_hash
 from afterworlds.ingestion.corpus.report_schema import (
     CANONICAL_CANARY_NAMES,
     EVIDENCE_REPORT_SCHEMA_VERSION,
+    PYTHON_TARGET,
     Accounting,
     CorpusEvidenceReport,
     Findings,
@@ -56,12 +57,6 @@ __all__ = [
 ]
 
 _log = logging.getLogger(__name__)
-
-# The declared Python target (pyproject ``requires-python``; Python 3.12 only per
-# CLAUDE.md). Recorded as a *declared, host-independent* reproduction target — the
-# actual runtime interpreter/host is a diagnostic and never enters this
-# identity-bearing payload (PR #134 R16).
-PYTHON_TARGET = "3.12"
 
 
 @dataclass(frozen=True)

@@ -45,7 +45,6 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
-from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -683,25 +682,24 @@ def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...
     return ()
 
 
-def _report_schema_ok(report_payload: object, transform_config: object) -> bool:
+def _report_schema_ok(report: CorpusEvidenceReport, transform_config: object) -> bool:
     """Reuse-compatibility check for the evidence-report schema (R17).
 
-    Reuse validates the *stored* report against its *stored* hash, so an
-    obsolete-schema report (e.g. the pre-R16 host-dependent ``reproduction_environment``
-    shape) would pass that check and be silently reused. Binding the schema version
-    into the transform identity already gives a differently-schema'd release a
-    different ``package_uuid`` (so it is not matched on the fresh path); this is the
-    fail-closed backstop on the reuse path.
+    The *contextual* half of the schema question, and the only half left here:
+    the canonical model already proves the report declares the supported
+    version, so this compares that version with the one recorded in the stored
+    transform configuration. Binding the schema version into the transform
+    identity already gives a differently-schema'd release a different
+    ``package_uuid``; this is the fail-closed backstop on the reuse path.
 
-    True iff the persisted report's recorded ``report_version`` equals the currently
-    supported :data:`EVIDENCE_REPORT_SCHEMA_VERSION` **and** the persisted transform
-    config records the same version. Missing / obsolete / contradictory / malformed
-    → False.
+    Takes the **parsed** report, never the raw payload: a raw-dictionary report
+    verifier beside the canonical model is the duplication this conversion
+    removed.
     """
-    if not isinstance(report_payload, dict) or not isinstance(transform_config, dict):
+    if not isinstance(transform_config, dict):
         return False
     return (
-        report_payload.get("report_version") == EVIDENCE_REPORT_SCHEMA_VERSION
+        report.report_version == EVIDENCE_REPORT_SCHEMA_VERSION
         and transform_config.get("evidence_report_schema_version")
         == EVIDENCE_REPORT_SCHEMA_VERSION
     )
@@ -1110,17 +1108,10 @@ def verify_published_release(
         # Everything below reads that payload, so continuing would bury the real
         # finding under violations derived from it.
         return tuple(violations)
-    if not _report_schema_ok(payload, release.transform_config):
-        violations.append(
-            "recorded evidence-report schema version "
-            f"(report={payload.get('report_version')!r}) is missing, obsolete, "
-            f"or contradictory vs the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
-        )
-        return tuple(violations)
-
-    # Intrinsic shape, closed populations, and value domains: the canonical
-    # model's, not this function's. A payload that is not this schema cannot be
-    # compared against anything, so it stops here.
+    # Intrinsic shape, closed populations, canonical constants, and value
+    # domains: the canonical model's, not this function's. The raw payload is
+    # input to parsing and nothing else — a report is never verified from the
+    # dictionary it arrived in.
     report, parse_violations = parse_recorded_report(payload)
     if report is None:
         violations.extend(
@@ -1129,7 +1120,22 @@ def verify_published_release(
         )
         return tuple(violations)
 
-    if hash_obj(payload) != release.evidence_report_hash:
+    if not _report_schema_ok(report, release.transform_config):
+        violations.append(
+            "recorded evidence-report schema version "
+            f"(report={report.report_version!r}) is contradictory vs the "
+            f"supported {EVIDENCE_REPORT_SCHEMA_VERSION!r} recorded in the "
+            "release's transform configuration"
+        )
+        return tuple(violations)
+
+    # Hashed through the same serializer publication used. Hashing the ORM
+    # dictionary here would be a second representation of the document, and the
+    # two could diverge the moment the canonical dump evolves.
+    if (
+        report_hash(EvidenceReport(payload=report, persisted=True))
+        != release.evidence_report_hash
+    ):
         violations.append(
             "recorded evidence-report payload does not hash to the recorded "
             "evidence_report_hash"
@@ -1536,7 +1542,7 @@ def _finalize_core(
         )
         page_coverage_violations = verify_persisted_page_coverage(session, pkg)
         schema_ok = _report_schema_ok(
-            artifacts.report.dump(), artifacts.release.transform_config
+            artifacts.report.payload, artifacts.release.transform_config
         )
         if (
             not gate.passed

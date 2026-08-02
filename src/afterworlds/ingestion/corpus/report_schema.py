@@ -32,9 +32,19 @@ array.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    ValidationError,
+    model_validator,
+)
 from pydantic_core import ErrorDetails
 
 from afterworlds.ingestion.corpus.concordance import VERSION_CANARIES
@@ -42,6 +52,7 @@ from afterworlds.ingestion.corpus.models import LeafType
 
 __all__ = [
     "CANONICAL_CANARY_NAMES",
+    "PYTHON_TARGET",
     "EVIDENCE_REPORT_SCHEMA_VERSION",
     "Accounting",
     "ComponentBInvocation",
@@ -82,12 +93,43 @@ CANONICAL_CANARY_NAMES = frozenset(canary.name for canary in VERSION_CANARIES)
 #: Derived from the enum, so the universe cannot drift from the taxonomy.
 _LEAF_TYPE_NAMES = frozenset(leaf_type.value for leaf_type in LeafType)
 
+#: The declared Python target (pyproject ``requires-python``; Python 3.12 only
+#: per CLAUDE.md). Owned here, in the schema layer, because it is a *canonical
+#: semantic constant of the document* — not a default the builder happens to
+#: pass. A report recording any other target is not this schema.
+PYTHON_TARGET = "3.12"
+
 Count = Annotated[int, Field(ge=0)]
-#: Arrays accept a tuple as well as a list. The identity builders return
-#: tuples in memory and JSON round-trips them to lists, and both canonicalize
-#: to the same bytes — so this admits the two encodings of one value without
-#: admitting a *string*, which lax mode still refuses.
-Array = Annotated[list[str], Field(strict=False)]
+
+
+def _frozen_mapping[V](value: Mapping[str, V]) -> Mapping[str, V]:
+    """Copy the validated mapping and hand back a read-only view of the copy.
+
+    Copying matters as much as freezing: a proxy over the caller's dict would
+    still change when the caller does, so the report would not own its own
+    value. The proxy has no ``__setitem__``, ``__delitem__``, or ``clear``.
+    """
+    return MappingProxyType(dict(value))
+
+
+#: Content-derived count maps: variable key population, immutable once parsed.
+CountMap = Annotated[
+    Mapping[str, Count],
+    AfterValidator(_frozen_mapping),
+    PlainSerializer(dict, return_type=dict),
+]
+#: The canary population: closed key set (checked below), immutable values.
+FlagMap = Annotated[
+    Mapping[str, bool],
+    AfterValidator(_frozen_mapping),
+    PlainSerializer(dict, return_type=dict),
+]
+#: Canonical arrays are tuples, so a parsed report cannot be appended to or
+#: have an element replaced. Lax on the way in because the identity builders
+#: return tuples in memory while JSON round-trips them to lists, and both
+#: canonicalize to the same bytes — two encodings of one value. A bare string
+#: is still refused.
+Array = Annotated[tuple[str, ...], Field(strict=False)]
 
 
 class _Canonical(BaseModel):
@@ -137,7 +179,7 @@ class TransformIdentity(_Canonical):
     extractor: ExtractorConfig
     tool: str
     tool_version: str
-    source_manifest: Annotated[list[SourceManifestEntry], Field(strict=False)]
+    source_manifest: Annotated[tuple[SourceManifestEntry, ...], Field(strict=False)]
     transform_source_hash: str
     component_b_invocation: ComponentBInvocation
     intermediate_representation_committed: bool
@@ -157,9 +199,24 @@ class RulesCorpusVectorIdentity(_Canonical):
 
 
 class ReproductionTarget(_Canonical):
-    """The declared, host-independent reproduction target (PR #134 R16)."""
+    """The declared, host-independent reproduction target (PR #134 R16).
+
+    Bound to :data:`PYTHON_TARGET`, not merely defaulted to it. The field is a
+    canonical constant of the schema, so a stored report recording any other
+    target fails intrinsic parsing rather than being compared somewhere later
+    and possibly not at all.
+    """
 
     python_target: str
+
+    @model_validator(mode="after")
+    def _canonical_target(self) -> ReproductionTarget:
+        if self.python_target != PYTHON_TARGET:
+            raise ValueError(
+                f"python_target {self.python_target!r} is not the canonical "
+                f"reproduction target {PYTHON_TARGET!r}"
+            )
+        return self
 
 
 class PolicyReference(_Canonical):
@@ -218,13 +275,13 @@ class CorpusEvidenceReport(_Canonical):
     reconciliation_policy_reference: PolicyReference
     # Content-derived populations: the *key set* varies with the corpus, but the
     # mapping and its value types do not. "Open" never meant "unvalidated".
-    source_ledger_leaf_totals: dict[str, Count]
-    represented_totals: dict[str, Count]
+    source_ledger_leaf_totals: CountMap
+    represented_totals: CountMap
     #: Keys are policy reason codes. Left as free strings here on purpose: the
     #: frozen policy is not available at parse time, and reaching for it would
     #: create a second policy definition. Reason validity is proven
     #: contextually, against the reconstructed policy.
-    excluded_totals_by_reason: dict[str, Count]
+    excluded_totals_by_reason: CountMap
     # Verdict-bearing summaries.
     unresolved_leaves: Count
     declared_projection_count: Count
@@ -232,7 +289,7 @@ class CorpusEvidenceReport(_Canonical):
     findings: Findings
     invalid_locators: Count
     concordance_failures: Count
-    version_canaries: dict[str, bool]
+    version_canaries: FlagMap
     prepublication_validation_status: str
 
     @model_validator(mode="after")
