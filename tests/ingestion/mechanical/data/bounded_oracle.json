@@ -3,7 +3,7 @@
     "package_uuid": "pkg-5c",
     "release_version": "rel-5c",
     "authoritative_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "transform_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
     "bundle_root_hash": "5f4471769d7ebf6650c3d07ba0093803b3032e71c4ebd5a4039da0aac372bbfd",
     "persisted_corpus_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   },

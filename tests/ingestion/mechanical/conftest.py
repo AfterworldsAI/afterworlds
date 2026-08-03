@@ -27,8 +27,17 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from afterworlds.ingestion.corpus.bundle import build_bundle, reconciliation_hash
-from afterworlds.ingestion.corpus.concordance import ConcordanceResult
+from afterworlds.ingestion.corpus.bundle import (
+    build_bundle,
+    reconciliation_hash,
+    transform_config_payload,
+)
+from afterworlds.ingestion.corpus.concordance import (
+    VERSION_CANARIES,
+    CanaryResult,
+    ConcordanceResult,
+)
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CorpusBundleMembers,
@@ -42,6 +51,7 @@ from afterworlds.ingestion.corpus.models import (
     ReconciliationMember,
     SourceLedger,
 )
+from afterworlds.ingestion.corpus.pdf_source import extraction_config
 from afterworlds.ingestion.corpus.persistence import (
     _load_ledger,
     _load_members,
@@ -54,10 +64,6 @@ from afterworlds.ingestion.corpus.persistence import (
 from afterworlds.ingestion.corpus.policy import (
     FROZEN_POLICY,
     policy_hash,
-    policy_payload,
-)
-from afterworlds.ingestion.corpus.report import (
-    EVIDENCE_REPORT_SCHEMA_VERSION as CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
 )
 from afterworlds.ingestion.corpus.report import (
     EvidenceReport as CorpusEvidenceReport,
@@ -115,10 +121,12 @@ from afterworlds.ingestion.mechanical.representation import (
     reference_target_key,
     relationship_target_key,
 )
+from afterworlds.models.retrieval import rules_corpus_vector_identity
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 
 NOW = "2026-07-31T00:00:00Z"
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -177,7 +185,6 @@ DEFAULT_COVERAGE = (
 
 SOURCE_DOCUMENT = "D&D SRD 5.2.1"
 AUTHORITATIVE_SOURCE_HASH = "a" * 64
-TRANSFORM_CONFIG_HASH = "b" * 64
 #: Opaque here on purpose: the persisted-corpus digest binds the actual
 #: read-back vector state as well as SQL, so it is an exact recorded value the
 #: 5d gate checks rather than one it can recompute from a session.
@@ -255,10 +262,34 @@ BOUND_RECONCILIATION = ReconciliationMember(
 
 BOUND_BUNDLE = build_bundle(BOUND_LEDGER, BOUND_MEMBERS, BOUND_RECONCILIATION)
 
-BOUND_TRANSFORM_CONFIG: dict[str, object] = {
-    "reconciliation_policy": policy_payload(FROZEN_POLICY),
-    "evidence_report_schema_version": CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
-}
+#: Built by 5c's own :func:`transform_config_payload`, not hand-written. The
+#: recorded configuration is now proven to hash to the recorded
+#: ``transform_config_hash``, so a thin stand-in would be exactly the forgery the
+#: negative controls exist to catch.
+BOUND_TRANSFORM_CONFIG: dict[str, object] = transform_config_payload(
+    extraction_config(),
+    FROZEN_POLICY,
+    rules_corpus_vector_identity(RetrievalMemoryConfig().embedding_model_id),
+)
+#: **Derived**, never declared. Its predecessor was the constant ``"b" * 64``,
+#: chosen when nothing recomputed it; under the published-release closure that
+#: constant is a release whose configuration does not hash to its own recorded
+#: hash — a forgery, correctly refused.
+TRANSFORM_CONFIG_HASH = hash_obj(BOUND_TRANSFORM_CONFIG)
+
+#: The full canonical canary population, derived from the committed definitions
+#: rather than listed here, all passing. The bounded release is a *successful*
+#: publication; an empty canary run is not one.
+BOUND_CANARIES = tuple(
+    CanaryResult(
+        name=canary.name,
+        printed_page=canary.printed_page,
+        passed=True,
+        missing=(),
+        unexpected=(),
+    )
+    for canary in VERSION_CANARIES
+)
 
 
 def _build_bound_report(
@@ -285,7 +316,7 @@ def _build_bound_report(
             locator_failures=(),
             content_failures=(),
         ),
-        canaries=(),
+        canaries=BOUND_CANARIES,
         persisted=True,
     )
 
@@ -706,7 +737,7 @@ def rerecord_release_proof(session: Session) -> None:
         recon=recon,
         bundle_root_hash=bundle.bundle_root_hash,
     )
-    release.report_payload = report.payload
+    release.report_payload = report.dump()
     release.evidence_report_hash = corpus_report_hash(report)
     release.corpus_report_reference = release.evidence_report_hash
     session.flush()
@@ -739,7 +770,7 @@ def _seed_bound_release(session: Session) -> None:
         reconciliation_hash=reconciliation_hash(BOUND_RECONCILIATION),
         corpus_report_reference=BOUND_EVIDENCE_REPORT_HASH,
         transform_config=BOUND_TRANSFORM_CONFIG,
-        report_payload=BOUND_REPORT.payload,
+        report_payload=BOUND_REPORT.dump(),
         now=NOW,
     )
     _persist_bundle_rows(

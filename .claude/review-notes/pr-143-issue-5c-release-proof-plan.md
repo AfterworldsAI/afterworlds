@@ -67,7 +67,7 @@ unsupported `report_version`, and a non-canonical `python_target` each fail at
 *build* time, not only at parse time.
 
 **One serializer.** `CorpusEvidenceReport.dump()` walks the tree and reads field
-names off `NamedTuple._asdict()` and `Pairs`, so the serializer cannot drift from
+names off `NamedTuple._fields` and renders `Pairs` as objects, so it cannot drift from
 the declaration. It is the only rendering: `report_hash`, the SQL column, stored-
 hash verification, contextual comparison, and reuse reconstruction all read it.
 
@@ -161,6 +161,66 @@ which is not the hash of its own configuration — it was a synthetic constant
 chosen before any check recomputed it, so nothing had ever required it to be
 honestly derived. It is derived here and `bounded_oracle.json` regenerated,
 because a fixture that cannot pass the proof it is used to test is not evidence.
+
+## What was built
+
+Both boundaries as planned, with three findings worth recording because the
+construction changed them.
+
+**The serializer could not come from Pydantic.** `TypeAdapter.dump_python` over
+a `NamedTuple` emits a *positional array*, not an object, so the canonical
+payload had to be rendered by a small recursive walk. It reads field names off
+`NamedTuple._fields`, so there is still one declaration — but the same fact
+creates a hazard the dataclass did not have: `json.dumps` *succeeds* on a
+`NamedTuple`. `canonical_bytes(report)` therefore mints a wrong-but-plausible
+hash instead of raising, and a control asserts the raw object's bytes differ
+from the payload's.
+
+**Positional input had to be refused explicitly.** Pydantic's native
+`NamedTuple` handling accepts a sequence, so a stored report could have arrived
+as a JSON array and parsed. `BeforeValidator(_object_only)` is applied at the
+root and at every nested node.
+
+**Reuse proves the pair before reconstructing, not after.** The plan said reuse
+must call the seam; putting the call after `_reconstruct_artifacts` — where the
+old inline package check lived — meant artifacts were assembled around rows
+nothing had accepted yet, and `_reconstruct_artifacts` asserted on the
+post-persistence columns rather than refusing. The seam now runs first, and
+those `assert`s are a `PersistedReportError` (an `assert` disappears under `-O`).
+
+Two invariants proved to belong intrinsically to the document rather than
+contextually, so they moved onto their own fields: the canonical
+`report_version` and the canonical `python_target`. `_report_schema_ok` keeps
+only the genuinely contextual half — agreement with the persisted transform
+configuration, which the document cannot know about itself.
+
+**Fresh publication needed fault injection, not a positive assertion.** Both
+other callers can be driven by editing rows after publication; the fresh path
+has to be made to write a bad pair while it runs, or its refusal branch never
+executes. A monkeypatched `_persist_package_and_source` writes a package version
+the release does not carry, and the control asserts the refusal *and* that no
+published package or release row survives — the rollback, not just the verdict.
+
+Two `PersistedReportError` raises inside `_reconstruct_artifacts` became
+unreachable once reuse proved the pair first. They are kept as backstops and
+marked `# pragma: no cover`, because assembling artifacts around a half-written
+or unparseable release would produce something that looks whole. The
+`PolicyReconstructionError` half of the surrounding `except` stays live: the
+seam does not call `_load_policy`, so a deleted policy row still lands there.
+
+## Verification
+
+Parity against clean base `b35386c`, identical deterministic inputs, generated
+before any edit and again at the final head: `diff` produced **no output**
+across the complete payload, `report_hash`, `package_uuid`, `release_version`,
+`transform_config_hash`, `bundle_root_hash`, and the persisted-corpus digest.
+`5c-evidence-3` therefore stands.
+
+Black, Ruff, and `mypy --strict` (211 source files) clean. 75 tests in the
+typed-schema module, 24 in the new published-release seam module; 875 across
+ingestion. Coverage on the changed modules: `report_schema.py` 100%,
+`report.py` 100%, `persistence.py` 99% — its three remaining lines are
+pre-existing, `delete_release` among them.
 
 ## Scope
 

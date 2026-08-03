@@ -526,7 +526,7 @@ def test_reuse_fails_closed_on_deleted_policy_row(
     )
     assert not result.published and not result.reused
     assert result.gate is not None
-    assert any("policy" in f for f in result.gate.failures)
+    assert any("does not reconstruct" in f for f in result.gate.failures)
 
 
 # --- Pre-release clean baseline: obsolete SRD artifact retired (R18) ----------
@@ -888,30 +888,28 @@ def test_completeness_rejects_page_corruption_and_leaves_no_state(
 #  see test_migration_0018_deletes_incomplete_package_and_dependent_rows.)
 
 
-def test_report_schema_ok_fails_closed_on_bad_schema():
+def test_report_schema_ok_fails_closed_on_a_contradictory_transform_config(release):
     """R17 unit: ``_report_schema_ok`` is the reuse-path backstop for the evidence-
-    report schema. Current + matching (report AND transform config) → True;
-    obsolete, contradictory, missing, or malformed → False (fail closed)."""
+    report schema.
+
+    It now takes a *parsed* report, so the cases this test used to cover with raw
+    dictionaries — a missing ``report_version``, an obsolete one, a non-object
+    payload — no longer reach it: the parser refuses them, and
+    ``test_recorded_evidence`` owns those controls. What remains here is the
+    genuinely contextual half: agreement with the persisted transform
+    configuration, which the document cannot know about itself."""
     from afterworlds.ingestion.corpus.persistence import _report_schema_ok
     from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION as V
 
-    assert _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": V}
-    )
-    # obsolete pre-R16 report version
+    report = release.report.payload
+    assert _report_schema_ok(report, {"evidence_report_schema_version": V})
+    # contradictory: report current, transform config stale, absent, or not an
+    # object at all.
+    assert not _report_schema_ok(report, {})
     assert not _report_schema_ok(
-        {"report_version": "5c-evidence-1"}, {"evidence_report_schema_version": V}
+        report, {"evidence_report_schema_version": "5c-evidence-1"}
     )
-    # contradictory: report current, transform config stale or absent
-    assert not _report_schema_ok({"report_version": V}, {})
-    assert not _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": "5c-evidence-1"}
-    )
-    # missing report version
-    assert not _report_schema_ok({}, {"evidence_report_schema_version": V})
-    # malformed payloads
-    assert not _report_schema_ok(None, {"evidence_report_schema_version": V})
-    assert not _report_schema_ok({"report_version": V}, None)
+    assert not _report_schema_ok(report, None)
 
 
 def test_reuse_rejects_obsolete_evidence_report_schema(
@@ -923,7 +921,7 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     published release (recomputing the stored hash so the gate's hash check passes,
     isolating the schema backstop) and assert the reuse attempt surfaces the schema
     failure and does not reuse."""
-    from afterworlds.ingestion.corpus.report import EvidenceReport, report_hash
+    from afterworlds.ingestion.corpus.hashing import hash_obj
 
     first = _finalize(
         session, candidate, chroma_client, retrieval_config, fake_embedding
@@ -939,9 +937,10 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     row.report_payload = payload
     # Keep the stored hash consistent with the tampered payload so the gate's
     # evidence_report_hash check passes — this isolates the schema backstop.
-    row.evidence_report_hash = report_hash(
-        EvidenceReport(payload=payload, persisted=True)
-    )
+    # Hashed as raw stored bytes: an obsolete-schema payload is by definition
+    # not something the canonical serializer can render.
+    row.evidence_report_hash = hash_obj(payload)
+    row.corpus_report_reference = row.evidence_report_hash
     session.commit()
 
     result = _finalize(
@@ -949,7 +948,10 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     )
     assert not result.published and not result.reused
     assert result.gate is not None
-    assert any("schema version" in f for f in result.gate.failures)
+    # Refused at the parse boundary now: an obsolete ``report_version`` is not
+    # this schema, so reconstruction fails closed before the contextual schema
+    # comparison is reached. Either way the release is not reused.
+    assert any("report_version" in f for f in result.gate.failures)
 
 
 def test_repeated_finalize_is_idempotent_and_does_not_mutate(

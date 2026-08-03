@@ -44,6 +44,7 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -77,8 +78,11 @@ from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_report,
-    recorded_success_violations,
     report_hash,
+)
+from afterworlds.ingestion.corpus.report_schema import (
+    CorpusEvidenceReport,
+    parse_recorded_report,
 )
 from afterworlds.ingestion.corpus.source_completeness import (
     EXPECTED_PAGE_COUNT,
@@ -349,7 +353,7 @@ def persist_release(session: Session, artifacts: ReleaseArtifacts, *, now: str) 
         reconciliation_hash=rel.reconciliation_hash,
         corpus_report_reference=rel.corpus_report_reference,
         transform_config=rel.transform_config,
-        report_payload=artifacts.report.payload,
+        report_payload=artifacts.report.dump(),
         now=now,
     )
     _persist_bundle_rows(
@@ -670,8 +674,8 @@ def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...
     return ()
 
 
-def _report_schema_ok(report_payload: object, transform_config: object) -> bool:
-    """Reuse-compatibility check for the evidence-report schema (R17).
+def _report_schema_ok(report: CorpusEvidenceReport, transform_config: object) -> bool:
+    """Does the parsed report's schema version agree with the recorded transform?
 
     Reuse validates the *stored* report against its *stored* hash, so an
     obsolete-schema report (e.g. the pre-R16 host-dependent ``reproduction_environment``
@@ -680,15 +684,13 @@ def _report_schema_ok(report_payload: object, transform_config: object) -> bool:
     different ``package_uuid`` (so it is not matched on the fresh path); this is the
     fail-closed backstop on the reuse path.
 
-    True iff the persisted report's recorded ``report_version`` equals the currently
-    supported :data:`EVIDENCE_REPORT_SCHEMA_VERSION` **and** the persisted transform
-    config records the same version. Missing / obsolete / contradictory / malformed
-    → False.
+    The report's *own* version is already proven by having parsed at all — the
+    schema refuses any other value — so what remains is agreement with the
+    persisted transform configuration, which is a contextual question.
     """
-    if not isinstance(report_payload, dict) or not isinstance(transform_config, dict):
-        return False
     return (
-        report_payload.get("report_version") == EVIDENCE_REPORT_SCHEMA_VERSION
+        report.report_version == EVIDENCE_REPORT_SCHEMA_VERSION
+        and isinstance(transform_config, dict)
         and transform_config.get("evidence_report_schema_version")
         == EVIDENCE_REPORT_SCHEMA_VERSION
     )
@@ -888,6 +890,161 @@ _REPORT_PROOF_COLUMNS = (
 )
 
 
+class PersistedReportError(ValueError):
+    """A stored evidence report is not the canonical `5c-evidence-3` schema."""
+
+
+@dataclass(frozen=True)
+class PublishedRelease:
+    """A package/release pair proven to be an exactly-published 5c release."""
+
+    package: RulesPackageORM
+    release: CorpusReleaseORM
+    report: CorpusEvidenceReport
+
+
+#: Columns that are NULL through the draft phase and set exactly once by
+#: :func:`finalize_release` from actual persisted state. A published release
+#: missing any of them was never completed, so they are required as a *set*
+#: rather than discovered one at a time by whichever check happens to read one.
+_POST_PERSISTENCE_COLUMNS = (
+    "evidence_report_hash",
+    "persisted_corpus_digest",
+    "corpus_report_reference",
+    "report_payload",
+)
+
+
+def load_published_release(
+    session: Session, pkg: str
+) -> tuple[PublishedRelease | None, tuple[str, ...]]:
+    """Load and prove the published package/release pair for *pkg*.
+
+    The one 5c-owned statement of what a published release *is*, in terms of its
+    own persisted rows. Every lifecycle operation that treats a release as
+    published calls this: downstream :func:`verify_published_release`,
+    :func:`finalize_release` verified reuse, and fresh finalization before it
+    commits. A release refused here cannot be reused, consumed, or freshly
+    published — which is the property that a check living at one caller could
+    not give.
+
+    Its unit is the **pair**, not either row. Both rows are written from one
+    derived value at publication, ``RulesPackageService`` exposes the package's
+    version while 5d binds the release's, so a mismatch between them leaves two
+    public versions for one supposedly closed release.
+
+    Deliberately *not* re-proven here, because it is already proven elsewhere and
+    a second statement is a second definition: ``policy_hash``, whose closed
+    cross-reference chain across the policy, reconciliation, and release rows is
+    validated by :func:`_load_policy`, which fails closed; and everything
+    recomputable from persisted rows (ledger, reconciliation, bundle root,
+    source and chunk membership), which belongs to reconstruction.
+
+    Returns the proven pair, or ``None`` and the violations that refuse it.
+    """
+    violations: list[str] = []
+    release = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+    ).scalar_one_or_none()
+    package = session.execute(
+        select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
+    ).scalar_one_or_none()
+    if release is None:
+        violations.append(f"no rp_corpus_releases row for package {pkg}")
+    if package is None:
+        violations.append(f"no rp_packages row for {pkg}")
+    if release is None or package is None:
+        # Nothing below is meaningful without both halves of the pair.
+        return None, tuple(violations)
+
+    if release.publication_status != "published":
+        violations.append(
+            f"release {pkg} is in publication_status "
+            f"{release.publication_status!r}, not 'published'"
+        )
+    if package.publication_status != "published" or not package.is_enabled:
+        violations.append(
+            f"rp_packages row for {pkg} is not published and enabled "
+            f"(publication_status={package.publication_status!r}, "
+            f"is_enabled={package.is_enabled})"
+        )
+    if package.published_at is None:
+        violations.append(
+            f"rp_packages row for {pkg} records no published_at, so it was never "
+            "carried through a completed publication"
+        )
+    if package.version != release.release_version:
+        violations.append(
+            f"rp_packages version {package.version!r} is not the release's "
+            f"release_version {release.release_version!r}"
+        )
+
+    absent = [
+        column
+        for column in _POST_PERSISTENCE_COLUMNS
+        if getattr(release, column) is None
+    ]
+    if absent:
+        violations.append(
+            f"release {pkg} is missing post-persistence columns {absent}, so it "
+            "carries no completed publication evidence"
+        )
+        # Every check below reads one of them.
+        return None, tuple(violations)
+
+    if hash_obj(release.transform_config) != release.transform_config_hash:
+        violations.append(
+            "recorded transform configuration does not hash to the recorded "
+            f"transform_config_hash {release.transform_config_hash!r}"
+        )
+
+    report, parse_violations = parse_recorded_report(release.report_payload)
+    if report is None:
+        violations.extend(
+            f"recorded evidence report is not the canonical schema: {v}"
+            for v in parse_violations
+        )
+        return None, tuple(violations)
+
+    if report_hash(EvidenceReport(payload=report, persisted=True)) != (
+        release.evidence_report_hash
+    ):
+        violations.append(
+            "recorded evidence-report payload does not hash to the recorded "
+            "evidence_report_hash"
+        )
+    if release.corpus_report_reference != release.evidence_report_hash:
+        violations.append(
+            f"corpus_report_reference {release.corpus_report_reference!r} is not "
+            f"the recorded evidence_report_hash {release.evidence_report_hash!r}"
+        )
+    if not _report_schema_ok(report, release.transform_config):
+        violations.append(
+            "recorded evidence-report schema version "
+            f"(report={report.report_version!r}) is obsolete or contradictory vs "
+            f"the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
+        )
+    recorded = report.dump()
+    for report_key, column in _REPORT_PROOF_COLUMNS:
+        if recorded[report_key] != getattr(release, column):
+            violations.append(
+                f"recorded evidence report states {report_key}="
+                f"{recorded[report_key]!r}, release row records "
+                f"{column}={getattr(release, column)!r}"
+            )
+    # Identity is necessary but not sufficient. A report edited to "fail" — or to
+    # "pass" over summaries that record failures — and rehashed keeps every proof
+    # identity intact while recording that publication did not succeed.
+    violations.extend(
+        f"recorded evidence report is not a successful 5c verdict: {v}"
+        for v in report.success_violations()
+    )
+
+    if violations:
+        return None, tuple(violations)
+    return PublishedRelease(package=package, release=release, report=report), ()
+
+
 def verify_published_release(
     session: Session,
     pkg: str,
@@ -908,14 +1065,15 @@ def verify_published_release(
     already here; 5d calls it rather than re-deriving a second opinion about
     what a published 5c release is.
 
-    The five declared values (plus *pkg* itself) must equal the authoritative
-    ``rp_corpus_releases`` row, that row must be published under a
-    published/enabled ``rp_packages`` row, its recorded evidence report must
-    still hash to its recorded hash, state the same proof identities as the row,
-    **and record a successful publication verdict**
-    (:func:`report.recorded_success_violations`), and the ledger, reconciliation,
-    and bundle-root identities must be exactly what the persisted rows
-    reconstruct to.
+    Three stages, in order. :func:`load_published_release` proves the persisted
+    package/release **pair** is an exactly-published release in its own terms;
+    the five declared values (plus *pkg* itself) must then equal that proven
+    row; and the ledger, reconciliation, and bundle-root identities must be
+    exactly what the persisted rows reconstruct to.
+
+    The order is the point. Comparing a declaration against a row that has not
+    been proven is comparing two claims, and deriving further findings from a
+    refused pair buries the real one — so a failed pair returns immediately.
 
     **What this cannot re-prove.** ``persisted_corpus_digest`` binds the actual
     read-back *vector* logical state as well as SQL (Component A), so it is not
@@ -927,32 +1085,12 @@ def verify_published_release(
 
     Returns the violations, empty iff the release is publishable authority.
     """
+    proven, pair_violations = load_published_release(session, pkg)
+    if proven is None:
+        return pair_violations
+    release = proven.release
+
     violations: list[str] = []
-    release = session.execute(
-        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
-    ).scalar_one_or_none()
-    if release is None:
-        # Nothing further is meaningful: there is no authoritative release to
-        # compare a declaration with.
-        return (f"no rp_corpus_releases row for package {pkg}",)
-    if release.publication_status != "published":
-        violations.append(
-            f"release {pkg} is in publication_status "
-            f"{release.publication_status!r}, not 'published'"
-        )
-
-    package_row = session.execute(
-        select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
-    ).scalar_one_or_none()
-    if package_row is None:
-        violations.append(f"no rp_packages row for {pkg}")
-    elif package_row.publication_status != "published" or not package_row.is_enabled:
-        violations.append(
-            f"rp_packages row for {pkg} is not published and enabled "
-            f"(publication_status={package_row.publication_status!r}, "
-            f"is_enabled={package_row.is_enabled})"
-        )
-
     for field, declared in (
         ("release_version", release_version),
         ("authoritative_source_hash", authoritative_source_hash),
@@ -966,46 +1104,6 @@ def verify_published_release(
                 f"declared {field} {declared!r} is not the authoritative "
                 f"release's {recorded!r}"
             )
-
-    payload = release.report_payload
-    if release.evidence_report_hash is None or payload is None:
-        violations.append(
-            f"release {pkg} carries no recorded evidence report "
-            "(hash and/or payload absent)"
-        )
-        # Everything below reads that payload, so continuing would bury the real
-        # finding under violations derived from it.
-        return tuple(violations)
-    if not _report_schema_ok(payload, release.transform_config):
-        violations.append(
-            "recorded evidence-report schema version "
-            f"(report={payload.get('report_version')!r}) is missing, obsolete, "
-            f"or contradictory vs the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
-        )
-        return tuple(violations)
-
-    if (
-        report_hash(EvidenceReport(payload=payload, persisted=True))
-        != release.evidence_report_hash
-    ):
-        violations.append(
-            "recorded evidence-report payload does not hash to the recorded "
-            "evidence_report_hash"
-        )
-    for report_key, column in _REPORT_PROOF_COLUMNS:
-        if payload.get(report_key) != getattr(release, column):
-            violations.append(
-                f"recorded evidence report states {report_key}="
-                f"{payload.get(report_key)!r}, release row records "
-                f"{column}={getattr(release, column)!r}"
-            )
-    # Identity is necessary but not sufficient. A report edited to "fail" — or to
-    # "pass" over summaries that record failures — and rehashed keeps every proof
-    # identity intact while recording that publication did not succeed.
-    violations.extend(
-        f"recorded evidence report is not a successful 5c verdict: {v}"
-        for v in recorded_success_violations(payload)
-    )
 
     try:
         policy = _load_policy(session, pkg)
@@ -1140,17 +1238,35 @@ def _reconstruct_artifacts(
     concordance = check_concordance(members.chunks, pages)
     canaries = check_canaries(pages)
 
-    assert release_row.evidence_report_hash is not None
-    assert release_row.persisted_corpus_digest is not None
-    assert release_row.corpus_report_reference is not None
-    assert release_row.report_payload is not None
+    # Backstops, not the enforcement point. Every caller proves the pair through
+    # ``load_published_release`` before reconstructing, so neither raise below is
+    # reachable today; they stay because assembling artifacts around a
+    # half-written or unparseable release would produce something that *looks*
+    # whole, and because a bare ``assert`` here would vanish under ``-O``.
+    evidence_report_hash = release_row.evidence_report_hash
+    corpus_digest = release_row.persisted_corpus_digest
+    report_reference = release_row.corpus_report_reference
+    if (
+        evidence_report_hash is None
+        or corpus_digest is None
+        or report_reference is None
+        or release_row.report_payload is None
+    ):  # pragma: no cover - unreachable while every caller proves the pair
+        absent = [
+            column
+            for column in _POST_PERSISTENCE_COLUMNS
+            if getattr(release_row, column) is None
+        ]
+        raise PersistedReportError(
+            f"release {pkg} is missing post-persistence columns {absent}"
+        )
 
     identity = ReleaseIdentity(
         authoritative_source_hash=release_row.authoritative_source_hash,
         transform_config_hash=release_row.transform_config_hash,
         bundle_root_hash=release_row.bundle_root_hash,
-        evidence_report_hash=release_row.evidence_report_hash,
-        persisted_corpus_digest=release_row.persisted_corpus_digest,
+        evidence_report_hash=evidence_report_hash,
+        persisted_corpus_digest=corpus_digest,
     )
     release_record = ReleaseRecord(
         package_uuid=pkg,
@@ -1160,9 +1276,19 @@ def _reconstruct_artifacts(
         ledger_hash=release_row.ledger_hash,
         policy_hash=release_row.policy_hash,
         reconciliation_hash=release_row.reconciliation_hash,
-        corpus_report_reference=release_row.corpus_report_reference,
+        corpus_report_reference=report_reference,
     )
-    report = EvidenceReport(payload=release_row.report_payload, persisted=True)
+    parsed, report_violations = parse_recorded_report(release_row.report_payload)
+    if parsed is None:  # pragma: no cover - the seam already refused this
+        # Reconstruction cannot proceed on a stored report that is not this
+        # schema: every artifact below would be assembled around an unparseable
+        # document. Raised rather than returned so no caller can mistake a
+        # partially reconstructed release for a whole one.
+        raise PersistedReportError(
+            f"persisted evidence report for {pkg} is not the canonical schema: "
+            f"{list(report_violations)}"
+        )
+    report = EvidenceReport(payload=parsed, persisted=True)
     artifacts = ReleaseArtifacts(
         pages=pages,
         ledger=ledger,
@@ -1308,9 +1434,29 @@ def _finalize_core(
                     ),
                 ),
             )
-        # Reuse path: verify the existing vectors against SQL ground truth
-        # WITHOUT rewriting them, so a missing/stale/tampered collection cannot
-        # be silently rebuilt into a false "successful reuse".
+        # Reuse path. The published pair is proven first, through the *same*
+        # seam a downstream consumer uses, so a release that 5d verification
+        # refuses can never be handed back as a successful reuse. Its
+        # predecessor checked the package row's status and enablement inline
+        # after reconstruction, which left every other row-level publication
+        # invariant — published_at, the package/release version pair, the
+        # recorded transform hash, the report reference — proven at one caller
+        # and not the other, and reconstructed artifacts assembled around rows
+        # nothing had yet accepted.
+        _, pair_violations = load_published_release(session, pkg)
+        if pair_violations:
+            return FinalizeResult(
+                published=False,
+                reused=False,
+                artifacts=None,
+                gate=GateResult(
+                    passed=False,
+                    failures=tuple(f"{v} — refusing to reuse" for v in pair_violations),
+                ),
+            )
+        # Verify the existing vectors against SQL ground truth WITHOUT rewriting
+        # them, so a missing/stale/tampered collection cannot be silently
+        # rebuilt into a false "successful reuse".
         vector_result = verify_only(
             session, pkg, chroma_client, retrieval_config, embedding_function
         )
@@ -1324,8 +1470,9 @@ def _finalize_core(
                     vector_state=vector_result.state.to_payload(),
                 )
             )
-        except PolicyReconstructionError as exc:
-            # A missing/malformed/inconsistent persisted policy fails reuse closed
+        except (PolicyReconstructionError, PersistedReportError) as exc:
+            # A missing/malformed/inconsistent persisted policy — or a stored
+            # report that is not the canonical schema — fails reuse closed
             # (reported as an ordinary failed result, consistent with the other
             # reuse-rejection cases) — never republished on a caller/default
             # policy (PR #134 P1).
@@ -1335,7 +1482,7 @@ def _finalize_core(
                 artifacts=None,
                 gate=GateResult(
                     passed=False,
-                    failures=(f"persisted reconciliation policy invalid: {exc}",),
+                    failures=(f"persisted release does not reconstruct: {exc}",),
                 ),
             )
         sql_persist_ok = (
@@ -1356,39 +1503,10 @@ def _finalize_core(
         # reconciliation hash), live legacy state, or actual vector state no
         # longer satisfy publication.
         gate = run_gate(artifacts, evidence)
-        package_row = session.execute(
-            select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
-        ).scalar_one_or_none()
-        package_state_ok = (
-            package_row is not None
-            and package_row.is_enabled
-            and package_row.publication_status == "published"
-        )
         page_coverage_violations = verify_persisted_page_coverage(session, pkg)
-        schema_ok = _report_schema_ok(
-            artifacts.report.payload, artifacts.release.transform_config
-        )
-        if (
-            not gate.passed
-            or not package_state_ok
-            or page_coverage_violations
-            or not schema_ok
-        ):
+        if not gate.passed or page_coverage_violations:
             failures = list(gate.failures)
-            if not package_state_ok:
-                failures.append(
-                    f"rp_packages row for {pkg} is missing or not in a "
-                    "published+enabled state consistent with its published "
-                    "rp_corpus_releases row"
-                )
             failures.extend(page_coverage_violations)
-            if not schema_ok:
-                failures.append(
-                    "persisted evidence-report schema version "
-                    f"(report={artifacts.report.payload.get('report_version')!r}) is "
-                    "missing/obsolete/contradictory vs the supported "
-                    f"{EVIDENCE_REPORT_SCHEMA_VERSION!r} — refusing to reuse"
-                )
             return FinalizeResult(
                 published=False,
                 reused=False,
@@ -1551,7 +1669,7 @@ def _finalize_core(
         release_row.evidence_report_hash = report_h
         release_row.persisted_corpus_digest = digest
         release_row.corpus_report_reference = report_h
-        release_row.report_payload = report.payload
+        release_row.report_payload = report.dump()
         session.flush()
 
         gate = run_gate(artifacts, evidence)
@@ -1564,6 +1682,28 @@ def _finalize_core(
             package_row.published_at = now
             package_row.updated_at = now
             release_row.publication_status = "published"
+            session.flush()
+            # A fresh publication must satisfy the same row-level invariants a
+            # consumer will later demand of it — proven here, on the rows as
+            # written, while the transaction can still be rolled back. Without
+            # this, the only thing standing between a malformed write and a
+            # committed release was that no reader had looked yet.
+            _, pair_violations = load_published_release(session, pkg)
+            if pair_violations:
+                session.rollback()
+                cleanup_armed = False
+                cleanup_vector_collection(chroma_client, pkg)
+                return FinalizeResult(
+                    published=False,
+                    reused=False,
+                    artifacts=None,
+                    gate=GateResult(
+                        passed=False,
+                        failures=tuple(
+                            f"{v} — refusing to publish" for v in pair_violations
+                        ),
+                    ),
+                )
             session.commit()
             # Publication is durable in both stores — only now is it safe to
             # disarm compensation.

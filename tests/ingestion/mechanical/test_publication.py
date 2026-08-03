@@ -19,16 +19,9 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from afterworlds.ingestion.corpus.report import (
-    REQUIRED_REPORT_KEYS,
-    recorded_success_violations,
-)
-from afterworlds.ingestion.corpus.report import (
-    EvidenceReport as CorpusEvidenceReport,
-)
-from afterworlds.ingestion.corpus.report import (
-    report_hash as corpus_report_hash,
-)
+from afterworlds.ingestion.corpus.hashing import hash_obj
+from afterworlds.ingestion.corpus.report import recorded_success_violations
+from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
 from afterworlds.ingestion.mechanical import publication
 from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
@@ -628,21 +621,49 @@ def _rewrite_release_report(session: Session, **overrides: object) -> None:
     payload = dict(release.report_payload or {})
     payload.update(overrides)
     release.report_payload = payload
-    release.evidence_report_hash = corpus_report_hash(
-        CorpusEvidenceReport(payload=payload, persisted=True)
-    )
+    # Hashed as raw stored bytes, not through the canonical serializer: the
+    # point of these controls is a database row someone edited and rehashed, and
+    # some of them are deliberately no longer this schema at all.
+    release.evidence_report_hash = hash_obj(payload)
     release.corpus_report_reference = release.evidence_report_hash
+
+
+def _stale_report_reference(session: Session) -> None:
+    """Point the reference at a real report — the *previous* one.
+
+    Harder than a null or a random hash: the reference still names a report
+    that genuinely existed, so only comparing it with the release's own
+    ``evidence_report_hash`` catches it.
+    """
+    release = release_row(session)
+    stale = release.evidence_report_hash
+    _rewrite_release_report(session, declared_projection_count=99)
+    release.corpus_report_reference = stale
+
+
+def _coordinated_transform_edit(session: Session, key: str) -> None:
+    """Edit the stored transform configuration *and* agree the report with it.
+
+    The report is rehashed and its reference updated, so the two documents agree
+    with each other perfectly. Only recomputing the configuration's own hash
+    against the recorded ``transform_config_hash`` catches it — which is the
+    invariant this control exists for.
+    """
+    release = release_row(session)
+    config = dict(release.transform_config)
+    config[key] = "forged"
+    release.transform_config = config
 
 
 def test_the_bounded_release_report_is_a_successful_5c_verdict() -> None:
     """The fixture's report is a real ``build_report`` output, and it passes.
 
-    Also a drift guard: if ``build_report`` gains or renames a key without
-    ``REQUIRED_REPORT_KEYS`` following, this fails rather than quietly letting
-    the recorded-verdict check stop covering the new field.
+    Also a drift guard, now against the schema rather than a parallel key list:
+    the emitted document's keys are exactly the canonical declaration's fields,
+    so a field added to one and not the other fails here.
     """
-    assert set(BOUND_REPORT.payload) == REQUIRED_REPORT_KEYS
-    assert recorded_success_violations(BOUND_REPORT.payload) == ()
+    assert set(BOUND_REPORT.dump()) == set(CorpusEvidenceReport._fields)
+    assert recorded_success_violations(BOUND_REPORT.dump()) == ()
 
 
 def test_a_fabricated_binding_both_sides_agree_on_still_fails(
@@ -715,6 +736,31 @@ def test_a_fabricated_binding_both_sides_agree_on_still_fails(
         pytest.param(
             lambda s: _rewrite_release_report(s, concordance_failures=1),
             id="release-evidence-claims-pass-over-concordance-failures",
+        ),
+        # --- the package/release *pair*, not either row alone ----------------
+        pytest.param(
+            lambda s: setattr(package_row(s), "published_at", None),
+            id="package-records-no-published_at",
+        ),
+        pytest.param(
+            lambda s: setattr(package_row(s), "version", "rel-forged"),
+            id="package-version-edited-away-from-the-release",
+        ),
+        pytest.param(
+            lambda s: setattr(release_row(s), "corpus_report_reference", None),
+            id="report-reference-cleared",
+        ),
+        pytest.param(
+            lambda s: setattr(release_row(s), "corpus_report_reference", "9" * 64),
+            id="report-reference-names-an-unrelated-report",
+        ),
+        pytest.param(
+            _stale_report_reference,
+            id="report-reference-names-the-previous-report",
+        ),
+        pytest.param(
+            lambda s: _coordinated_transform_edit(s, "evidence_report_schema_version"),
+            id="transform-config-and-report-edited-together",
         ),
     ],
 )

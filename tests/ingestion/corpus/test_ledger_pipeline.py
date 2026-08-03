@@ -8,6 +8,8 @@ containers, heading coverage, and multi-unit segmentation.
 
 from __future__ import annotations
 
+import pytest
+
 from afterworlds.ingestion.corpus.bundle import reconciliation_hash
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
@@ -169,7 +171,7 @@ def test_clean_regeneration_is_byte_for_byte_deterministic(release):
 
 
 def test_evidence_report_carries_proof_hashes_but_not_its_own(release):
-    payload = release.report.payload
+    payload = release.report.dump()
     assert "persisted_corpus_digest" in payload
     assert payload["bundle_root_hash"] == release.release.identity.bundle_root_hash
     # The report never contains its own hash.
@@ -180,7 +182,7 @@ def test_evidence_report_records_complete_transform_identity(release):
     """PR #134 P1: the report records the full Component B identity — extractor
     config + first-party source manifest/hash + deterministic invocation + IR
     flag — not just ledger.extraction_config."""
-    ti = release.report.payload["transform_identity"]
+    ti = release.report.dump()["transform_identity"]
     assert isinstance(ti, dict)
     assert ti["extractor"]  # extractor config present
     assert ti["source_manifest"]  # first-party source manifest present
@@ -189,11 +191,11 @@ def test_evidence_report_records_complete_transform_identity(release):
     assert ti["intermediate_representation_committed"] is False
 
 
-def _rebuild_report(a, persisted=True):
+def _rebuild_report(a, persisted=True, **overrides):
     """Rebuild the evidence report from a release's inputs (R16 F2 host test)."""
     from afterworlds.ingestion.corpus.report import build_report
 
-    return build_report(
+    kwargs = dict(
         ledger=a.ledger,
         members=a.members,
         recon=a.reconciliation,
@@ -208,6 +210,22 @@ def _rebuild_report(a, persisted=True):
         canaries=a.canaries,
         persisted=persisted,
     )
+    kwargs.update(overrides)
+    return build_report(**kwargs)
+
+
+def test_a_report_that_cannot_describe_itself_fails_at_build_time(release):
+    """The construction side goes through the one parser too.
+
+    A NamedTuple constructor runs no validators, so `build_report` assembling
+    the payload as a plain dict and handing it to `canonical_report` is what
+    makes construction a validated path at all. Without it, an incomplete canary
+    run would be *written* into a release rather than caught when someone later
+    read it back."""
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        _rebuild_report(release, canaries=release.canaries[1:])
 
 
 def test_evidence_report_identity_is_host_independent(release, monkeypatch):
@@ -224,7 +242,7 @@ def test_evidence_report_identity_is_host_independent(release, monkeypatch):
         monkeypatch.setattr(report_mod.platform, "machine", lambda: machine)
         monkeypatch.setattr(report_mod.platform, "python_version", lambda: pyver)
         r = _rebuild_report(release)
-        return r.payload, report_hash(r)
+        return r.dump(), report_hash(r)
 
     p1, h1 = build_under("Linux", "x86_64", "3.12.1")
     p2, h2 = build_under("Windows", "AMD64", "3.12.9")

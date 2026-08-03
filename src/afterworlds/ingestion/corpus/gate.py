@@ -238,9 +238,9 @@ def run_gate(
     # 18. Evidence report postdates persistence and carries the digest.
     if not a.report.persisted:
         f.append("evidence report predates persistence")
-    if not a.report.payload.get("persisted_corpus_digest"):
+    if not a.report.payload.persisted_corpus_digest:
         f.append("evidence report lacks persisted-corpus digest")
-    if a.report.payload.get("prepublication_validation_status") != "pass":
+    if a.report.payload.prepublication_validation_status != "pass":
         f.append("evidence report prepublication status is not pass")
 
     # 19. Accounting equation holds.
