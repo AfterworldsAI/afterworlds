@@ -39,10 +39,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.models import Disposition
+from afterworlds.ingestion.corpus.operational import OperationalCorpusSnapshot
 from afterworlds.persistence.orm.corpus import CorpusProjectionORM, LedgerLeafORM
 from afterworlds.persistence.orm.rules_package import RuleChunkORM
 
-__all__ = ["BoundCorpusSnapshot", "ChunkCoverage", "load_bound_corpus"]
+__all__ = [
+    "BoundCorpusSnapshot",
+    "ChunkCoverage",
+    "bound_corpus_from_operational",
+    "load_bound_corpus",
+]
 
 
 @dataclass(frozen=True)
@@ -125,6 +131,30 @@ class BoundCorpusSnapshot:
             if start <= char_start and char_end <= end:
                 return True
         return False
+
+
+def bound_corpus_from_operational(
+    snapshot: OperationalCorpusSnapshot,
+) -> BoundCorpusSnapshot:
+    """Adapt the verified 5c-owned trust seam to 5d's validation view."""
+    persisted = {chunk.chunk_id for chunk in snapshot.chunks}
+    return BoundCorpusSnapshot(
+        package_uuid=snapshot.package_uuid,
+        release_version=snapshot.release_version,
+        leaf_lengths={leaf.leaf_id: len(leaf.content) for leaf in snapshot.leaves},
+        chunk_coverage=tuple(
+            ChunkCoverage(
+                chunk_id=edge.chunk_id,
+                leaf_id=edge.leaf_id,
+                cover_start=edge.cover_start,
+                cover_end=edge.cover_end,
+                role=edge.role,
+                projection_id=edge.projection_id,
+            )
+            for edge in snapshot.projections
+            if edge.chunk_id in persisted
+        ),
+    )
 
 
 def load_bound_corpus(

@@ -40,6 +40,7 @@ from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
+    MechanicalActiveProjectionORM,
     MechanicalBatchDiffORM,
     MechanicalBatchScopeORM,
     MechanicalComponentORM,
@@ -80,6 +81,11 @@ TABLE_POLICY: dict[type, str] = {
     MechanicalRelationshipORM: "semantic",
     MechanicalReferenceORM: "semantic",
     MechanicalProvenanceORM: "semantic",
+    # Package-scoped, not projection-scoped: which projection a package has
+    # activated is not part of any projection's reconstructed meaning, so it is
+    # deliberately outside the raw row set and the persisted-state digest. A
+    # projection's content must not change when it is activated.
+    MechanicalActiveProjectionORM: "activation",
 }
 
 
@@ -499,7 +505,7 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
     scoped = {
         model.__tablename__  # type: ignore[attr-defined]
         for model, policy in TABLE_POLICY.items()
-        if policy != "header"
+        if policy not in {"header", "activation"}
     }
     # The default batch-reviewed candidate populates every scoped table except
     # references, which the honest fixture leaves empty.

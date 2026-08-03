@@ -257,6 +257,7 @@ class TestRpTablePrefix:
             "rp_mech_relationships",
             "rp_mech_references",
             "rp_mech_provenance",
+            "rp_mech_active_projections",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (

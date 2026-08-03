@@ -110,6 +110,7 @@ __all__ = [
     "persist_draft",
     "reconstruct_candidate",
     "record_persisted_state_digest",
+    "verify_persisted_state",
     "verify_reconstruction",
 ]
 
@@ -618,11 +619,35 @@ def verify_reconstruction(
     *,
     expected_status: str = "draft",
 ) -> tuple[str, ...]:
+    """Verify the persisted projection a build just identified.
+
+    Thin alias for :func:`verify_persisted_state`: the identity is the only
+    thing the verification needs from *identified*, because every value it
+    compares is re-derived from the database. Kept as the build-time spelling
+    so a caller holding an :class:`IdentifiedProjection` need not unwrap it.
+    """
+    return verify_persisted_state(
+        session, identified.projection_uuid, expected_status=expected_status
+    )
+
+
+def verify_persisted_state(
+    session: Session,
+    projection_uuid: str,
+    *,
+    expected_status: str = "draft",
+) -> tuple[str, ...]:
     """Return violations found by rebuilding the projection from the database.
 
     Catches omission (a row that never landed), tamper (a value changed after
     the fact), and stale reuse (a persisted projection whose content no longer
     derives its own identity).
+
+    Takes only the projection's identity, so the publication gate — which has
+    no in-memory build to compare against — verifies persisted state against
+    the database's *own recorded claims*: the header's UUID, payload hash,
+    recorded digest, and stored derived IDs are each re-derived from the rows
+    and must agree.
 
     ``expected_status`` is explicit because the same verification runs before
     publication and, later, against a published projection; hard-coding
@@ -630,7 +655,7 @@ def verify_reconstruction(
     finding.
     """
     findings: list[str] = []
-    uuid_ = identified.projection_uuid
+    uuid_ = projection_uuid
 
     try:
         header = _header(session, uuid_)

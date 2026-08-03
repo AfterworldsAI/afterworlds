@@ -53,6 +53,7 @@ __all__ = [
     "classification_identity",
     "classification_payload",
     "derive_span_id",
+    "span_payload",
     "validate_acceptance",
     "validate_partition",
     "validate_policy_binding",
@@ -339,6 +340,27 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
     return tuple(findings)
 
 
+def span_payload(spans: tuple[SemanticSpan, ...]) -> list[dict[str, object]]:
+    """Canonical, identity-bearing payload of an accepted span set.
+
+    One definition, used by the classification payload and by the accepted
+    completeness oracle. Review state is deliberately absent: it is acceptance
+    evidence, and a span set that means the same thing must compare equal
+    however it was reviewed.
+    """
+    return canonical_order(
+        {
+            "span_id": s.span_id,
+            "leaf_id": s.leaf_id,
+            "char_start": s.char_start,
+            "char_end": s.char_end,
+            "disposition": s.disposition.value,
+            "non_mechanical_reason_code": s.non_mechanical_reason_code,
+        }
+        for s in spans
+    )
+
+
 def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
     """Canonical, identity-bearing payload of the accepted classification.
 
@@ -361,17 +383,7 @@ def classification_payload(ledger: ClassificationLedger) -> dict[str, object]:
         "release_version": ledger.release_version,
         "semantic_policy_version": ledger.policy_version,
         "semantic_policy_hash": ledger.policy_hash,
-        "spans": canonical_order(
-            {
-                "span_id": s.span_id,
-                "leaf_id": s.leaf_id,
-                "char_start": s.char_start,
-                "char_end": s.char_end,
-                "disposition": s.disposition.value,
-                "non_mechanical_reason_code": s.non_mechanical_reason_code,
-            }
-            for s in ledger.spans
-        ),
+        "spans": span_payload(ledger.spans),
     }
 
 

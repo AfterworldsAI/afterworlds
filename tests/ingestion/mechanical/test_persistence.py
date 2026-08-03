@@ -31,9 +31,6 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
     fact_from_payload,
 )
-from afterworlds.persistence.database import create_engine, create_session_factory
-from afterworlds.persistence.orm.base import Base
-from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.mechanical import (
     MechanicalBatchDiffORM,
     MechanicalFactORM,
@@ -42,56 +39,15 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRecordORM,
     MechanicalSpanORM,
 )
-from afterworlds.persistence.orm.rules_package import RulesPackageORM
 from tests.ingestion.mechanical.conftest import (
     CREATURE_KEY,
+    NOW,
     SCOPED_REFERENCES,
     SPELL_KEY,
     batch_accepted_ledger,
     build_candidate,
     build_representation,
 )
-
-NOW = "2026-07-31T00:00:00Z"
-
-
-@pytest.fixture()
-def session(tmp_path) -> Session:  # type: ignore[no-untyped-def]
-    engine = create_engine(f"sqlite:///{tmp_path / 'mech.db'}")
-    Base.metadata.create_all(engine)
-    factory = create_session_factory(engine)
-    with factory() as s:
-        # The projection FKs a real published 5c release row.
-        s.add(
-            RulesPackageORM(
-                rules_package_id="pkg-5c",
-                name="SRD 5.2.1",
-                system="dnd5e",
-                version="5.2.1",
-                is_enabled=True,
-                publication_status="published",
-                created_at="2026-07-31T00:00:00Z",
-                updated_at="2026-07-31T00:00:00Z",
-            )
-        )
-        s.flush()
-        s.add(
-            CorpusReleaseORM(
-                package_uuid="pkg-5c",
-                release_version="rel-5c",
-                authoritative_source_hash="a" * 64,
-                transform_config_hash="b" * 64,
-                bundle_root_hash="c" * 64,
-                ledger_hash="1" * 64,
-                policy_hash="2" * 64,
-                reconciliation_hash="3" * 64,
-                transform_config={},
-                publication_status="published",
-                created_at=NOW,
-            )
-        )
-        s.flush()
-        yield s
 
 
 def _persist(session: Session):  # type: ignore[no-untyped-def]

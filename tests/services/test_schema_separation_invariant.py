@@ -163,6 +163,7 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_mech_relationships",
         "rp_mech_references",
         "rp_mech_provenance",
+        "rp_mech_active_projections",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (
