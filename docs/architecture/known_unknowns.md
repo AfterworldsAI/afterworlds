@@ -225,6 +225,14 @@ quarantine* — a repo/runtime zero-reachability scan + publication-time legacy 
 breaking pre-release clean baseline: the incomplete legacy SQL package is deleted by migration 0018, the
 obsolete structured JSON and its loaders are deleted, and the development Chroma store is reset in full
 once before the corrected corpus is rebuilt.)
+**Amended 2026-08-03 — operational reliability.** Issue 5c is now judged by operational reliability
+rather than adversarial or forensic proof. Full-corpus ingestion, faithful and citable source records,
+concordance, stable immutable releases, meaningful-change versioning, accidental-corruption and
+stale-reuse detection, fail-closed publication, and rebuildability all remain binding. The "byte-for-byte
+reproducible acyclic build" phrasing above describes the originally specified proof architecture and is
+no longer a governing requirement; downstream CRD Issue 5d verifies a narrow 5c-owned operational seam
+instead of reconstructing 5c's publication history. See
+`/docs/decisions/adr-005c-operational-reliability-amendment.md`.
 
 **Scope of the baseline reset (owner decision, 2026-07-29).** That reset is implemented
 **only** as a one-time, pre-release, **offline-exclusive** operation

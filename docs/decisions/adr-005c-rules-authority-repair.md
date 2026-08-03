@@ -7,6 +7,13 @@ a single CRD issue; this ADR establishes the repair order for CRD Issues 5c, 5d,
 **Status:** Accepted — owner directive dated 2026-07-21 authorizing the seven decisions recorded here.
 Repository adoption proceeds through the documentation PR that introduces this ADR.
 
+> **Amendment — operational reliability (2026-08-03).** CRD Issue 5c is judged by **operational
+> reliability**, not adversarial or forensic proof. See
+> [Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) and the
+> dated section at the end of this ADR. The amendment is **prospective**: it changes what Issue 5c and
+> its downstream consumers are required to guarantee from 2026-08-03 forward, and does not alter this
+> ADR's historical decision record or what Issue 5c's implementation previously proved.
+
 > **Correction — pre-release clean baseline (2026-07-27, Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds is
 > pre-release, so persistence created before Issue 5c gets no upgrade-compatibility or preservation
 > guarantee. The owner replaced the earlier *strict legacy quarantine / zero-reachability* contract with a
@@ -33,6 +40,13 @@ Repository adoption proceeds through the documentation PR that introduces this A
 > trust-relevant mechanical value. When advertised authority is missing, the system fails closed with a
 > typed error — it does not improvise, does not fall back to a similar mechanic, and does not let
 > `outcome="undetermined"` silently stand in for an integration gap.
+
+**Scope of this invariant (2026-08-03).** The Central Invariant above states what *publication* proves —
+source-corpus integrity — and what retrieval may never do. It does not, in its own text, prescribe a
+proof architecture, a count of release hashes, a derivation graph, or any obligation on a downstream
+consumer to re-prove publication. Those requirements were introduced by CRD Issue 5c's Completion
+Contract A (GitHub #132), not by this ADR, and are prospectively superseded by the operational
+reliability amendment. This invariant's own text is unchanged and remains binding.
 
 ## Context
 
@@ -428,6 +442,57 @@ deciding support for every SRD mechanic; implementing parameterized upcasting; i
 reaction handling; implementing a visual or printable character-sheet UI; modifying PR #129; resuming
 Issue 15b Phase 3; frontend dice work under Issue 19b. Those details belong to the subsequent repair
 issues below and their associated ADR amendments where necessary.
+
+---
+
+## Amendment — Issue 5c Operational Reliability (2026-08-03)
+
+**Status:** Accepted — owner approval dated 2026-08-03. Governing text:
+[Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
+**Effect:** Prospective. Nothing above this section is rewritten, and no historical decision record or
+prior implementation claim is altered.
+
+**The standard.** CRD Issue 5c exists to make the SRD 5.2.1 corpus **operationally reliable** for
+dependable gameplay and downstream Rules Package construction. It does not provide adversarial,
+forensic, or chain-of-custody proof. The required standard is reliable source material for Issue 5d —
+not proof that a malicious actor could not coherently rewrite the database and every dependent value.
+
+**Preserved as binding outcomes.** Exact source identification (document, version, license, and a
+checksum sufficient to detect a different document); complete and faithful representation, with silent
+omission unacceptable and every deliberate exclusion made under an explicit reviewable policy; citable
+provenance with stable source locations; authoritative/derivative separation; stable immutable
+publication with no silent in-place mutation; meaningful-change versioning; accidental mismatch and
+corruption detection at publication, verified reuse, and the downstream seam; fail-closed publication
+leaving no usable partial release; rebuildability and diagnosis from committed source, declared
+configuration, approved logical corpus, and diagnostic evidence; legacy quarantine of the incomplete
+prior corpus from every active path; and the typed-mechanics boundary — Issue 5c does not certify that
+source prose was correctly interpreted as typed mechanics, which remains Issue 5d's responsibility.
+
+**Prospectively superseded as governing requirements.** An exact mandatory count of top-level release
+hashes or proof artifacts; a complete mathematical genealogy connecting every stored identity to every
+other; byte-identical regeneration of every report, serialization, database representation, or
+incidental artifact when the approved logical corpus is unchanged; and coherent-rewrite resistance —
+resistance to a malicious actor rewriting the database together with every related checksum or
+reference. Downstream reconstruction and re-proof of the entire historical publication process on every
+load of an approved release is superseded by the trust boundary in §5 of the amendment.
+
+Superseding these as *requirements* does not delete the corresponding implementation. Existing ledgers,
+reconciliation records, hashes, reports, manifests, and validators may remain where the bounded
+contract-to-code audit shows them to be a low-cost way to satisfy a retained outcome; their present
+existence simply no longer makes their exact topology mandatory.
+
+**Attribution.** These superseded requirements originate in CRD Issue 5c's Completion Contract A
+(GitHub #132), not in this ADR's Decisions of Record. Decisions 1–7 above are unchanged and remain
+binding, as does the 2026-07-27 pre-release clean-baseline correction.
+
+**Release identity.** Release identity tracks the authoritative source and the approved logical corpus,
+not every byte of every implementation file. An incidental code, annotation, comment, logging, or
+plumbing change that leaves the approved logical corpus and its compatibility unchanged does not require
+reminting solely because a whole source file changed. Choosing the least complicated implementation of
+that rule belongs to the contract-to-code audit.
+
+**Chroma.** The Owner Decision of 2026-08-01 is preserved exactly; see §6 of the amendment and ADR-005d
+Decision 8.
 
 ---
 

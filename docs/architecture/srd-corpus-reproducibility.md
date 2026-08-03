@@ -1,5 +1,19 @@
 # SRD Corpus Reproducibility — CRD Issue 5c (#132), ADR-005c Completion Contract A
 
+> **Prospectively superseded in part (2026-08-03) — Issue 5c Operational Reliability Amendment.**
+> This document describes the proof architecture Completion Contract A originally required, and
+> remains an accurate description of what the current implementation does. Three of its framing
+> claims are no longer *governing requirements*: the fixed count of five top-level release
+> identities, byte-for-byte regeneration of every generated artifact, and the acyclic proof
+> lifecycle as a mandatory derivation graph. What remains binding is the operational outcome —
+> exact source identification, complete and faithful representation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection, fail-closed
+> publication, and the ability to rebuild and diagnose an approved release. Release identity tracks
+> the authoritative source and the approved logical corpus, not every byte of every implementation
+> file. See [ADR-005c operational reliability amendment](../decisions/adr-005c-operational-reliability-amendment.md).
+> No text below is rewritten; the bounded contract-to-code audit decides what the implementation
+> keeps.
+
 The authoritative SRD 5.2.1 corpus is a **byte-for-byte reproducible** release
 derived deterministically from the authoritative PDF. This document defines the
 acyclic proof lifecycle (Component K) and the determinism rules that make a clean
