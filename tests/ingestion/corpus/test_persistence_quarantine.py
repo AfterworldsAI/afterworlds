@@ -901,7 +901,7 @@ def test_report_schema_ok_fails_closed_on_a_contradictory_transform_config(relea
     from afterworlds.ingestion.corpus.persistence import _report_schema_ok
     from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION as V
 
-    report = release.report.payload
+    report = release.report
     assert _report_schema_ok(report, {"evidence_report_schema_version": V})
     # contradictory: report current, transform config stale, absent, or not an
     # object at all.

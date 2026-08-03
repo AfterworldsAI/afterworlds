@@ -76,9 +76,11 @@ from afterworlds.ingestion.corpus.policy import (
 )
 from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
-    EvidenceReport,
+    REPORT_PROOF_COLUMNS,
     build_report,
+    recorded_identities,
     report_hash,
+    report_state_violations,
 )
 from afterworlds.ingestion.corpus.report_schema import (
     CorpusEvidenceReport,
@@ -876,31 +878,48 @@ def verify_persisted_digest(
     )
 
 
-#: What a downstream consumer must be able to prove about a release before it
-#: may treat that release as authority. Each entry is
-#: ``(evidence-report key, rp_corpus_releases column)``: the recorded report and
-#: the recorded release row must state the same proof identity, or one of them
-#: has been edited since publication.
-_REPORT_PROOF_COLUMNS = (
-    ("authoritative_source_hash", "authoritative_source_hash"),
-    ("transform_config_hash", "transform_config_hash"),
-    ("bundle_root_hash", "bundle_root_hash"),
-    ("frozen_source_ledger_hash", "ledger_hash"),
-    ("persisted_corpus_digest", "persisted_corpus_digest"),
-)
-
-
-class PersistedReportError(ValueError):
-    """A stored evidence report is not the canonical `5c-evidence-3` schema."""
-
-
 @dataclass(frozen=True)
-class PublishedRelease:
-    """A package/release pair proven to be an exactly-published 5c release."""
+class RecordedReleasePair:
+    """A package/release pair whose *recorded rows* are internally closed.
+
+    Necessary authority, explicitly not sufficient. Nothing here has asked
+    whether the report describes the persisted corpus — see
+    :class:`VerifiedPublishedRelease`, which is what a lifecycle may act on.
+    """
 
     package: RulesPackageORM
     release: CorpusReleaseORM
     report: CorpusEvidenceReport
+
+
+@dataclass(frozen=True)
+class VerifiedPublishedRelease:
+    """A published 5c release proven against the state it claims to describe.
+
+    Carries the reconstruction it was proven from, so a caller that needs the
+    ledger, reconciliation, policy, members, or sources uses the copy that was
+    verified rather than loading a second, independently-trusted one.
+    """
+
+    package: RulesPackageORM
+    release: CorpusReleaseORM
+    report: CorpusEvidenceReport
+    #: The release row as a typed record, with the post-persistence columns
+    #: already narrowed — proving the pair is what establishes they are present,
+    #: so no consumer re-derives that.
+    record: ReleaseRecord
+    policy: ReconciliationPolicy
+    ledger: SourceLedger
+    reconciliation: ReconciliationMember
+    members: CorpusBundleMembers
+    sources: tuple[PersistedSource, ...]
+    #: The membership checks as *measured*, not as assumed. Both are empty
+    #: whenever this object exists — the seam refuses otherwise — but a caller
+    #: assembling publication evidence must report what was computed rather than
+    #: a constant justified by an invariant held somewhere else. Gate condition
+    #: 20 requires real operation evidence, never a default.
+    chunk_membership_violations: tuple[str, ...]
+    source_violations: tuple[str, ...]
 
 
 #: Columns that are NULL through the draft phase and set exactly once by
@@ -915,32 +934,28 @@ _POST_PERSISTENCE_COLUMNS = (
 )
 
 
-def load_published_release(
+def load_recorded_release_pair(
     session: Session, pkg: str
-) -> tuple[PublishedRelease | None, tuple[str, ...]]:
-    """Load and prove the published package/release pair for *pkg*.
+) -> tuple[RecordedReleasePair | None, tuple[str, ...]]:
+    """Prove the *recorded rows* for *pkg* are an internally closed published pair.
 
-    The one 5c-owned statement of what a published release *is*, in terms of its
-    own persisted rows. Every lifecycle operation that treats a release as
-    published calls this: downstream :func:`verify_published_release`,
-    :func:`finalize_release` verified reuse, and fresh finalization before it
-    commits. A release refused here cannot be reused, consumed, or freshly
-    published — which is the property that a check living at one caller could
-    not give.
+    Narrowly named on purpose. Its predecessor was called
+    ``load_published_release`` and was treated as published authority, which it
+    is not: everything it proves is a relationship *among recorded values*. A
+    report whose summaries were rewritten to different but internally successful
+    values, rehashed, and re-referenced satisfies every line below.
+    :func:`load_verified_published_release` is the seam a lifecycle may act on.
 
     Its unit is the **pair**, not either row. Both rows are written from one
     derived value at publication, ``RulesPackageService`` exposes the package's
     version while 5d binds the release's, so a mismatch between them leaves two
     public versions for one supposedly closed release.
 
-    Deliberately *not* re-proven here, because it is already proven elsewhere and
-    a second statement is a second definition: ``policy_hash``, whose closed
+    Deliberately *not* re-proven here: ``policy_hash``, whose closed
     cross-reference chain across the policy, reconciliation, and release rows is
-    validated by :func:`_load_policy`, which fails closed; and everything
-    recomputable from persisted rows (ledger, reconciliation, bundle root,
-    source and chunk membership), which belongs to reconstruction.
+    validated by :func:`_load_policy`, which fails closed.
 
-    Returns the proven pair, or ``None`` and the violations that refuse it.
+    Returns the closed pair, or ``None`` and the violations that refuse it.
     """
     violations: list[str] = []
     release = session.execute(
@@ -1006,9 +1021,7 @@ def load_published_release(
         )
         return None, tuple(violations)
 
-    if report_hash(EvidenceReport(payload=report, persisted=True)) != (
-        release.evidence_report_hash
-    ):
+    if report_hash(report) != release.evidence_report_hash:
         violations.append(
             "recorded evidence-report payload does not hash to the recorded "
             "evidence_report_hash"
@@ -1025,7 +1038,7 @@ def load_published_release(
             f"the supported {EVIDENCE_REPORT_SCHEMA_VERSION!r}"
         )
     recorded = report.dump()
-    for report_key, column in _REPORT_PROOF_COLUMNS:
+    for report_key, column in REPORT_PROOF_COLUMNS:
         if recorded[report_key] != getattr(release, column):
             violations.append(
                 f"recorded evidence report states {report_key}="
@@ -1042,7 +1055,137 @@ def load_published_release(
 
     if violations:
         return None, tuple(violations)
-    return PublishedRelease(package=package, release=release, report=report), ()
+    return RecordedReleasePair(package=package, release=release, report=report), ()
+
+
+def load_verified_published_release(
+    session: Session, pkg: str
+) -> tuple[VerifiedPublishedRelease | None, tuple[str, ...]]:
+    """The one 5c-owned seam for "this release is published authority".
+
+    Recorded-row closure is a prerequisite, not the answer. This adds the two
+    things that make a release *authority* rather than merely coherent: the
+    persisted rows reconstruct, and the evidence report describes **that**
+    reconstruction. Without the second, a coherently rewritten set of totals,
+    accounting, and projection counts is accepted — every recorded value agrees
+    with every other recorded value, and none of them is checked against the
+    corpus they claim to summarize.
+
+    Stages, in order, each refusing before the next can derive noise from state
+    already known untrustworthy:
+
+    1. :func:`load_recorded_release_pair` — the recorded rows are closed;
+    2. policy, ledger, reconciliation, member, and source reconstruction;
+    3. reconstruction identity checks — ledger, reconciliation, and bundle-root
+       hashes are what the rows actually derive;
+    4. :func:`report_state_violations` — every SQL-reconstructable report claim
+       agrees with the reconstruction;
+    5. single-source and chunk-runtime membership.
+
+    Every lifecycle that treats a release as published calls this: downstream
+    :func:`verify_published_release`, :func:`finalize_release` verified reuse,
+    and fresh finalization before it commits. It returns the reconstruction it
+    proved, so a caller uses the copy that was verified rather than loading a
+    second, independently-trusted one.
+    """
+    pair, violations = load_recorded_release_pair(session, pkg)
+    if pair is None:
+        return None, violations
+
+    try:
+        policy = _load_policy(session, pkg)
+        ledger = _load_ledger(session, pkg)
+        recon = _load_reconciliation(session, pkg, policy)
+        members = _load_members(session, pkg, ledger)
+        sources = _load_sources(session, pkg)
+    except (PolicyReconstructionError, SQLAlchemyError, KeyError, ValueError) as exc:
+        # Deliberately broad: this runs over rows that may have been partially
+        # migrated or edited directly, and every way that can fail — a missing
+        # row, an unreadable enum, a findings key that is gone — means the same
+        # thing, that the release does not reconstruct.
+        return None, (f"release {pkg} does not reconstruct from persisted rows: {exc}",)
+
+    release = pair.release
+    found: list[str] = []
+    # ``_load_policy`` already fails closed on a policy_hash that disagrees with
+    # the policy row, the reconciliation row, or the release row, so the policy
+    # identity is proven by having got here at all.
+    for label, recomputed, was in (
+        ("ledger_hash", ledger_hash(ledger), release.ledger_hash),
+        (
+            "reconciliation_hash",
+            reconciliation_hash(recon),
+            release.reconciliation_hash,
+        ),
+        (
+            "bundle_root_hash",
+            build_bundle(ledger, members, recon).bundle_root_hash,
+            release.bundle_root_hash,
+        ),
+    ):
+        if recomputed != was:
+            found.append(
+                f"recorded {label} {was!r} is not what the reconstructed "
+                f"5c state derives ({recomputed!r})"
+            )
+
+    found.extend(
+        report_state_violations(
+            pair.report,
+            identities=recorded_identities(release),
+            transform_config=release.transform_config,
+            ledger=ledger,
+            reconciliation=recon,
+            policy=policy,
+        )
+    )
+    source_violations = verify_single_source(session, pkg)
+    membership_violations = verify_chunk_runtime_membership(session, pkg)
+    found.extend(source_violations)
+    found.extend(membership_violations)
+
+    if found:
+        return None, tuple(found)
+
+    evidence_hash = release.evidence_report_hash
+    digest = release.persisted_corpus_digest
+    reference = release.corpus_report_reference
+    if (
+        evidence_hash is None or digest is None or reference is None
+    ):  # pragma: no cover - recorded closure already required all three
+        return None, (f"release {pkg} is missing post-persistence columns",)
+
+    return (
+        VerifiedPublishedRelease(
+            package=pair.package,
+            release=release,
+            report=pair.report,
+            record=ReleaseRecord(
+                package_uuid=pkg,
+                release_version=release.release_version,
+                identity=ReleaseIdentity(
+                    authoritative_source_hash=release.authoritative_source_hash,
+                    transform_config_hash=release.transform_config_hash,
+                    bundle_root_hash=release.bundle_root_hash,
+                    evidence_report_hash=evidence_hash,
+                    persisted_corpus_digest=digest,
+                ),
+                transform_config=release.transform_config,
+                ledger_hash=release.ledger_hash,
+                policy_hash=release.policy_hash,
+                reconciliation_hash=release.reconciliation_hash,
+                corpus_report_reference=reference,
+            ),
+            policy=policy,
+            ledger=ledger,
+            reconciliation=recon,
+            members=members,
+            sources=sources,
+            chunk_membership_violations=membership_violations,
+            source_violations=source_violations,
+        ),
+        (),
+    )
 
 
 def verify_published_release(
@@ -1065,19 +1208,21 @@ def verify_published_release(
     already here; 5d calls it rather than re-deriving a second opinion about
     what a published 5c release is.
 
-    Three stages, in order. :func:`load_published_release` proves the persisted
-    package/release **pair** is an exactly-published release in its own terms;
-    the five declared values (plus *pkg* itself) must then equal that proven
-    row; and the ledger, reconciliation, and bundle-root identities must be
-    exactly what the persisted rows reconstruct to.
+    Two stages, in order. :func:`load_verified_published_release` proves the
+    release is published authority — recorded rows closed, persisted rows
+    reconstructing, and the evidence report describing that reconstruction — and
+    only then are 5d's five declared values (plus *pkg* itself) compared against
+    it.
 
-    The order is the point. Comparing a declaration against a row that has not
-    been proven is comparing two claims, and deriving further findings from a
-    refused pair buries the real one — so a failed pair returns immediately.
+    The order is the point, and getting it wrong is what this seam is for.
+    Comparing a declaration against rows that have not been proven compares two
+    claims; deriving further findings from a refused release buries the real
+    one. So a failed proof returns immediately, and the declared binding is
+    never measured against anything but already-proven authority.
 
     **What this cannot re-prove.** ``persisted_corpus_digest`` binds the actual
     read-back *vector* logical state as well as SQL (Component A), so it is not
-    recomputable from a session alone. It is verified here as an exact recorded
+    recomputable from a session alone. It is verified as an exact recorded
     value, cross-checked against the recorded evidence report, and its
     cross-store half remains proven by :func:`finalize_release`, which is the
     only path that may set it. Re-proving that half needs a Chroma client and
@@ -1085,9 +1230,9 @@ def verify_published_release(
 
     Returns the violations, empty iff the release is publishable authority.
     """
-    proven, pair_violations = load_published_release(session, pkg)
+    proven, refusals = load_verified_published_release(session, pkg)
     if proven is None:
-        return pair_violations
+        return refusals
     release = proven.release
 
     violations: list[str] = []
@@ -1104,46 +1249,6 @@ def verify_published_release(
                 f"declared {field} {declared!r} is not the authoritative "
                 f"release's {recorded!r}"
             )
-
-    try:
-        policy = _load_policy(session, pkg)
-        ledger = _load_ledger(session, pkg)
-        recon = _load_reconciliation(session, pkg, policy)
-        members = _load_members(session, pkg, ledger)
-    except (PolicyReconstructionError, SQLAlchemyError, KeyError, ValueError) as exc:
-        # Deliberately broad: this runs over rows that may have been partially
-        # migrated or edited directly, and every way that can fail — a missing
-        # row, an unreadable enum, a findings key that is gone — means the same
-        # thing, that the release does not reconstruct.
-        violations.append(
-            f"release {pkg} does not reconstruct from persisted rows: {exc}"
-        )
-        return tuple(violations)
-
-    # ``_load_policy`` already fails closed on a policy_hash that disagrees with
-    # the policy row, the reconciliation row, or the release row, so the policy
-    # identity is proven by having got here at all.
-    for label, recomputed, recorded in (
-        ("ledger_hash", ledger_hash(ledger), release.ledger_hash),
-        (
-            "reconciliation_hash",
-            reconciliation_hash(recon),
-            release.reconciliation_hash,
-        ),
-        (
-            "bundle_root_hash",
-            build_bundle(ledger, members, recon).bundle_root_hash,
-            release.bundle_root_hash,
-        ),
-    ):
-        if recomputed != recorded:
-            violations.append(
-                f"recorded {label} {recorded!r} is not what the reconstructed "
-                f"5c state derives ({recomputed!r})"
-            )
-
-    violations.extend(verify_single_source(session, pkg))
-    violations.extend(verify_chunk_runtime_membership(session, pkg))
     return tuple(violations)
 
 
@@ -1207,103 +1312,40 @@ class FinalizeResult:
 
 
 def _reconstruct_artifacts(
-    session: Session,
-    pkg: str,
+    proven: VerifiedPublishedRelease,
     *,
     pages: list[ExtractedPage],
     bundle: CanonicalBundle,
     vector_state: dict[str, object],
-) -> tuple[ReleaseArtifacts, tuple[str, ...], tuple[str, ...]]:
-    """Load a fully-persisted release's DB-grounded artifacts + its chunk-runtime
-    membership and single-source violations (used by both the fresh-publish and
-    the idempotent-reuse path).
+) -> ReleaseArtifacts:
+    """Assemble a published release's artifacts from *already-proven* state.
 
-    The applied policy is reconstructed and validated from the persisted rows
-    (:func:`_load_policy`), never a caller policy — so a tampered persisted policy
-    fails closed here (PR #134 P1). ``vector_state`` is the actual read-back
-    vector logical state; it is carried on the artifacts so the gate recomputes
-    the persisted-corpus digest over the real cross-store state (Component A /
-    K step c).
+    Takes the reconstruction :func:`load_verified_published_release` produced
+    rather than loading its own. That is the point: the predecessor re-read
+    every row itself, so the artifacts a caller went on to gate were assembled
+    from a second, independently-trusted copy of state that something else had
+    proven. The applied policy, ledger, reconciliation, members, and sources
+    here are the ones the proof ran against.
+
+    ``vector_state`` is the actual read-back vector logical state; it is carried
+    on the artifacts so the gate recomputes the persisted-corpus digest over the
+    real cross-store state (Component A / K step c). Concordance and canaries
+    are re-run for real here because this caller holds the pages.
     """
-    release_row = session.execute(
-        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
-    ).scalar_one()
-    policy = _load_policy(session, pkg)
-    ledger = _load_ledger(session, pkg)
-    recon = _load_reconciliation(session, pkg, policy)
-    members = _load_members(session, pkg, ledger)
-    sources = _load_sources(session, pkg)
-    membership_violations = verify_chunk_runtime_membership(session, pkg)
-    source_violations = verify_single_source(session, pkg)
-    concordance = check_concordance(members.chunks, pages)
-    canaries = check_canaries(pages)
-
-    # Backstops, not the enforcement point. Every caller proves the pair through
-    # ``load_published_release`` before reconstructing, so neither raise below is
-    # reachable today; they stay because assembling artifacts around a
-    # half-written or unparseable release would produce something that *looks*
-    # whole, and because a bare ``assert`` here would vanish under ``-O``.
-    evidence_report_hash = release_row.evidence_report_hash
-    corpus_digest = release_row.persisted_corpus_digest
-    report_reference = release_row.corpus_report_reference
-    if (
-        evidence_report_hash is None
-        or corpus_digest is None
-        or report_reference is None
-        or release_row.report_payload is None
-    ):  # pragma: no cover - unreachable while every caller proves the pair
-        absent = [
-            column
-            for column in _POST_PERSISTENCE_COLUMNS
-            if getattr(release_row, column) is None
-        ]
-        raise PersistedReportError(
-            f"release {pkg} is missing post-persistence columns {absent}"
-        )
-
-    identity = ReleaseIdentity(
-        authoritative_source_hash=release_row.authoritative_source_hash,
-        transform_config_hash=release_row.transform_config_hash,
-        bundle_root_hash=release_row.bundle_root_hash,
-        evidence_report_hash=evidence_report_hash,
-        persisted_corpus_digest=corpus_digest,
-    )
-    release_record = ReleaseRecord(
-        package_uuid=pkg,
-        release_version=release_row.release_version,
-        identity=identity,
-        transform_config=release_row.transform_config,
-        ledger_hash=release_row.ledger_hash,
-        policy_hash=release_row.policy_hash,
-        reconciliation_hash=release_row.reconciliation_hash,
-        corpus_report_reference=report_reference,
-    )
-    parsed, report_violations = parse_recorded_report(release_row.report_payload)
-    if parsed is None:  # pragma: no cover - the seam already refused this
-        # Reconstruction cannot proceed on a stored report that is not this
-        # schema: every artifact below would be assembled around an unparseable
-        # document. Raised rather than returned so no caller can mistake a
-        # partially reconstructed release for a whole one.
-        raise PersistedReportError(
-            f"persisted evidence report for {pkg} is not the canonical schema: "
-            f"{list(report_violations)}"
-        )
-    report = EvidenceReport(payload=parsed, persisted=True)
-    artifacts = ReleaseArtifacts(
+    return ReleaseArtifacts(
         pages=pages,
-        ledger=ledger,
-        members=members,
-        reconciliation=recon,
-        policy=policy,
+        ledger=proven.ledger,
+        members=proven.members,
+        reconciliation=proven.reconciliation,
+        policy=proven.policy,
         bundle=bundle,
-        report=report,
-        release=release_record,
-        concordance=concordance,
-        canaries=canaries,
-        sources=sources,
+        report=proven.report,
+        release=proven.record,
+        concordance=check_concordance(proven.members.chunks, pages),
+        canaries=check_canaries(pages),
+        sources=proven.sources,
         vector_state=vector_state,
     )
-    return artifacts, membership_violations, source_violations
 
 
 def finalize_release(
@@ -1434,24 +1476,24 @@ def _finalize_core(
                     ),
                 ),
             )
-        # Reuse path. The published pair is proven first, through the *same*
-        # seam a downstream consumer uses, so a release that 5d verification
-        # refuses can never be handed back as a successful reuse. Its
-        # predecessor checked the package row's status and enablement inline
-        # after reconstruction, which left every other row-level publication
-        # invariant — published_at, the package/release version pair, the
-        # recorded transform hash, the report reference — proven at one caller
-        # and not the other, and reconstructed artifacts assembled around rows
-        # nothing had yet accepted.
-        _, pair_violations = load_published_release(session, pkg)
-        if pair_violations:
+        # Reuse path. Published authority is established first, through the
+        # *same* full seam a downstream consumer uses, so a release that 5d
+        # verification refuses can never be handed back as a successful reuse —
+        # including one whose report was coherently rewritten to describe a
+        # corpus other than the persisted one. A missing/malformed/inconsistent
+        # persisted policy, an unparseable stored report, and a release that
+        # does not reconstruct all arrive here as ordinary refusals rather than
+        # exceptions, and are never republished on a caller/default policy
+        # (PR #134 P1).
+        proven, refusals = load_verified_published_release(session, pkg)
+        if proven is None:
             return FinalizeResult(
                 published=False,
                 reused=False,
                 artifacts=None,
                 gate=GateResult(
                     passed=False,
-                    failures=tuple(f"{v} — refusing to reuse" for v in pair_violations),
+                    failures=tuple(f"{v} — refusing to reuse" for v in refusals),
                 ),
             )
         # Verify the existing vectors against SQL ground truth WITHOUT rewriting
@@ -1460,31 +1502,18 @@ def _finalize_core(
         vector_result = verify_only(
             session, pkg, chroma_client, retrieval_config, embedding_function
         )
-        try:
-            artifacts, membership_violations, source_violations = (
-                _reconstruct_artifacts(
-                    session,
-                    pkg,
-                    pages=candidate.pages,
-                    bundle=candidate.bundle,
-                    vector_state=vector_result.state.to_payload(),
-                )
-            )
-        except (PolicyReconstructionError, PersistedReportError) as exc:
-            # A missing/malformed/inconsistent persisted policy — or a stored
-            # report that is not the canonical schema — fails reuse closed
-            # (reported as an ordinary failed result, consistent with the other
-            # reuse-rejection cases) — never republished on a caller/default
-            # policy (PR #134 P1).
-            return FinalizeResult(
-                published=False,
-                reused=False,
-                artifacts=None,
-                gate=GateResult(
-                    passed=False,
-                    failures=(f"persisted release does not reconstruct: {exc}",),
-                ),
-            )
+        artifacts = _reconstruct_artifacts(
+            proven,
+            pages=candidate.pages,
+            bundle=candidate.bundle,
+            vector_state=vector_result.state.to_payload(),
+        )
+        # Measured, never defaulted (gate condition 20). The seam already
+        # computed both membership checks against the same reconstruction and
+        # refused unless they were empty, so these are carried rather than
+        # recomputed — but they are the values it actually measured, not
+        # constants standing in for an invariant proven elsewhere.
+        membership_violations = proven.chunk_membership_violations
         sql_persist_ok = (
             len(artifacts.ledger.leaves) == len(candidate.ledger.leaves)
             and len(artifacts.members.chunks) == len(candidate.members.chunks)
@@ -1494,7 +1523,7 @@ def _finalize_core(
             sql_persist_ok=sql_persist_ok,
             vector_write_ok=vector_result.ok,
             chunk_membership_violations=len(membership_violations),
-            source_membership_violations=len(source_violations),
+            source_membership_violations=len(proven.source_violations),
             vector_verification_failures=vector_result.failures,
         )
         # Re-run the *full* gate against the reconstructed existing release —
@@ -1611,7 +1640,6 @@ def _finalize_core(
             persisted_corpus_digest=digest,
             concordance=concordance,
             canaries=canaries,
-            persisted=True,  # legitimate: computed from the reconstruction above
         )
         report_h = report_hash(report)
 
@@ -1683,12 +1711,12 @@ def _finalize_core(
             package_row.updated_at = now
             release_row.publication_status = "published"
             session.flush()
-            # A fresh publication must satisfy the same row-level invariants a
-            # consumer will later demand of it — proven here, on the rows as
-            # written, while the transaction can still be rolled back. Without
-            # this, the only thing standing between a malformed write and a
-            # committed release was that no reader had looked yet.
-            _, pair_violations = load_published_release(session, pkg)
+            # A fresh publication must satisfy everything a consumer will later
+            # demand of it — the *same* full seam, on the rows as written, while
+            # the transaction can still be rolled back. Without this, the only
+            # thing standing between a malformed write and a committed release
+            # was that no reader had looked yet.
+            _, pair_violations = load_verified_published_release(session, pkg)
             if pair_violations:
                 session.rollback()
                 cleanup_armed = False

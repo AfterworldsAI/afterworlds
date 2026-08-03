@@ -22,20 +22,29 @@ payload, which is exactly the provenance a recorded report has when read back.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
+from afterworlds.ingestion.corpus import report as report_module
 from afterworlds.ingestion.corpus.concordance import VERSION_CANARIES
 from afterworlds.ingestion.corpus.hashing import canonical_bytes, hash_obj, sha256_hex
-from afterworlds.ingestion.corpus.models import LeafType
+from afterworlds.ingestion.corpus.models import (
+    LeafType,
+    ReconciliationFindings,
+    ReconciliationMember,
+    SourceLedger,
+)
 from afterworlds.ingestion.corpus.pdf_source import extraction_config
+from afterworlds.ingestion.corpus.policy import FROZEN_POLICY
 from afterworlds.ingestion.corpus.report import (
-    EvidenceReport,
+    REPORT_PROOF_COLUMNS,
     recorded_success_violations,
     report_hash,
+    state_derived_fields,
 )
 from afterworlds.ingestion.corpus.report_schema import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
@@ -172,7 +181,7 @@ def test_a_failed_mutation_leaves_the_payload_verdict_and_hash_unchanged() -> No
     """
     report = parsed()
     before = report.dump()
-    before_hash = report_hash(EvidenceReport(payload=report, persisted=True))
+    before_hash = report_hash(report)
 
     with pytest.raises(TypeError):
         vars(report)["version_canaries"] = {}
@@ -184,7 +193,7 @@ def test_a_failed_mutation_leaves_the_payload_verdict_and_hash_unchanged() -> No
         object.__setattr__(report.findings, "gaps", 0)
 
     assert report.dump() == before
-    assert report_hash(EvidenceReport(payload=report, persisted=True)) == before_hash
+    assert report_hash(report) == before_hash
     assert report.success_violations() == ()
 
 
@@ -470,9 +479,7 @@ def test_a_malformed_persisted_report_is_a_finding_not_an_exception(bad: Any) ->
 def test_the_dump_round_trips_and_is_the_hashed_document() -> None:
     report = parsed()
     assert canonical_report(report.dump()) == report
-    assert report_hash(EvidenceReport(payload=report, persisted=True)) == sha256_hex(
-        canonical_bytes(report.dump())
-    )
+    assert report_hash(report) == sha256_hex(canonical_bytes(report.dump()))
 
 
 def test_serializing_the_value_directly_is_not_the_canonical_document() -> None:
@@ -489,9 +496,7 @@ def test_serializing_the_value_directly_is_not_the_canonical_document() -> None:
     assert json.loads(canonical_bytes(report)) == json.loads(
         json.dumps(list(report), default=list)
     )
-    assert hash_obj(report) != report_hash(
-        EvidenceReport(payload=report, persisted=True)
-    )
+    assert hash_obj(report) != report_hash(report)
 
 
 def test_maps_serialize_as_objects_even_when_empty() -> None:
@@ -507,6 +512,137 @@ def test_arrays_serialize_as_arrays() -> None:
     assert isinstance(
         dumped["transform_identity"]["component_b_invocation"]["steps"], list
     )
+
+
+def test_every_report_field_has_an_owner_and_no_field_is_uncompared() -> None:
+    """The completeness claim behind "one report-context verifier", as a test.
+
+    ``report_state_violations`` is only the single definition of report-versus-
+    state agreement if every field is actually routed somewhere. Nothing else
+    fails if a field is added to the document and not to
+    :func:`state_derived_fields` — it silently stops being compared, which is
+    precisely how coherently rewritten summaries survived before.
+
+    So the declaration is partitioned exactly three ways, with no remainder:
+    recomputed from reconstructed state, compared against a release column, or
+    on the explicit list of claims that are neither.
+    """
+    derived = set(
+        state_derived_fields(
+            ledger=SourceLedger(
+                source_document="d",
+                source_version="1",
+                source_sha256="0" * 64,
+                extraction_config={},
+                containers=(),
+                leaves=(),
+            ),
+            recon=ReconciliationMember(
+                policy_version="v",
+                policy_hash="0" * 64,
+                dispositions=(),
+                projections=(),
+                findings=ReconciliationFindings((), (), (), (), ()),
+                inventoried_leaves=0,
+                represented_leaves=0,
+                excluded_leaves=0,
+                unresolved_leaves=0,
+            ),
+            policy=FROZEN_POLICY,
+            transform_config={},
+        )
+    )
+    identities = {key for key, _ in REPORT_PROOF_COLUMNS}
+    #: Neither reconstructable from SQL nor a release column.
+    #:
+    #: - ``report_version``, ``reproduction_target`` and
+    #:   ``prepublication_validation_status`` are intrinsic: the parser refuses
+    #:   any other value, so there is nothing contextual left to compare.
+    #: - ``invalid_locators``, ``concordance_failures`` and ``version_canaries``
+    #:   are measured against the authoritative PDF, which SQL cannot reproduce.
+    #:   They keep their recorded-successful-form treatment under the
+    #:   2026-08-01 Owner Decision, and the paths holding pages re-run them.
+    neither = {
+        "report_version",
+        "reproduction_target",
+        "prepublication_validation_status",
+        "invalid_locators",
+        "concordance_failures",
+        "version_canaries",
+    }
+    fields = set(CorpusEvidenceReport._fields)
+    assert derived & identities == set()
+    assert derived & neither == set()
+    assert identities & neither == set()
+    assert derived | identities | neither == fields
+
+
+def test_the_evidence_report_name_is_the_canonical_class_not_a_wrapper() -> None:
+    """``EvidenceReport`` survives as a name only — the same class object.
+
+    A frozen ``EvidenceReport`` dataclass used to hold the canonical payload and
+    *be* the hash-bearing authority, so ``object.__setattr__(report, "payload",
+    forged)`` replaced the whole document after construction while the tuple
+    tree inside stayed perfectly immutable. It protected the wrong thing.
+
+    The name is retained because ``pipeline.py`` imports it and that module's
+    source bytes are bound into the transform identity: retyping an annotation
+    there would remint the package UUID and release version over a
+    post-persistence plumbing edit. So this asserts the name resolves to the
+    canonical class *itself* — not a subclass, not an adapter, nothing with a
+    ``payload`` to substitute.
+    """
+    assert report_module.EvidenceReport is CorpusEvidenceReport
+    assert not dataclasses.is_dataclass(report_module.EvidenceReport)
+    assert not hasattr(report_module.EvidenceReport, "payload")
+    assert not hasattr(report_module.EvidenceReport, "persisted")
+    assert "payload" not in CorpusEvidenceReport._fields
+    assert "persisted" not in CorpusEvidenceReport._fields
+    # ``report_hash`` takes the canonical value; ``test_ledger_pipeline`` proves
+    # ``build_report`` returns one, over a real release.
+    assert report_hash(parsed()) == hash_obj(parsed().dump())
+
+
+def test_the_original_wrapper_attack_has_no_field_to_target() -> None:
+    """The exact escape from the previous round, run against the new design.
+
+    ``object.__setattr__(completed_report, "payload", forged_payload)`` used to
+    succeed and replace the document consumed by ``dump()``, ``report_hash()``,
+    persistence, and the gate. It fails now for the strongest available reason:
+    there is no ``payload`` field, on a type with no writable storage at all.
+    """
+    report = parsed()
+    forged = parsed(declared_projection_count=99)
+    before, before_hash = report.dump(), report_hash(report)
+
+    with pytest.raises(AttributeError):
+        object.__setattr__(report, "payload", forged)
+    with pytest.raises(AttributeError):
+        object.__setattr__(report, "persisted", False)
+
+    assert report.dump() == before
+    assert report_hash(report) == before_hash
+
+
+def test_nothing_can_substitute_a_payload_between_construction_and_hashing() -> None:
+    """The report handed to the hash is the one that was built.
+
+    With a wrapper, "the report" and "the payload it carries" were two objects
+    and only the inner one was safe. They are the same object now, so the only
+    way to change what gets hashed is to change the canonical value — which
+    every control above shows is impossible.
+    """
+    report = parsed()
+    before = report_hash(report)
+    forged = parsed(declared_projection_count=99)
+    assert report_hash(forged) != before
+
+    with pytest.raises(AttributeError):
+        object.__setattr__(report, "declared_projection_count", 99)
+    for field in CorpusEvidenceReport._fields:
+        with pytest.raises(AttributeError):
+            object.__setattr__(report, field, getattr(forged, field))
+    assert report_hash(report) == before
 
 
 def test_the_namedtuple_constructors_produce_new_values_never_edits() -> None:

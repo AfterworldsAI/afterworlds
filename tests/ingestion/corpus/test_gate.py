@@ -144,12 +144,19 @@ def test_gate_fails_when_reconciliation_hash_substituted(release):
     assert any("reconciliation" in f for f in result.failures)
 
 
-def test_gate_fails_when_report_predates_persistence(release):
-    report = dataclasses.replace(release.report, persisted=False)
+def test_gate_fails_when_the_report_lacks_a_persisted_corpus_digest(release):
+    """The structural replacement for the deleted ``report.persisted`` check.
+
+    That flag lived on a wrapper outside the hashed payload and was supplied by
+    the caller, so it asserted the post-persistence ordering rather than proving
+    it. What proves it now is that ``persisted_corpus_digest`` cannot be
+    computed before persistence — so a report without one did not come from a
+    persisted release, whatever it claims."""
+    report = release.report._replace(persisted_corpus_digest="")
     broken = dataclasses.replace(release, report=report)
     result = run_gate(broken, _evidence())
     assert not result.passed
-    assert any("predates persistence" in f for f in result.failures)
+    assert any("lacks persisted-corpus digest" in f for f in result.failures)
 
 
 def test_gate_fails_when_sql_or_vector_persist_incomplete(release):

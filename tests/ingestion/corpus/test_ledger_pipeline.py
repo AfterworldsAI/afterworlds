@@ -191,7 +191,7 @@ def test_evidence_report_records_complete_transform_identity(release):
     assert ti["intermediate_representation_committed"] is False
 
 
-def _rebuild_report(a, persisted=True, **overrides):
+def _rebuild_report(a, **overrides):
     """Rebuild the evidence report from a release's inputs (R16 F2 host test)."""
     from afterworlds.ingestion.corpus.report import build_report
 
@@ -208,10 +208,40 @@ def _rebuild_report(a, persisted=True, **overrides):
         persisted_corpus_digest=a.release.identity.persisted_corpus_digest,
         concordance=a.concordance,
         canaries=a.canaries,
-        persisted=persisted,
     )
     kwargs.update(overrides)
     return build_report(**kwargs)
+
+
+def test_the_gate_and_persistence_consume_the_canonical_report_directly(release):
+    """No indirection between the artifacts and the hashed document.
+
+    ``ReleaseArtifacts.report`` is the canonical value itself, so the gate reads
+    its fields and persistence stores its dump without unwrapping anything.
+    Asserted on a real finalized release rather than on annotations."""
+    from afterworlds.ingestion.corpus.report import EvidenceReport, report_hash
+    from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
+
+    assert EvidenceReport is CorpusEvidenceReport
+    assert type(release.report) is CorpusEvidenceReport
+    assert not hasattr(release.report, "payload")
+    assert release.report.prepublication_validation_status == "pass"
+    assert report_hash(release.report) == release.release.identity.evidence_report_hash
+
+
+def test_build_report_returns_the_canonical_value_itself(release):
+    """No completed-report wrapper stands between construction and hashing.
+
+    The wrapper this replaces was the hash-bearing authority every consumer
+    read, so replacing its ``payload`` after construction replaced the whole
+    document. ``build_report`` now returns the structurally immutable value, and
+    ``report_hash`` takes that value."""
+    from afterworlds.ingestion.corpus.report import report_hash
+    from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
+
+    built = _rebuild_report(release)
+    assert isinstance(built, CorpusEvidenceReport)
+    assert report_hash(built) == release.release.identity.evidence_report_hash
 
 
 def test_a_report_that_cannot_describe_itself_fails_at_build_time(release):

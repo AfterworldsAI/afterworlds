@@ -29,7 +29,8 @@ import afterworlds.ingestion.corpus.persistence as persistence
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.persistence import (
     _finalize_core,
-    load_published_release,
+    load_recorded_release_pair,
+    load_verified_published_release,
     verify_published_release,
 )
 from afterworlds.persistence.orm.corpus import (
@@ -96,7 +97,7 @@ def test_an_honest_release_passes_the_seam_and_downstream(session, published) ->
     first, *_ = published
     pkg = first.artifacts.release.package_uuid
 
-    proven, violations = load_published_release(session, pkg)
+    proven, violations = load_verified_published_release(session, pkg)
     assert violations == ()
     assert proven is not None
     assert proven.package.version == proven.release.release_version
@@ -124,7 +125,9 @@ def test_honest_fresh_publication_and_honest_reuse_share_these_semantics(  # typ
         embedding_function=fake_embedding,
     )
     assert first.published and not first.reused
-    assert load_published_release(session, full_candidate.package_uuid)[1] == ()
+    assert (
+        load_verified_published_release(session, full_candidate.package_uuid)[1] == ()
+    )
     assert downstream(session, first) == ()
 
     second = _finalize_core(
@@ -136,7 +139,9 @@ def test_honest_fresh_publication_and_honest_reuse_share_these_semantics(  # typ
         embedding_function=fake_embedding,
     )
     assert second.published and second.reused
-    assert load_published_release(session, full_candidate.package_uuid)[1] == ()
+    assert (
+        load_verified_published_release(session, full_candidate.package_uuid)[1] == ()
+    )
 
 
 def test_an_honest_fresh_publication_leaves_rows_that_satisfy_the_seam(  # type: ignore[no-untyped-def]
@@ -145,7 +150,10 @@ def test_an_honest_fresh_publication_leaves_rows_that_satisfy_the_seam(  # type:
     """The committed rows prove themselves, with no later repair."""
     first, *_ = published
     assert (
-        load_published_release(session, first.artifacts.release.package_uuid)[1] == ()
+        load_verified_published_release(session, first.artifacts.release.package_uuid)[
+            1
+        ]
+        == ()
     )
 
 
@@ -239,7 +247,114 @@ def _stale_report_reference(session: Session, pkg: str) -> None:
     release.corpus_report_reference = stale
 
 
+def _coherently_rewritten(**overrides: object) -> Tamper:
+    """Rewrite a report summary and make every *recorded* value agree with it.
+
+    The finding this closes. Each of these leaves the release perfectly closed
+    in its own terms: the payload is edited, ``evidence_report_hash`` is
+    recomputed over the edit, ``corpus_report_reference`` follows it, the report
+    still parses, its verdict is still internally successful, and every proof
+    identity still equals its column. Nothing that compares recorded values with
+    other recorded values can tell the difference — only recomputing the claim
+    from the ledger and reconciliation can.
+    """
+
+    def tamper(session: Session, pkg: str) -> None:
+        release = release_row(session, pkg)
+        payload = dict(release.report_payload or {})
+        payload.update(overrides)
+        release.report_payload = payload
+        release.evidence_report_hash = hash_obj(payload)
+        release.corpus_report_reference = release.evidence_report_hash
+
+    return tamper
+
+
+#: One rewrite per SQL-reconstructable report claim. Values are chosen to be
+#: internally consistent successes — an accounting that balances, totals that
+#: are plausible — so the only thing wrong with them is that they are not what
+#: the persisted corpus says.
+COHERENT_REWRITES: list[tuple[str, Tamper]] = [
+    ("declared-projection-count", _coherently_rewritten(declared_projection_count=99)),
+    (
+        "source-ledger-totals",
+        _coherently_rewritten(source_ledger_leaf_totals={"paragraph": 1}),
+    ),
+    ("represented-totals", _coherently_rewritten(represented_totals={"paragraph": 1})),
+    (
+        "excluded-totals-by-reason",
+        _coherently_rewritten(excluded_totals_by_reason={"running_header_footer": 7}),
+    ),
+    (
+        "unresolved-count-and-accounting",
+        # Both moved together so the report stays internally consistent: a
+        # rewrite that only moved one would be caught by the verdict rules.
+        _coherently_rewritten(
+            unresolved_leaves=0,
+            accounting={
+                "inventoried_leaves": 3,
+                "represented_leaves": 2,
+                "excluded_leaves": 1,
+                "unresolved_leaves": 0,
+            },
+        ),
+    ),
+    (
+        "accounting",
+        _coherently_rewritten(
+            accounting={
+                "inventoried_leaves": 4,
+                "represented_leaves": 3,
+                "excluded_leaves": 1,
+                "unresolved_leaves": 0,
+            }
+        ),
+    ),
+    (
+        "reconciliation-policy-reference",
+        _coherently_rewritten(
+            reconciliation_policy_reference={
+                "policy_version": "forged",
+                "policy_hash": "1" * 64,
+                "applied_policy_hash": "1" * 64,
+            }
+        ),
+    ),
+    (
+        "transform-identity",
+        _coherently_rewritten(
+            transform_identity={
+                "extractor": {"tool": "forged"},
+                "tool": "forged",
+                "tool_version": "9",
+                "source_manifest": [{"path": "x.py", "sha256": "2" * 64}],
+                "transform_source_hash": "3" * 64,
+                "component_b_invocation": {
+                    "entrypoint": "forged",
+                    "steps": ["a"],
+                    "deterministic": True,
+                },
+                "intermediate_representation_committed": False,
+            }
+        ),
+    ),
+    (
+        "vector-identity",
+        _coherently_rewritten(
+            rules_corpus_vector_identity={
+                "embedding_model_id": "forged-model",
+                "metadata_schema_version": 9,
+                "metadata_fields": ["a"],
+                "chunk_id_scheme": "forged",
+                "collection_name_scheme": "forged",
+            }
+        ),
+    ),
+]
+
+
 TAMPERS: list[tuple[str, Tamper]] = [
+    *COHERENT_REWRITES,
     (
         "package-published_at-cleared",
         lambda s, p: setattr(package_row(s, p), "published_at", None),
@@ -335,7 +450,7 @@ def test_a_refused_release_is_refused_by_downstream_consumption_and_by_reuse(
     tamper(session, pkg)
     session.commit()
 
-    assert load_published_release(session, pkg)[0] is None
+    assert load_verified_published_release(session, pkg)[0] is None
     assert downstream(session, first) != ()
 
     second = _finalize_core(
@@ -365,7 +480,7 @@ def test_the_seam_returns_the_pair_it_proved(session, published) -> None:  # typ
     """Callers get the proven rows, so nothing re-reads them unproven."""
     first, *_ = published
     pkg = first.artifacts.release.package_uuid
-    proven, _ = load_published_release(session, pkg)
+    proven, _ = load_verified_published_release(session, pkg)
     assert proven is not None
     assert proven.release.package_uuid == pkg
     assert proven.package.rules_package_id == pkg
@@ -377,10 +492,11 @@ def test_a_proven_pair_that_no_longer_reconstructs_is_still_refused_downstream( 
 ) -> None:
     """The seam and reconstruction own different halves, and both must hold.
 
-    Deleting the frozen policy row leaves the pair perfectly self-consistent —
-    every column, hash, and recorded identity still agrees — so the seam passes
-    it. What fails is the half the seam deliberately does not restate:
-    reconstruction from the persisted rows.
+    Deleting the frozen policy row leaves the *recorded rows* perfectly
+    self-consistent — every column, hash, and recorded identity still agrees —
+    so ``load_recorded_release_pair`` accepts it. That is exactly why row
+    closure was renamed and demoted to a prerequisite: what fails is
+    reconstruction, which only the full seam performs.
     """
     first, *_ = published
     pkg = first.artifacts.release.package_uuid
@@ -391,7 +507,8 @@ def test_a_proven_pair_that_no_longer_reconstructs_is_still_refused_downstream( 
     )
     session.flush()
 
-    assert load_published_release(session, pkg)[1] == ()
+    assert load_recorded_release_pair(session, pkg)[1] == ()
+    assert load_verified_published_release(session, pkg)[0] is None
     violations = downstream(session, first)
     assert any("does not reconstruct from persisted rows" in v for v in violations)
 
@@ -400,7 +517,7 @@ def test_an_absent_release_is_refused_without_deriving_further_findings(
     session,  # type: ignore[no-untyped-def]
 ) -> None:
     """A missing pair yields the real finding, not a cascade derived from it."""
-    proven, violations = load_published_release(session, "no-such-package")
+    proven, violations = load_verified_published_release(session, "no-such-package")
     assert proven is None
     assert len(violations) == 2
     assert any("rp_corpus_releases" in v for v in violations)

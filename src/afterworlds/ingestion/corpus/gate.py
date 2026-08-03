@@ -38,7 +38,7 @@ from afterworlds.ingestion.corpus.policy import (
     policy_hash,
     policy_payload,
 )
-from afterworlds.ingestion.corpus.report import report_hash
+from afterworlds.ingestion.corpus.report import report_hash, report_state_violations
 
 
 @dataclass(frozen=True)
@@ -236,12 +236,40 @@ def run_gate(
         f.append("persisted_corpus_digest mismatch (tampered persisted state)")
 
     # 18. Evidence report postdates persistence and carries the digest.
-    if not a.report.persisted:
-        f.append("evidence report predates persistence")
-    if not a.report.payload.persisted_corpus_digest:
+    #     The former `if not a.report.persisted` check is gone: that flag lived
+    #     on a wrapper outside the hashed payload and was set by the caller, so
+    #     it asserted the ordering rather than proving it. The ordering is now
+    #     structural — `persisted_corpus_digest` is a required argument to
+    #     `build_report`, and condition 17 above recomputes it over the
+    #     reconstructed SQL rows and the actual read-back vector state — so a
+    #     digest invented before persistence fails there rather than being
+    #     trusted here. `ReleaseArtifacts` is constructed in exactly two places,
+    #     both in `persistence`, both from reconstructed state.
+    if not a.report.persisted_corpus_digest:
         f.append("evidence report lacks persisted-corpus digest")
-    if a.report.payload.prepublication_validation_status != "pass":
+    if a.report.prepublication_validation_status != "pass":
         f.append("evidence report prepublication status is not pass")
+
+    # 18b. The report describes THIS corpus, not merely a coherent one. Shared
+    #      with the published-authority seam so there is one definition of
+    #      report-versus-state agreement; the gate needs its own call because a
+    #      fresh publication has no proven release to load yet.
+    f.extend(
+        report_state_violations(
+            a.report,
+            identities={
+                "authoritative_source_hash": ident.authoritative_source_hash,
+                "transform_config_hash": ident.transform_config_hash,
+                "bundle_root_hash": ident.bundle_root_hash,
+                "frozen_source_ledger_hash": rel.ledger_hash,
+                "persisted_corpus_digest": ident.persisted_corpus_digest,
+            },
+            transform_config=tconfig if isinstance(tconfig, dict) else {},
+            ledger=ledger,
+            reconciliation=recon,
+            policy=policy,
+        )
+    )
 
     # 19. Accounting equation holds.
     if recon.inventoried_leaves != (

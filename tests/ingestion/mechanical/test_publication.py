@@ -762,6 +762,47 @@ def test_a_fabricated_binding_both_sides_agree_on_still_fails(
             lambda s: _coordinated_transform_edit(s, "evidence_report_schema_version"),
             id="transform-config-and-report-edited-together",
         ),
+        # --- the report describes a corpus other than the persisted one ------
+        # Each rewrite is internally successful and fully rehashed, so every
+        # comparison among *recorded* values still agrees. Only recomputing the
+        # claim from the reconstructed ledger and reconciliation catches it.
+        pytest.param(
+            lambda s: _rewrite_release_report(s, declared_projection_count=99),
+            id="report-declares-a-projection-count-the-corpus-does-not-have",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s, source_ledger_leaf_totals={"paragraph": 1}
+            ),
+            id="report-states-leaf-totals-the-ledger-does-not-have",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(s, represented_totals={"paragraph": 1}),
+            id="report-states-represented-totals-reconciliation-does-not-have",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s,
+                accounting={
+                    "inventoried_leaves": 4,
+                    "represented_leaves": 3,
+                    "excluded_leaves": 1,
+                    "unresolved_leaves": 0,
+                },
+            ),
+            id="report-states-accounting-the-corpus-does-not-support",
+        ),
+        pytest.param(
+            lambda s: _rewrite_release_report(
+                s,
+                reconciliation_policy_reference={
+                    "policy_version": "forged",
+                    "policy_hash": "1" * 64,
+                    "applied_policy_hash": "1" * 64,
+                },
+            ),
+            id="report-names-a-policy-the-reconstruction-did-not-apply",
+        ),
     ],
 )
 def test_an_unpublishable_5c_release_fails_even_when_everything_agrees(

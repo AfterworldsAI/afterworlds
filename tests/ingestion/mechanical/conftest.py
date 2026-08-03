@@ -65,15 +65,11 @@ from afterworlds.ingestion.corpus.policy import (
     FROZEN_POLICY,
     policy_hash,
 )
-from afterworlds.ingestion.corpus.report import (
-    EvidenceReport as CorpusEvidenceReport,
-)
-from afterworlds.ingestion.corpus.report import (
-    build_report,
-)
+from afterworlds.ingestion.corpus.report import build_report
 from afterworlds.ingestion.corpus.report import (
     report_hash as corpus_report_hash,
 )
+from afterworlds.ingestion.corpus.report_schema import CorpusEvidenceReport
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
 from afterworlds.ingestion.mechanical.bound_corpus import (
     BoundCorpusSnapshot,
@@ -317,7 +313,6 @@ def _build_bound_report(
             content_failures=(),
         ),
         canaries=BOUND_CANARIES,
-        persisted=True,
     )
 
 
