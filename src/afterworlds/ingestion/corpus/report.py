@@ -41,6 +41,7 @@ from afterworlds.ingestion.corpus.report_schema import (
     Findings,
     PolicyReference,
     ReproductionTarget,
+    canonical_report,
     parse_recorded_report,
 )
 
@@ -51,6 +52,7 @@ __all__ = [
     "CorpusEvidenceReport",
     "EvidenceReport",
     "build_report",
+    "canonical_report",
     "parse_recorded_report",
     "recorded_success_violations",
     "report_hash",
@@ -180,9 +182,13 @@ def build_report(
     # stored report is measured by, so a report claiming "pass" over
     # contradictory summaries cannot be produced here — and an incomplete canary
     # run is refused by the model before the question is even asked.
-    provisional = CorpusEvidenceReport.model_validate(
+    provisional, provisional_violations = parse_recorded_report(
         {**fields, "prepublication_validation_status": "fail"}
     )
+    if provisional is None:  # pragma: no cover - a build that cannot describe itself
+        raise ValueError(
+            f"evidence report inputs are not canonical: {provisional_violations}"
+        )
     status = "pass" if persisted and not provisional.verdict_violations() else "fail"
 
     # Actual host as an operational diagnostic ONLY — deliberately outside the
@@ -197,7 +203,7 @@ def build_report(
         platform.python_version(),
     )
     return EvidenceReport(
-        payload=CorpusEvidenceReport.model_validate(
+        payload=canonical_report(
             {**fields, "prepublication_validation_status": status}
         ),
         persisted=persisted,

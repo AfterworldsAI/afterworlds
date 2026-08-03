@@ -45,6 +45,7 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -899,39 +900,135 @@ _REPORT_PROOF_COLUMNS = (
 )
 
 
+def _recorded_release_violations(
+    release: CorpusReleaseORM,
+    package: RulesPackageORM | None,
+    report: CorpusEvidenceReport,
+) -> tuple[str, ...]:
+    """Every invariant the *recorded* 5c publication record must satisfy.
+
+    One closure rather than a growing list of remembered checks. Each review
+    round added the next field somebody noticed was missing — the transform
+    configuration's own hash, then the corpus report reference — and both were
+    invariants ``gate.run_gate`` already required at publication. The downstream
+    seam was re-deriving the release proof from memory instead of stating it.
+
+    Scope is deliberate: this proves what the *rows* must say about each other,
+    needing no corpus reconstruction. Declared-binding equality, the contextual
+    report-versus-config comparison, and everything requiring reconstructed
+    ledger/policy/reconciliation state stay with the verifier's later stages;
+    Chroma stays out entirely (Owner Decision 2026-08-01).
+    """
+    violations: list[str] = []
+
+    if package is None:
+        violations.append(f"no rp_packages row for {release.package_uuid}")
+    elif package.publication_status != "published" or not package.is_enabled:
+        violations.append(
+            f"rp_packages row for {release.package_uuid} is not published and "
+            f"enabled (publication_status={package.publication_status!r}, "
+            f"is_enabled={package.is_enabled})"
+        )
+    elif package.published_at is None:
+        violations.append(
+            f"rp_packages row for {release.package_uuid} is published but "
+            "records no published_at"
+        )
+
+    if release.publication_status != "published":
+        violations.append(
+            f"release {release.package_uuid} is in publication_status "
+            f"{release.publication_status!r}, not 'published'"
+        )
+
+    # The transform configuration is the authority every contextual identity
+    # comparison rests on, so it has to prove it is the configuration whose hash
+    # minted this package before any of them may read it.
+    if not isinstance(release.transform_config, dict):
+        violations.append("recorded transform configuration is not an object")
+    elif hash_obj(release.transform_config) != release.transform_config_hash:
+        violations.append(
+            "recorded transform configuration does not hash to the release's "
+            "recorded transform_config_hash"
+        )
+
+    # The report is hashed through the canonical serializer — the same call
+    # publication makes — never over the row's raw JSON.
+    derived = report_hash(EvidenceReport(payload=report, persisted=True))
+    if derived != release.evidence_report_hash:
+        violations.append(
+            "recorded evidence-report payload does not hash to the recorded "
+            "evidence_report_hash"
+        )
+    # ``run_gate`` condition 16 requires these to be the same value. A cleared or
+    # redirected reference is a release that no longer satisfies its own
+    # publication invariant.
+    if release.corpus_report_reference != release.evidence_report_hash:
+        violations.append(
+            f"corpus_report_reference {release.corpus_report_reference!r} != "
+            f"evidence_report_hash {release.evidence_report_hash!r}"
+        )
+
+    for report_key, column in _REPORT_PROOF_COLUMNS:
+        if getattr(report, report_key) != getattr(release, column):
+            violations.append(
+                f"recorded evidence report states {report_key}="
+                f"{getattr(report, report_key)!r}, release row records "
+                f"{column}={getattr(release, column)!r}"
+            )
+
+    for column in (
+        "release_version",
+        "authoritative_source_hash",
+        "transform_config_hash",
+        "bundle_root_hash",
+        "persisted_corpus_digest",
+        "ledger_hash",
+        "policy_hash",
+        "reconciliation_hash",
+        "evidence_report_hash",
+        "corpus_report_reference",
+    ):
+        if not getattr(release, column):
+            violations.append(f"release {release.package_uuid} records no {column}")
+
+    return tuple(violations)
+
+
 def _recorded_identity_violations(
-    report: CorpusEvidenceReport, transform_config: object
+    report: CorpusEvidenceReport, transform_config: dict[str, Any]
 ) -> tuple[str, ...]:
     """Does the report's recorded identity match the recorded transform config?
 
-    The canonical model proves these maps are complete and correctly shaped; it
+    The canonical value proves these maps are complete and correctly shaped; it
     cannot know whether they describe *this* release. That comparison needs the
-    stored transform configuration, which is the authority the release's
-    ``transform_config_hash`` is taken over — so an identity edited in the
-    report and rehashed no longer agrees with the config that minted the
-    package UUID.
+    stored transform configuration — which the caller has already proven hashes
+    to its recorded identity, so it is authority here rather than another
+    unverified row.
+
+    Every fragment comes from **one** canonical dump. Serializing the nested
+    values independently would be a second rendering of the report, and the two
+    could diverge the moment the canonical dump normalizes anything.
     """
-    if not isinstance(transform_config, dict):
-        return ("recorded transform configuration is not an object",)
+    recorded = report.dump()
+    identity = dict(recorded["transform_identity"])
+    extractor = identity.pop("extractor")
+
     violations: list[str] = []
-    identity = report.transform_identity
-    if identity.extractor.model_dump(mode="json") != transform_config.get(
-        "extraction_config"
-    ):
+    if extractor != transform_config.get("extraction_config"):
         violations.append(
             "recorded evidence report's extractor identity != the release's "
             "recorded transform extraction_config"
         )
-    recorded = transform_config.get("transform_identity")
-    declared = identity.model_dump(mode="json")
-    declared.pop("extractor")
-    if not isinstance(recorded, dict) or declared != _jsonish(recorded):
+    stored_identity = transform_config.get("transform_identity")
+    if not isinstance(stored_identity, dict) or identity != _jsonish(stored_identity):
         violations.append(
             "recorded evidence report's transform identity != the release's "
             "recorded transform_identity"
         )
-    vector = transform_config.get("rules_corpus_vector_identity")
-    if report.rules_corpus_vector_identity.model_dump(mode="json") != _jsonish(vector):
+    if recorded["rules_corpus_vector_identity"] != _jsonish(
+        transform_config.get("rules_corpus_vector_identity")
+    ):
         violations.append(
             "recorded evidence report's rules-corpus vector identity != the "
             "release's recorded rules_corpus_vector_identity"
@@ -1067,23 +1164,9 @@ def verify_published_release(
         # Nothing further is meaningful: there is no authoritative release to
         # compare a declaration with.
         return (f"no rp_corpus_releases row for package {pkg}",)
-    if release.publication_status != "published":
-        violations.append(
-            f"release {pkg} is in publication_status "
-            f"{release.publication_status!r}, not 'published'"
-        )
-
     package_row = session.execute(
         select(RulesPackageORM).where(RulesPackageORM.rules_package_id == pkg)
     ).scalar_one_or_none()
-    if package_row is None:
-        violations.append(f"no rp_packages row for {pkg}")
-    elif package_row.publication_status != "published" or not package_row.is_enabled:
-        violations.append(
-            f"rp_packages row for {pkg} is not published and enabled "
-            f"(publication_status={package_row.publication_status!r}, "
-            f"is_enabled={package_row.is_enabled})"
-        )
 
     for field, declared in (
         ("release_version", release_version),
@@ -1129,24 +1212,16 @@ def verify_published_release(
         )
         return tuple(violations)
 
-    # Hashed through the same serializer publication used. Hashing the ORM
-    # dictionary here would be a second representation of the document, and the
-    # two could diverge the moment the canonical dump evolves.
-    if (
-        report_hash(EvidenceReport(payload=report, persisted=True))
-        != release.evidence_report_hash
-    ):
-        violations.append(
-            "recorded evidence-report payload does not hash to the recorded "
-            "evidence_report_hash"
-        )
-    for report_key, column in _REPORT_PROOF_COLUMNS:
-        if getattr(report, report_key) != getattr(release, column):
-            violations.append(
-                f"recorded evidence report states {report_key}="
-                f"{getattr(report, report_key)!r}, release row records "
-                f"{column}={getattr(release, column)!r}"
-            )
+    # The external publication record, as one closed invariant rather than the
+    # checks this function happened to remember.
+    closure = _recorded_release_violations(release, package_row, report)
+    violations.extend(closure)
+    if closure:
+        # Every comparison below reads the transform configuration or the row
+        # identities the closure just refused; continuing would derive noise
+        # from state already known to be untrustworthy.
+        return tuple(violations)
+
     # Identity is necessary but not sufficient. A report edited to "fail" — or to
     # "pass" over summaries that record failures — and rehashed keeps every proof
     # identity intact while recording that publication did not succeed.
@@ -1154,6 +1229,7 @@ def verify_published_release(
         f"recorded evidence report is not a successful 5c verdict: {v}"
         for v in report.success_violations()
     )
+    assert isinstance(release.transform_config, dict)  # proven by the closure
     violations.extend(_recorded_identity_violations(report, release.transform_config))
 
     try:

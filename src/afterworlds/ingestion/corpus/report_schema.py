@@ -33,18 +33,20 @@ array.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import fields
 from types import MappingProxyType
 from typing import Annotated, Any
 
 from pydantic import (
     AfterValidator,
-    BaseModel,
     ConfigDict,
     Field,
     PlainSerializer,
+    TypeAdapter,
     ValidationError,
     model_validator,
 )
+from pydantic.dataclasses import dataclass
 from pydantic_core import ErrorDetails
 
 from afterworlds.ingestion.corpus.concordance import VERSION_CANARIES
@@ -64,6 +66,7 @@ __all__ = [
     "RulesCorpusVectorIdentity",
     "SourceManifestEntry",
     "TransformIdentity",
+    "canonical_report",
     "parse_recorded_report",
 ]
 
@@ -99,7 +102,32 @@ _LEAF_TYPE_NAMES = frozenset(leaf_type.value for leaf_type in LeafType)
 #: pass. A report recording any other target is not this schema.
 PYTHON_TARGET = "3.12"
 
-Count = Annotated[int, Field(ge=0)]
+#: Closed to unknown fields. Strictness is applied per scalar rather than
+#: globally: a global ``strict=True`` would also demand that every nested value
+#: arrive as an already-constructed instance, which a stored JSON object never
+#: is.
+_CONFIG = ConfigDict(extra="forbid")
+
+
+# Every canonical type below is declared ``frozen=True, slots=True`` with a
+# closed config. ``slots=True`` is the load-bearing word: a frozen Pydantic
+# ``BaseModel`` keeps its fields in ``__dict__``, so
+# ``vars(report)["version_canaries"] = {}`` reached past the freeze, changed the
+# dump, and changed the hash. A slotted dataclass has no instance dictionary at
+# all — ``vars()`` raises and there is no backing store to reach for — so
+# immutability is a property of the type rather than of the values someone
+# remembered to wrap. The decorator is applied directly at each class rather
+# than through a helper so type checkers still see the generated ``__init__``.
+
+#: Strict scalars. ``bool`` is an ``int`` subclass, so without these a JSON
+#: ``true`` would load as the count ``1``; ``"0"`` and ``0.0`` are likewise not
+#: integers, and a number is not a string.
+Str = Annotated[str, Field(strict=True)]
+Bool = Annotated[bool, Field(strict=True)]
+Int = Annotated[int, Field(strict=True)]
+Real = Annotated[float, Field(strict=True)]
+
+Count = Annotated[int, Field(strict=True, ge=0)]
 
 
 def _frozen_mapping[V](value: Mapping[str, V]) -> Mapping[str, V]:
@@ -114,13 +142,13 @@ def _frozen_mapping[V](value: Mapping[str, V]) -> Mapping[str, V]:
 
 #: Content-derived count maps: variable key population, immutable once parsed.
 CountMap = Annotated[
-    Mapping[str, Count],
+    Mapping[Str, Count],
     AfterValidator(_frozen_mapping),
     PlainSerializer(dict, return_type=dict),
 ]
 #: The canary population: closed key set (checked below), immutable values.
 FlagMap = Annotated[
-    Mapping[str, bool],
+    Mapping[Str, Bool],
     AfterValidator(_frozen_mapping),
     PlainSerializer(dict, return_type=dict),
 ]
@@ -129,45 +157,43 @@ FlagMap = Annotated[
 #: return tuples in memory while JSON round-trips them to lists, and both
 #: canonicalize to the same bytes — two encodings of one value. A bare string
 #: is still refused.
-Array = Annotated[tuple[str, ...], Field(strict=False)]
+Array = tuple[Str, ...]
 
 
-class _Canonical(BaseModel):
-    """Frozen, closed, and strict: the three properties this schema needs."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
-
-
-class ExtractorConfig(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class ExtractorConfig:
     """The frozen extraction identity, exactly as ``extraction_config()`` emits."""
 
-    tool: str
-    tool_version: str
-    engine: str
-    engine_version: str
-    use_text_flow: bool
-    keep_blank_chars: bool
-    line_y_tolerance: float
-    geometry_decimals: int
-    reading_order: str
+    tool: Str
+    tool_version: Str
+    engine: Str
+    engine_version: Str
+    use_text_flow: Bool
+    keep_blank_chars: Bool
+    line_y_tolerance: Real
+    geometry_decimals: Int
+    reading_order: Str
 
 
-class SourceManifestEntry(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class SourceManifestEntry:
     """One audited first-party transform module and its content hash."""
 
-    path: str
-    sha256: str
+    path: Str
+    sha256: Str
 
 
-class ComponentBInvocation(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class ComponentBInvocation:
     """The deterministic Component B invocation the transform identity records."""
 
-    entrypoint: str
+    entrypoint: Str
     steps: Array
-    deterministic: bool
+    deterministic: Bool
 
 
-class TransformIdentity(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class TransformIdentity:
     """The complete first-party transform identity carried by the report.
 
     Closed, not content-populated: every key here comes from
@@ -177,28 +203,30 @@ class TransformIdentity(_Canonical):
     """
 
     extractor: ExtractorConfig
-    tool: str
-    tool_version: str
-    source_manifest: Annotated[tuple[SourceManifestEntry, ...], Field(strict=False)]
-    transform_source_hash: str
+    tool: Str
+    tool_version: Str
+    source_manifest: tuple[SourceManifestEntry, ...]
+    transform_source_hash: Str
     component_b_invocation: ComponentBInvocation
-    intermediate_representation_committed: bool
+    intermediate_representation_committed: Bool
 
 
-class RulesCorpusVectorIdentity(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class RulesCorpusVectorIdentity:
     """The identity-bearing rules-corpus vector configuration (ADR-018 D2/D4/D11).
 
     Also closed: ``rules_corpus_vector_identity()`` returns a fixed schema.
     """
 
-    embedding_model_id: str
-    metadata_schema_version: int
+    embedding_model_id: Str
+    metadata_schema_version: Int
     metadata_fields: Array
-    chunk_id_scheme: str
-    collection_name_scheme: str
+    chunk_id_scheme: Str
+    collection_name_scheme: Str
 
 
-class ReproductionTarget(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class ReproductionTarget:
     """The declared, host-independent reproduction target (PR #134 R16).
 
     Bound to :data:`PYTHON_TARGET`, not merely defaulted to it. The field is a
@@ -207,7 +235,7 @@ class ReproductionTarget(_Canonical):
     and possibly not at all.
     """
 
-    python_target: str
+    python_target: Str
 
     @model_validator(mode="after")
     def _canonical_target(self) -> ReproductionTarget:
@@ -219,15 +247,17 @@ class ReproductionTarget(_Canonical):
         return self
 
 
-class PolicyReference(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class PolicyReference:
     """Which reconciliation policy was frozen, and which was actually applied."""
 
-    policy_version: str
-    policy_hash: str
-    applied_policy_hash: str
+    policy_version: Str
+    policy_hash: Str
+    applied_policy_hash: Str
 
 
-class Accounting(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class Accounting:
     """The leaf accounting equation's terms."""
 
     inventoried_leaves: Count
@@ -242,7 +272,8 @@ class Accounting(_Canonical):
         )
 
 
-class Findings(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class Findings:
     """Identity-level reconciliation findings, as counts."""
 
     gaps: Count
@@ -253,21 +284,24 @@ class Findings(_Canonical):
     def nonzero(self) -> tuple[str, ...]:
         return tuple(
             f"findings.{name} is {value}, not 0"
-            for name, value in sorted(self.__dict__.items())
+            for name, value in sorted(
+                (f.name, getattr(self, f.name)) for f in fields(self)
+            )
             if value
         )
 
 
-class CorpusEvidenceReport(_Canonical):
+@dataclass(frozen=True, slots=True, config=_CONFIG)
+class CorpusEvidenceReport:
     """The complete canonical `5c-evidence-3` evidence-report payload."""
 
-    report_version: str
+    report_version: Str
     # Proof identities (never this report's own hash — it cannot contain it).
-    authoritative_source_hash: str
-    transform_config_hash: str
-    bundle_root_hash: str
-    frozen_source_ledger_hash: str
-    persisted_corpus_digest: str
+    authoritative_source_hash: Str
+    transform_config_hash: Str
+    bundle_root_hash: Str
+    frozen_source_ledger_hash: Str
+    persisted_corpus_digest: Str
     # Closed identity structures.
     transform_identity: TransformIdentity
     rules_corpus_vector_identity: RulesCorpusVectorIdentity
@@ -290,7 +324,7 @@ class CorpusEvidenceReport(_Canonical):
     invalid_locators: Count
     concordance_failures: Count
     version_canaries: FlagMap
-    prepublication_validation_status: str
+    prepublication_validation_status: Str
 
     @model_validator(mode="after")
     def _canonical_populations(self) -> CorpusEvidenceReport:
@@ -370,16 +404,33 @@ class CorpusEvidenceReport(_Canonical):
     def dump(self) -> dict[str, Any]:
         """The canonical JSON-compatible payload: hashed, persisted, compared.
 
-        One serialization path. ``report_hash``, the SQL column, and every
-        downstream comparison read this, so there is no second rendering of the
-        document that could drift from the model.
+        The **only** serialization of this document. ``report_hash``, the SQL
+        column, and every contextual comparison read this — including
+        comparisons that need one nested fragment, which slice this dump rather
+        than serializing the nested value separately. A second rendering, even
+        of a fragment, is a second definition waiting to diverge.
         """
-        return self.model_dump(mode="json")
+        dumped: dict[str, Any] = _ADAPTER.dump_python(self, mode="json")
+        return dumped
+
+
+#: The one validator/serializer for the canonical document.
+_ADAPTER: TypeAdapter[CorpusEvidenceReport] = TypeAdapter(CorpusEvidenceReport)
 
 
 def _where(error: ErrorDetails) -> str:
     location = ".".join(str(part) for part in error["loc"]) or "evidence report"
     return f"{location}: {error['msg']}"
+
+
+def canonical_report(payload: object) -> CorpusEvidenceReport:
+    """Build the canonical value, raising on anything that is not this schema.
+
+    The construction-side counterpart to :func:`parse_recorded_report`. A build
+    that cannot describe itself in the canonical shape is a defect here and now,
+    not an auditable finding about someone else's stored bytes.
+    """
+    return _ADAPTER.validate_python(payload)
 
 
 def parse_recorded_report(
@@ -393,6 +444,6 @@ def parse_recorded_report(
     refusals.
     """
     try:
-        return CorpusEvidenceReport.model_validate(payload), ()
+        return _ADAPTER.validate_python(payload), ()
     except ValidationError as exc:
         return None, tuple(_where(error) for error in exc.errors())

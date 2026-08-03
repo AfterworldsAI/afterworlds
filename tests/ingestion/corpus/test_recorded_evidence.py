@@ -22,7 +22,7 @@ from types import MappingProxyType
 from typing import Any
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from afterworlds.ingestion.corpus.concordance import VERSION_CANARIES
 from afterworlds.ingestion.corpus.hashing import hash_obj
@@ -33,6 +33,7 @@ from afterworlds.ingestion.corpus.report import (
     EVIDENCE_REPORT_SCHEMA_VERSION,
     PYTHON_TARGET,
     EvidenceReport,
+    canonical_report,
     parse_recorded_report,
     recorded_success_violations,
     report_hash,
@@ -426,8 +427,10 @@ def test_parsing_reports_violations_rather_than_raising() -> None:
     parsed, violations = parse_recorded_report({"report_version": 1})
     assert parsed is None
     assert all(isinstance(v, str) for v in violations)
-    with pytest.raises(Exception, match="validation error"):
-        CorpusEvidenceReport.model_validate({"report_version": 1})
+    # The construction-side constructor does raise: a build that cannot describe
+    # itself canonically is a defect here and now, not an auditable finding.
+    with pytest.raises(ValidationError):
+        canonical_report({"report_version": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -588,3 +591,71 @@ def test_the_canonical_hash_is_over_the_model_dump() -> None:
     wrapped = EvidenceReport(payload=report, persisted=True)
     assert wrapped.dump() == report.dump() == document
     assert report_hash(wrapped) == hash_obj(report.dump())
+
+
+# ---------------------------------------------------------------------------
+# No mutable backing storage anywhere in the canonical tree
+# ---------------------------------------------------------------------------
+#
+# Round 3 froze the containers and left the *storage* reachable: a frozen
+# Pydantic BaseModel keeps its fields in ``__dict__``, so
+# ``vars(report)["version_canaries"] = {}`` reached past the freeze, made
+# ``success_violations()`` return nothing, and moved both the dump and the hash.
+# Slotted dataclasses have no instance dictionary to reach for.
+
+
+def canonical_values(report: CorpusEvidenceReport) -> list[tuple[str, Any]]:
+    """The report and every nested canonical value inside it."""
+    identity = report.transform_identity
+    return [
+        ("report", report),
+        ("transform_identity", identity),
+        ("extractor", identity.extractor),
+        ("component_b_invocation", identity.component_b_invocation),
+        ("source_manifest[0]", identity.source_manifest[0]),
+        ("rules_corpus_vector_identity", report.rules_corpus_vector_identity),
+        ("reproduction_target", report.reproduction_target),
+        ("reconciliation_policy_reference", report.reconciliation_policy_reference),
+        ("accounting", report.accounting),
+        ("findings", report.findings),
+    ]
+
+
+def test_no_canonical_value_exposes_backing_storage() -> None:
+    """``vars()`` must be unavailable, not merely unhelpful."""
+    for name, value in canonical_values(parsed()):
+        assert not hasattr(value, "__dict__"), name
+        with pytest.raises(TypeError):
+            vars(value)
+
+
+def test_no_pydantic_base_model_is_reachable_from_the_report() -> None:
+    """Pydantic validates at ingress; it does not hold the canonical value."""
+    for name, value in canonical_values(parsed()):
+        assert not isinstance(value, BaseModel), name
+
+
+def test_the_backing_store_cannot_be_replaced_through_vars() -> None:
+    """The exact attack the finding names, on the root and on a nested value.
+
+    Impossible because ``vars()`` itself is unavailable — not because something
+    downstream happens to revalidate afterwards.
+    """
+    report = parsed()
+    before_dump = report.dump()
+    before_hash = report_hash(EvidenceReport(payload=report, persisted=True))
+
+    with pytest.raises(TypeError):
+        vars(report)["version_canaries"] = {}
+    with pytest.raises(TypeError):
+        vars(report.transform_identity)["extractor"] = {}
+
+    assert report.dump() == before_dump
+    assert report_hash(EvidenceReport(payload=report, persisted=True)) == before_hash
+    assert report.success_violations() == ()
+
+
+def test_build_report_and_parse_return_the_same_canonical_type() -> None:
+    """One runtime type, whether the report was built or read back."""
+    assert isinstance(parsed(), CorpusEvidenceReport)
+    assert not hasattr(CorpusEvidenceReport, "model_validate")

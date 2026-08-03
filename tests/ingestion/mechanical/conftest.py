@@ -33,6 +33,7 @@ from afterworlds.ingestion.corpus.concordance import (
     CanaryResult,
     ConcordanceResult,
 )
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CorpusBundleMembers,
@@ -184,8 +185,28 @@ DEFAULT_COVERAGE = (
 # release* — it would be the forgery the negative controls are about.
 
 SOURCE_DOCUMENT = "D&D SRD 5.2.1"
+#: The real production identity builders, not hand-written stand-ins. The typed
+#: evidence-report schema requires the complete transform and vector identities,
+#: and a fixture that invented their shape would be asserting a schema nobody
+#: publishes. ``transform_config_hash`` is the fixture constant above rather than
+#: a hash of this config, so the six binding values — and the committed oracle —
+#: are unaffected.
+BOUND_TRANSFORM_CONFIG: dict[str, object] = {
+    "reconciliation_policy": policy_payload(FROZEN_POLICY),
+    "evidence_report_schema_version": CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
+    "extraction_config": extraction_config(),
+    "transform_identity": transform_identity(),
+    "rules_corpus_vector_identity": rules_corpus_vector_identity(
+        RetrievalMemoryConfig().embedding_model_id
+    ),
+}
+
 AUTHORITATIVE_SOURCE_HASH = "a" * 64
-TRANSFORM_CONFIG_HASH = "b" * 64
+#: Derived, not invented. The recorded-release closure requires the stored
+#: transform configuration to hash to its recorded identity — a fixture stating
+#: a hash its own config does not produce is the forgery that check exists to
+#: catch, so this fixture has to survive its own proof.
+TRANSFORM_CONFIG_HASH = hash_obj(BOUND_TRANSFORM_CONFIG)
 #: Opaque here on purpose: the persisted-corpus digest binds the actual
 #: read-back vector state as well as SQL, so it is an exact recorded value the
 #: 5d gate checks rather than one it can recompute from a session.
@@ -262,23 +283,6 @@ BOUND_RECONCILIATION = ReconciliationMember(
 )
 
 BOUND_BUNDLE = build_bundle(BOUND_LEDGER, BOUND_MEMBERS, BOUND_RECONCILIATION)
-
-#: The real production identity builders, not hand-written stand-ins. The typed
-#: evidence-report schema requires the complete transform and vector identities,
-#: and a fixture that invented their shape would be asserting a schema nobody
-#: publishes. ``transform_config_hash`` is the fixture constant above rather than
-#: a hash of this config, so the six binding values — and the committed oracle —
-#: are unaffected.
-BOUND_TRANSFORM_CONFIG: dict[str, object] = {
-    "reconciliation_policy": policy_payload(FROZEN_POLICY),
-    "evidence_report_schema_version": CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
-    "extraction_config": extraction_config(),
-    "transform_identity": transform_identity(),
-    "rules_corpus_vector_identity": rules_corpus_vector_identity(
-        RetrievalMemoryConfig().embedding_model_id
-    ),
-}
-
 
 #: Derived from the committed canary definitions, never a second list of names.
 BOUND_CANARIES = tuple(

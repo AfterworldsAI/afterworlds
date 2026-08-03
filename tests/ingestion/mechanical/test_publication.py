@@ -10,6 +10,7 @@ Publication commits, so every test here gets its own database.
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import inspect
 import shutil
@@ -630,6 +631,69 @@ def _rewrite_release_report(session: Session, **overrides: object) -> None:
     release.corpus_report_reference = release.evidence_report_hash
 
 
+def _stale_report_reference(session: Session) -> None:
+    """The reference still names a real report — the previous one."""
+    release = release_row(session)
+    stale = release.evidence_report_hash
+    _rewrite_release_report(session, declared_projection_count=99)
+    release_row(session).corpus_report_reference = stale
+
+
+def _coordinated_transform_edit(session: Session, mutate) -> None:  # type: ignore[no-untyped-def]
+    """Edit the stored transform config *and* copy it into the rehashed report.
+
+    The coordinated attack the closure exists to refuse: report and config agree
+    with each other perfectly, and ``transform_config_hash`` and the package
+    identity are left untouched — so only recomputing the configuration's own
+    hash catches it.
+    """
+    release = release_row(session)
+    config = copy.deepcopy(dict(release.transform_config))
+    mutate(config)
+    release.transform_config = config
+    payload = dict(release.report_payload or {})
+    payload["transform_identity"] = {
+        "extractor": config.get("extraction_config"),
+        **(config.get("transform_identity") or {}),
+    }
+    payload["rules_corpus_vector_identity"] = config.get("rules_corpus_vector_identity")
+    release.report_payload = payload
+    release.evidence_report_hash = hash_obj(payload)
+    release.corpus_report_reference = release.evidence_report_hash
+
+
+def _tamper_extractor_identity(session: Session) -> None:
+    _coordinated_transform_edit(
+        session, lambda c: c["extraction_config"].update(tool="forged")
+    )
+
+
+def _tamper_transform_identity(session: Session) -> None:
+    _coordinated_transform_edit(
+        session,
+        lambda c: c["transform_identity"].update(transform_source_hash="9" * 64),
+    )
+
+
+def _tamper_vector_identity(session: Session) -> None:
+    _coordinated_transform_edit(
+        session,
+        lambda c: c["rules_corpus_vector_identity"].update(embedding_model_id="forged"),
+    )
+
+
+def _tamper_evidence_schema_version(session: Session) -> None:
+    _coordinated_transform_edit(
+        session, lambda c: c.update(evidence_report_schema_version="5c-evidence-1")
+    )
+
+
+def _tamper_policy_portion(session: Session) -> None:
+    _coordinated_transform_edit(
+        session, lambda c: c["reconciliation_policy"].update(policy_version="forged")
+    )
+
+
 def test_the_bounded_release_report_is_a_successful_5c_verdict() -> None:
     """The fixture's report is a real ``build_report`` output, and it passes.
 
@@ -747,6 +811,33 @@ def test_a_fabricated_binding_both_sides_agree_on_still_fails(
             lambda s: _rewrite_release_report(s, smuggled_field="value"),
             id="release-evidence-carries-an-unknown-top-level-key",
         ),
+        # The recorded-release closure: row-level invariants the 5c gate already
+        # requires, which the downstream seam used to omit.
+        pytest.param(
+            lambda s: setattr(release_row(s), "corpus_report_reference", None),
+            id="release-report-reference-cleared",
+        ),
+        pytest.param(
+            lambda s: setattr(release_row(s), "corpus_report_reference", "9" * 64),
+            id="release-report-reference-unrelated-hash",
+        ),
+        pytest.param(
+            _stale_report_reference,
+            id="release-report-reference-stale-former-hash",
+        ),
+        pytest.param(
+            lambda s: setattr(package_row(s), "published_at", None),
+            id="package-records-no-published-at",
+        ),
+        pytest.param(
+            _tamper_extractor_identity, id="transform-config-extractor-edited"
+        ),
+        pytest.param(_tamper_transform_identity, id="transform-config-identity-edited"),
+        pytest.param(_tamper_vector_identity, id="transform-config-vector-edited"),
+        pytest.param(
+            _tamper_evidence_schema_version, id="transform-config-schema-version-edited"
+        ),
+        pytest.param(_tamper_policy_portion, id="transform-config-policy-edited"),
     ],
 )
 def test_an_unpublishable_5c_release_fails_even_when_everything_agrees(

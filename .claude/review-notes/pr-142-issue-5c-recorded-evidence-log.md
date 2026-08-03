@@ -486,3 +486,123 @@ deletion.
 typed-schema module **112 passed** · mechanical suites **521 passed** ·
 5c persistence/quarantine **55 passed** · full default suite **3204 passed,
 10 skipped** (93.43%) · parity **identical**, re-run after the conversion.
+
+---
+
+## Round 4 — boundary classification, recorded before editing
+
+All four findings are valid. Classified, not patched:
+
+1. **The canonical report is not actually an immutable value.** Pydantic
+   `BaseModel` keeps field storage in `__dict__`, so
+   `vars(report)["version_canaries"] = {}` still mutates it, `success_violations()`
+   then reports nothing, and `dump()` and the hash both move. Round 3 froze the
+   *containers* and left the *storage* reachable. Immutability was a property of
+   the values I remembered to wrap, not of the object.
+2. **Contextual comparison still serializes nested report models
+   independently.** `_recorded_identity_violations` calls `model_dump(mode="json")`
+   on three nested values. That is a second report serializer beside
+   `EvidenceReport.dump()`, contradicting the one-serializer boundary this PR
+   claims — the same defect shape as round 3's read-side hash, one level down.
+3. **`verify_published_release` still reconstructs the persisted release proof
+   as a loose collection of individual checks** rather than one closed
+   invariant over the external 5c publication record. Each round has been adding
+   the next remembered field.
+4. **The transform-config-hash and corpus-report-reference findings are existing
+   5c gate invariants the downstream verifier omitted** — `run_gate` already
+   requires both. They are not new product semantics, which is why no ADR or
+   Issue amendment is needed: the implementation is being brought into agreement
+   with publication semantics 5c already defines.
+
+Findings 1 and 2 are one architectural correction (the value and its
+serializer); 3 and 4 are the other (one recorded-release closure). Explicitly
+rejected: an overridden `__dict__`, another mapping proxy, another validator,
+two inline `if`s in the verifier, or swapping the nested `model_dump` calls
+without auditing every serializer.
+
+### Release-row field audit
+
+Every field the 5c published release carries, with one disposition each. Audited
+against `gate.run_gate`, fresh finalization, verified reuse, `CorpusReleaseORM`,
+`RulesPackageORM`, and the report schema before coding.
+
+| Field | Disposition |
+| --- | --- |
+| `publication_status` (release) | recorded-release closure — must be `published` |
+| `publication_status` / `is_enabled` / `published_at` (package) | recorded-release closure |
+| `release_version` | closure (present) + declared-binding comparison |
+| `authoritative_source_hash` | closure (present, equals report) + declared-binding comparison |
+| `transform_config` | closure — object, and `hash_obj(...) == transform_config_hash`; then contextual authority for the report-versus-config identity comparison |
+| `transform_config_hash` | closure (present, equals report, recomputed over the stored config) + declared-binding comparison |
+| `ledger_hash` | closure (present) + recomputed from the reconstructed ledger |
+| `policy_hash` | proven by `_load_policy`'s closed cross-reference chain, which fails closed; closure checks presence only — no duplicate check added |
+| `reconciliation_hash` | closure (present) + recomputed from the reconstructed reconciliation |
+| `bundle_root_hash` | closure (present, equals report) + recomputed via `build_bundle` + declared-binding comparison |
+| `persisted_corpus_digest` | closure (present, equals report) + declared-binding comparison; cross-store half is Owner-authorized recorded identity (2026-08-01), not recomputed |
+| `report_payload` | intrinsic canonical-report validation — the only field parsed rather than compared |
+| `evidence_report_hash` | closure — `report_hash` over the parsed canonical value |
+| `corpus_report_reference` | closure — must equal `evidence_report_hash`, the invariant `run_gate` condition 16 already requires |
+| `created_at` | not authoritative — operational metadata, excluded from every proof identity by design |
+
+Two sibling omissions the audit surfaced beyond the two Codex named, both now in
+the closure: the package's `published_at` (a published package recording no
+publication time), and presence of the identity, report, and reference columns
+as a set rather than individually where they had been assumed.
+
+`policy_hash` is deliberately *not* re-verified in the closure: `_load_policy`
+already validates a closed chain across the policy row, the reconciliation row,
+the release row, and the stored transform configuration, and raises rather than
+returning a violation. Duplicating it would be the two-definitions defect again.
+
+### The fixture had to survive its own proof
+
+`TRANSFORM_CONFIG_HASH` was the fixture constant `"b" * 64`, which is not the
+hash of `BOUND_TRANSFORM_CONFIG`. The closure recomputes it, so the bounded
+release was — accurately — a forgery under the new check. It is now
+`hash_obj(BOUND_TRANSFORM_CONFIG)`. That moved a binding value, so
+`bounded_oracle.json` was regenerated; same shape as the bundle-root correction
+in round 1, and the same lesson: a fixture that cannot pass the proof it is used
+to test was never evidence.
+
+### Controls added
+
+**No mutable backing storage.** Root and all nine nested canonical values:
+`vars()` raises `TypeError`, `__dict__` is absent, and no `BaseModel` is
+reachable. `vars(report)["version_canaries"] = {}` and the nested equivalent
+both raise, with the dump, hash, and verdict asserted unchanged afterwards. Plus
+a control that `build_report` and `parse_recorded_report` return the same type,
+and that the canonical type has no `model_validate`.
+
+**Transform-configuration identity.** Five coordinated-tampering controls —
+extractor, first-party transform identity, vector identity, evidence schema
+version, and the reconciliation-policy portion. Each edits the stored config,
+copies the edited identities into the report, rehashes the report, and leaves
+`transform_config_hash` and package identity untouched, so report and config
+agree perfectly and only recomputing the configuration's own hash catches it.
+
+**Corpus report reference.** Cleared, unrelated hash, and a stale former report
+hash — the reference still names a real report, the previous one. The matching
+case is the honest positive control the whole bounded suite already exercises.
+
+**Canonical serializer.** Existing controls prove write side and read side hash
+the same dump; the identity comparison now slices that one dump, and no nested
+report serializer remains in production.
+
+### Identity parity, re-run after the representation replacement
+
+```
+diff parity_parent.json parity_head4.json
+→ (no output; files identical)
+```
+
+Payload, `report_hash`, `package_uuid`, `release_version`,
+`transform_config_hash`, `bundle_root_hash`, and persisted-corpus digest all as
+at `cfade0d`. Replacing `BaseModel` with slotted dataclasses changed the
+representation, not the document, so `5c-evidence-3` stands.
+
+### Verification (round 4)
+
+`black` clean · `ruff check` clean · `mypy --strict` clean (211 files) ·
+typed-schema module **116 passed** · mechanical publication **64 passed** ·
+mechanical suites **521 passed** · 5c corpus + production control **310 passed**
+· full default suite **3208 passed, 10 skipped** (93.42%).
