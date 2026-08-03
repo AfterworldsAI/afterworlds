@@ -1,57 +1,30 @@
-"""First-party transform identity + source manifest — CRD Issue 5c, Component B.
+"""Declared semantic transform identity — CRD Issue 5c (#145).
 
-The transform source/configuration hash (Component B) must change whenever *any*
-first-party code that can affect the candidate corpus or its canonical
-identities (Component K steps a0–a3, and the canonical-payload/identity code in
-step b) changes — not only when the extractor version or the frozen policy
-changes. Otherwise a segmentation fix in ``ledger`` or a chunk-generation change
-in ``transform`` keeps the same ``transform_config_hash`` → same ``package_uuid``
-/ ``release_version`` → ``finalize_release`` reuses the *old* persisted corpus as
-a no-op instead of minting the new immutable draft the changed code requires
-(PR #134 P1, ``bundle.py:40``).
+Release identity follows the authoritative source and the approved logical
+corpus, not every byte of every implementation file.  The original Issue 5c
+implementation hashed eleven Python modules; comments, annotations, logging,
+and other incidental edits therefore reminted an unchanged corpus.
 
-This module derives that identity **automatically** from the actual committed
-source bytes of a fixed, audited set of first-party modules. There is no
-manually bumped version whose omission could silently bypass detection: the
-aggregate ``transform_source_hash`` is a pure function of those files' bytes, so
-editing any of them moves the hash with no human action. ``TRANSFORM_TOOL_VERSION``
-is a descriptive label only and gates nothing.
-
-Manifest audit (bounded transitive walk of Component K steps a0–b; each first-
-party corpus module inspected and dispositioned — see the review-note remediation
-log for the full table). A module is *included* iff its source bytes can change
-the candidate corpus or a canonical identity; *already-covered* iff its effect is
-bound some other way; *verification-only* iff it cannot change the candidate bytes:
-
-    included         pdf_source, ledger, tables, transform, reconcile, policy,
-                     bundle, hashing, models, pipeline, transform_identity
-    already-covered  models.retrieval.rules_corpus_vector_identity (its *output*,
-                     the vector identity, is bound into transform_config directly)
-    verification-only  concordance, report, gate, persistence, vector_publication,
-                     source_completeness  (verification / post-persistence /
-                     runtime only)
-
-``tables`` reached the manifest via ``ledger`` (a1→a2 segmentation): it owns table
-segmentation, cell contents/ids, and row/column metadata, so a change there must
-mint a new release (PR #134 R15 F1). The Finding-4 expected-table inventory is a
-candidate-affecting *data* input; its hash is bound into the transform config
-payload alongside this source hash (see ``bundle.transform_config_payload``).
+``TRANSFORM_TOOL_VERSION`` is now the explicit semantic compatibility version.
+It must be bumped when extraction, segmentation, canonical corpus content,
+provenance, or compatibility changes meaningfully.  The frozen v1 manifest is
+retained in the payload solely to preserve the honest identity of the already
+approved v1 logical corpus.  It is historical identity metadata, not a claim
+that current source bytes still equal those pre-amendment hashes.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from afterworlds.ingestion.corpus.hashing import hash_obj, sha256_hex
+from afterworlds.ingestion.corpus.hashing import hash_obj
 
-# Descriptive label for the transform toolchain. Change detection does NOT rely
-# on this string — it relies on TRANSFORM_SOURCE_MODULES' actual bytes below.
 TRANSFORM_TOOL_NAME = "afterworlds-srd-corpus-transform"
+# Bump deliberately for a meaningful logical-corpus or compatibility change.
 TRANSFORM_TOOL_VERSION = "1"
 
-# The audited first-party modules whose source bytes are bound into the transform
-# identity. Ordering here is irrelevant to the aggregate hash (entries are sorted
-# by canonical path before hashing) but is kept alphabetical for readability.
+# Historical v1 source set retained for API compatibility and for the exact
+# pre-amendment transform payload.  It no longer drives automatic byte checks.
 TRANSFORM_SOURCE_MODULES: tuple[str, ...] = (
     "bundle.py",
     "hashing.py",
@@ -66,77 +39,65 @@ TRANSFORM_SOURCE_MODULES: tuple[str, ...] = (
     "transform_identity.py",
 )
 
-# Canonical repository-relative directory these modules live in. Recorded in the
-# manifest so the paths are stable across checkouts and machines.
+_V1_SOURCE_MANIFEST: tuple[tuple[str, str], ...] = (
+    ("bundle.py", "9b3578de32454b3e87b7f7760c76128b6452a5cbc152e9ec4ae7e315d162db33"),
+    ("hashing.py", "dfbb8e9eaaded95c7aa2a72351e9301953ee5f15fa332dbc706a9307828b2915"),
+    ("ledger.py", "6717e8e4ab908aa02d8df0e87a453d1e1032f911cb26075168f2ac0e2b8610b3"),
+    ("models.py", "d6de262fd9235253de7dc1c7c2163726fd0ce0b26b7dba8ee7ecf06902abb190"),
+    (
+        "pdf_source.py",
+        "a205eafd02e9f754bfaca7e629b7de646a074b476f16066c6af2bb4caddf7453",
+    ),
+    ("pipeline.py", "f0af4fdb86fe76b957ab82f74dd26968d70ac3593634136d093c8584482773bc"),
+    ("policy.py", "a58a3e03b28289d5a4c6869d7e3171676924e5090f305afe8b4e79eb1a37198f"),
+    (
+        "reconcile.py",
+        "e24184fdc5ef556c9f9b401b74c19d94cf0c98400f3f8a6e0ca43fb02fe2f277",
+    ),
+    ("tables.py", "db88f21111892c9cb607e756a94df2ef315426bf84ec6733938e79fe2073cfa0"),
+    (
+        "transform.py",
+        "a74bf829bdbdf94fec30cb0124e8d42f42a4837588d039afdf9f8325142610a7",
+    ),
+    (
+        "transform_identity.py",
+        "77b50cb8c835f7ea12a5e786172d9dd03035fafb3cf5a7593dd1ee15fd6b2a18",
+    ),
+)
+_V1_TRANSFORM_SOURCE_HASH = (
+    "6332f201eba9cba19d699a06c6c12580de5ef1c7f349fadacd2045c0e5312cc0"
+)
 _CORPUS_PKG_REL = "src/afterworlds/ingestion/corpus"
-_CORPUS_DIR = Path(__file__).resolve().parent
 
 
 class TransformSourceMissingError(RuntimeError):
-    """Raised when an audited transform-source module is absent — fail closed."""
-
-
-def _source_sha256(data: bytes) -> str:
-    """SHA-256 of source *data* with newlines normalized to ``\\n``.
-
-    Normalization (matching the pipeline's canonical ``\\n`` discipline) makes
-    the identity insensitive to a CRLF checkout while still moving on any real
-    content change — the same reasoning as geometry rounding for extraction.
-    ``.gitattributes`` already pins ``*.py`` to ``eol=lf``; this is belt-and-
-    suspenders.
-    """
-    normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    return sha256_hex(normalized)
+    """Legacy public exception retained for import compatibility."""
 
 
 def aggregate_source_hash(entries: list[tuple[str, str]]) -> str:
-    """Pure aggregate over ``(repo_relative_path, source_sha256)`` pairs.
-
-    Deterministic and independent of input ordering (entries are sorted by path).
-    Any change to any covered file's ``source_sha256`` — hence any change to its
-    bytes — changes the aggregate.
-    """
+    """Canonical aggregate helper retained for diagnostic tooling."""
     ordered = sorted(entries)
-    return hash_obj([{"path": p, "sha256": h} for p, h in ordered])
+    return hash_obj([{"path": path, "sha256": digest} for path, digest in ordered])
 
 
 def transform_source_manifest(root: Path | None = None) -> dict[str, object]:
-    """Read the audited modules from *root* and return their manifest + aggregate.
+    """Return the frozen v1 manifest used by the approved logical corpus.
 
-    *root* defaults to the real corpus package directory; a caller may pass a
-    copy of the tree to prove byte-sensitivity in a test. Repo-relative paths are
-    always canonical regardless of *root*, so the identity is location-stable.
-    Fails closed if any audited module is missing.
+    ``root`` remains accepted so older callers do not break, but source-tree
+    inspection is intentionally no longer part of release identity.
     """
-    # ponytail: `root` param exists only so tests can point at a mutated copy of
-    # the source tree; production always uses the real package dir.
-    base = root if root is not None else _CORPUS_DIR
-    modules: list[dict[str, str]] = []
-    entries: list[tuple[str, str]] = []
-    for name in sorted(TRANSFORM_SOURCE_MODULES):
-        path = base / name
-        if not path.is_file():
-            raise TransformSourceMissingError(
-                f"audited transform-source module missing: {path}"
-            )
-        rel = f"{_CORPUS_PKG_REL}/{name}"
-        digest = _source_sha256(path.read_bytes())
-        modules.append({"path": rel, "sha256": digest})
-        entries.append((rel, digest))
+    del root
     return {
-        "modules": modules,
-        "transform_source_hash": aggregate_source_hash(entries),
+        "modules": [
+            {"path": f"{_CORPUS_PKG_REL}/{name}", "sha256": digest}
+            for name, digest in _V1_SOURCE_MANIFEST
+        ],
+        "transform_source_hash": _V1_TRANSFORM_SOURCE_HASH,
     }
 
 
 def transform_identity(root: Path | None = None) -> dict[str, object]:
-    """The complete first-party transform identity (Component B).
-
-    Tool label + auto-derived source manifest/hash + the deterministic Component
-    B invocation + whether an intermediate representation is committed. This is
-    embedded in the transform source/configuration payload and drives the
-    transform hash, package UUID, and release version.
-    """
+    """Return the explicit semantic identity of the corpus transformation."""
     manifest = transform_source_manifest(root)
     return {
         "tool": TRANSFORM_TOOL_NAME,
@@ -154,7 +115,5 @@ def transform_identity(root: Path | None = None) -> dict[str, object]:
             ),
             "deterministic": True,
         },
-        # No intermediate representation is committed to the repository; the
-        # corpus is regenerated deterministically from the PDF + these sources.
         "intermediate_representation_committed": False,
     }

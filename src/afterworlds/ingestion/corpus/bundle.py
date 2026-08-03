@@ -1,7 +1,7 @@
 """Canonical bundle, persisted-corpus digest, transform identity — Issue 5c.
 
-Components K (bundle root), A (five top-level identities and the persisted-corpus
-digest), and B (transform source/configuration hash covering the frozen policy).
+The module retains the historical v1 bundle and identity shape while applying
+the operational-reliability amendment's semantic compatibility boundary.
 
 The bundle-root hash covers the frozen ledger, the canonical corpus members, the
 reconciliation member, and the ordered bundle-member manifest — and excludes
@@ -23,11 +23,14 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash, policy_payload
-from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION
 from afterworlds.ingestion.corpus.table_inventory import committed_inventory_hash
 from afterworlds.ingestion.corpus.transform_identity import transform_identity
 
 RELEASE_VERSION_PREFIX = "5.2.1-corpus"
+# Historical v1 key/value retained so the approved logical corpus keeps its
+# existing package identity.  It is no longer coupled to the current diagnostic
+# evidence-report schema; report evolution is not a corpus compatibility change.
+_V1_REPORT_IDENTITY_COMPATIBILITY = "5c-evidence-3"
 
 
 # ---------------------------------------------------------------------------
@@ -42,11 +45,10 @@ def transform_config_payload(
 ) -> dict[str, object]:
     """The committed transform inputs (Component B).
 
-    The extractor config and frozen policy alone do not capture a change to the
-    first-party transform *code* (segmentation, chunk generation, canonical
-    identity derivation). ``transform_identity`` binds a source manifest over the
-    audited first-party modules, so any covered code change moves this payload's
-    hash — hence the package UUID and release version (PR #134 P1).
+    ``transform_identity`` records the explicit semantic transform version.
+    Incidental source edits do not move this payload; a reviewed change to
+    extraction, segmentation, canonical corpus content, provenance, or consumer
+    compatibility must deliberately bump that version.
 
     ``vector_identity`` binds the identity-bearing rules-corpus vector
     configuration (embedding model + logical schema/ID/metadata contract, see
@@ -61,14 +63,9 @@ def transform_config_payload(
     (regenerating the inventory after a reviewed table-reconstruction change)
     mints a new immutable release (PR #134 R15 F4).
 
-    ``evidence_report_schema_version`` binds the canonical evidence-report schema
-    version (Component H). The evidence-report hash is a post-persistence proof
-    identity, so a *schema* change (e.g. the R16 ``reproduction_environment`` →
-    ``reproduction_target`` shape change) must mint a new immutable release rather
-    than being validated-and-reused under a predecessor's identity — otherwise
-    reuse loads the obsolete-shape stored report and accepts it (PR #134 R17). An
-    explicit version (not a byte-level hash of ``report.py``) is bound so only an
-    intentional schema change remints, never a comment/logging edit.
+    ``evidence_report_schema_version`` is retained at its v1 value for identity
+    compatibility with the already approved logical corpus.  The key is legacy
+    identity metadata, not the version of the current diagnostic report.
     """
     return {
         "extraction_config": extraction_config,
@@ -76,7 +73,7 @@ def transform_config_payload(
         "transform_identity": transform_identity(),
         "rules_corpus_vector_identity": vector_identity,
         "expected_table_inventory_hash": committed_inventory_hash(),
-        "evidence_report_schema_version": EVIDENCE_REPORT_SCHEMA_VERSION,
+        "evidence_report_schema_version": _V1_REPORT_IDENTITY_COMPATIBILITY,
     }
 
 
