@@ -41,11 +41,13 @@ by discipline:
   A competing projection is rejected as ``ACTIVE_CONFLICT`` with the incumbent
   untouched. Under genuine concurrency the pre-insert observation and the write
   are not one step, so a losing publisher's activation fails at the constraint
-  or the write lock; that is rolled back and the *whole* operation is reattempted
-  once on a clean transaction, where the winner's commit is visible and the
-  ordinary paths return ``ALREADY_PUBLISHED`` or ``ACTIVE_CONFLICT``. The loser
-  never keeps a partially published header, and only activation-contention
-  errors are treated this way — anything else propagates.
+  or the write lock; that is rolled back, then publication waits for the
+  winning activation to become visible within a bounded settlement window. The
+  *whole* operation is re-entered once on a clean transaction only after the
+  winner has committed, and the ordinary paths return ``ALREADY_PUBLISHED`` or
+  ``ACTIVE_CONFLICT``. The loser never keeps a partially published header,
+  and only activation-contention errors are treated this way — anything else
+  propagates.
 
 Every outcome is typed. Nothing here returns ``None``, an empty result, or a
 generic exception to mean "not published" (#137 contract 5).
@@ -55,6 +57,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from time import monotonic, sleep
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -436,13 +439,49 @@ def _is_activation_race(exc: IntegrityError | OperationalError) -> bool:
     return any(lock in message.lower() for lock in _LOCK_MESSAGES)
 
 
+#: A losing publisher waits only long enough for the transaction that beat it to
+#: make the activation row visible. The wait is bounded so a false-positive lock
+#: classification or a crashed winner cannot hang publication indefinitely.
+_ACTIVATION_SETTLEMENT_TIMEOUT_SECONDS = 1.0
+_ACTIVATION_SETTLEMENT_POLL_SECONDS = 0.01
+
+
+def _wait_for_activation_settlement(
+    session: Session, package_uuid: str
+) -> bool:
+    """Wait boundedly for a winning activation commit to become observable.
+
+    The row is used only as a settlement signal. The caller then re-enters the
+    complete publication path, which derives the typed result through the normal
+    gate and activation checks rather than inferring authority from this read.
+    Each probe ends its read transaction so the next one can observe a commit
+    that happened meanwhile.
+    """
+    deadline = monotonic() + _ACTIVATION_SETTLEMENT_TIMEOUT_SECONDS
+    while True:
+        try:
+            settled = _active_row(session, package_uuid) is not None
+        except OperationalError as exc:
+            session.rollback()
+            if not _is_activation_race(exc):
+                raise
+        else:
+            session.rollback()
+            if settled:
+                return True
+
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            return False
+        sleep(min(_ACTIVATION_SETTLEMENT_POLL_SECONDS, remaining))
+
+
 def _publish_projection(
     session: Session,
     projection_uuid: str,
     oracle: AcceptedOracle | None,
     *,
     now: str,
-    reattempted: bool = False,
 ) -> PublicationResult:
     """Gate a persisted projection and, only if it passes, publish it atomically.
 
@@ -467,6 +506,7 @@ def _publish_projection(
     header = _header(session, projection_uuid)
     if header is None or oracle is None:
         return PublicationResult(PublicationOutcome.ABSENT, projection_uuid)
+    package_uuid = header.package_uuid
 
     gate = run_publication_gate(session, projection_uuid, oracle)
     report = build_evidence_report(header, gate)
@@ -532,22 +572,17 @@ def _publish_projection(
         session.commit()
     except (IntegrityError, OperationalError) as exc:
         # The observation above and the write below are not one atomic step, so
-        # a concurrent publisher can commit between them. The database settles
-        # it — that is the point of the activation key — and this turns losing
-        # into a typed outcome instead of a raw driver error.
+        # a concurrent publisher can commit between them. Roll back first, then
+        # wait boundedly for that winning activation to become visible. Only
+        # after settlement do we re-enter the *whole* operation on a clean
+        # transaction: the ordinary paths re-prove authority and return
+        # ALREADY_PUBLISHED or ACTIVE_CONFLICT without a weaker race verifier.
         session.rollback()
-        if reattempted or not _is_activation_race(exc):
+        if not _is_activation_race(exc):
             raise
-        # Re-enter the *whole* operation on a clean transaction rather than
-        # inspecting the active row and inferring a result. The winner's commit
-        # is now visible, so the second pass re-runs the complete committed-oracle
-        # proof and reaches ALREADY_PUBLISHED (same projection, now published) or
-        # ACTIVE_CONFLICT (another projection holds the package) through the
-        # ordinary paths. Bounded to one reattempt by an explicit flag, so it
-        # cannot recurse: a race that recurs on the clean transaction propagates.
-        return _publish_projection(
-            session, projection_uuid, oracle, now=now, reattempted=True
-        )
+        if not _wait_for_activation_settlement(session, package_uuid):
+            raise
+        return _publish_projection(session, projection_uuid, oracle, now=now)
     except Exception:
         session.rollback()
         raise
