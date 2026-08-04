@@ -446,9 +446,7 @@ _ACTIVATION_SETTLEMENT_TIMEOUT_SECONDS = 1.0
 _ACTIVATION_SETTLEMENT_POLL_SECONDS = 0.01
 
 
-def _wait_for_activation_settlement(
-    session: Session, package_uuid: str
-) -> bool:
+def _wait_for_activation_settlement(session: Session, package_uuid: str) -> bool:
     """Wait boundedly for a winning activation commit to become observable.
 
     The row is used only as a settlement signal. The caller then re-enters the
