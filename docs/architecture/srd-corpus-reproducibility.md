@@ -1,5 +1,19 @@
 # SRD Corpus Reproducibility — CRD Issue 5c (#132), ADR-005c Completion Contract A
 
+> **Prospectively superseded in part (2026-08-03) — CRD Issue 5c Operational Reliability Amendment.**
+> This document describes the proof architecture Completion Contract A originally required, and
+> remains an accurate description of what the current implementation does. Three of its framing
+> claims are no longer *governing requirements*: the fixed count of five top-level release
+> identities, byte-for-byte regeneration of every generated artifact, and the acyclic proof
+> lifecycle as a mandatory derivation graph. What remains binding is the operational outcome —
+> exact source identification, complete and faithful representation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection, fail-closed
+> publication, and the ability to rebuild and diagnose an approved release. Release identity tracks
+> the authoritative source and the approved logical corpus, not every byte of every implementation
+> file. See [ADR-005c operational reliability amendment](../decisions/adr-005c-operational-reliability-amendment.md).
+> No text below is rewritten; the bounded contract-to-code audit decides what the implementation
+> keeps.
+
 The authoritative SRD 5.2.1 corpus is a **byte-for-byte reproducible** release
 derived deterministically from the authoritative PDF. This document defines the
 acyclic proof lifecycle (Component K) and the determinism rules that make a clean
@@ -225,8 +239,8 @@ This builds the release solely from the PDF, runs the publication gate, and
 persists a new immutable release only if the gate passes. There is no legacy
 structured-JSON ingestion path.
 
-**Pre-release clean baseline (R18; Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds
-is pre-release, so persistence created before Issue 5c gets no
+**Pre-release clean baseline (R18; CRD Issue 5c Rev7 / CRD Issue 18 Rev6).** Afterworlds
+is pre-release, so persistence created before CRD Issue 5c gets no
 upgrade/preservation guarantee, and the former strict cross-store quarantine
 (repo/runtime zero-reachability scan + a publication-time legacy check) is
 superseded by a clean baseline: migration `0018` deletes the incomplete legacy SQL
@@ -235,7 +249,7 @@ deleted (kept only in Git history); and the configured development Chroma store 
 reset in full **once** — an explicit one-time step
 (`scripts/reset_corpus_baseline.py`), never automatic startup — before the
 corrected rules corpus is rebuilt from the published SQLite-authoritative package
-via Issue 18's reindex path. No legacy UUID or collection-name handoff is used.
+via CRD Issue 18's reindex path. No legacy UUID or collection-name handoff is used.
 
 **Offline-exclusive (owner decision, 2026-07-29).** The baseline reset is a one-time,
 pre-release, **offline** maintenance operation. It is supported only while the
@@ -258,5 +272,5 @@ Publication proves **source-corpus integrity only**: authoritative-source
 identity, complete atomic-leaf accounting with zero unresolved leaves, gap-free
 declared-projection coverage, passing concordance, and byte-for-byte
 reproducibility. It does **not** certify that any mechanic is deterministically
-executable — that is Issue 5d's and Issue 15c's separate, later claim
+executable — that is CRD Issue 5d's and CRD Issue 15c's separate, later claim
 (ADR-005c Decisions 1, 6).

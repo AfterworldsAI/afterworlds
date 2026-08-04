@@ -173,6 +173,58 @@ Draft/partial projections are not active authority. Published projections are im
 corrections *to the projection itself* mint a new projection UUID; changes to override state do not (see
 Decision 9).
 
+**Owner Decision 2026-08-01, as amended 2026-08-03 — what the 5d publication gate proves about the
+bound 5c release.**
+
+*Preservation note.* This block is recorded on `main` for the first time here. The 2026-08-01 Owner
+Decision was drafted on PR #141, which remains open, draft, and unmerged; its Chroma provisions are
+carried below **unchanged**, and its downstream re-proof requirement is carried in its amended form.
+
+CRD Issue 5d owns typed interpretation and deterministic Rules Package construction. It consumes an
+approved CRD Issue 5c release; it does not become a second 5c publication system. Before publishing a
+mechanical projection, the gate must establish, through the narrow 5c-owned operational trust seam:
+
+- the requested release exists and is marked published;
+- the release identifier and package/release relationship are internally consistent;
+- the release identifies the expected authoritative source and corpus;
+- the authoritative SQLite corpus state being supplied matches the approved release's recorded
+  persisted-corpus identity through a **direct operational integrity check** — not merely because an
+  evidence-report hash matches;
+- the corpus records 5d needs are present and reachable through the approved authoritative seam; and
+- the release uses a corpus contract or schema version supported by the 5d transformation.
+
+"Compatible with the 5d transformation" means only that 5d recognizes and supports the published corpus
+contract/schema it is about to consume. This ADR does not prescribe whether engineering represents that
+support through a version field, a capability declaration, or an equivalent low-cost mechanism.
+
+The gate **fails closed** when any of these checks fails. It may record the 5c release identity, source
+identity, corpus identity, and compatibility version as provenance for its own deterministic Rules
+Package.
+
+Merely because it loads an approved release, 5d must **not** reconstruct and re-hash the full source
+ledger, reconciliation member, policy chain, canonical bundle, or evidence report; prove that every
+historical identity was mathematically derived from every recorded predecessor; compare diagnostic
+report summaries against a newly reconstructed publication history; or rerun coherent-rewrite or
+adversarial mutation controls.
+
+*Amended 2026-08-03.* The 2026-08-01 decision as drafted also required the gate to "reconstruct and
+re-prove all SQLite-authoritative corpus state that seam exposes." That requirement is prospectively
+superseded: it made every downstream load a re-execution of 5c's historical publication proof, which
+CRD Issue 5c no longer promises. Fresh 5c publication and 5c verified reuse may still perform stronger
+internal checks where they cheaply support an operational outcome; those checks do not automatically
+become downstream obligations. See
+[CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) §5.
+
+**Chroma — preserved exactly (2026-08-01).** The 5d gate **does not** open or depend on ChromaDB to
+recompute the vector-backed portion of the 5c persisted-corpus digest. Chroma remains an informational,
+rebuildable projection and is not mechanical authority (ADR-018 D4/D10). Loss, corruption, or absence of
+the live rules-corpus vector collection after successful 5c publication is a CRD Issue 18
+operational/reindex defect; it does not make the 5c source authority stale for 5d publication.
+
+This does not weaken CRD Issue 5c. Fresh 5c publication and 5c's own verified-reuse path must continue
+to write, read back, and verify the required vector projection before declaring a 5c release published
+or reusable.
+
 ### Decision 9 — Deterministic effective binding and selector ownership
 
 5d supplies a typed, immutable **effective** binding of:
@@ -298,6 +350,14 @@ ADR-005c remains authoritative and is not superseded.
 
 No historical ADR-005c text is deleted. ADR-005c Decisions 2 and 5 carry forward references to this ADR
 as of this change.
+
+**Operational reliability amendment (2026-08-03).** ADR-005c is amended prospectively so that CRD Issue
+5c is judged by operational reliability rather than adversarial or forensic proof. For 5d this changes
+one thing only: the downstream trust boundary in Decision 8, which now verifies the narrow 5c-owned
+operational seam instead of reconstructing 5c's complete publication-proof graph. 5d's own ownership is
+unchanged — typed interpretation, deterministic Rules Package construction, fail-closed publication, and
+provenance all stand. See
+[CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
 
 ### ADR-0007
 
