@@ -17,10 +17,9 @@ dependencies = [
     "openai>=1.0",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
-    # SRD corpus transform (CRD Issue 5c). Pinned exactly: the corpus release is
-    # byte-for-byte reproducible only against a fixed extractor version. The
-    # transform records these identities (Component B); bumping either version is
-    # a transform-config change that yields a new draft release (Component A).
+    # SRD corpus transform (CRD Issue 5c). Pinning the extractor protects
+    # operationally meaningful extraction behavior. Deliberate compatibility
+    # changes bump the semantic transform version and yield a new draft release.
     "pdfplumber==0.11.10",
     "pdfminer.six==20260107",
 ]

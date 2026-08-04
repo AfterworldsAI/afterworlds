@@ -45,7 +45,9 @@ PYTHON_TARGET = "3.12"
 # change mints a NEW immutable release instead of being reused under a
 # predecessor's identity (R17 mechanism). It is deliberately an *explicit* schema
 # identity rather than a byte-level hash of report.py: only an intentional
-# canonical-shape change should remint, never a comment/docstring/logging edit.
+# canonical-shape change should be explicit.  Since the 2026-08-03 operational-
+# reliability amendment, this diagnostic version no longer participates in the
+# package UUID or release version.
 EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-3"
 
 
@@ -97,8 +99,8 @@ def build_report(
     )
 
     payload: dict[str, object] = {
-        # Canonical schema version, also bound into the transform identity so a
-        # schema change remints the release rather than being reused (R17).
+        # Diagnostic schema version. Report evolution is deliberately independent
+        # of the published corpus identity.
         "report_version": EVIDENCE_REPORT_SCHEMA_VERSION,
         # Proof hashes (NOT this report's own hash).
         "authoritative_source_hash": authoritative_source_hash,
@@ -129,8 +131,8 @@ def build_report(
         # ``transform_identity`` above. This is host-independent by construction —
         # no runtime host name, OS, architecture, absolute path, timestamp, or PID
         # enters this identity-bearing payload, so the same committed inputs yield a
-        # byte-identical evidence report (hence release identity) on every supported
-        # host (PR #134 R16). Actual host diagnostics are logged, never hashed.
+        # stable diagnostic report on every supported host (PR #134 R16).
+        # Actual host diagnostics are logged, never hashed.
         "reproduction_target": {"python_target": PYTHON_TARGET},
         "reconciliation_policy_reference": {
             "policy_version": policy.policy_version,

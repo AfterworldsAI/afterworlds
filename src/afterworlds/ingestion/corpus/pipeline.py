@@ -28,7 +28,7 @@ memory. :func:`afterworlds.ingestion.corpus.persistence.finalize_release`
 performs steps c–g against a live session and returns the completed
 :class:`ReleaseArtifacts`.
 
-A clean checkout regenerates a0–g byte-for-byte from committed inputs.
+A clean checkout regenerates the same substantive corpus from committed inputs.
 """
 
 from __future__ import annotations

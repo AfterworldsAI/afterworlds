@@ -58,6 +58,7 @@ class PublicationEvidence:
     chunk_membership_violations: int
     source_membership_violations: int
     vector_verification_failures: tuple[str, ...]
+    operational_integrity_failures: tuple[str, ...] = ()
 
 
 def run_gate(
@@ -291,6 +292,12 @@ def run_gate(
     #     structural count.
     if evidence.source_membership_violations != 0:
         f.append("persisted source-membership invariant violation present")
+
+    # 24. The direct, versioned SQLite corpus surface consumed by downstream 5d
+    #     is closed and internally reachable.  This is operational integrity,
+    #     not a replay of the historical publication proof.
+    for violation in evidence.operational_integrity_failures:
+        f.append(f"operational corpus: {violation}")
 
     return GateResult(passed=not f, failures=tuple(f))
 

@@ -55,6 +55,15 @@ class CorpusReleaseORM(Base):
     persisted_corpus_digest: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
+    # Versioned, direct SQLite trust seam consumed by CRD Issue 5d.  These are
+    # post-persistence values and remain nullable only so migration 0022 can
+    # represent pre-amendment releases until 5c verified reuse backfills them.
+    corpus_contract_version: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    operational_corpus_digest: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
     ledger_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     policy_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     reconciliation_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)

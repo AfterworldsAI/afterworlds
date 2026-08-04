@@ -62,6 +62,12 @@ from afterworlds.ingestion.corpus.models import (
     ReleaseRecord,
     SourceLedger,
 )
+from afterworlds.ingestion.corpus.operational import (
+    CORPUS_CONTRACT_VERSION,
+    build_operational_corpus_snapshot,
+    operational_corpus_digest,
+    operational_structure_violations,
+)
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease, ReleaseArtifacts
 from afterworlds.ingestion.corpus.policy import (
@@ -71,7 +77,6 @@ from afterworlds.ingestion.corpus.policy import (
     policy_payload,
 )
 from afterworlds.ingestion.corpus.report import (
-    EVIDENCE_REPORT_SCHEMA_VERSION,
     EvidenceReport,
     build_report,
     report_hash,
@@ -157,6 +162,8 @@ def _persist_release_record(
     bundle_root_hash: str,
     evidence_report_hash: str | None,
     persisted_corpus_digest: str | None,
+    corpus_contract_version: str | None,
+    operational_corpus_digest_value: str | None,
     ledger_hash: str,
     policy_hash: str,
     reconciliation_hash: str,
@@ -182,6 +189,8 @@ def _persist_release_record(
             bundle_root_hash=bundle_root_hash,
             evidence_report_hash=evidence_report_hash,
             persisted_corpus_digest=persisted_corpus_digest,
+            corpus_contract_version=corpus_contract_version,
+            operational_corpus_digest=operational_corpus_digest_value,
             ledger_hash=ledger_hash,
             policy_hash=policy_hash,
             reconciliation_hash=reconciliation_hash,
@@ -340,6 +349,8 @@ def persist_release(session: Session, artifacts: ReleaseArtifacts, *, now: str) 
         bundle_root_hash=ident.bundle_root_hash,
         evidence_report_hash=ident.evidence_report_hash,
         persisted_corpus_digest=ident.persisted_corpus_digest,
+        corpus_contract_version=CORPUS_CONTRACT_VERSION,
+        operational_corpus_digest_value=None,
         ledger_hash=rel.ledger_hash,
         policy_hash=rel.policy_hash,
         reconciliation_hash=rel.reconciliation_hash,
@@ -358,6 +369,16 @@ def persist_release(session: Session, artifacts: ReleaseArtifacts, *, now: str) 
         members=artifacts.members,
         now=now,
     )
+    snapshot = build_operational_corpus_snapshot(
+        session,
+        pkg,
+        corpus_contract_version=CORPUS_CONTRACT_VERSION,
+        persisted_corpus_digest=ident.persisted_corpus_digest,
+    )
+    release_row = session.get(CorpusReleaseORM, pkg)
+    assert release_row is not None
+    release_row.operational_corpus_digest = operational_corpus_digest(snapshot)
+    session.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -664,30 +685,6 @@ def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...
             + (" …" if len(missing) > 8 else ""),
         )
     return ()
-
-
-def _report_schema_ok(report_payload: object, transform_config: object) -> bool:
-    """Reuse-compatibility check for the evidence-report schema (R17).
-
-    Reuse validates the *stored* report against its *stored* hash, so an
-    obsolete-schema report (e.g. the pre-R16 host-dependent ``reproduction_environment``
-    shape) would pass that check and be silently reused. Binding the schema version
-    into the transform identity already gives a differently-schema'd release a
-    different ``package_uuid`` (so it is not matched on the fresh path); this is the
-    fail-closed backstop on the reuse path.
-
-    True iff the persisted report's recorded ``report_version`` equals the currently
-    supported :data:`EVIDENCE_REPORT_SCHEMA_VERSION` **and** the persisted transform
-    config records the same version. Missing / obsolete / contradictory / malformed
-    → False.
-    """
-    if not isinstance(report_payload, dict) or not isinstance(transform_config, dict):
-        return False
-    return (
-        report_payload.get("report_version") == EVIDENCE_REPORT_SCHEMA_VERSION
-        and transform_config.get("evidence_report_schema_version")
-        == EVIDENCE_REPORT_SCHEMA_VERSION
-    )
 
 
 def verify_single_source(session: Session, pkg: str) -> tuple[str, ...]:
@@ -1164,12 +1161,52 @@ def _finalize_core(
             and len(artifacts.members.chunks) == len(candidate.members.chunks)
             and not membership_violations
         )
+        operational_failures: list[str] = []
+        backfill_operational_contract = (
+            existing.corpus_contract_version is None
+            and existing.operational_corpus_digest is None
+        )
+        if (existing.corpus_contract_version is None) != (
+            existing.operational_corpus_digest is None
+        ):
+            operational_failures.append(
+                "operational corpus contract metadata is partially populated"
+            )
+        if existing.corpus_contract_version not in (
+            None,
+            CORPUS_CONTRACT_VERSION,
+        ):
+            operational_failures.append(
+                "unsupported operational corpus contract version "
+                f"{existing.corpus_contract_version!r}"
+            )
+        assert existing.persisted_corpus_digest is not None
+        operational_snapshot = build_operational_corpus_snapshot(
+            session,
+            pkg,
+            corpus_contract_version=(
+                existing.corpus_contract_version or CORPUS_CONTRACT_VERSION
+            ),
+            persisted_corpus_digest=existing.persisted_corpus_digest,
+        )
+        operational_failures.extend(
+            operational_structure_violations(operational_snapshot)
+        )
+        current_operational_digest = operational_corpus_digest(operational_snapshot)
+        if (
+            existing.operational_corpus_digest is not None
+            and existing.operational_corpus_digest != current_operational_digest
+        ):
+            operational_failures.append(
+                "authoritative SQLite corpus does not match its operational digest"
+            )
         evidence = PublicationEvidence(
             sql_persist_ok=sql_persist_ok,
             vector_write_ok=vector_result.ok,
             chunk_membership_violations=len(membership_violations),
             source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
+            operational_integrity_failures=tuple(operational_failures),
         )
         # Re-run the *full* gate against the reconstructed existing release —
         # not just the digest — so a reuse can't be accepted on a release whose
@@ -1186,15 +1223,7 @@ def _finalize_core(
             and package_row.publication_status == "published"
         )
         page_coverage_violations = verify_persisted_page_coverage(session, pkg)
-        schema_ok = _report_schema_ok(
-            artifacts.report.payload, artifacts.release.transform_config
-        )
-        if (
-            not gate.passed
-            or not package_state_ok
-            or page_coverage_violations
-            or not schema_ok
-        ):
+        if not gate.passed or not package_state_ok or page_coverage_violations:
             failures = list(gate.failures)
             if not package_state_ok:
                 failures.append(
@@ -1203,19 +1232,20 @@ def _finalize_core(
                     "rp_corpus_releases row"
                 )
             failures.extend(page_coverage_violations)
-            if not schema_ok:
-                failures.append(
-                    "persisted evidence-report schema version "
-                    f"(report={artifacts.report.payload.get('report_version')!r}) is "
-                    "missing/obsolete/contradictory vs the supported "
-                    f"{EVIDENCE_REPORT_SCHEMA_VERSION!r} — refusing to reuse"
-                )
             return FinalizeResult(
                 published=False,
                 reused=False,
                 artifacts=None,
                 gate=GateResult(passed=False, failures=tuple(failures)),
             )
+        if backfill_operational_contract:
+            # Migration 0022 introduces only verification metadata.  Backfill a
+            # pre-amendment published row solely after the full 5c reuse gate and
+            # live Chroma verification pass; corpus content and release identity
+            # remain untouched.
+            existing.corpus_contract_version = CORPUS_CONTRACT_VERSION
+            existing.operational_corpus_digest = current_operational_digest
+            session.commit()
         return FinalizeResult(
             published=True, reused=True, artifacts=artifacts, gate=gate
         )
@@ -1245,6 +1275,8 @@ def _finalize_core(
             bundle_root_hash=candidate.bundle.bundle_root_hash,
             evidence_report_hash=None,
             persisted_corpus_digest=None,
+            corpus_contract_version=CORPUS_CONTRACT_VERSION,
+            operational_corpus_digest_value=None,
             ledger_hash=candidate.ledger_hash,
             policy_hash=candidate.policy_hash,
             reconciliation_hash=candidate.reconciliation_hash,
@@ -1297,6 +1329,26 @@ def _finalize_core(
             sources,
             vector_state,
         )
+
+        # Direct SQLite contract consumed by downstream 5d.  It is derived from
+        # the exact rows 5d receives and deliberately excludes Chroma and 5c's
+        # diagnostic proof genealogy.
+        release_row = session.execute(
+            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
+        ).scalar_one()
+        release_row.persisted_corpus_digest = digest
+        release_row.corpus_contract_version = CORPUS_CONTRACT_VERSION
+        session.flush()
+        operational_snapshot = build_operational_corpus_snapshot(
+            session,
+            pkg,
+            corpus_contract_version=CORPUS_CONTRACT_VERSION,
+            persisted_corpus_digest=digest,
+        )
+        fresh_operational_failures = operational_structure_violations(
+            operational_snapshot
+        )
+        operational_digest = operational_corpus_digest(operational_snapshot)
 
         # --- e: post-persistence evidence report; f: hash it ------------------
         concordance = check_concordance(members.chunks, candidate.pages)
@@ -1363,14 +1415,14 @@ def _finalize_core(
             chunk_membership_violations=len(membership_violations),
             source_membership_violations=len(source_violations),
             vector_verification_failures=vector_result.failures,
+            operational_integrity_failures=fresh_operational_failures,
         )
 
         # --- g: fill in the post-persistence identity, then run the final gate -
-        release_row = session.execute(
-            select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
-        ).scalar_one()
         release_row.evidence_report_hash = report_h
         release_row.persisted_corpus_digest = digest
+        release_row.corpus_contract_version = CORPUS_CONTRACT_VERSION
+        release_row.operational_corpus_digest = operational_digest
         release_row.corpus_report_reference = report_h
         release_row.report_payload = report.payload
         session.flush()

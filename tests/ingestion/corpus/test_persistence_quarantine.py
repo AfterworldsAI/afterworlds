@@ -888,41 +888,11 @@ def test_completeness_rejects_page_corruption_and_leaves_no_state(
 #  see test_migration_0018_deletes_incomplete_package_and_dependent_rows.)
 
 
-def test_report_schema_ok_fails_closed_on_bad_schema():
-    """R17 unit: ``_report_schema_ok`` is the reuse-path backstop for the evidence-
-    report schema. Current + matching (report AND transform config) → True;
-    obsolete, contradictory, missing, or malformed → False (fail closed)."""
-    from afterworlds.ingestion.corpus.persistence import _report_schema_ok
-    from afterworlds.ingestion.corpus.report import EVIDENCE_REPORT_SCHEMA_VERSION as V
-
-    assert _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": V}
-    )
-    # obsolete pre-R16 report version
-    assert not _report_schema_ok(
-        {"report_version": "5c-evidence-1"}, {"evidence_report_schema_version": V}
-    )
-    # contradictory: report current, transform config stale or absent
-    assert not _report_schema_ok({"report_version": V}, {})
-    assert not _report_schema_ok(
-        {"report_version": V}, {"evidence_report_schema_version": "5c-evidence-1"}
-    )
-    # missing report version
-    assert not _report_schema_ok({}, {"evidence_report_schema_version": V})
-    # malformed payloads
-    assert not _report_schema_ok(None, {"evidence_report_schema_version": V})
-    assert not _report_schema_ok({"report_version": V}, None)
-
-
-def test_reuse_rejects_obsolete_evidence_report_schema(
-    session, candidate, chroma_client, retrieval_config, fake_embedding
+def test_reuse_accepts_older_diagnostic_report_schema_when_integrity_holds(
+    session, full_candidate, chroma_client, retrieval_config, fake_embedding
 ):
-    """R17: reuse fails closed when the persisted evidence report is a valid but
-    *obsolete* (pre-R16) schema whose stored hash still matches — the case the
-    report-hash check cannot catch. Simulate a pre-R16 ``report_version`` on the
-    published release (recomputing the stored hash so the gate's hash check passes,
-    isolating the schema backstop) and assert the reuse attempt surfaces the schema
-    failure and does not reuse."""
+    """Diagnostic report shape is not release compatibility or source authority."""
+    candidate = full_candidate
     from afterworlds.ingestion.corpus.report import EvidenceReport, report_hash
 
     first = _finalize(
@@ -942,14 +912,14 @@ def test_reuse_rejects_obsolete_evidence_report_schema(
     row.evidence_report_hash = report_hash(
         EvidenceReport(payload=payload, persisted=True)
     )
+    row.corpus_report_reference = row.evidence_report_hash
     session.commit()
 
     result = _finalize(
         session, candidate, chroma_client, retrieval_config, fake_embedding
     )
-    assert not result.published and not result.reused
-    assert result.gate is not None
-    assert any("schema version" in f for f in result.gate.failures)
+    assert result.published and result.reused
+    assert result.gate is not None and result.gate.passed
 
 
 def test_repeated_finalize_is_idempotent_and_does_not_mutate(
@@ -973,6 +943,29 @@ def test_repeated_finalize_is_idempotent_and_does_not_mutate(
     )
     assert second.published and second.reused and second.artifacts is not None
     assert second.artifacts.release.identity == first.artifacts.release.identity
+
+
+def test_verified_reuse_backfills_the_operational_contract(
+    session, full_candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """Migration-era releases acquire the new seam only after full verified reuse."""
+    first = _finalize(
+        session, full_candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert first.published and not first.reused
+
+    row = session.get(CorpusReleaseORM, full_candidate.package_uuid)
+    assert row is not None
+    row.corpus_contract_version = None
+    row.operational_corpus_digest = None
+    session.commit()
+
+    second = _finalize(
+        session, full_candidate, chroma_client, retrieval_config, fake_embedding
+    )
+    assert second.published and second.reused
+    assert row.corpus_contract_version == "5c-operational-1"
+    assert row.operational_corpus_digest
 
     rows = (
         session.execute(

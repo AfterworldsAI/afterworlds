@@ -1,7 +1,6 @@
 """Deterministic hashing and content-derived identity — CRD Issue 5c.
 
-Completion Contract A requires byte-for-byte reproducibility (Component K) and
-proof identities that are stable across clean checkouts (Component A). Every
+Issue 5c requires substantive reproducibility and stable release identities. Every
 identifier and every hash in the corpus pipeline is derived from content, never
 from wall-clock time or ``uuid4()``. This module is the single source of truth
 for how bytes become hashes and how content becomes UUIDs.
