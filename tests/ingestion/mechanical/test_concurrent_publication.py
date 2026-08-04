@@ -114,8 +114,9 @@ def _race(
     keeps the race genuine without inventing a lock ordering the production path
     does not have.
 
-    Each worker trips the barrier at most once, so the bounded reattempt after a
-    rollback runs freely instead of waiting on a spent barrier.
+    Each worker trips the barrier at most once, so the bounded settlement wait
+    and one post-settlement re-entry run freely instead of waiting on a spent
+    barrier.
     """
     barrier = threading.Barrier(len(jobs), timeout=10)
     original = publication._active_row
@@ -238,6 +239,25 @@ def test_concurrent_competing_publication_leaves_the_loser_a_draft(
     assert losing_header.published_at is None
 
 
+def test_settlement_waits_until_a_winning_activation_is_visible(
+    factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An immediate empty read is not evidence that the winner disappeared."""
+    probes: list[int] = []
+
+    def delayed_visibility(session: Session, package_uuid: str) -> Any:
+        probes.append(1)
+        return None if len(probes) < 3 else object()
+
+    monkeypatch.setattr(publication, "_active_row", delayed_visibility)
+    monkeypatch.setattr(publication, "_ACTIVATION_SETTLEMENT_POLL_SECONDS", 0.0)
+    with factory() as session:
+        assert publication._wait_for_activation_settlement(session, "package")
+
+    assert len(probes) == 3
+
+
 def test_an_unrelated_integrity_error_still_propagates(
     factory: sessionmaker[Session],
     committed: AcceptedOracle,
@@ -272,11 +292,11 @@ def test_a_recurring_race_is_not_retried_forever(
     committed: AcceptedOracle,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The reattempt is bounded by construction, not by hoping it converges.
+    """A missing winning activation cannot leave publication waiting forever.
 
-    Activation is made to fail with a genuine activation-table conflict every
-    time. The first failure is reattempted; the second propagates, so a
-    permanently contended package surfaces as an error rather than spinning.
+    Activation is made to fail with a genuine activation-table conflict while
+    no winner ever commits. The bounded settlement window expires and the
+    original error propagates rather than spinning or manufacturing an outcome.
     """
     uuid = _persist(factory, build_candidate())
     calls: list[int] = []
@@ -291,9 +311,10 @@ def test_a_recurring_race_is_not_retried_forever(
         raise conflict
 
     monkeypatch.setattr(publication, "_activate_projection", always_conflict)
+    monkeypatch.setattr(publication, "_ACTIVATION_SETTLEMENT_TIMEOUT_SECONDS", 0.0)
     with factory() as session, pytest.raises(IntegrityError):
         _publish_projection(session, uuid, committed, now=NOW)
 
-    assert len(calls) == 2, "expected exactly one bounded reattempt"
+    assert len(calls) == 1, "no retry is allowed before a winning row is visible"
     assert _active(factory) == []
     assert _header(factory, uuid).publication_status == "draft"
