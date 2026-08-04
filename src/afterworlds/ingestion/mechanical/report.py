@@ -16,8 +16,8 @@ carries every identity an auditor needs to reproduce the decision:
 It does **not** contain its own hash (nothing can), and it contains no wall
 clock, host, or reviewer identity. That is what makes it reproducible: the same
 committed inputs and the same persisted state produce a byte-identical report,
-and therefore the same report hash, on any host — the CRD Issue 5c determinism
-rule applied to this artifact.
+and therefore the same report hash, on any host — the deterministic publication
+evidence required by ADR-005d.
 
 The projection's publication *status* is likewise absent. The report describes
 whether the state is publishable, not what has since been done about it, so a

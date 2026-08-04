@@ -19,8 +19,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.corpus.operational import (
+    build_operational_corpus_snapshot,
+    operational_corpus_digest,
+)
 from afterworlds.ingestion.mechanical import publication
 from afterworlds.ingestion.mechanical.gate import (
+    SUPPORTED_CORPUS_CONTRACT_VERSIONS,
     GateFailureCategory,
     run_publication_gate,
 )
@@ -664,6 +669,34 @@ def test_an_unpublishable_5c_release_fails_even_when_everything_agrees(
     tamper(session)
     session.flush()
     result = _publish_projection(session, uuid, committed_oracle, now=NOW)
+    assert result.outcome is PublicationOutcome.STALE
+    assert result.gate is not None
+    assert result.gate.categories() == {GateFailureCategory.BOUND_RELEASE}
+    assert active_rows(session) == []
+
+
+def test_a_future_5c_contract_fails_closed_even_with_a_valid_digest(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """5d compatibility stays pinned when the 5c producer contract advances."""
+    assert frozenset({"5c-operational-1"}) == SUPPORTED_CORPUS_CONTRACT_VERSIONS
+
+    future_contract_version = "5c-operational-2"
+    release = release_row(session)
+    assert release.persisted_corpus_digest is not None
+    release.corpus_contract_version = future_contract_version
+    snapshot = build_operational_corpus_snapshot(
+        session,
+        PACKAGE_UUID,
+        corpus_contract_version=future_contract_version,
+        persisted_corpus_digest=release.persisted_corpus_digest,
+    )
+    release.operational_corpus_digest = operational_corpus_digest(snapshot)
+    session.flush()
+
+    uuid = persist(session)
+    result = _publish_projection(session, uuid, committed_oracle, now=NOW)
+
     assert result.outcome is PublicationOutcome.STALE
     assert result.gate is not None
     assert result.gate.categories() == {GateFailureCategory.BOUND_RELEASE}

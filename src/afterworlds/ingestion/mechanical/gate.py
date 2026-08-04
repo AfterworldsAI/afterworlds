@@ -10,7 +10,7 @@ Neither is derived from the projection under test. That is the whole point: a
 gate whose expectations come from the output it checks reports only that the
 build is self-consistent.
 
-The bound release is verified through Issue 5c's versioned operational trust
+The bound release is verified through CRD Issue 5c's versioned operational trust
 seam before anything is read from it. A projection and an oracle can state the
 same six-value binding and still describe a release that was never published
 or whose authoritative rows were corrupted; agreement between two claims is
@@ -48,7 +48,6 @@ from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.corpus.operational import (
-    CORPUS_CONTRACT_VERSION,
     OperationalCorpusVerificationError,
     load_verified_operational_corpus,
 )
@@ -88,12 +87,19 @@ __all__ = [
     "GateResult",
     "ObligationOutcome",
     "PUBLISHABLE_STATUSES",
+    "SUPPORTED_CORPUS_CONTRACT_VERSIONS",
     "run_publication_gate",
 ]
 
 #: The only two statuses a projection may be gated in. Anything else is state
 #: no publication path produces, so it is rejected rather than interpreted.
 PUBLISHABLE_STATUSES = ("draft", "published")
+
+#: Corpus-contract versions whose shape and semantics this 5d transformation
+#: has explicitly reviewed. This is downstream-owned compatibility policy:
+#: importing 5c's current producer version here would make a future 5c bump
+#: silently compatible instead of failing closed pending 5d review.
+SUPPORTED_CORPUS_CONTRACT_VERSIONS = frozenset({"5c-operational-1"})
 
 
 class GateFailureCategory(StrEnum):
@@ -493,7 +499,7 @@ def run_publication_gate(
             transform_config_hash=binding.transform_config_hash,
             bundle_root_hash=binding.bundle_root_hash,
             persisted_corpus_digest=binding.persisted_corpus_digest,
-            supported_contract_versions=frozenset({CORPUS_CONTRACT_VERSION}),
+            supported_contract_versions=SUPPORTED_CORPUS_CONTRACT_VERSIONS,
         )
     except OperationalCorpusVerificationError as exc:
         return _failed(
