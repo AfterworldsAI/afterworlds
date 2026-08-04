@@ -4,10 +4,71 @@ One small honest candidate: a spell record with a structured descriptor
 component and a prose-bound open-ended clause, plus a scoped creature record —
 the shape the Wish and spell-scoped-creature canaries exercise, small enough
 that each negative control can perturb exactly one thing.
+
+The same content appears twice on purpose, and the duplication is the point:
+
+* :func:`build_candidate` is what a **build** produces from the accepted
+  inputs; and
+* ``data/bounded_oracle.json`` is the committed **accepted authority** stating
+  the same content independently, loaded through the production
+  :func:`load_oracle` path.
+
+Negative controls perturb the candidate or the persisted rows and never the
+oracle, so every one of them is a comparison against authority that did not
+move. :func:`accepted_oracle` builds the equivalent in memory purely so the
+committed file can be checked for drift in one place with a clear message.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from afterworlds.ingestion.corpus.bundle import build_bundle, reconciliation_hash
+from afterworlds.ingestion.corpus.concordance import ConcordanceResult
+from afterworlds.ingestion.corpus.ledger import ledger_hash
+from afterworlds.ingestion.corpus.models import (
+    CorpusBundleMembers,
+    CorpusChunk,
+    Disposition,
+    Leaf,
+    LeafDisposition,
+    LeafType,
+    ProjectionEdge,
+    ReconciliationFindings,
+    ReconciliationMember,
+    SourceLedger,
+)
+from afterworlds.ingestion.corpus.operational import (
+    CORPUS_CONTRACT_VERSION,
+    build_operational_corpus_snapshot,
+    operational_corpus_digest,
+)
+from afterworlds.ingestion.corpus.persistence import (
+    _persist_bundle_rows,
+    _persist_package_and_source,
+    _persist_release_record,
+)
+from afterworlds.ingestion.corpus.policy import (
+    FROZEN_POLICY,
+    policy_hash,
+    policy_payload,
+)
+from afterworlds.ingestion.corpus.report import (
+    EVIDENCE_REPORT_SCHEMA_VERSION as CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
+)
+from afterworlds.ingestion.corpus.report import (
+    EvidenceReport as CorpusEvidenceReport,
+)
+from afterworlds.ingestion.corpus.report import (
+    build_report,
+)
+from afterworlds.ingestion.corpus.report import (
+    report_hash as corpus_report_hash,
+)
 from afterworlds.ingestion.mechanical.accounting import batch_diff_hash, derive_span_id
 from afterworlds.ingestion.mechanical.bound_corpus import (
     BoundCorpusSnapshot,
@@ -22,6 +83,11 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+)
+from afterworlds.ingestion.mechanical.oracle import (
+    AcceptedOracle,
+    RecordObligation,
+    load_oracle,
 )
 from afterworlds.ingestion.mechanical.policy import (
     SEMANTIC_POLICY_VERSION,
@@ -50,6 +116,14 @@ from afterworlds.ingestion.mechanical.representation import (
     reference_target_key,
     relationship_target_key,
 )
+from afterworlds.persistence.database import create_engine, create_session_factory
+from afterworlds.persistence.orm.base import Base
+from afterworlds.persistence.orm.corpus import CorpusReleaseORM
+from afterworlds.persistence.orm.rules_package import RulesPackageORM
+
+NOW = "2026-07-31T00:00:00Z"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -61,6 +135,7 @@ PACKAGE_UUID = "pkg-5c"
 RELEASE_VERSION = "rel-5c"
 WISH_CHUNK = "chunk-wish-0001"
 SECOND_CHUNK = "chunk-wish-0002"
+SPELL_CHUNK = "chunk-wish-spell"
 
 
 def coverage(
@@ -89,6 +164,152 @@ DEFAULT_COVERAGE = (
     coverage(WISH_CHUNK, PROSE_LEAF, 0, 30),
     coverage(SECOND_CHUNK, PROSE_LEAF, 0, 30),
 )
+
+# The persisted 5c fixture is a closed operational corpus: every represented
+# leaf is projected into exactly one content-matching authoritative chunk.
+# ``DEFAULT_COVERAGE`` above remains the deliberately overlapping pure fixture
+# used by chunk-locality unit tests.
+PERSISTED_COVERAGE = (
+    coverage(WISH_CHUNK, PROSE_LEAF, 0, 30),
+    coverage(SECOND_CHUNK, SUPPORT_LEAF, 0, 20),
+    coverage(SPELL_CHUNK, SPELL_LEAF, 0, 40),
+)
+
+
+# ---------------------------------------------------------------------------
+# The bound 5c release, as genuine CRD Issue 5c state
+# ---------------------------------------------------------------------------
+#
+# Stated as real 5c model objects and persisted through 5c's own primitives,
+# because CRD Issue 5d's publication gate now re-derives this release's recorded
+# ledger, reconciliation, and bundle-root proof from the persisted rows. A
+# hand-written release row carrying invented hashes is precisely what that gate
+# exists to refuse, so a fixture built that way would no longer be a *published
+# release* — it would be the forgery the negative controls are about.
+
+SOURCE_DOCUMENT = "D&D SRD 5.2.1"
+AUTHORITATIVE_SOURCE_HASH = "a" * 64
+TRANSFORM_CONFIG_HASH = "b" * 64
+#: Opaque here on purpose: the persisted-corpus digest binds the actual
+#: read-back vector state as well as SQL, so it is an exact recorded value the
+#: 5d gate checks rather than one it can recompute from a session.
+PERSISTED_CORPUS_DIGEST = "d" * 64
+
+BOUND_LEDGER = SourceLedger(
+    source_document=SOURCE_DOCUMENT,
+    source_version="5.2.1",
+    source_sha256=AUTHORITATIVE_SOURCE_HASH,
+    extraction_config={"extractor": "bounded-fixture"},
+    containers=(),
+    leaves=tuple(
+        Leaf(
+            leaf_id=leaf_id,
+            printed_page=1,
+            page_index=0,
+            leaf_type=LeafType.PARAGRAPH,
+            content="x" * length,
+            char_start=0,
+            char_end=length,
+            occurrence_index=index,
+            container_path=(),
+        )
+        for index, (leaf_id, length) in enumerate(sorted(LEAF_LENGTHS.items()))
+    ),
+)
+
+BOUND_MEMBERS = CorpusBundleMembers(
+    chunks=tuple(
+        CorpusChunk(
+            chunk_id=chunk_id,
+            subsystem="spells",
+            content="x" * LEAF_LENGTHS[leaf_id],
+            printed_page=1,
+            section_label=None,
+            container_path=(),
+            source_leaf_ids=(leaf_id,),
+            source_document=SOURCE_DOCUMENT,
+            source_locator_type="page",
+            source_locator_value="p. 1",
+            source_id=PACKAGE_UUID,
+        )
+        for chunk_id, leaf_id in (
+            (WISH_CHUNK, PROSE_LEAF),
+            (SPELL_CHUNK, SPELL_LEAF),
+            (SECOND_CHUNK, SUPPORT_LEAF),
+        )
+    ),
+    derivative_notes=(),
+)
+
+BOUND_RECONCILIATION = ReconciliationMember(
+    policy_version=FROZEN_POLICY.policy_version,
+    policy_hash=policy_hash(FROZEN_POLICY),
+    dispositions=tuple(
+        LeafDisposition(leaf.leaf_id, Disposition.REPRESENTED, None)
+        for leaf in BOUND_LEDGER.leaves
+    ),
+    projections=tuple(
+        ProjectionEdge(
+            projection_id=edge.projection_id,
+            leaf_id=edge.leaf_id,
+            chunk_id=edge.chunk_id,
+            role=edge.role,
+            cover_start=edge.cover_start,
+            cover_end=edge.cover_end,
+        )
+        for edge in PERSISTED_COVERAGE
+    ),
+    findings=ReconciliationFindings((), (), (), (), ()),
+    inventoried_leaves=len(BOUND_LEDGER.leaves),
+    represented_leaves=len(BOUND_LEDGER.leaves),
+    excluded_leaves=0,
+    unresolved_leaves=0,
+)
+
+BOUND_BUNDLE = build_bundle(BOUND_LEDGER, BOUND_MEMBERS, BOUND_RECONCILIATION)
+
+BOUND_TRANSFORM_CONFIG: dict[str, object] = {
+    "reconciliation_policy": policy_payload(FROZEN_POLICY),
+    "evidence_report_schema_version": CORPUS_EVIDENCE_REPORT_SCHEMA_VERSION,
+}
+
+
+def _build_bound_report(
+    *,
+    ledger: SourceLedger,
+    members: CorpusBundleMembers,
+    recon: ReconciliationMember,
+    bundle_root_hash: str,
+) -> CorpusEvidenceReport:
+    """The 5c evidence report for the bound release, via 5c's own builder."""
+    return build_report(
+        ledger=ledger,
+        members=members,
+        recon=recon,
+        policy=FROZEN_POLICY,
+        authoritative_source_hash=AUTHORITATIVE_SOURCE_HASH,
+        transform_config_hash=TRANSFORM_CONFIG_HASH,
+        transform_config=BOUND_TRANSFORM_CONFIG,
+        bundle_root_hash=bundle_root_hash,
+        ledger_hash_value=ledger_hash(ledger),
+        persisted_corpus_digest=PERSISTED_CORPUS_DIGEST,
+        concordance=ConcordanceResult(
+            chunks_checked=len(members.chunks),
+            locator_failures=(),
+            content_failures=(),
+        ),
+        canaries=(),
+        persisted=True,
+    )
+
+
+BOUND_REPORT = _build_bound_report(
+    ledger=BOUND_LEDGER,
+    members=BOUND_MEMBERS,
+    recon=BOUND_RECONCILIATION,
+    bundle_root_hash=BOUND_BUNDLE.bundle_root_hash,
+)
+BOUND_EVIDENCE_REPORT_HASH = corpus_report_hash(BOUND_REPORT)
 
 
 def bound_corpus(
@@ -346,17 +567,195 @@ def build_representation(**overrides: object) -> RepresentationDraft:
     return RepresentationDraft(**fields)  # type: ignore[arg-type]
 
 
+#: The six values a projection binds. ``bundle_root_hash`` is the real bundle
+#: root of the seeded 5c release, not a placeholder: the gate re-derives it from
+#: the persisted rows, so a made-up value would make every bounded projection
+#: fail as bound to a release that does not derive its own proof.
+RELEASE_BINDING = ReleaseBinding(
+    package_uuid=PACKAGE_UUID,
+    release_version=RELEASE_VERSION,
+    authoritative_source_hash=AUTHORITATIVE_SOURCE_HASH,
+    transform_config_hash=TRANSFORM_CONFIG_HASH,
+    bundle_root_hash=BOUND_BUNDLE.bundle_root_hash,
+    persisted_corpus_digest=PERSISTED_CORPUS_DIGEST,
+)
+
+
 def build_candidate(**overrides: object) -> ProjectionCandidate:
     ledger = overrides.pop("ledger", None)
     return ProjectionCandidate(
-        binding=ReleaseBinding(
-            package_uuid="pkg-5c",
-            release_version="rel-5c",
-            authoritative_source_hash="a" * 64,
-            transform_config_hash="b" * 64,
-            bundle_root_hash="c" * 64,
-            persisted_corpus_digest="d" * 64,
-        ),
+        binding=RELEASE_BINDING,
         classification=ledger if ledger is not None else build_ledger(),  # type: ignore[arg-type]
         representation=build_representation(**overrides),
     )
+
+
+# ---------------------------------------------------------------------------
+# The accepted authority, and the 5c release it was accepted over
+# ---------------------------------------------------------------------------
+
+
+#: The accepted per-record obligations. ``spell:wish`` must carry structured
+#: spell-descriptor authority *and* keep its open-ended clause prose-bound —
+#: which is what makes all-prose under-extraction and reference-only coverage
+#: fail by name rather than only as an element difference.
+OBLIGATIONS = (
+    RecordObligation(
+        record_key=SPELL_KEY,
+        kind=RecordKind.SPELL,
+        structured_fact_families=frozenset({DESCRIPTOR_FACT.FAMILY}),
+        prose_bound_components=frozenset({OPEN_ENDED_KEY}),
+    ),
+    RecordObligation(
+        record_key=CREATURE_KEY,
+        kind=RecordKind.CREATURE,
+        structured_fact_families=frozenset(),
+        prose_bound_components=frozenset(),
+    ),
+)
+
+
+def accepted_oracle() -> AcceptedOracle:
+    """The accepted authority for the bounded fixture, in memory.
+
+    Exists to check the committed JSON for drift in one place. Tests that gate
+    or publish use :func:`committed_oracle`, which goes through the real
+    committed-file path.
+    """
+    return AcceptedOracle(
+        binding=RELEASE_BINDING,
+        policy_version=SEMANTIC_POLICY_VERSION,
+        policy_hash=semantic_policy_hash(),
+        spans=build_ledger().spans,
+        representation=build_representation(),
+        obligations=OBLIGATIONS,
+    )
+
+
+@pytest.fixture()
+def committed_oracle() -> AcceptedOracle:
+    """The bounded accepted oracle, loaded from its committed JSON file."""
+    return load_oracle(BOUNDED_ORACLE_PATH)
+
+
+def mark_release_published(session: Session) -> None:
+    """Transition the seeded release to published, as ``finalize_release`` does.
+
+    5c's persistence primitives write both rows as drafts, because in 5c the
+    transition to ``published`` is the *last* step of a gate that has already
+    passed. Nothing published a release here, so the fixture states plainly
+    that it is standing in for that step.
+    """
+    for row, extra in (
+        (
+            session.execute(
+                select(CorpusReleaseORM).where(
+                    CorpusReleaseORM.package_uuid == PACKAGE_UUID
+                )
+            ).scalar_one(),
+            {},
+        ),
+        (
+            session.execute(
+                select(RulesPackageORM).where(
+                    RulesPackageORM.rules_package_id == PACKAGE_UUID
+                )
+            ).scalar_one(),
+            {"published_at": NOW},
+        ),
+    ):
+        row.publication_status = "published"
+        for field, value in extra.items():
+            setattr(row, field, value)
+    session.flush()
+
+
+def current_release_binding(session: Session) -> ReleaseBinding:
+    """The six values the persisted 5c release currently records.
+
+    A control that changes the release and then wants to test something *other*
+    than the binding must rebuild its projection against this, because every
+    proof identity a release records moves when its content does — which is the
+    property that makes a forged release detectable in the first place.
+    """
+    release = session.execute(
+        select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == PACKAGE_UUID)
+    ).scalar_one()
+    assert release.persisted_corpus_digest is not None
+    return ReleaseBinding(
+        package_uuid=release.package_uuid,
+        release_version=release.release_version,
+        authoritative_source_hash=release.authoritative_source_hash,
+        transform_config_hash=release.transform_config_hash,
+        bundle_root_hash=release.bundle_root_hash,
+        persisted_corpus_digest=release.persisted_corpus_digest,
+    )
+
+
+def _seed_bound_release(session: Session) -> None:
+    """Persist the published 5c release the bounded fixture is bound to.
+
+    Written through CRD Issue 5c's own persistence primitives from the genuine
+    5c model objects above: the package, its single authoritative source, the
+    release record the projection FKs, the ``REPRESENTED`` leaves that form the
+    accounting population, and the chunk/projection edges that make exact
+    governing prose resolvable. The publication gate consumes the same rows
+    through 5c's versioned operational snapshot, so the fixture must be a
+    closed operational corpus rather than merely a release-shaped row set.
+    """
+    _persist_package_and_source(session, PACKAGE_UUID, RELEASE_VERSION, now=NOW)
+    _persist_release_record(
+        session,
+        PACKAGE_UUID,
+        release_version=RELEASE_VERSION,
+        authoritative_source_hash=RELEASE_BINDING.authoritative_source_hash,
+        transform_config_hash=RELEASE_BINDING.transform_config_hash,
+        bundle_root_hash=RELEASE_BINDING.bundle_root_hash,
+        evidence_report_hash=BOUND_EVIDENCE_REPORT_HASH,
+        persisted_corpus_digest=RELEASE_BINDING.persisted_corpus_digest,
+        corpus_contract_version=CORPUS_CONTRACT_VERSION,
+        operational_corpus_digest_value=None,
+        ledger_hash=ledger_hash(BOUND_LEDGER),
+        policy_hash=policy_hash(FROZEN_POLICY),
+        reconciliation_hash=reconciliation_hash(BOUND_RECONCILIATION),
+        corpus_report_reference=BOUND_EVIDENCE_REPORT_HASH,
+        transform_config=BOUND_TRANSFORM_CONFIG,
+        report_payload=BOUND_REPORT.payload,
+        now=NOW,
+    )
+    _persist_bundle_rows(
+        session,
+        PACKAGE_UUID,
+        PACKAGE_UUID,
+        ledger=BOUND_LEDGER,
+        recon=BOUND_RECONCILIATION,
+        policy=FROZEN_POLICY,
+        members=BOUND_MEMBERS,
+        now=NOW,
+    )
+    release = session.get(CorpusReleaseORM, PACKAGE_UUID)
+    assert release is not None
+    snapshot = build_operational_corpus_snapshot(
+        session,
+        PACKAGE_UUID,
+        corpus_contract_version=CORPUS_CONTRACT_VERSION,
+        persisted_corpus_digest=RELEASE_BINDING.persisted_corpus_digest,
+    )
+    release.operational_corpus_digest = operational_corpus_digest(snapshot)
+    mark_release_published(session)
+
+
+@pytest.fixture()
+def session(tmp_path) -> Session:  # type: ignore[no-untyped-def]
+    """A fresh database holding the published 5c release, and nothing else.
+
+    Per-test rather than session-scoped: publication commits, so a shared
+    database would let one test's published projection decide another's
+    activation outcome.
+    """
+    engine = create_engine(f"sqlite:///{tmp_path / 'mech.db'}")
+    Base.metadata.create_all(engine)
+    factory = create_session_factory(engine)
+    with factory() as s:
+        _seed_bound_release(s)
+        yield s

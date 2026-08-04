@@ -67,6 +67,49 @@ class MechanicalProjectionORM(Base):
     )
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
+    # Publication evidence (#137 contract 5). All NULL through the draft phase:
+    # the gate runs against reconstructed state, so none of these can exist
+    # before that state does. They are written by one atomic publication and
+    # never by a draft write.
+    oracle_identity: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    evidence_report_hash: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    report_payload: Mapped[dict[str, Any] | None] = mapped_column(
+        sa.JSON, nullable=True
+    )
+    published_at: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+
+
+class MechanicalActiveProjectionORM(Base):
+    """The one active mechanical projection of a Rules Package.
+
+    ``package_uuid`` is the primary key, so active authority cannot split: the
+    database itself refuses a second active row for a package rather than
+    relying on application code to notice. Competing activation is therefore a
+    typed rejection, not a race whose winner depends on ordering.
+
+    Activation is a separate row rather than a flag on the projection header
+    because "which projection is active" is a property of the *package*. A
+    boolean per projection would let two rows both claim it, which is exactly
+    the split this table forecloses.
+    """
+
+    __tablename__ = "rp_mech_active_projections"
+
+    package_uuid: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_corpus_releases.package_uuid", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    projection_uuid: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_mech_projections.projection_uuid", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    activated_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
 
 class _ProjectionScoped(Base):
     """Mixin base: every projection-scoped table cascades from its projection."""
