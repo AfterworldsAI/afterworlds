@@ -1,14 +1,14 @@
-# Issue 5c Operational Reliability Amendment
+# CRD Issue 5c Operational Reliability Amendment
 
 **Date:** 2026-08-03
 **Status:** Accepted — owner approval dated 2026-08-03. This document is the governing amendment; it
 supersedes the earlier assistant-authored draft, which was rejected and is not part of the record.
 Repository authority (ADR-005c, ADR-005d, `docs/architecture/srd-corpus-reproducibility.md`) is
 reconciled by the pull request that introduces this document. The live GitHub issue bodies for
-Issue #132 and Issue #137 are synchronized as post-merge authority synchronization; the exact
+#132 and #137 are synchronized as post-merge authority synchronization; the exact
 proposed text is carried in that pull request.
 **Scope:** The governing contract for CRD Issue 5c and the boundary by which CRD Issue 5d consumes an
-approved Issue 5c corpus release.
+approved CRD Issue 5c corpus release.
 
 ---
 
@@ -26,17 +26,17 @@ Operational reliability means that Afterworlds can:
 6. refuse publication visibly and atomically when completeness or consistency checks fail; and
 7. rebuild, diagnose, or correct the approved corpus without depending on Chroma or an opaque legacy artifact.
 
-The required standard is reliable source material for Issue 5d—not proof that a malicious actor could not coherently rewrite the database and every dependent value.
+The required standard is reliable source material for CRD Issue 5d—not proof that a malicious actor could not coherently rewrite the database and every dependent value.
 
-This amendment is prospective. It supersedes conflicting requirements in Issue #132, Issue #137, ADR-005c, and ADR-005d once incorporated into those authorities. It does not alter the historical record of what Issue 5c originally required or what its implementation previously proved.
+This amendment is prospective. It supersedes conflicting requirements in #132, #137, ADR-005c, and ADR-005d once incorporated into those authorities. It does not alter the historical record of what CRD Issue 5c originally required or what its implementation previously proved.
 
 ---
 
-## 2. Issue 5c guarantees
+## 2. CRD Issue 5c guarantees
 
 ### 2.1 Binding operational outcomes
 
-Issue 5c must continue to guarantee all of the following outcomes:
+CRD Issue 5c must continue to guarantee all of the following outcomes:
 
 - **Exact source identification.** The corpus identifies the authoritative SRD document, source version, license, and a checksum sufficient to detect use of a different document.
 - **Complete and faithful representation.** The complete in-scope source is represented or deliberately excluded under an explicit, reviewable policy. Silent omission is not acceptable.
@@ -48,11 +48,11 @@ Issue 5c must continue to guarantee all of the following outcomes:
 - **Fail-closed publication.** A failed completeness, consistency, persistence, or required projection check leaves no usable partial release.
 - **Rebuildability and diagnosis.** The committed source, declared process/configuration, approved logical corpus, and diagnostic evidence are sufficient to reproduce the meaningful corpus result and investigate defects.
 - **Legacy quarantine.** The incomplete prior corpus and its obsolete mechanics cannot remain reachable through active ingestion, selection, fallback, or runtime paths.
-- **Typed-mechanics boundary.** Issue 5c does not certify that source prose has been correctly interpreted as typed mechanics. That is Issue 5d's responsibility.
+- **Typed-mechanics boundary.** CRD Issue 5c does not certify that source prose has been correctly interpreted as typed mechanics. That is CRD Issue 5d's responsibility.
 
-### 2.2 What Issue 5c does not promise
+### 2.2 What CRD Issue 5c does not promise
 
-Issue 5c does not promise:
+CRD Issue 5c does not promise:
 
 1. resistance to a malicious actor coherently rewriting the database and every related checksum or reference;
 2. cryptographic nonrepudiation, chain-of-custody proof, or courtroom-grade historical evidence;
@@ -66,9 +66,9 @@ Hashes and immutable records remain useful where they cheaply prevent wrong-sour
 
 ---
 
-## 3. Prospective supersession of the original Issue 5c contract
+## 3. Prospective supersession of the original CRD Issue 5c contract
 
-The original Completion Contract A in Issue #132 prescribed both operational outcomes and a specific forensic proof architecture. This amendment preserves the operational outcomes in §2.1 but supersedes the following as governing requirements:
+The original Completion Contract A in #132 prescribed both operational outcomes and a specific forensic proof architecture. This amendment preserves the operational outcomes in §2.1 but supersedes the following as governing requirements:
 
 - exactly five top-level immutable release hashes;
 - the requirement that every identity participate in a complete acyclic derivation graph;
@@ -138,9 +138,9 @@ Therefore:
 
 ---
 
-## 5. Downstream Issue 5d trust boundary
+## 5. Downstream CRD Issue 5d trust boundary
 
-Issue 5d consumes an approved Issue 5c release. It does not become a second Issue 5c publication system.
+CRD Issue 5d consumes an approved CRD Issue 5c release. It does not become a second CRD Issue 5c publication system.
 
 Before binding or transforming a release, the 5c-owned downstream seam must establish:
 
@@ -153,9 +153,9 @@ Before binding or transforming a release, the 5c-owned downstream seam must esta
 
 "Compatible with the 5d transformation" means only that 5d recognizes and supports the published corpus contract/schema it is about to consume. The authority does not prescribe whether engineering represents that support through a version field, capability declaration, or equivalent low-cost mechanism.
 
-Issue 5d must fail closed when any of these checks fails. It may record the 5c release identity, source identity, corpus identity, and compatibility version as provenance for its own deterministic Rules Package.
+CRD Issue 5d must fail closed when any of these checks fails. It may record the 5c release identity, source identity, corpus identity, and compatibility version as provenance for its own deterministic Rules Package.
 
-Issue 5d must not, merely because it loads an approved release:
+CRD Issue 5d must not, merely because it loads an approved release:
 
 - reconstruct and re-hash the full source ledger, reconciliation member, policy chain, canonical bundle, or evidence report;
 - prove that every historical identity was mathematically derived from every recorded predecessor;
@@ -172,9 +172,9 @@ Fresh 5c publication and 5c verified reuse may perform stronger internal checks 
 The Owner Decision of 2026-08-01 remains unchanged:
 
 - The persisted-corpus digest remains immutable historical identity for the published corpus.
-- Fresh Issue 5c publication and Issue 5c verified reuse check the live Chroma projection, including the required write/read-back and SQL-versus-projection verification before declaring a release published or reusable.
-- Downstream Issue 5d verification does not reopen or recompute Chroma.
-- Chroma remains rebuildable, non-authoritative retrieval infrastructure owned by CRD Issue 18. Loss or corruption of the live collection after successful Issue 5c publication is an Issue 18 operational defect, not a change to 5c source authority.
+- Fresh CRD Issue 5c publication and CRD Issue 5c verified reuse check the live Chroma projection, including the required write/read-back and SQL-versus-projection verification before declaring a release published or reusable.
+- Downstream CRD Issue 5d verification does not reopen or recompute Chroma.
+- Chroma remains rebuildable, non-authoritative retrieval infrastructure owned by CRD Issue 18. Loss or corruption of the live collection after successful CRD Issue 5c publication is a CRD Issue 18 operational defect, not a change to 5c source authority.
 
 This amendment does not turn Chroma into mechanical authority and does not make its implementation-dependent embedding bytes part of the canonical source corpus.
 
@@ -184,12 +184,12 @@ This amendment does not turn Chroma into mechanical authority and does not make 
 
 | Authority | Retain | Amend or supersede |
 |---|---|---|
-| **Issue #132 / approved Issue 5c** | Exact-source ingestion; full-corpus scope; faithful and citable source records; provenance; immutable publication; fail-closed publication; legacy quarantine; separation from typed mechanics | Add a prominent prospective supersession note. Replace Completion Contract A's proof architecture as governing authority with §§1–4 of this amendment. Do not silently rewrite the historical body. |
-| **ADR-005c** | Source corpus and typed mechanics remain separate; vector retrieval is non-authoritative; deterministic package/release binding remains required at the level of meaningful operational identity; advertised mechanics remain outside 5c | Add a dated operational-reliability amendment. Correctly distinguish ADR-005c's architectural decisions from the detailed proof machinery introduced by Issue #132. Any wording that makes exact proof topology or byte-identical artifact regeneration binding is prospectively superseded. |
-| **Issue #137 / final Issue 5d** | Complete typed-mechanics authority; deterministic Rules Package identity; binding to one approved 5c corpus release; fail-closed publication; provenance; Chroma exclusion | Replace requirements to reconstruct and re-prove all SQLite-authoritative 5c state and evidence identities with the §5 downstream trust boundary. |
-| **ADR-005d** | Issue 5d owns typed interpretation and deterministic Rules Package construction; 5c owns authoritative source-corpus publication; Chroma remains outside downstream authority | Amend Decision 8 and its 2026-08-01 block so 5d verifies the operational trust seam in §5 rather than the complete historical 5c proof graph. Preserve the Chroma decision. |
+| **#132 / approved CRD Issue 5c** | Exact-source ingestion; full-corpus scope; faithful and citable source records; provenance; immutable publication; fail-closed publication; legacy quarantine; separation from typed mechanics | Add a prominent prospective supersession note. Replace Completion Contract A's proof architecture as governing authority with §§1–4 of this amendment. Do not silently rewrite the historical body. |
+| **ADR-005c** | Source corpus and typed mechanics remain separate; vector retrieval is non-authoritative; deterministic package/release binding remains required at the level of meaningful operational identity; advertised mechanics remain outside 5c | Add a dated operational-reliability amendment. Correctly distinguish ADR-005c's architectural decisions from the detailed proof machinery introduced by #132. Any wording that makes exact proof topology or byte-identical artifact regeneration binding is prospectively superseded. |
+| **#137 / final CRD Issue 5d** | Complete typed-mechanics authority; deterministic Rules Package identity; binding to one approved 5c corpus release; fail-closed publication; provenance; Chroma exclusion | Replace requirements to reconstruct and re-prove all SQLite-authoritative 5c state and evidence identities with the §5 downstream trust boundary. |
+| **ADR-005d** | CRD Issue 5d owns typed interpretation and deterministic Rules Package construction; 5c owns authoritative source-corpus publication; Chroma remains outside downstream authority | Amend Decision 8 and its 2026-08-01 block so 5d verifies the operational trust seam in §5 rather than the complete historical 5c proof graph. Preserve the Chroma decision. |
 
-ADR-005c's existing Central Invariant must not be described as the source of Issue #132's entire Completion Contract unless its text actually contains those guarantees. The repository amendment must quote and reconcile the exact current language rather than importing Issue #132's detailed proof architecture into ADR-005c by implication.
+ADR-005c's existing Central Invariant must not be described as the source of #132's entire Completion Contract unless its text actually contains those guarantees. The repository amendment must quote and reconcile the exact current language rather than importing #132's detailed proof architecture into ADR-005c by implication.
 
 ---
 
@@ -199,17 +199,17 @@ Apply this authority change before modifying the frozen PR stack:
 
 1. Create a small, main-based authority amendment PR that:
    - adds the dated ADR-005c amendment;
-   - adds the prospective supersession note to Issue #132;
-   - reconciles Issue #137's 5c-consumption requirements; and
+   - adds the prospective supersession note to #132;
+   - reconciles #137's 5c-consumption requirements; and
    - amends ADR-005d's corresponding decision while preserving the Chroma boundary.
-2. Create a new main-based **Issue 5c operational correction** issue. It owns:
+2. Create a new main-based **CRD Issue 5c operational correction** issue. It owns:
    - the bounded contract-to-code audit;
    - classification of current machinery against §§2–5;
    - the smallest code and test changes needed to implement the amended contract; and
    - explicit preservation of honest existing release identity wherever the approved logical corpus is unchanged.
-3. Implement and independently review that Issue 5c correction.
+3. Implement and independently review that CRD Issue 5c correction.
 4. Close or supersede PR #143 if its replacement verification architecture no longer matches the amended boundary.
-5. Restack PR #141 onto the accepted 5c correction, then reassess only its Issue 5d-owned work under the reconciled Issue #137 and ADR-005d contracts.
+5. Restack PR #141 onto the accepted 5c correction, then reassess only its CRD Issue 5d-owned work under the reconciled #137 and ADR-005d contracts.
 
 The authority amendment must not itself choose tables, validators, report schemas, hash counts, or migration details. Those are engineering decisions bounded by the operational outcomes above.
 
@@ -233,10 +233,10 @@ No further Codex review round should be requested on #141 or #143 until the gove
 
 Owner approval of this amendment settles the following:
 
-- Issue 5c is judged by operational reliability, not adversarial historical proof.
+- CRD Issue 5c is judged by operational reliability, not adversarial historical proof.
 - Practical completeness, provenance, immutability, meaningful-change versioning, accidental-corruption detection, atomic publication, and rebuildability remain mandatory.
 - Exact proof-object count, proof genealogy, and byte-identical incidental artifacts are no longer governing outcomes.
-- Issue 5d trusts a narrow 5c-owned operational verification seam and does not reconstruct 5c's publication history.
+- CRD Issue 5d trusts a narrow 5c-owned operational verification seam and does not reconstruct 5c's publication history.
 - Incidental implementation-byte changes do not remint an unchanged approved logical corpus solely because they alter a whole-file hash.
 - Chroma remains non-authoritative and outside downstream 5d verification.
 - Code simplification begins only through the separately scoped 5c contract-to-code audit.

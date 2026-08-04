@@ -210,10 +210,10 @@ adversarial mutation controls.
 *Amended 2026-08-03.* The 2026-08-01 decision as drafted also required the gate to "reconstruct and
 re-prove all SQLite-authoritative corpus state that seam exposes." That requirement is prospectively
 superseded: it made every downstream load a re-execution of 5c's historical publication proof, which
-Issue 5c no longer promises. Fresh 5c publication and 5c verified reuse may still perform stronger
+CRD Issue 5c no longer promises. Fresh 5c publication and 5c verified reuse may still perform stronger
 internal checks where they cheaply support an operational outcome; those checks do not automatically
 become downstream obligations. See
-[Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) §5.
+[CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) §5.
 
 **Chroma — preserved exactly (2026-08-01).** The 5d gate **does not** open or depend on ChromaDB to
 recompute the vector-backed portion of the 5c persisted-corpus digest. Chroma remains an informational,
@@ -357,7 +357,7 @@ one thing only: the downstream trust boundary in Decision 8, which now verifies 
 operational seam instead of reconstructing 5c's complete publication-proof graph. 5d's own ownership is
 unchanged — typed interpretation, deterministic Rules Package construction, fail-closed publication, and
 provenance all stand. See
-[Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
+[CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
 
 ### ADR-0007
 

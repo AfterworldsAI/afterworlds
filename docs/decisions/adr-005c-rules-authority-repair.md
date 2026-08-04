@@ -9,19 +9,19 @@ Repository adoption proceeds through the documentation PR that introduces this A
 
 > **Amendment — operational reliability (2026-08-03).** CRD Issue 5c is judged by **operational
 > reliability**, not adversarial or forensic proof. See
-> [Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) and the
-> dated section at the end of this ADR. The amendment is **prospective**: it changes what Issue 5c and
+> [CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md) and the
+> dated section at the end of this ADR. The amendment is **prospective**: it changes what CRD Issue 5c and
 > its downstream consumers are required to guarantee from 2026-08-03 forward, and does not alter this
-> ADR's historical decision record or what Issue 5c's implementation previously proved.
+> ADR's historical decision record or what CRD Issue 5c's implementation previously proved.
 
-> **Correction — pre-release clean baseline (2026-07-27, Issue 5c Rev7 / Issue 18 Rev6).** Afterworlds is
-> pre-release, so persistence created before Issue 5c gets no upgrade-compatibility or preservation
+> **Correction — pre-release clean baseline (2026-07-27, CRD Issue 5c Rev7 / CRD Issue 18 Rev6).** Afterworlds is
+> pre-release, so persistence created before CRD Issue 5c gets no upgrade-compatibility or preservation
 > guarantee. The owner replaced the earlier *strict legacy quarantine / zero-reachability* contract with a
 > breaking clean baseline: (1) migration `0018` deletes the incomplete legacy SQL package and its
 > dependent rows; (2) the obsolete structured JSON and every production loader/default/reader for it are
 > deleted (kept only in Git history); (3) the configured development Chroma store is reset in full **once**
 > — an explicit one-time step (`scripts/reset_corpus_baseline.py`), never automatic startup — before the
-> corrected rules corpus is rebuilt from the published SQLite-authoritative package via Issue 18's reindex
+> corrected rules corpus is rebuilt from the published SQLite-authoritative package via CRD Issue 18's reindex
 > path. No legacy UUID or collection-name handoff, pending-cleanup registry, or publication-time
 > legacy-reachability check is used. Historical knowledge is preserved in Git history and this note only.
 
@@ -45,7 +45,7 @@ Repository adoption proceeds through the documentation PR that introduces this A
 source-corpus integrity — and what retrieval may never do. It does not, in its own text, prescribe a
 proof architecture, a count of release hashes, a derivation graph, or any obligation on a downstream
 consumer to re-prove publication. Those requirements were introduced by CRD Issue 5c's Completion
-Contract A (GitHub #132), not by this ADR, and are prospectively superseded by the operational
+Contract A (#132), not by this ADR, and are prospectively superseded by the operational
 reliability amendment. This invariant's own text is unchanged and remains binding.
 
 ## Context
@@ -54,31 +54,31 @@ reliability amendment. This invariant's own text is unchanged and remains bindin
 
 Investigation of frozen PR #129 (CRD Issue 15b Phase 2, `feature/issue-15b-structured-roll-lifecycle`,
 branch head `d8233a4` at the time of this ADR) found that the gap blocking Phase 2 is not local to the
-Issue 15b adapter. The PR's own freeze note states the trigger directly:
+CRD Issue 15b adapter. The PR's own freeze note states the trigger directly:
 
 > "a cross-layer review surfaced unresolved upstream capability questions in the Rules Package schema,
 > ingestion pipeline, and bounded-d20 adapter. The currently committed structured SRD artifact and
-> adapter do not yet demonstrate production reachability for the complete Issue 15b coverage inventory,
+> adapter do not yet demonstrate production reachability for the complete CRD Issue 15b coverage inventory,
 > including authoritative DCs, structured damage and healing terms, saving-throw adjudication,
 > multi-step mechanics, and reachable mechanical-decision paths."
 
-Tracing that gap upstream — through Rules Package ingestion (CRD Issue 5b / GitHub #57), the Rules
-Package models and query service (CRD Issue 5a / GitHub #54), the live orchestration path, and the
+Tracing that gap upstream — through Rules Package ingestion (CRD Issue 5b / #57), the Rules
+Package models and query service (CRD Issue 5a / #54), the live orchestration path, and the
 bounded d20 adapter as it exists on `main` (pre-Issue-15b) — confirms this is a cross-issue defect in
-the mechanical-authority chain, not another local Issue 15b patch.
+the mechanical-authority chain, not another local CRD Issue 15b patch.
 
 ### Confirmed defect family
 
 Each item below is verified against current repository state, not inherited from prior planning
 documents:
 
-1. **Issue 5b's full-corpus contract was not met.** GitHub #57's spec is explicit and repeated:
+1. **CRD Issue 5b's full-corpus contract was not met.** #57's spec is explicit and repeated:
    *"'fully ingested' means the full D&D SRD 5.2.1 corpus, not a bounded representative subset,"*
    and, on the term "curated": *"It does not authorize partial-corpus ingestion."* The committed
    artifact, `data/srd/srd_5_2_1_structured.json` (58,686 bytes, 1,102 lines), contains 54 sections and
    50 entities (17 spells, 15 conditions, 10 items, 5 actions, 3 stat blocks) — a small, hand-curated
-   subset. This is a deviation from an already-accepted contract, discovered later during Issue 15b
-   review, not a decision anyone made at Issue 5b's acceptance time.
+   subset. This is a deviation from an already-accepted contract, discovered later during CRD Issue 15b
+   review, not a decision anyone made at CRD Issue 5b's acceptance time.
 2. **Source-version fidelity has not been established; the absence of explicit older-version labels
    does not prove concordance.** The artifact's `_meta` block carries one consistent tag
    (`"source_version": "5.2.1"`) and no other version string (`5.1`, `2014`, `OGL 1.0a`) appears
@@ -159,7 +159,7 @@ documents:
 9. **The bounded d20 adapter cannot verify real DCs or generate non-1d20-family instructions from
    production data.** On `main` (`src/afterworlds/pipeline/rpg/adapter.py`, pre-Issue-15b),
    `_verify_dc` unconditionally `return`s `None`, with an inline comment stating DC verification is
-   "deferred to Issue 18." Because `_compute_outcome` always receives `dc=None`, the adapter can never
+   "deferred to CRD Issue 18." Because `_compute_outcome` always receives `dc=None`, the adapter can never
    return anything but `"undetermined"` for any roll. `compute_sheet_effects` passes through whatever
    `sheet_effects` the record already carries rather than computing damage/healing/duration effects from
    Rules Package data, and roll generation is limited to three hardcoded expressions (`1d20`,
@@ -202,7 +202,7 @@ neither that it is proven nor that it is disproven. The corpus-scale defect (ite
 of this open question and is sufficient on its own to justify Decision 1 and Decision 2 below.
 
 A second material observation, not a contradiction of any required decision: `adapter.py`'s `_verify_dc`
-comment on `main` says DC verification is "deferred to Issue 18." Issue 18 is retrieval memory
+comment on `main` says DC verification is "deferred to CRD Issue 18." CRD Issue 18 is retrieval memory
 (ADR-018), and ADR-018 Decision 10 already forbids semantic retrieval from supplying mechanical
 authority. That comment reflects a superseded plan overturned by Decisions 4 and 6 below. This ADR does
 not edit that comment — it is application code, out of scope for a documentation-only change — but flags
@@ -272,12 +272,12 @@ values. Trust-relevant mechanics come from deterministic identifiers and typed p
 Retrieved prose may support explanation but cannot substitute for missing deterministic mechanical
 authority.
 
-This preserves and restates the Issue 18 boundary already established in ADR-018 (Central Invariant and
+This preserves and restates the CRD Issue 18 boundary already established in ADR-018 (Central Invariant and
 Decision 10, quoted in Context item 11) rather than introducing a new one. It also forecloses the stale
-`_verify_dc` "deferred to Issue 18" plan noted in the Verification Note: DC authority must come from
-typed, persisted, source-linked Rules Package mechanical authority defined by Issue 5d — whether that
+`_verify_dc` "deferred to CRD Issue 18" plan noted in the Verification Note: DC authority must come from
+typed, persisted, source-linked Rules Package mechanical authority defined by CRD Issue 5d — whether that
 takes the shape of a field on an existing entity, a linked mechanical-projection record, or another typed
-persisted structure is an Issue 5d implementation choice this ADR does not make — never from retrieval.
+persisted structure is a CRD Issue 5d implementation choice this ADR does not make — never from retrieval.
 
 ### Decision 5 — Canonical Rules Package binding uses deterministic package identity, not an unverified slug
 
@@ -329,9 +329,9 @@ code path standing in for both.
 
 ### Decision 7 — PR #129 remains frozen pending Rules Authority remediation
 
-PR #129 is provisionally classified as: *"Issue 15b Phase 2 lifecycle foundation — compatibility pending
+PR #129 is provisionally classified as: *"CRD Issue 15b Phase 2 lifecycle foundation — compatibility pending
 Rules Authority remediation."* Do not merge it. Do not resume general fix-and-review cycling on its
-adapter. Do not begin Issue 15b Phase 3 product or HTTP wiring.
+adapter. Do not begin CRD Issue 15b Phase 3 product or HTTP wiring.
 
 The following portions may remain candidate foundation: structured roll-instruction contracts,
 action-resolution sequences, pending-roll and pending-decision lifecycle, resume handling, event-ledger
@@ -384,13 +384,13 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
 ### Costs and tradeoffs
 
 - Additional schema and migration work will be required (Rules Package DC/dice-term mechanical authority,
-  deterministic binding) — exact shape is an Issue 5d decision, not fixed here.
+  deterministic binding) — exact shape is a CRD Issue 5d decision, not fixed here.
 - Full-corpus ingestion and executable projection need separate tests and manifests.
 - Every supported adapter/package combination requires explicit certification.
 - Some SRD mechanics will remain present in the corpus but unsupported by deterministic adjudication.
 - The existing curated package artifact was replaced by the authoritative PDF-derived corpus and then,
   under the R18 pre-release clean baseline (see the correction note below), deleted outright rather than
-  rebuilt (Issue 5c Rev7).
+  rebuilt (CRD Issue 5c Rev7).
 - Existing tests and acceptance claims for Issues 5b, 15, and 15b will require reevaluation — not because
   those issues were decided incorrectly at the time, but because a later-discovered gap changes what
   "acceptance" now requires downstream.
@@ -401,7 +401,7 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
 
 ## Alternatives Considered
 
-1. **Continue patching the Issue 15b adapter against the current package.** Rejected — the adapter's
+1. **Continue patching the CRD Issue 15b adapter against the current package.** Rejected — the adapter's
    `_verify_dc` returns `None` unconditionally on `main` because no DC authority exists anywhere
    upstream; no adapter-local patch can manufacture data the Rules Package does not carry.
 2. **Treat model interpretation of source prose as deterministic authority.** Rejected — this directly
@@ -412,8 +412,8 @@ character-sheet UI; that remains explicitly out of scope (see Scope Boundaries b
    forecloses, and offers no provenance guarantee that typed, source-linked mechanical authority does.
 4. **Treat ChromaDB or semantic retrieval as the missing rules engine.** Rejected — already foreclosed by
    ADR-018 Decision 10; retrieval is a discovery aid, never authority (Decision 4).
-5. **Mark the curated subset as the intended v1 package and silently weaken Issue 5b's full-corpus
-   contract.** Rejected — Issue 5b's spec is explicit that "curated... does not authorize partial-corpus
+5. **Mark the curated subset as the intended v1 package and silently weaken CRD Issue 5b's full-corpus
+   contract.** Rejected — CRD Issue 5b's spec is explicit that "curated... does not authorize partial-corpus
    ingestion." Retroactively redefining "v1 scope" to match what was actually shipped would rewrite an
    already-accepted contract to erase a defect rather than fix it, and would contradict CLAUDE.md's rule
    against silently resolving Known Unknowns and scope drift.
@@ -440,21 +440,21 @@ library; defining the complete source-unit taxonomy; writing the final mechanica
 completing the D&D 5e character-state model; implementing deterministic binding; repairing the adapter;
 deciding support for every SRD mechanic; implementing parameterized upcasting; implementing arbitrary
 reaction handling; implementing a visual or printable character-sheet UI; modifying PR #129; resuming
-Issue 15b Phase 3; frontend dice work under Issue 19b. Those details belong to the subsequent repair
+CRD Issue 15b Phase 3; frontend dice work under CRD Issue 19b. Those details belong to the subsequent repair
 issues below and their associated ADR amendments where necessary.
 
 ---
 
-## Amendment — Issue 5c Operational Reliability (2026-08-03)
+## Amendment — CRD Issue 5c Operational Reliability (2026-08-03)
 
 **Status:** Accepted — owner approval dated 2026-08-03. Governing text:
-[Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
+[CRD Issue 5c Operational Reliability Amendment](adr-005c-operational-reliability-amendment.md).
 **Effect:** Prospective. Nothing above this section is rewritten, and no historical decision record or
 prior implementation claim is altered.
 
 **The standard.** CRD Issue 5c exists to make the SRD 5.2.1 corpus **operationally reliable** for
 dependable gameplay and downstream Rules Package construction. It does not provide adversarial,
-forensic, or chain-of-custody proof. The required standard is reliable source material for Issue 5d —
+forensic, or chain-of-custody proof. The required standard is reliable source material for CRD Issue 5d —
 not proof that a malicious actor could not coherently rewrite the database and every dependent value.
 
 **Preserved as binding outcomes.** Exact source identification (document, version, license, and a
@@ -465,8 +465,8 @@ publication with no silent in-place mutation; meaningful-change versioning; acci
 corruption detection at publication, verified reuse, and the downstream seam; fail-closed publication
 leaving no usable partial release; rebuildability and diagnosis from committed source, declared
 configuration, approved logical corpus, and diagnostic evidence; legacy quarantine of the incomplete
-prior corpus from every active path; and the typed-mechanics boundary — Issue 5c does not certify that
-source prose was correctly interpreted as typed mechanics, which remains Issue 5d's responsibility.
+prior corpus from every active path; and the typed-mechanics boundary — CRD Issue 5c does not certify that
+source prose was correctly interpreted as typed mechanics, which remains CRD Issue 5d's responsibility.
 
 **Prospectively superseded as governing requirements.** An exact mandatory count of top-level release
 hashes or proof artifacts; a complete mathematical genealogy connecting every stored identity to every
@@ -482,7 +482,7 @@ contract-to-code audit shows them to be a low-cost way to satisfy a retained out
 existence simply no longer makes their exact topology mandatory.
 
 **Attribution.** These superseded requirements originate in CRD Issue 5c's Completion Contract A
-(GitHub #132), not in this ADR's Decisions of Record. Decisions 1–7 above are unchanged and remain
+(#132), not in this ADR's Decisions of Record. Decisions 1–7 above are unchanged and remain
 binding, as does the 2026-07-27 pre-release clean-baseline correction.
 
 **Release identity.** Release identity tracks the authoritative source and the approved logical corpus,
@@ -504,7 +504,7 @@ Decision 8.
 4. CRD Issue 2b — D&D 5e Character State Completeness for Deterministic Adjudication.
 5. CRD Issue 15c — Bounded d20 Production Reachability.
 6. PR #129 disposition (Decision 7).
-7. Resume Issue 15b Phase 3 and Issue 19b only after the vertical mechanics gate passes.
+7. Resume CRD Issue 15b Phase 3 and CRD Issue 19b only after the vertical mechanics gate passes.
 
 CRD Issues 5d and 2b may proceed in parallel after CRD Issue 5c establishes the authoritative corpus
 contract, provided their shared interfaces (Rules Package identity/version binding consumed by both the
@@ -517,7 +517,7 @@ CRD-issue-vs-GitHub-issue namespace distinction — do not invent GitHub numbers
 ## `known_unknowns.md` Resolution Text
 
 Neither entry below existed in canonical `known_unknowns.md` on `main` before this ADR's documentation
-PR. Both were first surfaced and documented on frozen, unmerged PR #129 (Issue 15b Phase 2); because that
+PR. Both were first surfaced and documented on frozen, unmerged PR #129 (CRD Issue 15b Phase 2); because that
 PR never merged, neither entry ever reached the canonical record. This ADR's documentation change adds
 both entries to `known_unknowns.md` for the first time on `main`, with corrected dispositions rather than
 an import of PR #129's text as-is:
@@ -539,8 +539,8 @@ an import of PR #129's text as-is:
 
 ADR-015b's Seams table (row "5a / 5b") states *"Rules Package remains mechanical canon; ingestion is
 unchanged."* That statement was accurate at ADR-015b's acceptance time and is not rewritten here — see
-the note below on why. It is now qualified by this ADR: ingestion output is confirmed short of Issue 5b's
-full-corpus contract (Context item 1), and the Issue 15b coverage inventory's production reachability
+the note below on why. It is now qualified by this ADR: ingestion output is confirmed short of CRD Issue 5b's
+full-corpus contract (Context item 1), and the CRD Issue 15b coverage inventory's production reachability
 against that output was never demonstrated (PR #129's own freeze note). CRD Issue 15c inherits this
 qualification when it resumes work on adapter production reachability.
 
