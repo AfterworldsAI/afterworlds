@@ -52,6 +52,7 @@ from afterworlds.models.rules_package import (
     MechanicalEntity,
     RuleChunk,
     RuleOverride,
+    RuleSliceRequest,
     RuleSource,
     RulesPackageDetail,
     SpellEntity,
@@ -64,6 +65,23 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.services.rules_authority.binding import resolve_package_reference
+from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
+
+
+class RuleSliceResolutionError(ValueError):
+    """Raised when a rule-slice request's package reference does not resolve.
+
+    Carries the typed :class:`AuthorityOutcome` so a caller reports *why* — an
+    invalid selector, an ambiguous slug, or an absent package — rather than
+    collapsing three distinct states into one failure string.
+    """
+
+    def __init__(self, outcome: AuthorityOutcome, detail: str) -> None:
+        super().__init__(detail)
+        self.outcome = outcome
+        self.detail = detail
+
 
 # ---------------------------------------------------------------------------
 # Module-level helpers — ORM row → Pydantic model conversion
@@ -428,6 +446,34 @@ class RulesPackageService:
             .all()
         )
         return [_orm_to_override(r) for r in rows]
+
+    def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
+        """Resolve a rule-slice request's package reference to one UUID.
+
+        The single code-owned resolution seam for callers holding a
+        ``RuleSliceRequest``: a UUID passes through, and a human-facing slug
+        resolves through
+        :func:`afterworlds.services.rules_authority.resolve_package_reference`,
+        which is the only place a slug is interpreted (ADR-005d Decision 9).
+
+        Raises :class:`RuleSliceResolutionError` when the reference does not
+        resolve. A malformed or ambiguous reference is an explicit failure, not
+        an empty slice — an empty slice reads as "no rule applies", which is a
+        different and far more dangerous claim.
+        """
+        if request.package_id is not None:
+            return request.package_id
+        assert request.package_slug is not None
+        resolution = resolve_package_reference(self._session, request.package_slug)
+        if resolution.outcome is not AuthorityOutcome.RESOLVED:
+            raise RuleSliceResolutionError(
+                resolution.outcome,
+                f"rules package reference {request.package_slug!r} did not "
+                f"resolve: {resolution.outcome.value}"
+                + (f" ({resolution.detail})" if resolution.detail else ""),
+            )
+        assert resolution.package_uuid is not None
+        return resolution.package_uuid
 
     def get_active_rule_slice(
         self,

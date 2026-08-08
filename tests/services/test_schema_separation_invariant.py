@@ -20,6 +20,7 @@ import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.corpus  # noqa: F401
 import afterworlds.persistence.orm.mechanical  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.rules_authority  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
@@ -164,6 +165,10 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_mech_references",
         "rp_mech_provenance",
         "rp_mech_active_projections",
+        # CRD Issue 5d runtime authority (#137 contract 6).
+        "rp_mech_overrides",
+        "rp_override_set_versions",
+        "rp_override_set_entries",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

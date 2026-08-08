@@ -179,6 +179,8 @@ class _RollingSummaryServiceLike(Protocol):
 
 
 class _RulesPackageServiceLike(Protocol):
+    def resolve_slice_package(self, request: RuleSliceRequest) -> UUID: ...
+
     def get_active_rule_slice(
         self,
         package_id: UUID,
@@ -400,8 +402,16 @@ class ContextBuilderService:
                     "rule_slice_request provided but rules_package_service was not "
                     "injected into ContextBuilderService"
                 )
+            # The package reference resolves through the service's one
+            # code-owned path (CRD Issue 5d, ADR-005d Decision 9): a UUID passes
+            # through, a human-facing slug resolves, and a reference that does
+            # not resolve raises rather than yielding an empty slice that would
+            # read as "no rule applies".
+            package_id = self._rules_package_service.resolve_slice_package(
+                rule_slice_request
+            )
             rules_package_slice = self._rules_package_service.get_active_rule_slice(
-                package_id=rule_slice_request.package_id,
+                package_id=package_id,
                 subsystem_tags=rule_slice_request.subsystem_tags,
                 entity_refs=rule_slice_request.entity_refs,
                 include_non_published=rule_slice_request.include_non_published,

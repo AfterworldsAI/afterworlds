@@ -1112,7 +1112,14 @@ def test_rule_slice_request_without_service_raises() -> None:
         retrieval_memory=_CountingRetrievalMemoryProvider(),
         rules_package_service=None,
     )
-    req = RuleSliceRequest(package_id=uuid4())
+    from afterworlds.models.enums import RuleSubsystemEnum as _RuleSubsystemEnum
+
+    # CRD Issue 5d (#137 contract 6): a rule-slice request must state what it
+    # selects, so the accidentally-empty form used here before is now refused
+    # at construction.
+    req = RuleSliceRequest(
+        package_id=uuid4(), subsystem_tags=[_RuleSubsystemEnum.COMBAT]
+    )
     with pytest.raises(ValueError, match="rules_package_service"):
         service.assemble(
             story_id=_STORY_ID,
@@ -1193,6 +1200,10 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
             self.last_entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] | None = (
                 None
             )
+
+        def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
+            assert request.package_id is not None
+            return request.package_id
 
         def get_active_rule_slice(
             self,
@@ -1294,6 +1305,10 @@ def test_rule_slice_mode_intent_policy(
         def __init__(self) -> None:
             self.call_count = 0
 
+        def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
+            assert request.package_id is not None
+            return request.package_id
+
         def get_active_rule_slice(
             self,
             package_id: UUID,
@@ -1312,7 +1327,14 @@ def test_rule_slice_mode_intent_policy(
         retrieval_memory=_CountingRetrievalMemoryProvider(),
         rules_package_service=stub_rules,
     )
-    req = RuleSliceRequest(package_id=uuid4())
+    from afterworlds.models.enums import RuleSubsystemEnum as _RuleSubsystemEnum
+
+    # CRD Issue 5d (#137 contract 6): a rule-slice request must state what it
+    # selects, so the accidentally-empty form used here before is now refused
+    # at construction.
+    req = RuleSliceRequest(
+        package_id=uuid4(), subsystem_tags=[_RuleSubsystemEnum.COMBAT]
+    )
 
     assembled = service.assemble(
         story_id=_STORY_ID,

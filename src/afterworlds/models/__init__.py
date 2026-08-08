@@ -59,7 +59,7 @@ from afterworlds.models.rpg import (
     VisibleRelationship,
     WriterAdjudicationView,
 )
-from afterworlds.models.rules_package import RuleSliceRequest
+from afterworlds.models.rules_package import RuleSliceRequest, RulesPackageBinding
 from afterworlds.models.session import (
     BranchingSessionState,
     BranchNode,
@@ -136,6 +136,7 @@ __all__ = [
     "AssembledContext",
     # rules package
     "RuleSliceRequest",
+    "RulesPackageBinding",
     # character sheet
     "Dnd5eAbilityScores",
     "Dnd5eActiveCondition",
