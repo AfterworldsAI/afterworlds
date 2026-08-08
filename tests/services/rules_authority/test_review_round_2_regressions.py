@@ -189,14 +189,22 @@ def test_deleting_a_package_drops_only_its_own_scope_association(
 def test_a_missing_scope_association_is_a_retention_defect(
     runtime: RuntimeFixture,
 ) -> None:
-    """Deleting the association fails replay closed, never falsely."""
+    """Absent evidence fails replay closed, never falsely.
+
+    Round 3 made a live association undeletable, so reaching this state now
+    requires bypassing the guard — which is what a database restored without its
+    triggers looks like. The refusal of the ordinary delete path is asserted
+    separately in the round-3 controls; this asserts that *if* the evidence is
+    gone anyway, replay still refuses rather than proceeding unscoped.
+    """
     primary = _binding_with_overrides(runtime)
-    runtime.session.execute(
-        delete(OverrideSetScopeORM).where(
-            OverrideSetScopeORM.override_set_uuid == str(primary.override_set_uuid)
+    with without_append_only_triggers(runtime.session):
+        runtime.session.execute(
+            delete(OverrideSetScopeORM).where(
+                OverrideSetScopeORM.override_set_uuid == str(primary.override_set_uuid)
+            )
         )
-    )
-    runtime.session.flush()
+        runtime.session.flush()
 
     with pytest.raises(OverrideSetRetentionError, match="was never retained for"):
         service(runtime).replay(primary)

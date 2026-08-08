@@ -29,12 +29,25 @@ Two operations, and they are deliberately different:
 
 Retention writes into the caller's transaction and flushes rather than commits.
 The caller owns the commit boundary, so a resolution that is part of a larger
-failed unit of work does not leave a half-retained version behind.
+failed unit of work does not leave a half-retained version behind. Within that
+transaction the whole unit — version, entries, and scope association — is written
+under one savepoint, so a partial failure unwinds all of it rather than leaving
+an orphan snapshot the next reader would have to reason about.
+
+**Concurrency.** Retention runs on every binding resolution, so two sessions
+resolving the same package at the same time both try to retain the same content.
+That is the expected case, not an error, and it is handled by writing through
+``INSERT ... ON CONFLICT DO NOTHING`` against content-aware immutability guards
+rather than by querying for absence first and racing into the gap. See
+:func:`_insert_or_ignore` — the guard shape and the insert shape are one design
+and neither is safe alone.
 """
 
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import Insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
@@ -61,6 +74,28 @@ __all__ = [
 ]
 
 
+def _insert_or_ignore(model: type) -> Insert:
+    """An insert that treats an already-present identical row as done.
+
+    This is the idempotent half of a mechanism whose other half is the
+    content-aware ``BEFORE INSERT`` guards in migration ``0024``, and the two
+    only work together.
+
+    Query-then-insert cannot be made concurrency-safe here: two sessions both
+    observe absence, both insert, and the loser takes a uniqueness violation for
+    doing exactly what it was asked to. ``ON CONFLICT DO NOTHING`` removes that
+    race at the source instead of catching it afterwards — nothing is suppressed,
+    because for the loser there is genuinely nothing left to do.
+
+    It only works because the guards reject a re-insert that would *change*
+    retained content rather than one that merely repeats it. An existence-based
+    guard aborts the statement before conflict resolution is ever reached, which
+    was verified against the engine rather than assumed; under such a guard this
+    upsert would fail exactly where it needs to succeed.
+    """
+    return sqlite_insert(model).on_conflict_do_nothing()
+
+
 class OverrideSetRetentionError(RuntimeError):
     """Raised when a retained override-set version cannot be reconstructed.
 
@@ -83,88 +118,66 @@ def retain_override_set(
     wrong authority.
     """
     identity = state.override_set_uuid
-    existing = session.execute(
-        select(OverrideSetVersionORM).where(
-            OverrideSetVersionORM.override_set_uuid == identity
-        )
-    ).scalar_one_or_none()
-    if existing is not None:
-        # The content is already retained, but *this* scope may not be: shared
-        # content is the normal case, so a second package reaching the same
-        # identity still has to record its own association before it may replay
-        # against it.
-        _retain_scope(session, identity, state, now=now)
-        # Reconstruct rather than trust: this is the read path replay will take,
-        # so proving it here means a retention defect surfaces at the write that
-        # could still have fixed it.
-        load_override_set_version(
-            session,
-            identity,
-            package_uuid=state.package_uuid,
-            release_version=state.release_version,
-        )
-        return identity
 
-    session.add(
-        OverrideSetVersionORM(
-            override_set_uuid=identity,
-            entry_count=len(state.entries),
-            recorded_at=now,
-        )
-    )
-    # Flushed before its entries: they carry a foreign key to it, and the unit
-    # of work is free to order two pending inserts either way.
-    session.flush()
-    for entry in state.entries:
-        session.add(
-            OverrideSetEntryORM(
+    # One savepoint around the whole unit. Version, entries, and scope are one
+    # piece of evidence: a version without its entries, or content without the
+    # association proving whose it is, is not partial evidence but unusable
+    # evidence. A failure part-way therefore unwinds all of it and leaves the
+    # caller's transaction usable, rather than leaving an orphan snapshot behind
+    # for the next reader to trip over.
+    with session.begin_nested():
+        session.execute(
+            _insert_or_ignore(OverrideSetVersionORM).values(
                 override_set_uuid=identity,
-                apply_order=entry.apply_order,
-                override_id=entry.override_id,
-                override_origin=entry.origin.value,
-                target_kind=entry.target.kind.value,
-                target_record_key=entry.target.record_key,
-                target_component_key=entry.target.component_key,
-                target_fact_key=entry.target.fact_key,
-                override_operation=entry.operation.value,
-                precedence=entry.precedence,
-                is_enabled=entry.is_enabled,
-                payload=entry.payload,
+                entry_count=len(state.entries),
+                recorded_at=now,
             )
         )
-    session.flush()
-    _retain_scope(session, identity, state, now=now)
-    return identity
-
-
-def _retain_scope(
-    session: Session, identity: str, state: EffectiveOverrideSet, *, now: str
-) -> None:
-    """Record that *state*'s package and release retained this content.
-
-    Idempotent, and separate from the version write because the two have
-    different grains: the version is shared content written once, while the
-    association is per package/release and may legitimately be the first thing a
-    second package adds to content that already exists.
-    """
-    already = session.execute(
-        select(OverrideSetScopeORM).where(
-            OverrideSetScopeORM.override_set_uuid == identity,
-            OverrideSetScopeORM.package_uuid == state.package_uuid,
-            OverrideSetScopeORM.release_version == state.release_version,
+        # Flushed before its entries: they carry a foreign key to it, and the
+        # unit of work is free to order two pending inserts either way.
+        session.flush()
+        for entry in state.entries:
+            session.execute(
+                _insert_or_ignore(OverrideSetEntryORM).values(
+                    override_set_uuid=identity,
+                    apply_order=entry.apply_order,
+                    override_id=entry.override_id,
+                    override_origin=entry.origin.value,
+                    target_kind=entry.target.kind.value,
+                    target_record_key=entry.target.record_key,
+                    target_component_key=entry.target.component_key,
+                    target_fact_key=entry.target.fact_key,
+                    override_operation=entry.operation.value,
+                    precedence=entry.precedence,
+                    is_enabled=entry.is_enabled,
+                    payload=entry.payload,
+                )
+            )
+        # The content may already be retained while *this* scope is not: shared
+        # content is the normal case, so a second package reaching the same
+        # identity still records its own association before it may replay.
+        session.execute(
+            _insert_or_ignore(OverrideSetScopeORM).values(
+                override_set_uuid=identity,
+                package_uuid=state.package_uuid,
+                release_version=state.release_version,
+                first_recorded_at=now,
+            )
         )
-    ).scalar_one_or_none()
-    if already is not None:
-        return
-    session.add(
-        OverrideSetScopeORM(
-            override_set_uuid=identity,
-            package_uuid=state.package_uuid,
-            release_version=state.release_version,
-            first_recorded_at=now,
-        )
+        session.flush()
+
+    # Verify whatever is now there, whoever wrote it. This is the read path
+    # replay will take, so proving it at the write means a retention defect
+    # surfaces while it could still have been fixed — and after a lost race it
+    # is what confirms the winner's evidence is the valid one this caller can
+    # rely on, rather than assuming so because no error was raised.
+    load_override_set_version(
+        session,
+        identity,
+        package_uuid=state.package_uuid,
+        release_version=state.release_version,
     )
-    session.flush()
+    return identity
 
 
 def _entry_from_row(row: OverrideSetEntryORM) -> EffectiveOverrideEntry:

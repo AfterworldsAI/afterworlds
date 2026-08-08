@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from uuid import UUID, uuid5
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import Engine, select
 from sqlalchemy import text as sa_text
 from sqlalchemy.orm import Session
 
@@ -536,6 +536,9 @@ class RuntimeFixture:
     """One published release with one activated mechanical projection."""
 
     session: Session
+    #: The engine behind :attr:`session`, so a test can open genuinely
+    #: independent connections for deterministic concurrency work.
+    engine: Engine
     package_uuid: UUID
     release_version: str
     projection_uuid: UUID
@@ -638,6 +641,7 @@ def runtime(tmp_path) -> Iterator[RuntimeFixture]:  # type: ignore[no-untyped-de
         install_append_only_triggers(session)
         yield RuntimeFixture(
             session=session,
+            engine=engine,
             package_uuid=UUID(PACKAGE_UUID),
             release_version=RELEASE_VERSION,
             projection_uuid=UUID(projection_uuid),
@@ -802,74 +806,95 @@ _RETAINED_TABLES = (
     "rp_override_set_scopes",
 )
 
-#: Exactly migration 0024's trigger set, restated as (name, sql) so the fixture
-#: can drop and restore all of them. Scopes carry no DELETE guard, by design:
-#: their lifecycle is their package's.
-_GUARD_VERBS: dict[str, tuple[str, ...]] = {
-    "rp_override_set_versions": ("UPDATE", "DELETE"),
-    "rp_override_set_entries": ("UPDATE", "DELETE"),
-    "rp_override_set_scopes": ("UPDATE",),
-}
-
-_REINSERT_PREDICATE: dict[str, str] = {
-    "rp_override_set_versions": "override_set_uuid = NEW.override_set_uuid",
-    "rp_override_set_entries": (
-        "override_set_uuid = NEW.override_set_uuid AND apply_order = NEW.apply_order"
-    ),
-    "rp_override_set_scopes": (
-        "override_set_uuid = NEW.override_set_uuid"
-        " AND package_uuid = NEW.package_uuid"
-        " AND release_version = NEW.release_version"
-    ),
-}
-
-_SEAL_SQL = """
-CREATE TRIGGER seal_rp_override_set_entries
-BEFORE INSERT ON rp_override_set_entries
-WHEN (
-    SELECT COUNT(*) FROM rp_override_set_entries
-    WHERE override_set_uuid = NEW.override_set_uuid
-) >= (
-    SELECT entry_count FROM rp_override_set_versions
-    WHERE override_set_uuid = NEW.override_set_uuid
+#: Migration 0024's trigger set, restated so the suite runs against the same
+#: protection production has (``create_all`` does not create triggers). A test
+#: asserts this set matches what the real migration installs, so the two cannot
+#: drift silently — hand-mirroring is what made drift possible before.
+_ENTRY_CONTENT_COLUMNS = (
+    "override_id",
+    "override_origin",
+    "target_kind",
+    "target_record_key",
+    "target_component_key",
+    "target_fact_key",
+    "override_operation",
+    "precedence",
+    "is_enabled",
+    "payload",
 )
-BEGIN
-    SELECT RAISE(ABORT, 'rp_override_set_entries is sealed: the retained
-version already holds every entry it declared');
-END
-"""
 
 
 def _trigger_statements() -> list[str]:
-    statements: list[str] = []
-    for table, verbs in _GUARD_VERBS.items():
-        for verb in verbs:
-            statements.append(
-                f"CREATE TRIGGER prevent_{table}_{verb.lower()} "
-                f"BEFORE {verb} ON {table} "
-                f"BEGIN SELECT RAISE(ABORT, "
-                f"'{table} is append-only: {verb} is forbidden'); END"
-            )
-    for table, predicate in _REINSERT_PREDICATE.items():
-        statements.append(
-            f"CREATE TRIGGER prevent_{table}_reinsert "
-            f"BEFORE INSERT ON {table} "
-            f"WHEN EXISTS (SELECT 1 FROM {table} WHERE {predicate}) "
-            f"BEGIN SELECT RAISE(ABORT, "
-            f"'{table} is append-only: replacing a retained row is forbidden'); END"
-        )
-    statements.append(_SEAL_SQL)
+    statements = [
+        f"CREATE TRIGGER prevent_{table}_update BEFORE UPDATE ON {table} "
+        f"BEGIN SELECT RAISE(ABORT, "
+        f"'{table} is append-only: UPDATE is forbidden'); END"
+        for table in _RETAINED_TABLES
+    ]
+    statements += [
+        f"CREATE TRIGGER prevent_{table}_delete BEFORE DELETE ON {table} "
+        f"BEGIN SELECT RAISE(ABORT, "
+        f"'{table} is append-only: DELETE is forbidden'); END"
+        for table in ("rp_override_set_versions", "rp_override_set_entries")
+    ]
+    statements.append(
+        "CREATE TRIGGER prevent_rp_override_set_scopes_delete "
+        "BEFORE DELETE ON rp_override_set_scopes "
+        "WHEN EXISTS (SELECT 1 FROM rp_packages "
+        "WHERE rules_package_id = OLD.package_uuid) "
+        "BEGIN SELECT RAISE(ABORT, "
+        "'rp_override_set_scopes is append-only while its package is live'); END"
+    )
+    statements.append(
+        "CREATE TRIGGER prevent_rp_override_set_versions_reinsert "
+        "BEFORE INSERT ON rp_override_set_versions "
+        "WHEN EXISTS (SELECT 1 FROM rp_override_set_versions "
+        "WHERE override_set_uuid = NEW.override_set_uuid "
+        "AND entry_count IS NOT NEW.entry_count) "
+        "BEGIN SELECT RAISE(ABORT, "
+        "'rp_override_set_versions is append-only: rewrite refused'); END"
+    )
+    differs = " OR ".join(f"{c} IS NOT NEW.{c}" for c in _ENTRY_CONTENT_COLUMNS)
+    statements.append(
+        "CREATE TRIGGER prevent_rp_override_set_entries_reinsert "
+        "BEFORE INSERT ON rp_override_set_entries "
+        "WHEN EXISTS (SELECT 1 FROM rp_override_set_entries "
+        "WHERE override_set_uuid = NEW.override_set_uuid "
+        f"AND apply_order = NEW.apply_order AND ({differs})) "
+        "BEGIN SELECT RAISE(ABORT, "
+        "'rp_override_set_entries is append-only: rewrite refused'); END"
+    )
+    statements.append(
+        "CREATE TRIGGER seal_rp_override_set_entries "
+        "BEFORE INSERT ON rp_override_set_entries "
+        "WHEN (SELECT COUNT(*) FROM rp_override_set_entries "
+        "WHERE override_set_uuid = NEW.override_set_uuid) >= "
+        "(SELECT entry_count FROM rp_override_set_versions "
+        "WHERE override_set_uuid = NEW.override_set_uuid) "
+        "AND NOT EXISTS (SELECT 1 FROM rp_override_set_entries "
+        "WHERE override_set_uuid = NEW.override_set_uuid "
+        "AND apply_order = NEW.apply_order) "
+        "BEGIN SELECT RAISE(ABORT, "
+        "'rp_override_set_entries is sealed: version already complete'); END"
+    )
     return statements
 
 
 def _trigger_names() -> list[str]:
-    names = [
-        f"prevent_{table}_{verb.lower()}"
-        for table, verbs in _GUARD_VERBS.items()
-        for verb in verbs
+    names = [f"prevent_{t}_update" for t in _RETAINED_TABLES]
+    names += [
+        f"prevent_{t}_delete"
+        for t in (
+            "rp_override_set_versions",
+            "rp_override_set_entries",
+            "rp_override_set_scopes",
+        )
     ]
-    names += [f"prevent_{table}_reinsert" for table in _REINSERT_PREDICATE]
-    names.append("seal_rp_override_set_entries")
+    names += [
+        "prevent_rp_override_set_versions_reinsert",
+        "prevent_rp_override_set_entries_reinsert",
+        "seal_rp_override_set_entries",
+    ]
     return names
 
 

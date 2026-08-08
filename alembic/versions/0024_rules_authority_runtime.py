@@ -135,37 +135,74 @@ def upgrade() -> None:
     # cannot reconstruct the authority that was originally applied. These
     # retained rows are the evidence a recorded binding depends on, so the
     # database refuses the rewrite rather than leaving it to be noticed later.
-    #
-    # DELETE is guarded on the two content tables but deliberately not on
-    # rp_override_set_scopes: the scope association's lifecycle is its package's,
-    # and blocking DELETE there would make deleting a package impossible. A
-    # removed association fails replay closed, never with false provenance.
-    for table, verbs in (
-        ("rp_override_set_versions", ("UPDATE", "DELETE")),
-        ("rp_override_set_entries", ("UPDATE", "DELETE")),
-        ("rp_override_set_scopes", ("UPDATE",)),
+    for table in (
+        "rp_override_set_versions",
+        "rp_override_set_entries",
+        "rp_override_set_scopes",
     ):
-        for verb in verbs:
-            op.execute(
-                f"""
-                CREATE TRIGGER prevent_{table}_{verb.lower()}
-                BEFORE {verb} ON {table}
-                BEGIN
-                    SELECT RAISE(
-                        ABORT,
-                        '{table} is append-only: {verb} is forbidden'
-                    );
-                END
-                """
-            )
+        op.execute(
+            f"""
+            CREATE TRIGGER prevent_{table}_update
+            BEFORE UPDATE ON {table}
+            BEGIN
+                SELECT RAISE(ABORT, '{table} is append-only: UPDATE is forbidden');
+            END
+            """
+        )
+
+    for table in ("rp_override_set_versions", "rp_override_set_entries"):
+        op.execute(
+            f"""
+            CREATE TRIGGER prevent_{table}_delete
+            BEFORE DELETE ON {table}
+            BEGIN
+                SELECT RAISE(ABORT, '{table} is append-only: DELETE is forbidden');
+            END
+            """
+        )
+
+    # The scope association proves a retained version belongs to the package and
+    # release a binding names, so a directly deleted association destroys replay
+    # evidence while the package is still live — replay then fails closed, but
+    # the evidence is gone and cannot be reconstructed.
+    #
+    # It cannot take the blanket DELETE guard above, because deleting a package
+    # is the one contractual way an association goes away. The guard is therefore
+    # conditional on the owning package still existing. SQLite removes the parent
+    # row before cascading to children, so during a package deletion this WHEN
+    # clause is already false and the cascade proceeds; a direct DELETE against a
+    # live package is refused. Verified against the engine rather than assumed.
+    op.execute(
+        """
+        CREATE TRIGGER prevent_rp_override_set_scopes_delete
+        BEFORE DELETE ON rp_override_set_scopes
+        WHEN EXISTS (
+            SELECT 1 FROM rp_packages
+            WHERE rules_package_id = OLD.package_uuid
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_scopes is append-only while its package is live'
+            );
+        END
+        """
+    )
 
     # Guarding UPDATE and DELETE is not enough on SQLite. `INSERT OR REPLACE`
     # resolves a conflict by deleting the existing row and inserting the new one,
     # and with `recursive_triggers` off — the default — that implicit delete does
     # not fire the BEFORE DELETE trigger above. A retained row could therefore be
-    # rewritten wholesale without any guard firing. These BEFORE INSERT triggers
-    # refuse the re-insert directly, which is the only point REPLACE cannot slip
-    # past.
+    # rewritten wholesale without any guard firing.
+    #
+    # These BEFORE INSERT guards are **content-aware**, and that is what lets the
+    # service retain idempotently under concurrency. A guard that aborted on mere
+    # existence would also abort the loser of a benign race, so
+    # `INSERT ... ON CONFLICT DO NOTHING` could not be used and the expected race
+    # would surface as an application failure. Rejecting only an insert that would
+    # *change* retained content keeps immutability exact while leaving a
+    # byte-identical re-insert a no-op. The two mechanisms are designed together;
+    # neither works without the other.
     op.execute(
         """
         CREATE TRIGGER prevent_rp_override_set_versions_reinsert
@@ -173,15 +210,20 @@ def upgrade() -> None:
         WHEN EXISTS (
             SELECT 1 FROM rp_override_set_versions
             WHERE override_set_uuid = NEW.override_set_uuid
+              AND entry_count IS NOT NEW.entry_count
         )
         BEGIN
             SELECT RAISE(
                 ABORT,
-                'rp_override_set_versions is append-only: replacing a retained version is forbidden'
+                'rp_override_set_versions is append-only: rewrite refused'
             );
         END
         """
     )
+
+    # ``IS NOT`` rather than ``<>`` throughout: the target component and fact keys
+    # are nullable, and ``<>`` against NULL yields NULL, so a NULL-to-value change
+    # would slip past an inequality comparison.
     op.execute(
         """
         CREATE TRIGGER prevent_rp_override_set_entries_reinsert
@@ -190,29 +232,23 @@ def upgrade() -> None:
             SELECT 1 FROM rp_override_set_entries
             WHERE override_set_uuid = NEW.override_set_uuid
               AND apply_order = NEW.apply_order
+              AND (
+                   override_id IS NOT NEW.override_id
+                OR override_origin IS NOT NEW.override_origin
+                OR target_kind IS NOT NEW.target_kind
+                OR target_record_key IS NOT NEW.target_record_key
+                OR target_component_key IS NOT NEW.target_component_key
+                OR target_fact_key IS NOT NEW.target_fact_key
+                OR override_operation IS NOT NEW.override_operation
+                OR precedence IS NOT NEW.precedence
+                OR is_enabled IS NOT NEW.is_enabled
+                OR payload IS NOT NEW.payload
+              )
         )
         BEGIN
             SELECT RAISE(
                 ABORT,
-                'rp_override_set_entries is append-only: replacing a retained entry is forbidden'
-            );
-        END
-        """
-    )
-    op.execute(
-        """
-        CREATE TRIGGER prevent_rp_override_set_scopes_reinsert
-        BEFORE INSERT ON rp_override_set_scopes
-        WHEN EXISTS (
-            SELECT 1 FROM rp_override_set_scopes
-            WHERE override_set_uuid = NEW.override_set_uuid
-              AND package_uuid = NEW.package_uuid
-              AND release_version = NEW.release_version
-        )
-        BEGIN
-            SELECT RAISE(
-                ABORT,
-                'rp_override_set_scopes is append-only: replacing a retained association is forbidden'
+                'rp_override_set_entries is append-only: rewrite refused'
             );
         END
         """
@@ -221,6 +257,9 @@ def upgrade() -> None:
     # A version is sealed once it holds the entry count it declared. Without
     # this, a plain INSERT with the next apply_order silently extends a retained
     # version — the unique constraint only stops reusing an existing position.
+    # The ``NOT EXISTS`` clause exempts a re-insert at a position the version
+    # already holds, which is the idempotent-retention path; only a genuinely new
+    # position is sealed out.
     op.execute(
         """
         CREATE TRIGGER seal_rp_override_set_entries
@@ -232,10 +271,15 @@ def upgrade() -> None:
             SELECT entry_count FROM rp_override_set_versions
             WHERE override_set_uuid = NEW.override_set_uuid
         )
+        AND NOT EXISTS (
+            SELECT 1 FROM rp_override_set_entries
+            WHERE override_set_uuid = NEW.override_set_uuid
+              AND apply_order = NEW.apply_order
+        )
         BEGIN
             SELECT RAISE(
                 ABORT,
-                'rp_override_set_entries is sealed: the retained version already holds every entry it declared'
+                'rp_override_set_entries is sealed: version already complete'
             );
         END
         """
@@ -245,9 +289,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     for trigger in (
         "seal_rp_override_set_entries",
-        "prevent_rp_override_set_scopes_reinsert",
         "prevent_rp_override_set_entries_reinsert",
         "prevent_rp_override_set_versions_reinsert",
+        "prevent_rp_override_set_scopes_delete",
         "prevent_rp_override_set_scopes_update",
         "prevent_rp_override_set_entries_update",
         "prevent_rp_override_set_entries_delete",
