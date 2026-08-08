@@ -91,14 +91,17 @@ def retain_override_set(
         # Reconstruct rather than trust: this is the read path replay will take,
         # so proving it here means a retention defect surfaces at the write that
         # could still have fixed it.
-        load_override_set_version(session, identity)
+        load_override_set_version(
+            session,
+            identity,
+            package_uuid=state.package_uuid,
+            release_version=state.release_version,
+        )
         return identity
 
     session.add(
         OverrideSetVersionORM(
             override_set_uuid=identity,
-            package_uuid=state.package_uuid,
-            release_version=state.release_version,
             entry_count=len(state.entries),
             recorded_at=now,
         )
@@ -161,7 +164,11 @@ def _entry_from_row(row: OverrideSetEntryORM) -> EffectiveOverrideEntry:
 
 
 def load_override_set_version(
-    session: Session, override_set_uuid: str
+    session: Session,
+    override_set_uuid: str,
+    *,
+    package_uuid: str,
+    release_version: str,
 ) -> EffectiveOverrideSet:
     """Resolve one retained override-set version for audit or replay.
 
@@ -169,6 +176,12 @@ def load_override_set_version(
     consulted — they are the authoring surface, and an implementation that
     re-derived from them would reconstruct today's authority while claiming to
     reconstruct the recorded one.
+
+    *package_uuid* and *release_version* are supplied by the caller rather than
+    read from the version row, because the version is content-addressed and
+    package-independent: identical override state across packages is one row,
+    and the empty set is shared by every package. The scope comes from the
+    binding being replayed, which is the only place it is authoritative.
 
     Raises :class:`OverrideSetRetentionError` when the version is absent, its
     entry count disagrees with what was retained, its apply order is not a
@@ -213,7 +226,7 @@ def load_override_set_version(
             f"{rederived}"
         )
     return EffectiveOverrideSet(
-        package_uuid=version.package_uuid,
-        release_version=version.release_version,
+        package_uuid=package_uuid,
+        release_version=release_version,
         entries=entries,
     )

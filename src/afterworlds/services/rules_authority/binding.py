@@ -112,6 +112,15 @@ def resolve_package_reference(session: Session, reference: str) -> PackageResolu
     proceed with no rules at all — is the fail-open path #137 contract 6
     requires to have no surviving caller: a malformed reference and a package
     with genuinely no rules produced the same silence.
+
+    **Both branches resolve against the same enabled-package population.** A
+    well-formed UUID is a *reference*, not a resolution: returning it unchecked
+    would mean an unknown or disabled package UUID reported ``RESOLVED`` while
+    the equivalent slug reported ``ABSENT``, and a caller that treats
+    ``RESOLVED`` as "this package exists" — which is the only sane reading —
+    would proceed on a package that does not. That asymmetry is the same
+    fail-open shape this function exists to remove, so the syntactic check is
+    never the whole check.
     """
     raw = reference.strip()
     if not raw:
@@ -120,9 +129,24 @@ def resolve_package_reference(session: Session, reference: str) -> PackageResolu
         )
 
     try:
-        return PackageResolution(AuthorityOutcome.RESOLVED, package_uuid=UUID(raw))
+        package_uuid = UUID(raw)
     except ValueError:
         pass
+    else:
+        row = session.execute(
+            select(RulesPackageORM).where(
+                RulesPackageORM.rules_package_id == str(package_uuid)
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            return PackageResolution(
+                AuthorityOutcome.ABSENT, detail=f"no package {package_uuid}"
+            )
+        if not row.is_enabled:
+            return PackageResolution(
+                AuthorityOutcome.ABSENT, detail=f"package {package_uuid} is disabled"
+            )
+        return PackageResolution(AuthorityOutcome.RESOLVED, package_uuid=package_uuid)
 
     slug = package_slug(raw)
     if not slug:

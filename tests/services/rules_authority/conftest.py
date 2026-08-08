@@ -23,11 +23,13 @@ condition to resolve rather than a mocked one.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from uuid import UUID, uuid5
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy import text as sa_text
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.bundle import build_bundle, reconciliation_hash
@@ -582,6 +584,7 @@ def runtime(tmp_path) -> Iterator[RuntimeFixture]:  # type: ignore[no-untyped-de
             session, RIVAL_PACKAGE_UUID, RIVAL_RELEASE_VERSION, prefix="rival-"
         )
         projection_uuid = _publish_bounded_projection(session, bundle_root_hash)
+        install_append_only_triggers(session)
         yield RuntimeFixture(
             session=session,
             package_uuid=UUID(PACKAGE_UUID),
@@ -727,3 +730,53 @@ def replace_record_payload(
             }
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# Append-only enforcement
+# ---------------------------------------------------------------------------
+#
+# ``Base.metadata.create_all`` does not create triggers, so a suite built that
+# way would run without the protection production actually has and would prove
+# nothing about it. These mirror migration 0024 exactly, following the pattern
+# tests/persistence/test_rpg_roll_audit_db.py and tests/entitlement/conftest.py
+# already use for the repository's other append-only evidence tables.
+
+_RETAINED_TABLES = ("rp_override_set_versions", "rp_override_set_entries")
+
+
+def _trigger_sql(table: str, verb: str) -> str:
+    return (
+        f"CREATE TRIGGER prevent_{table}_{verb.lower()} "
+        f"BEFORE {verb} ON {table} "
+        f"BEGIN SELECT RAISE(ABORT, "
+        f"'{table} is append-only: {verb} is forbidden'); END"
+    )
+
+
+def install_append_only_triggers(session: Session) -> None:
+    """Install the migration's append-only triggers on the retained tables."""
+    for table in _RETAINED_TABLES:
+        for verb in ("UPDATE", "DELETE"):
+            session.execute(sa_text(_trigger_sql(table, verb)))
+    session.flush()
+
+
+@contextmanager
+def without_append_only_triggers(session: Session) -> Iterator[None]:
+    """Temporarily drop the append-only triggers, then restore them.
+
+    Used only by the controls that must prove *read-time* verification still
+    detects a rewritten retained row. The triggers stop the ordinary path; this
+    models what is left — a database restored without them, or an out-of-band
+    edit — and asserts that reconstruction refuses it anyway. Belt and braces
+    are both load-bearing, so both are tested.
+    """
+    for table in _RETAINED_TABLES:
+        for verb in ("update", "delete"):
+            session.execute(sa_text(f"DROP TRIGGER IF EXISTS prevent_{table}_{verb}"))
+    session.flush()
+    try:
+        yield
+    finally:
+        install_append_only_triggers(session)

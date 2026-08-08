@@ -67,9 +67,20 @@ from afterworlds.services.rules_authority.views import (
 
 __all__ = [
     "AuthorityResult",
+    "IncoherentBindingError",
     "MechanicalRuleSlice",
     "RulesAuthorityService",
 ]
+
+
+class IncoherentBindingError(RuntimeError):
+    """Raised when a recorded binding's four components describe two authorities.
+
+    Distinct from ``STALE``, which means the world moved on from a coherent
+    binding. This means the binding was never coherent: its projection was built
+    over a different package or release than the binding names, so replaying it
+    would label one package's mechanics with another's provenance.
+    """
 
 
 @dataclass(frozen=True)
@@ -349,13 +360,42 @@ class RulesAuthorityService:
         Raises rather than returning an outcome. ``STALE`` is not a valid answer
         to a replay: divergence from current state is expected and is the whole
         point. A version that cannot be resolved is a retention defect
-        (:class:`OverrideSetRetentionError`), and a projection that cannot be
-        reconstructed is a persistence defect; neither is a divergence signal.
+        (:class:`OverrideSetRetentionError`), a projection that cannot be
+        reconstructed is a persistence defect, and a binding whose components do
+        not describe one authority is an :class:`IncoherentBindingError`. None of
+        the three is a divergence signal.
+
+        **The four components are checked against each other, not just resolved
+        individually.** The override set and the projection are loaded from
+        different tables by different identities, so nothing about loading both
+        proves they belong together — and because the override-set identity is
+        content-derived and package-independent, the empty set is legitimately
+        shared by every package. A binding that paired package B with package A's
+        projection would otherwise replay A's mechanics under B's provenance,
+        which is exactly the ambiguity the four-component binding exists to
+        remove.
         """
+        candidate = self._reconstruct(recorded)
+        bound = candidate.binding
+        if bound.package_uuid != str(recorded.package_uuid):
+            raise IncoherentBindingError(
+                f"recorded binding names package {recorded.package_uuid}, but "
+                f"projection {recorded.mechanical_projection_uuid} was built over "
+                f"package {bound.package_uuid}"
+            )
+        if bound.release_version != recorded.release_version:
+            raise IncoherentBindingError(
+                f"recorded binding names release {recorded.release_version!r}, but "
+                f"projection {recorded.mechanical_projection_uuid} was built over "
+                f"release {bound.release_version!r}"
+            )
         state = load_override_set_version(
-            self._session, str(recorded.override_set_uuid)
+            self._session,
+            str(recorded.override_set_uuid),
+            package_uuid=str(recorded.package_uuid),
+            release_version=recorded.release_version,
         )
-        return apply_override_set(self._reconstruct(recorded), state, recorded)
+        return apply_override_set(candidate, state, recorded)
 
 
 def _select(

@@ -62,17 +62,15 @@ def upgrade() -> None:
         sa.Column("note", sa.Text, nullable=True),
     )
 
+    # Content-addressed and package-independent. The identity is derived from
+    # the ordered entries alone, so identical states across packages — including
+    # every package's empty override set — resolve to one row. An owning
+    # package_uuid with ON DELETE CASCADE would name whichever package retained
+    # it first and would delete shared replay evidence when *that* package is
+    # deleted, breaking recorded bindings of unrelated packages.
     op.create_table(
         "rp_override_set_versions",
         sa.Column("override_set_uuid", sa.String(36), primary_key=True),
-        sa.Column(
-            "package_uuid",
-            sa.String(36),
-            sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
-            nullable=False,
-            index=True,
-        ),
-        sa.Column("release_version", sa.String(64), nullable=False),
         sa.Column("entry_count", sa.Integer, nullable=False),
         sa.Column("recorded_at", sa.String(64), nullable=False),
     )
@@ -105,8 +103,33 @@ def upgrade() -> None:
         ),
     )
 
+    # Append-only triggers on both retained tables, matching the convention this
+    # repository already applies to entitlement_event, provider_refusal_log, and
+    # rpg_roll_audit. Reconstruction re-derives the identity on read and so can
+    # *detect* a rewritten version, but detection only reports that replay is
+    # broken — it cannot reconstruct the authority that was originally applied.
+    # These retained rows are the evidence a recorded binding depends on, so the
+    # database refuses the rewrite rather than leaving it to be noticed later.
+    for table in ("rp_override_set_versions", "rp_override_set_entries"):
+        for verb in ("UPDATE", "DELETE"):
+            op.execute(
+                f"""
+                CREATE TRIGGER prevent_{table}_{verb.lower()}
+                BEFORE {verb} ON {table}
+                BEGIN
+                    SELECT RAISE(
+                        ABORT,
+                        '{table} is append-only: {verb} is forbidden'
+                    );
+                END
+                """
+            )
+
 
 def downgrade() -> None:
+    for table in ("rp_override_set_versions", "rp_override_set_entries"):
+        for verb in ("update", "delete"):
+            op.execute(f"DROP TRIGGER IF EXISTS prevent_{table}_{verb}")
     op.drop_table("rp_override_set_entries")
     op.drop_table("rp_override_set_versions")
     op.drop_table("rp_mech_overrides")

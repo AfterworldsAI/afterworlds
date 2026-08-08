@@ -23,6 +23,7 @@ import pytest
 from sqlalchemy import delete, select
 
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
+from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.rules_authority import (
     MechanicalOverrideORM,
     OverrideSetEntryORM,
@@ -43,11 +44,22 @@ from tests.services.rules_authority.conftest import (
     RuntimeFixture,
     author_override,
     replace_fact_payload,
+    without_append_only_triggers,
 )
 
 
 def service(runtime: RuntimeFixture) -> RulesAuthorityService:
     return RulesAuthorityService(runtime.session, now=NOW)
+
+
+def _load(runtime: RuntimeFixture, recorded: RulesPackageBinding):  # type: ignore[no-untyped-def]
+    """Load a retained version with the scope its binding supplies."""
+    return load_override_set_version(
+        runtime.session,
+        str(recorded.override_set_uuid),
+        package_uuid=str(recorded.package_uuid),
+        release_version=recorded.release_version,
+    )
 
 
 def _recorded_binding(runtime: RuntimeFixture):  # type: ignore[no-untyped-def]
@@ -200,17 +212,19 @@ def test_replay_of_an_unretained_version_is_a_retention_defect(
 ) -> None:
     """Not ``STALE``: a missing version is a defect in retention itself."""
     recorded = _recorded_binding(runtime)
-    runtime.session.execute(
-        delete(OverrideSetEntryORM).where(
-            OverrideSetEntryORM.override_set_uuid == str(recorded.override_set_uuid)
+    with without_append_only_triggers(runtime.session):
+        runtime.session.execute(
+            delete(OverrideSetEntryORM).where(
+                OverrideSetEntryORM.override_set_uuid == str(recorded.override_set_uuid)
+            )
         )
-    )
-    runtime.session.execute(
-        delete(OverrideSetVersionORM).where(
-            OverrideSetVersionORM.override_set_uuid == str(recorded.override_set_uuid)
+        runtime.session.execute(
+            delete(OverrideSetVersionORM).where(
+                OverrideSetVersionORM.override_set_uuid
+                == str(recorded.override_set_uuid)
+            )
         )
-    )
-    runtime.session.flush()
+        runtime.session.flush()
 
     with pytest.raises(OverrideSetRetentionError, match="no retained override-set"):
         service(runtime).replay(recorded)
@@ -226,26 +240,28 @@ def test_a_retained_version_that_no_longer_derives_its_identity_is_a_defect(
             OverrideSetEntryORM.override_set_uuid == str(recorded.override_set_uuid)
         )
     ).scalar_one()
-    entry.precedence = 77
-    runtime.session.flush()
+    with without_append_only_triggers(runtime.session):
+        entry.precedence = 77
+        runtime.session.flush()
 
     with pytest.raises(OverrideSetRetentionError, match="reconstructs as"):
-        load_override_set_version(runtime.session, str(recorded.override_set_uuid))
+        _load(runtime, recorded)
 
 
 def test_a_retained_version_missing_an_entry_is_a_defect(
     runtime: RuntimeFixture,
 ) -> None:
     recorded = _recorded_binding(runtime)
-    runtime.session.execute(
-        delete(OverrideSetEntryORM).where(
-            OverrideSetEntryORM.override_set_uuid == str(recorded.override_set_uuid)
+    with without_append_only_triggers(runtime.session):
+        runtime.session.execute(
+            delete(OverrideSetEntryORM).where(
+                OverrideSetEntryORM.override_set_uuid == str(recorded.override_set_uuid)
+            )
         )
-    )
-    runtime.session.flush()
+        runtime.session.flush()
 
     with pytest.raises(OverrideSetRetentionError, match="entries"):
-        load_override_set_version(runtime.session, str(recorded.override_set_uuid))
+        _load(runtime, recorded)
 
 
 def test_retaining_the_same_state_twice_is_idempotent(

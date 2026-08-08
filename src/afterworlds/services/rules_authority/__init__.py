@@ -49,6 +49,7 @@ from afterworlds.services.rules_authority.retention import (
 )
 from afterworlds.services.rules_authority.service import (
     AuthorityResult,
+    IncoherentBindingError,
     MechanicalRuleSlice,
     RulesAuthorityService,
 )
@@ -79,6 +80,7 @@ __all__ = [
     "GameMasterAuthorityView",
     "GameMasterComponent",
     "GoverningProse",
+    "IncoherentBindingError",
     "InvalidPatchError",
     "MechanicalPatch",
     "MechanicalRuleSlice",

@@ -102,25 +102,28 @@ class OverrideSetVersionORM(Base):
     rather than a second row, and two different states can never share a
     version.
 
-    ``package_uuid`` and ``release_version`` record the scope this version was
-    resolved for. They are retained for retrieval and diagnosis and are
-    deliberately **not** part of the identity payload: the identity is derived
-    from the ordered entries alone, which is what gives the empty override set
-    one deterministic identity rather than one per package.
+    **A version is content, not a possession of one package.** Because the
+    identity is derived from the ordered entries alone — which is what gives the
+    empty override set one deterministic identity rather than one per package —
+    identical states across packages resolve to the same row, and every package
+    with no overrides shares it. It therefore carries no ``package_uuid`` and no
+    foreign key: an owning column would name whichever package happened to
+    retain it first, and cascading that package's deletion would delete replay
+    evidence that recorded bindings of unrelated packages still depend on.
+    Package scope belongs to the enclosing binding, which supplies it already.
 
-    ``recorded_at`` is audit metadata and never participates in identity.
+    ``recorded_at`` is audit metadata — when this content was *first* observed —
+    and never participates in identity.
+
+    Append-only, enforced by database triggers (migration ``0024``) as the
+    repository does for its other append-only evidence tables. Verification on
+    read can only report that replay is broken; the triggers are what stop it
+    from being broken by an ordinary ORM mistake.
     """
 
     __tablename__ = "rp_override_set_versions"
 
     override_set_uuid: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
-    package_uuid: Mapped[str] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    release_version: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     entry_count: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     recorded_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
@@ -136,6 +139,9 @@ class OverrideSetEntryORM(Base):
 
     ``(override_set_uuid, apply_order)`` is unique: the retained order is the
     order that was applied, and two entries cannot claim the same position.
+
+    Append-only, enforced by database triggers (migration ``0024``) for the same
+    reason as its version header.
     """
 
     __tablename__ = "rp_override_set_entries"
