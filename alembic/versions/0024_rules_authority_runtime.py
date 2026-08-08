@@ -103,15 +103,49 @@ def upgrade() -> None:
         ),
     )
 
-    # Append-only triggers on both retained tables, matching the convention this
-    # repository already applies to entitlement_event, provider_refusal_log, and
-    # rpg_roll_audit. Reconstruction re-derives the identity on read and so can
-    # *detect* a rewritten version, but detection only reports that replay is
-    # broken — it cannot reconstruct the authority that was originally applied.
-    # These retained rows are the evidence a recorded binding depends on, so the
+    # Which package/release retained which shared content. An association rather
+    # than a column on the version, because the version is shared by every scope
+    # holding identical override state — including every package's empty set.
+    # Deleting a package drops its own association here and leaves the shared
+    # content, and every other package's association, untouched.
+    op.create_table(
+        "rp_override_set_scopes",
+        sa.Column(
+            "override_set_uuid",
+            sa.String(36),
+            sa.ForeignKey(
+                "rp_override_set_versions.override_set_uuid", ondelete="CASCADE"
+            ),
+            primary_key=True,
+        ),
+        sa.Column(
+            "package_uuid",
+            sa.String(36),
+            sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("release_version", sa.String(64), primary_key=True),
+        sa.Column("first_recorded_at", sa.String(64), nullable=False),
+    )
+
+    # Append-only triggers, matching the convention this repository already
+    # applies to entitlement_event, provider_refusal_log, and rpg_roll_audit.
+    # Reconstruction re-derives the identity on read and so can *detect* a
+    # rewritten version, but detection only reports that replay is broken — it
+    # cannot reconstruct the authority that was originally applied. These
+    # retained rows are the evidence a recorded binding depends on, so the
     # database refuses the rewrite rather than leaving it to be noticed later.
-    for table in ("rp_override_set_versions", "rp_override_set_entries"):
-        for verb in ("UPDATE", "DELETE"):
+    #
+    # DELETE is guarded on the two content tables but deliberately not on
+    # rp_override_set_scopes: the scope association's lifecycle is its package's,
+    # and blocking DELETE there would make deleting a package impossible. A
+    # removed association fails replay closed, never with false provenance.
+    for table, verbs in (
+        ("rp_override_set_versions", ("UPDATE", "DELETE")),
+        ("rp_override_set_entries", ("UPDATE", "DELETE")),
+        ("rp_override_set_scopes", ("UPDATE",)),
+    ):
+        for verb in verbs:
             op.execute(
                 f"""
                 CREATE TRIGGER prevent_{table}_{verb.lower()}
@@ -125,11 +159,103 @@ def upgrade() -> None:
                 """
             )
 
+    # Guarding UPDATE and DELETE is not enough on SQLite. `INSERT OR REPLACE`
+    # resolves a conflict by deleting the existing row and inserting the new one,
+    # and with `recursive_triggers` off — the default — that implicit delete does
+    # not fire the BEFORE DELETE trigger above. A retained row could therefore be
+    # rewritten wholesale without any guard firing. These BEFORE INSERT triggers
+    # refuse the re-insert directly, which is the only point REPLACE cannot slip
+    # past.
+    op.execute(
+        """
+        CREATE TRIGGER prevent_rp_override_set_versions_reinsert
+        BEFORE INSERT ON rp_override_set_versions
+        WHEN EXISTS (
+            SELECT 1 FROM rp_override_set_versions
+            WHERE override_set_uuid = NEW.override_set_uuid
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_versions is append-only: replacing a retained version is forbidden'
+            );
+        END
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER prevent_rp_override_set_entries_reinsert
+        BEFORE INSERT ON rp_override_set_entries
+        WHEN EXISTS (
+            SELECT 1 FROM rp_override_set_entries
+            WHERE override_set_uuid = NEW.override_set_uuid
+              AND apply_order = NEW.apply_order
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_entries is append-only: replacing a retained entry is forbidden'
+            );
+        END
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER prevent_rp_override_set_scopes_reinsert
+        BEFORE INSERT ON rp_override_set_scopes
+        WHEN EXISTS (
+            SELECT 1 FROM rp_override_set_scopes
+            WHERE override_set_uuid = NEW.override_set_uuid
+              AND package_uuid = NEW.package_uuid
+              AND release_version = NEW.release_version
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_scopes is append-only: replacing a retained association is forbidden'
+            );
+        END
+        """
+    )
+
+    # A version is sealed once it holds the entry count it declared. Without
+    # this, a plain INSERT with the next apply_order silently extends a retained
+    # version — the unique constraint only stops reusing an existing position.
+    op.execute(
+        """
+        CREATE TRIGGER seal_rp_override_set_entries
+        BEFORE INSERT ON rp_override_set_entries
+        WHEN (
+            SELECT COUNT(*) FROM rp_override_set_entries
+            WHERE override_set_uuid = NEW.override_set_uuid
+        ) >= (
+            SELECT entry_count FROM rp_override_set_versions
+            WHERE override_set_uuid = NEW.override_set_uuid
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_entries is sealed: the retained version already holds every entry it declared'
+            );
+        END
+        """
+    )
+
 
 def downgrade() -> None:
-    for table in ("rp_override_set_versions", "rp_override_set_entries"):
-        for verb in ("update", "delete"):
-            op.execute(f"DROP TRIGGER IF EXISTS prevent_{table}_{verb}")
+    for trigger in (
+        "seal_rp_override_set_entries",
+        "prevent_rp_override_set_scopes_reinsert",
+        "prevent_rp_override_set_entries_reinsert",
+        "prevent_rp_override_set_versions_reinsert",
+        "prevent_rp_override_set_scopes_update",
+        "prevent_rp_override_set_entries_update",
+        "prevent_rp_override_set_entries_delete",
+        "prevent_rp_override_set_versions_update",
+        "prevent_rp_override_set_versions_delete",
+    ):
+        op.execute(f"DROP TRIGGER IF EXISTS {trigger}")
+    op.drop_table("rp_override_set_scopes")
     op.drop_table("rp_override_set_entries")
     op.drop_table("rp_override_set_versions")
     op.drop_table("rp_mech_overrides")

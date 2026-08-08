@@ -149,7 +149,7 @@ def test_a_package_without_an_active_projection_is_unpublished(
     runtime: RuntimeFixture,
 ) -> None:
     """``UNPUBLISHED`` is a typed answer, not an empty result."""
-    resolution = service(runtime).resolve(package_uuid=runtime.rival_package_uuid)
+    resolution = service(runtime).resolve(package_uuid=runtime.bare_package_uuid)
     assert resolution.outcome is AuthorityOutcome.UNPUBLISHED
     assert resolution.binding is None
 

@@ -128,6 +128,50 @@ class OverrideSetVersionORM(Base):
     recorded_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
+class OverrideSetScopeORM(Base):
+    """One package/release a retained override-set version was recorded for.
+
+    The version row is content and is deliberately shared: identical override
+    state across packages is one row, and every package with no overrides shares
+    the empty set. That sharing is what makes this table necessary. Without it
+    the version carries no record of *which* scopes it was ever retained for, so
+    replay has to take the caller's binding at its word — and because semantic
+    keys are stable across SRD-derived releases by design, an override set
+    retained for one package finds live targets in another and replays with the
+    wrong provenance.
+
+    So scope is an *association*, not a column on the content: many packages may
+    legitimately share one version, and each records its own row here.
+
+    ``ON DELETE CASCADE`` on ``package_uuid`` is correct at this grain and was
+    the defect at the other one. Deleting a package removes that package's
+    association — its own recorded bindings die with it — while the shared
+    version and every other package's association survive untouched.
+
+    Append-only against ``UPDATE`` and re-``INSERT``, but deliberately **not**
+    against ``DELETE``: the delete path is how the package cascade above works,
+    and blocking it would make deleting a package impossible. A deleted
+    association fails replay closed with a retention defect, never with false
+    provenance.
+    """
+
+    __tablename__ = "rp_override_set_scopes"
+
+    override_set_uuid: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_override_set_versions.override_set_uuid", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    package_uuid: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    release_version: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    #: When this scope first retained this content. Audit metadata only.
+    first_recorded_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
 class OverrideSetEntryORM(Base):
     """One retained entry of an immutable override-set version.
 

@@ -330,7 +330,7 @@ def test_a_slice_over_an_unpublished_package_is_typed(
     runtime: RuntimeFixture,
 ) -> None:
     result = service(runtime).rule_slice(
-        RuleSliceRequest(package_id=runtime.rival_package_uuid, whole_package=True)
+        RuleSliceRequest(package_id=runtime.bare_package_uuid, whole_package=True)
     )
     assert result.outcome is AuthorityOutcome.UNPUBLISHED
     assert result.slice is None

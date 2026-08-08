@@ -40,6 +40,7 @@ from sqlalchemy.orm import Session
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.persistence.orm.rules_authority import (
     OverrideSetEntryORM,
+    OverrideSetScopeORM,
     OverrideSetVersionORM,
 )
 from afterworlds.services.rules_authority.override_set import (
@@ -88,6 +89,11 @@ def retain_override_set(
         )
     ).scalar_one_or_none()
     if existing is not None:
+        # The content is already retained, but *this* scope may not be: shared
+        # content is the normal case, so a second package reaching the same
+        # identity still has to record its own association before it may replay
+        # against it.
+        _retain_scope(session, identity, state, now=now)
         # Reconstruct rather than trust: this is the read path replay will take,
         # so proving it here means a retention defect surfaces at the write that
         # could still have fixed it.
@@ -127,7 +133,38 @@ def retain_override_set(
             )
         )
     session.flush()
+    _retain_scope(session, identity, state, now=now)
     return identity
+
+
+def _retain_scope(
+    session: Session, identity: str, state: EffectiveOverrideSet, *, now: str
+) -> None:
+    """Record that *state*'s package and release retained this content.
+
+    Idempotent, and separate from the version write because the two have
+    different grains: the version is shared content written once, while the
+    association is per package/release and may legitimately be the first thing a
+    second package adds to content that already exists.
+    """
+    already = session.execute(
+        select(OverrideSetScopeORM).where(
+            OverrideSetScopeORM.override_set_uuid == identity,
+            OverrideSetScopeORM.package_uuid == state.package_uuid,
+            OverrideSetScopeORM.release_version == state.release_version,
+        )
+    ).scalar_one_or_none()
+    if already is not None:
+        return
+    session.add(
+        OverrideSetScopeORM(
+            override_set_uuid=identity,
+            package_uuid=state.package_uuid,
+            release_version=state.release_version,
+            first_recorded_at=now,
+        )
+    )
+    session.flush()
 
 
 def _entry_from_row(row: OverrideSetEntryORM) -> EffectiveOverrideEntry:
@@ -177,11 +214,18 @@ def load_override_set_version(
     re-derived from them would reconstruct today's authority while claiming to
     reconstruct the recorded one.
 
-    *package_uuid* and *release_version* are supplied by the caller rather than
-    read from the version row, because the version is content-addressed and
-    package-independent: identical override state across packages is one row,
-    and the empty set is shared by every package. The scope comes from the
-    binding being replayed, which is the only place it is authoritative.
+    *package_uuid* and *release_version* come from the binding being replayed
+    rather than from the version row, because the version is content-addressed
+    and package-independent: identical override state across packages is one
+    row, and the empty set is shared by every package.
+
+    They are **verified, not trusted.** A retained version may only be applied
+    under a scope it was actually retained for, proven against
+    ``rp_override_set_scopes``. Without that check the caller's binding would be
+    self-certifying, and since semantic keys are stable across SRD-derived
+    releases by design, an override set retained for one package finds live
+    targets in another and replays with the wrong provenance rather than
+    failing.
 
     Raises :class:`OverrideSetRetentionError` when the version is absent, its
     entry count disagrees with what was retained, its apply order is not a
@@ -196,6 +240,19 @@ def load_override_set_version(
     if version is None:
         raise OverrideSetRetentionError(
             f"no retained override-set version {override_set_uuid}"
+        )
+
+    scope = session.execute(
+        select(OverrideSetScopeORM).where(
+            OverrideSetScopeORM.override_set_uuid == override_set_uuid,
+            OverrideSetScopeORM.package_uuid == package_uuid,
+            OverrideSetScopeORM.release_version == release_version,
+        )
+    ).scalar_one_or_none()
+    if scope is None:
+        raise OverrideSetRetentionError(
+            f"retained override-set version {override_set_uuid} was never retained "
+            f"for package {package_uuid} release {release_version!r}"
         )
 
     rows = (

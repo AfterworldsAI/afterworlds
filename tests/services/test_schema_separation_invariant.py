@@ -169,6 +169,7 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_mech_overrides",
         "rp_override_set_versions",
         "rp_override_set_entries",
+        "rp_override_set_scopes",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

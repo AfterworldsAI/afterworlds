@@ -264,6 +264,7 @@ class TestRpTablePrefix:
             "rp_mech_overrides",
             "rp_override_set_versions",
             "rp_override_set_entries",
+            "rp_override_set_scopes",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (

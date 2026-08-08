@@ -131,13 +131,20 @@ NOW = "2026-08-08T00:00:00Z"
 _NS = UUID("2f2b6d9c-0e2a-5f31-9a44-6b0c1d2e3f40")
 PACKAGE_UUID = str(uuid5(_NS, "runtime-authority-primary"))
 RIVAL_PACKAGE_UUID = str(uuid5(_NS, "runtime-authority-rival"))
+#: A published 5c release carrying no mechanical projection at all, so
+#: ``UNPUBLISHED`` stays a reachable state now that the rival package has one.
+BARE_PACKAGE_UUID = str(uuid5(_NS, "runtime-authority-bare"))
 
 RELEASE_VERSION = "5.2.1-runtime.fixture"
 RIVAL_RELEASE_VERSION = "5.2.1-runtime.rival"
+BARE_RELEASE_VERSION = "5.2.1-runtime.bare"
 
 #: Both packages carry the same display name, so they slugify identically. That
 #: is what an ambiguous human-facing slug actually is.
 PACKAGE_NAME = "SRD 5.2.1 corpus"
+#: The bare package is deliberately named differently: the ambiguous-slug
+#: control needs exactly two packages sharing a slug, not three.
+BARE_PACKAGE_NAME = "Bare corpus with no projection"
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -270,7 +277,11 @@ _TRANSFORM_CONFIG: dict[str, object] = {
 
 
 def _seed_release(
-    session: Session, package_uuid: str, release_version: str, prefix: str = ""
+    session: Session,
+    package_uuid: str,
+    release_version: str,
+    prefix: str = "",
+    package_name: str = PACKAGE_NAME,
 ) -> str:
     """Persist one published 5c release, returning its bundle root hash.
 
@@ -343,11 +354,13 @@ def _seed_release(
             persisted_corpus_digest=PERSISTED_CORPUS_DIGEST,
         )
     )
-    _mark_published(session, package_uuid)
+    _mark_published(session, package_uuid, package_name)
     return bundle.bundle_root_hash
 
 
-def _mark_published(session: Session, package_uuid: str) -> None:
+def _mark_published(
+    session: Session, package_uuid: str, name: str = PACKAGE_NAME
+) -> None:
     """Transition a seeded release to published, as ``finalize_release`` does."""
     session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == package_uuid)
@@ -357,7 +370,7 @@ def _mark_published(session: Session, package_uuid: str) -> None:
     ).scalar_one()
     package.publication_status = "published"
     package.published_at = NOW
-    package.name = PACKAGE_NAME
+    package.name = name
     session.flush()
 
 
@@ -365,12 +378,24 @@ def _mark_published(session: Session, package_uuid: str) -> None:
 # The bounded mechanical projection
 # ---------------------------------------------------------------------------
 
-WISH_BINDING = ProseBindingDraft(
-    component_key=OPEN_ENDED_KEY,
-    record_key=SPELL_KEY,
-    chunk_id=WISH_CHUNK,
-    irreducibility_reason_code="open_ended_effect",
-)
+
+def _wish_binding(prefix: str = "") -> ProseBindingDraft:
+    """The prose binding, scoped to the release's own chunk identities.
+
+    Chunk ids are release-scoped (``rp_chunks.chunk_id`` is globally unique), so
+    a projection over the rival release must bind that release's chunk. Semantic
+    *keys* stay identical across both — which is the point: shared keys are what
+    make a mis-scoped override set able to find live targets elsewhere.
+    """
+    return ProseBindingDraft(
+        component_key=OPEN_ENDED_KEY,
+        record_key=SPELL_KEY,
+        chunk_id=f"{prefix}{WISH_CHUNK}",
+        irreducibility_reason_code="open_ended_effect",
+    )
+
+
+WISH_BINDING = _wish_binding()
 
 
 def _classification(package_uuid: str, release_version: str) -> ClassificationLedger:
@@ -421,7 +446,7 @@ def _classification(package_uuid: str, release_version: str) -> ClassificationLe
     )
 
 
-def _representation() -> RepresentationDraft:
+def _representation(prefix: str = "") -> RepresentationDraft:
     """A spell with structured and prose-bound authority, plus a scoped creature.
 
     Small on purpose, but not degenerate: two records, three components across
@@ -458,7 +483,7 @@ def _representation() -> RepresentationDraft:
                 facts=(CHECK_FACT,),
             ),
         ),
-        prose_bindings=(WISH_BINDING,),
+        prose_bindings=(_wish_binding(prefix),),
         relationships=(),
         references=(),
         provenance=(
@@ -476,7 +501,7 @@ def _representation() -> RepresentationDraft:
             ),
             ProvenanceClaim(
                 ProvenanceTargetKind.PROSE_BINDING,
-                prose_binding_target_key(WISH_BINDING),
+                prose_binding_target_key(_wish_binding(prefix)),
                 PROSE_SPAN,
                 ProvenanceRole.PRIMARY,
             ),
@@ -515,6 +540,10 @@ class RuntimeFixture:
     release_version: str
     projection_uuid: UUID
     rival_package_uuid: UUID
+    rival_release_version: str
+    rival_projection_uuid: UUID
+    #: Published release, no mechanical projection.
+    bare_package_uuid: UUID
 
     def binding(self, override_set_uuid: UUID) -> RulesPackageBinding:
         return RulesPackageBinding(
@@ -525,24 +554,36 @@ class RuntimeFixture:
         )
 
 
-def _publish_bounded_projection(session: Session, bundle_root_hash: str) -> str:
+def _publish_bounded_projection(
+    session: Session,
+    bundle_root_hash: str,
+    package_uuid: str = PACKAGE_UUID,
+    release_version: str = RELEASE_VERSION,
+    chunk_prefix: str = "",
+) -> str:
     """Build, persist, gate, publish, and activate the bounded projection.
 
     Goes through :func:`_publish_projection` with an in-memory accepted oracle
     rather than writing the rows a publication would have left behind. Binding
     resolution reads the activation row and the recorded evidence, so a fixture
     that faked them would let this suite pass against state no gate accepted.
+
+    Parameterized by package so the rival package can carry its own published
+    projection. Both projections use the same representation, and deliberately
+    so: semantic keys are stable across SRD-derived releases by design, which is
+    exactly why an override set retained for one package can find live targets
+    in another and replay with false provenance if its scope is not verified.
     """
     binding = ReleaseBinding(
-        package_uuid=PACKAGE_UUID,
-        release_version=RELEASE_VERSION,
+        package_uuid=package_uuid,
+        release_version=release_version,
         authoritative_source_hash=AUTHORITATIVE_SOURCE_HASH,
         transform_config_hash=TRANSFORM_CONFIG_HASH,
         bundle_root_hash=bundle_root_hash,
         persisted_corpus_digest=PERSISTED_CORPUS_DIGEST,
     )
-    classification = _classification(PACKAGE_UUID, RELEASE_VERSION)
-    representation = _representation()
+    classification = _classification(package_uuid, release_version)
+    representation = _representation(chunk_prefix)
     identified = identify_projection(
         ProjectionCandidate(
             binding=binding,
@@ -580,10 +621,20 @@ def runtime(tmp_path) -> Iterator[RuntimeFixture]:  # type: ignore[no-untyped-de
     Base.metadata.create_all(engine)
     with create_session_factory(engine)() as session:
         bundle_root_hash = _seed_release(session, PACKAGE_UUID, RELEASE_VERSION)
-        _seed_release(
+        rival_root = _seed_release(
             session, RIVAL_PACKAGE_UUID, RIVAL_RELEASE_VERSION, prefix="rival-"
         )
         projection_uuid = _publish_bounded_projection(session, bundle_root_hash)
+        rival_projection_uuid = _publish_bounded_projection(
+            session, rival_root, RIVAL_PACKAGE_UUID, RIVAL_RELEASE_VERSION, "rival-"
+        )
+        _seed_release(
+            session,
+            BARE_PACKAGE_UUID,
+            BARE_RELEASE_VERSION,
+            prefix="bare-",
+            package_name=BARE_PACKAGE_NAME,
+        )
         install_append_only_triggers(session)
         yield RuntimeFixture(
             session=session,
@@ -591,6 +642,9 @@ def runtime(tmp_path) -> Iterator[RuntimeFixture]:  # type: ignore[no-untyped-de
             release_version=RELEASE_VERSION,
             projection_uuid=UUID(projection_uuid),
             rival_package_uuid=UUID(RIVAL_PACKAGE_UUID),
+            rival_release_version=RIVAL_RELEASE_VERSION,
+            rival_projection_uuid=UUID(rival_projection_uuid),
+            bare_package_uuid=UUID(BARE_PACKAGE_UUID),
         )
     engine.dispose()
 
@@ -742,23 +796,87 @@ def replace_record_payload(
 # tests/persistence/test_rpg_roll_audit_db.py and tests/entitlement/conftest.py
 # already use for the repository's other append-only evidence tables.
 
-_RETAINED_TABLES = ("rp_override_set_versions", "rp_override_set_entries")
+_RETAINED_TABLES = (
+    "rp_override_set_versions",
+    "rp_override_set_entries",
+    "rp_override_set_scopes",
+)
+
+#: Exactly migration 0024's trigger set, restated as (name, sql) so the fixture
+#: can drop and restore all of them. Scopes carry no DELETE guard, by design:
+#: their lifecycle is their package's.
+_GUARD_VERBS: dict[str, tuple[str, ...]] = {
+    "rp_override_set_versions": ("UPDATE", "DELETE"),
+    "rp_override_set_entries": ("UPDATE", "DELETE"),
+    "rp_override_set_scopes": ("UPDATE",),
+}
+
+_REINSERT_PREDICATE: dict[str, str] = {
+    "rp_override_set_versions": "override_set_uuid = NEW.override_set_uuid",
+    "rp_override_set_entries": (
+        "override_set_uuid = NEW.override_set_uuid AND apply_order = NEW.apply_order"
+    ),
+    "rp_override_set_scopes": (
+        "override_set_uuid = NEW.override_set_uuid"
+        " AND package_uuid = NEW.package_uuid"
+        " AND release_version = NEW.release_version"
+    ),
+}
+
+_SEAL_SQL = """
+CREATE TRIGGER seal_rp_override_set_entries
+BEFORE INSERT ON rp_override_set_entries
+WHEN (
+    SELECT COUNT(*) FROM rp_override_set_entries
+    WHERE override_set_uuid = NEW.override_set_uuid
+) >= (
+    SELECT entry_count FROM rp_override_set_versions
+    WHERE override_set_uuid = NEW.override_set_uuid
+)
+BEGIN
+    SELECT RAISE(ABORT, 'rp_override_set_entries is sealed: the retained
+version already holds every entry it declared');
+END
+"""
 
 
-def _trigger_sql(table: str, verb: str) -> str:
-    return (
-        f"CREATE TRIGGER prevent_{table}_{verb.lower()} "
-        f"BEFORE {verb} ON {table} "
-        f"BEGIN SELECT RAISE(ABORT, "
-        f"'{table} is append-only: {verb} is forbidden'); END"
-    )
+def _trigger_statements() -> list[str]:
+    statements: list[str] = []
+    for table, verbs in _GUARD_VERBS.items():
+        for verb in verbs:
+            statements.append(
+                f"CREATE TRIGGER prevent_{table}_{verb.lower()} "
+                f"BEFORE {verb} ON {table} "
+                f"BEGIN SELECT RAISE(ABORT, "
+                f"'{table} is append-only: {verb} is forbidden'); END"
+            )
+    for table, predicate in _REINSERT_PREDICATE.items():
+        statements.append(
+            f"CREATE TRIGGER prevent_{table}_reinsert "
+            f"BEFORE INSERT ON {table} "
+            f"WHEN EXISTS (SELECT 1 FROM {table} WHERE {predicate}) "
+            f"BEGIN SELECT RAISE(ABORT, "
+            f"'{table} is append-only: replacing a retained row is forbidden'); END"
+        )
+    statements.append(_SEAL_SQL)
+    return statements
+
+
+def _trigger_names() -> list[str]:
+    names = [
+        f"prevent_{table}_{verb.lower()}"
+        for table, verbs in _GUARD_VERBS.items()
+        for verb in verbs
+    ]
+    names += [f"prevent_{table}_reinsert" for table in _REINSERT_PREDICATE]
+    names.append("seal_rp_override_set_entries")
+    return names
 
 
 def install_append_only_triggers(session: Session) -> None:
     """Install the migration's append-only triggers on the retained tables."""
-    for table in _RETAINED_TABLES:
-        for verb in ("UPDATE", "DELETE"):
-            session.execute(sa_text(_trigger_sql(table, verb)))
+    for statement in _trigger_statements():
+        session.execute(sa_text(statement))
     session.flush()
 
 
@@ -772,9 +890,8 @@ def without_append_only_triggers(session: Session) -> Iterator[None]:
     edit — and asserts that reconstruction refuses it anyway. Belt and braces
     are both load-bearing, so both are tested.
     """
-    for table in _RETAINED_TABLES:
-        for verb in ("update", "delete"):
-            session.execute(sa_text(f"DROP TRIGGER IF EXISTS prevent_{table}_{verb}"))
+    for name in _trigger_names():
+        session.execute(sa_text(f"DROP TRIGGER IF EXISTS {name}"))
     session.flush()
     try:
         yield
