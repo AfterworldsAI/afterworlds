@@ -28,6 +28,7 @@ from afterworlds.services.rules_authority import (
     override_set_identity,
 )
 from tests.services.rules_authority.conftest import (
+    ADDED_CHECK,
     CHECK_COMPONENT_TARGET,
     DESCRIPTOR_COMPONENT_TARGET,
     DESCRIPTOR_FACT_TARGET,
@@ -35,6 +36,7 @@ from tests.services.rules_authority.conftest import (
     NOW,
     PACKAGE_UUID,
     RELEASE_VERSION,
+    REPLACEMENT_DESCRIPTOR,
     SPELL_KEY,
     RuntimeFixture,
     append_fact_payload,
@@ -350,4 +352,53 @@ def test_a_target_whose_keys_do_not_match_its_kind_is_refused(
 def _other_descriptor() -> SpellDescriptorFact:
     return SpellDescriptorFact(
         level=3, school=SpellSchool.EVOCATION, ritual=False, concentration=True
+    )
+
+
+def test_identity_is_over_the_canonical_patch_not_the_stored_bytes(
+    runtime: RuntimeFixture,
+) -> None:
+    """Equivalent patches are one authority (ADR-005d Decision 9).
+
+    The identity covers the complete *validated* payload, so a payload that
+    lists the same facts in a different order canonicalizes to the same patch
+    and must not mint a second identity. Hashing the stored bytes directly is
+    the canonicalization gap this asserts against — the same defect family that
+    made partial sort keys leak authoring order into the projection UUID.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-order-a",
+        target=DESCRIPTOR_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_component_payload((REPLACEMENT_DESCRIPTOR, ADDED_CHECK)),
+    )
+    forward = identity(runtime)
+
+    row = runtime.session.get(MechanicalOverrideORM, "ov-order-a")
+    assert row is not None
+    row.payload = replace_component_payload((ADDED_CHECK, REPLACEMENT_DESCRIPTOR))
+    runtime.session.flush()
+
+    assert identity(runtime) == forward
+
+
+def test_a_payload_with_no_canonical_form_is_refused_not_identified(
+    runtime: RuntimeFixture,
+) -> None:
+    """A malformed override cannot be skipped into someone else's identity."""
+    author_override(
+        runtime.session,
+        override_id="ov-not-a-patch",
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload={"patch": "replace_fact", "fact": {"family": "made_up"}},
+    )
+    with pytest.raises(Exception, match="closed typed-fact union"):
+        identity(runtime)
+    assert (
+        RulesAuthorityService(runtime.session, now=NOW)
+        .resolve(package_uuid=runtime.package_uuid)
+        .outcome
+        is AuthorityOutcome.INVALID_OVERRIDE
     )
