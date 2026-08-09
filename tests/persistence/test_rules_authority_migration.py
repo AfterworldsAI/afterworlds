@@ -246,6 +246,119 @@ def test_an_identical_reinsert_is_permitted_on_the_migrated_schema(
         con.close()
 
 
+# ---------------------------------------------------------------------------
+# `INSERT OR REPLACE` at an *identical* entry_count
+# ---------------------------------------------------------------------------
+#
+# The content-aware guard lets that statement past on purpose — refusing it would
+# also refuse the service's `ON CONFLICT DO NOTHING`. What stops it from wiping
+# the version's children is a second mechanism, and the distinction is subtle
+# enough to be worth pinning: REPLACE's own conflict-resolution delete skips
+# BEFORE DELETE triggers while `recursive_triggers` is off, but the foreign-key
+# CASCADE it sets off does *not* — the children's own DELETE guards fire and
+# abort the statement. These assert that state by state instead of reasoning
+# about it.
+
+
+def _seed_state(
+    con: sqlite3.Connection, *, entries: int, scope: bool, live_package: bool
+) -> None:
+    con.execute("PRAGMA foreign_keys=ON")
+    if scope or live_package:
+        con.execute(
+            "INSERT INTO rp_packages (rules_package_id, name, system, version,"
+            " is_enabled, publication_status, published_at, created_at, updated_at)"
+            " VALUES ('pkg', 'p', 'd20', '1', 1, 'published', 't', 't', 't')"
+        )
+    con.execute(
+        "INSERT INTO rp_override_set_versions VALUES ('v1', ?, 't0')", (entries,)
+    )
+    for order in range(entries):
+        con.execute(
+            "INSERT INTO rp_override_set_entries (override_set_uuid, apply_order,"
+            " override_id, override_origin, target_kind, target_record_key,"
+            " target_component_key, target_fact_key, override_operation, precedence,"
+            " is_enabled, payload) VALUES ('v1', ?, 'o', 'house_rule', 'record',"
+            " 'r', NULL, NULL, 'disable', 1, 1, '{}')",
+            (order,),
+        )
+    if scope:
+        con.execute(
+            "INSERT INTO rp_override_set_scopes VALUES ('v1', 'pkg', 'rel', 't0')"
+        )
+    if not live_package:
+        con.execute("DELETE FROM rp_packages WHERE rules_package_id = 'pkg'")
+
+
+def _row_counts(con: sqlite3.Connection) -> tuple[int, int, int]:
+    return tuple(  # type: ignore[return-value]
+        con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+        for table in RETAINED_TABLES[1:]
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "entries", "scope", "live_package"),
+    [
+        ("entries and scope, package live", 1, True, True),
+        ("entries and scope, package deleted", 1, True, False),
+        ("entries, association already gone", 1, False, False),
+        ("empty set with a scope", 0, True, True),
+    ],
+)
+def test_an_identical_count_replace_cannot_destroy_retained_evidence(
+    migrated: Path, label: str, entries: int, scope: bool, live_package: bool
+) -> None:
+    """Refused in every state where there is retained evidence to destroy."""
+    con = sqlite3.connect(migrated)
+    try:
+        _seed_state(con, entries=entries, scope=scope, live_package=live_package)
+        before = _row_counts(con)
+        with pytest.raises(sqlite3.IntegrityError):
+            con.execute(
+                "INSERT OR REPLACE INTO rp_override_set_versions"
+                " VALUES ('v1', ?, 'forged')",
+                (entries,),
+            )
+        assert _row_counts(con) == before
+        assert con.execute(
+            "SELECT recorded_at FROM rp_override_set_versions"
+        ).fetchone() == ("t0",)
+    finally:
+        con.close()
+
+
+def test_a_childless_header_is_the_only_replaceable_shape_and_is_inert(
+    migrated: Path,
+) -> None:
+    """The residue, stated exactly rather than left as an unknown.
+
+    A header with no entries and no association has nothing to cascade into, so
+    the replacement lands. It is inert: retention never produces this shape — the
+    scope is written in the same unit — the entry count cannot move without
+    tripping the content-aware guard, and the one column that does change is the
+    ``recorded_at`` audit stamp, which ADR-005d Decision 9 keeps outside identity.
+    Such a version already fails replay closed for want of a scope.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        _seed_state(con, entries=0, scope=False, live_package=False)
+        con.execute(
+            "INSERT OR REPLACE INTO rp_override_set_versions VALUES ('v1', 0, 'forged')"
+        )
+        assert con.execute(
+            "SELECT override_set_uuid, entry_count FROM rp_override_set_versions"
+        ).fetchall() == [("v1", 0)]
+        # And the count still cannot be moved, which is what identity rests on.
+        with pytest.raises(sqlite3.IntegrityError):
+            con.execute(
+                "INSERT OR REPLACE INTO rp_override_set_versions"
+                " VALUES ('v1', 3, 'forged')"
+            )
+    finally:
+        con.close()
+
+
 def test_package_deletion_cascades_the_scope_association(migrated: Path) -> None:
     """The contractual carve-out the delete guard is conditional on."""
     con = sqlite3.connect(migrated)

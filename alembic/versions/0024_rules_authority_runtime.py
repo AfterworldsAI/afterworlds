@@ -203,6 +203,20 @@ def upgrade() -> None:
     # *change* retained content keeps immutability exact while leaving a
     # byte-identical re-insert a no-op. The two mechanisms are designed together;
     # neither works without the other.
+    #
+    # A header carrying the *same* entry_count is therefore let past this guard,
+    # and an `INSERT OR REPLACE` at that shape still cannot destroy anything: a
+    # foreign-key CASCADE is not the same thing as REPLACE's own conflict
+    # resolution. The latter skips BEFORE DELETE triggers while
+    # `recursive_triggers` is off; the former fires them. So the implicit delete
+    # of the header cascades into the entries and the scope association, each of
+    # which raises from its own DELETE guard and aborts the whole statement.
+    # What is left is a header with no entries and no association — a shape
+    # retention cannot produce, since the scope is written in the same unit, and
+    # one that already fails replay closed for want of a scope. Its only writable
+    # column is the `recorded_at` audit stamp, which ADR-005d Decision 9 keeps
+    # outside identity. Asserted state by state in
+    # tests/persistence/test_rules_authority_migration.py rather than argued.
     op.execute(
         """
         CREATE TRIGGER prevent_rp_override_set_versions_reinsert
