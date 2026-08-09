@@ -8,7 +8,9 @@ in the same review so the contents that identity names are retained as immutable
 evidence; further amended by Owner Decision 2026-08-08 so a runtime prose-bound override may resolve
 through a first-class authored-authority overlay distinct from 5c source prose, replacing this ADR's
 blanket prohibition on a second prose store with the narrower invariant that there is no duplicated store
-for what the SRD source says  
+for what the SRD source says; further amended by Owner Decision 2026-08-09 so that overlay's effective
+`handling` is derived fresh from currently surviving facts and prose after each prose operation rather than
+remembered as a sticky promotion, correcting this ADR's prior text to the contrary  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -348,8 +350,9 @@ record and component identity, never a raw chunk, a JSON path, or an unscoped se
 meanings extend without changing:
 
 - `DISABLE` on prose authority suppresses that exact component's effective governing prose without
-  deleting its base state — a structured or mixed component's typed facts are untouched, and a
-  prose-bound component's declared handling is untouched, even though it now presents no governing prose.
+  deleting its base state or altering its typed facts. What that leaves the component's *effective*
+  handling as depends on what survives — see the effective-content classification below — not on what the
+  component's handling was before the disable.
 - `REPLACE` on prose authority replaces the target's complete effective governing prose with exact
   authored prose, superseding both the base projection's 5c-bound prose and any previously applied
   authored prose for that target, resolved in the same ascending `(precedence, override_id)` order every
@@ -367,14 +370,34 @@ from the base source; its provenance is the authored override and the retained o
 (Decision 9). Attaching authored prose to a component the base projection classified `STRUCTURED` — which
 by definition carries no prose binding — makes that component's *effective* handling `MIXED` in every view
 built from it, honestly reflecting that structured facts and authored prose now coexist; the immutable base
-projection's own `STRUCTURED` classification and identity are untouched. A `DISABLE` of prose authority
-does not demote an effective `PROSE_BOUND` or `MIXED` component's handling merely because it now shows no
-prose — including a `MIXED` promotion that an earlier override in the same resolved set produced, which a
-later `DISABLE` of that same prose does not reverse; the suppression is visible in applied-override
-provenance instead. Complete component additions or
+projection's own `STRUCTURED` classification and identity are untouched. Complete component additions or
 replacements (this decision's existing `REPLACE`/`APPEND` component and record patches) may declare
 `PROSE_BOUND` or `MIXED` handling and carry authored prose where their own closed schema permits it, under
 the same non-fabricated-provenance rule.
+
+**Amended by Owner Decision 2026-08-09 — effective-content classification, not historical/sticky.** An
+earlier draft of this decision stated that a `DISABLE` of prose authority "does not demote" an effective
+`PROSE_BOUND` or `MIXED` component's handling, including a `MIXED` promotion an earlier override in the
+same resolved set produced. That was wrong and is superseded: `EffectiveComponent.handling` describes the
+authority surviving *after* ordered override application, not authority that existed earlier in the
+sequence, so it is derived fresh from what survives each time a prose operation resolves rather than
+remembered as a sticky flag. Concretely:
+
+- effective facts plus effective prose → `MIXED`;
+- effective facts without effective prose → `STRUCTURED`;
+- effective prose without effective facts → `PROSE_BOUND`;
+- a prose-only component whose sole prose authority is suppressed remains `PROSE_BOUND`, with an empty
+  effective prose surface, because no other category honestly describes a component with no typed facts.
+
+So `STRUCTURED → authored prose → MIXED → DISABLE prose` finishes `STRUCTURED`, and a base `MIXED`
+component whose prose is suppressed while its facts survive finishes `STRUCTURED` the same way — a
+promotion to `MIXED` is never sticky. This recomputation affects only the effective runtime view: the
+immutable base projection's own classification and identity, and every applied-override's provenance, are
+unaffected either way. It does not loosen the unchanged suppression rule directly above — a later override
+aimed at the *exact same* already-disabled prose target still does not apply; re-promotion after a
+suppression can only come from a different target (a whole-component or whole-record replacement clears
+the stale suppression for the semantic key it replaces, exactly as it already does for facts and
+components).
 
 This discharges ADR-005d's blanket prohibition on a second prose store (recorded in this ADR's implementing
 code — `patches.py`'s prior docstring — and in #137 contract 3, rather than as a prior Decision clause in
