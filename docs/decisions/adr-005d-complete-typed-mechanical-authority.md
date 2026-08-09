@@ -5,7 +5,10 @@
 **Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
 review) so the effective runtime binding also carries an immutable override-set identity, and clarified
 in the same review so the contents that identity names are retained as immutable, provenance-exact replay
-evidence  
+evidence; further amended by Owner Decision 2026-08-08 so a runtime prose-bound override may resolve
+through a first-class authored-authority overlay distinct from 5c source prose, replacing this ADR's
+blanket prohibition on a second prose store with the narrower invariant that there is no duplicated store
+for what the SRD source says  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
 ---
@@ -100,6 +103,14 @@ Records and components use stable semantic keys rather than positional ordinals.
 and relationships carry exact many-to-many provenance to 5c leaf subspans. Primary and contextual roles
 are distinct; contextual overlap is permitted while conflicting primary claims fail.
 
+**Amended by Owner Decision 2026-08-08.** The many-to-many provenance required above binds the immutable
+base projection's prose bindings: those resolve exclusively to 5c leaf subspans and carry no other
+provenance. A distinct runtime authored-authority prose overlay, layered over a published record or
+component (Decision 10), is not a prose binding under this decision and does not participate in its
+many-to-many 5c subspan provenance. Authored prose is never assigned a 5c leaf subspan, a chunk identity,
+or an irreducibility claim copied from base-projection authority; its provenance is the authored override
+record and the retained override-set version that supplied it (Decision 9).
+
 ### Decision 4 — Closed typed facts, no generated rules engine
 
 Structured authority uses a closed, versioned discriminated union of fact families. A new mechanical
@@ -147,6 +158,12 @@ committed semantic keys, never local ordinals.
 This identity covers the immutable base projection only. `RuleOverride` state is deliberately outside it
 and carries its own separate identity under Decisions 9 and 10, so an override change never mutates or
 remints the base projection UUID.
+
+**Amended by Owner Decision 2026-08-08.** A runtime authored-authority prose overlay never contributes a
+component, fact, or prose binding to this identity. Whether zero or many authored prose overrides are
+applied at runtime, the projection they are applied over has exactly one `mechanical_projection_uuid`; the
+authored overlay's own complete canonical form participates instead in the override-set identity governed
+by Decision 9.
 
 ### Decision 7 — Build-time reference resolution
 
@@ -291,6 +308,14 @@ Every rule-slice request carries the exact effective binding plus deterministic 
 whole-package flag. Invalid slugs, accidentally empty selectors, stale bindings, and mismatched releases
 fail explicitly.
 
+**Amended by Owner Decision 2026-08-08.** The "complete validated payload" every canonical override entry
+already carries explicitly covers a prose-authority payload: the complete authored text of a `REPLACE` or
+`APPEND` against prose authority, or the empty payload of a `DISABLE`. Changing that authored text changes
+the override-set UUID exactly as changing any other enumerated field does; it never changes
+`mechanical_projection_uuid`. Prose authority is targeted at the same grain as a component — stable record
+and component identity — but is a distinct target kind (Decision 10), so a prose operation and a component
+operation against the same record/component pair are two different targets and never collide.
+
 ### Decision 10 — Typed override completion
 
 ADR-0007's entity-targeting override deferral is discharged by 5d.
@@ -316,6 +341,53 @@ never a generic JSON overwrite.
 
 The obsolete prose-only `MechanicalEntity` target is removed under ADR-005c's pre-release clean-baseline
 authority. Unmappable development targets are not guessed into new identities.
+
+**Amended by Owner Decision 2026-08-08 — a first-class authored-authority prose overlay.** `DISABLE`,
+`REPLACE`, and `APPEND` now also apply to prose authority: a fourth typed target grain scoped by stable
+record and component identity, never a raw chunk, a JSON path, or an unscoped selector. Their existing
+meanings extend without changing:
+
+- `DISABLE` on prose authority suppresses that exact component's effective governing prose without
+  deleting its base state — a structured or mixed component's typed facts are untouched, and a
+  prose-bound component's declared handling is untouched, even though it now presents no governing prose.
+- `REPLACE` on prose authority replaces the target's complete effective governing prose with exact
+  authored prose, superseding both the base projection's 5c-bound prose and any previously applied
+  authored prose for that target, resolved in the same ascending `(precedence, override_id)` order every
+  other override uses.
+- `APPEND` on prose authority preserves the target's existing effective governing prose — 5c-bound,
+  previously authored, or both — and adds one more authored passage after it, in that same order.
+
+Effective governing prose is represented as a closed discriminated form distinguishing at least:
+
+- **source prose** — an exact `chunk_id` and its resolved 5c text; and
+- **authored prose** — exact text plus the supplying override's stable identity and origin.
+
+Authored prose is never assigned a fake `chunk_id`, 5c span provenance, or an irreducibility claim copied
+from the base source; its provenance is the authored override and the retained override-set version
+(Decision 9). Attaching authored prose to a component the base projection classified `STRUCTURED` — which
+by definition carries no prose binding — makes that component's *effective* handling `MIXED` in every view
+built from it, honestly reflecting that structured facts and authored prose now coexist; the immutable base
+projection's own `STRUCTURED` classification and identity are untouched. A `DISABLE` of prose authority
+does not demote an effective `PROSE_BOUND` or `MIXED` component's handling merely because it now shows no
+prose — including a `MIXED` promotion that an earlier override in the same resolved set produced, which a
+later `DISABLE` of that same prose does not reverse; the suppression is visible in applied-override
+provenance instead. Complete component additions or
+replacements (this decision's existing `REPLACE`/`APPEND` component and record patches) may declare
+`PROSE_BOUND` or `MIXED` handling and carry authored prose where their own closed schema permits it, under
+the same non-fabricated-provenance rule.
+
+This discharges ADR-005d's blanket prohibition on a second prose store (recorded in this ADR's implementing
+code — `patches.py`'s prior docstring — and in #137 contract 3, rather than as a prior Decision clause in
+this document). The narrower invariant is: there is
+no duplicated store for what the SRD source says. 5c source prose remains immutable, resolves only from its
+exact `RuleChunk`, and is never copied and relabeled as source authority. A separately identified
+authored-authority overlay — carrying its own distinct provenance and never claiming 5c provenance — is
+intentional and is exactly what this amendment adds.
+
+Legacy chunk-targeting overrides (the pre-existing `rp_overrides` prose path) remain a distinct, obsolete
+pre-release mechanism. They are not a second concurrent mechanical or GameMaster truth: the typed authority
+path and views this ADR governs never read them, and their removal remains scheduled for the final
+activation/legacy-retirement PR, not the PR that introduces this overlay.
 
 ### Decision 11 — Downstream ownership remains downstream
 
@@ -413,6 +485,9 @@ narrowly scoped cross-reference as of this change.
   supplied each applied change. Runtime stale detection remains a separate fail-closed check against
   current override state.
 - 2b and 15c receive stable upstream contracts.
+- A house rule or package-patch author can supply exact authored governing prose through the same typed,
+  provenance-exact override path as any other mechanical patch, without corrupting or duplicating 5c
+  source authority (Owner Decision 2026-08-08).
 
 ### Costs
 
@@ -428,6 +503,9 @@ narrowly scoped cross-reference as of this change.
   mints a new override-set identity even when the mechanical result is unchanged, so authoring churn is
   visible in the binding rather than hidden by it.
 - Delivery requires multiple PRs before 5d is complete.
+- An effective component's governing prose can now be a mix of immutable 5c-bound passages and
+  mutable-until-retained authored passages, ordered by the same precedence rule as every other override;
+  operators and auditors reason about one more provenance-exact case (Owner Decision 2026-08-08).
 
 ### Rejected alternatives
 
@@ -465,6 +543,16 @@ narrowly scoped cross-reference as of this change.
     identity and origin as well. Identity is not broadened past that: creation timestamps, authors,
     comments, and proposal history stay non-identity audit metadata unless they participate in
     applicability, ordering, or resolution.
+14. **Integrate authored prose through the legacy `rp_overrides` chunk-targeting path.** Rejected by Owner
+    Decision 2026-08-08: that path targets a raw chunk directly, which is exactly the raw-chunk/unscoped-
+    selector targeting this ADR's typed override system exists to replace, and it would leave two
+    concurrent, differently-shaped override mechanisms both claiming to patch mechanical authority.
+    Authored prose extends the same typed record/component/fact target system instead, at a fourth grain
+    scoped by stable record and component identity.
+15. **Give authored prose its own irreducibility reason from the closed 5c catalog.** Rejected: that
+    catalog exists for 5c's build-time semantic classification of *source* text (Decision 2), a judgment an
+    override author is not making. An override-supplied component's `irreducibility_reason_code` stays
+    `None`, so it can never be confused with, or copied from, a base-projection classification.
 
 ---
 

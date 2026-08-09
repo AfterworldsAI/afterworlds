@@ -1,7 +1,7 @@
 """Closed typed override patch families — CRD Issue 5d, Decision 10.
 
-Six families, and the set is closed. Which family a payload must be is decided
-entirely by the pair *(operation, target kind)*:
+Eight families, and the set is closed. Which family a payload must be is
+decided entirely by the pair *(operation, target kind)*:
 
 ===========  ===========  ==========================================
 Operation    Target       Patch family
@@ -10,15 +10,17 @@ Operation    Target       Patch family
 ``REPLACE``  record       :class:`RecordReplacementPatch`
 ``REPLACE``  component    :class:`ComponentReplacementPatch`
 ``REPLACE``  fact         :class:`FactReplacementPatch`
+``REPLACE``  prose        :class:`ProseReplacementPatch`
 ``APPEND``   record       :class:`ComponentAdditionPatch`
 ``APPEND``   component    :class:`FactAdditionPatch`
+``APPEND``   prose        :class:`ProseAdditionPatch`
 ``APPEND``   fact         *not permitted*
 ===========  ===========  ==========================================
 
 ``APPEND`` onto a fact has no family because a fact is a single value, not a
 collection: ADR-005d Decision 10 permits ``APPEND`` "only where the owning
-schema permits multiplicity", and a record's components and a component's facts
-are the only two places multiplicity exists.
+schema permits multiplicity", and a record's components, a component's facts,
+and a component's governing prose are the only places multiplicity exists.
 
 Record replacement is **record-kind-specific**, never a generic whole-record
 overwrite: :class:`RecordReplacementPatch` declares the ``record_kind`` it
@@ -26,16 +28,24 @@ replaces, and a patch whose declared kind is not the target record's kind is a
 type-incompatible patch that fails rather than reshaping the record into
 something else.
 
-Two things this module deliberately refuses to accept, because accepting them
-would reopen decisions this PR does not own:
+**Authored prose is a distinct runtime authority layer (Owner Decision
+2026-08-08), not a second copy of source authority.** ADR-005d's prohibition on
+a second *prose store* binds the base projection: its prose bindings resolve
+only to an authoritative 5c ``RuleChunk`` with span-exact provenance
+(#137 contract 3), and nothing here duplicates that. An override-supplied
+whole component may now declare ``PROSE_BOUND`` or ``MIXED`` handling and carry
+its own authored text — but that text is never bound to a chunk id, never
+claims 5c span provenance, and never copies an irreducibility reason from base
+authority; its provenance is the supplying override and the retained
+override-set version, and application-layer code enforces that by construction
+rather than by convention. The dedicated ``prose`` target kind
+(:mod:`afterworlds.services.rules_authority.targets`) exists for exactly the
+narrower case: patching *only* a component's governing prose without touching
+its typed facts at all.
 
-* **Prose-bound authority.** An override-supplied component must be
-  ``STRUCTURED``. ``PROSE_BOUND`` and ``MIXED`` handling require exact governing
-  prose bound to an authoritative 5c ``RuleChunk`` with span-exact provenance
-  (#137 contract 3), which is build-time evidence a runtime patch does not
-  have. Authoring prose here would create the second prose store ADR-005d
-  forbids, so a prose-bound override component is rejected. ``DISABLE``
-  remains available for a prose-bound base component.
+One thing this module still deliberately refuses to accept, because accepting
+it would reopen a decision this PR does not own:
+
 * **Anything outside the closed typed-fact union.** Facts are rebuilt through
   CRD Issue 5d's own :func:`fact_from_payload`, so an unknown family, a missing
   field, an extra field, or a mistyped value is rejected here exactly as it is
@@ -76,6 +86,8 @@ __all__ = [
     "InvalidPatchError",
     "MechanicalPatch",
     "PatchFamily",
+    "ProseAdditionPatch",
+    "ProseReplacementPatch",
     "RecordReplacementPatch",
     "patch_from_payload",
     "patch_payload",
@@ -90,8 +102,10 @@ class PatchFamily(StrEnum):
     REPLACE_RECORD = "replace_record"
     REPLACE_COMPONENT = "replace_component"
     REPLACE_FACT = "replace_fact"
+    REPLACE_PROSE = "replace_prose"
     APPEND_COMPONENT = "append_component"
     APPEND_FACT = "append_fact"
+    APPEND_PROSE = "append_prose"
 
 
 class InvalidPatchError(ValueError):
@@ -116,11 +130,19 @@ class ComponentBody:
     names the component being replaced, and required for an addition, where the
     patch is what names it. Carrying the key twice would let a patch disagree
     with its own target.
+
+    ``authored_prose`` is the component's own authored governing prose — never
+    a 5c chunk id, never span provenance, never an irreducibility reason copied
+    from base authority (Owner Decision 2026-08-08). It is required exactly
+    when ``handling`` is ``PROSE_BOUND`` or ``MIXED`` and forbidden for
+    ``STRUCTURED``, mirroring the honesty invariant the build-time projection
+    validator already enforces for the base corpus.
     """
 
     handling: ComponentHandling
     facts: tuple[MechanicalFact, ...]
     semantic_key: str | None = None
+    authored_prose: str | None = None
 
 
 @dataclass(frozen=True)
@@ -176,6 +198,35 @@ class FactAdditionPatch:
     fact: MechanicalFact
 
 
+@dataclass(frozen=True)
+class ProseReplacementPatch:
+    """Replace a component's complete effective governing prose.
+
+    Supersedes both the base projection's 5c-bound prose and any previously
+    applied authored prose for that target (ADR-005d Decision 10, amended
+    2026-08-08) — it is a replacement of everything shown, not one more
+    passage added to it.
+    """
+
+    FAMILY = PatchFamily.REPLACE_PROSE
+
+    text: str
+
+
+@dataclass(frozen=True)
+class ProseAdditionPatch:
+    """Add one authored passage after a component's existing effective prose.
+
+    The existing effective prose — 5c-bound, previously authored, or both — is
+    preserved; this adds one more passage in the same resolution order every
+    other override uses.
+    """
+
+    FAMILY = PatchFamily.APPEND_PROSE
+
+    text: str
+
+
 MechanicalPatch = (
     DisablePatch
     | RecordReplacementPatch
@@ -183,6 +234,8 @@ MechanicalPatch = (
     | FactReplacementPatch
     | ComponentAdditionPatch
     | FactAdditionPatch
+    | ProseReplacementPatch
+    | ProseAdditionPatch
 )
 
 
@@ -199,6 +252,7 @@ _REQUIRED_FAMILY: dict[
         MechanicalTargetKind.COMPONENT,
     ): PatchFamily.DISABLE,
     (OverrideOperationEnum.DISABLE, MechanicalTargetKind.FACT): PatchFamily.DISABLE,
+    (OverrideOperationEnum.DISABLE, MechanicalTargetKind.PROSE): PatchFamily.DISABLE,
     (
         OverrideOperationEnum.REPLACE,
         MechanicalTargetKind.RECORD,
@@ -212,6 +266,10 @@ _REQUIRED_FAMILY: dict[
         MechanicalTargetKind.FACT,
     ): PatchFamily.REPLACE_FACT,
     (
+        OverrideOperationEnum.REPLACE,
+        MechanicalTargetKind.PROSE,
+    ): PatchFamily.REPLACE_PROSE,
+    (
         OverrideOperationEnum.APPEND,
         MechanicalTargetKind.RECORD,
     ): PatchFamily.APPEND_COMPONENT,
@@ -219,6 +277,10 @@ _REQUIRED_FAMILY: dict[
         OverrideOperationEnum.APPEND,
         MechanicalTargetKind.COMPONENT,
     ): PatchFamily.APPEND_FACT,
+    (
+        OverrideOperationEnum.APPEND,
+        MechanicalTargetKind.PROSE,
+    ): PatchFamily.APPEND_PROSE,
     # (APPEND, FACT) is absent on purpose — a fact has no multiplicity to
     # append into, so there is no honest family for it.
 }
@@ -247,11 +309,17 @@ def required_patch_family(
 # ---------------------------------------------------------------------------
 
 
-def _require_keys(payload: Mapping[str, Any], expected: set[str], what: str) -> None:
+def _require_keys(
+    payload: Mapping[str, Any],
+    expected: set[str],
+    what: str,
+    *,
+    optional: frozenset[str] = frozenset(),
+) -> None:
     supplied = set(payload)
     if missing := sorted(expected - supplied):
         raise InvalidPatchError(f"{what} payload is missing {missing}")
-    if extra := sorted(supplied - expected):
+    if extra := sorted(supplied - expected - optional):
         raise InvalidPatchError(f"{what} payload carries extra {extra}")
 
 
@@ -278,13 +346,27 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
 
     *keyed* distinguishes an addition (which must name the component it adds)
     from a replacement (whose target already names it).
+
+    ``handling`` may now be ``PROSE_BOUND`` or ``MIXED`` as well as
+    ``STRUCTURED`` (Owner Decision 2026-08-08): the same facts/prose honesty
+    invariant the build-time projection validator enforces for the base corpus
+    (``ingestion.mechanical.validation``) is enforced here for an
+    override-supplied component — structured handling has facts and no
+    authored prose; prose-bound handling has authored prose and no facts;
+    mixed handling has both. Unlike the base corpus, an override-supplied
+    component never carries an irreducibility reason: that catalog is 5c's own
+    build-time semantic judgment, not one a runtime override author makes.
     """
     if not isinstance(value, Mapping):
         raise InvalidPatchError(
             f"{what} component must be a payload object, got {type(value).__name__}"
         )
     expected = {"handling", "facts"} | ({"semantic_key"} if keyed else set())
-    _require_keys(value, expected, what)
+    # authored_prose is optional on the way in — existing STRUCTURED payloads
+    # that predate Owner Decision 2026-08-08 never mention it — but
+    # _component_body_payload always emits it explicitly, so the canonical
+    # form is never ambiguous about whether it was "omitted" or "null".
+    _require_keys(value, expected, what, optional=frozenset({"authored_prose"}))
 
     raw_handling = value["handling"]
     if type(raw_handling) is not str:
@@ -295,15 +377,6 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         raise InvalidPatchError(
             f"{what} handling {raw_handling!r} is not a declared handling"
         ) from exc
-    if handling is not ComponentHandling.STRUCTURED:
-        # Prose-bound authority needs an authoritative 5c chunk and span-exact
-        # provenance, which a runtime patch cannot supply. Rejecting it here is
-        # what keeps overrides from becoming a second prose store.
-        raise InvalidPatchError(
-            f"{what} declares {handling.value} handling; an override-supplied "
-            "component must be structured, because prose-bound authority "
-            "requires build-time 5c prose binding and provenance"
-        )
 
     semantic_key: str | None = None
     if keyed:
@@ -312,6 +385,13 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
             raise InvalidPatchError(f"{what} semantic_key must be a non-blank string")
         semantic_key = raw_key
 
+    raw_prose = value.get("authored_prose")
+    if raw_prose is not None and (type(raw_prose) is not str or not raw_prose.strip()):
+        raise InvalidPatchError(
+            f"{what} authored_prose must be a non-blank string or null"
+        )
+    authored_prose: str | None = raw_prose
+
     raw_facts = value["facts"]
     if not isinstance(raw_facts, list):
         raise InvalidPatchError(f"{what} facts must be a list")
@@ -319,14 +399,40 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         _build_fact(entry, f"{what} fact {index}")
         for index, entry in enumerate(raw_facts)
     )
-    if not facts:
-        # Structured handling with no facts is the dishonest declaration the
-        # projection validator already rejects; a patch may not introduce it.
-        raise InvalidPatchError(f"{what} declares structured handling with no facts")
     keys = [fact_key(f) for f in facts]
     if len(set(keys)) != len(keys):
         raise InvalidPatchError(f"{what} repeats the same typed fact")
-    return ComponentBody(handling=handling, facts=facts, semantic_key=semantic_key)
+
+    if handling is ComponentHandling.PROSE_BOUND:
+        if facts:
+            raise InvalidPatchError(f"{what} declares prose_bound handling with facts")
+        if authored_prose is None:
+            raise InvalidPatchError(
+                f"{what} declares prose_bound handling with no authored prose"
+            )
+    else:
+        if not facts:
+            # Structured/mixed handling with no facts is the dishonest
+            # declaration the projection validator already rejects for the
+            # base corpus; a patch may not introduce it either.
+            raise InvalidPatchError(
+                f"{what} declares {handling.value} handling with no facts"
+            )
+        if handling is ComponentHandling.STRUCTURED:
+            if authored_prose is not None:
+                raise InvalidPatchError(
+                    f"{what} declares structured handling with authored prose"
+                )
+        elif authored_prose is None:
+            raise InvalidPatchError(
+                f"{what} declares mixed handling with no authored prose"
+            )
+    return ComponentBody(
+        handling=handling,
+        facts=facts,
+        semantic_key=semantic_key,
+        authored_prose=authored_prose,
+    )
 
 
 def _build_disable(payload: Mapping[str, Any]) -> DisablePatch:
@@ -387,13 +493,32 @@ def _build_append_fact(payload: Mapping[str, Any]) -> FactAdditionPatch:
     return FactAdditionPatch(fact=_build_fact(payload["fact"], "append_fact"))
 
 
+def _build_prose_text(payload: Mapping[str, Any], what: str) -> str:
+    raw = payload["text"]
+    if type(raw) is not str or not raw.strip():
+        raise InvalidPatchError(f"{what} text must be a non-blank string")
+    return raw
+
+
+def _build_replace_prose(payload: Mapping[str, Any]) -> ProseReplacementPatch:
+    _require_keys(payload, {"patch", "text"}, "replace_prose")
+    return ProseReplacementPatch(text=_build_prose_text(payload, "replace_prose"))
+
+
+def _build_append_prose(payload: Mapping[str, Any]) -> ProseAdditionPatch:
+    _require_keys(payload, {"patch", "text"}, "append_prose")
+    return ProseAdditionPatch(text=_build_prose_text(payload, "append_prose"))
+
+
 _PATCH_BUILDERS: dict[PatchFamily, Any] = {
     PatchFamily.DISABLE: _build_disable,
     PatchFamily.REPLACE_RECORD: _build_replace_record,
     PatchFamily.REPLACE_COMPONENT: _build_replace_component,
     PatchFamily.REPLACE_FACT: _build_replace_fact,
+    PatchFamily.REPLACE_PROSE: _build_replace_prose,
     PatchFamily.APPEND_COMPONENT: _build_append_component,
     PatchFamily.APPEND_FACT: _build_append_fact,
+    PatchFamily.APPEND_PROSE: _build_append_prose,
 }
 
 
@@ -444,6 +569,10 @@ def _component_body_payload(body: ComponentBody) -> dict[str, object]:
     # order: two patches supplying the same facts in a different order are the
     # same patch, and must not mint two override-set identities.
     payload["facts"] = [fact_payload(f) for f in sorted(body.facts, key=fact_key)]
+    # Load-bearing: omitting authored_prose here would let two REPLACE/APPEND
+    # component patches differing only in authored text canonicalize to
+    # identical bytes and silently share an override-set UUID.
+    payload["authored_prose"] = body.authored_prose
     return payload
 
 
@@ -452,7 +581,9 @@ def patch_payload(patch: MechanicalPatch) -> dict[str, object]:
 
     This is what the override-set identity is derived from, so it must be a
     complete and order-stable statement of the patch's content — a payload that
-    dropped a field would let two different patches share an identity.
+    dropped a field would let two different patches share an identity. Every
+    branch is explicit, with no bare fallthrough, so the closed union stays
+    exhaustive as a type-checking property rather than an implicit one.
     """
     if isinstance(patch, DisablePatch):
         return {"patch": PatchFamily.DISABLE.value}
@@ -475,12 +606,18 @@ def patch_payload(patch: MechanicalPatch) -> dict[str, object]:
             "patch": PatchFamily.REPLACE_FACT.value,
             "fact": fact_payload(patch.fact),
         }
+    if isinstance(patch, ProseReplacementPatch):
+        return {"patch": PatchFamily.REPLACE_PROSE.value, "text": patch.text}
     if isinstance(patch, ComponentAdditionPatch):
         return {
             "patch": PatchFamily.APPEND_COMPONENT.value,
             "component": _component_body_payload(patch.body),
         }
-    return {
-        "patch": PatchFamily.APPEND_FACT.value,
-        "fact": fact_payload(patch.fact),
-    }
+    if isinstance(patch, FactAdditionPatch):
+        return {
+            "patch": PatchFamily.APPEND_FACT.value,
+            "fact": fact_payload(patch.fact),
+        }
+    if isinstance(patch, ProseAdditionPatch):
+        return {"patch": PatchFamily.APPEND_PROSE.value, "text": patch.text}
+    raise AssertionError(f"unhandled patch type {type(patch).__name__}")

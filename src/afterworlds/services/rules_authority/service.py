@@ -48,6 +48,7 @@ from afterworlds.services.rules_authority.application import (
     EffectiveComponent,
     EffectiveRecord,
     OverrideApplicationError,
+    SourceProse,
     apply_override_set,
 )
 from afterworlds.services.rules_authority.binding import (
@@ -327,11 +328,14 @@ class RulesAuthorityService:
     def _prose_for(
         self, binding: RulesPackageBinding, authority: EffectiveAuthority
     ) -> dict[str, str]:
+        # Only SourceProse entries name a 5c chunk to resolve; AuthoredProse
+        # entries already carry their exact text (Owner Decision 2026-08-08).
         chunk_ids = {
-            chunk_id
+            entry.chunk_id
             for record in authority.records
             for component in record.components
-            for chunk_id in component.prose_chunk_ids
+            for entry in component.governing_prose
+            if isinstance(entry, SourceProse)
         }
         if not chunk_ids:
             return {}
