@@ -1,6 +1,6 @@
 """Runtime mechanical-authority tables — CRD Issue 5d, Decisions 9 and 10.
 
-Three tables, and the split between them is the whole point of ADR-005d
+Four tables, and the split between them is the whole point of ADR-005d
 Decision 9:
 
 * ``rp_mech_overrides`` is the **authoring surface**. Rows here are mutable:
@@ -9,6 +9,10 @@ Decision 9:
   **retained replay evidence**. Rows here are append-only and immutable, keyed
   by the content-derived ``override_set_uuid`` of the exact canonical ordered
   override state that produced them.
+* ``rp_override_set_scopes`` records **which package and release retained which
+  content**. It exists at a third grain because a version is content: identical
+  override state across packages is one row, so the version itself cannot say
+  whose it is, and replay would otherwise have to take a binding at its word.
 
 Recording only the identifier and re-deriving from current rows was rejected in
 the PR #138 review: the identifier would name state that no longer exists the
@@ -148,11 +152,23 @@ class OverrideSetScopeORM(Base):
     association — its own recorded bindings die with it — while the shared
     version and every other package's association survive untouched.
 
-    Append-only against ``UPDATE`` and re-``INSERT``, but deliberately **not**
-    against ``DELETE``: the delete path is how the package cascade above works,
-    and blocking it would make deleting a package impossible. A deleted
-    association fails replay closed with a retention defect, never with false
-    provenance.
+    Append-only, and the ``DELETE`` guard is **conditional** rather than absent
+    (migration ``0024``). It refuses a delete only while the owning package is
+    still live, which is what makes the two requirements compatible: deleting a
+    package remains possible, because SQLite removes the parent row before
+    cascading and the guard's condition is already false by the time the child
+    trigger fires, while a direct delete against a live package's association is
+    rejected. An association that goes away by the contractual route fails replay
+    closed with a retention defect, never with false provenance.
+
+    Re-inserting an *identical* association is a no-op rather than an error:
+    :func:`~afterworlds.services.rules_authority.retention.retain_override_set`
+    writes through ``INSERT ... ON CONFLICT DO NOTHING``, so two sessions
+    retaining the same content under the same scope converge instead of racing.
+    The association *is* its primary key — version, package, and release
+    together — so the only column a repeat could disturb is the
+    ``first_recorded_at`` audit stamp, which the conflict clause leaves at the
+    first observation. ``UPDATE`` is refused outright.
     """
 
     __tablename__ = "rp_override_set_scopes"

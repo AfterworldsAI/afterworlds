@@ -34,6 +34,15 @@ transaction the whole unit — version, entries, and scope association — is wr
 under one savepoint, so a partial failure unwinds all of it rather than leaving
 an orphan snapshot the next reader would have to reason about.
 
+That guarantee needs a physical transaction underneath it, which a read-only
+prelude does not produce: under ``sqlite3``'s legacy transaction control a
+session that has only read is still in SQLite autocommit, and a savepoint opened
+there is the outermost one — releasing it *commits*. Binding resolution reads
+before it retains, so this was exactly the shape that occurred. Retention
+therefore calls :func:`~afterworlds.persistence.database.ensure_physical_transaction`
+first, which makes the savepoint genuinely nested and leaves the commit boundary
+where the caller expects it.
+
 **Concurrency.** Retention runs on every binding resolution, so two sessions
 resolving the same package at the same time both try to retain the same content.
 That is the expected case, not an error, and it is handled by writing through
@@ -51,6 +60,7 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
+from afterworlds.persistence.database import ensure_physical_transaction
 from afterworlds.persistence.orm.rules_authority import (
     OverrideSetEntryORM,
     OverrideSetScopeORM,
@@ -116,8 +126,17 @@ def retain_override_set(
     verification is not ceremony — a version whose retained entries no longer
     reproduce their own identity would silently answer replay reads with the
     wrong authority.
+
+    Never commits. Everything written here is pending in the caller's
+    transaction and disappears if the caller rolls back, so a retention that
+    belongs to a larger unit of work cannot outlive that unit's failure.
     """
     identity = state.override_set_uuid
+
+    # Before the savepoint, not inside it. Resolution reads before it retains, so
+    # without this the savepoint below would be the outermost one and releasing
+    # it would commit these rows out of the caller's control.
+    ensure_physical_transaction(session)
 
     # One savepoint around the whole unit. Version, entries, and scope are one
     # piece of evidence: a version without its entries, or content without the

@@ -21,6 +21,13 @@ Concurrency here is deterministic. Two real connections are driven through
 ``threading.Barrier`` so both are provably past the point where the old
 query-then-insert had already decided the row was absent; there are no sleeps and
 no timing assumptions.
+
+Round 4 added the transactionality half of the same family. The savepoint is
+only a *nested* savepoint if SQLite has issued a physical ``BEGIN``; after a
+read-only prelude it had not, so releasing the savepoint committed the retained
+rows out of the caller's control. Those controls assert from an independent
+session, since that is the only way to distinguish "committed" from "pending in
+this session's transaction".
 """
 
 from __future__ import annotations
@@ -38,6 +45,7 @@ from afterworlds.ingestion.mechanical.persistence import ProjectionNotPersistedE
 from afterworlds.models.enums import OverrideOperationEnum
 from afterworlds.persistence.database import create_session_factory
 from afterworlds.persistence.orm.rules_authority import (
+    MechanicalOverrideORM,
     OverrideSetEntryORM,
     OverrideSetScopeORM,
     OverrideSetVersionORM,
@@ -519,6 +527,170 @@ def test_an_identical_reinsert_is_a_no_op_and_a_differing_one_is_refused(
             {"i": identity, "n": count + 1},
         )
     runtime.session.rollback()
+
+
+# ---------------------------------------------------------------------------
+# Retention participates in the caller's *physical* transaction
+# ---------------------------------------------------------------------------
+#
+# Codex review round 4. The savepoint above is only a nested savepoint if SQLite
+# has actually issued ``BEGIN``. Under ``sqlite3``'s legacy transaction control
+# a session that has only read is still in autocommit, so the savepoint was the
+# outermost one and releasing it committed the retained rows — a caller's later
+# rollback could not take them back. These controls assert the boundary from a
+# separate session, because rows already committed are visible from anywhere and
+# rows merely pending in another session's transaction are visible from nowhere:
+# a same-session assertion cannot tell the two apart.
+
+
+def _retained_rows_elsewhere(engine: Engine, identity: str) -> tuple[int, int, int]:
+    """Count retained rows for *identity* on a genuinely independent session."""
+    with create_session_factory(engine)() as other:
+        return (
+            _count(other, OverrideSetVersionORM, identity),
+            _count(other, OverrideSetEntryORM, identity),
+            _count(other, OverrideSetScopeORM, identity),
+        )
+
+
+def _authored_state(session: Session, runtime: RuntimeFixture, override_id: str):  # type: ignore[no-untyped-def]
+    """Author one override on *session* and collect the state it implies."""
+    author_override(
+        session,
+        override_id=override_id,
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_fact_payload(),
+    )
+    return collect_current_override_state(
+        session, str(runtime.package_uuid), runtime.release_version
+    )
+
+
+def test_retention_after_a_read_only_prelude_rolls_back_with_the_caller(
+    runtime: RuntimeFixture,
+) -> None:
+    """The reported defect, asserted end to end on the ordinary path.
+
+    No DML precedes the resolution, so before this fix SQLite had issued no
+    ``BEGIN``, the retention savepoint was the outermost one, and releasing it
+    committed. The rollback below is the caller changing its mind; nothing
+    retained may survive it.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-txn",
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_fact_payload(),
+    )
+    runtime.session.commit()
+
+    with create_session_factory(runtime.engine)() as session:
+        # A read-only prelude, exactly as binding resolution performs it.
+        result = service(session).resolve(package_uuid=runtime.package_uuid)
+        assert result.binding is not None
+        identity = str(result.binding.override_set_uuid)
+        # Pending in this session, and nowhere else.
+        assert _count(session, OverrideSetVersionORM, identity) == 1
+        assert _retained_rows_elsewhere(runtime.engine, identity) == (0, 0, 0)
+        session.rollback()
+
+    assert _retained_rows_elsewhere(runtime.engine, identity) == (0, 0, 0)
+
+
+def test_retention_rolls_back_when_later_work_in_an_explicit_block_raises(
+    runtime: RuntimeFixture,
+) -> None:
+    """``with session.begin():`` must own the boundary, not the savepoint."""
+    author_override(
+        runtime.session,
+        override_id="ov-txn-block",
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_fact_payload(),
+    )
+    runtime.session.commit()
+
+    identity: str | None = None
+    with (
+        create_session_factory(runtime.engine)() as session,
+        pytest.raises(RuntimeError, match="later work fails"),
+        session.begin(),
+    ):
+        result = service(session).resolve(package_uuid=runtime.package_uuid)
+        assert result.binding is not None
+        identity = str(result.binding.override_set_uuid)
+        raise RuntimeError("later work fails")
+
+    assert identity is not None
+    assert _retained_rows_elsewhere(runtime.engine, identity) == (0, 0, 0)
+
+
+def test_retention_can_be_retried_and_committed_after_an_enclosing_rollback(
+    runtime: RuntimeFixture,
+) -> None:
+    """A rolled-back retention is genuinely absent, not a poisoned identity."""
+    author_override(
+        runtime.session,
+        override_id="ov-txn-retry",
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_fact_payload(),
+    )
+    runtime.session.commit()
+
+    with create_session_factory(runtime.engine)() as session:
+        first = service(session).resolve(package_uuid=runtime.package_uuid)
+        assert first.binding is not None
+        identity = str(first.binding.override_set_uuid)
+        session.rollback()
+    assert _retained_rows_elsewhere(runtime.engine, identity) == (0, 0, 0)
+
+    with create_session_factory(runtime.engine)() as session:
+        again = service(session).resolve(package_uuid=runtime.package_uuid)
+        assert again.binding is not None
+        assert str(again.binding.override_set_uuid) == identity
+        session.commit()
+
+    assert _retained_rows_elsewhere(runtime.engine, identity) == (1, 1, 1)
+
+    # And the committed evidence replays, so the retry produced usable
+    # provenance rather than merely the right number of rows.
+    with create_session_factory(runtime.engine)() as session:
+        binding = _binding_for(runtime, identity)
+        assert service(session).replay(binding).binding == binding
+
+
+def test_retention_does_not_commit_the_callers_earlier_work(
+    runtime: RuntimeFixture,
+) -> None:
+    """Unrelated pending work must not be made durable by a retention.
+
+    Stated as an invariant rather than as a reproduction: authoring an override
+    is itself DML, so the driver has already opened a physical transaction by the
+    time retention runs and this held even while the defect existed. It is the
+    other half of the boundary — retention must neither commit its own rows nor
+    anyone else's — and it is asserted because a future change that reached for a
+    commit inside retention would break it and nothing else here would notice.
+    """
+    runtime.session.commit()
+    with create_session_factory(runtime.engine)() as session:
+        state = _authored_state(session, runtime, "ov-txn-bystander")
+        identity = state.override_set_uuid
+        retain_override_set(session, state, now=NOW)
+        session.rollback()
+
+    with create_session_factory(runtime.engine)() as other:
+        assert (
+            other.execute(
+                select(func.count())
+                .select_from(MechanicalOverrideORM)
+                .where(MechanicalOverrideORM.override_id == "ov-txn-bystander")
+            ).scalar_one()
+            == 0
+        )
+    assert _retained_rows_elsewhere(runtime.engine, identity) == (0, 0, 0)
 
 
 def test_the_fixture_installs_the_documented_trigger_set() -> None:
