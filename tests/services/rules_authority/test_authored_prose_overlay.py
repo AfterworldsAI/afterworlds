@@ -14,6 +14,14 @@ passage in deterministic order, ``DISABLE`` suppresses it without deleting
 base state, prose operations never touch typed facts, and the whole overlay
 participates in override-set identity and replay exactly like every other
 typed override.
+
+**Effective-content classification (Owner Decision 2026-08-09).**
+``EffectiveComponent.handling`` describes the authority surviving after
+ordered override application, never authority that existed earlier in the
+sequence — a promotion to ``MIXED`` is not sticky. This module's
+STRUCTURED/MIXED-transition tests are the ones that pin that: they assert
+handling *reverts* when prose is suppressed and facts survive, which a
+sticky-promotion implementation gets wrong.
 """
 
 from __future__ import annotations
@@ -344,9 +352,10 @@ def test_disable_prose_suppresses_it_without_deleting_the_component(
     )
     component = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
     assert component.governing_prose == ()
-    # Suppression does not demote the base handling, and it does not delete
-    # the component: it stays PROSE_BOUND, visible with no prose, rather than
-    # being reclassified or dropped from the view.
+    # No facts survive either, so PROSE_BOUND is still the only honest
+    # category (Owner Decision 2026-08-09's named exception) — not because
+    # suppression is exempt from recomputing handling, but because recomputing
+    # it here lands on the same value: no facts, no prose.
     assert component.handling is ComponentHandling.PROSE_BOUND
     assert component.facts == ()
 
@@ -358,9 +367,8 @@ def test_disabling_prose_does_not_suppress_the_components_facts(
 
     Exercised on a component that actually holds both: an earlier APPEND
     promotes DESCRIPTOR_KEY to effective MIXED, then a later DISABLE removes
-    only the prose. If DISABLE touched facts, or if it silently demoted the
-    handling back because the component "looks" structured again, either
-    assertion below would fail.
+    only the prose. The facts must survive untouched regardless of what the
+    disable does to handling (covered separately below).
     """
     author_override(
         runtime.session,
@@ -381,10 +389,320 @@ def test_disabling_prose_does_not_suppress_the_components_facts(
     component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
     assert component.governing_prose == ()
     assert [f.fact_key for f in component.facts] == [DESCRIPTOR_FACT_KEY]
-    # DISABLE does not demote the promotion an earlier APPEND already made:
-    # the component is effectively MIXED (it once carried authored prose),
-    # not silently reclassified back to STRUCTURED because it shows none now.
+
+
+def test_append_then_disable_prose_returns_a_promoted_component_to_structured(
+    runtime: RuntimeFixture,
+) -> None:
+    """Owner Decision 2026-08-09: effective-content classification, not sticky.
+
+    ``handling`` describes the authority surviving after ordered override
+    application, never authority that existed earlier in the sequence. An
+    earlier promotion to MIXED is not remembered once its only prose is gone:
+    facts survive, prose does not, so the component reads STRUCTURED again —
+    exactly what a sticky "once MIXED, always MIXED" implementation gets
+    wrong.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-append-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("a house-rule clarification"),
+        precedence=10,
+    )
+    # Confirm the promotion actually happened before disabling it, so the
+    # transition this test pins is real rather than a no-op.
+    promoted = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert promoted.handling is ComponentHandling.MIXED
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.governing_prose == ()
+    assert [f.fact_key for f in component.facts] == [DESCRIPTOR_FACT_KEY]
+    assert component.handling is ComponentHandling.STRUCTURED
+    assert component.irreducibility_reason_code is None
+
+
+def test_replace_then_disable_prose_returns_a_promoted_component_to_structured(
+    runtime: RuntimeFixture,
+) -> None:
+    """The REPLACE path to promotion demotes the same way APPEND does."""
+    author_override(
+        runtime.session,
+        override_id="ov-replace-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("an authored replacement"),
+        precedence=10,
+    )
+    promoted = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert promoted.handling is ComponentHandling.MIXED
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.governing_prose == ()
+    assert [f.fact_key for f in component.facts] == [DESCRIPTOR_FACT_KEY]
+    assert component.handling is ComponentHandling.STRUCTURED
+    assert component.irreducibility_reason_code is None
+
+
+def test_a_mixed_component_becomes_effectively_structured_when_prose_is_suppressed(
+    runtime: RuntimeFixture,
+) -> None:
+    """A component that is MIXED going in demotes the same way a promoted one
+    does: suppressing its only prose while its facts survive leaves STRUCTURED,
+    never a handling that remembers the MIXED it used to be.
+    """
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-become-mixed",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact)],
+                "authored_prose": "mixed from the start",
+            },
+        },
+        precedence=10,
+    )
+    mixed = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert mixed.handling is ComponentHandling.MIXED
+    assert mixed.facts != ()
+
+    author_override(
+        runtime.session,
+        override_id="ov-suppress-its-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.governing_prose == ()
+    assert component.facts != ()
+    assert component.handling is ComponentHandling.STRUCTURED
+    assert component.irreducibility_reason_code is None
+
+
+def test_disable_prose_stops_later_processing_of_the_same_prose_target(
+    runtime: RuntimeFixture,
+) -> None:
+    """Unchanged precedence: a DISABLE still stops later processing of the
+    *exact same target* — a later APPEND aimed at the same prose target does
+    not resurrect it. #137/ADR-005d Decision 10's "first winning disable wins"
+    rule, already established for record/component/fact targets, applies to
+    prose exactly the same way; this remediation does not loosen it.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-append-after-disable",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("should never apply"),
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.governing_prose == ()
+    assert component.handling is ComponentHandling.STRUCTURED
+    result = service(runtime).typed_view(whole(runtime))
+    assert result.typed_view is not None
+    applied = {a.override_id: a for a in result.typed_view.applied_overrides}
+    assert applied["ov-disable-prose"].applied is True
+    assert applied["ov-append-after-disable"].applied is False
+
+
+def test_a_whole_component_replace_after_prose_suppression_promotes_again(
+    runtime: RuntimeFixture,
+) -> None:
+    """ "Later higher-precedence prose introduced after suppression must
+    promote the effective view again" (Owner Decision 2026-08-09) — reached
+    through a whole-component REPLACE, a different target kind that a prior
+    PROSE-target DISABLE does not suppress. The stale suppression against the
+    old component's prose target must not hold back the replacement's own
+    prose.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    suppressed = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert suppressed.governing_prose == ()
+    assert suppressed.handling is ComponentHandling.STRUCTURED
+
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-replace-whole-component",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact)],
+                "authored_prose": "the replacement's own prose",
+            },
+        },
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
     assert component.handling is ComponentHandling.MIXED
+    (entry,) = component.governing_prose
+    assert isinstance(entry, AuthoredProse)
+    assert entry.text == "the replacement's own prose"
+
+
+def test_replace_component_clears_prose_suppression_so_a_later_append_applies(
+    runtime: RuntimeFixture,
+) -> None:
+    """The most literal reading of "promote again": a whole-component REPLACE
+    clears the stale PROSE-target suppression (existing ``disabled_prose``
+    clearing, unchanged by this remediation), so a *subsequent* prose APPEND
+    on the same target — which would have been suppressed had the REPLACE not
+    intervened — now applies.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-replace-whole-component",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "structured",
+                "facts": [fact_payload(check_fact)],
+            },
+        },
+        precedence=20,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-append-after-replace",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("now applies"),
+        precedence=30,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    (entry,) = component.governing_prose
+    assert isinstance(entry, AuthoredProse)
+    assert entry.text == "now applies"
+    result = service(runtime).typed_view(whole(runtime))
+    assert result.typed_view is not None
+    applied = {a.override_id: a for a in result.typed_view.applied_overrides}
+    assert applied["ov-append-after-replace"].applied is True
+
+
+def test_a_fact_disable_after_prose_promotion_revises_handling_to_prose_bound(
+    runtime: RuntimeFixture,
+) -> None:
+    """A later, unrelated FACT ``DISABLE`` on the same component resolves
+    *after* an earlier prose promotion in ordering. Handling must reflect what
+    survives at the very end, not only what the prose operation itself saw:
+    losing the last fact after a MIXED promotion leaves prose without facts,
+    which Owner Decision 2026-08-09's third bullet makes ``PROSE_BOUND`` — not
+    a handling that keeps claiming facts it no longer has.
+    """
+    from tests.services.rules_authority.conftest import DESCRIPTOR_FACT_TARGET
+
+    author_override(
+        runtime.session,
+        override_id="ov-append-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("a house-rule clarification"),
+        precedence=10,
+    )
+    promoted = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert promoted.handling is ComponentHandling.MIXED
+    before = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert before.binding is not None
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-the-only-fact",
+        target=DESCRIPTOR_FACT_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.facts == ()
+    assert component.governing_prose != ()
+    assert component.handling is ComponentHandling.PROSE_BOUND
+
+    # Re-derivation at final assembly must not lose either override's own
+    # provenance, and must not touch the immutable base projection identity —
+    # both overrides still resolved and applied against their real targets.
+    after = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert after.binding is not None
+    assert (
+        after.binding.mechanical_projection_uuid
+        == before.binding.mechanical_projection_uuid
+    )
+    result = service(runtime).typed_view(whole(runtime))
+    assert result.typed_view is not None
+    applied = {a.override_id: a for a in result.typed_view.applied_overrides}
+    assert applied["ov-append-prose"].applied is True
+    assert applied["ov-disable-the-only-fact"].applied is True
 
 
 # ---------------------------------------------------------------------------
@@ -676,6 +994,64 @@ def test_replay_reconstructs_authored_prose_after_the_current_row_is_deleted(
     replayed = service(runtime).replay(recorded)
     assert replayed.applied_overrides == original.applied_overrides
     assert replayed.records == original.records
+
+
+def test_replay_reconstructs_the_demoted_handling_after_current_rows_change(
+    runtime: RuntimeFixture,
+) -> None:
+    """Effective-content classification is recorded evidence, not a live query.
+
+    The recorded binding names an override-set version whose derived handling
+    (STRUCTURED, after a promotion was disabled) must reconstruct exactly, even
+    after the current override rows that produced it are edited or deleted —
+    the same replay guarantee every other applied change gets.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-append-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("a house-rule clarification"),
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    resolution = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert resolution.outcome is AuthorityOutcome.RESOLVED
+    recorded = resolution.binding
+    assert recorded is not None
+    original = service(runtime).replay(recorded)
+    (original_record,) = [r for r in original.records if r.semantic_key == SPELL_KEY]
+    (original_component,) = [
+        c for c in original_record.components if c.semantic_key == DESCRIPTOR_KEY
+    ]
+    assert original_component.handling is ComponentHandling.STRUCTURED
+
+    disable_row = runtime.session.get(MechanicalOverrideORM, "ov-disable-prose")
+    assert disable_row is not None
+    runtime.session.delete(disable_row)
+    append_row = runtime.session.get(MechanicalOverrideORM, "ov-append-prose")
+    assert append_row is not None
+    append_row.payload = append_prose_payload("current state is now unsuppressed")
+    runtime.session.flush()
+
+    # Current state, unlike the replayed one, would resolve MIXED again — the
+    # point is that replay ignores this and reconstructs the original STRUCTURED.
+    current = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert current.handling is ComponentHandling.MIXED
+
+    replayed = service(runtime).replay(recorded)
+    (record,) = [r for r in replayed.records if r.semantic_key == SPELL_KEY]
+    (component,) = [c for c in record.components if c.semantic_key == DESCRIPTOR_KEY]
+    assert component.handling is ComponentHandling.STRUCTURED
+    assert component.governing_prose == ()
+    assert [f.fact_key for f in component.facts] == [DESCRIPTOR_FACT_KEY]
 
 
 # ---------------------------------------------------------------------------
