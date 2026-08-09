@@ -53,6 +53,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRelationshipORM,
     MechanicalSpanORM,
 )
+from afterworlds.persistence.orm.rules_authority import MechanicalOverrideORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
 from tests.ingestion.mechanical.conftest import (
     SCOPED_REFERENCES,
@@ -86,7 +87,20 @@ TABLE_POLICY: dict[type, str] = {
     # deliberately outside the raw row set and the persisted-state digest. A
     # projection's content must not change when it is activated.
     MechanicalActiveProjectionORM: "activation",
+    # Package-scoped runtime state, not projection-scoped. Overrides never
+    # mutate the immutable base projection or remint its identity (ADR-005d
+    # Decision 10) — the applied ordered override state is identified separately
+    # by the override-set UUID of the effective binding. A projection's
+    # reconstructed meaning and its persisted-state digest must therefore not
+    # move when an override is authored, edited, or deleted, which is exactly
+    # what including this table would do.
+    MechanicalOverrideORM: "runtime_override",
 }
+
+#: Policies whose rows are deliberately outside a projection's raw row set.
+#: Named once so the two inventory tests below cannot drift apart about which
+#: tables reconstruction is supposed to load.
+_NON_PROJECTION_POLICIES = frozenset({"header", "activation", "runtime_override"})
 
 
 @pytest.fixture()
@@ -505,7 +519,7 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
     scoped = {
         model.__tablename__  # type: ignore[attr-defined]
         for model, policy in TABLE_POLICY.items()
-        if policy not in {"header", "activation"}
+        if policy not in _NON_PROJECTION_POLICIES
     }
     # The default batch-reviewed candidate populates every scoped table except
     # references, which the honest fixture leaves empty.

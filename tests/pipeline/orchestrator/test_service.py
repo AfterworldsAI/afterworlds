@@ -113,6 +113,7 @@ from afterworlds.pipeline.safety.models import (
     SafetyVerdict,
 )
 from afterworlds.pipeline.writer.models import WriterResult
+from afterworlds.services.rules_authority import AuthorityOutcome
 from afterworlds.services.story_bible import StoryBibleService
 from tests.pipeline.orchestrator.conftest import (
     FakeContextBuilder,
@@ -5859,13 +5860,19 @@ class TestRuleSlicePreContext:
             rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
         )
 
-    def test_uuid_binding_passes_rule_slice_request_to_context(
+    def test_uuid_binding_no_longer_builds_an_empty_selector_request(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """Adjudicating intent + UUID rules_package_id → non-None RuleSliceRequest."""
-        from uuid import UUID, uuid4
+        """CRD Issue 5d (#137 contract 6): the empty-selector request is gone.
 
-        from afterworlds.models.rules_package import RuleSliceRequest
+        This used to build ``RuleSliceRequest(package_id=...)`` with no
+        selectors at all, which always produced an empty slice — the
+        accidentally-empty selector ADR-005d Decision 9 names. ``RuleSliceRequest``
+        now refuses to construct that way, and the orchestrator does not replace
+        it with a whole-package request: which mechanics an adjudicating turn
+        needs is CRD Issue 15c's selection contract.
+        """
+        from uuid import uuid4
 
         pkg_id = str(uuid4())
         story_id, node_id = seeded_story
@@ -5879,27 +5886,98 @@ class TestRuleSlicePreContext:
             RuntimeAccessPath.HOSTED,
         )
         assert len(spy.rule_slice_requests) == 1
-        rsr = spy.rule_slice_requests[0]
-        assert rsr is not None
-        assert isinstance(rsr, RuleSliceRequest)
-        assert rsr.package_id == UUID(pkg_id)
+        assert spy.rule_slice_requests[0] is None
 
-    def test_slug_binding_omits_rule_slice_request(
+    def test_slug_binding_without_a_resolver_is_not_swallowed(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """Non-UUID slug binding → RuleSliceRequest is None (slug→UUID gap)."""
+        """No resolver wired → no resolution attempted, and no parse swallowed.
+
+        The removed path parsed the reference with ``UUID(...)`` and caught the
+        ``ValueError``, so a malformed reference and a package with no rules
+        produced the same silence. There is no such parse now: with no
+        code-owned resolver wired there is nothing to resolve against, and the
+        turn proceeds under ADR-015's ``undetermined`` behaviour.
+        """
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
         orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
-        orch.orchestrate_turn(
+        result = orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
             node_id,  # type: ignore[arg-type]
             "I attack the goblin.",
             _SOJOURNER,
             RuntimeAccessPath.HOSTED,
         )
+        assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
         assert len(spy.rule_slice_requests) == 1
         assert spy.rule_slice_requests[0] is None
+
+    @pytest.mark.parametrize(
+        ("outcome", "expected"),
+        [
+            (AuthorityOutcome.AMBIGUOUS, "ambiguous"),
+            (AuthorityOutcome.INVALID_SELECTOR, "invalid_selector"),
+            (AuthorityOutcome.ABSENT, "absent"),
+        ],
+    )
+    def test_an_unresolvable_reference_fails_the_turn_explicitly(
+        self,
+        session_factory: object,
+        seeded_story: tuple[object, object],
+        outcome: AuthorityOutcome,
+        expected: str,
+    ) -> None:
+        """With the code-owned resolver wired, a refusal is a typed turn failure.
+
+        This is the half of the fail-open removal that changes behaviour: a
+        reference that genuinely does not resolve can no longer be dropped in
+        silence.
+        """
+        from afterworlds.services.rules_authority import PackageResolution
+
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
+        orch._rules_package_reference_resolver = (  # type: ignore[attr-defined]
+            lambda ref: PackageResolution(outcome, detail=f"{ref} did not resolve")
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert expected in result.pipeline_error_summary
+        assert "dnd5e-v1" in result.pipeline_error_summary
+
+    def test_a_resolving_reference_leaves_the_turn_alone(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """A resolver that resolves does not, by itself, change the turn."""
+        from uuid import uuid4
+
+        from afterworlds.services.rules_authority import PackageResolution
+
+        story_id, node_id = seeded_story
+        spy = _SpyContextBuilder()
+        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
+        orch._rules_package_reference_resolver = (  # type: ignore[attr-defined]
+            lambda _ref: PackageResolution(
+                AuthorityOutcome.RESOLVED, package_uuid=uuid4()
+            )
+        )
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+        assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
 
     def test_ooc_intent_omits_rule_slice_request(
         self, session_factory: object, seeded_story: tuple[object, object]

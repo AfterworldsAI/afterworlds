@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 import afterworlds.persistence.orm.corpus  # noqa: F401
 import afterworlds.persistence.orm.mechanical  # noqa: F401
+import afterworlds.persistence.orm.rules_authority  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 from afterworlds.models.enums import (
     MechanicalEntityTypeEnum,
@@ -258,6 +259,12 @@ class TestRpTablePrefix:
             "rp_mech_references",
             "rp_mech_provenance",
             "rp_mech_active_projections",
+            # CRD Issue 5d runtime authority: the typed override authoring
+            # surface and the retained immutable override-set versions.
+            "rp_mech_overrides",
+            "rp_override_set_versions",
+            "rp_override_set_entries",
+            "rp_override_set_scopes",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (

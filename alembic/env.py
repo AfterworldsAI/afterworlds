@@ -18,6 +18,7 @@ import afterworlds.persistence.orm.story_bible  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.corpus  # noqa: F401
 import afterworlds.persistence.orm.mechanical  # noqa: F401
+import afterworlds.persistence.orm.rules_authority  # noqa: F401
 import afterworlds.persistence.orm.rolling_summary  # noqa: F401
 import afterworlds.persistence.orm.rpg  # noqa: F401
 import afterworlds.persistence.orm.retrieval  # noqa: F401

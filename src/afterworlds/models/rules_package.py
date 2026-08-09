@@ -404,21 +404,100 @@ class IngestionConfig:
     extra_tags: list[str] = field(default_factory=list)
 
 
+class RulesPackageBinding(BaseModel):
+    """The exact four-component effective binding (ADR-005d Decision 9).
+
+    ``mechanical_projection_uuid`` identifies the immutable base projection;
+    ``override_set_uuid`` identifies the exact applied effective override set.
+    The two are never collapsed into one value: an override change mints a new
+    override-set identity and leaves the base projection identity untouched, and
+    a binding that carried only one of them could resolve to different DCs,
+    effects, or disabled mechanics over time.
+
+    Every field is a ``UUID`` or an exact release string — never a slug, display
+    name, or filename. A human-facing slug may resolve *to* a binding through
+    one code-owned service, but it is never the binding itself.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    package_uuid: UUID
+    release_version: str
+    mechanical_projection_uuid: UUID
+    override_set_uuid: UUID
+
+
 class RuleSliceRequest(BaseModel):
-    """Typed parameter bundle for RulesPackageService.get_active_rule_slice.
+    """Typed parameter bundle for RulesPackageService rule-slice reads.
 
     Introduced in Issue 8 (Context Builder) per the instruction to reuse this
     model from Issue 5a's namespace rather than creating a parallel model in
     the Context Builder.  The model was not defined during Issue 5a — it is
     added here now.  See PR Architecture Notes for scope rationale.
+
+    CRD Issue 5d extends this same model rather than introducing a parallel
+    request type (#137 contract 6).  Three things changed:
+
+    * **The package reference may be a UUID or a human-facing slug, and exactly
+      one of them must be supplied.**  ``package_slug`` resolves through the one
+      code-owned service in
+      :mod:`afterworlds.services.rules_authority.binding`; it never becomes
+      authority itself.  A caller that previously swallowed a non-UUID reference
+      and silently omitted the request now states which form it holds.
+    * **Deterministic mechanical selectors**, ``record_selectors`` and
+      ``component_selectors``, name exact semantic keys in the bound projection.
+    * **``whole_package`` is explicit.**  A request that selects nothing and
+      does not set it is ``INVALID_SELECTOR`` — refused at construction, so the
+      accidentally-empty selector cannot reach a service and come back as an
+      empty result that reads like "no rules apply".
     """
 
-    package_id: UUID
+    model_config = ConfigDict(frozen=True)
+
+    package_id: UUID | None = None
+    package_slug: str | None = None
     subsystem_tags: list[RuleSubsystemEnum] = Field(default_factory=list)
     entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] = Field(
         default_factory=list
     )
     include_non_published: bool = False
+
+    #: A previously recorded binding to revalidate.  Supplied by a consumer that
+    #: stored one; runtime resolution reports ``STALE`` when it no longer
+    #: matches, rather than silently re-resolving against current overrides.
+    recorded_binding: RulesPackageBinding | None = None
+    record_selectors: tuple[str, ...] = ()
+    component_selectors: tuple[tuple[str, str], ...] = ()
+    whole_package: bool = False
+
+    @model_validator(mode="after")
+    def exactly_one_package_reference(self) -> Self:
+        """Exactly one of package_id or package_slug identifies the package."""
+        by_id = self.package_id is not None
+        by_slug = self.package_slug is not None and bool(self.package_slug.strip())
+        if by_id == by_slug:
+            raise ValueError(
+                "exactly one of package_id or package_slug must be supplied; got "
+                f"package_id={self.package_id!r}, package_slug={self.package_slug!r}"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def selects_something_explicitly(self) -> Self:
+        """Refuse the accidentally empty selector set (#137 contract 6)."""
+        if self.whole_package:
+            return self
+        if (
+            self.subsystem_tags
+            or self.entity_refs
+            or self.record_selectors
+            or self.component_selectors
+        ):
+            return self
+        raise ValueError(
+            "rule slice request selects nothing: supply subsystem tags, entity "
+            "refs, record/component selectors, or set whole_package=True"
+        )
 
 
 class ActiveRuleSlice(BaseModel):

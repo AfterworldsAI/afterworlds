@@ -88,6 +88,7 @@ from afterworlds.pipeline.branching.models import (
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
+from afterworlds.services.rules_authority import AuthorityOutcome, PackageResolution
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
@@ -388,6 +389,11 @@ class OrchestratorService:
             Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]] | None
         ) = None,
         rpg_session_resolver: Callable[[UUID], RpgSessionState | None] | None = None,
+        #: Resolves an RPG sheet's rules-package reference — a UUID or a
+        #: human-facing slug — through CRD Issue 5d's one code-owned path.
+        rules_package_reference_resolver: (
+            Callable[[str], PackageResolution] | None
+        ) = None,
         rpg_dice_service: DiceService | None = None,
         rpg_pending_roll_service: PendingRollRequestService | None = None,
         rpg_visible_state_service: RpgVisibleStateService | None = None,
@@ -424,6 +430,7 @@ class OrchestratorService:
         self._rpg_adjudication_service = rpg_adjudication_service
         self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
         self._rpg_session_resolver = rpg_session_resolver
+        self._rules_package_reference_resolver = rules_package_reference_resolver
         self._rpg_dice_service = rpg_dice_service
         self._rpg_pending_roll_service = rpg_pending_roll_service
         self._rpg_visible_state_service = rpg_visible_state_service
@@ -639,16 +646,30 @@ class OrchestratorService:
                     turn_start,
                     f"RPG session/sheet resolution failed: {exc}",
                 )
-            # Only build a rule slice for IN_PLAY sessions; setup turns do not
-            # run adjudication so the context builder does not need the slice.
+            # Only resolve rules-package authority for IN_PLAY sessions; setup
+            # turns do not run adjudication.
+            #
+            # CRD Issue 5d (#137 contract 6) removed two fail-open behaviours
+            # that used to live here. The sheet's ``rules_package_id`` may be a
+            # UUID or a human-facing slug, and a non-UUID reference was parsed
+            # with ``UUID(...)`` and, on ``ValueError``, silently dropped — a
+            # malformed reference and a package with no rules produced the same
+            # silence. It now resolves through the one code-owned path, and a
+            # reference that does not resolve fails the turn explicitly.
+            #
+            # The request this used to build carried no selectors at all, so the
+            # slice it produced was always empty (ADR-005d Decision 9's
+            # accidentally-empty selector, which ``RuleSliceRequest`` now refuses
+            # to construct). It is not replaced with a whole-package request:
+            # which mechanics an adjudicating turn needs is CRD Issue 15c's
+            # selection contract, and inventing one here would be this layer
+            # deciding product semantics it does not own.
             if pre_session_state.play_status is RpgPlayStatus.IN_PLAY:
-                try:
-                    _pkg_uuid = UUID(pre_sheet.rules_package_id)
-                    rule_slice_request = RuleSliceRequest(package_id=_pkg_uuid)
-                except ValueError:
-                    # Non-UUID binding (slug) — omit request; adjudication
-                    # proceeds without a rule slice and produces "undetermined".
-                    rule_slice_request = None
+                failure = self._resolve_rules_package_reference(
+                    pre_sheet.rules_package_id, intent_result, latency, turn_start
+                )
+                if failure is not None:
+                    return failure
 
         # 2a-retrieval. Build the retrieval query request before context
         # assembly (ADR-018 D8) — orchestrator-owned and deterministic,
@@ -3679,6 +3700,47 @@ class OrchestratorService:
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
+        )
+
+    def _resolve_rules_package_reference(
+        self,
+        reference: str,
+        intent_result: IntentClassificationResult,
+        latency: dict[str, int],
+        turn_start: float,
+    ) -> OrchestrationResult | None:
+        """Resolve an RPG sheet's rules-package reference, or fail the turn.
+
+        Returns ``None`` when the reference is usable and a typed
+        ``PIPELINE_ERROR`` otherwise. CRD Issue 5d requires a slug to resolve
+        through one code-owned service and an unresolvable, ambiguous, or
+        malformed reference to fail explicitly (#137 contract 6); none of those
+        may be swallowed into a turn that proceeds as though the Sojourner's
+        sheet named nothing.
+
+        With no resolver wired there is nothing to resolve *against*, and the
+        turn proceeds without mechanical authority — ADR-015's ``undetermined``
+        behaviour, reached by an explicit branch rather than by catching a
+        ``ValueError`` from a speculative ``UUID(...)`` parse. That parse is
+        what made the removed path fail open: it could not tell a malformed
+        reference from a package that simply has no rules, and answered both
+        with silence. How a Character Sheet stores and revalidates its package
+        reference is CRD Issue 2b's, so this layer resolves what it is given and
+        decides nothing about the storage.
+        """
+        if self._rules_package_reference_resolver is None:
+            return None
+
+        resolution = self._rules_package_reference_resolver(reference)
+        if resolution.outcome is AuthorityOutcome.RESOLVED:
+            return None
+        return self._pipeline_error(
+            intent_result,
+            latency,
+            turn_start,
+            f"RPG rules package reference {reference!r} did not resolve: "
+            f"{resolution.outcome.value}"
+            + (f" ({resolution.detail})" if resolution.detail else ""),
         )
 
     def _pipeline_error(
