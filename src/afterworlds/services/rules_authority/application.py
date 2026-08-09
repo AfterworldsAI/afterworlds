@@ -405,19 +405,25 @@ def _finalize_component(
     record: EffectiveRecord,
     component: EffectiveComponent,
     disabled_facts: set[tuple[str, str, str]],
-    prose_touched: set[tuple[str, str]],
 ) -> EffectiveComponent:
-    """Filter disabled facts and, for components a prose operation touched,
-    re-derive handling from what survives.
+    """Filter disabled facts and derive final effective handling from what
+    survives — unconditionally, for every component, from its own final
+    ``facts``/``governing_prose`` (Owner Decision 2026-08-09, generalized).
+    This is the single derivation seam: nothing upstream sets ``handling`` for
+    a component a prose or fact operation touched, so there is no tracking
+    set whose membership could go stale if a semantic key is later
+    reincarnated by a replacement, and the result cannot depend on which
+    override family supplied the authority or which operation resolved last.
 
-    A prose operation derives ``handling`` from ``component.facts`` as it
-    stands *at that point* in the resolution order (Owner Decision
-    2026-08-09). A later FACT-kind ``DISABLE`` on the same component is only
-    reflected in ``component.facts`` here, at final assembly — so without this
-    second derivation, a component promoted to ``MIXED`` by an earlier prose
-    ``APPEND``/``REPLACE`` would keep reporting facts it no longer has once a
-    later override strips its last one. Components no prose operation ever
-    touched keep their already-correct handling untouched.
+    A component with neither surviving facts nor surviving prose is not
+    content-bearing; this derivation does not invent a policy for that
+    unrelated state and leaves ``handling`` exactly as declared — by the base
+    projection, or by whichever REPLACE/APPEND most recently (re)created this
+    component version. That declared value is never mutated mid-resolution by
+    any prose or fact operation (only by a component/record replacement
+    actually re-declaring it), so this fallback is itself order-independent
+    between a fact ``DISABLE`` and a prose ``DISABLE`` racing to empty the
+    same component out.
     """
     facts = tuple(
         fact
@@ -425,11 +431,16 @@ def _finalize_component(
         if (record.semantic_key, component.semantic_key, fact.fact_key)
         not in disabled_facts
     )
-    if (record.semantic_key, component.semantic_key) not in prose_touched:
-        return replace(component, facts=facts)
-    handling = _derive_prose_driven_handling(
-        facts_present=bool(facts), governing_prose=component.governing_prose
-    )
+    facts_present = bool(facts)
+    prose_present = bool(component.governing_prose)
+    if facts_present and prose_present:
+        handling = ComponentHandling.MIXED
+    elif facts_present:
+        handling = ComponentHandling.STRUCTURED
+    elif prose_present:
+        handling = ComponentHandling.PROSE_BOUND
+    else:
+        handling = component.handling
     reason = (
         None
         if handling is ComponentHandling.STRUCTURED
@@ -458,7 +469,6 @@ def apply_override_set(
     disabled_components: set[tuple[str, str]] = set()
     disabled_facts: set[tuple[str, str, str]] = set()
     disabled_prose: set[tuple[str, str]] = set()
-    prose_touched: set[tuple[str, str]] = set()
     provenance: list[AppliedOverride] = []
 
     for entry in override_set.entries:
@@ -472,7 +482,6 @@ def apply_override_set(
                 disabled_components,
                 disabled_facts,
                 disabled_prose,
-                prose_touched,
             )
         else:
             note = "authored disabled"
@@ -495,7 +504,7 @@ def apply_override_set(
         replace(
             record,
             components=tuple(
-                _finalize_component(record, component, disabled_facts, prose_touched)
+                _finalize_component(record, component, disabled_facts)
                 for component in record.components
                 if (record.semantic_key, component.semantic_key)
                 not in disabled_components
@@ -511,31 +520,6 @@ def apply_override_set(
     )
 
 
-def _derive_prose_driven_handling(
-    *, facts_present: bool, governing_prose: tuple[GoverningProseEntry, ...]
-) -> ComponentHandling:
-    """Effective handling for the authority that survives a prose operation.
-
-    Owner Decision 2026-08-09: effective-content classification. ``handling``
-    describes the authority surviving *after* this operation, never authority
-    that existed earlier in the sequence — so this is a pure function of what
-    remains right now, not a sticky flag remembering an earlier promotion.
-
-    * facts and prose both present -> ``MIXED``;
-    * facts only -> ``STRUCTURED``;
-    * prose only, or neither -> ``PROSE_BOUND``, because no other category
-      honestly describes a component with no typed facts, whether or not its
-      remaining prose is also empty (a suppressed prose-only component stays
-      ``PROSE_BOUND`` with an empty prose surface rather than inventing a
-      fourth state for "nothing").
-    """
-    if facts_present and governing_prose:
-        return ComponentHandling.MIXED
-    if facts_present:
-        return ComponentHandling.STRUCTURED
-    return ComponentHandling.PROSE_BOUND
-
-
 def _apply_prose_entry(
     entry: EffectiveOverrideEntry,
     patch: DisablePatch | ProseReplacementPatch | ProseAdditionPatch,
@@ -543,27 +527,19 @@ def _apply_prose_entry(
     record: EffectiveRecord,
     records: dict[str, EffectiveRecord],
     disabled_prose: set[tuple[str, str]],
-    disabled_facts: set[tuple[str, str, str]],
-    prose_touched: set[tuple[str, str]],
 ) -> tuple[bool, str]:
     """Apply one entry targeting prose authority (Owner Decision 2026-08-08).
 
     Prose is a sibling of a component's typed facts, never nested inside their
-    application: this never adds, removes, or reorders ``facts`` — only
-    ``governing_prose`` and the ``handling``/``irreducibility_reason_code``
-    pair derived fresh from what survives (Owner Decision 2026-08-09).
-
-    ``facts_present`` reads against ``disabled_facts`` rather than trusting
-    ``component.facts`` directly: a FACT-kind ``DISABLE`` earlier in this same
-    resolution order is recorded there immediately but is only filtered out of
-    ``component.facts`` once, at final assembly (see ``apply_override_set``),
-    so reading ``component.facts`` alone here could see a fact that is already
-    suppressed and about to disappear.
-
-    Recording this target in ``prose_touched`` is what lets final assembly
-    (``_finalize_component``) re-derive ``handling`` again if a *later* FACT
-    ``DISABLE`` on this same component changes what survives after this call
-    returns.
+    application: this touches only ``governing_prose``. It never touches
+    ``handling`` or ``irreducibility_reason_code`` — those are derived exactly
+    once, at final assembly, from each component's own final ``facts`` and
+    ``governing_prose`` (``_finalize_component``, Owner Decision 2026-08-09,
+    generalized), the same way regardless of which override family supplied
+    the authority or what order it resolved in. Leaving ``handling`` alone
+    here also keeps ``_apply_entry``'s ``FactAdditionPatch`` refusal reading
+    the component's actual *declared* handling, as it did before this overlay
+    existed, rather than a value a prose operation computed mid-sequence.
     """
     assert target.component_key is not None
     found = _find_component(record, target.component_key)
@@ -573,34 +549,11 @@ def _apply_prose_entry(
             f"target {target.describe()} names no component of {target.record_key!r}",
         )
     index, component = found
-    prose_touched.add((target.record_key, target.component_key))
     components = list(record.components)
-    facts_present = any(
-        (target.record_key, target.component_key, fact.fact_key) not in disabled_facts
-        for fact in component.facts
-    )
 
     if isinstance(patch, DisablePatch):
         disabled_prose.add((target.record_key, target.component_key))
-        handling = _derive_prose_driven_handling(
-            facts_present=facts_present, governing_prose=()
-        )
-        # STRUCTURED must never carry an irreducibility reason — the same
-        # honesty invariant the build-time projection validator enforces on
-        # the base corpus. A reason surviving from a demoted MIXED/PROSE_BOUND
-        # component would otherwise cite a prose authority that no longer
-        # exists in this effective view.
-        reason = (
-            None
-            if handling is ComponentHandling.STRUCTURED
-            else component.irreducibility_reason_code
-        )
-        components[index] = replace(
-            component,
-            handling=handling,
-            irreducibility_reason_code=reason,
-            governing_prose=(),
-        )
+        components[index] = replace(component, governing_prose=())
         records[target.record_key] = replace(record, components=tuple(components))
         return True, "prose suppressed"
 
@@ -617,15 +570,7 @@ def _apply_prose_entry(
         governing_prose = (*component.governing_prose, authored)
         note = "prose appended"
 
-    # REPLACE/APPEND always leave governing_prose non-empty, so the derived
-    # handling here is MIXED or PROSE_BOUND, never STRUCTURED — no reason-code
-    # clearing is needed on this branch.
-    handling = _derive_prose_driven_handling(
-        facts_present=facts_present, governing_prose=governing_prose
-    )
-    components[index] = replace(
-        component, handling=handling, governing_prose=governing_prose
-    )
+    components[index] = replace(component, governing_prose=governing_prose)
     records[target.record_key] = replace(record, components=tuple(components))
     return True, note
 
@@ -637,7 +582,6 @@ def _apply_entry(
     disabled_components: set[tuple[str, str]],
     disabled_facts: set[tuple[str, str, str]],
     disabled_prose: set[tuple[str, str]],
-    prose_touched: set[tuple[str, str]],
 ) -> tuple[bool, str]:
     """Apply one enabled entry, returning whether it changed anything."""
     target = entry.target
@@ -675,8 +619,6 @@ def _apply_entry(
             record,
             records,
             disabled_prose,
-            disabled_facts,
-            prose_touched,
         )
 
     if isinstance(patch, DisablePatch):

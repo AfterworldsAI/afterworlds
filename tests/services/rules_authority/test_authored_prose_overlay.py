@@ -34,6 +34,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
     DcKind,
+    fact_key,
     fact_payload,
 )
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
@@ -703,6 +704,349 @@ def test_a_fact_disable_after_prose_promotion_revises_handling_to_prose_bound(
     applied = {a.override_id: a for a in result.typed_view.applied_overrides}
     assert applied["ov-append-prose"].applied is True
     assert applied["ov-disable-the-only-fact"].applied is True
+
+
+# ---------------------------------------------------------------------------
+# Path-independent final-effective-handling derivation (Owner Decision
+# 2026-08-09, generalized): the same facts+prose -> handling invariant holds
+# regardless of which override family declared the authority, or whether a
+# prose operation was ever involved at all.
+# ---------------------------------------------------------------------------
+
+
+def test_component_replace_declaring_mixed_then_fact_disable_finishes_prose_bound(
+    runtime: RuntimeFixture,
+) -> None:
+    """The exact regression from the path-dependent residue: a whole-component
+    ``REPLACE`` that declares ``MIXED`` directly (never processed by a prose
+    entry) must still demote to ``PROSE_BOUND`` when a later ``FACT``
+    ``DISABLE`` strips its only fact, with its authored prose intact.
+    """
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-declare-mixed",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact)],
+                "authored_prose": "declared mixed directly",
+            },
+        },
+        precedence=10,
+    )
+    mixed = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert mixed.handling is ComponentHandling.MIXED
+    before = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert before.binding is not None
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-the-declared-fact",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.FACT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+            fact_key=fact_key(check_fact),
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.facts == ()
+    assert component.governing_prose != ()
+    assert component.handling is ComponentHandling.PROSE_BOUND
+
+    after = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert after.binding is not None
+    assert (
+        after.binding.mechanical_projection_uuid
+        == before.binding.mechanical_projection_uuid
+    )
+    result = service(runtime).typed_view(whole(runtime))
+    assert result.typed_view is not None
+    applied = {a.override_id: a for a in result.typed_view.applied_overrides}
+    assert applied["ov-declare-mixed"].applied is True
+    assert applied["ov-disable-the-declared-fact"].applied is True
+
+    replayed = service(runtime).replay(after.binding)
+    (record,) = [r for r in replayed.records if r.semantic_key == SPELL_KEY]
+    (replayed_component,) = [
+        c for c in record.components if c.semantic_key == DESCRIPTOR_KEY
+    ]
+    assert replayed_component.handling is ComponentHandling.PROSE_BOUND
+    assert replayed_component.facts == ()
+    assert replayed_component.governing_prose != ()
+
+
+def test_record_replace_declaring_mixed_then_fact_disable_finishes_prose_bound(
+    runtime: RuntimeFixture,
+) -> None:
+    """The same invariant through a whole-record ``REPLACE`` containing an
+    authored-prose ``MIXED`` component — a different override family from
+    both the prose path and the whole-component-``REPLACE`` path above.
+    """
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-replace-record",
+        target=MechanicalTarget(kind=MechanicalTargetKind.RECORD, record_key=SPELL_KEY),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_record",
+            "record_kind": "spell",
+            "components": [
+                {
+                    "semantic_key": DESCRIPTOR_KEY,
+                    "handling": "mixed",
+                    "facts": [fact_payload(check_fact)],
+                    "authored_prose": "record-replaced mixed component",
+                }
+            ],
+        },
+        precedence=10,
+    )
+    mixed = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert mixed.handling is ComponentHandling.MIXED
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-the-record-replaced-fact",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.FACT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+            fact_key=fact_key(check_fact),
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.facts == ()
+    assert component.governing_prose != ()
+    assert component.handling is ComponentHandling.PROSE_BOUND
+
+
+def test_component_append_declaring_mixed_then_fact_disable_finishes_prose_bound(
+    runtime: RuntimeFixture,
+) -> None:
+    """The same invariant for a newly ``APPEND``-ed component declaring
+    ``MIXED`` directly — a fourth distinct override family exercising the
+    same final derivation.
+    """
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    new_component_key = "house-rider"
+    author_override(
+        runtime.session,
+        override_id="ov-append-mixed-component",
+        target=MechanicalTarget(kind=MechanicalTargetKind.RECORD, record_key=SPELL_KEY),
+        operation=OverrideOperationEnum.APPEND,
+        payload={
+            "patch": "append_component",
+            "component": {
+                "semantic_key": new_component_key,
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact)],
+                "authored_prose": "appended mixed component",
+            },
+        },
+        precedence=10,
+    )
+    mixed = typed_component(runtime, SPELL_KEY, new_component_key)
+    assert mixed.handling is ComponentHandling.MIXED
+
+    author_override(
+        runtime.session,
+        override_id="ov-disable-the-appended-fact",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.FACT,
+            record_key=SPELL_KEY,
+            component_key=new_component_key,
+            fact_key=fact_key(check_fact),
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, new_component_key)
+    assert component.facts == ()
+    assert component.governing_prose != ()
+    assert component.handling is ComponentHandling.PROSE_BOUND
+
+
+def test_reusing_a_semantic_key_after_a_prose_operation_does_not_inherit_stale_state(
+    runtime: RuntimeFixture,
+) -> None:
+    """A semantic key a prose operation touched, later reincarnated by a
+    whole-component ``REPLACE`` that declares fresh authority with no prose,
+    must reflect only its own final facts/prose — nothing carried over from
+    the earlier prose operation against the same key. There is no tracking
+    set this could leak from (final handling is derived from each component's
+    own current fields, not from any operation-keyed record of what happened
+    to that key before), but the observable behavior is what matters.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-promote-via-prose",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_prose_payload("a house-rule clarification"),
+        precedence=10,
+    )
+    promoted = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert promoted.handling is ComponentHandling.MIXED
+
+    check_fact = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-reincarnate-the-key",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "structured",
+                "facts": [fact_payload(check_fact)],
+            },
+        },
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    assert component.handling is ComponentHandling.STRUCTURED
+    assert component.governing_prose == ()
+    assert [f.fact_key for f in component.facts] == [fact_key(check_fact)]
+
+
+def test_all_empty_fallback_does_not_depend_on_fact_vs_prose_disable_order(
+    runtime: RuntimeFixture,
+) -> None:
+    """The all-authority-empty fallback (declared handling, untouched) must
+    not depend on operation order: two component REPLACE/APPEND declarations
+    that both declare ``MIXED`` and both end up with facts=()/prose=() report
+    the same handling whether their prose or their fact was disabled first.
+    Before ``_apply_prose_entry`` stopped mutating ``handling`` mid-loop,
+    reversing this order changed the answer (``STRUCTURED`` vs
+    ``PROSE_BOUND``) even though the final surviving authority — nothing — was
+    identical either way.
+    """
+    check_fact_a = AbilityCheckFact(
+        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-declare-mixed-a",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.COMPONENT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={
+            "patch": "replace_component",
+            "component": {
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact_a)],
+                "authored_prose": "will be fully suppressed, prose disabled first",
+            },
+        },
+        precedence=0,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose-a",
+        target=STRUCTURED_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-fact-a",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.FACT,
+            record_key=SPELL_KEY,
+            component_key=DESCRIPTOR_KEY,
+            fact_key=fact_key(check_fact_a),
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+
+    check_fact_b = AbilityCheckFact(
+        ability=AbilityScore.STRENGTH, dc_kind=DcKind.FIXED, dc_value=15
+    )
+    second_key = "house-rider"
+    author_override(
+        runtime.session,
+        override_id="ov-declare-mixed-b",
+        target=MechanicalTarget(kind=MechanicalTargetKind.RECORD, record_key=SPELL_KEY),
+        operation=OverrideOperationEnum.APPEND,
+        payload={
+            "patch": "append_component",
+            "component": {
+                "semantic_key": second_key,
+                "handling": "mixed",
+                "facts": [fact_payload(check_fact_b)],
+                "authored_prose": "will be fully suppressed, fact disabled first",
+            },
+        },
+        precedence=0,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-fact-b",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.FACT,
+            record_key=SPELL_KEY,
+            component_key=second_key,
+            fact_key=fact_key(check_fact_b),
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-prose-b",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.PROSE,
+            record_key=SPELL_KEY,
+            component_key=second_key,
+        ),
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+
+    component_a = typed_component(runtime, SPELL_KEY, DESCRIPTOR_KEY)
+    component_b = typed_component(runtime, SPELL_KEY, second_key)
+    assert component_a.facts == ()
+    assert component_a.governing_prose == ()
+    assert component_b.facts == ()
+    assert component_b.governing_prose == ()
+    assert component_a.handling is component_b.handling is ComponentHandling.MIXED
 
 
 # ---------------------------------------------------------------------------
