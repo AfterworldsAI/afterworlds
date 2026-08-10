@@ -13,7 +13,6 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     DcKind,
     ProgressionEntryFact,
-    ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
@@ -41,6 +40,7 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    prose_binding,
 )
 
 
@@ -212,27 +212,12 @@ def test_mixed_component_requires_both() -> None:
 
 
 def test_irreducibility_reason_must_be_closed() -> None:
-    findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(
-                component_key=OPEN_ENDED_KEY,
-                record_key=SPELL_KEY,
-                chunk_id=WISH_CHUNK,
-                irreducibility_reason_code="too_hard",
-            ),
-        )
-    )
+    findings = _findings(prose_bindings=(prose_binding(WISH_CHUNK, "too_hard"),))
     assert any("is not closed" in f for f in findings)
 
 
 def test_prose_binding_requires_an_authoritative_chunk() -> None:
-    findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(
-                OPEN_ENDED_KEY, SPELL_KEY, "fabricated", "open_ended_effect"
-            ),
-        )
-    )
+    findings = _findings(prose_bindings=(prose_binding("fabricated"),))
     assert any("is not authoritative prose of release" in f for f in findings)
 
 

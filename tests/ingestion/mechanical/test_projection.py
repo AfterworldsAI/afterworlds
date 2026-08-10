@@ -36,13 +36,13 @@ from tests.ingestion.mechanical.conftest import (
     DESCRIPTOR_FACT,
     DESCRIPTOR_KEY,
     LEAF_LENGTHS,
-    OPEN_ENDED_KEY,
     SPELL_KEY,
     SPELL_LEAF,
     bound_corpus,
     build_candidate,
     build_ledger,
     build_representation,
+    prose_binding,
 )
 
 # -- acyclic derivation ------------------------------------------------------
@@ -171,19 +171,22 @@ def test_identity_changes_when_record_assembly_changes() -> None:
 
 
 def test_identity_changes_when_a_prose_binding_changes() -> None:
-    draft = build_representation()
-    rebound = build_representation(
-        prose_bindings=(
-            type(draft.prose_bindings[0])(
-                component_key=OPEN_ENDED_KEY,
-                record_key=SPELL_KEY,
-                chunk_id="chunk-wish-0002",
-                irreducibility_reason_code="open_ended_effect",
-            ),
-        )
-    )
+    rebound = build_representation(prose_bindings=(prose_binding("chunk-wish-0002"),))
     assert projection_uuid(
         ProjectionCandidate(build_candidate().binding, build_ledger(), rebound)
+    ) != projection_uuid(build_candidate())
+
+
+def test_identity_changes_when_a_prose_binding_narrows_its_extent() -> None:
+    """Same component, same chunk, fewer characters — different authority.
+
+    The extent is meaning-bearing. A binding narrowed to half the passage
+    governs different text, and reusing the identity would let that narrowed
+    claim inherit a projection reviewed against the wider one.
+    """
+    narrowed = build_representation(prose_bindings=(prose_binding(chunk_char_end=17),))
+    assert projection_uuid(
+        ProjectionCandidate(build_candidate().binding, build_ledger(), narrowed)
     ) != projection_uuid(build_candidate())
 
 

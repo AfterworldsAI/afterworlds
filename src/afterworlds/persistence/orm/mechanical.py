@@ -250,7 +250,15 @@ class MechanicalFactORM(_ProjectionScoped):
 
 
 class MechanicalProseBindingORM(_ProjectionScoped):
-    """Exact governing prose bound to the authoritative 5c chunk."""
+    """One accepted governing span of one authoritative 5c chunk.
+
+    ``span_id`` is the accepted classification span this binding governs, and
+    ``chunk_char_start``/``chunk_char_end`` are that span's half-open offsets
+    into the chunk's own text — so runtime resolution slices exactly the
+    governing clause instead of returning the whole passage that contains it.
+    The build proves those offsets against the bound 5c release before they are
+    written (:mod:`afterworlds.ingestion.mechanical.validation`).
+    """
 
     __tablename__ = "rp_mech_prose_bindings"
 
@@ -258,6 +266,9 @@ class MechanicalProseBindingORM(_ProjectionScoped):
     record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
     component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     chunk_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
+    span_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
+    chunk_char_start: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    chunk_char_end: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     irreducibility_reason_code: Mapped[str] = mapped_column(
         sa.String(64), nullable=False
     )

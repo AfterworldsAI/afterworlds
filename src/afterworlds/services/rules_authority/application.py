@@ -107,16 +107,27 @@ class EffectiveFact:
 
 @dataclass(frozen=True)
 class SourceProse:
-    """One passage of exact 5c source prose, identified by its chunk.
+    """One accepted governing span of exact 5c source prose.
 
     ``text`` is resolved later, by the GameMaster view, from the authoritative
     ``RuleChunk`` the service reads by this exact ``chunk_id``; it is ``None``
     here because this type is built before that resolution happens. It is
-    never anything but an exact 5c chunk — never a fabricated id, never a
+    never anything but exact 5c text — never a fabricated id, never a
     stand-in for authored text.
+
+    ``char_start``/``char_end`` are the accepted span's half-open offsets into
+    that chunk, recorded by the build-time prose binding and proved against the
+    bound release there. Resolution slices them, so a component governed by one
+    clause of a paragraph returns that clause: the rest of the paragraph is
+    other components' authority, or none, and returning it would overstate what
+    governs this component. ``span_id`` names the accepted span itself, so a
+    reader can tie the passage back to the classification that accepted it.
     """
 
     chunk_id: str
+    span_id: str
+    char_start: int
+    char_end: int
     text: str | None = None
 
 
@@ -238,10 +249,21 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
     """Assemble the immutable base projection as an effective view."""
     draft = candidate.representation
     spans = _provenance_index(candidate)
-    prose: dict[tuple[str, str], list[str]] = {}
-    for binding in draft.prose_bindings:
+    # Ordered by the binding's own content rather than by row order, so two
+    # reconstructions of the same projection present a component's governing
+    # passages in the same order.
+    prose: dict[tuple[str, str], list[SourceProse]] = {}
+    for binding in sorted(
+        draft.prose_bindings,
+        key=lambda b: (b.chunk_id, b.chunk_char_start, b.chunk_char_end, b.span_id),
+    ):
         prose.setdefault((binding.record_key, binding.component_key), []).append(
-            binding.chunk_id
+            SourceProse(
+                chunk_id=binding.chunk_id,
+                span_id=binding.span_id,
+                char_start=binding.chunk_char_start,
+                char_end=binding.chunk_char_end,
+            )
         )
 
     components: dict[str, list[EffectiveComponent]] = {}
@@ -268,10 +290,7 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 irreducibility_reason_code=component.irreducibility_reason_code,
                 facts=facts,
                 governing_prose=tuple(
-                    SourceProse(chunk_id=chunk_id)
-                    for chunk_id in sorted(
-                        prose.get((component.record_key, component.semantic_key), ())
-                    )
+                    prose.get((component.record_key, component.semantic_key), ())
                 ),
                 span_ids=spans.get(
                     (

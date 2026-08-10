@@ -19,7 +19,6 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
-    ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
@@ -50,6 +49,7 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    prose_binding,
     reference_claim,
 )
 
@@ -108,9 +108,7 @@ def test_resolved_reference_without_provenance_is_rejected() -> None:
 
 
 def test_one_of_several_bindings_lacking_provenance_is_rejected() -> None:
-    second = ProseBindingDraft(
-        OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
-    )
+    second = prose_binding(SECOND_CHUNK)
     findings = _findings(prose_bindings=(WISH_BINDING, second))
     assert any(SECOND_CHUNK in f and "no provenance" in f for f in findings)
 
@@ -299,9 +297,7 @@ def test_claim_with_a_wrong_shaped_target_key_is_rejected() -> None:
 
 
 def test_binding_key_distinguishes_two_bindings_of_one_component() -> None:
-    second = ProseBindingDraft(
-        OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
-    )
+    second = prose_binding(SECOND_CHUNK)
     assert prose_binding_target_key(WISH_BINDING) != prose_binding_target_key(second)
     assert WISH_BINDING.chunk_id == WISH_CHUNK
 

@@ -263,6 +263,9 @@ def persist_draft(
                 record_key=binding.record_key,
                 component_key=binding.component_key,
                 chunk_id=binding.chunk_id,
+                span_id=binding.span_id,
+                chunk_char_start=binding.chunk_char_start,
+                chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
             )
         )
@@ -472,6 +475,9 @@ def reconstruct_candidate(
                 component_key=p.component_key,
                 record_key=p.record_key,
                 chunk_id=p.chunk_id,
+                span_id=p.span_id,
+                chunk_char_start=p.chunk_char_start,
+                chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
             )
             for p in raw.prose_bindings

@@ -238,6 +238,8 @@ def test_extra_payload_field_is_rejected() -> None:
                 "family": "creature_ability_score",
                 "ability": "strength",
                 "score": 12,
+                "modifier": None,
+                "save_modifier": None,
                 "smuggled": {"dc": 15},
             }
         )
@@ -267,6 +269,8 @@ def test_bad_enum_value_is_rejected() -> None:
                 "family": "creature_ability_score",
                 "ability": "luck",
                 "score": 12,
+                "modifier": None,
+                "save_modifier": None,
             }
         )
 
