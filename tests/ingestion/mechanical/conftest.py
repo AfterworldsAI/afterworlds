@@ -127,11 +127,16 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
 
 #: The reviewed proposal this fixture's acceptance evidence names. A fixed
-#: content-derived identity rather than one recomputed from a proposal object,
-#: because the committed artifact records what a reviewer saw and a fixture that
-#: re-derived it would prove only that the code agrees with itself.
+#: literal rather than one recomputed from a proposal object, because the
+#: committed artifact records what a reviewer saw and a fixture that re-derived
+#: it would prove only that the code agrees with itself.
+#:
+#: It is a real ``sha256(b"bounded fixture reviewed proposal")`` digest, not a
+#: readable placeholder: acceptance validation requires the canonical 64-lowercase-
+#: hex shape ``hash_obj`` emits, and an invented-looking value would fail it. The
+#: first draft of this constant was 65 characters and did exactly that.
 REVIEWED_PROPOSAL_IDENTITY = (
-    "f1e2d3c4b5a6978869788796a5b4c3d2e1f00112233445566778899aabbccddee"
+    "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
 )
 
 SPELL_LEAF = "leaf-spell"

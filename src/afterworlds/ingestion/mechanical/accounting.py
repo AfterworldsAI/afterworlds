@@ -31,6 +31,8 @@ acceptance history.
 
 from __future__ import annotations
 
+import re
+
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
@@ -186,6 +188,32 @@ def batch_diff_hash(batch: AcceptanceBatch) -> str:
     return hash_obj(batch_diff_payload(batch))
 
 
+#: Exactly what :func:`~afterworlds.ingestion.corpus.hashing.hash_obj` returns:
+#: ``hashlib.sha256(...).hexdigest()`` — 64 lowercase hex characters, always.
+_CANONICAL_DIGEST = re.compile(r"\A[0-9a-f]{64}\Z")
+
+
+def _is_canonical_digest(value: str) -> bool:
+    """Could *value* have been produced by this repository's hashing function?
+
+    The two retained hashes are checked differently, and the asymmetry is the
+    point. ``semantic_diff_hash`` is *recomputed* from the diff the batch
+    retains, so its shape never needs asserting — a wrong value fails the
+    comparison whatever it looks like. ``proposal_identity`` names a proposal
+    that no longer exists anywhere in the accepted artifact, so there is nothing
+    to recompute it against; the strongest available check is that it is the
+    shape this repository's hashing function can actually emit.
+
+    That is deliberately a *shape* check and not a claim of authenticity. It
+    cannot prove the digest names the proposal that was reviewed. What it does
+    rule out is evidence that could not have come from a real proposal at all —
+    a placeholder, a truncated paste, an uppercase transcription, or a
+    hand-typed word — which is the difference between weak evidence and evidence
+    that was never generated.
+    """
+    return bool(_CANONICAL_DIGEST.fullmatch(value))
+
+
 def _validate_batch(
     batch: AcceptanceBatch,
     spans_by_id: dict[str, SemanticSpan],
@@ -210,8 +238,11 @@ def _validate_batch(
         findings.append(f"{tag}: no semantic diff retained")
     # Without this, the batch attests only that spans were accepted, and the
     # accepted representation could be authority nobody reviewed.
-    if not batch.proposal_identity.strip():
-        findings.append(f"{tag}: no reviewed proposal identity recorded")
+    if not _is_canonical_digest(batch.proposal_identity):
+        findings.append(
+            f"{tag}: reviewed proposal identity {batch.proposal_identity!r} is not a "
+            "canonical SHA-256 digest"
+        )
 
     scope = set(batch.resolved_scope)
     if len(scope) != len(batch.resolved_scope):

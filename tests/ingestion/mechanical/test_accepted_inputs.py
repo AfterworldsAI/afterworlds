@@ -26,6 +26,10 @@ from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
 from afterworlds.ingestion.mechanical.accounting import validate_acceptance
+from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
+    run_publication_gate,
+)
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
@@ -77,6 +81,7 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    mark_release_published,
 )
 
 #: The exact production binding, from the merged CRD Issue 5c release. Stated
@@ -596,15 +601,62 @@ def test_an_artifact_without_a_reviewed_proposal_identity_is_rejected(
         load_accepted_inputs(path)
 
 
-def test_a_blank_reviewed_proposal_identity_is_rejected(tmp_path: Path) -> None:
-    """Present but empty is not evidence, and is not treated as evidence."""
+@pytest.mark.parametrize(
+    ("identity", "why"),
+    [
+        ("   ", "blank"),
+        ("banana", "a readable placeholder"),
+        ("a" * 63, "one character short of a digest"),
+        ("a" * 65, "one character long"),
+        (("a" * 63 + "A"), "uppercase hex the hashing function never emits"),
+        (("z" * 64), "the right length but not hexadecimal"),
+        (("0123456789abcdef" * 3 + "0123456789abcde "), "a digest with a stray space"),
+    ],
+    ids=[
+        "blank",
+        "readable-placeholder",
+        "too-short",
+        "too-long",
+        "uppercase",
+        "non-hex",
+        "trailing-space",
+    ],
+)
+def test_a_non_canonical_reviewed_proposal_identity_is_rejected(
+    tmp_path: Path, identity: str, why: str
+) -> None:
+    """Only what ``hash_obj`` can actually emit counts as this evidence.
+
+    A nonblank string was the previous bar, and it let through every value
+    below. None of them could have been produced by the repository's hashing
+    function, so none of them names a proposal anybody reviewed — the
+    difference between weak evidence and evidence that was never generated.
+    """
     payload = accepted_inputs_payload(_accept())
     for batch in payload["acceptance"]["batches"]:  # type: ignore[index]
-        batch["proposal_identity"] = "   "
-    path = tmp_path / "blank.json"
+        batch["proposal_identity"] = identity
+    path = tmp_path / "non-canonical.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
-    with pytest.raises(OracleLoadError, match="no reviewed proposal identity"):
+    with pytest.raises(OracleLoadError) as exc:
         load_accepted_inputs(path)
+    message = str(exc.value)
+    assert "reviewed proposal identity" in message, why
+    assert "is not a canonical SHA-256 digest" in message, why
+
+
+def test_a_real_digest_of_the_wrong_shape_family_is_still_accepted() -> None:
+    """The check is shape, and it says so — it cannot prove authenticity.
+
+    A canonical digest naming some *other* proposal passes, because nothing in
+    the accepted artifact can recompute the reviewed proposal. Asserted so the
+    guarantee is not overstated by a reader of the tests above.
+    """
+    inputs = _accept()
+    other = replace(
+        inputs,
+        batches=(replace(inputs.batches[0], proposal_identity="0" * 64),),
+    )
+    assert validate_acceptance(other.classification()) == ()
 
 
 def test_a_mistyped_reviewed_proposal_identity_is_rejected(tmp_path: Path) -> None:
@@ -643,3 +695,68 @@ def test_the_persisted_state_digest_covers_the_reviewed_proposal_identity(
 
     findings = verify_persisted_state(session, identified.projection_uuid)
     assert any("digest" in f for f in findings), findings
+
+
+def test_a_corrupted_persisted_proposal_identity_cannot_pass_verification(
+    session: Session,
+) -> None:
+    """Reconstructed evidence is held to the same shape as a committed file.
+
+    The committed artifact is not the only way this evidence reaches a
+    projection: it is persisted, read back, and judged. Editing the stored value
+    to something no hashing function could emit must fail the same check, or the
+    database would be a way around the file loader.
+    """
+    inputs = _accept()
+    identified = identify_projection(candidate_from_accepted_inputs(inputs))
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+
+    row = session.execute(
+        select(MechanicalAcceptanceBatchORM).where(
+            MechanicalAcceptanceBatchORM.projection_uuid == identified.projection_uuid
+        )
+    ).scalar_one()
+    row.proposal_identity = "not-a-digest"
+    session.flush()
+
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    findings = validate_acceptance(rebuilt.classification)
+    assert any("is not a canonical SHA-256 digest" in f for f in findings), findings
+
+    # And the digest still catches it independently, so the two layers do not
+    # depend on each other.
+    assert any(
+        "digest" in f
+        for f in verify_persisted_state(session, identified.projection_uuid)
+    )
+
+
+def test_a_corrupted_persisted_proposal_identity_fails_the_publication_gate(
+    session: Session,
+) -> None:
+    """The gate runs acceptance validation over reconstructed state, so it refuses.
+
+    Publication is the decision that matters; asserting the finding without
+    asserting the refusal would leave open whether anything acts on it.
+    """
+    inputs = _accept()
+    identified = identify_projection(candidate_from_accepted_inputs(inputs))
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    mark_release_published(session)
+    session.flush()
+
+    row = session.execute(
+        select(MechanicalAcceptanceBatchORM).where(
+            MechanicalAcceptanceBatchORM.projection_uuid == identified.projection_uuid
+        )
+    ).scalar_one()
+    row.proposal_identity = "0" * 63
+    session.flush()
+
+    result = run_publication_gate(session, identified.projection_uuid, inputs.oracle)
+    assert not result.passed
+    assert GateFailureCategory.SEMANTIC_VALIDATION in result.categories()
+    assert any("is not a canonical SHA-256 digest" in f.detail for f in result.failures)
