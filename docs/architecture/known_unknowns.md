@@ -255,6 +255,31 @@ CRD Issue 5d (structured mechanical authority and deterministic rule binding), C
 character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
 production reachability).
 
+**In progress — typed Rules Package authority (CRD Issue 5d, #137).** CRD Issue 5d is under
+construction and is **not complete**. Landed so far: span-exact semantic accounting, the closed typed
+representation, the persistence → reconstruction → digest → gate → publication lifecycle and its exact
+completeness gate; the runtime four-component `RulesPackageBinding`, typed override application,
+retained provenance-exact override-set versions, and the authored-authority prose overlay; and the
+production-authoring workflow with the evidence-backed expansion of the closed typed-fact union — dice,
+attacks, damage, healing, creature defence/speed/challenge and saving-throw modifiers, spell
+descriptors, action economy, conditions, spell-slot progression, class spell-list membership, resource
+and recharge cadence, equipment descriptors, advantage/disadvantage, and stated scaling.
+
+Still outstanding inside CRD Issue 5d: **no production accepted authority has been reviewed or
+committed**, so the production SRD 5.2.1 mechanical projection remains unpublished and inactive; and the
+obsolete `MechanicalEntity` path and the legacy chunk-targeting prose override path both remain in place
+pending the final activation/legacy-retirement PR. Contract 3's remaining named family groups —
+targeting restrictions, contests, critical changes, explicit probability, random-table selection,
+eligibility, choices, and sequencing — are added by batch-driven accounting as the corpus surfaces them,
+and are due no later than full-corpus closure.
+
+**This does not move CRD Issue 15c's boundary.** Publishing a mechanical projection proves complete
+*representation*, never adapter capability. The bounded-d20 adapter's capability manifest, certified
+executable coverage, adjudication failure behaviour, and any typed application path for a
+GameMaster-selected effect remain owned by CRD Issue 15c (ADR-005d Decisions 1 and 11). No 5d fact
+family is admitted or withheld on the basis of what the adapter can execute, and neither authority view
+carries an executability claim.
+
 **Surfaced during:** CRD Issue 15b Phase 2 implementation on frozen PR #129 (`D20RulesSystemAdapter.
 _verify_dc` unconditionally returns `None`; Rules Package entities carry no `dc`/`difficulty_class` field
 and store dice/damage data as unstructured prose). The ADR-005c investigation also found the committed
