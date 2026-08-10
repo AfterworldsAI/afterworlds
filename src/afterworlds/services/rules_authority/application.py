@@ -531,15 +531,29 @@ def _apply_prose_entry(
     """Apply one entry targeting prose authority (Owner Decision 2026-08-08).
 
     Prose is a sibling of a component's typed facts, never nested inside their
-    application: this touches only ``governing_prose``. It never touches
-    ``handling`` or ``irreducibility_reason_code`` — those are derived exactly
-    once, at final assembly, from each component's own final ``facts`` and
-    ``governing_prose`` (``_finalize_component``, Owner Decision 2026-08-09,
-    generalized), the same way regardless of which override family supplied
-    the authority or what order it resolved in. Leaving ``handling`` alone
-    here also keeps ``_apply_entry``'s ``FactAdditionPatch`` refusal reading
-    the component's actual *declared* handling, as it did before this overlay
-    existed, rather than a value a prose operation computed mid-sequence.
+    application: this never touches ``facts`` or ``handling`` — those are
+    derived exactly once, at final assembly, from each component's own final
+    ``facts`` and ``governing_prose`` (``_finalize_component``, Owner Decision
+    2026-08-09, generalized), the same way regardless of which override
+    family supplied the authority or what order it resolved in. Leaving
+    ``handling`` alone here also keeps ``_apply_entry``'s ``FactAdditionPatch``
+    refusal reading the component's actual *declared* handling, as it did
+    before this overlay existed, rather than a value a prose operation
+    computed mid-sequence.
+
+    ``irreducibility_reason_code`` is the one field this does touch, and only
+    on ``REPLACE``: that operation discards every prior governing-prose entry
+    — source or authored — for exactly one new authored passage, so a reason
+    the base corpus recorded to justify the now-discarded *source* prose's
+    irreducibility can no longer honestly describe what governs this
+    component. Carrying it forward would present authored-only authority
+    under a source-derived irreducibility claim, which ADR-005d forbids the
+    same way it forbids a fabricated ``chunk_id`` or copied span provenance.
+    ``APPEND`` and ``DISABLE`` leave it untouched: ``APPEND`` only adds to
+    existing governing prose, so any source prose the reason describes
+    remains effective; ``DISABLE``'s reason-preserving behavior for a
+    now-empty ``PROSE_BOUND`` component is the already-settled exception
+    Decision 10 names and is unchanged by this fix.
     """
     assert target.component_key is not None
     found = _find_component(record, target.component_key)
@@ -563,16 +577,17 @@ def _apply_prose_entry(
         supplied_by_origin=entry.origin,
     )
     if isinstance(patch, ProseReplacementPatch):
-        governing_prose: tuple[GoverningProseEntry, ...] = (authored,)
-        note = "prose replaced"
-    else:
-        assert isinstance(patch, ProseAdditionPatch)
-        governing_prose = (*component.governing_prose, authored)
-        note = "prose appended"
+        components[index] = replace(
+            component, governing_prose=(authored,), irreducibility_reason_code=None
+        )
+        records[target.record_key] = replace(record, components=tuple(components))
+        return True, "prose replaced"
 
+    assert isinstance(patch, ProseAdditionPatch)
+    governing_prose = (*component.governing_prose, authored)
     components[index] = replace(component, governing_prose=governing_prose)
     records[target.record_key] = replace(record, components=tuple(components))
-    return True, note
+    return True, "prose appended"
 
 
 def _apply_entry(

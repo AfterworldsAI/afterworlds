@@ -150,23 +150,41 @@ SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
 SUPPORT_LEAF = "leaf-support"
 CHECK_LEAF = "leaf-check"
-LEAF_LENGTHS = {SPELL_LEAF: 40, PROSE_LEAF: 30, SUPPORT_LEAF: 20, CHECK_LEAF: 25}
+#: Dedicated leaves for the base MIXED component's own fact and prose
+#: provenance — a span can carry only one PRIMARY claim, so this component
+#: cannot share CHECK_SPAN or PROSE_SPAN with the components that already
+#: claim them.
+MIXED_FACT_LEAF = "leaf-mixed-fact"
+MIXED_PROSE_LEAF = "leaf-mixed-prose"
+LEAF_LENGTHS = {
+    SPELL_LEAF: 40,
+    PROSE_LEAF: 30,
+    SUPPORT_LEAF: 20,
+    CHECK_LEAF: 25,
+    MIXED_FACT_LEAF: 22,
+    MIXED_PROSE_LEAF: 28,
+}
 
 WISH_CHUNK = "chunk-wish-0001"
 SUPPORT_CHUNK = "chunk-wish-0002"
 SPELL_CHUNK = "chunk-wish-spell"
 CHECK_CHUNK = "chunk-servant-check"
+MIXED_FACT_CHUNK = "chunk-servant-mixed-fact"
+MIXED_PROSE_CHUNK = "chunk-servant-mixed-prose"
 
 SPELL_SPAN = derive_span_id(SPELL_LEAF, 0, 40)
 PROSE_SPAN = derive_span_id(PROSE_LEAF, 0, 30)
 SUPPORT_SPAN = derive_span_id(SUPPORT_LEAF, 0, 20)
 CHECK_SPAN = derive_span_id(CHECK_LEAF, 0, 25)
+MIXED_FACT_SPAN = derive_span_id(MIXED_FACT_LEAF, 0, 22)
+MIXED_PROSE_SPAN = derive_span_id(MIXED_PROSE_LEAF, 0, 28)
 
 SPELL_KEY = "spell:wish"
 CREATURE_KEY = "creature:wish-scoped-servant"
 DESCRIPTOR_KEY = "descriptor"
 OPEN_ENDED_KEY = "open-ended-clause"
 CHECK_KEY = "servant-check"
+MIXED_KEY = "servant-mixed-clause"
 
 DESCRIPTOR_FACT = SpellDescriptorFact(
     level=9, school=SpellSchool.CONJURATION, ritual=False, concentration=False
@@ -214,6 +232,8 @@ _EDGE_PAIRS = (
     (SUPPORT_CHUNK, SUPPORT_LEAF),
     (SPELL_CHUNK, SPELL_LEAF),
     (CHECK_CHUNK, CHECK_LEAF),
+    (MIXED_FACT_CHUNK, MIXED_FACT_LEAF),
+    (MIXED_PROSE_CHUNK, MIXED_PROSE_LEAF),
 )
 
 
@@ -398,6 +418,16 @@ def _wish_binding(prefix: str = "") -> ProseBindingDraft:
 WISH_BINDING = _wish_binding()
 
 
+def _mixed_clause_binding(prefix: str = "") -> ProseBindingDraft:
+    """The base ``MIXED`` component's own prose binding, on its own chunk."""
+    return ProseBindingDraft(
+        component_key=MIXED_KEY,
+        record_key=CREATURE_KEY,
+        chunk_id=f"{prefix}{MIXED_PROSE_CHUNK}",
+        irreducibility_reason_code="open_ended_effect",
+    )
+
+
 def _classification(package_uuid: str, release_version: str) -> ClassificationLedger:
     spans = (
         SemanticSpan(
@@ -432,6 +462,22 @@ def _classification(package_uuid: str, release_version: str) -> ClassificationLe
             disposition=SemanticDisposition.SUBSTANTIVE,
             review_state=ReviewState.ACCEPTED,
         ),
+        SemanticSpan(
+            span_id=MIXED_FACT_SPAN,
+            leaf_id=MIXED_FACT_LEAF,
+            char_start=0,
+            char_end=22,
+            disposition=SemanticDisposition.SUBSTANTIVE,
+            review_state=ReviewState.ACCEPTED,
+        ),
+        SemanticSpan(
+            span_id=MIXED_PROSE_SPAN,
+            leaf_id=MIXED_PROSE_LEAF,
+            char_start=0,
+            char_end=28,
+            disposition=SemanticDisposition.SUBSTANTIVE,
+            review_state=ReviewState.ACCEPTED,
+        ),
     )
     return ClassificationLedger(
         package_uuid=package_uuid,
@@ -449,10 +495,16 @@ def _classification(package_uuid: str, release_version: str) -> ClassificationLe
 def _representation(prefix: str = "") -> RepresentationDraft:
     """A spell with structured and prose-bound authority, plus a scoped creature.
 
-    Small on purpose, but not degenerate: two records, three components across
-    two handling dispositions, and two typed facts of different families — which
-    is the minimum that lets a replace, an append, and a disable each be aimed at
-    something distinguishable.
+    Small on purpose, but not degenerate: two records, four components across
+    three handling dispositions (structured, prose-bound, and mixed), and two
+    typed facts of different families — which is the minimum that lets a
+    replace, an append, and a disable each be aimed at something
+    distinguishable. The base ``MIXED`` component (``MIXED_KEY``) reuses
+    ``CHECK_FACT``'s value rather than declaring a third fact family, but
+    still needs its own dedicated leaves/spans/chunks for its fact and its
+    prose binding: a semantic span may carry only one PRIMARY claim, so it
+    cannot share ``CHECK_SPAN`` or ``PROSE_SPAN`` with the components that
+    already claim them.
     """
     return RepresentationDraft(
         records=(
@@ -482,8 +534,15 @@ def _representation(prefix: str = "") -> RepresentationDraft:
                 handling=ComponentHandling.STRUCTURED,
                 facts=(CHECK_FACT,),
             ),
+            ComponentDraft(
+                record_key=CREATURE_KEY,
+                semantic_key=MIXED_KEY,
+                handling=ComponentHandling.MIXED,
+                irreducibility_reason_code="open_ended_effect",
+                facts=(CHECK_FACT,),
+            ),
         ),
-        prose_bindings=(_wish_binding(prefix),),
+        prose_bindings=(_wish_binding(prefix), _mixed_clause_binding(prefix)),
         relationships=(),
         references=(),
         provenance=(
@@ -500,9 +559,21 @@ def _representation(prefix: str = "") -> RepresentationDraft:
                 ProvenanceRole.PRIMARY,
             ),
             ProvenanceClaim(
+                ProvenanceTargetKind.FACT,
+                (CREATURE_KEY, MIXED_KEY, CHECK_FACT_KEY),
+                MIXED_FACT_SPAN,
+                ProvenanceRole.PRIMARY,
+            ),
+            ProvenanceClaim(
                 ProvenanceTargetKind.PROSE_BINDING,
                 prose_binding_target_key(_wish_binding(prefix)),
                 PROSE_SPAN,
+                ProvenanceRole.PRIMARY,
+            ),
+            ProvenanceClaim(
+                ProvenanceTargetKind.PROSE_BINDING,
+                prose_binding_target_key(_mixed_clause_binding(prefix)),
+                MIXED_PROSE_SPAN,
                 ProvenanceRole.PRIMARY,
             ),
             ProvenanceClaim(
@@ -526,7 +597,7 @@ _OBLIGATIONS = (
         record_key=CREATURE_KEY,
         kind=RecordKind.CREATURE,
         structured_fact_families=frozenset({CHECK_FACT.FAMILY}),
-        prose_bound_components=frozenset(),
+        prose_bound_components=frozenset({MIXED_KEY}),
     ),
 )
 
@@ -724,6 +795,18 @@ PROSE_COMPONENT_TARGET = MechanicalTarget(
     kind=MechanicalTargetKind.COMPONENT,
     record_key=SPELL_KEY,
     component_key=OPEN_ENDED_KEY,
+)
+#: The base MIXED component's own prose and fact targets.
+MIXED_PROSE_TARGET = MechanicalTarget(
+    kind=MechanicalTargetKind.PROSE,
+    record_key=CREATURE_KEY,
+    component_key=MIXED_KEY,
+)
+MIXED_FACT_TARGET = MechanicalTarget(
+    kind=MechanicalTargetKind.FACT,
+    record_key=CREATURE_KEY,
+    component_key=MIXED_KEY,
+    fact_key=CHECK_FACT_KEY,
 )
 
 #: A different spell descriptor, used wherever a replacement must be visibly

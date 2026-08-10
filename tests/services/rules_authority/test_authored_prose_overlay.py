@@ -50,9 +50,13 @@ from afterworlds.services.rules_authority import (
 )
 from afterworlds.services.rules_authority.application import AuthoredProse, SourceProse
 from tests.services.rules_authority.conftest import (
+    CHECK_FACT_KEY,
+    CREATURE_KEY,
     DESCRIPTOR_FACT_KEY,
     DESCRIPTOR_KEY,
     DISABLE_PAYLOAD,
+    MIXED_KEY,
+    MIXED_PROSE_TARGET,
     NOW,
     OPEN_ENDED_KEY,
     PACKAGE_UUID,
@@ -304,6 +308,13 @@ def test_base_projection_identity_is_unaffected_by_authored_prose(
 def test_replace_prose_on_prose_bound_replaces_source_prose(
     runtime: RuntimeFixture,
 ) -> None:
+    """PROSE REPLACE removes all source prose *and* the source-derived
+    irreducibility reason it justified: what remains is authored-only
+    authority, and a reason claiming the discarded source prose's
+    irreducibility no longer honestly describes it (ADR-005d Decision 10).
+    Checked in both views — they must agree, the same way they agree on
+    governing prose itself.
+    """
     author_override(
         runtime.session,
         override_id="ov-replace",
@@ -314,16 +325,23 @@ def test_replace_prose_on_prose_bound_replaces_source_prose(
     component = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
     assert component.handling is ComponentHandling.PROSE_BOUND
     assert component.facts == ()
+    assert component.irreducibility_reason_code is None
     (entry,) = component.governing_prose
     assert isinstance(entry, AuthoredProse)
     assert entry.text == "the authored replacement"
     assert entry.supplied_by_override_id == "ov-replace"
     assert entry.supplied_by_origin is OverrideOriginEnum.HOUSE_RULE
 
+    gm = gm_component(runtime, OPEN_ENDED_KEY)
+    assert gm.irreducibility_reason_code is None
+
 
 def test_append_prose_on_prose_bound_preserves_source_and_adds_authored(
     runtime: RuntimeFixture,
 ) -> None:
+    """APPEND only adds to existing governing prose — the source prose (and
+    the reason that justifies it) remains effective, unlike REPLACE.
+    """
     author_override(
         runtime.session,
         override_id="ov-append",
@@ -333,12 +351,175 @@ def test_append_prose_on_prose_bound_preserves_source_and_adds_authored(
     )
     component = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
     assert component.handling is ComponentHandling.PROSE_BOUND
+    assert component.irreducibility_reason_code == "open_ended_effect"
     source, authored = component.governing_prose
     assert isinstance(source, SourceProse)
     assert source.chunk_id == WISH_CHUNK
     assert isinstance(authored, AuthoredProse)
     assert authored.text == "an authored addendum"
     assert authored.supplied_by_override_id == "ov-append"
+
+    gm = gm_component(runtime, OPEN_ENDED_KEY)
+    assert gm.irreducibility_reason_code == "open_ended_effect"
+
+
+def test_replace_prose_on_a_base_mixed_component_clears_only_the_reason(
+    runtime: RuntimeFixture,
+) -> None:
+    """A base ``MIXED`` component (facts and source prose both declared at
+    build time) keeps its facts and its effective ``MIXED`` handling when its
+    source prose is replaced by authored-only prose — only the now-obsolete
+    source-derived reason is cleared, nothing else.
+    """
+    before = typed_component(runtime, CREATURE_KEY, MIXED_KEY)
+    assert before.handling is ComponentHandling.MIXED
+    assert before.irreducibility_reason_code == "open_ended_effect"
+    assert [f.fact_key for f in before.facts] == [CHECK_FACT_KEY]
+    (before_source,) = before.governing_prose
+    assert isinstance(before_source, SourceProse)
+
+    author_override(
+        runtime.session,
+        override_id="ov-replace-mixed-prose",
+        target=MIXED_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("the authored replacement for the mixed clause"),
+    )
+    component = typed_component(runtime, CREATURE_KEY, MIXED_KEY)
+    assert component.handling is ComponentHandling.MIXED
+    assert [f.fact_key for f in component.facts] == [CHECK_FACT_KEY]
+    assert component.irreducibility_reason_code is None
+    (entry,) = component.governing_prose
+    assert isinstance(entry, AuthoredProse)
+    assert entry.text == "the authored replacement for the mixed clause"
+
+    gm = gm_component(runtime, MIXED_KEY)
+    assert gm.irreducibility_reason_code is None
+
+
+def test_replace_then_disable_leaves_the_reason_cleared(
+    runtime: RuntimeFixture,
+) -> None:
+    """``REPLACE`` -> ``DISABLE`` (ascending precedence 10, 20) on a
+    ``PROSE_BOUND`` component (no facts, so nothing here rides on the
+    settled handling-driven demotion): ``REPLACE`` applies and clears the
+    reason; the later ``DISABLE`` only empties ``governing_prose`` further
+    and leaves the already-cleared reason alone. Final reason: ``None``.
+    Paired with the suppressed-``REPLACE`` case below to pin that clearing
+    depends on whether ``REPLACE`` itself applies, not on a value read
+    mid-resolution.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-replace-then-disable",
+        target=PROSE_BOUND_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("replaced before the disable"),
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-after-replace",
+        target=PROSE_BOUND_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
+    assert component.governing_prose == ()
+    assert component.irreducibility_reason_code is None
+
+
+def test_disable_then_suppressed_replace_leaves_the_reason_untouched(
+    runtime: RuntimeFixture,
+) -> None:
+    """``DISABLE`` -> ``REPLACE`` (10, 20) on the *same* ``PROSE_BOUND``
+    target: ``DISABLE`` applies first and suppresses the target; the
+    unchanged precedence rule then refuses the later ``REPLACE`` on that same
+    target (``_suppressed_by``), so it never applies and never clears
+    anything. Final reason: the base ``"open_ended_effect"``, unchanged —
+    the already-settled ``PROSE_BOUND``-with-suppressed-prose exception, not
+    a new effect of this remediation. The suppressed entry's own ``applied``
+    flag is asserted so the reason for the divergence from the sibling test
+    above is visible here, not just inferred.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-disable-then-replace-disable",
+        target=PROSE_BOUND_PROSE_TARGET,
+        operation=OverrideOperationEnum.DISABLE,
+        payload=DISABLE_PAYLOAD,
+        precedence=10,
+    )
+    author_override(
+        runtime.session,
+        override_id="ov-disable-then-replace-replace",
+        target=PROSE_BOUND_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("should never apply"),
+        precedence=20,
+    )
+    component = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
+    assert component.governing_prose == ()
+    assert component.irreducibility_reason_code == "open_ended_effect"
+    result = service(runtime).typed_view(whole(runtime))
+    assert result.typed_view is not None
+    applied = {a.override_id: a for a in result.typed_view.applied_overrides}
+    assert applied["ov-disable-then-replace-disable"].applied is True
+    assert applied["ov-disable-then-replace-replace"].applied is False
+
+
+def test_replay_reconstructs_the_cleared_reason_after_current_rows_change(
+    runtime: RuntimeFixture,
+) -> None:
+    """The recorded binding names an override-set version whose cleared
+    reason must reconstruct exactly, even after the current override row that
+    produced it is edited or deleted — the same replay guarantee every other
+    applied change gets.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-replace-prose",
+        target=PROSE_BOUND_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("the first authored replacement"),
+    )
+    resolution = service(runtime).resolve(package_uuid=runtime.package_uuid)
+    assert resolution.outcome is AuthorityOutcome.RESOLVED
+    recorded = resolution.binding
+    assert recorded is not None
+    original = service(runtime).replay(recorded)
+    (original_record,) = [r for r in original.records if r.semantic_key == SPELL_KEY]
+    (original_component,) = [
+        c for c in original_record.components if c.semantic_key == OPEN_ENDED_KEY
+    ]
+    assert original_component.irreducibility_reason_code is None
+    assert original_component.handling is ComponentHandling.PROSE_BOUND
+
+    row = runtime.session.get(MechanicalOverrideORM, "ov-replace-prose")
+    assert row is not None
+    row.is_enabled = False
+    runtime.session.flush()
+
+    # Current state, unlike the replayed one, resolves back to the base
+    # source prose and its reason once REPLACE is disabled — the point is
+    # that replay ignores this and reconstructs the original cleared reason.
+    current_after_edit = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
+    assert current_after_edit.irreducibility_reason_code == "open_ended_effect"
+
+    runtime.session.delete(row)
+    runtime.session.flush()
+
+    current_after_delete = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
+    assert current_after_delete.irreducibility_reason_code == "open_ended_effect"
+
+    replayed = service(runtime).replay(recorded)
+    (record,) = [r for r in replayed.records if r.semantic_key == SPELL_KEY]
+    (component,) = [c for c in record.components if c.semantic_key == OPEN_ENDED_KEY]
+    assert component.irreducibility_reason_code is None
+    (entry,) = component.governing_prose
+    assert isinstance(entry, AuthoredProse)
+    assert entry.text == "the first authored replacement"
 
 
 def test_disable_prose_suppresses_it_without_deleting_the_component(
