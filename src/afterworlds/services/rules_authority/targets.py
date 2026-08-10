@@ -1,10 +1,18 @@
 """Exact typed override targets — CRD Issue 5d, Decision 10.
 
 An override names one exact element of the mechanical projection: a record, one
-component of a record, or one fact of a component. Nothing else is addressable.
-There is deliberately no JSON path, no selector expression, and no wildcard —
-#137 contract 6 forbids them, and each of those would let an override reach
-authority nobody reviewed it against.
+component of a record, one fact of a component, or the prose authority of one
+component. Nothing else is addressable. There is deliberately no JSON path, no
+selector expression, and no wildcard — #137 contract 6 forbids them, and each
+of those would let an override reach authority nobody reviewed it against.
+
+**Prose is its own grain, not a component subtype.** A ``COMPONENT``-kind
+``DISABLE`` already means "remove the whole component" (Decision 10). Prose
+authority needs to be suppressible, replaceable, or extensible on its own —
+Owner Decision 2026-08-08's authored-authority overlay — without disturbing
+that component's typed facts, so it is a fourth ``MechanicalTargetKind``
+scoped the same way a component is (record + component key), never a raw
+chunk id.
 
 **Semantic keys, not derived IDs.** A target names the committed semantic keys
 (``record_key``, ``component_key``, and the content-derived ``fact_key``) rather
@@ -37,6 +45,7 @@ class MechanicalTargetKind(StrEnum):
     RECORD = "record"
     COMPONENT = "component"
     FACT = "fact"
+    PROSE = "prose"
 
 
 class TargetShapeError(ValueError):
@@ -66,6 +75,7 @@ class MechanicalTarget:
         needs_component = self.kind in (
             MechanicalTargetKind.COMPONENT,
             MechanicalTargetKind.FACT,
+            MechanicalTargetKind.PROSE,
         )
         if needs_component and not (self.component_key or "").strip():
             raise TargetShapeError(f"{self.kind.value} target requires a component_key")

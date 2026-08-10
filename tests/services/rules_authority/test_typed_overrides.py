@@ -426,10 +426,18 @@ def test_a_mistyped_fact_field_is_refused(runtime: RuntimeFixture) -> None:
     assert result.outcome is AuthorityOutcome.INVALID_OVERRIDE
 
 
-def test_a_prose_bound_override_component_is_refused(
+def test_a_prose_bound_override_component_with_no_authored_prose_is_refused(
     runtime: RuntimeFixture,
 ) -> None:
-    """Runtime patches cannot author governing prose (#137 contract 3)."""
+    """A whole-component replacement declaring PROSE_BOUND still needs prose.
+
+    Owner Decision 2026-08-08 lets an override-supplied component declare
+    ``PROSE_BOUND``/``MIXED`` and carry authored prose (see
+    ``test_authored_prose_overlay.py``), which narrows what was previously a
+    blanket refusal here (#137 contract 3, as amended). This control pins the
+    surviving refusal: declaring prose-bound handling without supplying the
+    authored text it requires is still a malformed patch.
+    """
     author_override(
         runtime.session,
         override_id="ov-prose",
@@ -442,7 +450,7 @@ def test_a_prose_bound_override_component_is_refused(
     )
     result = refusal(runtime)
     assert result.outcome is AuthorityOutcome.INVALID_OVERRIDE
-    assert "must be structured" in result.detail
+    assert "no authored prose" in result.detail
 
 
 def test_an_override_targeting_a_missing_record_is_refused(

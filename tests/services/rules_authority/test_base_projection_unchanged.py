@@ -26,6 +26,8 @@ from afterworlds.persistence.orm.mechanical import (
 )
 from afterworlds.services.rules_authority import (
     AuthorityOutcome,
+    MechanicalTarget,
+    MechanicalTargetKind,
     RulesAuthorityService,
 )
 from tests.services.rules_authority.conftest import (
@@ -34,6 +36,8 @@ from tests.services.rules_authority.conftest import (
     DESCRIPTOR_FACT_TARGET,
     DISABLE_PAYLOAD,
     NOW,
+    OPEN_ENDED_KEY,
+    SPELL_KEY,
     RuntimeFixture,
     author_override,
     replace_component_payload,
@@ -179,3 +183,56 @@ def _header_snapshot(runtime: RuntimeFixture) -> tuple[object, ...]:
         header.evidence_report_hash,
         header.oracle_identity,
     )
+
+
+def test_a_prose_replace_clearing_the_effective_reason_leaves_the_base_row_untouched(
+    runtime: RuntimeFixture,
+) -> None:
+    """A PROSE REPLACE clears the source-derived irreducibility reason from
+    the *effective* view (application.py's ``_apply_prose_entry``). This must
+    never reach the persisted base row: ``MechanicalComponentORM`` is written
+    once at publication and is not a place override application writes to.
+    """
+    persisted_before = runtime.session.execute(
+        select(MechanicalComponentORM).where(
+            MechanicalComponentORM.projection_uuid == str(runtime.projection_uuid),
+            MechanicalComponentORM.record_key == SPELL_KEY,
+            MechanicalComponentORM.semantic_key == OPEN_ENDED_KEY,
+        )
+    ).scalar_one()
+    assert persisted_before.irreducibility_reason_code == "open_ended_effect"
+    rows_before = _rows(runtime)
+
+    service = RulesAuthorityService(runtime.session, now=NOW)
+    author_override(
+        runtime.session,
+        override_id="ov-replace-prose",
+        target=MechanicalTarget(
+            kind=MechanicalTargetKind.PROSE,
+            record_key=SPELL_KEY,
+            component_key=OPEN_ENDED_KEY,
+        ),
+        operation=OverrideOperationEnum.REPLACE,
+        payload={"patch": "replace_prose", "text": "the authored replacement"},
+    )
+    result = service.typed_view(
+        RuleSliceRequest(package_id=runtime.package_uuid, whole_package=True)
+    )
+    assert result.outcome is AuthorityOutcome.RESOLVED
+    assert result.typed_view is not None
+    (record,) = [r for r in result.typed_view.records if r.semantic_key == SPELL_KEY]
+    (component,) = [c for c in record.components if c.semantic_key == OPEN_ENDED_KEY]
+    assert component.irreducibility_reason_code is None
+    assert result.binding is not None
+    assert result.binding.mechanical_projection_uuid == runtime.projection_uuid
+
+    persisted_after = runtime.session.execute(
+        select(MechanicalComponentORM).where(
+            MechanicalComponentORM.projection_uuid == str(runtime.projection_uuid),
+            MechanicalComponentORM.record_key == SPELL_KEY,
+            MechanicalComponentORM.semantic_key == OPEN_ENDED_KEY,
+        )
+    ).scalar_one()
+    assert persisted_after.irreducibility_reason_code == "open_ended_effect"
+    assert persisted_after.handling == persisted_before.handling
+    assert _rows(runtime) == rows_before

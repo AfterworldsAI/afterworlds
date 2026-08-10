@@ -19,18 +19,28 @@ Two boundaries are enforced by what these views *do not* contain:
   consumer could read one. Representation and execution are independent
   (ADR-005d Decision 1); the bounded-d20 adapter declares and proves what it can
   execute, and that declaration is CRD Issue 15c's, not this view's.
-* **Retrieval never chooses a mechanical value.** The GameMaster view resolves
-  governing prose through the exact ``chunk_id`` recorded as the component's
+* **Retrieval never chooses a mechanical value.** Source governing prose
+  resolves through the exact ``chunk_id`` recorded as the component's
   build-time prose binding. A retrieval layer may locate *candidates* to look
   at, but what comes back here is bound by identity, not by similarity, and a
   chunk that is not the bound one is simply not in the view (ADR-018, ADR-005c
   D4).
+
+**Authored prose (Owner Decision 2026-08-08).** Governing prose is a closed
+discriminated form: exact 5c source prose (:class:`~.application.SourceProse`,
+resolved here from the bound package's own ``RuleChunk`` rows) ordered
+alongside a distinct authored-authority overlay
+(:class:`~.application.AuthoredProse`), whose text and provenance were already
+resolved when the override was applied — see
+:mod:`afterworlds.services.rules_authority.application`. Both views surface the
+same ordered entries; only source entries need a text lookup here, because
+authored text is already exact.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import RecordKind
@@ -41,12 +51,13 @@ from afterworlds.services.rules_authority.application import (
     EffectiveComponent,
     EffectiveFact,
     EffectiveRecord,
+    GoverningProseEntry,
+    SourceProse,
 )
 
 __all__ = [
     "GameMasterAuthorityView",
     "GameMasterComponent",
-    "GoverningProse",
     "TypedAuthorityView",
     "build_gamemaster_view",
     "build_typed_view",
@@ -69,28 +80,24 @@ class TypedAuthorityView:
 
 
 @dataclass(frozen=True)
-class GoverningProse:
-    """One passage of exact governing prose, bound by identity.
-
-    ``text`` is ``None`` when the bound chunk is not present in the store being
-    read — reported as an absent passage rather than substituted with a similar
-    one, because a nearby passage is not the governing passage.
-    """
-
-    chunk_id: str
-    text: str | None
-
-
-@dataclass(frozen=True)
 class GameMasterComponent:
-    """One component as a GameMaster reads it: prose, context, and handling."""
+    """One component as a GameMaster reads it: prose, context, and handling.
+
+    ``governing_prose`` is exact ordered source-and-authored authority. A
+    :class:`~.application.SourceProse` entry's ``text`` is ``None`` when the
+    bound chunk is not present in the store being read — reported as an
+    absent passage rather than substituted with a similar one, because a
+    nearby passage is not the governing passage. A
+    :class:`~.application.AuthoredProse` entry's ``text`` is never ``None``:
+    it is exact authored text, already resolved when the override applied.
+    """
 
     record_key: str
     record_kind: RecordKind
     component_key: str
     handling: ComponentHandling
     irreducibility_reason_code: str | None
-    governing_prose: tuple[GoverningProse, ...]
+    governing_prose: tuple[GoverningProseEntry, ...]
     #: Typed facts, supplied as *context* for judgement. A GameMaster reading
     #: this view is adjudicating, not executing; the facts are here so the
     #: judgement is made against exact authority rather than recollection.
@@ -117,6 +124,21 @@ def build_typed_view(authority: EffectiveAuthority) -> TypedAuthorityView:
     )
 
 
+def _resolve_prose(
+    entry: GoverningProseEntry, prose: Mapping[str, str]
+) -> GoverningProseEntry:
+    """Resolve one prose entry's text for the GameMaster view.
+
+    A :class:`SourceProse` entry is resolved by its exact ``chunk_id`` against
+    *prose*. An :class:`AuthoredProse` entry already carries exact text — it
+    came from the override's own validated payload, not from a lookup — so it
+    passes through unchanged.
+    """
+    if isinstance(entry, SourceProse):
+        return replace(entry, text=prose.get(entry.chunk_id))
+    return entry
+
+
 def _gamemaster_component(
     record_key: str,
     record_kind: RecordKind,
@@ -130,8 +152,7 @@ def _gamemaster_component(
         handling=component.handling,
         irreducibility_reason_code=component.irreducibility_reason_code,
         governing_prose=tuple(
-            GoverningProse(chunk_id=chunk_id, text=prose.get(chunk_id))
-            for chunk_id in component.prose_chunk_ids
+            _resolve_prose(entry, prose) for entry in component.governing_prose
         ),
         structured_context=component.facts,
         span_ids=component.span_ids,
@@ -146,8 +167,10 @@ def build_gamemaster_view(
 
     *prose* maps an authoritative 5c ``chunk_id`` to its exact text. It is
     supplied by the service seam, which reads it from the authoritative
-    ``RuleChunk`` records of the bound package — there is no second prose store
-    and no text is copied into the projection.
+    ``RuleChunk`` records of the bound package. Source prose is never copied
+    into the projection; a distinct authored-authority overlay (Owner Decision
+    2026-08-08) already carries its own exact text and never claims 5c
+    provenance — see :mod:`afterworlds.services.rules_authority.application`.
     """
     return GameMasterAuthorityView(
         binding=authority.binding,

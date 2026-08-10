@@ -12,11 +12,14 @@ currently reports ``UNPUBLISHED`` — honestly, and by construction.
 
 from afterworlds.services.rules_authority.application import (
     AppliedOverride,
+    AuthoredProse,
     EffectiveAuthority,
     EffectiveComponent,
     EffectiveFact,
     EffectiveRecord,
+    GoverningProseEntry,
     OverrideApplicationError,
+    SourceProse,
     apply_override_set,
 )
 from afterworlds.services.rules_authority.binding import (
@@ -61,13 +64,13 @@ from afterworlds.services.rules_authority.targets import (
 from afterworlds.services.rules_authority.views import (
     GameMasterAuthorityView,
     GameMasterComponent,
-    GoverningProse,
     TypedAuthorityView,
 )
 
 __all__ = [
     "EMPTY_OVERRIDE_SET_UUID",
     "AppliedOverride",
+    "AuthoredProse",
     "AuthorityOutcome",
     "AuthorityResult",
     "BindingResolution",
@@ -79,7 +82,7 @@ __all__ = [
     "EffectiveRecord",
     "GameMasterAuthorityView",
     "GameMasterComponent",
-    "GoverningProse",
+    "GoverningProseEntry",
     "IncoherentBindingError",
     "InvalidPatchError",
     "MechanicalPatch",
@@ -92,6 +95,7 @@ __all__ = [
     "PackageResolution",
     "PatchFamily",
     "RulesAuthorityService",
+    "SourceProse",
     "TargetShapeError",
     "TypedAuthorityView",
     "apply_override_set",
