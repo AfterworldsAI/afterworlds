@@ -698,7 +698,14 @@ def _acceptance(
         at = f"{where}.batches[{i}]"
         b = _require(
             raw,
-            ("batch_id", "rule", "resolved_scope", "diff", "semantic_diff_hash"),
+            (
+                "batch_id",
+                "rule",
+                "resolved_scope",
+                "diff",
+                "semantic_diff_hash",
+                "proposal_identity",
+            ),
             at,
         )
         diff = []
@@ -745,6 +752,9 @@ def _acceptance(
                 diff=tuple(diff),
                 semantic_diff_hash=_string(
                     b["semantic_diff_hash"], f"{at}.semantic_diff_hash"
+                ),
+                proposal_identity=_string(
+                    b["proposal_identity"], f"{at}.proposal_identity"
                 ),
             )
         )

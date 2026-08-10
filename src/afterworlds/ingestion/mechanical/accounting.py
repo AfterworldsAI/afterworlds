@@ -208,6 +208,10 @@ def _validate_batch(
         findings.append(f"{tag}: no resolved scope recorded")
     if not batch.diff:
         findings.append(f"{tag}: no semantic diff retained")
+    # Without this, the batch attests only that spans were accepted, and the
+    # accepted representation could be authority nobody reviewed.
+    if not batch.proposal_identity.strip():
+        findings.append(f"{tag}: no reviewed proposal identity recorded")
 
     scope = set(batch.resolved_scope)
     if len(scope) != len(batch.resolved_scope):
@@ -420,6 +424,12 @@ def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, objec
                 "resolved_scope": list(b.resolved_scope),
                 "diff": batch_diff_payload(b),
                 "semantic_diff_hash": b.semantic_diff_hash,
+                # Which complete proposal was reviewed. Present here — and so
+                # covered by the persisted-state digest — because evidence that
+                # can be rewritten without detection is not evidence, and this
+                # is the one field attesting that the accepted *representation*
+                # was the one in front of the reviewer.
+                "proposal_identity": b.proposal_identity,
             }
             for b in ledger.batches
         ),

@@ -167,6 +167,10 @@ class MechanicalAcceptanceBatchORM(_ProjectionScoped):
     batch_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     rule: Mapped[str] = mapped_column(sa.Text, nullable=False)
     semantic_diff_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    #: Content-derived identity of the complete proposal that was reviewed.
+    #: Retained evidence, never identity: it says the accepted representation is
+    #: one a human actually saw, which the scope and diff cannot say on their own.
+    proposal_identity: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
 class MechanicalBatchScopeORM(_ProjectionScoped):

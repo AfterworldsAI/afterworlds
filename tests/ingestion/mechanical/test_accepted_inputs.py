@@ -16,14 +16,20 @@ fields means the evidence cannot leak into identity. These tests hold both ends.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
+from afterworlds.ingestion.mechanical.accounting import validate_acceptance
+from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
+    OracleLoadError,
     accepted_inputs_payload,
     candidate_from_accepted_inputs,
     committed_inputs_for,
@@ -34,23 +40,41 @@ from afterworlds.ingestion.mechanical.oracle import (
 from afterworlds.ingestion.mechanical.persistence import (
     persist_draft,
     reconstruct_candidate,
+    record_persisted_state_digest,
+    verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.policy import (
     SEMANTIC_POLICY_VERSION,
     semantic_policy_hash,
 )
 from afterworlds.ingestion.mechanical.projection import identify_projection
-from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
+from afterworlds.ingestion.mechanical.proposal import (
+    MechanicalProposal,
+    ProposedSpan,
+    proposal_identity,
+)
 from afterworlds.ingestion.mechanical.publication import (
     PublicationOutcome,
     publish_from_committed_oracle,
     resolve_active_projection,
 )
+from afterworlds.ingestion.mechanical.representation import (
+    ComponentDraft,
+    RecordDraft,
+    RecordKind,
+    SpellDescriptorFact,
+    SpellSchool,
+)
+from afterworlds.ingestion.mechanical.validation import validate_representation
+from afterworlds.persistence.orm.mechanical import MechanicalAcceptanceBatchORM
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
+    DESCRIPTOR_KEY,
     NOW,
     PACKAGE_UUID,
     RELEASE_BINDING,
+    SPELL_KEY,
+    bound_corpus,
     build_ledger,
     build_representation,
 )
@@ -253,3 +277,369 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
         active = resolve_active_projection(session, package)
         assert active.outcome is PublicationOutcome.UNPUBLISHED
         assert active.projection_uuid is None
+
+
+# ---------------------------------------------------------------------------
+# PR #151 review remediation — evidence binding, keyed merge, disjoint scopes
+# ---------------------------------------------------------------------------
+#
+# Three findings, one function, one invariant: a batch's retained evidence has
+# to describe the authority acceptance actually draws in, and accumulating
+# batches have to compose into a ledger that still loads.
+
+
+def _two_batch_scopes() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """One complete proposal's spans, split into two disjoint review batches."""
+    span_ids = [p.span.span_id for p in _proposal().proposed_spans]
+    return (span_ids[0],), tuple(span_ids[1:])
+
+
+def _accept_in_two_batches() -> Any:
+    """The workflow full-corpus review needs: one proposal, two disjoint batches."""
+    proposal = _proposal()
+    first_scope, second_scope = _two_batch_scopes()
+    first = accept_proposal(
+        proposal,
+        batch_id="batch-1",
+        rule="the first reviewed span",
+        resolved_scope=first_scope,
+        reviewer="owner",
+        accepted_at="2026-08-09T00:00:00Z",
+    )
+    return accept_proposal(
+        proposal,
+        batch_id="batch-2",
+        rule="the remaining spans",
+        resolved_scope=second_scope,
+        reviewer="owner",
+        accepted_at="2026-08-10T00:00:00Z",
+        prior=first,
+    )
+
+
+# -- 1. evidence names the representation, not only the spans -----------------
+
+
+def test_identical_span_acceptance_over_different_representations_differs() -> None:
+    """The defect this closes: same spans, same diff, different authority.
+
+    A batch that records only span transitions cannot distinguish these two
+    acceptances, so its evidence could not establish that the reviewer saw the
+    representation about to be published. The recorded proposal identity can.
+    """
+    baseline = _proposal()
+    restated = _proposal(
+        proposed_representation=build_representation(
+            components=(
+                ComponentDraft(
+                    record_key=SPELL_KEY,
+                    semantic_key=DESCRIPTOR_KEY,
+                    handling=ComponentHandling.STRUCTURED,
+                    # Level 8, not 9. Not one span disposition differs.
+                    facts=(
+                        SpellDescriptorFact(
+                            level=8,
+                            school=SpellSchool.CONJURATION,
+                            ritual=False,
+                            concentration=False,
+                        ),
+                    ),
+                ),
+                build_representation().components[1],
+            )
+        )
+    )
+    scope = tuple(p.span.span_id for p in baseline.proposed_spans)
+    kwargs = dict(
+        batch_id="batch-1",
+        rule="every span, reviewed together",
+        resolved_scope=scope,
+        reviewer="owner",
+        accepted_at="2026-08-09T00:00:00Z",
+    )
+    first = accept_proposal(baseline, **kwargs)  # type: ignore[arg-type]
+    second = accept_proposal(restated, **kwargs)  # type: ignore[arg-type]
+
+    # The classification evidence is genuinely identical...
+    assert first.batches[0].resolved_scope == second.batches[0].resolved_scope
+    assert first.batches[0].diff == second.batches[0].diff
+    assert first.batches[0].semantic_diff_hash == second.batches[0].semantic_diff_hash
+    # ...and the representation evidence is not.
+    assert first.batches[0].proposal_identity == proposal_identity(baseline)
+    assert second.batches[0].proposal_identity == proposal_identity(restated)
+    assert first.batches[0].proposal_identity != second.batches[0].proposal_identity
+
+
+def test_the_reviewed_proposal_identity_round_trips(tmp_path: Path) -> None:
+    inputs = _accept()
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(accepted_inputs_payload(inputs)), encoding="utf-8")
+    reloaded = load_accepted_inputs(path)
+    assert reloaded.batches[0].proposal_identity == inputs.batches[0].proposal_identity
+
+
+def test_the_reviewed_proposal_identity_is_evidence_not_identity() -> None:
+    """Audit metadata, exactly like reviewer and timestamp.
+
+    Two acceptances that reached the same accepted result from differently
+    *identified* proposals are still the same authority, so neither the oracle
+    identity nor the projection UUID may move.
+    """
+    inputs = _accept()
+    restamped = replace(
+        inputs,
+        batches=(replace(inputs.batches[0], proposal_identity="b" * 64),),
+    )
+    assert restamped.batches[0].proposal_identity != inputs.batches[0].proposal_identity
+    assert oracle_identity(restamped.oracle) == oracle_identity(inputs.oracle)
+    assert (
+        identify_projection(candidate_from_accepted_inputs(restamped)).projection_uuid
+        == identify_projection(candidate_from_accepted_inputs(inputs)).projection_uuid
+    )
+
+
+# -- 2. one complete proposal, two batches, one copy of everything ------------
+
+
+def test_two_disjoint_batches_of_one_proposal_do_not_duplicate_authority(
+    session: Session,
+) -> None:
+    """The keyed union, end to end.
+
+    Each batch supplies the *same complete* representation, because that is what
+    reviewing one proposal in two sittings means. Concatenating it would
+    duplicate every record and component, and the finished artifact could never
+    publish.
+    """
+    merged = _accept_in_two_batches()
+    expected = build_representation()
+    actual = merged.oracle.representation
+
+    for field in (
+        "records",
+        "components",
+        "prose_bindings",
+        "relationships",
+        "references",
+        "provenance",
+    ):
+        got = getattr(actual, field)
+        assert list(got) == list(getattr(expected, field)), field
+        assert len(got) == len(set(got)), f"{field} carries a duplicate"
+
+    # Both batches are recorded, every span is accepted exactly once, and the
+    # ledger validates as internally honest review evidence.
+    assert [b.batch_id for b in merged.batches] == ["batch-1", "batch-2"]
+    assert len(merged.acceptances) == len(merged.oracle.spans)
+    assert validate_acceptance(merged.classification()) == ()
+    assert (
+        validate_representation(actual, merged.classification(), bound_corpus()) == ()
+    )
+
+
+def test_the_merged_artifact_survives_persistence_and_reconstruction(
+    session: Session,
+) -> None:
+    merged = _accept_in_two_batches()
+    identified = identify_projection(candidate_from_accepted_inputs(merged))
+    persist_draft(session, identified, now=NOW)
+    session.flush()
+
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    assert rebuilt.representation == merged.oracle.representation
+    assert {
+        b.batch_id: b.proposal_identity for b in rebuilt.classification.batches
+    } == {b.batch_id: b.proposal_identity for b in merged.batches}
+    assert identify_projection(rebuilt).projection_uuid == identified.projection_uuid
+
+
+def test_a_merged_artifact_round_trips_through_its_committed_form(
+    tmp_path: Path,
+) -> None:
+    merged = _accept_in_two_batches()
+    path = tmp_path / "merged.json"
+    path.write_text(json.dumps(accepted_inputs_payload(merged)), encoding="utf-8")
+    reloaded = load_accepted_inputs(path)
+    assert oracle_identity(reloaded.oracle) == oracle_identity(merged.oracle)
+    assert reloaded.batches == merged.batches
+
+
+# -- 3. a conflicting element under an accepted key fails closed --------------
+
+
+@pytest.mark.parametrize(
+    ("mutation", "label"),
+    [
+        (
+            lambda base: {
+                "records": (
+                    RecordDraft(semantic_key=SPELL_KEY, kind=RecordKind.CONDITION),
+                    base.records[1],
+                )
+            },
+            "record",
+        ),
+        (
+            lambda base: {
+                "components": (
+                    replace(base.components[0], handling=ComponentHandling.MIXED),
+                    base.components[1],
+                )
+            },
+            "component",
+        ),
+        (
+            lambda base: {
+                "prose_bindings": (replace(base.prose_bindings[0], chunk_char_end=17),)
+            },
+            "prose binding",
+        ),
+    ],
+    ids=["record-kind-changed", "component-handling-changed", "prose-extent-changed"],
+)
+def test_a_conflicting_element_under_an_accepted_key_fails_closed(
+    mutation: Any, label: str
+) -> None:
+    """Not a merge conflict to resolve — one reviewer's authority replacing another's.
+
+    These are the three collections whose keys are narrower than their content,
+    so they are the three where a key collision can mean disagreement rather
+    than repetition.
+    """
+    proposal = _proposal()
+    base = proposal.proposed_representation
+    first_scope, second_scope = _two_batch_scopes()
+    first = accept_proposal(
+        proposal,
+        batch_id="batch-1",
+        rule="the first reviewed span",
+        resolved_scope=first_scope,
+        reviewer="owner",
+        accepted_at="2026-08-09T00:00:00Z",
+    )
+    conflicting = _proposal(
+        proposed_representation=build_representation(**mutation(base))
+    )
+    with pytest.raises(AcceptanceError, match="different content") as exc:
+        accept_proposal(
+            conflicting,
+            batch_id="batch-2",
+            rule="the remaining spans",
+            resolved_scope=second_scope,
+            reviewer="owner",
+            accepted_at="2026-08-10T00:00:00Z",
+            prior=first,
+        )
+    assert label in str(exc.value)
+
+
+# -- 4. overlapping re-acceptance is refused ----------------------------------
+
+
+def test_an_overlapping_re_acceptance_is_refused() -> None:
+    """Refused before an artifact exists, rather than producing an unloadable one.
+
+    Re-accepting a span used to strand the earlier batch: its scope member would
+    name the newer batch, so the older batch had no acceptance record naming it
+    and the ledger failed its own validation from then on.
+    """
+    proposal = _proposal()
+    first_scope, _ = _two_batch_scopes()
+    first = accept_proposal(
+        proposal,
+        batch_id="batch-1",
+        rule="the first reviewed span",
+        resolved_scope=first_scope,
+        reviewer="owner",
+        accepted_at="2026-08-09T00:00:00Z",
+    )
+    with pytest.raises(AcceptanceError, match="re-accepts spans already accepted"):
+        accept_proposal(
+            proposal,
+            batch_id="batch-2",
+            rule="reviewing the same span again",
+            resolved_scope=first_scope,
+            reviewer="second-reviewer",
+            accepted_at="2026-08-10T00:00:00Z",
+            prior=first,
+        )
+
+
+def test_every_accumulated_ledger_stays_valid() -> None:
+    """The property the refusal protects, asserted directly.
+
+    Whatever sequence of accepted batches exists, each batch is named by the
+    acceptance records of exactly its own scope — which is what
+    ``validate_acceptance`` requires and what re-acceptance used to break.
+    """
+    merged = _accept_in_two_batches()
+    by_batch: dict[str | None, set[str]] = {}
+    for record in merged.acceptances:
+        by_batch.setdefault(record.batch_id, set()).add(record.span_id)
+    for batch in merged.batches:
+        assert by_batch[batch.batch_id] == set(batch.resolved_scope)
+    assert validate_acceptance(merged.classification()) == ()
+
+
+# -- 5. missing, malformed, and corrupted evidence ----------------------------
+
+
+def test_an_artifact_without_a_reviewed_proposal_identity_is_rejected(
+    tmp_path: Path,
+) -> None:
+    payload = accepted_inputs_payload(_accept())
+    for batch in payload["acceptance"]["batches"]:  # type: ignore[index]
+        del batch["proposal_identity"]
+    path = tmp_path / "missing.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match=r"missing \['proposal_identity'\]"):
+        load_accepted_inputs(path)
+
+
+def test_a_blank_reviewed_proposal_identity_is_rejected(tmp_path: Path) -> None:
+    """Present but empty is not evidence, and is not treated as evidence."""
+    payload = accepted_inputs_payload(_accept())
+    for batch in payload["acceptance"]["batches"]:  # type: ignore[index]
+        batch["proposal_identity"] = "   "
+    path = tmp_path / "blank.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="no reviewed proposal identity"):
+        load_accepted_inputs(path)
+
+
+def test_a_mistyped_reviewed_proposal_identity_is_rejected(tmp_path: Path) -> None:
+    payload = accepted_inputs_payload(_accept())
+    for batch in payload["acceptance"]["batches"]:  # type: ignore[index]
+        batch["proposal_identity"] = 12345
+    path = tmp_path / "mistyped.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="expected a string"):
+        load_accepted_inputs(path)
+
+
+def test_the_persisted_state_digest_covers_the_reviewed_proposal_identity(
+    session: Session,
+) -> None:
+    """Rewriting it after the fact is detected, exactly like a rewritten reviewer.
+
+    It sits outside semantic identity by design, so without digest coverage a
+    stored identity could be swapped for one naming a proposal nobody reviewed
+    and every other check would still pass.
+    """
+    inputs = _accept()
+    identified = identify_projection(candidate_from_accepted_inputs(inputs))
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+    assert verify_persisted_state(session, identified.projection_uuid) == ()
+
+    row = session.execute(
+        select(MechanicalAcceptanceBatchORM).where(
+            MechanicalAcceptanceBatchORM.projection_uuid == identified.projection_uuid
+        )
+    ).scalar_one()
+    row.proposal_identity = "c" * 64
+    session.flush()
+
+    findings = verify_persisted_state(session, identified.projection_uuid)
+    assert any("digest" in f for f in findings), findings

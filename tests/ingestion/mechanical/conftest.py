@@ -21,6 +21,7 @@ committed file can be checked for drift in one place with a clear message.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -124,6 +125,14 @@ from afterworlds.persistence.orm.rules_package import RulesPackageORM
 NOW = "2026-07-31T00:00:00Z"
 DATA_DIR = Path(__file__).resolve().parent / "data"
 BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
+
+#: The reviewed proposal this fixture's acceptance evidence names. A fixed
+#: content-derived identity rather than one recomputed from a proposal object,
+#: because the committed artifact records what a reviewer saw and a fixture that
+#: re-derived it would prove only that the code agrees with itself.
+REVIEWED_PROPOSAL_IDENTITY = (
+    "f1e2d3c4b5a6978869788796a5b4c3d2e1f00112233445566778899aabbccddee"
+)
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -410,14 +419,9 @@ def batch_accepted_ledger() -> ClassificationLedger:
         resolved_scope=tuple(s.span_id for s in base.spans),
         diff=diff,
         semantic_diff_hash="",
+        proposal_identity=REVIEWED_PROPOSAL_IDENTITY,
     )
-    batch = AcceptanceBatch(
-        batch_id=unhashed.batch_id,
-        rule=unhashed.rule,
-        resolved_scope=unhashed.resolved_scope,
-        diff=unhashed.diff,
-        semantic_diff_hash=batch_diff_hash(unhashed),
-    )
+    batch = replace(unhashed, semantic_diff_hash=batch_diff_hash(unhashed))
     return ClassificationLedger(
         package_uuid=base.package_uuid,
         release_version=base.release_version,
