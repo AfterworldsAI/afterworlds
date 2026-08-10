@@ -1,18 +1,25 @@
-"""The accepted completeness oracle — CRD Issue 5d, Decision 5.
+"""Committed accepted authority — CRD Issue 5d, Decisions 4 and 5.
 
-The publication gate compares reconstructed persisted state against *this*, and
-the only property that makes the comparison worth anything is independence: an
-oracle derived from the projection it checks proves nothing but that the code
-is self-consistent.
+This module owns both halves of what a reviewer commits: the accepted
+**oracle** the publication gate judges persisted state against, and the
+accepted **inputs** the production build consumes, which are the oracle plus the
+review evidence that accepted it (:class:`AcceptedInputs`).
+
+The only property that makes the gate's comparison worth anything is
+independence: an oracle derived from the projection it checks proves nothing but
+that the code is self-consistent.
 
 Independence is structural here, not a convention:
 
 * this module imports no session, no ORM, and nothing from
   :mod:`persistence`, :mod:`raw_state`, or :mod:`gate`. There is no code path,
   public or private, that builds an ``AcceptedOracle`` from a persisted
-  projection or from a :class:`ProjectionCandidate`;
-* :func:`load_oracle` reads a committed JSON file and nothing else. Its whole
-  input is bytes on disk that a reviewer accepted and a commit records; and
+  projection or from a :class:`ProjectionCandidate`.
+  :func:`candidate_from_accepted_inputs` runs the *other* way — committed bytes
+  become a candidate — and the oracle those bytes also carry is what later judges
+  it;
+* :func:`load_accepted_inputs` reads a committed JSON file and nothing else. Its
+  whole input is bytes on disk that a reviewer accepted and a commit records; and
 * the declared semantic policy comes from the *file*, never from the current
   :mod:`policy` constants. Reading current code here would let a policy change
   silently re-bless an oracle nobody re-reviewed — the exact self-attestation
@@ -26,10 +33,11 @@ independent accepted authority with its own publication proof. Re-declaring
 28,109 leaf ids in a committed file would add a second place to drift from 5c
 without adding a second opinion.
 
-**What is committed today.** ``oracles/`` holds no production SRD oracle, so
-the production 5c release resolves to no accepted authority and its projection
-cannot be published. Later inactive-content PRs commit the accepted full-corpus
-oracle; this PR builds the machinery that will judge it.
+**What is committed today.** ``oracles/`` holds no production SRD authority, so
+the production 5c release resolves to nothing and its projection cannot be
+published. Later content PRs commit accepted full-corpus authority through the
+propose → review → accept workflow (:mod:`proposal`, :mod:`acceptance`); the
+machinery that judges it lives here.
 """
 
 from __future__ import annotations
