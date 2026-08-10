@@ -16,7 +16,8 @@ family cannot be added here without someone stating what in the SRD justifies it
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import fields, replace
+from enum import StrEnum
 from typing import Any
 
 import pytest
@@ -508,3 +509,347 @@ def test_membership_with_its_edge_is_accepted() -> None:
     )
     findings = validate_representation(draft, build_ledger(), bound_corpus())
     assert not [f for f in findings if "spell-list qualifier" in f]
+
+
+# -- the invariant checkers themselves ----------------------------------------
+#
+# Membership of the closed union is not validity: a fact can be a declared
+# family and still contradict its own contract, and such a fact would persist as
+# mechanically unusable authority. The checkers are that safety net, so they are
+# exercised across every family and every field here, rather than only at the
+# handful of contradictions somebody thought to write down.
+
+
+def _wrong_typed(value: Any) -> Any:
+    """A value of the wrong type for the field *value* came from.
+
+    Chosen to be the mistakes that actually slip through: a string where a
+    Boolean belongs (``"false"`` is truthy), a Boolean where an integer belongs
+    (``bool`` is an ``int`` subclass), and a plain string where an enum member
+    belongs (``StrEnum`` members *are* strings).
+    """
+    if isinstance(value, bool):
+        return "false"
+    if isinstance(value, StrEnum):
+        return str(value.value)
+    if isinstance(value, int):
+        return True
+    if isinstance(value, str):
+        return 42
+    return "not-a-value-object"
+
+
+@pytest.mark.parametrize("fact", EXEMPLARS.values(), ids=FAMILY_IDS)
+def test_every_field_of_every_family_is_type_checked(fact: Any) -> None:
+    """Mistyping any declared field is reported, for every family.
+
+    Generic rather than per-family on purpose: a family added with a checker
+    that forgets one of its fields fails here, without anyone having to remember
+    to hand-write that family's negative control.
+    """
+    for spec in fields(type(fact)):
+        original = getattr(fact, spec.name)
+        if original is None:
+            continue  # An unset optional field has no type to get wrong.
+        broken = replace(fact, **{spec.name: _wrong_typed(original)})
+        violations = fact_invariant_violations(broken)
+        assert violations, f"{type(fact).__name__}.{spec.name} accepted a wrong type"
+        assert any(spec.name in v for v in violations), (
+            f"{type(fact).__name__}.{spec.name} was rejected, but no violation "
+            f"named it: {violations}"
+        )
+
+
+#: Which family each shared value object hangs off, so a value-object control
+#: can be written once and checked through a real fact.
+_HOLDERS: dict[type, tuple[FactFamily, str]] = {
+    DiceExpression: (FactFamily.DAMAGE, "dice"),
+    Rational: (FactFamily.CREATURE_CHALLENGE, "challenge_rating"),
+    Money: (FactFamily.EQUIPMENT_DESCRIPTOR, "cost"),
+    SpellCastingTime: (FactFamily.SPELL_DESCRIPTOR, "casting_time"),
+    SpellRange: (FactFamily.SPELL_DESCRIPTOR, "spell_range"),
+    SpellComponents: (FactFamily.SPELL_DESCRIPTOR, "components"),
+    SpellDuration: (FactFamily.SPELL_DESCRIPTOR, "duration"),
+}
+
+
+def _holding(value: Any, value_type: type) -> Any:
+    family, field = _HOLDERS[value_type]
+    return replace(EXEMPLARS[family], **{field: value})
+
+
+@pytest.mark.parametrize(
+    "value_object",
+    [
+        DiceExpression(2, DieSize.D6, 3),
+        Rational(1, 2),
+        Money(5, Currency.GP),
+        SpellCastingTime(cost=ActionCost.ACTION),
+        SpellRange(kind=RangeKind.RANGED, feet=60),
+        SpellComponents(verbal=True, somatic=True, material=False),
+        SpellDuration(kind=DurationKind.TIMED, amount=1, unit=TimeUnit.MINUTE),
+    ],
+    ids=[
+        "dice",
+        "rational",
+        "money",
+        "casting-time",
+        "range",
+        "components",
+        "duration",
+    ],
+)
+def test_a_value_object_replaced_by_a_look_alike_dict_is_rejected(
+    value_object: Any,
+) -> None:
+    """A nested value object is as closed as a family.
+
+    A dict with exactly the right keys is not a :class:`DiceExpression`, and
+    accepting one would reopen the untyped escape hatch through the back door.
+    """
+    as_dict = {
+        f.name: getattr(value_object, f.name) for f in fields(type(value_object))
+    }
+    violations = fact_invariant_violations(_holding(as_dict, type(value_object)))
+    assert any("must be" in v for v in violations), violations
+
+
+@pytest.mark.parametrize(
+    ("value_object", "expected"),
+    [
+        (DiceExpression(0, DieSize.D6), "rolls no dice"),
+        (Rational(-1, 2), "is negative"),
+        (Rational(1, 0), "is not positive"),
+        (Money(-5, Currency.GP), "is negative"),
+        (SpellCastingTime(), "exactly one of an action cost or an elapsed time"),
+        (
+            SpellCastingTime(cost=ActionCost.ACTION, amount=1, unit=TimeUnit.MINUTE),
+            "exactly one of an action cost or an elapsed time",
+        ),
+        (SpellCastingTime(amount=1), "needs both amount and unit"),
+        (SpellRange(kind=RangeKind.RANGED), "a ranged spell states a distance"),
+        (SpellRange(kind=RangeKind.RANGED, feet=0), "is not a distance"),
+        (
+            SpellRange(kind=RangeKind.SELF, feet=30),
+            "the distance comes from the named kind",
+        ),
+        (
+            SpellComponents(
+                verbal=True, somatic=False, material=False, material_consumed=True
+            ),
+            "consumes a material component it does not have",
+        ),
+        (SpellDuration(kind=DurationKind.TIMED), "needs both amount and unit"),
+        (
+            SpellDuration(
+                kind=DurationKind.INSTANTANEOUS, amount=1, unit=TimeUnit.MINUTE
+            ),
+            "the length comes from the named kind",
+        ),
+    ],
+)
+def test_a_value_object_that_contradicts_its_own_contract_is_reported(
+    value_object: Any, expected: str
+) -> None:
+    """ "The value comes from the named kind, not from the fact", held.
+
+    Each of these would otherwise persist as authority stating two incompatible
+    things about one printed value.
+    """
+    violations = fact_invariant_violations(_holding(value_object, type(value_object)))
+    assert any(expected in v for v in violations), violations
+
+
+@pytest.mark.parametrize(
+    ("fact", "expected"),
+    [
+        (
+            replace(EXEMPLARS[FactFamily.ABILITY_CHECK], dc_kind=DcKind.FIXED),
+            "fixed DC without a dc_value",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.ABILITY_CHECK], dc_value=15),
+            "the value comes from the named source",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.CREATURE_ABILITY_SCORE], score=-1),
+            "negative ability score",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SPELL_DESCRIPTOR], level=-1),
+            "negative spell level",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.PROGRESSION_ENTRY], level=-1),
+            "negative progression level",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.PROGRESSION_ENTRY], quantity=0),
+            "grants nothing",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SPELL_SLOT_PROGRESSION], character_level=0),
+            "is not a level",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SPELL_SLOT_PROGRESSION], slot_level=0),
+            "is not a slot level",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SPELL_LIST_QUALIFIER], spell_record_key="  "),
+            "without a spell record key",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.SPELL_LIST_QUALIFIER],
+                always_prepared=False,
+                minimum_class_level=None,
+            ),
+            "states no qualifier",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SPELL_LIST_QUALIFIER], minimum_class_level=0),
+            "is not a level",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.ATTACK_ROLL], reach_feet=0),
+            "reach_feet 0 is not a distance",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.ATTACK_ROLL],
+                reach_feet=None,
+                range_normal_feet=100,
+                range_long_feet=20,
+            ),
+            "is shorter than",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.ATTACK_ROLL], reach_feet=None, range_long_feet=100
+            ),
+            "range_long_feet without a normal range",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.DAMAGE], dice=None, flat_amount=0),
+            "deals no damage",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.DAMAGE], stated_average=0),
+            "stated_average 0 deals no damage",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.HEALING],
+                restores_all_hit_points=False,
+                flat_amount=0,
+            ),
+            "restores nothing",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.CREATURE_DEFENSE], hit_points=0),
+            "is not a living creature",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.CREATURE_DEFENSE], armor_class=-1),
+            "negative armor_class",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.CREATURE_SPEED], feet=-5),
+            "negative speed",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.RESOURCE_RECOVERY], resource_key=" "),
+            "without a resource key",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.RESOURCE_RECOVERY], uses=0),
+            "grants nothing",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+                recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+            ),
+            "needs both a die and a minimum roll",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+                recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+                recharge_die=DieSize.D6,
+                recharge_minimum=0,
+            ),
+            "always succeeds",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SCALING], threshold=-1),
+            "negative scaling threshold",
+        ),
+        (
+            replace(EXEMPLARS[FactFamily.SCALING], dice_increase=None),
+            "exactly one of a dice increase or an amount increase",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.SCALING],
+                effect=ScalingEffect.EFFECTIVE_SPELL_LEVEL,
+            ),
+            "the value comes from the slot level itself",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.SCALING], dice_increase=None, amount_increase=0
+            ),
+            "increases nothing",
+        ),
+        (EquipmentDescriptorFact(), "states neither a cost nor a weight"),
+        (
+            replace(
+                EXEMPLARS[FactFamily.WEAPON_PROPERTY],
+                weapon_property=WeaponProperty.HEAVY,
+            ),
+            "carries versatile damage",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.WEAPON_PROPERTY],
+                weapon_property=WeaponProperty.THROWN,
+                versatile_damage=None,
+            ),
+            "thrown property without a normal range",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.WEAPON_PROPERTY],
+                versatile_damage=DiceExpression(1, DieSize.D10),
+                thrown_range_normal_feet=20,
+            ),
+            "carries a thrown range",
+        ),
+        (
+            replace(
+                EXEMPLARS[FactFamily.WEAPON_PROPERTY],
+                weapon_property=WeaponProperty.THROWN,
+                versatile_damage=None,
+                thrown_range_normal_feet=20,
+                thrown_range_long_feet=0,
+            ),
+            "thrown_range_long_feet 0 is not a distance",
+        ),
+    ],
+)
+def test_each_family_reports_its_own_contract_violation(
+    fact: Any, expected: str
+) -> None:
+    """One control per contract clause, so no clause goes unexercised."""
+    violations = fact_invariant_violations(fact)
+    assert any(expected in v for v in violations), violations
+
+
+def test_a_structure_outside_the_union_has_no_contract_to_check() -> None:
+    """Reported as non-membership, rather than crashing on a missing checker."""
+    violations = fact_invariant_violations(DiceExpression(1, DieSize.D6))
+    assert violations == (
+        "DiceExpression is not a member of the closed typed-fact union",
+    )
