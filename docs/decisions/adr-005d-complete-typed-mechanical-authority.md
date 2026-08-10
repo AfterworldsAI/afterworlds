@@ -358,7 +358,12 @@ meanings extend without changing:
 - `REPLACE` on prose authority replaces the target's complete effective governing prose with exact
   authored prose, superseding both the base projection's 5c-bound prose and any previously applied
   authored prose for that target, resolved in the same ascending `(precedence, override_id)` order every
-  other override uses.
+  other override uses. It also clears any source-derived irreducibility reason the component carried: that
+  reason was the base corpus's judgement about the source prose this operation just discarded, and keeping
+  it would be exactly the copied irreducibility claim the non-fabricated-provenance rule below forbids.
+  `APPEND` and `DISABLE` leave the reason untouched — `APPEND` only adds to existing governing prose, so
+  any source prose the reason describes remains effective, and `DISABLE`'s reason-preserving behavior on a
+  now-empty `PROSE_BOUND` component is the named exception directly below.
 - `APPEND` on prose authority preserves the target's existing effective governing prose — 5c-bound,
   previously authored, or both — and adds one more authored passage after it, in that same order.
 
