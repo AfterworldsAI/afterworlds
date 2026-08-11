@@ -644,12 +644,17 @@ def test_a_non_canonical_reviewed_proposal_identity_is_rejected(
     assert "is not a canonical SHA-256 digest" in message, why
 
 
-def test_a_real_digest_of_the_wrong_shape_family_is_still_accepted() -> None:
-    """The check is shape, and it says so — it cannot prove authenticity.
+def test_a_canonical_digest_naming_another_proposal_is_still_accepted() -> None:
+    """The stated limit of the shape check, asserted so nobody infers more.
 
-    A canonical digest naming some *other* proposal passes, because nothing in
-    the accepted artifact can recompute the reviewed proposal. Asserted so the
-    guarantee is not overstated by a reader of the tests above.
+    A canonical digest naming some *other* proposal passes: nothing in the
+    accepted artifact can recompute the reviewed proposal, so this layer cannot
+    tell the difference — and it is not the layer that should. Reviewer
+    authenticity comes from Git review of the committed artifact, which is the
+    independently reviewed authority; the persisted-state digest separately
+    detects later mutation of stored evidence. Neither this check nor that one
+    attests to human review, and #137 does not require self-authenticating
+    proposal history.
     """
     inputs = _accept()
     other = replace(

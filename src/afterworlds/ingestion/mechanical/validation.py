@@ -40,6 +40,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProseBindingDraft,
     ProvenanceRole,
     ProvenanceTargetKind,
+    RecordKind,
     RelationshipKind,
     RepresentationDraft,
     declared_provenance_targets,
@@ -302,13 +303,47 @@ def _validate_spell_list_membership(
     qualifier without its edge would be a claim about a membership the
     projection never declares, and it would silently vanish from any consumer
     that reads the relationship graph.
+
+    ``SPELL_LIST_MEMBER`` also carries a domain claim the other relationship
+    kinds do not, so its endpoints are constrained: it means *this class's spell
+    list includes this spell*, and a consumer reading it as eligibility to
+    prepare or know would be misled by any other pair. A creature or an item on
+    either end is not a weaker version of that statement; it is a different one.
+
+    ``SCOPED_WITHIN``, ``GRANTS``, and ``PREREQUISITE`` stay deliberately
+    polymorphic — a spell scopes a creature, a level grants a feature, a feat
+    requires a species — so nothing here invents endpoint rules for them.
+
+    A membership edge with no qualifier is normal and stays valid: most rows of
+    a ``Spell | School | Special`` table say nothing in the ``Special`` column,
+    and requiring a qualifier would force one to be invented.
     """
     findings: list[str] = []
-    members = {
-        (rel.source_record_key, rel.target_record_key)
-        for rel in draft.relationships
-        if rel.kind is RelationshipKind.SPELL_LIST_MEMBER
-    }
+    kinds = {r.semantic_key: r.kind for r in draft.records}
+    members: set[tuple[str, str]] = set()
+
+    for rel in draft.relationships:
+        if rel.kind is not RelationshipKind.SPELL_LIST_MEMBER:
+            continue
+        members.add((rel.source_record_key, rel.target_record_key))
+        tag = (
+            f"spell-list membership {rel.source_record_key} -> {rel.target_record_key}"
+        )
+        source_kind = kinds.get(rel.source_record_key)
+        target_kind = kinds.get(rel.target_record_key)
+        # A missing endpoint is already reported as an unknown record by the
+        # relationship checks above; repeating it here would say it twice.
+        if source_kind is not None and source_kind is not RecordKind.CLASS:
+            findings.append(
+                f"{tag}: source is a {source_kind.value} record; a spell list "
+                "belongs to a class"
+            )
+        if target_kind is not None and target_kind is not RecordKind.SPELL:
+            findings.append(
+                f"{tag}: target is a {target_kind.value} record; only a spell "
+                "can be on a spell list"
+            )
+
     for component in draft.components:
         for fact in component.facts:
             if getattr(fact, "FAMILY", None) is not FactFamily.SPELL_LIST_QUALIFIER:
@@ -318,9 +353,23 @@ def _validate_spell_list_membership(
                 f"spell-list qualifier {component.record_key}/"
                 f"{component.semantic_key} -> {target}"
             )
+            owner_kind = kinds.get(component.record_key)
+            if owner_kind is not None and owner_kind is not RecordKind.CLASS:
+                # The Special column is a column of the *class's* table, so the
+                # qualifier belongs to the class component that states the list.
+                findings.append(
+                    f"{tag}: qualifier sits on a {owner_kind.value} record; the "
+                    "Special column belongs to the class stating the list"
+                )
             if target not in record_keys:
                 findings.append(f"{tag}: unknown spell record")
-            elif (component.record_key, target) not in members:
+                continue
+            if kinds.get(target) is not RecordKind.SPELL:
+                findings.append(
+                    f"{tag}: qualifies a {kinds[target].value} record; a "
+                    "spell-list qualifier names a spell"
+                )
+            if (component.record_key, target) not in members:
                 findings.append(
                     f"{tag}: qualifies a membership the projection does not "
                     "declare as a spell_list_member relationship"

@@ -67,9 +67,12 @@ from afterworlds.ingestion.mechanical.representation import (
     ProgressionEntryFact,
     RangeKind,
     Rational,
+    RecordDraft,
+    RecordKind,
     RecoveryTrigger,
     RelationshipDraft,
     RelationshipKind,
+    RepresentationDraft,
     ResourceRecoveryFact,
     RollContext,
     ScalingBasis,
@@ -437,6 +440,132 @@ def test_every_family_survives_persistence_and_reconstruction(
     assert identify_projection(rebuilt).projection_uuid == identified.projection_uuid
 
 
+#: A class record and a spell record, so a spell-list claim can be stated with
+#: the endpoints it actually means. The bounded fixture has a spell and a
+#: creature but no class, and a spell list belongs to a class.
+CLASS_KEY = "class:wizard"
+LISTED_SPELL_KEY = "spell:cure-wounds"
+SPELL_LIST_KEY = "spell-list"
+
+
+def _spell_list_draft(
+    *,
+    qualifier: SpellListQualifierFact | None = None,
+    source_key: str = CLASS_KEY,
+    source_kind: RecordKind = RecordKind.CLASS,
+    target_key: str = LISTED_SPELL_KEY,
+    target_kind: RecordKind = RecordKind.SPELL,
+    with_edge: bool = True,
+    qualifier_on: str | None = None,
+) -> RepresentationDraft:
+    """The bounded fixture plus one class spell list, perturbable per control."""
+    base = build_representation()
+    facts = (qualifier,) if qualifier is not None else ()
+    owner = qualifier_on or source_key
+    return build_representation(
+        records=base.records
+        + (
+            RecordDraft(semantic_key=source_key, kind=source_kind),
+            RecordDraft(semantic_key=target_key, kind=target_kind),
+        ),
+        components=base.components
+        + (
+            ComponentDraft(
+                record_key=owner,
+                semantic_key=SPELL_LIST_KEY,
+                handling=ComponentHandling.STRUCTURED,
+                facts=facts or (EXEMPLARS[FactFamily.PROGRESSION_ENTRY],),
+            ),
+        ),
+        relationships=base.relationships
+        + (
+            (
+                RelationshipDraft(
+                    source_record_key=source_key,
+                    target_record_key=target_key,
+                    kind=RelationshipKind.SPELL_LIST_MEMBER,
+                ),
+            )
+            if with_edge
+            else ()
+        ),
+    )
+
+
+def _spell_list_findings(**kwargs: Any) -> list[str]:
+    """Only the spell-list judgements.
+
+    The perturbed draft adds records and a component with no provenance edges,
+    which the provenance validator reports for reasons unrelated to spell lists.
+    Narrowing to the two message families under test stops a positive control
+    from failing — or a negative one from passing — for the wrong reason.
+    """
+    findings = validate_representation(
+        _spell_list_draft(**kwargs), build_ledger(), bound_corpus()
+    )
+    return [
+        f
+        for f in findings
+        if f.startswith("spell-list membership") or f.startswith("spell-list qualifier")
+    ]
+
+
+QUALIFIER = SpellListQualifierFact(
+    spell_record_key=LISTED_SPELL_KEY, always_prepared=True
+)
+
+
+def test_a_class_to_spell_membership_with_a_qualifier_is_accepted() -> None:
+    """The shape the 73 ``Spell | School | Special`` tables actually state."""
+    assert _spell_list_findings(qualifier=QUALIFIER) == []
+
+
+def test_membership_without_a_qualifier_remains_valid() -> None:
+    """Most rows say nothing in the Special column, and must not have to.
+
+    Requiring a qualifier per edge would force one to be invented for every
+    ordinary spell on every class list.
+    """
+    assert _spell_list_findings() == []
+
+
+def test_a_membership_edge_from_a_non_class_record_is_rejected() -> None:
+    """A spell list belongs to a class; any other source states something else."""
+    findings = _spell_list_findings(
+        qualifier=QUALIFIER, source_key=CREATURE_KEY, source_kind=RecordKind.CREATURE
+    )
+    assert any("a spell list belongs to a class" in f for f in findings), findings
+
+
+def test_a_membership_edge_to_a_non_spell_record_is_rejected() -> None:
+    """The case the previous revision accepted: a spell-to-creature edge.
+
+    A consumer reading these edges as spell-list eligibility would have received
+    an arbitrary record as a member.
+    """
+    findings = _spell_list_findings(
+        target_key=CREATURE_KEY, target_kind=RecordKind.CREATURE
+    )
+    assert any("only a spell can be on a spell list" in f for f in findings), findings
+
+
+def test_a_qualifier_naming_a_non_spell_record_is_rejected() -> None:
+    findings = _spell_list_findings(
+        qualifier=SpellListQualifierFact(
+            spell_record_key=CREATURE_KEY, always_prepared=True
+        ),
+        target_key=CREATURE_KEY,
+        target_kind=RecordKind.CREATURE,
+    )
+    assert any("a spell-list qualifier names a spell" in f for f in findings), findings
+
+
+def test_a_qualifier_on_a_non_class_record_is_rejected() -> None:
+    """The Special column is a column of the class's own table."""
+    findings = _spell_list_findings(qualifier=QUALIFIER, qualifier_on=SPELL_KEY)
+    assert any("belongs to the class stating the list" in f for f in findings), findings
+
+
 def test_a_spell_list_qualifier_needs_its_membership_edge() -> None:
     """The fact and the relationship are one claim, split by what each can say.
 
@@ -445,70 +574,17 @@ def test_a_spell_list_qualifier_needs_its_membership_edge() -> None:
     projection never declares, and would vanish from any consumer reading the
     relationship graph.
     """
-    qualifier = SpellListQualifierFact(
-        spell_record_key=CREATURE_KEY, always_prepared=True
-    )
-    draft = build_representation(
-        components=(
-            ComponentDraft(
-                record_key=SPELL_KEY,
-                semantic_key=DESCRIPTOR_KEY,
-                handling=ComponentHandling.STRUCTURED,
-                facts=(qualifier,),
-            ),
-            build_representation().components[1],
-        )
-    )
-    findings = validate_representation(draft, build_ledger(), bound_corpus())
+    findings = _spell_list_findings(qualifier=QUALIFIER, with_edge=False)
     assert any("does not declare as a spell_list_member" in f for f in findings)
 
 
 def test_a_spell_list_qualifier_naming_no_record_is_rejected() -> None:
-    qualifier = SpellListQualifierFact(
-        spell_record_key="spell:not-in-this-projection", always_prepared=True
-    )
-    draft = build_representation(
-        components=(
-            ComponentDraft(
-                record_key=SPELL_KEY,
-                semantic_key=DESCRIPTOR_KEY,
-                handling=ComponentHandling.STRUCTURED,
-                facts=(qualifier,),
-            ),
-            build_representation().components[1],
+    findings = _spell_list_findings(
+        qualifier=SpellListQualifierFact(
+            spell_record_key="spell:not-in-this-projection", always_prepared=True
         )
     )
-    findings = validate_representation(draft, build_ledger(), bound_corpus())
     assert any("unknown spell record" in f for f in findings)
-
-
-def test_membership_with_its_edge_is_accepted() -> None:
-    """The negative controls above are not "any qualifier fails"."""
-    qualifier = SpellListQualifierFact(
-        spell_record_key=CREATURE_KEY, always_prepared=True
-    )
-    base = build_representation()
-    draft = build_representation(
-        components=(
-            ComponentDraft(
-                record_key=SPELL_KEY,
-                semantic_key=DESCRIPTOR_KEY,
-                handling=ComponentHandling.STRUCTURED,
-                facts=(qualifier,),
-            ),
-            base.components[1],
-        ),
-        relationships=base.relationships
-        + (
-            RelationshipDraft(
-                source_record_key=SPELL_KEY,
-                target_record_key=CREATURE_KEY,
-                kind=RelationshipKind.SPELL_LIST_MEMBER,
-            ),
-        ),
-    )
-    findings = validate_representation(draft, build_ledger(), bound_corpus())
-    assert not [f for f in findings if "spell-list qualifier" in f]
 
 
 # -- the invariant checkers themselves ----------------------------------------
@@ -853,3 +929,105 @@ def test_a_structure_outside_the_union_has_no_contract_to_check() -> None:
     assert violations == (
         "DiceExpression is not a member of the closed typed-fact union",
     )
+
+
+# -- recharge thresholds the die can actually reach ---------------------------
+
+
+@pytest.mark.parametrize("die", list(DieSize), ids=[d.value for d in DieSize])
+def test_a_recharge_minimum_equal_to_the_die_maximum_is_attainable(
+    die: DieSize,
+) -> None:
+    """``Recharge 6`` on a d6 is a real stat-block line, so the bound is inclusive."""
+    fact = replace(
+        EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+        recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+        recharge_die=die,
+        recharge_minimum=die.faces,
+    )
+    assert fact_invariant_violations(fact) == ()
+
+
+@pytest.mark.parametrize("die", list(DieSize), ids=[d.value for d in DieSize])
+def test_a_recharge_minimum_above_the_die_maximum_is_rejected(die: DieSize) -> None:
+    """One past the top of the die is a resource that can never come back.
+
+    It would otherwise validate, persist, and publish as typed authority for a
+    feature that never recharges.
+    """
+    fact = replace(
+        EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+        recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+        recharge_die=die,
+        recharge_minimum=die.faces + 1,
+    )
+    violations = fact_invariant_violations(fact)
+    assert any("is unreachable on" in v for v in violations), violations
+
+
+def test_the_die_range_comes_from_the_die_itself() -> None:
+    """No parallel table to fall out of step with the union."""
+    assert [d.faces for d in DieSize] == [4, 6, 8, 10, 12, 20, 100]
+
+
+def test_the_existing_recharge_controls_remain_green() -> None:
+    """The new upper bound did not displace the checks already there."""
+    base = replace(
+        EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+        recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+        recharge_die=DieSize.D6,
+        recharge_minimum=5,
+    )
+    assert fact_invariant_violations(base) == ()
+    assert any(
+        "always succeeds" in v
+        for v in fact_invariant_violations(replace(base, recharge_minimum=0))
+    )
+    assert any(
+        "needs both a die and a minimum roll" in v
+        for v in fact_invariant_violations(replace(base, recharge_minimum=None))
+    )
+    assert any(
+        "carries recharge terms" in v
+        for v in fact_invariant_violations(
+            replace(base, recovers_on=RecoveryTrigger.LONG_REST)
+        )
+    )
+
+
+def test_an_unreachable_recharge_still_fails_after_reconstruction(
+    session: Session,
+) -> None:
+    """The publication path exercises this over reconstructed state, not memory.
+
+    A fact that only failed in-memory validation could be persisted by an
+    authoring path and then published from the database.
+    """
+    unreachable = replace(
+        EXEMPLARS[FactFamily.RESOURCE_RECOVERY],
+        recovers_on=RecoveryTrigger.RECHARGE_ROLL,
+        recharge_die=DieSize.D6,
+        recharge_minimum=7,
+    )
+    draft = build_representation(
+        components=(
+            ComponentDraft(
+                record_key=SPELL_KEY,
+                semantic_key=DESCRIPTOR_KEY,
+                handling=ComponentHandling.STRUCTURED,
+                facts=(unreachable,),
+            ),
+            build_representation().components[1],
+        )
+    )
+    identified = identify_projection(
+        ProjectionCandidate(RELEASE_BINDING, build_ledger(), draft)
+    )
+    persist_draft(session, identified, now=NOW)
+    session.flush()
+
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    findings = validate_representation(
+        rebuilt.representation, rebuilt.classification, bound_corpus()
+    )
+    assert any("is unreachable on" in f for f in findings), findings

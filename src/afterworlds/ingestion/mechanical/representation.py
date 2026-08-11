@@ -255,6 +255,15 @@ class DieSize(StrEnum):
     D20 = "d20"
     D100 = "d100"
 
+    @property
+    def faces(self) -> int:
+        """The highest number this die can roll.
+
+        Derived from the member's own name rather than kept in a parallel
+        table, so a die added to this union cannot arrive without its range.
+        """
+        return int(self.value[1:])
+
 
 class DamageType(StrEnum):
     """The closed SRD damage-type vocabulary."""
@@ -1460,6 +1469,16 @@ def _check_resource_recovery(fact: ResourceRecoveryFact) -> list[str]:
             )
         elif fact.recharge_minimum < 1:
             findings.append(f"recharge_minimum {fact.recharge_minimum} always succeeds")
+        elif fact.recharge_minimum > fact.recharge_die.faces:
+            # The mirror of the check above, and it matters more: a threshold
+            # the die cannot reach is a resource that never recharges, which
+            # would persist and publish as typed authority for a feature that
+            # can never come back. ``Recharge 6`` on a d6 is real and must pass,
+            # so the bound is inclusive.
+            findings.append(
+                f"recharge_minimum {fact.recharge_minimum} is unreachable on "
+                f"{fact.recharge_die.value}; the resource could never recharge"
+            )
     elif recharge:
         findings.append(
             f"{fact.recovers_on.value} recovery carries recharge terms; the "

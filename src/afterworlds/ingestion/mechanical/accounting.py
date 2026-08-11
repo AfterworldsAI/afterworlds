@@ -204,12 +204,23 @@ def _is_canonical_digest(value: str) -> bool:
     to recompute it against; the strongest available check is that it is the
     shape this repository's hashing function can actually emit.
 
-    That is deliberately a *shape* check and not a claim of authenticity. It
-    cannot prove the digest names the proposal that was reviewed. What it does
-    rule out is evidence that could not have come from a real proposal at all —
-    a placeholder, a truncated paste, an uppercase transcription, or a
-    hand-typed word — which is the difference between weak evidence and evidence
-    that was never generated.
+    **What this proves, exactly.** Only that the value *could* be a digest this
+    repository generated. It proves nothing about which proposal that digest
+    names, and nothing about human review: a hand-authored artifact can carry
+    any 64-character lowercase hex string, and this check will accept it. What
+    it rules out is a value that could not have been generated at all — a
+    placeholder, a truncated paste, an uppercase transcription, a typed word.
+
+    **What proves the rest, and where.** ``proposal_identity`` is an audit
+    reference computed by :func:`~.acceptance.accept_proposal`, not a
+    cryptographic attestation of human review. The independently reviewed
+    authority is the committed ``AcceptedInputs`` artifact itself, and Git
+    review is the trust boundary that establishes a human accepted it. The
+    persisted-state digest is a third, separate thing again: it detects later
+    mutation of stored evidence. None of the three establishes reviewer
+    authenticity, and #137 does not require self-authenticating proposal
+    history — retaining proposal payloads beside an editable digest would
+    establish internal consistency, not authenticity.
     """
     return bool(_CANONICAL_DIGEST.fullmatch(value))
 
