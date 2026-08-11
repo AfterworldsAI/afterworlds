@@ -59,12 +59,21 @@ def _check_payload(family: str, **fields: Any) -> dict[str, Any]:
             "dc_kind": "fixed",
             "dc_value": 15,
         },
-        "creature_ability_score": {"ability": "strength", "score": 12},
+        "creature_ability_score": {
+            "ability": "strength",
+            "score": 12,
+            "modifier": None,
+            "save_modifier": None,
+        },
         "spell_descriptor": {
             "level": 3,
             "school": "illusion",
             "ritual": False,
             "concentration": False,
+            "casting_time": None,
+            "spell_range": None,
+            "components": None,
+            "duration": None,
         },
         "progression_entry": {
             "level": 5,

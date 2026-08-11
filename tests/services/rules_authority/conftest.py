@@ -411,6 +411,11 @@ def _wish_binding(prefix: str = "") -> ProseBindingDraft:
         component_key=OPEN_ENDED_KEY,
         record_key=SPELL_KEY,
         chunk_id=f"{prefix}{WISH_CHUNK}",
+        span_id=PROSE_SPAN,
+        # The prose leaf is 30 characters and the chunk covers all of it from
+        # offset 0, so this binding's chunk-relative extent is the whole chunk.
+        chunk_char_start=0,
+        chunk_char_end=30,
         irreducibility_reason_code="open_ended_effect",
     )
 
@@ -424,6 +429,9 @@ def _mixed_clause_binding(prefix: str = "") -> ProseBindingDraft:
         component_key=MIXED_KEY,
         record_key=CREATURE_KEY,
         chunk_id=f"{prefix}{MIXED_PROSE_CHUNK}",
+        span_id=MIXED_PROSE_SPAN,
+        chunk_char_start=0,
+        chunk_char_end=28,
         irreducibility_reason_code="open_ended_effect",
     )
 

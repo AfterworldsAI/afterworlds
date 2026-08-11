@@ -176,6 +176,7 @@ def persist_draft(
                 batch_id=batch.batch_id,
                 rule=batch.rule,
                 semantic_diff_hash=batch.semantic_diff_hash,
+                proposal_identity=batch.proposal_identity,
             )
         )
         # Scope order is retained: it is the reviewer's recorded scope, not a
@@ -263,6 +264,9 @@ def persist_draft(
                 record_key=binding.record_key,
                 component_key=binding.component_key,
                 chunk_id=binding.chunk_id,
+                span_id=binding.span_id,
+                chunk_char_start=binding.chunk_char_start,
+                chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
             )
         )
@@ -385,6 +389,7 @@ def reconstruct_candidate(
         AcceptanceBatch(
             batch_id=b.batch_id,
             rule=b.rule,
+            proposal_identity=b.proposal_identity,
             resolved_scope=tuple(
                 s.span_id
                 for s in sorted(
@@ -472,6 +477,9 @@ def reconstruct_candidate(
                 component_key=p.component_key,
                 record_key=p.record_key,
                 chunk_id=p.chunk_id,
+                span_id=p.span_id,
+                chunk_char_start=p.chunk_char_start,
+                chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
             )
             for p in raw.prose_bindings
@@ -550,9 +558,9 @@ def compute_persisted_state_digest(session: Session, projection_uuid: str) -> st
     * the **persisted derived IDs** — a corrupted ``record_id`` leaves every
       semantic value intact and would otherwise pass; and
     * the **retained acceptance evidence** — reviewer, timestamp, batch rule,
-      ordered scope, diff, and review state are deliberately outside semantic
-      identity, so without this layer they could be rewritten after the digest
-      was recorded and nothing would notice.
+      ordered scope, diff, reviewed-proposal identity, and review state are
+      deliberately outside semantic identity, so without this layer they could
+      be rewritten after the digest was recorded and nothing would notice.
 
     The last layer is why this digest and the projection UUID are different
     things. The UUID answers "is this the same authority"; the digest answers

@@ -22,7 +22,6 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureAbilityScoreFact,
     DcKind,
     ProgressionEntryFact,
-    ProseBindingDraft,
     ProvenanceRole,
     ReferenceDraft,
     RelationshipDraft,
@@ -46,6 +45,7 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    prose_binding,
 )
 
 NON_FIXED = [DcKind.SPELL_SAVE_DC, DcKind.CONTESTED, DcKind.GAMEMASTER_SET]
@@ -206,11 +206,7 @@ def test_component_reason_outside_the_closed_catalog_is_rejected() -> None:
 
 
 def test_binding_reason_outside_the_closed_catalog_is_rejected() -> None:
-    findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "too_hard"),
-        )
-    )
+    findings = _findings(prose_bindings=(prose_binding(WISH_CHUNK, "too_hard"),))
     assert any("irreducibility reason 'too_hard' is not closed" in f for f in findings)
 
 
@@ -218,11 +214,7 @@ def test_component_and_binding_reasons_valid_but_unequal_are_rejected() -> None:
     # Both closed, both plausible, and they disagree about *why* this authority
     # is prose-bound. Neither copy wins.
     findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(
-                OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "subjective_judgment"
-            ),
-        )
+        prose_bindings=(prose_binding(WISH_CHUNK, "subjective_judgment"),)
     )
     assert any("disagrees with its component's" in f for f in findings)
 
@@ -231,12 +223,8 @@ def test_multiple_bindings_sharing_the_component_reason_pass() -> None:
     # Two passages bound by one component: each is a distinct authoritative
     # element with its own provenance, which is why the binding key carries
     # the chunk rather than stopping at the component.
-    first = ProseBindingDraft(
-        OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "open_ended_effect"
-    )
-    second = ProseBindingDraft(
-        OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
-    )
+    first = prose_binding(WISH_CHUNK)
+    second = prose_binding(SECOND_CHUNK)
     findings = _findings(
         prose_bindings=(first, second),
         provenance=build_representation().provenance
@@ -267,13 +255,7 @@ def test_structured_component_carrying_a_reason_is_rejected() -> None:
 
 
 def test_fabricated_chunk_is_rejected() -> None:
-    findings = _findings(
-        prose_bindings=(
-            ProseBindingDraft(
-                OPEN_ENDED_KEY, SPELL_KEY, "chunk-invented", "open_ended_effect"
-            ),
-        )
-    )
+    findings = _findings(prose_bindings=(prose_binding("chunk-invented"),))
     assert any("is not authoritative prose of release" in f for f in findings)
 
 

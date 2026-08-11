@@ -133,6 +133,13 @@ def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
                 "record_key": b.record_key,
                 "component_key": b.component_key,
                 "chunk_id": b.chunk_id,
+                # The accepted span and its extent are meaning-bearing. A
+                # binding moved to a different clause of the same chunk governs
+                # different text, so it is a different projection — the same
+                # reason the chunk itself has always been in this payload.
+                "span_id": b.span_id,
+                "chunk_char_start": b.chunk_char_start,
+                "chunk_char_end": b.chunk_char_end,
                 "irreducibility_reason_code": b.irreducibility_reason_code,
             }
             for b in draft.prose_bindings

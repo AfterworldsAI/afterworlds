@@ -12,6 +12,8 @@ identity-bearing, and the review path that reached it is not.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from afterworlds.ingestion.mechanical import accounting
@@ -72,6 +74,7 @@ def _batch(
     scope: tuple[str, ...] | None = None,
     diff: tuple[SemanticDiffEntry, ...] | None = None,
     digest: str | None = None,
+    proposal_identity: str = "a" * 64,
 ) -> AcceptanceBatch:
     """A batch whose retained diff matches *spans* unless overridden."""
     if diff is None:
@@ -91,12 +94,10 @@ def _batch(
         resolved_scope=scope if scope is not None else tuple(s.span_id for s in spans),
         diff=diff,
         semantic_diff_hash="",
+        proposal_identity=proposal_identity,
     )
-    return AcceptanceBatch(
-        batch_id=batch.batch_id,
-        rule=batch.rule,
-        resolved_scope=batch.resolved_scope,
-        diff=batch.diff,
+    return replace(
+        batch,
         semantic_diff_hash=digest if digest is not None else batch_diff_hash(batch),
     )
 
@@ -260,6 +261,7 @@ def test_batch_without_rule_scope_or_diff_is_not_acceptance() -> None:
         resolved_scope=(),
         diff=(),
         semantic_diff_hash="",
+        proposal_identity="  ",
     )
     findings = validate_acceptance(
         _ledger(

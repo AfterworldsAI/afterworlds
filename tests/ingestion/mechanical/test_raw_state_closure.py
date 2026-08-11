@@ -260,6 +260,9 @@ def test_orphan_component_and_binding_rows_are_rejected(session: Session) -> Non
             record_key="record:that-never-existed",
             component_key="component:none",
             chunk_id="chunk-x",
+            span_id="span:that-never-existed",
+            chunk_char_start=0,
+            chunk_char_end=1,
             irreducibility_reason_code="open_ended_effect",
         )
     )

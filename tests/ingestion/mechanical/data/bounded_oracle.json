@@ -1,4 +1,5 @@
 {
+  "artifact_kind": "accepted_authority",
   "release_binding": {
     "package_uuid": "pkg-5c",
     "release_version": "rel-5c",
@@ -35,6 +36,64 @@
       "non_mechanical_reason_code": null
     }
   ],
+  "acceptance": {
+    "batches": [
+      {
+        "batch_id": "batch-wish",
+        "rule": "every span of the Wish authority reviewed together",
+        "resolved_scope": [
+          "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+          "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+          "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
+        ],
+        "diff": [
+          {
+            "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null
+          },
+          {
+            "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null
+          },
+          {
+            "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null
+          }
+        ],
+        "semantic_diff_hash": "6b6513a81284ab14856f2300113ae4bcea68f62978daf31deb9c61bd6e876808",
+        "proposal_identity": "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
+      }
+    ],
+    "records": [
+      {
+        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+        "batch_id": "batch-wish",
+        "reviewer": "owner",
+        "accepted_at": "2026-07-31T00:00:00Z"
+      },
+      {
+        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+        "batch_id": "batch-wish",
+        "reviewer": "owner",
+        "accepted_at": "2026-07-31T00:00:00Z"
+      },
+      {
+        "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
+        "batch_id": "batch-wish",
+        "reviewer": "owner",
+        "accepted_at": "2026-07-31T00:00:00Z"
+      }
+    ]
+  },
   "representation": {
     "records": [
       {
@@ -60,7 +119,11 @@
             "concentration": false,
             "level": 9,
             "ritual": false,
-            "school": "conjuration"
+            "school": "conjuration",
+            "casting_time": null,
+            "spell_range": null,
+            "components": null,
+            "duration": null
           }
         ]
       },
@@ -77,6 +140,9 @@
         "record_key": "spell:wish",
         "component_key": "open-ended-clause",
         "chunk_id": "chunk-wish-0001",
+        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+        "chunk_char_start": 0,
+        "chunk_char_end": 30,
         "irreducibility_reason_code": "open_ended_effect"
       }
     ],
@@ -94,7 +160,7 @@
         "target_key": [
           "spell:wish",
           "descriptor",
-          "79b28acf072dd442"
+          "31875ef3eacb7104"
         ],
         "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
         "role": "primary"
@@ -105,6 +171,7 @@
           "spell:wish",
           "open-ended-clause",
           "chunk-wish-0001",
+          "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
           "open_ended_effect"
         ],
         "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",

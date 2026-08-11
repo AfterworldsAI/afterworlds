@@ -132,6 +132,24 @@ class AcceptanceBatch:
     * ``diff`` is the canonical semantic diff itself, retained in full.
     * ``semantic_diff_hash`` identifies and verifies that diff; it never
       substitutes for it.
+    * ``proposal_identity`` is the content-derived identity of the exact
+      :class:`~afterworlds.ingestion.mechanical.proposal.MechanicalProposal`
+      that was reviewed.
+
+    **Scope and proposal identity answer different questions, and both are
+    needed.** ``resolved_scope`` and ``diff`` scope the *classification*
+    acceptance — which spans, and what their disposition and reason became.
+    They say nothing about records, components, facts, prose bindings,
+    relationships, references, or provenance, because two proposals can state
+    identical span dispositions while stating completely different mechanical
+    authority. ``proposal_identity`` closes exactly that gap: it identifies the
+    complete proposed representation the reviewer had in front of them, so the
+    retained evidence establishes that the accepted authority is the authority
+    somebody actually reviewed — not merely that some spans were accepted.
+
+    All five fields are retained audit evidence. None reaches projection or
+    oracle identity — see ``accounting.classification_payload`` — so
+    re-reviewing an unchanged classification cannot remint a projection.
     """
 
     batch_id: str
@@ -139,6 +157,7 @@ class AcceptanceBatch:
     resolved_scope: tuple[str, ...]
     diff: tuple[SemanticDiffEntry, ...]
     semantic_diff_hash: str
+    proposal_identity: str
 
 
 @dataclass(frozen=True)

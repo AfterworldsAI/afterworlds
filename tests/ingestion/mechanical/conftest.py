@@ -21,6 +21,7 @@ committed file can be checked for drift in one place with a clear message.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -124,6 +125,19 @@ from afterworlds.persistence.orm.rules_package import RulesPackageORM
 NOW = "2026-07-31T00:00:00Z"
 DATA_DIR = Path(__file__).resolve().parent / "data"
 BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
+
+#: The reviewed proposal this fixture's acceptance evidence names. A fixed
+#: literal rather than one recomputed from a proposal object, because the
+#: committed artifact records what a reviewer saw and a fixture that re-derived
+#: it would prove only that the code agrees with itself.
+#:
+#: It is a real ``sha256(b"bounded fixture reviewed proposal")`` digest, not a
+#: readable placeholder: acceptance validation requires the canonical 64-lowercase-
+#: hex shape ``hash_obj`` emits, and an invented-looking value would fail it. The
+#: first draft of this constant was 65 characters and did exactly that.
+REVIEWED_PROPOSAL_IDENTITY = (
+    "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
+)
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -410,14 +424,9 @@ def batch_accepted_ledger() -> ClassificationLedger:
         resolved_scope=tuple(s.span_id for s in base.spans),
         diff=diff,
         semantic_diff_hash="",
+        proposal_identity=REVIEWED_PROPOSAL_IDENTITY,
     )
-    batch = AcceptanceBatch(
-        batch_id=unhashed.batch_id,
-        rule=unhashed.rule,
-        resolved_scope=unhashed.resolved_scope,
-        diff=unhashed.diff,
-        semantic_diff_hash=batch_diff_hash(unhashed),
-    )
+    batch = replace(unhashed, semantic_diff_hash=batch_diff_hash(unhashed))
     return ClassificationLedger(
         package_uuid=base.package_uuid,
         release_version=base.release_version,
@@ -436,8 +445,44 @@ WISH_BINDING = ProseBindingDraft(
     component_key=OPEN_ENDED_KEY,
     record_key=SPELL_KEY,
     chunk_id=WISH_CHUNK,
+    span_id=PROSE_SPAN,
+    # The prose leaf is 30 characters and ``WISH_CHUNK`` covers all of it from
+    # offset 0, so this accepted span's chunk-relative extent is the whole
+    # chunk. ``test_prose_extent.py`` covers the sub-leaf case, where exactly
+    # this arithmetic is what excludes the neighbouring clause.
+    chunk_char_start=0,
+    chunk_char_end=30,
     irreducibility_reason_code="open_ended_effect",
 )
+
+
+def prose_binding(
+    chunk_id: str = WISH_CHUNK,
+    reason: str = "open_ended_effect",
+    *,
+    component_key: str = OPEN_ENDED_KEY,
+    record_key: str = SPELL_KEY,
+    span_id: str = PROSE_SPAN,
+    chunk_char_start: int = 0,
+    chunk_char_end: int = 30,
+) -> ProseBindingDraft:
+    """A prose binding over the fixture's prose leaf.
+
+    The default extent is the whole 30-character prose leaf, which every chunk
+    in ``DEFAULT_COVERAGE`` covers from offset 0. Tests that care about the
+    binding's *extent* pass their own; tests that care about anything else get
+    a consistent one without restating four fields.
+    """
+    return ProseBindingDraft(
+        component_key=component_key,
+        record_key=record_key,
+        chunk_id=chunk_id,
+        span_id=span_id,
+        chunk_char_start=chunk_char_start,
+        chunk_char_end=chunk_char_end,
+        irreducibility_reason_code=reason,
+    )
+
 
 SCOPED_WITHIN = RelationshipDraft(
     source_record_key=CREATURE_KEY,

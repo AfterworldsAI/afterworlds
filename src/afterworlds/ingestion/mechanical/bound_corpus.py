@@ -132,6 +132,41 @@ class BoundCorpusSnapshot:
                 return True
         return False
 
+    def chunk_relative_range(
+        self, chunk_id: str, leaf_id: str, char_start: int, char_end: int
+    ) -> tuple[int, int] | None:
+        """Translate a leaf subspan into offsets in *chunk_id*'s own text.
+
+        A prose binding names a chunk, but the accepted span is expressed in
+        leaf coordinates. Exact prose resolution has to slice the chunk, so the
+        two coordinate systems have to be related — and they only can be when
+        this release's projection makes the relation unambiguous.
+
+        Returns ``None`` — fail closed, never a guess — unless the chunk covers
+        this leaf as **one** run *and* covers no other leaf. Both conditions
+        matter: a chunk assembled from several leaves has an unknown prefix
+        length before this leaf's text, and a chunk covering one leaf in two
+        runs has an unknown gap inside it. In either case the offset cannot be
+        derived, and inventing one would silently return the wrong sentence as
+        governing authority.
+
+        The production SRD 5.2.1 release satisfies both conditions everywhere —
+        chunk and leaf are in strict bijection and every projection edge covers
+        its whole leaf — but this does not assume that. It checks, per binding.
+        """
+        if not self.covers_span(chunk_id, leaf_id, char_start, char_end):
+            return None
+        covered_leaves = {
+            edge.leaf_id for edge in self.chunk_coverage if edge.chunk_id == chunk_id
+        }
+        if len(covered_leaves) != 1:
+            return None
+        runs = self._covered_runs.get((chunk_id, leaf_id), ())
+        if len(runs) != 1:
+            return None
+        run_start = runs[0][0]
+        return char_start - run_start, char_end - run_start
+
 
 def bound_corpus_from_operational(
     snapshot: OperationalCorpusSnapshot,

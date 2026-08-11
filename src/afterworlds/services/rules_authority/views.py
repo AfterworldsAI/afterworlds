@@ -130,13 +130,28 @@ def _resolve_prose(
     """Resolve one prose entry's text for the GameMaster view.
 
     A :class:`SourceProse` entry is resolved by its exact ``chunk_id`` against
-    *prose*. An :class:`AuthoredProse` entry already carries exact text — it
-    came from the override's own validated payload, not from a lookup — so it
-    passes through unchanged.
+    *prose* and then **sliced to its accepted governing span**. The whole chunk
+    is what the source stores; the span is what the projection accepted as this
+    component's authority, and returning the surrounding sentences would
+    overstate what governs it (#137 contract 3).
+
+    The slice is bounds-checked rather than trusted. Python would silently
+    return a short string — or an empty one — for offsets past the end of the
+    text, and a truncated passage presented as exact governing authority is
+    worse than an absent one. A chunk whose stored text no longer contains the
+    recorded extent therefore resolves to ``None``: the same "absent passage"
+    the caller already handles, reported rather than papered over.
+
+    An :class:`AuthoredProse` entry already carries exact text — it came from
+    the override's own validated payload, not from a lookup — so it passes
+    through unchanged.
     """
-    if isinstance(entry, SourceProse):
-        return replace(entry, text=prose.get(entry.chunk_id))
-    return entry
+    if not isinstance(entry, SourceProse):
+        return entry
+    text = prose.get(entry.chunk_id)
+    if text is None or entry.char_end > len(text):
+        return replace(entry, text=None)
+    return replace(entry, text=text[entry.char_start : entry.char_end])
 
 
 def _gamemaster_component(

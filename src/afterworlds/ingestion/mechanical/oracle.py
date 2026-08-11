@@ -1,18 +1,25 @@
-"""The accepted completeness oracle — CRD Issue 5d, Decision 5.
+"""Committed accepted authority — CRD Issue 5d, Decisions 4 and 5.
 
-The publication gate compares reconstructed persisted state against *this*, and
-the only property that makes the comparison worth anything is independence: an
-oracle derived from the projection it checks proves nothing but that the code
-is self-consistent.
+This module owns both halves of what a reviewer commits: the accepted
+**oracle** the publication gate judges persisted state against, and the
+accepted **inputs** the production build consumes, which are the oracle plus the
+review evidence that accepted it (:class:`AcceptedInputs`).
+
+The only property that makes the gate's comparison worth anything is
+independence: an oracle derived from the projection it checks proves nothing but
+that the code is self-consistent.
 
 Independence is structural here, not a convention:
 
 * this module imports no session, no ORM, and nothing from
   :mod:`persistence`, :mod:`raw_state`, or :mod:`gate`. There is no code path,
   public or private, that builds an ``AcceptedOracle`` from a persisted
-  projection or from a :class:`ProjectionCandidate`;
-* :func:`load_oracle` reads a committed JSON file and nothing else. Its whole
-  input is bytes on disk that a reviewer accepted and a commit records; and
+  projection or from a :class:`ProjectionCandidate`.
+  :func:`candidate_from_accepted_inputs` runs the *other* way — committed bytes
+  become a candidate — and the oracle those bytes also carry is what later judges
+  it;
+* :func:`load_accepted_inputs` reads a committed JSON file and nothing else. Its
+  whole input is bytes on disk that a reviewer accepted and a commit records; and
 * the declared semantic policy comes from the *file*, never from the current
   :mod:`policy` constants. Reading current code here would let a policy change
   silently re-bless an oracle nobody re-reviewed — the exact self-attestation
@@ -26,10 +33,11 @@ independent accepted authority with its own publication proof. Re-declaring
 28,109 leaf ids in a committed file would add a second place to drift from 5c
 without adding a second opinion.
 
-**What is committed today.** ``oracles/`` holds no production SRD oracle, so
-the production 5c release resolves to no accepted authority and its projection
-cannot be published. Later inactive-content PRs commit the accepted full-corpus
-oracle; this PR builds the machinery that will judge it.
+**What is committed today.** ``oracles/`` holds no production SRD authority, so
+the production 5c release resolves to nothing and its projection cannot be
+published. Later content PRs commit accepted full-corpus authority through the
+propose → review → accept workflow (:mod:`proposal`, :mod:`acceptance`); the
+machinery that judges it lives here.
 """
 
 from __future__ import annotations
@@ -41,15 +49,24 @@ from pathlib import Path
 from typing import Any
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
-from afterworlds.ingestion.mechanical.accounting import span_payload
+from afterworlds.ingestion.mechanical.accounting import (
+    acceptance_evidence_payload,
+    span_payload,
+    validate_acceptance,
+)
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
+    AcceptanceBatch,
+    AcceptanceRecord,
+    ClassificationLedger,
     ComponentHandling,
     ReviewState,
+    SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.projection import (
+    ProjectionCandidate,
     ReleaseBinding,
     representation_payload,
 )
@@ -72,20 +89,32 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 
 __all__ = [
+    "ACCEPTED_ARTIFACT_KIND",
     "COMMITTED_ORACLE_DIR",
+    "AcceptedInputs",
     "AcceptedOracle",
     "OracleLoadError",
     "RecordObligation",
+    "accepted_inputs_payload",
+    "candidate_from_accepted_inputs",
+    "committed_inputs_for",
     "committed_oracle_for",
     "derive_obligations",
+    "load_accepted_inputs",
     "load_oracle",
     "obligation_payload",
     "oracle_identity",
     "oracle_payload",
 ]
 
-#: Committed accepted oracles, one JSON file per published 5c release.
+#: Committed accepted authority, one JSON file per published 5c release.
 COMMITTED_ORACLE_DIR = Path(__file__).resolve().parent / "oracles"
+
+#: The discriminator a committed accepted-inputs artifact must declare. A
+#: machine proposal declares something else and has a different shape besides
+#: (:mod:`afterworlds.ingestion.mechanical.proposal`), so it cannot be loaded as
+#: accepted authority by renaming it, moving it, or editing one field.
+ACCEPTED_ARTIFACT_KIND = "accepted_authority"
 
 
 class OracleLoadError(ValueError):
@@ -140,6 +169,39 @@ class AcceptedOracle:
     spans: tuple[SemanticSpan, ...]
     representation: RepresentationDraft
     obligations: tuple[RecordObligation, ...]
+
+
+@dataclass(frozen=True)
+class AcceptedInputs:
+    """One committed artifact: the accepted result *and* the review evidence.
+
+    The two halves are deliberately separable. :attr:`oracle` is the accepted
+    semantics the publication gate judges against, and it excludes evidence
+    because review process is not identity-bearing. :attr:`batches` and
+    :attr:`acceptances` are the auditable record of the explicit acceptance
+    action — exact scope, full semantic diff, who accepted it and when — which
+    the build carries into persistence so the gate can see that every span was
+    actually acted on.
+
+    Keeping them in one file means they cannot drift apart; keeping them in
+    separate fields means the evidence cannot leak into identity.
+    """
+
+    oracle: AcceptedOracle
+    batches: tuple[AcceptanceBatch, ...]
+    acceptances: tuple[AcceptanceRecord, ...]
+
+    def classification(self) -> ClassificationLedger:
+        """The complete accepted ledger, result and evidence together."""
+        return ClassificationLedger(
+            package_uuid=self.oracle.binding.package_uuid,
+            release_version=self.oracle.binding.release_version,
+            policy_version=self.oracle.policy_version,
+            policy_hash=self.oracle.policy_hash,
+            spans=self.oracle.spans,
+            batches=self.batches,
+            acceptances=self.acceptances,
+        )
 
 
 #: Handlings whose accepted meaning is carried, wholly or partly, by governing
@@ -452,7 +514,15 @@ def _representation(payload: object) -> RepresentationDraft:
         where = f"representation.prose_bindings[{i}]"
         b = _require(
             raw,
-            ("record_key", "component_key", "chunk_id", "irreducibility_reason_code"),
+            (
+                "record_key",
+                "component_key",
+                "chunk_id",
+                "span_id",
+                "chunk_char_start",
+                "chunk_char_end",
+                "irreducibility_reason_code",
+            ),
             where,
         )
         prose_bindings.append(
@@ -460,6 +530,11 @@ def _representation(payload: object) -> RepresentationDraft:
                 record_key=_string(b["record_key"], f"{where}.record_key"),
                 component_key=_string(b["component_key"], f"{where}.component_key"),
                 chunk_id=_string(b["chunk_id"], f"{where}.chunk_id"),
+                span_id=_string(b["span_id"], f"{where}.span_id"),
+                chunk_char_start=_offset(
+                    b["chunk_char_start"], f"{where}.chunk_char_start"
+                ),
+                chunk_char_end=_offset(b["chunk_char_end"], f"{where}.chunk_char_end"),
                 irreducibility_reason_code=_string(
                     b["irreducibility_reason_code"],
                     f"{where}.irreducibility_reason_code",
@@ -592,24 +667,147 @@ def _check_obligations_closed(
         )
 
 
-def load_oracle(path: Path) -> AcceptedOracle:
-    """Load one committed accepted oracle from JSON.
+# ---------------------------------------------------------------------------
+# Acceptance evidence and the committed accepted-inputs artifact
+# ---------------------------------------------------------------------------
+#
+# **Why one artifact and not two.** #137 contract 4 names five committed
+# meaning-bearing inputs the production build consumes; the oracle carries four
+# of them but deliberately omits the fifth, acceptance evidence, because review
+# process is not identity-bearing (:mod:`accounting`). Something still has to
+# supply that evidence to the build, or the gate reports UNREVIEWED_RESIDUE
+# against reconstructed state that no committed input could have filled in.
+#
+# Two files — build inputs and oracle — would need a third mechanism to prove
+# they still describe the same accepted semantics. One file cannot disagree with
+# itself, so the drift check has nothing to check and the whole class of
+# input/oracle skew stops existing. The independence that actually matters is
+# untouched: this is committed bytes a reviewer accepted, never something
+# derived from a candidate or from persisted output, and the oracle projected
+# out of it drops the evidence before identity is computed.
+
+
+def _acceptance(
+    payload: object, where: str
+) -> tuple[tuple[AcceptanceBatch, ...], tuple[AcceptanceRecord, ...]]:
+    """Load the review evidence half of a committed accepted-inputs file."""
+    p = _require(payload, ("batches", "records"), where)
+
+    batches = []
+    for i, raw in enumerate(_object_list(p["batches"], f"{where}.batches")):
+        at = f"{where}.batches[{i}]"
+        b = _require(
+            raw,
+            (
+                "batch_id",
+                "rule",
+                "resolved_scope",
+                "diff",
+                "semantic_diff_hash",
+                "proposal_identity",
+            ),
+            at,
+        )
+        diff = []
+        for j, raw_entry in enumerate(_object_list(b["diff"], f"{at}.diff")):
+            entry_at = f"{at}.diff[{j}]"
+            d = _require(
+                raw_entry,
+                (
+                    "span_id",
+                    "prior_disposition",
+                    "prior_reason_code",
+                    "accepted_disposition",
+                    "accepted_reason_code",
+                ),
+                entry_at,
+            )
+            prior = d["prior_disposition"]
+            diff.append(
+                SemanticDiffEntry(
+                    span_id=_string(d["span_id"], f"{entry_at}.span_id"),
+                    prior_disposition=(
+                        None
+                        if prior is None
+                        else _enum(SemanticDisposition, prior, entry_at)
+                    ),
+                    prior_reason_code=_optional_string(
+                        d["prior_reason_code"], f"{entry_at}.prior_reason_code"
+                    ),
+                    accepted_disposition=_enum(
+                        SemanticDisposition, d["accepted_disposition"], entry_at
+                    ),
+                    accepted_reason_code=_optional_string(
+                        d["accepted_reason_code"], f"{entry_at}.accepted_reason_code"
+                    ),
+                )
+            )
+        batches.append(
+            AcceptanceBatch(
+                batch_id=_string(b["batch_id"], f"{at}.batch_id"),
+                rule=_string(b["rule"], f"{at}.rule"),
+                resolved_scope=tuple(
+                    _string_list(b["resolved_scope"], f"{at}.resolved_scope")
+                ),
+                diff=tuple(diff),
+                semantic_diff_hash=_string(
+                    b["semantic_diff_hash"], f"{at}.semantic_diff_hash"
+                ),
+                proposal_identity=_string(
+                    b["proposal_identity"], f"{at}.proposal_identity"
+                ),
+            )
+        )
+
+    records = []
+    for i, raw in enumerate(_object_list(p["records"], f"{where}.records")):
+        at = f"{where}.records[{i}]"
+        r = _require(raw, ("span_id", "batch_id", "reviewer", "accepted_at"), at)
+        records.append(
+            AcceptanceRecord(
+                span_id=_string(r["span_id"], f"{at}.span_id"),
+                batch_id=_optional_string(r["batch_id"], f"{at}.batch_id"),
+                reviewer=_string(r["reviewer"], f"{at}.reviewer"),
+                accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
+            )
+        )
+    return tuple(batches), tuple(records)
+
+
+def load_accepted_inputs(path: Path) -> AcceptedInputs:
+    """Load one committed accepted-inputs artifact from JSON.
 
     The whole input is the file. Nothing is read from the database, from a
     candidate, or from the current semantic policy.
+
+    ``artifact_kind`` is checked first and must be exactly
+    :data:`ACCEPTED_ARTIFACT_KIND`. That check is a fast, legible rejection of a
+    machine proposal — but it is not what makes a proposal unloadable. A
+    proposal has a different key set at every level (see
+    :mod:`afterworlds.ingestion.mechanical.proposal`), so it fails ``_require``
+    in several places even if someone edits its ``artifact_kind`` to lie.
+    Structural incompatibility, not a flag and not a directory.
     """
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise OracleLoadError(f"{path.name}: {exc}") from exc
 
+    if isinstance(raw, dict) and raw.get("artifact_kind") != ACCEPTED_ARTIFACT_KIND:
+        raise OracleLoadError(
+            f"{path.name}: artifact_kind {raw.get('artifact_kind')!r} is not "
+            f"{ACCEPTED_ARTIFACT_KIND!r}; this file is not accepted authority"
+        )
+
     p = _require(
         raw,
         (
+            "artifact_kind",
             "release_binding",
             "semantic_policy_version",
             "semantic_policy_hash",
             "spans",
+            "acceptance",
             "representation",
             "obligations",
         ),
@@ -630,17 +828,62 @@ def load_oracle(path: Path) -> AcceptedOracle:
         for i, o in enumerate(_object_list(p["obligations"], "obligations"))
     )
     _check_obligations_closed(representation, obligations, path.name)
-    return AcceptedOracle(
+    spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
+    batches, acceptances = _acceptance(p["acceptance"], "acceptance")
+
+    oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
         ),
         policy_version=_string(p["semantic_policy_version"], "semantic_policy_version"),
         policy_hash=_string(p["semantic_policy_hash"], "semantic_policy_hash"),
-        spans=tuple(
-            _span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans"))
-        ),
+        spans=spans,
         representation=representation,
         obligations=obligations,
+    )
+    inputs = AcceptedInputs(oracle=oracle, batches=batches, acceptances=acceptances)
+
+    # Evidence is validated as strictly as the result it justifies. A file whose
+    # batch retains a digest but not the diff it names, or that accepts a span
+    # nobody acted on, is not a weaker acceptance — it is a claim of acceptance
+    # with the acceptance missing.
+    if violations := validate_acceptance(inputs.classification()):
+        raise OracleLoadError(
+            f"{path.name}: acceptance evidence is not complete: "
+            f"{'; '.join(violations)}"
+        )
+    return inputs
+
+
+def load_oracle(path: Path) -> AcceptedOracle:
+    """Load one committed accepted oracle from JSON.
+
+    The oracle is the accepted-inputs artifact with its review evidence dropped:
+    two files that reviewed their way to the same accepted classification are
+    the same authority, so reviewer, timestamp, batch grouping, and diff never
+    reach projection identity (#137 acceptance criterion 11).
+    """
+    return load_accepted_inputs(path).oracle
+
+
+def candidate_from_accepted_inputs(inputs: AcceptedInputs) -> ProjectionCandidate:
+    """The build candidate one committed accepted-inputs artifact states.
+
+    This is the *input* direction: committed bytes a reviewer accepted become
+    the candidate that is persisted, reconstructed, and then judged. It is not
+    the forbidden direction — nothing here derives accepted authority from a
+    candidate or from persisted output, and :func:`load_oracle` reads the same
+    committed bytes rather than anything this function produced.
+
+    Unlike the oracle, the candidate *does* carry the acceptance evidence: the
+    publication gate requires an explicit acceptance record for every span in
+    reconstructed persisted state, and that evidence has to reach persistence
+    from a committed input or no build could ever satisfy it.
+    """
+    return ProjectionCandidate(
+        binding=inputs.oracle.binding,
+        classification=inputs.classification(),
+        representation=inputs.oracle.representation,
     )
 
 
@@ -660,24 +903,40 @@ def committed_oracle_for(
     an empty oracle: an empty oracle would compare equal to an empty projection
     and publish nothing as if it were everything.
     """
-    return _resolve_committed_oracle(
+    inputs = _resolve_committed_inputs(
+        package_uuid, release_version, COMMITTED_ORACLE_DIR
+    )
+    return None if inputs is None else inputs.oracle
+
+
+def committed_inputs_for(
+    package_uuid: str, release_version: str
+) -> AcceptedInputs | None:
+    """Return the committed accepted inputs for one 5c release, or ``None``.
+
+    Same resolution and same directory as :func:`committed_oracle_for`; this is
+    the build-side view, which additionally carries the acceptance evidence.
+    """
+    return _resolve_committed_inputs(
         package_uuid, release_version, COMMITTED_ORACLE_DIR
     )
 
 
-def _resolve_committed_oracle(
+def _resolve_committed_inputs(
     package_uuid: str, release_version: str, directory: Path
-) -> AcceptedOracle | None:
+) -> AcceptedInputs | None:
     """Resolution semantics, parameterized by directory for tests only.
 
-    Two committed oracles for one release is a rejection, not a choice. Picking
-    one would make publication depend on filesystem ordering.
+    Two committed artifacts for one release is a rejection, not a choice.
+    Picking one would make publication depend on filesystem ordering.
     """
     matches = [
-        oracle
-        for oracle in (load_oracle(p) for p in sorted(directory.glob("*.json")))
-        if oracle.binding.package_uuid == package_uuid
-        and oracle.binding.release_version == release_version
+        inputs
+        for inputs in (
+            load_accepted_inputs(p) for p in sorted(directory.glob("*.json"))
+        )
+        if inputs.oracle.binding.package_uuid == package_uuid
+        and inputs.oracle.binding.release_version == release_version
     ]
     if len(matches) > 1:
         raise OracleLoadError(
@@ -685,3 +944,34 @@ def _resolve_committed_oracle(
             f"{package_uuid}/{release_version}"
         )
     return matches[0] if matches else None
+
+
+def _resolve_committed_oracle(
+    package_uuid: str, release_version: str, directory: Path
+) -> AcceptedOracle | None:
+    """Directory-parameterized oracle resolution, for tests only."""
+    inputs = _resolve_committed_inputs(package_uuid, release_version, directory)
+    return None if inputs is None else inputs.oracle
+
+
+# ---------------------------------------------------------------------------
+# Writing committed artifacts
+# ---------------------------------------------------------------------------
+
+
+def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
+    """Canonical JSON payload of one accepted-inputs artifact.
+
+    Reuses :func:`oracle_payload` for the accepted result and
+    :func:`accounting.acceptance_evidence_payload` for the evidence, so the file
+    a reviewer commits is written in the same canonical form the loader expects
+    and the identity functions already agree on.
+    """
+    payload: dict[str, object] = {"artifact_kind": ACCEPTED_ARTIFACT_KIND}
+    payload.update(oracle_payload(inputs.oracle))
+    evidence = acceptance_evidence_payload(inputs.classification())
+    payload["acceptance"] = {
+        "batches": evidence["batches"],
+        "records": evidence["acceptances"],
+    }
+    return payload

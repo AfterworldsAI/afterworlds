@@ -31,12 +31,17 @@ from afterworlds.ingestion.mechanical.models import (
     ClassificationLedger,
     ComponentHandling,
     SemanticDisposition,
+    SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
+    FactFamily,
+    ProseBindingDraft,
     ProvenanceRole,
     ProvenanceTargetKind,
+    RecordKind,
+    RelationshipKind,
     RepresentationDraft,
     declared_provenance_targets,
     fact_invariant_violations,
@@ -45,6 +50,13 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 
 __all__ = ["validate_representation"]
+
+#: Dispositions whose text may serve as a component's governing prose. A
+#: non-mechanical or unresolved span states no mechanic, so binding authority to
+#: it would reintroduce as authority exactly what the accounting set aside.
+_PROSE_BEARING_DISPOSITIONS = frozenset(
+    {SemanticDisposition.SUBSTANTIVE, SemanticDisposition.SUPPORTING_AUTHORITY}
+)
 
 
 def _validate_records(draft: RepresentationDraft) -> list[str]:
@@ -149,11 +161,61 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
     return findings
 
 
+def _validate_prose_extent(
+    binding: ProseBindingDraft,
+    spans_by_id: dict[str, SemanticSpan],
+    corpus: BoundCorpusSnapshot,
+    tag: str,
+) -> list[str]:
+    """Check that a binding governs exactly the accepted span it names.
+
+    Governing prose is *accepted* authority, so it resolves through the
+    classification rather than around it, and the chunk-relative offsets the
+    binding carries for runtime resolution are recomputed here from the bound
+    release. A binding whose declared extent disagrees with the span it names is
+    rejected: the whole point of carrying offsets is that runtime need not
+    re-derive them, which is only safe if the build proved them.
+    """
+    findings: list[str] = []
+    span = spans_by_id.get(binding.span_id)
+    if span is None:
+        return [f"{tag}: unknown accepted span {binding.span_id!r}"]
+
+    # Governing prose must be text the accounting accepted as saying something.
+    # Binding a component's authority to licensing, navigation, or flavour text
+    # would let material the classification excluded back in as authority.
+    if span.disposition not in _PROSE_BEARING_DISPOSITIONS:
+        findings.append(
+            f"{tag}: span {binding.span_id} is {span.disposition.value}; governing "
+            "prose resolves only to substantive or supporting authority"
+        )
+
+    extent = corpus.chunk_relative_range(
+        binding.chunk_id, span.leaf_id, span.char_start, span.char_end
+    )
+    if extent is None:
+        findings.append(
+            f"{tag}: chunk {binding.chunk_id} does not unambiguously contain span "
+            f"{binding.span_id} [{span.char_start},{span.char_end}) of leaf "
+            f"{span.leaf_id}"
+        )
+    elif (binding.chunk_char_start, binding.chunk_char_end) != extent:
+        findings.append(
+            f"{tag}: declared chunk extent "
+            f"[{binding.chunk_char_start},{binding.chunk_char_end}) is not the "
+            f"bound span's extent {list(extent)}"
+        )
+    return findings
+
+
 def _validate_prose_bindings(
-    draft: RepresentationDraft, corpus: BoundCorpusSnapshot
+    draft: RepresentationDraft,
+    ledger: ClassificationLedger,
+    corpus: BoundCorpusSnapshot,
 ) -> list[str]:
     findings: list[str] = []
     components = {(c.record_key, c.semantic_key): c for c in draft.components}
+    spans_by_id = {s.span_id: s for s in ledger.spans}
     for binding in draft.prose_bindings:
         tag = f"prose binding {binding.record_key}/{binding.component_key}"
         component = components.get((binding.record_key, binding.component_key))
@@ -169,6 +231,8 @@ def _validate_prose_bindings(
                 f"{tag}: chunk {binding.chunk_id!r} is not authoritative prose of "
                 f"release {corpus.package_uuid}/{corpus.release_version}"
             )
+        else:
+            findings.extend(_validate_prose_extent(binding, spans_by_id, corpus, tag))
 
         code = binding.irreducibility_reason_code
         if irreducibility_reason_for(code) is None:
@@ -222,6 +286,94 @@ def _validate_relationships_and_references(draft: RepresentationDraft) -> list[s
                 f"reference {scope}:{text!r}: ambiguous — resolves to "
                 f"{sorted(targets)}"
             )
+
+    findings.extend(_validate_spell_list_membership(draft, record_keys))
+    return findings
+
+
+def _validate_spell_list_membership(
+    draft: RepresentationDraft, record_keys: set[str]
+) -> list[str]:
+    """A spell-list qualifier and its membership edge are one claim.
+
+    The ``Special`` column of a class spell-list table qualifies a membership
+    the same table states. Splitting that across a fact and a relationship is
+    the right typing — the edge is the classification, the fact is what the
+    source says about it — but only if neither half can exist alone. A
+    qualifier without its edge would be a claim about a membership the
+    projection never declares, and it would silently vanish from any consumer
+    that reads the relationship graph.
+
+    ``SPELL_LIST_MEMBER`` also carries a domain claim the other relationship
+    kinds do not, so its endpoints are constrained: it means *this class's spell
+    list includes this spell*, and a consumer reading it as eligibility to
+    prepare or know would be misled by any other pair. A creature or an item on
+    either end is not a weaker version of that statement; it is a different one.
+
+    ``SCOPED_WITHIN``, ``GRANTS``, and ``PREREQUISITE`` stay deliberately
+    polymorphic — a spell scopes a creature, a level grants a feature, a feat
+    requires a species — so nothing here invents endpoint rules for them.
+
+    A membership edge with no qualifier is normal and stays valid: most rows of
+    a ``Spell | School | Special`` table say nothing in the ``Special`` column,
+    and requiring a qualifier would force one to be invented.
+    """
+    findings: list[str] = []
+    kinds = {r.semantic_key: r.kind for r in draft.records}
+    members: set[tuple[str, str]] = set()
+
+    for rel in draft.relationships:
+        if rel.kind is not RelationshipKind.SPELL_LIST_MEMBER:
+            continue
+        members.add((rel.source_record_key, rel.target_record_key))
+        tag = (
+            f"spell-list membership {rel.source_record_key} -> {rel.target_record_key}"
+        )
+        source_kind = kinds.get(rel.source_record_key)
+        target_kind = kinds.get(rel.target_record_key)
+        # A missing endpoint is already reported as an unknown record by the
+        # relationship checks above; repeating it here would say it twice.
+        if source_kind is not None and source_kind is not RecordKind.CLASS:
+            findings.append(
+                f"{tag}: source is a {source_kind.value} record; a spell list "
+                "belongs to a class"
+            )
+        if target_kind is not None and target_kind is not RecordKind.SPELL:
+            findings.append(
+                f"{tag}: target is a {target_kind.value} record; only a spell "
+                "can be on a spell list"
+            )
+
+    for component in draft.components:
+        for fact in component.facts:
+            if getattr(fact, "FAMILY", None) is not FactFamily.SPELL_LIST_QUALIFIER:
+                continue
+            target = getattr(fact, "spell_record_key", "")
+            tag = (
+                f"spell-list qualifier {component.record_key}/"
+                f"{component.semantic_key} -> {target}"
+            )
+            owner_kind = kinds.get(component.record_key)
+            if owner_kind is not None and owner_kind is not RecordKind.CLASS:
+                # The Special column is a column of the *class's* table, so the
+                # qualifier belongs to the class component that states the list.
+                findings.append(
+                    f"{tag}: qualifier sits on a {owner_kind.value} record; the "
+                    "Special column belongs to the class stating the list"
+                )
+            if target not in record_keys:
+                findings.append(f"{tag}: unknown spell record")
+                continue
+            if kinds.get(target) is not RecordKind.SPELL:
+                findings.append(
+                    f"{tag}: qualifies a {kinds[target].value} record; a "
+                    "spell-list qualifier names a spell"
+                )
+            if (component.record_key, target) not in members:
+                findings.append(
+                    f"{tag}: qualifies a membership the projection does not "
+                    "declare as a spell_list_member relationship"
+                )
     return findings
 
 
@@ -377,7 +529,7 @@ def validate_representation(
     findings: list[str] = []
     findings.extend(_validate_records(draft))
     findings.extend(_validate_components(draft))
-    findings.extend(_validate_prose_bindings(draft, corpus))
+    findings.extend(_validate_prose_bindings(draft, ledger, corpus))
     findings.extend(_validate_relationships_and_references(draft))
     findings.extend(_validate_provenance(draft, ledger, corpus))
     return tuple(findings)

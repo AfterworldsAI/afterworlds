@@ -31,6 +31,8 @@ acceptance history.
 
 from __future__ import annotations
 
+import re
+
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
@@ -186,6 +188,43 @@ def batch_diff_hash(batch: AcceptanceBatch) -> str:
     return hash_obj(batch_diff_payload(batch))
 
 
+#: Exactly what :func:`~afterworlds.ingestion.corpus.hashing.hash_obj` returns:
+#: ``hashlib.sha256(...).hexdigest()`` — 64 lowercase hex characters, always.
+_CANONICAL_DIGEST = re.compile(r"\A[0-9a-f]{64}\Z")
+
+
+def _is_canonical_digest(value: str) -> bool:
+    """Could *value* have been produced by this repository's hashing function?
+
+    The two retained hashes are checked differently, and the asymmetry is the
+    point. ``semantic_diff_hash`` is *recomputed* from the diff the batch
+    retains, so its shape never needs asserting — a wrong value fails the
+    comparison whatever it looks like. ``proposal_identity`` names a proposal
+    that no longer exists anywhere in the accepted artifact, so there is nothing
+    to recompute it against; the strongest available check is that it is the
+    shape this repository's hashing function can actually emit.
+
+    **What this proves, exactly.** Only that the value *could* be a digest this
+    repository generated. It proves nothing about which proposal that digest
+    names, and nothing about human review: a hand-authored artifact can carry
+    any 64-character lowercase hex string, and this check will accept it. What
+    it rules out is a value that could not have been generated at all — a
+    placeholder, a truncated paste, an uppercase transcription, a typed word.
+
+    **What proves the rest, and where.** ``proposal_identity`` is an audit
+    reference computed by :func:`~.acceptance.accept_proposal`, not a
+    cryptographic attestation of human review. The independently reviewed
+    authority is the committed ``AcceptedInputs`` artifact itself, and Git
+    review is the trust boundary that establishes a human accepted it. The
+    persisted-state digest is a third, separate thing again: it detects later
+    mutation of stored evidence. None of the three establishes reviewer
+    authenticity, and #137 does not require self-authenticating proposal
+    history — retaining proposal payloads beside an editable digest would
+    establish internal consistency, not authenticity.
+    """
+    return bool(_CANONICAL_DIGEST.fullmatch(value))
+
+
 def _validate_batch(
     batch: AcceptanceBatch,
     spans_by_id: dict[str, SemanticSpan],
@@ -208,6 +247,13 @@ def _validate_batch(
         findings.append(f"{tag}: no resolved scope recorded")
     if not batch.diff:
         findings.append(f"{tag}: no semantic diff retained")
+    # Without this, the batch attests only that spans were accepted, and the
+    # accepted representation could be authority nobody reviewed.
+    if not _is_canonical_digest(batch.proposal_identity):
+        findings.append(
+            f"{tag}: reviewed proposal identity {batch.proposal_identity!r} is not a "
+            "canonical SHA-256 digest"
+        )
 
     scope = set(batch.resolved_scope)
     if len(scope) != len(batch.resolved_scope):
@@ -420,6 +466,12 @@ def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, objec
                 "resolved_scope": list(b.resolved_scope),
                 "diff": batch_diff_payload(b),
                 "semantic_diff_hash": b.semantic_diff_hash,
+                # Which complete proposal was reviewed. Present here — and so
+                # covered by the persisted-state digest — because evidence that
+                # can be rewritten without detection is not evidence, and this
+                # is the one field attesting that the accepted *representation*
+                # was the one in front of the reviewer.
+                "proposal_identity": b.proposal_identity,
             }
             for b in ledger.batches
         ),

@@ -41,11 +41,14 @@ SENTINEL_PACKAGE = "pkg-sentinel-packaging"
 SENTINEL_RELEASE = "rel-sentinel-packaging"
 SENTINEL_FILENAME = "sentinel_packaging_oracle.json"
 
-#: The smallest payload ``load_oracle`` accepts: no spans, no representation, and
-#: therefore no obligations — the derived obligation relation over an empty
-#: record set is empty, so the closed-relation check passes. It exists to be
-#: *found*, not to pass a gate.
+#: The smallest payload ``load_accepted_inputs`` accepts: no spans, no
+#: representation, and therefore no obligations — the derived obligation
+#: relation over an empty record set is empty, so the closed-relation check
+#: passes — plus an empty acceptance block, which is complete evidence for an
+#: empty span set. It exists to be *found*, not to pass a gate.
 SENTINEL_ORACLE: dict[str, object] = {
+    "artifact_kind": "accepted_authority",
+    "acceptance": {"batches": [], "records": []},
     "release_binding": {
         "package_uuid": SENTINEL_PACKAGE,
         "release_version": SENTINEL_RELEASE,

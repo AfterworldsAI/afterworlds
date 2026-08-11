@@ -47,6 +47,7 @@ from tests.ingestion.mechanical.conftest import (
     build_candidate,
     build_ledger,
     build_representation,
+    prose_binding,
     reference_claim,
 )
 
@@ -164,15 +165,15 @@ def _two_binding_candidates(
 
 
 def test_prose_bindings_on_one_component_differing_in_chunk() -> None:
-    a = ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "open_ended_effect")
-    b = ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect")
+    a = prose_binding(WISH_CHUNK)
+    b = prose_binding(SECOND_CHUNK)
     forward, reverse = _two_binding_candidates(a, b)
     assert forward == reverse
 
 
 def test_prose_bindings_differing_only_in_the_reason() -> None:
-    a = ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "open_ended_effect")
-    b = ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, WISH_CHUNK, "subjective_judgment")
+    a = prose_binding(WISH_CHUNK)
+    b = prose_binding(WISH_CHUNK, "subjective_judgment")
     forward, reverse = _two_binding_candidates(a, b)
     assert forward == reverse
 
@@ -198,13 +199,7 @@ def test_relationships_differing_only_in_kind() -> None:
                 ),
             )
         },
-        {
-            "prose_bindings": (
-                ProseBindingDraft(
-                    OPEN_ENDED_KEY, SPELL_KEY, SECOND_CHUNK, "open_ended_effect"
-                ),
-            )
-        },
+        {"prose_bindings": (prose_binding(SECOND_CHUNK),)},
         {
             "relationships": (
                 RelationshipDraft(

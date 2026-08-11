@@ -25,11 +25,9 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from tests.ingestion.mechanical.conftest import (
     DEFAULT_COVERAGE,
-    OPEN_ENDED_KEY,
     PROSE_LEAF,
     PROSE_SPAN,
     SECOND_CHUNK,
-    SPELL_KEY,
     SPELL_LEAF,
     WISH_CHUNK,
     binding_claim,
@@ -37,6 +35,7 @@ from tests.ingestion.mechanical.conftest import (
     build_ledger,
     build_representation,
     coverage,
+    prose_binding,
 )
 
 OTHER_CHUNK = "chunk-elsewhere"
@@ -52,7 +51,7 @@ def _findings(**overrides: object) -> tuple[str, ...]:
 
 
 def _binding(chunk_id: str) -> ProseBindingDraft:
-    return ProseBindingDraft(OPEN_ENDED_KEY, SPELL_KEY, chunk_id, "open_ended_effect")
+    return prose_binding(chunk_id)
 
 
 def _with_binding(binding: ProseBindingDraft, **kwargs: object) -> tuple[str, ...]:
