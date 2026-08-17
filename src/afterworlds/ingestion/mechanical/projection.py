@@ -39,9 +39,11 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
     RepresentationDraft,
     fact_key,
     fact_payload,
+    representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 
@@ -58,6 +60,7 @@ __all__ = [
     "release_binding_payload",
     "representation_payload",
     "validate_candidate",
+    "validate_schema_binding",
 ]
 
 
@@ -81,11 +84,22 @@ class ReleaseBinding:
 
 @dataclass(frozen=True)
 class ProjectionCandidate:
-    """A built-but-unproven projection: identifiable, not yet publishable."""
+    """A built-but-unproven projection: identifiable, not yet publishable.
+
+    ``schema_version``/``schema_hash`` are the candidate's own declaration of
+    the closed representation contract it was built under, exactly as
+    :class:`~.models.ClassificationLedger` declares the semantic policy it was
+    accepted under. Declared rather than read from current constants, so a
+    projection reconstructed in a year states the union it was built against
+    instead of being silently re-identified under whatever the union has since
+    become.
+    """
 
     binding: ReleaseBinding
     classification: ClassificationLedger
     representation: RepresentationDraft
+    schema_version: str
+    schema_hash: str
 
 
 def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
@@ -175,12 +189,53 @@ def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
 
 
 def projection_payload(candidate: ProjectionCandidate) -> dict[str, object]:
-    """The complete meaning-bearing payload a projection identity covers."""
+    """The complete meaning-bearing payload a projection identity covers.
+
+    ``representation_schema`` is here because the representation payload alone
+    does not say what its contents are *allowed to mean*. A candidate whose
+    facts all belong to families a schema change did not touch produces byte-
+    identical content before and after that change, and without this block it
+    would keep the same UUID across two different union contracts — so a stored
+    binding could not identify which contract governs it (ADR-005d Decisions 4
+    and 6).
+
+    Taken from the candidate's declaration rather than from the module
+    constants, for the same reason ``classification_payload`` takes the policy
+    from the ledger: substituting current code here would re-identify history.
+    """
     return {
         "release_binding": release_binding_payload(candidate.binding),
         "classification": classification_payload(candidate.classification),
+        "representation_schema": {
+            "version": candidate.schema_version,
+            "hash": candidate.schema_hash,
+        },
         "representation": representation_payload(candidate.representation),
     }
+
+
+def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
+    """Return violations of the candidate's declared representation schema.
+
+    The mirror of :func:`~.accounting.validate_policy_binding`: a candidate
+    declaring a schema this build does not implement must fail rather than be
+    built under a union it never agreed to. Unsupported and mismatched are the
+    same refusal here — both mean the declaration and the code disagree about
+    what a fact may say.
+    """
+    findings: list[str] = []
+    if candidate.schema_version != REPRESENTATION_SCHEMA_VERSION:
+        findings.append(
+            f"candidate declares representation schema {candidate.schema_version!r}, "
+            f"build implements {REPRESENTATION_SCHEMA_VERSION!r}"
+        )
+    expected = representation_schema_hash()
+    if candidate.schema_hash != expected:
+        findings.append(
+            f"candidate declares representation schema hash "
+            f"{candidate.schema_hash!r}, committed union hashes to {expected!r}"
+        )
+    return tuple(findings)
 
 
 def projection_uuid(candidate: ProjectionCandidate) -> str:
@@ -313,6 +368,7 @@ def validate_candidate(
         )
 
     findings.extend(validate_policy_binding(ledger))
+    findings.extend(validate_schema_binding(candidate))
 
     leaf_lengths = corpus.leaf_lengths
     claimed_leaves = {s.leaf_id for s in ledger.spans}

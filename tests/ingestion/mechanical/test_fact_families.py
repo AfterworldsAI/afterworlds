@@ -29,7 +29,6 @@ from afterworlds.ingestion.mechanical.persistence import (
     reconstruct_candidate,
 )
 from afterworlds.ingestion.mechanical.projection import (
-    ProjectionCandidate,
     identify_projection,
 )
 from afterworlds.ingestion.mechanical.representation import (
@@ -117,6 +116,7 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    candidate_of,
 )
 
 #: One honest exemplar per family, each annotated with the production-corpus
@@ -460,7 +460,7 @@ def test_every_family_survives_persistence_and_reconstruction(
         )
     )
     identified = identify_projection(
-        ProjectionCandidate(RELEASE_BINDING, build_ledger(), draft)
+        candidate_of(RELEASE_BINDING, build_ledger(), draft)
     )
     persist_draft(session, identified, now=NOW)
     session.flush()
@@ -1052,7 +1052,7 @@ def test_an_unreachable_recharge_still_fails_after_reconstruction(
         )
     )
     identified = identify_projection(
-        ProjectionCandidate(RELEASE_BINDING, build_ledger(), draft)
+        candidate_of(RELEASE_BINDING, build_ledger(), draft)
     )
     persist_draft(session, identified, now=NOW)
     session.flush()

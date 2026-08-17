@@ -57,7 +57,6 @@ from afterworlds.ingestion.mechanical.policy import (
     semantic_policy_hash,
 )
 from afterworlds.ingestion.mechanical.projection import (
-    ProjectionCandidate,
     ReleaseBinding,
     identify_projection,
 )
@@ -67,12 +66,16 @@ from afterworlds.ingestion.mechanical.publication import (
     publish_from_committed_oracle,
     resolve_active_projection,
 )
-from afterworlds.ingestion.mechanical.representation import RepresentationDraft
+from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
+    RepresentationDraft,
+    representation_schema_hash,
+)
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
-from tests.ingestion.mechanical.conftest import NOW
+from tests.ingestion.mechanical.conftest import NOW, candidate_of
 
 #: How many real leaves the incomplete projection classifies. Three, for the
 #: same reason the bounded fixture has three: the point is that it is not the
@@ -178,7 +181,7 @@ def production(full_release: ReleaseArtifacts):  # type: ignore[no-untyped-def]
             ),
         )
         identified = identify_projection(
-            ProjectionCandidate(
+            candidate_of(
                 binding=binding,
                 classification=classification,
                 representation=EMPTY_REPRESENTATION,
@@ -199,6 +202,8 @@ def production(full_release: ReleaseArtifacts):  # type: ignore[no-untyped-def]
                 binding=binding,
                 policy_version=SEMANTIC_POLICY_VERSION,
                 policy_hash=semantic_policy_hash(),
+                schema_version=REPRESENTATION_SCHEMA_VERSION,
+                schema_hash=representation_schema_hash(),
                 spans=spans,
                 representation=EMPTY_REPRESENTATION,
                 obligations=(),
@@ -380,7 +385,7 @@ def test_classifying_more_leaves_does_not_help(
         )
     )
     identified = identify_projection(
-        ProjectionCandidate(
+        candidate_of(
             binding=production.binding,
             classification=classification,
             representation=EMPTY_REPRESENTATION,

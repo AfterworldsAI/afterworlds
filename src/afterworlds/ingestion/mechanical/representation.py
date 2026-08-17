@@ -78,9 +78,10 @@ eligibility, choices, sequencing.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, cast
+from types import UnionType
+from typing import Any, ClassVar, Union, cast, get_args, get_origin, get_type_hints
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes, sha256_hex
 from afterworlds.ingestion.mechanical.models import ComponentHandling
@@ -171,6 +172,9 @@ __all__ = [
     "fact_invariant_violations",
     "fact_key",
     "fact_payload",
+    "REPRESENTATION_SCHEMA_VERSION",
+    "representation_schema_hash",
+    "representation_schema_payload",
     "prose_bindings_by_target_key",
 ]
 
@@ -2714,6 +2718,138 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
 assert (
     set(_FACT_TYPES) == set(_FACT_BUILDERS) == set(_FACT_INVARIANTS) == set(FactFamily)
 ), "every FactFamily needs a type, a builder, and an invariant checker"
+
+
+# ---------------------------------------------------------------------------
+# Representation-schema identity (ADR-005d Decisions 4 and 6)
+# ---------------------------------------------------------------------------
+#
+# The closed union is versioned and identity-bound, for the same reason the
+# semantic policy is: authority is only meaningful under the contract it was
+# built against. Without this, a projection whose facts all belong to families
+# this release did not touch keeps its old UUID across a union that now means
+# something different, and a stored binding cannot say which contract governs
+# it.
+#
+# **Distinct from the semantic policy, deliberately.** ``5d-semantic-policy-1``
+# identifies the closed *classification* catalogs and the canonicalization rule —
+# what makes a span's disposition checkable. This identifies the closed
+# *representation* contract — what a fact may say. They change for different
+# reasons and on different schedules, and overloading one to carry the other
+# would remint every accepted classification whenever a fact family was added.
+
+#: Bumped whenever the closed representation contract changes meaning: a family
+#: added or removed, a field added, removed, or retyped, a closed vocabulary
+#: gaining or losing a member. Version ``1`` describes the union as it stands
+#: after the conditions-batch expansion; no projection has ever been persisted
+#: under an earlier one, so there is no retroactive version to invent.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-1"
+
+#: Closed vocabularies the drafts use directly rather than through a fact field.
+#: They are part of the representation contract — #137 contract 3 names the
+#: record and relationship vocabularies as closed — but nothing reaches them by
+#: walking fact fields, so they are named here explicitly.
+_DRAFT_VOCABULARIES: tuple[type[StrEnum], ...] = (
+    ComponentHandling,
+    ProvenanceRole,
+    ProvenanceTargetKind,
+    RecordKind,
+    RelationshipKind,
+)
+
+
+def _type_name(annotation: object) -> str:
+    """Render one field annotation as a stable, comparable descriptor.
+
+    Rendered rather than hashed as an object: the goal is a value that changes
+    when the *declared contract* changes and not when the source file does.
+    Union members are sorted, so ``X | None`` and ``None | X`` are one contract
+    and a reordering during a refactor is not a schema change.
+    """
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if args:
+        if origin in (Union, UnionType):
+            return "|".join(sorted(_type_name(a) for a in args))
+        name = getattr(origin, "__name__", str(origin))
+        return f"{name}[{','.join(_type_name(a) for a in args)}]"
+    if annotation is type(None):
+        return "None"
+    if annotation is Ellipsis:
+        return "..."
+    return getattr(annotation, "__name__", str(annotation))
+
+
+def _declared_fields(cls: type) -> list[dict[str, str]]:
+    """One entry per declared field: its name and its rendered type."""
+    hints = get_type_hints(cls)
+    return [{"name": f.name, "type": _type_name(hints[f.name])} for f in fields(cls)]
+
+
+def _walk(cls: type, vocab: dict[str, type[StrEnum]], objects: dict[str, type]) -> None:
+    """Collect every closed vocabulary and nested value object *cls* reaches.
+
+    Recursive on purpose. A nested value object is as much a part of the
+    contract as the family holding it — adding a field to ``RollSpec`` changes
+    what an ``AdvantageFact`` can say — so recording only the class *name*
+    would leave exactly the reshape this identity exists to catch invisible.
+    """
+    for field_ in fields(cls):
+        for part in get_type_hints(cls)[field_.name], *get_args(
+            get_type_hints(cls)[field_.name]
+        ):
+            if not isinstance(part, type):
+                continue
+            if issubclass(part, StrEnum):
+                vocab[part.__name__] = part
+            elif is_dataclass(part) and part.__name__ not in objects:
+                objects[part.__name__] = part
+                _walk(part, vocab, objects)
+
+
+def representation_schema_payload() -> dict[str, object]:
+    """Canonical, identity-bearing description of the closed representation.
+
+    Derived from the declared types themselves, never from the source file's
+    bytes. A comment, a docstring, a reordered definition, or a renamed local
+    leaves this identical; adding a family, adding or retyping a field, or
+    adding an enum member changes it. That is the whole point: authority must be
+    reminted when the contract moves and left alone when only the prose around
+    it does.
+    """
+    vocab: dict[str, type[StrEnum]] = {}
+    objects: dict[str, type] = {}
+    families = []
+    for family in sorted(FactFamily, key=lambda f: f.value):
+        cls = _FACT_TYPES[family]
+        _walk(cls, vocab, objects)
+        families.append(
+            {
+                "family": family.value,
+                "type": cls.__name__,
+                "fields": _declared_fields(cls),
+            }
+        )
+    for enum_cls in _DRAFT_VOCABULARIES:
+        vocab[enum_cls.__name__] = enum_cls
+
+    return {
+        "representation_schema_version": REPRESENTATION_SCHEMA_VERSION,
+        "fact_families": families,
+        "value_objects": [
+            {"name": name, "fields": _declared_fields(objects[name])}
+            for name in sorted(objects)
+        ],
+        "vocabularies": [
+            {"name": name, "members": [m.value for m in vocab[name]]}
+            for name in sorted(vocab)
+        ],
+    }
+
+
+def representation_schema_hash() -> str:
+    """SHA-256 of the closed representation contract."""
+    return sha256_hex(canonical_bytes(representation_schema_payload()))
 
 
 def fact_from_payload(

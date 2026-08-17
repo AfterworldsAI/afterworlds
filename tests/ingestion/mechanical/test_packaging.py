@@ -59,6 +59,7 @@ SENTINEL_ORACLE: dict[str, object] = {
     },
     "semantic_policy_version": "sentinel",
     "semantic_policy_hash": "e" * 64,
+    "representation_schema": {"version": "sentinel", "hash": "f" * 64},
     "spans": [],
     "representation": {
         "records": [],
@@ -126,6 +127,8 @@ with Session(engine) as session:
             persisted_corpus_digest="d" * 64,
             semantic_policy_version="sentinel",
             semantic_policy_hash="e" * 64,
+            representation_schema_version="sentinel",
+            representation_schema_hash="f" * 64,
             payload_hash="f" * 64,
             publication_status="draft",
             created_at=NOW,

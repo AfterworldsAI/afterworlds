@@ -235,6 +235,15 @@ def accept_proposal(
             "accepted authority it would extend"
         )
 
+    if prior is not None and (
+        prior.oracle.schema_version,
+        prior.oracle.schema_hash,
+    ) != (proposal.schema_version, proposal.schema_hash):
+        raise AcceptanceError(
+            "this proposal declares a different representation schema than the "
+            "prior accepted authority it would extend"
+        )
+
     if batch_id in {b.batch_id for b in (prior.batches if prior else ())}:
         raise AcceptanceError(f"batch {batch_id!r} is already recorded")
 
@@ -299,6 +308,8 @@ def accept_proposal(
             binding=proposal.binding,
             policy_version=proposal.policy_version,
             policy_hash=proposal.policy_hash,
+            schema_version=proposal.schema_version,
+            schema_hash=proposal.schema_hash,
             spans=_ordered(spans),
             representation=representation,
             obligations=derive_obligations(representation),

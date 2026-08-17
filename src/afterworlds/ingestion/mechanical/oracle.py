@@ -166,6 +166,11 @@ class AcceptedOracle:
     binding: ReleaseBinding
     policy_version: str
     policy_hash: str
+    #: The closed representation contract this accepted authority was reviewed
+    #: under. Committed alongside the semantics it governs, so an artifact
+    #: cannot be replayed under a union that means something else.
+    schema_version: str
+    schema_hash: str
     spans: tuple[SemanticSpan, ...]
     representation: RepresentationDraft
     obligations: tuple[RecordObligation, ...]
@@ -280,6 +285,10 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
         },
         "semantic_policy_version": oracle.policy_version,
         "semantic_policy_hash": oracle.policy_hash,
+        "representation_schema": {
+            "version": oracle.schema_version,
+            "hash": oracle.schema_hash,
+        },
         "spans": span_payload(oracle.spans),
         "representation": representation_payload(oracle.representation),
         "obligations": canonical_order(
@@ -806,6 +815,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             "release_binding",
             "semantic_policy_version",
             "semantic_policy_hash",
+            "representation_schema",
             "spans",
             "acceptance",
             "representation",
@@ -822,6 +832,9 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         "persisted_corpus_digest",
     )
     binding = _require(p["release_binding"], binding_fields, "release_binding")
+    schema = _require(
+        p["representation_schema"], ("version", "hash"), "representation_schema"
+    )
     representation = _representation(p["representation"])
     obligations = tuple(
         _obligation(o, i)
@@ -837,6 +850,8 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         ),
         policy_version=_string(p["semantic_policy_version"], "semantic_policy_version"),
         policy_hash=_string(p["semantic_policy_hash"], "semantic_policy_hash"),
+        schema_version=_string(schema["version"], "representation_schema.version"),
+        schema_hash=_string(schema["hash"], "representation_schema.hash"),
         spans=spans,
         representation=representation,
         obligations=obligations,
@@ -884,6 +899,8 @@ def candidate_from_accepted_inputs(inputs: AcceptedInputs) -> ProjectionCandidat
         binding=inputs.oracle.binding,
         classification=inputs.classification(),
         representation=inputs.oracle.representation,
+        schema_version=inputs.oracle.schema_version,
+        schema_hash=inputs.oracle.schema_hash,
     )
 
 
