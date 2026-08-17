@@ -13,13 +13,32 @@ from __future__ import annotations
 import pytest
 
 from afterworlds.ingestion.mechanical.representation import (
+    AbilityScore,
+    ActionCost,
+    ActionRestrictionFact,
+    AdvantageFact,
+    AdvantageState,
     AttackKind,
     AttackRollFact,
+    AutomaticOutcome,
+    AutomaticOutcomeFact,
     CreatureDefenseFact,
+    CriticalHitChange,
+    CriticalHitRuleFact,
     DamageFact,
+    DamageResponseFact,
+    DamageResponseKind,
+    DamageScope,
     DamageType,
     DiceExpression,
     DieSize,
+    RollActor,
+    RollContext,
+    RollSpec,
+    SpeedChange,
+    SpeedModificationFact,
+    StateEffectFact,
+    StateEffectKind,
     fact_key,
     fact_payload,
 )
@@ -220,3 +239,199 @@ def test_base_authority_is_unchanged_by_any_of_this(runtime: RuntimeFixture) -> 
     keys = {fact_key(f) for c in rebuilt.representation.components for f in c.facts}
     assert fact_key(SLAM) not in keys
     assert CHECK_FACT_KEY in keys
+
+
+# -- the conditions-batch families, through the same path ---------------------
+#
+# The schema-closure work added five families and reshaped three. The override
+# layer rebuilds facts through the projection's own ``fact_from_payload``, so it
+# should carry them with no change here — but "should" is what a regression is
+# for, and the reshaped families are the ones a stale payload could quietly
+# survive in.
+
+#: Blinded, p177: "your attack rolls have Disadvantage."
+BLINDED_SELF = AdvantageFact(
+    AdvantageState.DISADVANTAGE,
+    RollSpec(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
+)
+
+#: Blinded's other half, and Invisible's inverse: "Attack rolls against you
+#: have Advantage." Identical to ``BLINDED_SELF`` before ``RollSpec`` existed.
+BLINDED_AGAINST = AdvantageFact(
+    AdvantageState.ADVANTAGE,
+    RollSpec(RollActor.AGAINST_SUBJECT, RollContext.ATTACK_ROLL),
+)
+
+#: Petrified, p186: "You have Resistance to all damage."
+ALL_DAMAGE = DamageResponseFact(DamageResponseKind.RESISTANCE, DamageScope.ALL)
+
+#: Paralyzed, p186: "You automatically fail … Dexterity saving throws."
+AUTO_FAIL = AutomaticOutcomeFact(
+    RollSpec(RollActor.SUBJECT, RollContext.SAVING_THROW, AbilityScore.DEXTERITY),
+    AutomaticOutcome.FAILURE,
+)
+
+#: Grappled, p182: "Your Speed is 0 and can't increase."
+SPEED_ZERO = SpeedModificationFact(
+    change=SpeedChange.SET_TO, feet=0, can_increase=False
+)
+
+#: Incapacitated, p184: "You can't take any … Reaction."
+NO_REACTION = ActionRestrictionFact(ActionCost.REACTION)
+
+#: Unconscious, p191: "Any attack roll that hits you is a Critical Hit …"
+AUTO_CRIT = CriticalHitRuleFact(CriticalHitChange.AUTOMATIC_ON_HIT)
+
+#: Incapacitated, p184: "Your Concentration is broken."
+CONCENTRATION = StateEffectFact(StateEffectKind.CONCENTRATION_BROKEN)
+
+
+@pytest.mark.parametrize(
+    "fact",
+    [
+        BLINDED_AGAINST,
+        ALL_DAMAGE,
+        AUTO_FAIL,
+        SPEED_ZERO,
+        NO_REACTION,
+        AUTO_CRIT,
+        CONCENTRATION,
+    ],
+    ids=[
+        "advantage-polarity",
+        "all-damage",
+        "automatic-outcome",
+        "speed-modification",
+        "action-restriction",
+        "critical-hit",
+        "state-effect",
+    ],
+)
+def test_a_conditions_family_appends_and_reaches_the_typed_view(
+    runtime: RuntimeFixture, fact: object
+) -> None:
+    """Each new or reshaped family survives the override path intact."""
+    author_override(
+        runtime.session,
+        override_id=f"ov-cond-{fact_key(fact)}",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_fact_payload(fact),
+    )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    (added,) = [f for f in check.facts if f.fact_key == fact_key(fact)]
+    assert added.fact == fact
+    assert added.span_ids == ()
+
+    result = typed_view(runtime)
+    assert result.outcome is AuthorityOutcome.RESOLVED
+    assert result.typed_view is not None
+    assert fact in [
+        f.fact
+        for record in result.typed_view.records
+        for comp in record.components
+        for f in comp.facts
+    ]
+
+
+def test_roll_polarity_survives_the_override_path(runtime: RuntimeFixture) -> None:
+    """Two opposite claims stay two facts after a runtime round trip.
+
+    This is the Blinded/Invisible defect at the override seam: if the runtime
+    rebuild dropped ``actor``, the two would collapse back into one key and one
+    of them would silently disappear from the effective view.
+    """
+    for i, fact in enumerate((BLINDED_SELF, BLINDED_AGAINST)):
+        author_override(
+            runtime.session,
+            override_id=f"ov-polarity-{i}",
+            target=CHECK_COMPONENT_TARGET,
+            operation=OverrideOperationEnum.APPEND,
+            payload=append_fact_payload(fact),
+        )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    rebuilt = [f.fact for f in check.facts if f.fact in (BLINDED_SELF, BLINDED_AGAINST)]
+    assert len(rebuilt) == 2
+    assert {f.roll.actor for f in rebuilt} == {  # type: ignore[union-attr]
+        RollActor.SUBJECT,
+        RollActor.AGAINST_SUBJECT,
+    }
+
+
+@pytest.mark.parametrize(
+    ("payload", "why"),
+    [
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(BLINDED_SELF),
+                    "roll": {
+                        "actor": "bystander",
+                        "context": "attack_roll",
+                        "ability": None,
+                    },
+                },
+            },
+            "an actor outside the closed vocabulary",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(BLINDED_SELF),
+                    "roll": {"actor": "subject", "context": "attack_roll"},
+                },
+            },
+            "a roll specification missing its ability key",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(BLINDED_SELF), "roll": "subject attack roll"},
+            },
+            "a value object flattened into a string",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(ALL_DAMAGE),
+                    "damage_type": "fire",
+                },
+            },
+            "an all-damage response that also names a type",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(CONCENTRATION),
+                    "effect": "cannot_smell",
+                },
+            },
+            "a state effect outside the closed vocabulary",
+        ),
+    ],
+    ids=[
+        "unknown-actor",
+        "missing-ability",
+        "stringly-rollspec",
+        "contradictory-scope",
+        "unknown-state-effect",
+    ],
+)
+def test_a_conditions_family_override_cannot_widen_the_union(
+    runtime: RuntimeFixture, payload: dict[str, object], why: str
+) -> None:
+    """The same door, held shut against the new vocabularies."""
+    author_override(
+        runtime.session,
+        override_id=f"ov-cond-bad-{abs(hash(why))}",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=payload,
+    )
+    assert typed_view(runtime).outcome is AuthorityOutcome.INVALID_OVERRIDE, why

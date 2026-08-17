@@ -37,10 +37,13 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ActionCost,
     ActionEconomyFact,
+    ActionRestrictionFact,
     AdvantageFact,
     AdvantageState,
     AttackKind,
     AttackRollFact,
+    AutomaticOutcome,
+    AutomaticOutcomeFact,
     ComponentDraft,
     ConditionEffectFact,
     ConditionEffectKind,
@@ -49,10 +52,13 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureChallengeFact,
     CreatureDefenseFact,
     CreatureSpeedFact,
+    CriticalHitChange,
+    CriticalHitRuleFact,
     Currency,
     DamageFact,
     DamageResponseFact,
     DamageResponseKind,
+    DamageScope,
     DamageType,
     DcKind,
     DiceExpression,
@@ -74,10 +80,14 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
     RepresentationDraft,
     ResourceRecoveryFact,
+    RollActor,
     RollContext,
+    RollSpec,
     ScalingBasis,
     ScalingEffect,
     ScalingFact,
+    SpeedChange,
+    SpeedModificationFact,
     SpellCastingTime,
     SpellComponents,
     SpellDescriptorFact,
@@ -86,6 +96,8 @@ from afterworlds.ingestion.mechanical.representation import (
     SpellRange,
     SpellSchool,
     SpellSlotProgressionFact,
+    StateEffectFact,
+    StateEffectKind,
     TimeUnit,
     UnknownFactFamilyError,
     WeaponProperty,
@@ -157,7 +169,9 @@ EXEMPLARS: dict[FactFamily, Any] = {
     FactFamily.HEALING: HealingFact(restores_all_hit_points=True),
     # Mummy: "Vulnerabilities Fire"
     FactFamily.DAMAGE_RESPONSE: DamageResponseFact(
-        DamageType.FIRE, DamageResponseKind.VULNERABILITY
+        DamageResponseKind.VULNERABILITY,
+        DamageScope.SPECIFIC,
+        damage_type=DamageType.FIRE,
     ),
     # Mummy: "Immunities … Charmed"
     FactFamily.CONDITION_EFFECT: ConditionEffectFact(
@@ -182,16 +196,35 @@ EXEMPLARS: dict[FactFamily, Any] = {
         recovers_on=RecoveryTrigger.LONG_REST,
         uses=2,
     ),
-    # "You have Disadvantage on attack rolls with a Heavy weapon if …"
+    # Blinded: "your attack rolls have Disadvantage"
     FactFamily.ADVANTAGE: AdvantageFact(
-        AdvantageState.DISADVANTAGE, RollContext.ATTACK_ROLL
+        AdvantageState.DISADVANTAGE,
+        RollSpec(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
     ),
+    # Paralyzed: "You automatically fail Strength and Dexterity saving throws."
+    FactFamily.AUTOMATIC_OUTCOME: AutomaticOutcomeFact(
+        RollSpec(RollActor.SUBJECT, RollContext.SAVING_THROW, AbilityScore.STRENGTH),
+        AutomaticOutcome.FAILURE,
+    ),
+    # Grappled: "Your Speed is 0 and can't increase."
+    FactFamily.SPEED_MODIFICATION: SpeedModificationFact(
+        change=SpeedChange.SET_TO, feet=0, can_increase=False
+    ),
+    # Incapacitated: "You can't take any action, Bonus Action, or Reaction."
+    FactFamily.ACTION_RESTRICTION: ActionRestrictionFact(ActionCost.REACTION),
+    # Unconscious: "Any attack roll that hits you is a Critical Hit if the
+    # attacker is within 5 feet of you."
+    FactFamily.CRITICAL_HIT_RULE: CriticalHitRuleFact(
+        CriticalHitChange.AUTOMATIC_ON_HIT
+    ),
+    # Incapacitated: "Your Concentration is broken."
+    FactFamily.STATE_EFFECT: StateEffectFact(StateEffectKind.CONCENTRATION_BROKEN),
     # "The damage increases by 1d10 for each spell slot level above 4."
     FactFamily.SCALING: ScalingFact(
         basis=ScalingBasis.HIGHER_LEVEL_SPELL_SLOT,
         threshold=4,
         effect=ScalingEffect.DAMAGE,
-        dice_increase=DiceExpression(1, DieSize.D10),
+        dice_amount=DiceExpression(1, DieSize.D10),
     ),
     # A weapon table row: "5 GP" / "2 lb."
     FactFamily.EQUIPMENT_DESCRIPTOR: EquipmentDescriptorFact(
@@ -863,8 +896,8 @@ def test_a_value_object_that_contradicts_its_own_contract_is_reported(
             "negative scaling threshold",
         ),
         (
-            replace(EXEMPLARS[FactFamily.SCALING], dice_increase=None),
-            "exactly one of a dice increase or an amount increase",
+            replace(EXEMPLARS[FactFamily.SCALING], dice_amount=None),
+            "exactly one of a dice amount or an amount",
         ),
         (
             replace(
@@ -874,10 +907,8 @@ def test_a_value_object_that_contradicts_its_own_contract_is_reported(
             "the value comes from the slot level itself",
         ),
         (
-            replace(
-                EXEMPLARS[FactFamily.SCALING], dice_increase=None, amount_increase=0
-            ),
-            "increases nothing",
+            replace(EXEMPLARS[FactFamily.SCALING], dice_amount=None, amount=0),
+            "changes nothing",
         ),
         (EquipmentDescriptorFact(), "states neither a cost nor a weight"),
         (
