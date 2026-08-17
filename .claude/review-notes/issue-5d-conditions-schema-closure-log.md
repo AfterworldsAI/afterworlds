@@ -112,10 +112,12 @@ Numbering follows §7.1 of the proposal checkpoint.
 | 18 | petrified | transformation, ×10 weight, ceased aging | **residue** |
 | 21 | petrified | *"You have Resistance to all damage."* | `DamageResponseFact(RESISTANCE, ALL)` — one claim, one primary provenance |
 | 22, 23 | prone | movement options and cost | **residue** |
-| 24, 25 | prone | *"An attack roll against you has Advantage if …"* / *"Otherwise, …"* | two `AdvantageFact`s distinguished by `RollSpec.actor` |
+| 24, 25 | prone | *"An attack roll against you has Advantage if …"* / *"Otherwise, …"* | two `AdvantageFact`s distinguished by `RollSpec.actor`, **+ the branch selector (*"if the attacker is within 5 feet of you. Otherwise,"*) bound as prose → `MIXED`**, matching #17/#32 |
 | 27 | restrained | *"Disadvantage on Dexterity saving throws"* | `AdvantageFact(DIS, RollSpec(SUBJECT, SAVING_THROW, DEXTERITY))` |
 | 29 | unconscious | *"you drop whatever you're holding. When this condition ends, you remain Prone."* | **split**: drop → `StateEffectFact(DROPS_HELD_OBJECTS)`; *"When this condition ends …"* → **residue** (sequencing) |
 | 33 | unconscious | *"You're unaware of your surroundings."* | `StateEffectFact(UNAWARE_OF_SURROUNDINGS)` |
+
+Components: 31 `STRUCTURED`, 9 `MIXED`, 4 `PROSE_BOUND`.
 
 **24 of 33 resolved as typed authority, 3 as affirmatively prose-bound, 6 remain unresolved** — plus the
 two sensory-state fragments split out of #1 and #3 and the sequencing fragment split out of #29, giving
@@ -176,22 +178,22 @@ Same selection rule, same 16 entry containers, same 134 leaves, regenerated agai
 
 | | before | after |
 |---|---:|---:|
-| spans | 159 | 172 |
-| substantive | 30 | 67 |
+| spans | 159 | 173 |
+| substantive | 30 | 68 |
 | supporting authority | 96 | 96 |
 | **unresolved** | **33** | **9** |
 | non-mechanical | 0 | 0 |
 | components | 20 | 44 |
 | typed facts | 25 | 55 |
 | fact families exercised | 2 | 9 |
-| prose bindings | 5 | 12 |
+| prose bindings | 5 | 13 |
 | records with no component | 2 (Deafened, Exhaustion) | **0** |
 | validation findings | 0 | 0 |
 
 Families exercised: `advantage` 22, `automatic_outcome` 10, `condition_effect` 6, `speed_modification` 5,
 `state_effect` 4, `action_restriction` 3, `critical_hit_rule` 2, `scaling` 2, `damage_response` 1.
 
-Proposal identity: `087d459750fcffb7b39b9e374f721a344ee84754049c434d7ccff79476c429ef`
+Proposal identity: `0f362df6a0c7e433d4c7fbade3b28c293455e83c54ce4f1d226863c9a4f28338`
 (was `dfcee03dd93d76e109ec932641a367119f63f8fc82d68836d2c817400610a662`).
 
 The proposal, its audit trail, and the generator remain **untracked** working files under
