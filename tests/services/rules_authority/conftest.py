@@ -95,6 +95,7 @@ from afterworlds.ingestion.mechanical.publication import (
     _publish_projection,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
     AbilityCheckFact,
     AbilityScore,
     ComponentDraft,
@@ -111,6 +112,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_key,
     fact_payload,
     prose_binding_target_key,
+    representation_schema_hash,
 )
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.models.rules_package import RulesPackageBinding
@@ -668,6 +670,8 @@ def _publish_bounded_projection(
     representation = _representation(chunk_prefix)
     identified = identify_projection(
         ProjectionCandidate(
+            schema_version=REPRESENTATION_SCHEMA_VERSION,
+            schema_hash=representation_schema_hash(),
             binding=binding,
             classification=classification,
             representation=representation,
@@ -676,6 +680,8 @@ def _publish_bounded_projection(
     persist_draft(session, identified, now=NOW)
     record_persisted_state_digest(session, identified.projection_uuid)
     oracle = AcceptedOracle(
+        schema_version=REPRESENTATION_SCHEMA_VERSION,
+        schema_hash=representation_schema_hash(),
         binding=binding,
         policy_version=SEMANTIC_POLICY_VERSION,
         policy_hash=semantic_policy_hash(),

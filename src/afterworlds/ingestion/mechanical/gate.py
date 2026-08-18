@@ -73,6 +73,7 @@ from afterworlds.ingestion.mechanical.projection import (
     identify_projection,
     representation_payload,
     validate_candidate,
+    validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.representation import (
     FactFamily,
@@ -123,6 +124,12 @@ class GateFailureCategory(StrEnum):
     MISMATCHED_RELEASE = "mismatched_release"
     #: The oracle declares a different semantic policy than the projection.
     POLICY_MISMATCH = "policy_mismatch"
+    #: The declared closed representation contract is absent, unsupported by
+    #: this build, or disagrees between the oracle and the projection. All
+    #: three are one refusal: the union that governs what these facts may mean
+    #: cannot be established, so nothing here can be judged (ADR-005d
+    #: Decisions 4 and 6).
+    SCHEMA_MISMATCH = "schema_mismatch"
     #: Classified leaves are not exactly the bound release's REPRESENTED set.
     POPULATION_MISMATCH = "population_mismatch"
     #: The accepted span partition differs from the oracle's.
@@ -410,6 +417,8 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
                 acceptances=(),
             ),
             representation=oracle.representation,
+            schema_version=oracle.schema_version,
+            schema_hash=oracle.schema_hash,
         )
     ).projection_uuid
 
@@ -554,6 +563,25 @@ def run_publication_gate(
             f"{oracle.policy_hash[:12]}…, projection declares "
             f"{ledger.policy_version!r}/{ledger.policy_hash[:12]}…",
         )
+
+    # The closed representation contract, checked on both axes. Agreement
+    # between the oracle and the projection is not enough on its own: two
+    # artifacts can agree on a union this build does not implement, and
+    # publishing under it would persist authority whose meaning nothing here
+    # can validate.
+    if (oracle.schema_version, oracle.schema_hash) != (
+        candidate.schema_version,
+        candidate.schema_hash,
+    ):
+        _fail(
+            findings,
+            GateFailureCategory.SCHEMA_MISMATCH,
+            f"accepted oracle declares representation schema "
+            f"{oracle.schema_version!r}/{oracle.schema_hash[:12]}…, projection "
+            f"declares {candidate.schema_version!r}/{candidate.schema_hash[:12]}…",
+        )
+    for violation in validate_schema_binding(candidate):
+        _fail(findings, GateFailureCategory.SCHEMA_MISMATCH, violation)
 
     # 3. Population equality against the bound 5c release — the one authority
     #    that is neither the oracle nor the candidate. This is what makes an

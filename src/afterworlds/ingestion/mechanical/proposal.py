@@ -97,6 +97,12 @@ class MechanicalProposal:
     binding: ReleaseBinding
     policy_version: str
     policy_hash: str
+    #: The closed representation contract this proposal was generated under.
+    #: A reviewer is accepting claims about what facts may say, so the union
+    #: that defines that has to travel with the claims rather than being
+    #: re-stamped from whatever the code implements at acceptance time.
+    schema_version: str
+    schema_hash: str
     proposed_spans: tuple[ProposedSpan, ...]
     proposed_representation: RepresentationDraft
     #: What produced this proposal — a tool name and version, a reviewer's
@@ -128,6 +134,10 @@ def proposal_payload(proposal: MechanicalProposal) -> dict[str, object]:
         },
         "semantic_policy_version": proposal.policy_version,
         "semantic_policy_hash": proposal.policy_hash,
+        "representation_schema": {
+            "version": proposal.schema_version,
+            "hash": proposal.schema_hash,
+        },
         "proposed_spans": canonical_order(
             {
                 **payload,

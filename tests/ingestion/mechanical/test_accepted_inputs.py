@@ -77,6 +77,8 @@ from tests.ingestion.mechanical.conftest import (
     NOW,
     PACKAGE_UUID,
     RELEASE_BINDING,
+    SCHEMA_HASH,
+    SCHEMA_VERSION,
     SPELL_KEY,
     bound_corpus,
     build_ledger,
@@ -96,6 +98,8 @@ def _proposal(**overrides: object) -> MechanicalProposal:
         binding=RELEASE_BINDING,
         policy_version=SEMANTIC_POLICY_VERSION,
         policy_hash=semantic_policy_hash(),
+        schema_version=SCHEMA_VERSION,
+        schema_hash=SCHEMA_HASH,
         proposed_spans=tuple(
             ProposedSpan(span, "tool:classifier@0", "stated basis")
             for span in build_ledger().spans

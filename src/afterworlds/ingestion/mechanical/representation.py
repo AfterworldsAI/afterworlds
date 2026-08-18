@@ -43,21 +43,45 @@ Two rules bound that growth, and neither is negotiable:
   owned by an ADR-015b amendment.
 
 This is still not a claim of corpus completeness. Full-corpus accounting has not
-run, and #137 contract 3 names family groups — targeting restrictions, contests,
-critical changes, explicit probability, random-table selection, eligibility,
-choices, and sequencing — that no observed shape has yet forced. Each is added
-explicitly here when accounting surfaces it, or the affected component is
-classified honestly as prose-bound. That obligation is met no later than
-full-corpus closure; it is never met by widening the union into something that
-can hold anything.
+run, and #137 contract 3 names family groups that no observed shape has yet
+forced. Each is added explicitly here when accounting surfaces it, or the
+affected component is classified honestly as prose-bound. That obligation is met
+no later than full-corpus closure; it is never met by widening the union into
+something that can hold anything.
+
+**Discharged by the conditions batch** (the 15 SRD conditions and the
+``Condition`` glossary rule, accounted against the production SRD 5.2.1
+release):
+
+* *critical changes* — :class:`CriticalHitRuleFact`, from Paralyzed's and
+  Unconscious's *"Any attack roll that hits you is a Critical Hit"* and the
+  Champion's lowered threshold;
+* *typed state effects* — :class:`StateEffectFact`, over a closed
+  evidence-bound vocabulary.
+
+**Narrowed but still deferred:**
+
+* *targeting restrictions* — the batch forced three instances (Charmed's *"can't
+  attack the charmer"*, Frightened's *"can't willingly move closer to the source
+  of fear"*, Invisible's *"any effect that requires its target to be seen"*), and
+  a corpus sweep of the restriction mechanics found their referents range over
+  distances, creature relationships, spell schools, spatial areas, and effect
+  properties. A closed vocabulary spanning those is a predicate language, so
+  these are classified as affirmatively prose-bound under
+  ``contextual_applicability`` rather than typed. The sweep, not the
+  convenience, is the justification.
+
+**Untouched:** contests, explicit probability, random-table selection,
+eligibility, choices, sequencing.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import StrEnum
-from typing import Any, ClassVar, cast
+from types import UnionType
+from typing import Any, ClassVar, Union, cast, get_args, get_origin, get_type_hints
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes, sha256_hex
 from afterworlds.ingestion.mechanical.models import ComponentHandling
@@ -68,10 +92,13 @@ __all__ = [
     "ActionCost",
     "AdvantageState",
     "AttackKind",
+    "AutomaticOutcome",
     "ConditionEffectKind",
     "ConditionKind",
+    "CriticalHitChange",
     "Currency",
     "DamageResponseKind",
+    "DamageScope",
     "DamageType",
     "DcKind",
     "DieSize",
@@ -84,16 +111,21 @@ __all__ = [
     "RecordKind",
     "RecoveryTrigger",
     "RelationshipKind",
+    "RollActor",
     "RollContext",
     "ScalingBasis",
+    "ScalingDirection",
     "ScalingEffect",
+    "SpeedChange",
     "SpellSchool",
+    "StateEffectKind",
     "TimeUnit",
     "WeaponProperty",
     # Shared typed value objects
     "DiceExpression",
     "Money",
     "Rational",
+    "RollSpec",
     "SpellCastingTime",
     "SpellComponents",
     "SpellDuration",
@@ -101,9 +133,12 @@ __all__ = [
     # Typed fact families
     "AbilityCheckFact",
     "ActionEconomyFact",
+    "ActionRestrictionFact",
     "AdvantageFact",
     "AttackRollFact",
+    "AutomaticOutcomeFact",
     "ConditionEffectFact",
+    "CriticalHitRuleFact",
     "CreatureAbilityScoreFact",
     "CreatureChallengeFact",
     "CreatureDefenseFact",
@@ -116,9 +151,11 @@ __all__ = [
     "ProgressionEntryFact",
     "ResourceRecoveryFact",
     "ScalingFact",
+    "SpeedModificationFact",
     "SpellDescriptorFact",
     "SpellListQualifierFact",
     "SpellSlotProgressionFact",
+    "StateEffectFact",
     "WeaponPropertyFact",
     # Keyed drafts
     "ComponentDraft",
@@ -131,10 +168,14 @@ __all__ = [
     # Errors and helpers
     "MalformedFactPayloadError",
     "UnknownFactFamilyError",
+    "UnsupportedRepresentationShapeError",
     "fact_from_payload",
     "fact_invariant_violations",
     "fact_key",
     "fact_payload",
+    "REPRESENTATION_SCHEMA_VERSION",
+    "representation_schema_hash",
+    "representation_schema_payload",
     "prose_bindings_by_target_key",
 ]
 
@@ -404,12 +445,128 @@ class AdvantageState(StrEnum):
 
 
 class RollContext(StrEnum):
-    """Which roll an advantage state applies to."""
+    """Which roll a fact applies to.
+
+    ``D20_TEST`` is the source's own umbrella term for all three of attack roll,
+    ability check, and saving throw — *"When you make a D20 Test, the roll is
+    reduced by 2 times your Exhaustion level"* (Exhaustion, p181), and
+    *"the target has Advantage on D20 Tests"* (Spells). A rule stated about D20
+    Tests is not three rules, and splitting it into three would invent a claim
+    per context that the source states once.
+    """
 
     ATTACK_ROLL = "attack_roll"
     ABILITY_CHECK = "ability_check"
     SAVING_THROW = "saving_throw"
     INITIATIVE = "initiative"
+    D20_TEST = "d20_test"
+
+
+class RollActor(StrEnum):
+    """Whose roll a fact is about — the axis the source states constantly.
+
+    The Rules Glossary prints both polarities in one sentence: *"Attack rolls
+    against you have Advantage, and your attack rolls have Disadvantage"*
+    (Blinded, p177) versus *"Attack rolls against you have Disadvantage, and
+    your attack rolls have Advantage"* (Invisible, p184). Those are opposite
+    rules. Without this member they reduce to the same two facts, and a
+    deterministic consumer reading the typed surface could not tell the two
+    conditions apart.
+
+    Measured corpus-wide, not inferred from the conditions: 60 occurrences of
+    *"attack rolls against …"* across ten sections.
+
+    Two members, deliberately. A third-party actor — *"the charmer has
+    Advantage on any ability check to interact with you socially"* — is a roll
+    directed at the subject whose *actor restriction* is applicability prose on
+    a ``MIXED`` component, which is the representation this module already
+    defines for a stated qualifier. Adding a member no corpus evidence forces
+    would widen the union on speculation.
+    """
+
+    #: The subject of the rule makes the roll. "your attack rolls"
+    SUBJECT = "subject"
+    #: Someone else makes the roll against the subject. "attack rolls against you"
+    AGAINST_SUBJECT = "against_subject"
+
+
+class AutomaticOutcome(StrEnum):
+    """A D20 Test resolved without rolling.
+
+    *"You automatically fail Strength and Dexterity saving throws"* (Paralyzed,
+    Petrified, Stunned, Unconscious) and *"a chosen creature automatically
+    succeeds on its saving throw"* (Classes). This is not advantage taken to an
+    extreme; it is the absence of a roll, and 25 occurrences across five
+    sections state it.
+    """
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+
+class DamageScope(StrEnum):
+    """Whether a damage response names a type or covers all of them.
+
+    *"You have Resistance to all damage"* (Petrified, p186) is one claim about
+    every damage type, not thirteen claims. Enumerating the thirteen would also
+    be structurally invalid: each fact would need a ``PRIMARY`` provenance claim
+    on the same span, which :mod:`validation` rejects as conflicting primary
+    claims.
+    """
+
+    #: The source names one damage type.
+    SPECIFIC = "specific"
+    #: The source says "all damage", optionally with named exceptions.
+    ALL = "all"
+
+
+class SpeedChange(StrEnum):
+    """How a rule alters the subject's Speed.
+
+    *"Your Speed is 0 and can't increase"* appears in five conditions and 15
+    times corpus-wide; *"Speed is reduced by 15 feet"* / *"Speed is halved"*
+    another 19 times across six sections.
+    """
+
+    SET_TO = "set_to"
+    REDUCED_BY = "reduced_by"
+    HALVED = "halved"
+
+
+class CriticalHitChange(StrEnum):
+    """How a rule changes when an attack roll is a Critical Hit.
+
+    The *critical changes* family #137 contract 3 names.
+    ``AUTOMATIC_ON_HIT``: *"Any attack roll that hits you is a Critical Hit"*
+    (Paralyzed and Unconscious). ``THRESHOLD_LOWERED``: *"Your attack rolls …
+    can score a Critical Hit on a roll of 19 or 20"* (Champion, Classes).
+    """
+
+    AUTOMATIC_ON_HIT = "automatic_on_hit"
+    THRESHOLD_LOWERED = "threshold_lowered"
+
+
+class StateEffectKind(StrEnum):
+    """The closed set of typed state effects observed as stated rules.
+
+    Closed and evidence-bound, exactly like every other vocabulary here: a
+    member is admitted only with siblings in more than one section, so this
+    cannot become a key/value bucket for whatever a batch could not otherwise
+    type. Counts are corpus-wide occurrences of the stated rule, not of the
+    words.
+    """
+
+    #: "Your Concentration is broken." — 7 across Spells, Glossary, Magic Items.
+    CONCENTRATION_BROKEN = "concentration_broken"
+    #: "You can't speak." — Glossary and Spells (the Monsters A-Z matches are a
+    #: *Languages* descriptor, "understands Draconic but can't speak", and are
+    #: deliberately not counted here).
+    CANNOT_SPEAK = "cannot_speak"
+    #: "you drop whatever you're holding" — Glossary and Spells (×3).
+    DROPS_HELD_OBJECTS = "drops_held_objects"
+    #: "You're unaware of your surroundings." — Glossary and Spells. The
+    #: thinnest member admitted: two instances in two sections.
+    UNAWARE_OF_SURROUNDINGS = "unaware_of_surroundings"
 
 
 class Currency(StrEnum):
@@ -442,15 +599,18 @@ class WeaponProperty(StrEnum):
 
 
 class ScalingBasis(StrEnum):
-    """What a stated increase scales with."""
+    """What a stated change scales with."""
 
     HIGHER_LEVEL_SPELL_SLOT = "higher_level_spell_slot"
     CHARACTER_LEVEL = "character_level"
     CLASS_LEVEL = "class_level"
+    #: A condition that accumulates levels — the Exhaustion level the source
+    #: multiplies by: "the roll is reduced by 2 times your Exhaustion level".
+    CONDITION_LEVEL = "condition_level"
 
 
 class ScalingEffect(StrEnum):
-    """Which part of an effect a stated increase applies to."""
+    """Which part of an effect a stated change applies to."""
 
     DAMAGE = "damage"
     HEALING = "healing"
@@ -459,6 +619,24 @@ class ScalingEffect(StrEnum):
     AREA = "area"
     #: "Use the spell slot's level for the spell's level in the stat block."
     EFFECTIVE_SPELL_LEVEL = "effective_spell_level"
+    #: "When you make a D20 Test, the roll is reduced by …"
+    D20_TEST = "d20_test"
+    #: "Your Speed is reduced by a number of feet equal to …"
+    SPEED = "speed"
+
+
+class ScalingDirection(StrEnum):
+    """Whether the stated change adds or subtracts.
+
+    ``ScalingFact`` previously recorded only increases, because every observed
+    instance was an increase. Exhaustion states two decreases, so the direction
+    becomes explicit rather than implied by the family's name. Encoding a
+    decrease as a negative ``amount`` would make the sign carry meaning
+    the schema never declared.
+    """
+
+    INCREASE = "increase"
+    DECREASE = "decrease"
 
 
 class FactFamily(StrEnum):
@@ -466,9 +644,12 @@ class FactFamily(StrEnum):
 
     ABILITY_CHECK = "ability_check"
     ACTION_ECONOMY = "action_economy"
+    ACTION_RESTRICTION = "action_restriction"
     ADVANTAGE = "advantage"
     ATTACK_ROLL = "attack_roll"
+    AUTOMATIC_OUTCOME = "automatic_outcome"
     CONDITION_EFFECT = "condition_effect"
+    CRITICAL_HIT_RULE = "critical_hit_rule"
     CREATURE_ABILITY_SCORE = "creature_ability_score"
     CREATURE_CHALLENGE = "creature_challenge"
     CREATURE_DEFENSE = "creature_defense"
@@ -480,9 +661,11 @@ class FactFamily(StrEnum):
     PROGRESSION_ENTRY = "progression_entry"
     RESOURCE_RECOVERY = "resource_recovery"
     SCALING = "scaling"
+    SPEED_MODIFICATION = "speed_modification"
     SPELL_DESCRIPTOR = "spell_descriptor"
     SPELL_LIST_QUALIFIER = "spell_list_qualifier"
     SPELL_SLOT_PROGRESSION = "spell_slot_progression"
+    STATE_EFFECT = "state_effect"
     WEAPON_PROPERTY = "weapon_property"
 
 
@@ -580,8 +763,46 @@ class SpellDuration:
 
 
 @dataclass(frozen=True)
+class RollSpec:
+    """Exactly which roll a fact is about: whose, what kind, and of what ability.
+
+    One shared definition rather than three fields repeated per family, for the
+    same reason :class:`DiceExpression` is shared: *"Disadvantage on Dexterity
+    saving throws"* and *"you automatically fail … Dexterity saving throws"*
+    name the same roll, and two spellings of it would drift.
+
+    Both axes are load-bearing and both were missing:
+
+    * ``actor`` — without it *"Attack rolls against you have Advantage, and your
+      attack rolls have Disadvantage"* (Blinded) and its exact inverse
+      (Invisible) produce identical typed authority.
+    * ``ability`` — without it *"Disadvantage on Dexterity saving throws"*
+      (Restrained) can only be stated as disadvantage on *every* saving throw,
+      which is not a lossy representation but a false one.
+
+    ``ability`` is ``None`` when the source does not name one, and is never
+    guessed: an attack roll has no ability qualifier in the source's own
+    phrasing, so the field stays absent rather than being filled from the
+    weapon's or spell's ability.
+    """
+
+    actor: RollActor
+    context: RollContext
+    #: Set exactly when the source names an ability, which it does only for
+    #: ability checks and saving throws.
+    ability: AbilityScore | None = None
+
+
+@dataclass(frozen=True)
 class AbilityCheckFact:
-    """A check or save with a typed DC source."""
+    """A check or save with a typed DC source.
+
+    Deliberately **not** migrated onto :class:`RollSpec`. This family states
+    *that a roll is called for and where its DC comes from*; ``RollSpec`` says
+    *which roll a stated modification applies to*. A DC source has no actor
+    polarity — the DC is the same value whoever rolls against it — so folding
+    the two together would give this family a field it can never populate.
+    """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_CHECK
 
@@ -745,16 +966,34 @@ class HealingFact:
 
 @dataclass(frozen=True)
 class DamageResponseFact:
-    """One resistance, immunity, or vulnerability to a damage type.
+    """One resistance, immunity, or vulnerability, to a type or to all damage.
 
     The Mummy prints ``Vulnerabilities Fire`` and ``Immunities Necrotic,
     Poison`` — three facts, not one list, so each carries its own provenance.
+
+    ``scope`` exists because the source also states the whole-set form:
+    *"You have Resistance to all damage"* (Petrified) and *"Immunity to all
+    damage"* (Damage Threshold), 12 times across seven sections. That is one
+    claim, and it must stay one claim — thirteen enumerated facts would each
+    need a ``PRIMARY`` provenance claim on the same span, which validation
+    rejects.
+
+    ``except_types`` carries the stated exceptions of the ``ALL`` form —
+    *"Resistance to all damage except Force damage"* (Barbarian),
+    *"except Psychic and Radiant"* (Boon of Truesight), *"Immunity to all
+    damage except Fire"* (the mummy lord's heart). It is held sorted and
+    duplicate-free so one claim has one canonical payload and therefore one
+    fact key.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_RESPONSE
 
-    damage_type: DamageType
     response: DamageResponseKind
+    scope: DamageScope = DamageScope.SPECIFIC
+    #: Set exactly for ``SPECIFIC``.
+    damage_type: DamageType | None = None
+    #: Permitted only for ``ALL``; sorted, non-empty when present.
+    except_types: tuple[DamageType, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -836,17 +1075,111 @@ class ResourceRecoveryFact:
 
 @dataclass(frozen=True)
 class AdvantageFact:
-    """A stated advantage or disadvantage on a named kind of roll.
+    """A stated advantage or disadvantage on an exactly identified roll.
 
     ``You have Disadvantage on attack rolls with a Heavy weapon if …`` — the
     *condition* under which it applies is governing prose; that it is
-    disadvantage on attack rolls is this fact.
+    disadvantage on the subject's own attack rolls is this fact.
+
+    ``roll`` replaces the former bare ``context``. Which roll a rule modifies is
+    not only its kind: Prone states three distinct modifications of attack rolls
+    in one clause, and under a bare context two of them collapsed into the same
+    payload and were rejected as a duplicate fact.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.ADVANTAGE
 
     state: AdvantageState
-    context: RollContext
+    roll: RollSpec
+
+
+@dataclass(frozen=True)
+class AutomaticOutcomeFact:
+    """A D20 Test the source resolves without a roll.
+
+    *"You automatically fail Strength and Dexterity saving throws"* is two
+    facts, one per named ability, because the source names two rolls. Distinct
+    from :class:`AdvantageFact`: an automatic outcome is not an extreme
+    advantage, it is the absence of the roll.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AUTOMATIC_OUTCOME
+
+    roll: RollSpec
+    outcome: AutomaticOutcome
+
+
+@dataclass(frozen=True)
+class SpeedModificationFact:
+    """A stated change to the subject's own Speed.
+
+    Distinct from :class:`CreatureSpeedFact`, which states what a creature's
+    stat block prints. This states what a rule *does* to whatever Speed the
+    subject has — *"Your Speed is 0 and can't increase"* (five conditions),
+    *"the target's Speed is reduced by 15 feet"* (Classes), *"Speed is halved"*
+    (Spells). Using the stat-block family for that would claim the subject's
+    printed Speed is 0.
+
+    ``mode`` is ``None`` when the source modifies Speed unqualified, and names a
+    mode only where the source does (*"your Fly Speed is reduced to 0"*).
+    ``feet`` is set exactly for ``SET_TO`` and ``REDUCED_BY``; ``HALVED`` states
+    no number.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPEED_MODIFICATION
+
+    change: SpeedChange
+    feet: int | None = None
+    mode: MovementMode | None = None
+    #: "and can't increase" — stated by every condition that zeroes Speed.
+    can_increase: bool = True
+
+
+@dataclass(frozen=True)
+class ActionRestrictionFact:
+    """An action-economy slot the subject cannot use.
+
+    *"You can't take any action, Bonus Action, or Reaction"* (Incapacitated) is
+    three facts, one per named slot. The inverse of
+    :class:`ActionEconomyFact`, which states what an effect *consumes*; a cost
+    cannot express a prohibition.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ACTION_RESTRICTION
+
+    cost: ActionCost
+
+
+@dataclass(frozen=True)
+class CriticalHitRuleFact:
+    """A stated change to when an attack roll is a Critical Hit.
+
+    ``threshold`` is the lowest d20 face that scores a Critical Hit, set exactly
+    for ``THRESHOLD_LOWERED`` (*"on a roll of 19 or 20"* → 19).
+    ``AUTOMATIC_ON_HIT`` states no threshold: any hit is a Critical Hit, and the
+    circumstance under which the rule applies (*"if the attacker is within 5
+    feet of you"*) is governing prose.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CRITICAL_HIT_RULE
+
+    change: CriticalHitChange
+    threshold: int | None = None
+
+
+@dataclass(frozen=True)
+class StateEffectFact:
+    """One typed state effect from the closed observed vocabulary.
+
+    The *typed state effects* group #137 contract 3 names. Closed and
+    evidence-bound: see :class:`StateEffectKind` for the per-member sibling
+    evidence that admitted it. A state a batch cannot type is honestly
+    unresolved, never a new member added to make a batch pass.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.STATE_EFFECT
+
+    effect: StateEffectKind
 
 
 @dataclass(frozen=True)
@@ -854,7 +1187,7 @@ class ScalingFact:
     """What the source says increases, and with what.
 
     ``The damage increases by 1d10 for each spell slot level above 4`` is
-    ``ScalingFact(HIGHER_LEVEL_SPELL_SLOT, 4, DAMAGE, dice_increase=1d10)``.
+    ``ScalingFact(HIGHER_LEVEL_SPELL_SLOT, 4, DAMAGE, dice_amount=1d10)``.
 
     **Declarative only.** This records a stated increase; it is not evaluated,
     and it defines no adjudication parameter. Choosing a slot level at play time
@@ -865,11 +1198,15 @@ class ScalingFact:
     FAMILY: ClassVar[FactFamily] = FactFamily.SCALING
 
     basis: ScalingBasis
-    #: The level above which the increase begins to apply.
+    #: The level above which the change begins to apply.
     threshold: int
     effect: ScalingEffect
-    dice_increase: DiceExpression | None = None
-    amount_increase: int | None = None
+    #: Whether the stated change adds or subtracts. Exhaustion states the only
+    #: observed decreases; a negative ``amount`` would hide the
+    #: direction in a sign the schema never declared.
+    direction: ScalingDirection = ScalingDirection.INCREASE
+    dice_amount: DiceExpression | None = None
+    amount: int | None = None
 
 
 @dataclass(frozen=True)
@@ -905,9 +1242,14 @@ class WeaponPropertyFact:
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
+    | ActionRestrictionFact
     | AdvantageFact
     | AttackRollFact
+    | AutomaticOutcomeFact
     | ConditionEffectFact
+    | CriticalHitRuleFact
+    | SpeedModificationFact
+    | StateEffectFact
     | CreatureAbilityScoreFact
     | CreatureChallengeFact
     | CreatureDefenseFact
@@ -928,9 +1270,12 @@ MechanicalFact = (
 _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.ABILITY_CHECK: AbilityCheckFact,
     FactFamily.ACTION_ECONOMY: ActionEconomyFact,
+    FactFamily.ACTION_RESTRICTION: ActionRestrictionFact,
     FactFamily.ADVANTAGE: AdvantageFact,
     FactFamily.ATTACK_ROLL: AttackRollFact,
+    FactFamily.AUTOMATIC_OUTCOME: AutomaticOutcomeFact,
     FactFamily.CONDITION_EFFECT: ConditionEffectFact,
+    FactFamily.CRITICAL_HIT_RULE: CriticalHitRuleFact,
     FactFamily.CREATURE_ABILITY_SCORE: CreatureAbilityScoreFact,
     FactFamily.CREATURE_CHALLENGE: CreatureChallengeFact,
     FactFamily.CREATURE_DEFENSE: CreatureDefenseFact,
@@ -942,9 +1287,11 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact,
     FactFamily.RESOURCE_RECOVERY: ResourceRecoveryFact,
     FactFamily.SCALING: ScalingFact,
+    FactFamily.SPEED_MODIFICATION: SpeedModificationFact,
     FactFamily.SPELL_DESCRIPTOR: SpellDescriptorFact,
     FactFamily.SPELL_LIST_QUALIFIER: SpellListQualifierFact,
     FactFamily.SPELL_SLOT_PROGRESSION: SpellSlotProgressionFact,
+    FactFamily.STATE_EFFECT: StateEffectFact,
     FactFamily.WEAPON_PROPERTY: WeaponPropertyFact,
 }
 
@@ -1395,11 +1742,166 @@ def _check_healing(fact: HealingFact) -> list[str]:
     return findings
 
 
-def _check_damage_response(fact: DamageResponseFact) -> list[str]:
-    return [
-        *_enum_field(fact.damage_type, DamageType, "damage_type"),
-        *_enum_field(fact.response, DamageResponseKind, "response"),
+def _check_rollspec(value: object, field: str) -> list[str]:
+    """Invariants of the shared roll specification.
+
+    Held to the same strictness as the families that contain it, exactly like
+    :func:`_check_dice`: a value object is as closed as a family.
+
+    The type test goes through :func:`_vo_field`, the same exact-type seam every
+    sibling value object uses, rather than ``isinstance``. A subclass passes an
+    ``isinstance`` test and then carries its extra fields straight into
+    :func:`fact_payload`, so validation would approve authority that
+    :func:`fact_from_payload` refuses to rebuild — a candidate that persists and
+    then cannot be reconstructed. "Closed" has to mean the declared type, not a
+    type compatible with it.
+    """
+    if findings := _vo_field(value, RollSpec, field):
+        return findings
+    value = cast(RollSpec, value)
+    findings = [
+        *_enum_field(value.actor, RollActor, f"{field}.actor"),
+        *_enum_field(value.context, RollContext, f"{field}.context"),
+        *_optional_enum_field(value.ability, AbilityScore, f"{field}.ability"),
     ]
+    if findings:
+        return findings
+    # The source names an ability only for the two roll kinds that have one. An
+    # ability-qualified attack roll or Initiative would be a qualifier the
+    # source never states.
+    if value.ability is not None and value.context not in (
+        RollContext.ABILITY_CHECK,
+        RollContext.SAVING_THROW,
+    ):
+        findings.append(
+            f"{field} qualifies a {value.context.value} by ability; the source "
+            "names an ability only for ability checks and saving throws"
+        )
+    # Initiative is always rolled by the creature whose turn order it sets;
+    # "Initiative against you" is not a thing the source can say.
+    if value.context is RollContext.INITIATIVE and value.actor is not RollActor.SUBJECT:
+        findings.append(f"{field} states Initiative rolled against the subject")
+    return findings
+
+
+def _check_damage_response(fact: DamageResponseFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.response, DamageResponseKind, "response"),
+        *_enum_field(fact.scope, DamageScope, "scope"),
+        *_optional_enum_field(fact.damage_type, DamageType, "damage_type"),
+    ]
+    if not isinstance(fact.except_types, tuple):
+        findings.append("except_types is not a tuple")
+    else:
+        for i, t in enumerate(fact.except_types):
+            findings.extend(_enum_field(t, DamageType, f"except_types[{i}]"))
+    if findings:
+        return findings
+
+    if fact.scope is DamageScope.SPECIFIC:
+        if fact.damage_type is None:
+            findings.append("specific damage response names no damage type")
+        if fact.except_types:
+            findings.append(
+                "specific damage response carries exceptions; exceptions "
+                "qualify the all-damage form"
+            )
+    else:
+        if fact.damage_type is not None:
+            findings.append(
+                "all-damage response also names a damage type; the value comes "
+                "from the scope, not from both"
+            )
+        # One claim, one canonical payload: tuple order reaches the fact key, so
+        # two orderings of the same exceptions would be two facts.
+        codes = [t.value for t in fact.except_types]
+        if codes != sorted(codes):
+            findings.append("except_types is not sorted")
+        if len(set(codes)) != len(codes):
+            findings.append("except_types repeats a damage type")
+        elif len(set(codes)) == len(DamageType):
+            # "Resistance to all damage except <every damage type>" responds to
+            # nothing. Derived from the closed vocabulary rather than a written
+            # count, so a damage type added later cannot leave this stale.
+            findings.append(
+                "all-damage response excepts every damage type and therefore "
+                "responds to none"
+            )
+    return findings
+
+
+def _check_automatic_outcome(fact: AutomaticOutcomeFact) -> list[str]:
+    return [
+        *_check_rollspec(fact.roll, "roll"),
+        *_enum_field(fact.outcome, AutomaticOutcome, "outcome"),
+    ]
+
+
+def _check_action_restriction(fact: ActionRestrictionFact) -> list[str]:
+    findings = _enum_field(fact.cost, ActionCost, "cost")
+    if findings:
+        return findings
+    # NONE and SPECIAL describe what an effect costs, not a slot that can be
+    # forbidden; "you can't take any none" states nothing.
+    if fact.cost in (ActionCost.NONE, ActionCost.SPECIAL):
+        findings.append(f"{fact.cost.value} is not an action-economy slot to restrict")
+    return findings
+
+
+def _check_critical_hit_rule(fact: CriticalHitRuleFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.change, CriticalHitChange, "change"),
+        *_optional_int_field(fact.threshold, "threshold"),
+    ]
+    if findings:
+        return findings
+    if fact.change is CriticalHitChange.THRESHOLD_LOWERED:
+        if fact.threshold is None:
+            findings.append("threshold_lowered states no threshold")
+        elif not 2 <= fact.threshold <= 19:
+            # 20 is the ordinary threshold, so a "lowered" threshold of 20
+            # lowers nothing: the variant would claim a change it does not make
+            # and still satisfy a typed-family obligation. The upper bound is
+            # therefore 19, not the die's top face.
+            findings.append(
+                f"critical-hit threshold {fact.threshold} is not a lowered d20 "
+                "threshold; 20 is the ordinary one and 1 is not a face a rule "
+                "can lower to"
+            )
+    elif fact.threshold is not None:
+        findings.append(
+            "automatic_on_hit carries a threshold; any hit is a Critical Hit"
+        )
+    return findings
+
+
+def _check_state_effect(fact: StateEffectFact) -> list[str]:
+    return _enum_field(fact.effect, StateEffectKind, "effect")
+
+
+def _check_speed_modification(fact: SpeedModificationFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.change, SpeedChange, "change"),
+        *_optional_int_field(fact.feet, "feet"),
+        *_optional_enum_field(fact.mode, MovementMode, "mode"),
+        *_bool_field(fact.can_increase, "can_increase"),
+    ]
+    if findings:
+        return findings
+    if fact.change is SpeedChange.HALVED:
+        if fact.feet is not None:
+            findings.append("halved speed carries a distance; the source states none")
+    elif fact.feet is None:
+        findings.append(f"{fact.change.value} speed states no distance")
+    elif fact.feet < 0:
+        findings.append(f"negative speed distance {fact.feet}")
+    elif fact.change is SpeedChange.REDUCED_BY and fact.feet == 0:
+        # The same rule ``ScalingFact`` already applies to a zero amount: a
+        # stated reduction of nothing is not a weaker reduction, it is no rule.
+        # ``SET_TO`` is deliberately exempt — "your Speed is 0" is exactly the
+        # form five conditions state.
+        findings.append("speed reduced by 0 feet changes nothing")
+    return findings
 
 
 def _check_condition_effect(fact: ConditionEffectFact) -> list[str]:
@@ -1490,7 +1992,7 @@ def _check_resource_recovery(fact: ResourceRecoveryFact) -> list[str]:
 def _check_advantage(fact: AdvantageFact) -> list[str]:
     return [
         *_enum_field(fact.state, AdvantageState, "state"),
-        *_enum_field(fact.context, RollContext, "context"),
+        *_check_rollspec(fact.roll, "roll"),
     ]
 
 
@@ -1499,14 +2001,15 @@ def _check_scaling(fact: ScalingFact) -> list[str]:
         *_enum_field(fact.basis, ScalingBasis, "basis"),
         *_int_field(fact.threshold, "threshold"),
         *_enum_field(fact.effect, ScalingEffect, "effect"),
-        *_check_optional_dice(fact.dice_increase, "dice_increase"),
-        *_optional_int_field(fact.amount_increase, "amount_increase"),
+        *_enum_field(fact.direction, ScalingDirection, "direction"),
+        *_check_optional_dice(fact.dice_amount, "dice_amount"),
+        *_optional_int_field(fact.amount, "amount"),
     ]
     if findings:
         return findings
     if fact.threshold < 0:
         findings.append(f"negative scaling threshold {fact.threshold}")
-    stated = (fact.dice_increase is not None) + (fact.amount_increase is not None)
+    stated = (fact.dice_amount is not None) + (fact.amount is not None)
     if fact.effect is ScalingEffect.EFFECTIVE_SPELL_LEVEL:
         # "Use the spell slot's level for the spell's level in the stat block"
         # states no increment of its own — the slot level *is* the value.
@@ -1515,12 +2018,27 @@ def _check_scaling(fact: ScalingFact) -> list[str]:
                 "effective_spell_level scaling carries an increment; the value "
                 "comes from the slot level itself"
             )
+        if fact.direction is not ScalingDirection.INCREASE:
+            findings.append(
+                "effective_spell_level scaling states a direction; a higher slot "
+                "level is the value, not a change to one"
+            )
     elif stated != 1:
+        findings.append("scaling states exactly one of a dice amount or an amount")
+    # Magnitude only. Which way it goes is ``direction``, so a value below one
+    # changes nothing whichever direction it claims.
+    if fact.amount is not None and fact.amount < 1:
+        findings.append(f"amount {fact.amount} changes nothing")
+    # The observed decreases scale a roll or a Speed. A decreasing damage or
+    # healing die is not something the source states, and admitting it would let
+    # an upcasting fact silently invert.
+    if fact.direction is ScalingDirection.DECREASE and fact.effect not in (
+        ScalingEffect.D20_TEST,
+        ScalingEffect.SPEED,
+    ):
         findings.append(
-            "scaling states exactly one of a dice increase or an amount increase"
+            f"decreasing {fact.effect.value} scaling is not a form the source states"
         )
-    if fact.amount_increase is not None and fact.amount_increase < 1:
-        findings.append(f"amount_increase {fact.amount_increase} increases nothing")
     return findings
 
 
@@ -1575,9 +2093,12 @@ def _check_weapon_property(fact: WeaponPropertyFact) -> list[str]:
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
+    FactFamily.ACTION_RESTRICTION: _check_action_restriction,
     FactFamily.ADVANTAGE: _check_advantage,
     FactFamily.ATTACK_ROLL: _check_attack_roll,
+    FactFamily.AUTOMATIC_OUTCOME: _check_automatic_outcome,
     FactFamily.CONDITION_EFFECT: _check_condition_effect,
+    FactFamily.CRITICAL_HIT_RULE: _check_critical_hit_rule,
     FactFamily.CREATURE_ABILITY_SCORE: _check_creature_ability_score,
     FactFamily.CREATURE_CHALLENGE: _check_creature_challenge,
     FactFamily.CREATURE_DEFENSE: _check_creature_defense,
@@ -1589,9 +2110,11 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.PROGRESSION_ENTRY: _check_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _check_resource_recovery,
     FactFamily.SCALING: _check_scaling,
+    FactFamily.SPEED_MODIFICATION: _check_speed_modification,
     FactFamily.SPELL_DESCRIPTOR: _check_spell_descriptor,
     FactFamily.SPELL_LIST_QUALIFIER: _check_spell_list_qualifier,
     FactFamily.SPELL_SLOT_PROGRESSION: _check_spell_slot_progression,
+    FactFamily.STATE_EFFECT: _check_state_effect,
     FactFamily.WEAPON_PROPERTY: _check_weapon_property,
 }
 
@@ -1936,17 +2459,93 @@ def _build_healing(p: Mapping[str, Any]) -> HealingFact:
     )
 
 
-def _build_damage_response(p: Mapping[str, Any]) -> DamageResponseFact:
-    _reject(
-        FactFamily.DAMAGE_RESPONSE,
+def _build_rollspec(value: object, where: str) -> RollSpec:
+    """Rebuild the shared roll specification from its persisted payload."""
+    p = _json_object(value, ("actor", "context", "ability"), where)
+    _reject_at(
+        where,
         [
-            *_json_enum(p["damage_type"], DamageType, "damage_type"),
-            *_json_enum(p["response"], DamageResponseKind, "response"),
+            *_json_enum(p["actor"], RollActor, f"{where}.actor"),
+            *_json_enum(p["context"], RollContext, f"{where}.context"),
+            *_optional_json_enum(p["ability"], AbilityScore, f"{where}.ability"),
         ],
     )
+    return RollSpec(
+        actor=RollActor(p["actor"]),
+        context=RollContext(p["context"]),
+        ability=None if p["ability"] is None else AbilityScore(p["ability"]),
+    )
+
+
+def _build_damage_response(p: Mapping[str, Any]) -> DamageResponseFact:
+    raw_except = p["except_types"]
+    if not isinstance(raw_except, list):
+        raise MalformedFactPayloadError("except_types is not a list")
+    findings = [
+        *_json_enum(p["response"], DamageResponseKind, "response"),
+        *_json_enum(p["scope"], DamageScope, "scope"),
+        *_optional_json_enum(p["damage_type"], DamageType, "damage_type"),
+    ]
+    for i, t in enumerate(raw_except):
+        findings.extend(_json_enum(t, DamageType, f"except_types[{i}]"))
+    _reject(FactFamily.DAMAGE_RESPONSE, findings)
     return DamageResponseFact(
-        damage_type=DamageType(p["damage_type"]),
         response=DamageResponseKind(p["response"]),
+        scope=DamageScope(p["scope"]),
+        damage_type=None if p["damage_type"] is None else DamageType(p["damage_type"]),
+        except_types=tuple(DamageType(t) for t in raw_except),
+    )
+
+
+def _build_automatic_outcome(p: Mapping[str, Any]) -> AutomaticOutcomeFact:
+    _reject(
+        FactFamily.AUTOMATIC_OUTCOME,
+        _json_enum(p["outcome"], AutomaticOutcome, "outcome"),
+    )
+    return AutomaticOutcomeFact(
+        roll=_build_rollspec(p["roll"], "roll"),
+        outcome=AutomaticOutcome(p["outcome"]),
+    )
+
+
+def _build_action_restriction(p: Mapping[str, Any]) -> ActionRestrictionFact:
+    _reject(FactFamily.ACTION_RESTRICTION, _json_enum(p["cost"], ActionCost, "cost"))
+    return ActionRestrictionFact(cost=ActionCost(p["cost"]))
+
+
+def _build_critical_hit_rule(p: Mapping[str, Any]) -> CriticalHitRuleFact:
+    _reject(
+        FactFamily.CRITICAL_HIT_RULE,
+        [
+            *_json_enum(p["change"], CriticalHitChange, "change"),
+            *_optional_int_field(p["threshold"], "threshold"),
+        ],
+    )
+    return CriticalHitRuleFact(
+        change=CriticalHitChange(p["change"]), threshold=p["threshold"]
+    )
+
+
+def _build_state_effect(p: Mapping[str, Any]) -> StateEffectFact:
+    _reject(FactFamily.STATE_EFFECT, _json_enum(p["effect"], StateEffectKind, "effect"))
+    return StateEffectFact(effect=StateEffectKind(p["effect"]))
+
+
+def _build_speed_modification(p: Mapping[str, Any]) -> SpeedModificationFact:
+    _reject(
+        FactFamily.SPEED_MODIFICATION,
+        [
+            *_json_enum(p["change"], SpeedChange, "change"),
+            *_optional_int_field(p["feet"], "feet"),
+            *_optional_json_enum(p["mode"], MovementMode, "mode"),
+            *_bool_field(p["can_increase"], "can_increase"),
+        ],
+    )
+    return SpeedModificationFact(
+        change=SpeedChange(p["change"]),
+        feet=p["feet"],
+        mode=None if p["mode"] is None else MovementMode(p["mode"]),
+        can_increase=p["can_increase"],
     )
 
 
@@ -2033,15 +2632,9 @@ def _build_resource_recovery(p: Mapping[str, Any]) -> ResourceRecoveryFact:
 
 
 def _build_advantage(p: Mapping[str, Any]) -> AdvantageFact:
-    _reject(
-        FactFamily.ADVANTAGE,
-        [
-            *_json_enum(p["state"], AdvantageState, "state"),
-            *_json_enum(p["context"], RollContext, "context"),
-        ],
-    )
+    _reject(FactFamily.ADVANTAGE, _json_enum(p["state"], AdvantageState, "state"))
     return AdvantageFact(
-        state=AdvantageState(p["state"]), context=RollContext(p["context"])
+        state=AdvantageState(p["state"]), roll=_build_rollspec(p["roll"], "roll")
     )
 
 
@@ -2052,19 +2645,21 @@ def _build_scaling(p: Mapping[str, Any]) -> ScalingFact:
             *_json_enum(p["basis"], ScalingBasis, "basis"),
             *_int_field(p["threshold"], "threshold"),
             *_json_enum(p["effect"], ScalingEffect, "effect"),
-            *_optional_int_field(p["amount_increase"], "amount_increase"),
+            *_json_enum(p["direction"], ScalingDirection, "direction"),
+            *_optional_int_field(p["amount"], "amount"),
         ],
     )
     return ScalingFact(
         basis=ScalingBasis(p["basis"]),
         threshold=p["threshold"],
         effect=ScalingEffect(p["effect"]),
-        dice_increase=(
+        direction=ScalingDirection(p["direction"]),
+        dice_amount=(
             None
-            if p["dice_increase"] is None
-            else _build_dice(p["dice_increase"], "dice_increase")
+            if p["dice_amount"] is None
+            else _build_dice(p["dice_amount"], "dice_amount")
         ),
-        amount_increase=p["amount_increase"],
+        amount=p["amount"],
     )
 
 
@@ -2121,9 +2716,12 @@ def _build_progression_entry(p: Mapping[str, Any]) -> ProgressionEntryFact:
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
+    FactFamily.ACTION_RESTRICTION: _build_action_restriction,
     FactFamily.ADVANTAGE: _build_advantage,
     FactFamily.ATTACK_ROLL: _build_attack_roll,
+    FactFamily.AUTOMATIC_OUTCOME: _build_automatic_outcome,
     FactFamily.CONDITION_EFFECT: _build_condition_effect,
+    FactFamily.CRITICAL_HIT_RULE: _build_critical_hit_rule,
     FactFamily.CREATURE_ABILITY_SCORE: _build_creature_ability_score,
     FactFamily.CREATURE_CHALLENGE: _build_creature_challenge,
     FactFamily.CREATURE_DEFENSE: _build_creature_defense,
@@ -2135,9 +2733,11 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.PROGRESSION_ENTRY: _build_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _build_resource_recovery,
     FactFamily.SCALING: _build_scaling,
+    FactFamily.SPEED_MODIFICATION: _build_speed_modification,
     FactFamily.SPELL_DESCRIPTOR: _build_spell_descriptor,
     FactFamily.SPELL_LIST_QUALIFIER: _build_spell_list_qualifier,
     FactFamily.SPELL_SLOT_PROGRESSION: _build_spell_slot_progression,
+    FactFamily.STATE_EFFECT: _build_state_effect,
     FactFamily.WEAPON_PROPERTY: _build_weapon_property,
 }
 
@@ -2148,6 +2748,244 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
 assert (
     set(_FACT_TYPES) == set(_FACT_BUILDERS) == set(_FACT_INVARIANTS) == set(FactFamily)
 ), "every FactFamily needs a type, a builder, and an invariant checker"
+
+
+# ---------------------------------------------------------------------------
+# Representation-schema identity (ADR-005d Decisions 4 and 6)
+# ---------------------------------------------------------------------------
+#
+# The closed union is versioned and identity-bound, for the same reason the
+# semantic policy is: authority is only meaningful under the contract it was
+# built against. Without this, a projection whose facts all belong to families
+# this release did not touch keeps its old UUID across a union that now means
+# something different, and a stored binding cannot say which contract governs
+# it.
+#
+# **Distinct from the semantic policy, deliberately.** ``5d-semantic-policy-1``
+# identifies the closed *classification* catalogs and the canonicalization rule —
+# what makes a span's disposition checkable. This identifies the closed
+# *representation* contract — what a fact may say. They change for different
+# reasons and on different schedules, and overloading one to carry the other
+# would remint every accepted classification whenever a fact family was added.
+
+#: Bumped whenever the closed representation contract changes meaning. Two
+#: distinct triggers, and the second is easy to miss:
+#:
+#: * **structural** — a family added or removed, a field added, removed, or
+#:   retyped, a closed vocabulary gaining or losing a member. These also move
+#:   :func:`representation_schema_hash`, because it is derived from the declared
+#:   types.
+#: * **invariant** — a per-family invariant that changes which values the union
+#:   admits, with the declared structure untouched. Rejecting a
+#:   ``THRESHOLD_LOWERED`` critical-hit threshold of 20, or a Speed reduction of
+#:   zero feet, narrows what a fact may say without altering a single field or
+#:   enum member, so the structural hash does **not** move. The version must be
+#:   bumped by hand in that case: two projections admitting different value sets
+#:   are not built under the same contract, and only the version can say so.
+#:
+#: The hash deliberately does not cover checker implementations — hashing code
+#: would remint authority for a refactor, which is the failure the structural
+#: derivation exists to avoid. The cost of that choice is exactly this manual
+#: obligation, and it is stated here rather than left to be inferred.
+#:
+#: What the identity **owns**, settled during review and enforced by tests: the
+#: canonical *serialized* contract, never the Python implementation expressing
+#: it. Renaming a fact class, a value-object class, an enum class, a module, or
+#: a local symbol changes nothing any payload can observe, and must therefore
+#: move nothing here. Renaming a family discriminator or a serialized field,
+#: adding or removing an admitted vocabulary value, or changing a primitive,
+#: nullability, array, or nested-object shape still must.
+#: :func:`representation_schema_payload` renders that contract in a closed
+#: shape grammar which has nowhere to put a Python name.
+#:
+#: Version ``1`` describes the union as it stands after the conditions-batch
+#: expansion, **including** the vacuity invariants corrected during review of
+#: that same unmerged change. No accepted, persisted, or published projection
+#: has ever existed under any earlier form of ``1``, so those corrections belong
+#: to the initial contract; inventing a historical ``2`` would fabricate a
+#: version nothing was ever built under.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-1"
+
+
+class UnsupportedRepresentationShapeError(TypeError):
+    """Raised when a declared annotation has no canonical wire shape.
+
+    Fail closed, deliberately. The alternative — rendering an undescribed
+    annotation as its Python name or its ``str()`` — is precisely the leak this
+    grammar exists to remove, and it would return silently the first time the
+    union grew a shape nobody described. A family whose contract cannot be
+    stated at the wire is a family whose identity cannot be honestly computed.
+    """
+
+
+#: Closed vocabularies the drafts use directly rather than through a fact
+#: field, keyed by the **serialized path** they appear at. They are part of the
+#: representation contract — #137 contract 3 names the record and relationship
+#: vocabularies as closed — but nothing reaches them by walking fact fields, so
+#: they are named here explicitly.
+#:
+#: Keyed by path rather than by class because the path is what a payload
+#: exposes: ``records[].kind`` is where a reader finds these values, and
+#: ``RecordKind`` is a name no payload carries. The enum classes appear here
+#: only as the source of their admitted values.
+#:
+#: These paths are written in the module that owns the schema, while the
+#: payload emitting them is built in :mod:`projection`. That duplication is
+#: real, and it is held honest rather than trusted: a test serializes a
+#: representative draft through ``representation_payload`` and resolves every
+#: path below against it, so a serializer change that moved one of these keys
+#: fails loudly instead of leaving this table describing a path nothing emits.
+_DRAFT_VOCABULARIES: Mapping[str, type[StrEnum]] = {
+    "components[].handling": ComponentHandling,
+    "provenance[].role": ProvenanceRole,
+    "provenance[].target_kind": ProvenanceTargetKind,
+    "records[].kind": RecordKind,
+    "relationships[].kind": RelationshipKind,
+}
+
+#: JSON primitive shapes, matched by **exact type identity**. Both hazards this
+#: avoids are silent ones: ``bool`` is a subclass of ``int``, and every
+#: :class:`StrEnum` is a subclass of ``str``, so a subclass test would render
+#: all 33 closed vocabularies as one unconstrained string — collapsing distinct
+#: contracts into a single shape with no error raised anywhere. An identity
+#: lookup cannot do that.
+_PRIMITIVE_SHAPES: Mapping[type, str] = {
+    bool: "boolean",
+    int: "integer",
+    str: "string",
+}
+
+
+def _shape(annotation: object) -> dict[str, object]:
+    """Render one declared annotation as its canonical wire shape.
+
+    The grammar is closed: ``integer``, ``string``, ``boolean``,
+    ``enum(values)``, ``object(fields)``, ``array(items)``, and a ``nullable``
+    flag. Every member describes something a JSON payload can exhibit, which is
+    the entire rule — a Python class name describes the implementation, so this
+    grammar has nowhere to put one, and an annotation it cannot describe raises
+    instead of falling back to a name.
+    """
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+
+    if origin in (Union, UnionType):
+        # ``X | None`` admits null under the same key. Nothing else in the
+        # closed union is a union, and a genuine sum type would need a wire
+        # discriminator this grammar does not define — so it is refused rather
+        # than flattened into something that reads as settled.
+        inner = tuple(a for a in args if a is not type(None))
+        if len(inner) != 1 or len(inner) == len(args):
+            raise UnsupportedRepresentationShapeError(
+                f"{annotation!r} is not an optional of a single shape; the "
+                "closed representation admits no other union at the wire"
+            )
+        return {**_shape(inner[0]), "nullable": True}
+
+    if origin in (tuple, list):
+        # ``tuple[X, ...]`` and ``list[X]`` are the same JSON array — the
+        # canonical serializer maps both to one — so the container's Python
+        # spelling is not part of the contract and must not reach identity.
+        items = tuple(a for a in args if a is not Ellipsis)
+        if len(items) != 1:
+            raise UnsupportedRepresentationShapeError(
+                f"{annotation!r} is not a homogeneous sequence of one shape"
+            )
+        return {"kind": "array", "items": _shape(items[0])}
+
+    if origin is None and isinstance(annotation, type):
+        primitive = _PRIMITIVE_SHAPES.get(annotation)
+        if primitive is not None:
+            return {"kind": primitive}
+        if issubclass(annotation, StrEnum):
+            # A closed vocabulary *is* its admitted value set at the wire.
+            return {"kind": "enum", "values": sorted(m.value for m in annotation)}
+        if is_dataclass(annotation):
+            # Inlined, not referenced by name: a nested value object serializes
+            # as a bare object carrying no type tag, so there is no name to
+            # record and no reference that could dangle or alias. Reshaping one
+            # is a contract change, and it shows up here directly.
+            return {"kind": "object", "fields": _wire_fields(annotation)}
+
+    raise UnsupportedRepresentationShapeError(
+        f"{annotation!r} has no canonical wire shape in the closed "
+        "representation; describe it in the grammar rather than letting "
+        "identity fall back to a Python name"
+    )
+
+
+def _wire_fields(cls: type) -> list[dict[str, object]]:
+    """Serialized fields of *cls* — one ``{name, shape}`` entry each, by name.
+
+    **Sorted by field name, not by declaration order.** The contract this
+    describes is a named-field set: a payload names its fields, and
+    ``fact_from_payload`` matches them by name and rejects on the name set
+    rather than on position. Declaration order is Python layout, so letting it
+    reach the hash would remint every projection for moving a field up two
+    lines — and, since the version must be bumped whenever the hash moves,
+    would remint stored authority for an edit that changed no meaning.
+
+    Iterates :func:`dataclasses.fields` rather than the resolved hints:
+    ``family`` is a ``ClassVar`` that ``fact_payload`` emits as the
+    discriminator, so it is described once per family instead of appearing as a
+    field of every one.
+    """
+    hints = get_type_hints(cls)
+    return sorted(
+        ({"name": f.name, "shape": _shape(hints[f.name])} for f in fields(cls)),
+        key=lambda entry: cast(str, entry["name"]),
+    )
+
+
+def representation_schema_payload() -> dict[str, object]:
+    """Canonical, identity-bearing description of the closed representation.
+
+    Describes the **serialized contract**: derived from the declared types, and
+    never from the source file's bytes or the names written in it. A comment, a
+    docstring, a reordered definition, a renamed class, or a moved module
+    leaves this identical; adding a family, adding, removing, renaming, or
+    retyping a field, reshaping a nested value object, changing nullability or
+    a container shape, or altering an admitted vocabulary value changes it.
+    That is the whole point: authority must be reminted when the contract moves
+    and left alone when only the implementation does.
+
+    **What is emitted, and what deliberately is not.** Families are keyed by
+    their discriminator — the string ``fact_payload`` writes and
+    ``fact_from_payload`` dispatches on; fields by their serialized name;
+    vocabularies by their sorted admitted values; nested value objects by their
+    inlined structure. No class name appears anywhere, because no payload
+    carries one, and identity may not depend on what a payload cannot show.
+
+    **Canonicalization.** Every collection here is named or set-like in
+    meaning, so each is ordered by its own semantic key: families by
+    discriminator, fields by name, vocabulary values by value, draft
+    vocabularies by path. Reordering declarations therefore leaves this payload
+    — and the hash over it — untouched.
+
+    **Structurally identical shapes render identically, and that is correct.**
+    Two vocabularies admitting the same values, or two value objects with the
+    same fields, are indistinguishable to anything reading a payload, because
+    neither carries a type tag. Context comes from the enclosing family
+    discriminator, the field name, or the draft path; there is no global
+    uniqueness invariant to enforce, and inventing one would assert a
+    distinction the wire does not make.
+    """
+    return {
+        "representation_schema_version": REPRESENTATION_SCHEMA_VERSION,
+        "facts": [
+            {"family": family.value, "fields": _wire_fields(_FACT_TYPES[family])}
+            for family in sorted(FactFamily, key=lambda f: f.value)
+        ],
+        "draft_vocabularies": [
+            {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
+            for path in sorted(_DRAFT_VOCABULARIES)
+        ],
+    }
+
+
+def representation_schema_hash() -> str:
+    """SHA-256 of the closed representation contract."""
+    return sha256_hex(canonical_bytes(representation_schema_payload()))
 
 
 def fact_from_payload(

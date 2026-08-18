@@ -42,6 +42,7 @@ from tests.ingestion.mechanical.conftest import (
     build_candidate,
     build_ledger,
     build_representation,
+    candidate_of,
     prose_binding,
 )
 
@@ -84,7 +85,7 @@ def test_identity_is_order_independent() -> None:
         provenance=tuple(reversed(draft.provenance)),
     )
     assert projection_uuid(build_candidate()) == projection_uuid(
-        ProjectionCandidate(
+        candidate_of(
             binding=build_candidate().binding,
             classification=build_ledger(),
             representation=reordered,
@@ -99,7 +100,7 @@ def test_unrelated_sibling_insertion_does_not_churn_existing_subidentities() -> 
         records=draft.records + (RecordDraft("spell:other", RecordKind.SPELL),)
     )
     after = identify_projection(
-        ProjectionCandidate(
+        candidate_of(
             binding=before.candidate.binding,
             classification=build_ledger(),
             representation=with_sibling,
@@ -122,7 +123,7 @@ def _uuid_with(**overrides: object) -> str:
 
 def test_identity_changes_when_the_bound_release_changes() -> None:
     base = build_candidate()
-    other = ProjectionCandidate(
+    other = candidate_of(
         binding=ReleaseBinding(
             package_uuid=base.binding.package_uuid,
             release_version=base.binding.release_version,
@@ -157,7 +158,7 @@ def test_identity_changes_when_a_fact_value_changes() -> None:
         )
     )
     assert projection_uuid(
-        ProjectionCandidate(build_candidate().binding, build_ledger(), changed)
+        candidate_of(build_candidate().binding, build_ledger(), changed)
     ) != projection_uuid(build_candidate())
 
 
@@ -173,7 +174,7 @@ def test_identity_changes_when_record_assembly_changes() -> None:
 def test_identity_changes_when_a_prose_binding_changes() -> None:
     rebound = build_representation(prose_bindings=(prose_binding("chunk-wish-0002"),))
     assert projection_uuid(
-        ProjectionCandidate(build_candidate().binding, build_ledger(), rebound)
+        candidate_of(build_candidate().binding, build_ledger(), rebound)
     ) != projection_uuid(build_candidate())
 
 
@@ -186,7 +187,7 @@ def test_identity_changes_when_a_prose_binding_narrows_its_extent() -> None:
     """
     narrowed = build_representation(prose_bindings=(prose_binding(chunk_char_end=17),))
     assert projection_uuid(
-        ProjectionCandidate(build_candidate().binding, build_ledger(), narrowed)
+        candidate_of(build_candidate().binding, build_ledger(), narrowed)
     ) != projection_uuid(build_candidate())
 
 
@@ -213,9 +214,7 @@ def test_identity_changes_when_the_accepted_classification_changes() -> None:
         )
     )
     assert projection_uuid(
-        ProjectionCandidate(
-            build_candidate().binding, relabelled, build_representation()
-        )
+        candidate_of(build_candidate().binding, relabelled, build_representation())
     ) != projection_uuid(build_candidate())
 
 
@@ -268,7 +267,7 @@ def test_candidate_under_a_stale_policy_declaration_is_rejected() -> None:
         acceptances=stale.acceptances,
     )
     findings = validate_candidate(
-        ProjectionCandidate(build_candidate().binding, stale, build_representation()),
+        candidate_of(build_candidate().binding, stale, build_representation()),
         bound_corpus(),
     )
     assert any("build uses" in f for f in findings)
@@ -314,7 +313,7 @@ def _candidate_with_binding(**binding_overrides: str) -> ProjectionCandidate:
         "persisted_corpus_digest": base.persisted_corpus_digest,
     }
     fields.update(binding_overrides)
-    return ProjectionCandidate(
+    return candidate_of(
         binding=ReleaseBinding(**fields),
         classification=build_ledger(),
         representation=build_representation(),
@@ -347,7 +346,7 @@ def test_classification_package_disagreeing_with_the_binding_is_rejected() -> No
         acceptances=ledger.acceptances,
     )
     findings = validate_candidate(
-        ProjectionCandidate(build_candidate().binding, strayed, build_representation()),
+        candidate_of(build_candidate().binding, strayed, build_representation()),
         bound_corpus(),
     )
     assert any("classification names package pkg-elsewhere" in f for f in findings)
@@ -365,7 +364,7 @@ def test_classification_release_disagreeing_with_the_binding_is_rejected() -> No
         acceptances=ledger.acceptances,
     )
     findings = validate_candidate(
-        ProjectionCandidate(build_candidate().binding, strayed, build_representation()),
+        candidate_of(build_candidate().binding, strayed, build_representation()),
         bound_corpus(),
     )
     assert any("classification names release rel-elsewhere" in f for f in findings)

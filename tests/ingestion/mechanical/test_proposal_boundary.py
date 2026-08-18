@@ -40,6 +40,8 @@ from tests.ingestion.mechanical.conftest import (
     PACKAGE_UUID,
     RELEASE_BINDING,
     RELEASE_VERSION,
+    SCHEMA_HASH,
+    SCHEMA_VERSION,
     build_ledger,
     build_representation,
 )
@@ -56,6 +58,8 @@ def _proposal() -> MechanicalProposal:
         binding=RELEASE_BINDING,
         policy_version=SEMANTIC_POLICY_VERSION,
         policy_hash=semantic_policy_hash(),
+        schema_version=SCHEMA_VERSION,
+        schema_hash=SCHEMA_HASH,
         proposed_spans=tuple(
             ProposedSpan(
                 span=span,
@@ -189,6 +193,8 @@ def test_proposal_identity_is_content_derived_and_not_a_projection_identity() ->
         binding=_proposal().binding,
         policy_version=_proposal().policy_version,
         policy_hash=_proposal().policy_hash,
+        schema_version=_proposal().schema_version,
+        schema_hash=_proposal().schema_hash,
         proposed_spans=tuple(
             ProposedSpan(p.span, p.origin, "a different stated reason")
             for p in _proposal().proposed_spans

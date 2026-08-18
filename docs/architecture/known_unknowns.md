@@ -265,13 +265,41 @@ attacks, damage, healing, creature defence/speed/challenge and saving-throw modi
 descriptors, action economy, conditions, spell-slot progression, class spell-list membership, resource
 and recharge cadence, equipment descriptors, advantage/disadvantage, and stated scaling.
 
+**Extended by the conditions batch (schema closure).** Accounting the first production-content batch —
+the 15 SRD conditions and the `Condition` glossary rule — forced authority the union could not carry
+faithfully, and in four cases could not carry *at all*: roll actor polarity (Blinded and Invisible
+reduced to identical typed facts for opposite rules), ability-qualified rolls (a Dexterity-save claim
+could only be stated as a claim about every saving throw), the all-damage response, and Prone's three
+attack-roll rules (two collapsed into one rejected duplicate). Added: a shared `RollSpec` value object
+(actor, roll context, optional ability), `AutomaticOutcomeFact`, `SpeedModificationFact`,
+`ActionRestrictionFact`, `CriticalHitRuleFact`, `StateEffectFact`, a damage-response scope with stated
+exceptions, and a scaling direction with a condition-level basis.
+
+Contract 3 family groups after that batch:
+
+* **discharged** — *critical changes* (`CriticalHitRuleFact`) and *typed state effects*
+  (`StateEffectFact`, over a closed vocabulary whose members each required siblings in more than one
+  section);
+* **narrowed, still deferred** — *targeting restrictions*. Three instances were forced (Charmed,
+  Frightened, Invisible), and a corpus sweep of the restriction mechanics found their referents range
+  over distances, creature relationships, spell schools, spatial areas, and effect properties. A closed
+  referent vocabulary spanning those would be a predicate language, so these are classified as
+  affirmatively prose-bound under `contextual_applicability` rather than typed. Revisit when a batch
+  forces a referent set that closes;
+* **untouched** — contests, explicit probability, random-table selection, eligibility, choices, and
+  sequencing, added by batch-driven accounting as the corpus surfaces them, due no later than
+  full-corpus closure.
+
+Known residue from that batch, recorded rather than typed on single instances: an imposed sensory state
+(Blinded's *"You can't see"* and Deafened's parallel — every other blinding effect in the corpus instead
+says *"has the Blinded condition"*), Exhaustion's cumulative level accrual, death threshold, and
+level removal on a Long Rest, movement options and per-foot movement cost, size-comparative eligibility,
+Petrified's transformation, and one sequencing clause.
+
 Still outstanding inside CRD Issue 5d: **no production accepted authority has been reviewed or
 committed**, so the production SRD 5.2.1 mechanical projection remains unpublished and inactive; and the
 obsolete `MechanicalEntity` path and the legacy chunk-targeting prose override path both remain in place
-pending the final activation/legacy-retirement PR. Contract 3's remaining named family groups —
-targeting restrictions, contests, critical changes, explicit probability, random-table selection,
-eligibility, choices, and sequencing — are added by batch-driven accounting as the corpus surfaces them,
-and are due no later than full-corpus closure.
+pending the final activation/legacy-retirement PR.
 
 **This does not move CRD Issue 15c's boundary.** Publishing a mechanical projection proves complete
 *representation*, never adapter capability. The bounded-d20 adapter's capability manifest, certified
@@ -308,6 +336,13 @@ subset (see the Rules Package entry above and ADR-005c Context item 1), and prod
 reachability for any mechanic — base-level or parameterized — has not been established. This entry does
 not claim that a specific number of spells, or base-level casting generally, is currently supported in
 production; it only names the parameter-shape question that remains open regardless of corpus state.
+
+**Unchanged by CRD Issue 5d's schema work, including the conditions batch.** 5d *records* stated
+scaling declaratively and evaluates none of it. The conditions batch extended `ScalingFact` with a
+direction and a condition-level basis so Exhaustion's *"the roll is reduced by 2 times your Exhaustion
+level"* could be represented as what the source says; no adjustment parameter was defined, nothing
+selects a value at play time, and the `chosen_slot_level`-shaped contract this entry names remains open
+and owned by an ADR-015b amendment.
 
 **Surfaced during:** CRD Issue 15b Phase 2 bounded-d20 coverage inventory (frozen PR #129), against the
 curated SRD 5.2.1 package. Any adjustment option requiring parameters beyond a stable `option_id`

@@ -99,6 +99,7 @@ from afterworlds.ingestion.mechanical.projection import (
     ReleaseBinding,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
     ComponentDraft,
     ProseBindingDraft,
     ProvenanceClaim,
@@ -116,6 +117,7 @@ from afterworlds.ingestion.mechanical.representation import (
     prose_binding_target_key,
     reference_target_key,
     relationship_target_key,
+    representation_schema_hash,
 )
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
@@ -626,12 +628,41 @@ RELEASE_BINDING = ReleaseBinding(
 )
 
 
+#: The committed representation contract every fixture declares unless a test
+#: deliberately perturbs it. Named here so a test that *is* about the schema
+#: declaration can say so, and one that is not need not repeat it.
+SCHEMA_VERSION = REPRESENTATION_SCHEMA_VERSION
+SCHEMA_HASH = representation_schema_hash()
+
+
+def candidate_of(
+    binding: ReleaseBinding,
+    classification: ClassificationLedger,
+    representation: RepresentationDraft,
+    *,
+    schema_version: str = SCHEMA_VERSION,
+    schema_hash: str = SCHEMA_HASH,
+) -> ProjectionCandidate:
+    """A candidate declaring the committed representation schema by default."""
+    return ProjectionCandidate(
+        binding=binding,
+        classification=classification,
+        representation=representation,
+        schema_version=schema_version,
+        schema_hash=schema_hash,
+    )
+
+
 def build_candidate(**overrides: object) -> ProjectionCandidate:
     ledger = overrides.pop("ledger", None)
     return ProjectionCandidate(
         binding=RELEASE_BINDING,
         classification=ledger if ledger is not None else build_ledger(),  # type: ignore[arg-type]
         representation=build_representation(**overrides),
+        schema_version=str(
+            overrides.pop("schema_version", REPRESENTATION_SCHEMA_VERSION)
+        ),
+        schema_hash=str(overrides.pop("schema_hash", representation_schema_hash())),
     )
 
 
@@ -671,6 +702,8 @@ def accepted_oracle() -> AcceptedOracle:
         binding=RELEASE_BINDING,
         policy_version=SEMANTIC_POLICY_VERSION,
         policy_hash=semantic_policy_hash(),
+        schema_version=REPRESENTATION_SCHEMA_VERSION,
+        schema_hash=representation_schema_hash(),
         spans=build_ledger().spans,
         representation=build_representation(),
         obligations=OBLIGATIONS,

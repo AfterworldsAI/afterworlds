@@ -55,6 +55,17 @@ class MechanicalProjectionORM(Base):
     semantic_policy_version: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     semantic_policy_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
+    # Declared closed representation contract (ADR-005d Decisions 4 and 6),
+    # retained for the same reason as the policy above: reconstruction reads
+    # the union this projection was built under, never the union current code
+    # happens to implement.
+    representation_schema_version: Mapped[str] = mapped_column(
+        sa.String(64), nullable=False
+    )
+    representation_schema_hash: Mapped[str] = mapped_column(
+        sa.String(64), nullable=False
+    )
+
     payload_hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     # Set exactly once, from state actually read back out of these tables. It
     # cannot be known when the draft rows are first written, so it stays NULL

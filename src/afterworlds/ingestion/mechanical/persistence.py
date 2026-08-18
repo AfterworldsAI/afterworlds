@@ -145,6 +145,8 @@ def persist_draft(
             persisted_corpus_digest=candidate.binding.persisted_corpus_digest,
             semantic_policy_version=ledger.policy_version,
             semantic_policy_hash=ledger.policy_hash,
+            representation_schema_version=candidate.schema_version,
+            representation_schema_hash=candidate.schema_hash,
             payload_hash=identified.payload_hash,
             persisted_state_digest=None,
             publication_status="draft",
@@ -546,6 +548,11 @@ def reconstruct_candidate(
             acceptances=acceptances,
         ),
         representation=representation,
+        # From the stored declaration, never from the module constants. A
+        # projection built under an earlier union must reconstruct as what it
+        # was, so a later mismatch is detectable instead of erased.
+        schema_version=header.representation_schema_version,
+        schema_hash=header.representation_schema_hash,
     )
 
 

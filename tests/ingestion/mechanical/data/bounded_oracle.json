@@ -10,6 +10,10 @@
   },
   "semantic_policy_version": "5d-semantic-policy-1",
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+  "representation_schema": {
+    "version": "5d-representation-schema-1",
+    "hash": "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"
+  },
   "spans": [
     {
       "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
