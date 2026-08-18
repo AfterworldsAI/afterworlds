@@ -435,3 +435,29 @@ def test_audit_metadata_stays_outside_the_schema_identity(session: Session) -> N
         identify_projection(reviewed_again).projection_uuid
         == identify_projection(base).projection_uuid
     )
+
+
+def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
+    """Why the version carries a manual obligation the hash cannot.
+
+    The hash is derived from declared structure, deliberately: hashing checker
+    implementations would remint authority for a refactor. The cost is that an
+    invariant change which narrows the admitted value set — rejecting a
+    ``THRESHOLD_LOWERED`` threshold of 20, say — leaves every family, field, and
+    vocabulary identical and therefore leaves the hash identical too.
+
+    This test states that gap as a fact rather than leaving it to be discovered:
+    two builds admitting different value sets can share a hash, so
+    ``REPRESENTATION_SCHEMA_VERSION`` must be bumped by hand when an invariant
+    changes meaning. Nothing here can enforce that; what it can do is stop the
+    gap from being invisible.
+    """
+    payload = representation_schema_payload()
+    rendered = json.dumps(payload)
+    # The declared contract mentions the family and its field...
+    assert "critical_hit_rule" in rendered
+    assert "threshold" in rendered
+    # ...and says nothing about which values that field may take.
+    assert "19" not in rendered and "ordinary" not in rendered
+    # The vacuity fix that prompted this note left the hash untouched.
+    assert representation_schema_hash() == EXPECTED_SCHEMA_HASH

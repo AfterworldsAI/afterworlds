@@ -1809,6 +1809,14 @@ def _check_damage_response(fact: DamageResponseFact) -> list[str]:
             findings.append("except_types is not sorted")
         if len(set(codes)) != len(codes):
             findings.append("except_types repeats a damage type")
+        elif len(set(codes)) == len(DamageType):
+            # "Resistance to all damage except <every damage type>" responds to
+            # nothing. Derived from the closed vocabulary rather than a written
+            # count, so a damage type added later cannot leave this stale.
+            findings.append(
+                "all-damage response excepts every damage type and therefore "
+                "responds to none"
+            )
     return findings
 
 
@@ -1840,9 +1848,15 @@ def _check_critical_hit_rule(fact: CriticalHitRuleFact) -> list[str]:
     if fact.change is CriticalHitChange.THRESHOLD_LOWERED:
         if fact.threshold is None:
             findings.append("threshold_lowered states no threshold")
-        elif not 2 <= fact.threshold <= 20:
+        elif not 2 <= fact.threshold <= 19:
+            # 20 is the ordinary threshold, so a "lowered" threshold of 20
+            # lowers nothing: the variant would claim a change it does not make
+            # and still satisfy a typed-family obligation. The upper bound is
+            # therefore 19, not the die's top face.
             findings.append(
-                f"critical-hit threshold {fact.threshold} is outside the d20's faces"
+                f"critical-hit threshold {fact.threshold} is not a lowered d20 "
+                "threshold; 20 is the ordinary one and 1 is not a face a rule "
+                "can lower to"
             )
     elif fact.threshold is not None:
         findings.append(
@@ -1871,6 +1885,12 @@ def _check_speed_modification(fact: SpeedModificationFact) -> list[str]:
         findings.append(f"{fact.change.value} speed states no distance")
     elif fact.feet < 0:
         findings.append(f"negative speed distance {fact.feet}")
+    elif fact.change is SpeedChange.REDUCED_BY and fact.feet == 0:
+        # The same rule ``ScalingFact`` already applies to a zero amount: a
+        # stated reduction of nothing is not a weaker reduction, it is no rule.
+        # ``SET_TO`` is deliberately exempt — "your Speed is 0" is exactly the
+        # form five conditions state.
+        findings.append("speed reduced by 0 feet changes nothing")
     return findings
 
 
@@ -2738,11 +2758,32 @@ assert (
 # reasons and on different schedules, and overloading one to carry the other
 # would remint every accepted classification whenever a fact family was added.
 
-#: Bumped whenever the closed representation contract changes meaning: a family
-#: added or removed, a field added, removed, or retyped, a closed vocabulary
-#: gaining or losing a member. Version ``1`` describes the union as it stands
-#: after the conditions-batch expansion; no projection has ever been persisted
-#: under an earlier one, so there is no retroactive version to invent.
+#: Bumped whenever the closed representation contract changes meaning. Two
+#: distinct triggers, and the second is easy to miss:
+#:
+#: * **structural** — a family added or removed, a field added, removed, or
+#:   retyped, a closed vocabulary gaining or losing a member. These also move
+#:   :func:`representation_schema_hash`, because it is derived from the declared
+#:   types.
+#: * **invariant** — a per-family invariant that changes which values the union
+#:   admits, with the declared structure untouched. Rejecting a
+#:   ``THRESHOLD_LOWERED`` critical-hit threshold of 20, or a Speed reduction of
+#:   zero feet, narrows what a fact may say without altering a single field or
+#:   enum member, so the structural hash does **not** move. The version must be
+#:   bumped by hand in that case: two projections admitting different value sets
+#:   are not built under the same contract, and only the version can say so.
+#:
+#: The hash deliberately does not cover checker implementations — hashing code
+#: would remint authority for a refactor, which is the failure the structural
+#: derivation exists to avoid. The cost of that choice is exactly this manual
+#: obligation, and it is stated here rather than left to be inferred.
+#:
+#: Version ``1`` describes the union as it stands after the conditions-batch
+#: expansion, **including** the vacuity invariants corrected during review of
+#: that same unmerged change. No accepted, persisted, or published projection
+#: has ever existed under any earlier form of ``1``, so those corrections belong
+#: to the initial contract; inventing a historical ``2`` would fabricate a
+#: version nothing was ever built under.
 REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-1"
 
 #: Closed vocabularies the drafts use directly rather than through a fact field.

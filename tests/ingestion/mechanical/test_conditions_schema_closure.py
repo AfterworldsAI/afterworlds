@@ -361,7 +361,7 @@ def test_exception_order_cannot_mint_a_second_fact_key() -> None:
         ),
         (
             CriticalHitRuleFact(CriticalHitChange.THRESHOLD_LOWERED, threshold=21),
-            "outside the d20's faces",
+            "is not a lowered d20 threshold",
         ),
         # "Speed is halved" states no distance.
         (
@@ -548,3 +548,118 @@ def _validate(
     )
     spans = _spans(1 if all_facts_claim_one_span else len(facts))
     return validate_representation(draft, build_ledger(spans), bound_corpus())
+
+
+# ---------------------------------------------------------------------------
+# Semantic vacuity — a variant that claims a change it does not make
+# ---------------------------------------------------------------------------
+#
+# Review round 2 (Codex P2). A fact can satisfy every structural rule its family
+# declares and still assert nothing: the discriminator names an operation, and
+# the value supplied makes that operation a no-op. Such a fact passes
+# representation validation, reaches persisted state, and *satisfies a typed
+# family obligation* while carrying authority that changes nothing — which is
+# the closed-typed-authority contract failing quietly rather than loudly.
+#
+# The three below are the concrete holes found by a sweep bounded to the
+# families this branch adds or reshapes. ``ScalingFact`` already guarded the
+# same shape ("amount 0 changes nothing"), which is what made the class legible.
+
+
+@pytest.mark.parametrize("threshold", [20, 1, 0, -1, 21])
+def test_a_critical_hit_threshold_that_lowers_nothing_is_rejected(
+    threshold: int,
+) -> None:
+    """20 is the ordinary threshold, so lowering *to* 20 lowers nothing.
+
+    The pre-fix bound was the die's face range, which admitted 20 and let the
+    fact claim a change it does not make.
+    """
+    fact = CriticalHitRuleFact(CriticalHitChange.THRESHOLD_LOWERED, threshold=threshold)
+    assert fact_invariant_violations(fact)
+
+
+@pytest.mark.parametrize("threshold", [19, 18, 2])
+def test_a_genuinely_lowered_critical_hit_threshold_is_accepted(
+    threshold: int,
+) -> None:
+    """The Champion's "on a roll of 19 or 20" is the boundary case, and passes."""
+    fact = CriticalHitRuleFact(CriticalHitChange.THRESHOLD_LOWERED, threshold=threshold)
+    assert not fact_invariant_violations(fact)
+
+
+def test_the_critical_hit_boundary_is_exactly_nineteen_twenty() -> None:
+    """Stated as one assertion so the boundary cannot drift unnoticed."""
+    lowered = CriticalHitRuleFact(CriticalHitChange.THRESHOLD_LOWERED, threshold=19)
+    unchanged = CriticalHitRuleFact(CriticalHitChange.THRESHOLD_LOWERED, threshold=20)
+    assert not fact_invariant_violations(lowered)
+    assert fact_invariant_violations(unchanged)
+
+
+def test_a_speed_reduction_of_zero_feet_is_rejected() -> None:
+    """A stated reduction of nothing is not a small reduction; it is no rule."""
+    assert fact_invariant_violations(
+        SpeedModificationFact(change=SpeedChange.REDUCED_BY, feet=0)
+    )
+
+
+def test_setting_speed_to_zero_stays_valid() -> None:
+    """The exempt case, and the reason the guard is scoped to REDUCED_BY.
+
+    "Your Speed is 0 and can't increase" is exactly what five conditions state,
+    so a zero here is the rule rather than the absence of one.
+    """
+    assert not fact_invariant_violations(
+        SpeedModificationFact(change=SpeedChange.SET_TO, feet=0, can_increase=False)
+    )
+    assert not fact_invariant_violations(
+        SpeedModificationFact(change=SpeedChange.SET_TO, feet=0)
+    )
+
+
+def test_an_all_damage_response_excepting_every_type_is_rejected() -> None:
+    """Resistance to all damage except every damage type responds to nothing."""
+    every = tuple(sorted(DamageType, key=lambda d: d.value))
+    assert fact_invariant_violations(
+        DamageResponseFact(
+            DamageResponseKind.RESISTANCE, DamageScope.ALL, except_types=every
+        )
+    )
+
+
+def test_an_all_damage_response_excepting_all_but_one_stays_valid() -> None:
+    """The guard is exhaustion, not "many exceptions"."""
+    every = tuple(sorted(DamageType, key=lambda d: d.value))
+    assert not fact_invariant_violations(
+        DamageResponseFact(
+            DamageResponseKind.RESISTANCE, DamageScope.ALL, except_types=every[:-1]
+        )
+    )
+
+
+def test_the_exhaustion_guard_is_derived_from_the_closed_vocabulary() -> None:
+    """A damage type added later must not leave the guard stale.
+
+    Asserted against ``len(DamageType)`` rather than a written 13, which is what
+    the checker itself does.
+    """
+    every = tuple(sorted(DamageType, key=lambda d: d.value))
+    assert len(every) == len(DamageType)
+    assert fact_invariant_violations(
+        DamageResponseFact(
+            DamageResponseKind.IMMUNITY, DamageScope.ALL, except_types=every
+        )
+    )
+
+
+def test_scalings_existing_guard_already_closed_this_class() -> None:
+    """The sibling that was already safe, kept as the pattern's reference case."""
+    assert fact_invariant_violations(
+        ScalingFact(
+            basis=ScalingBasis.CONDITION_LEVEL,
+            threshold=0,
+            effect=ScalingEffect.D20_TEST,
+            direction=ScalingDirection.DECREASE,
+            amount=0,
+        )
+    )
