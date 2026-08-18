@@ -1746,9 +1746,18 @@ def _check_rollspec(value: object, field: str) -> list[str]:
 
     Held to the same strictness as the families that contain it, exactly like
     :func:`_check_dice`: a value object is as closed as a family.
+
+    The type test goes through :func:`_vo_field`, the same exact-type seam every
+    sibling value object uses, rather than ``isinstance``. A subclass passes an
+    ``isinstance`` test and then carries its extra fields straight into
+    :func:`fact_payload`, so validation would approve authority that
+    :func:`fact_from_payload` refuses to rebuild — a candidate that persists and
+    then cannot be reconstructed. "Closed" has to mean the declared type, not a
+    type compatible with it.
     """
-    if not isinstance(value, RollSpec):
-        return [f"{field} is not a RollSpec"]
+    if findings := _vo_field(value, RollSpec, field):
+        return findings
+    value = cast(RollSpec, value)
     findings = [
         *_enum_field(value.actor, RollActor, f"{field}.actor"),
         *_enum_field(value.context, RollContext, f"{field}.context"),
@@ -2778,6 +2787,15 @@ assert (
 #: derivation exists to avoid. The cost of that choice is exactly this manual
 #: obligation, and it is stated here rather than left to be inferred.
 #:
+#: What the identity **owns**, settled during review and enforced by tests:
+#: the semantic closed representation contract, not the Python declaration
+#: layout that expresses it. Every collection in
+#: :func:`representation_schema_payload` is named or set-like in meaning, so
+#: each is ordered by its own semantic key — families by discriminator, fields
+#: by name (keeping the rendered type), vocabulary members by value. Moving a
+#: field or an enum member up two lines changes no contract and must therefore
+#: change no identity; adding, removing, renaming, or retyping one still must.
+#:
 #: Version ``1`` describes the union as it stands after the conditions-batch
 #: expansion, **including** the vacuity invariants corrected during review of
 #: that same unmerged change. No accepted, persisted, or published projection
@@ -2822,9 +2840,21 @@ def _type_name(annotation: object) -> str:
 
 
 def _declared_fields(cls: type) -> list[dict[str, str]]:
-    """One entry per declared field: its name and its rendered type."""
+    """One entry per declared field: its name and its rendered type.
+
+    **Sorted by field name, not by declaration order.** The contract this
+    describes is a named-field set: a payload names its fields, and
+    ``fact_from_payload`` matches them by name and rejects on the name set
+    rather than on position. Declaration order is Python layout, so letting it
+    reach the hash would remint every projection for moving a field up two
+    lines — and, since the version must be bumped whenever the hash moves, would
+    remint stored authority for an edit that changed no meaning.
+    """
     hints = get_type_hints(cls)
-    return [{"name": f.name, "type": _type_name(hints[f.name])} for f in fields(cls)]
+    return sorted(
+        ({"name": f.name, "type": _type_name(hints[f.name])} for f in fields(cls)),
+        key=lambda entry: entry["name"],
+    )
 
 
 def _walk(cls: type, vocab: dict[str, type[StrEnum]], objects: dict[str, type]) -> None:
@@ -2857,6 +2887,22 @@ def representation_schema_payload() -> dict[str, object]:
     adding an enum member changes it. That is the whole point: authority must be
     reminted when the contract moves and left alone when only the prose around
     it does.
+
+    **Canonicalization.** Every collection here is named or set-like in
+    meaning, so each is ordered by its own semantic key rather than by the order
+    Python happened to declare it in:
+
+    * fact families by their family discriminator;
+    * dataclass and value-object fields by field name, keeping the rendered
+      type alongside; and
+    * closed vocabulary members by their value.
+
+    Reordering definitions without changing those contents therefore leaves this
+    payload — and the hash over it — untouched, while adding, removing,
+    renaming, or retyping a family, field, nested value object, or vocabulary
+    member still moves it. The promise in the paragraph above is only true
+    because of this, which is why it is enforced by tests rather than left to
+    care.
     """
     vocab: dict[str, type[StrEnum]] = {}
     objects: dict[str, type] = {}
@@ -2882,7 +2928,11 @@ def representation_schema_payload() -> dict[str, object]:
             for name in sorted(objects)
         ],
         "vocabularies": [
-            {"name": name, "members": [m.value for m in vocab[name]]}
+            # Members sorted by their semantic value for the same reason fields
+            # are sorted by name: a closed vocabulary is a *set* of admissible
+            # values. Nothing in the representation depends on the order they
+            # were declared in, so nothing about that order belongs in identity.
+            {"name": name, "members": sorted(m.value for m in vocab[name])}
             for name in sorted(vocab)
         ],
     }

@@ -427,7 +427,9 @@ def test_a_rollspec_replaced_by_a_look_alike_dict_is_rejected() -> None:
         RESTRAINED_SAVE,
         roll={"actor": "subject", "context": "saving_throw", "ability": "dexterity"},  # type: ignore[arg-type]
     )
-    assert any("not a RollSpec" in v for v in fact_invariant_violations(fake))
+    # Reported by the shared value-object seam every sibling uses, so the
+    # message is the same one a look-alike DiceExpression or Money would get.
+    assert any("must be RollSpec" in v for v in fact_invariant_violations(fake))
 
 
 def test_an_extra_rollspec_key_is_rejected_not_dropped() -> None:

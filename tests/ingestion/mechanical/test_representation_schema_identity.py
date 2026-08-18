@@ -16,7 +16,8 @@ here.
 from __future__ import annotations
 
 import json
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from enum import StrEnum
 from pathlib import Path
 
 import pytest
@@ -49,14 +50,26 @@ from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
     AbilityCheckFact,
     AbilityScore,
+    AdvantageFact,
+    AdvantageState,
     ComponentDraft,
     DcKind,
+    DieSize,
+    MalformedFactPayloadError,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
+    RollActor,
+    RollContext,
+    RollSpec,
+    _declared_fields,
+    fact_from_payload,
+    fact_invariant_violations,
+    fact_payload,
     representation_schema_hash,
     representation_schema_payload,
 )
+from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.persistence.orm.mechanical import MechanicalProjectionORM
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
@@ -64,6 +77,7 @@ from tests.ingestion.mechanical.conftest import (
     RELEASE_BINDING,
     SCHEMA_HASH,
     SCHEMA_VERSION,
+    bound_corpus,
     build_ledger,
     build_representation,
     candidate_of,
@@ -402,8 +416,14 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: Change-detector, not authority: the tests above prove the *behaviour*, and
 #: this makes an unintended union change legible in one failure message instead
 #: of as a wall of moved identities.
+#:
+#: Updated deliberately in review round 3. Canonicalizing the payload by
+#: semantic key changed its byte representation without changing the contract it
+#: describes, so the value moves and the version does not: this is still the
+#: unmerged initial contract, and nothing accepted, persisted, or published
+#: exists under it.
 EXPECTED_SCHEMA_HASH = (
-    "d4564c6936305199fbbd9f4a1b33d5f429a50e2c26b158d6ccd6bf5fc4beb13c"
+    "09dcd290ba6b24b80f6f74c922103f8b39865f609f8b9407271c92c0aac39066"
 )
 
 
@@ -461,3 +481,216 @@ def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
     assert "19" not in rendered and "ordinary" not in rendered
     # The vacuity fix that prompted this note left the hash untouched.
     assert representation_schema_hash() == EXPECTED_SCHEMA_HASH
+
+
+# ---------------------------------------------------------------------------
+# Canonicalization — the schema describes a contract, not a source layout
+# ---------------------------------------------------------------------------
+#
+# Review round 3 (Codex P2). Every collection in the schema payload is named or
+# set-like in meaning, so each is ordered by its own semantic key. The rule has
+# two halves and both are load-bearing: reordering declarations must leave the
+# contract identical, and changing what the contract *admits* must still move
+# it. Failing the first half would remint stored authority for an edit that
+# changed no meaning — and, because the version must be bumped whenever the hash
+# moves, would do it under a version bump that says nothing changed.
+
+
+@dataclass(frozen=True)
+class _Declared:
+    alpha: int
+    beta: str | None = None
+
+
+@dataclass(frozen=True)
+class _Reordered:
+    """The same named-field contract, declared the other way round."""
+
+    beta: str | None = None
+    alpha: int = 0
+
+
+@dataclass(frozen=True)
+class _Renamed:
+    alpha: int
+    gamma: str | None = None
+
+
+@dataclass(frozen=True)
+class _Retyped:
+    alpha: str
+    beta: str | None = None
+
+
+@dataclass(frozen=True)
+class _Widened:
+    alpha: int
+    beta: str | None = None
+    delta: int = 0
+
+
+def test_field_declaration_order_does_not_reach_the_contract() -> None:
+    """The defect: the field builder preserved dataclass declaration order."""
+    assert _declared_fields(_Declared) == _declared_fields(_Reordered)
+
+
+@pytest.mark.parametrize(
+    ("other", "what"),
+    [(_Renamed, "rename"), (_Retyped, "retype"), (_Widened, "added field")],
+)
+def test_a_real_field_change_still_moves_the_contract(other: type, what: str) -> None:
+    assert _declared_fields(_Declared) != _declared_fields(other), what
+
+
+class _Vocab(StrEnum):
+    X = "x"
+    Y = "y"
+
+
+class _VocabReordered(StrEnum):
+    """The same admissible values, declared the other way round."""
+
+    Y = "y"
+    X = "x"
+
+
+class _VocabWidened(StrEnum):
+    X = "x"
+    Y = "y"
+    Z = "z"
+
+
+def _vocab_members(name: str) -> list[str]:
+    return next(
+        v["members"]
+        for v in representation_schema_payload()["vocabularies"]  # type: ignore[union-attr]
+        if v["name"] == name
+    )
+
+
+def test_vocabulary_declaration_order_does_not_reach_the_contract() -> None:
+    """The analogous defect on the vocabulary half of the payload."""
+    assert sorted(m.value for m in _Vocab) == sorted(m.value for m in _VocabReordered)
+    # DieSize is declared d4, d6, d8, d10, d12, d20, d100 — not value order — so
+    # it is the real vocabulary that proves the payload no longer follows it.
+    assert _vocab_members("DieSize") == sorted(_vocab_members("DieSize"))
+    assert _vocab_members("DieSize") != [d.value for d in DieSize]
+
+
+def test_adding_or_removing_a_vocabulary_value_still_moves_the_contract() -> None:
+    base = sorted(m.value for m in _Vocab)
+    assert base != sorted(m.value for m in _VocabWidened)
+    assert base != base[:-1]
+
+
+def test_every_collection_in_the_payload_is_canonically_ordered() -> None:
+    """The rule stated once, over the real contract rather than a fixture."""
+    payload = representation_schema_payload()
+
+    families = [f["family"] for f in payload["fact_families"]]  # type: ignore[union-attr]
+    assert families == sorted(families)
+
+    vocab_names = [v["name"] for v in payload["vocabularies"]]  # type: ignore[union-attr]
+    assert vocab_names == sorted(vocab_names)
+    for entry in payload["vocabularies"]:  # type: ignore[union-attr]
+        assert entry["members"] == sorted(entry["members"])
+
+    object_names = [v["name"] for v in payload["value_objects"]]  # type: ignore[union-attr]
+    assert object_names == sorted(object_names)
+
+    for holder in (*payload["fact_families"], *payload["value_objects"]):  # type: ignore[misc]
+        names = [f["name"] for f in holder["fields"]]
+        assert names == sorted(names), holder
+
+
+def test_the_rendered_type_survives_the_field_sort() -> None:
+    """Sorting is by name; the declared type must still travel with it."""
+    rollspec = next(
+        v
+        for v in representation_schema_payload()["value_objects"]  # type: ignore[union-attr]
+        if v["name"] == "RollSpec"
+    )
+    assert {f["name"]: f["type"] for f in rollspec["fields"]} == {
+        "ability": "AbilityScore|None",
+        "actor": "RollActor",
+        "context": "RollContext",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Closed value objects validate the exact declared runtime type
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _RollSpecSubclass(RollSpec):
+    """A dataclass subclass carrying a field the closed contract never declared."""
+
+    smuggled: str = "extra"
+
+
+def test_an_exact_rollspec_validates() -> None:
+    assert not fact_invariant_violations(
+        AdvantageFact(
+            AdvantageState.DISADVANTAGE,
+            RollSpec(
+                RollActor.SUBJECT, RollContext.SAVING_THROW, AbilityScore.DEXTERITY
+            ),
+        )
+    )
+
+
+def test_a_rollspec_subclass_is_rejected() -> None:
+    """``isinstance`` accepted it; the closed contract does not.
+
+    Every sibling value object routes its type test through the shared
+    exact-type seam. ``RollSpec`` was the one that did not.
+    """
+    violations = fact_invariant_violations(
+        AdvantageFact(
+            AdvantageState.DISADVANTAGE,
+            _RollSpecSubclass(
+                RollActor.SUBJECT, RollContext.SAVING_THROW, AbilityScore.DEXTERITY
+            ),
+        )
+    )
+    assert any("must be RollSpec" in v for v in violations), violations
+
+
+def test_a_subclass_is_rejected_during_representation_validation() -> None:
+    """Through the production validator, not only the family checker."""
+    draft = replace(
+        UNAFFECTED_ONLY,
+        components=(
+            replace(
+                UNAFFECTED_ONLY.components[0],
+                facts=(
+                    AdvantageFact(
+                        AdvantageState.DISADVANTAGE,
+                        _RollSpecSubclass(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
+                    ),
+                ),
+            ),
+        ),
+    )
+    findings = validate_representation(draft, build_ledger(), bound_corpus())
+    assert any("must be RollSpec" in f for f in findings), findings
+
+
+def test_validation_cannot_approve_what_reconstruction_cannot_rebuild() -> None:
+    """The property the fix exists to restore.
+
+    The subclass serializes its extra field, so before the fix validation
+    reported nothing while ``fact_from_payload`` refused the same fact — a
+    candidate that could persist and then fail to reconstruct.
+    """
+    fact = AdvantageFact(
+        AdvantageState.DISADVANTAGE,
+        _RollSpecSubclass(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
+    )
+    payload = fact_payload(fact)
+    assert "smuggled" in payload["roll"]  # type: ignore[operator]
+    with pytest.raises(MalformedFactPayloadError):
+        fact_from_payload(payload)
+    # Validation now refuses it too, so the two halves agree.
+    assert fact_invariant_violations(fact)
