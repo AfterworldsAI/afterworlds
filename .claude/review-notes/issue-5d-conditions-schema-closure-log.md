@@ -222,3 +222,189 @@ The generic per-family machinery in `test_fact_families.py` covers the five new 
 canonical round trip, JSON-primitive payloads, missing/extra field rejection, per-field type checking,
 look-alike-dict rejection, and persistence + reconstruction — because each declares a corpus-grounded
 exemplar. That is the module's existing design and the reason no per-family boilerplate was added.
+
+---
+
+## 8. Review round 4 — representation identity describes the wire contract
+
+Fourth finding in the same mechanism (canonicalization, then ordering, then subclass acceptance, now
+class-name leakage). Rather than a fourth reactive edit, PR #153 was frozen at
+`3f8a131f265e41335735bc10e7f330a6595ec3d6` and a design/test-closure checkpoint was produced and
+reviewed before any code moved. The checkpoint is
+`.claude/review-notes/issue-5d-schema-identity-wire-contract-CHECKPOINT.md`; this section records what
+was implemented from it and what the implementation found that the checkpoint did not.
+
+### 8.1 The finding, reproduced on the frozen head
+
+`representation_schema_hash()` still depended on Python class names. Three renames with no wire effect
+each moved the hash:
+
+| Rename | Wire effect | Identity effect before the fix |
+|---|---|---|
+| enum class `RollActor` → `RollActorRenamed`, same members | none | `_type_name` rendered the class name → **moved** |
+| value object `RollSpec` → `RollSpecification`, same fields | none | emitted as `value_objects[].name` *and* every holder's field `type` → **moved** |
+| fact class `AdvantageFact` → `AdvantageRuleFact`, same family and fields | none | emitted as `fact_families[].type` → **moved** |
+
+Each reminted authority for an implementation-only refactor — and, since the pinned canary instructs a
+version bump whenever the hash moves, would have done so under a bump asserting a contract change that
+never happened.
+
+### 8.2 The governing rule, as accepted
+
+Representation-schema identity describes the **canonical serialized contract**, never Python
+implementation names or declaration layout.
+
+* Renaming a fact class, a value-object class, an enum class, a module, or a local symbol **must not**
+  move it.
+* Renaming a family discriminator or a serialized field, adding or removing an admitted vocabulary
+  value, or changing a primitive, nullability, array, or nested-object shape **must** move it.
+* A meaning-changing validation invariant that is not structurally represented remains a **manual**
+  `REPRESENTATION_SCHEMA_VERSION` bump obligation. Unchanged by this round, and still stated in the
+  constant's own docstring and proved by `test_the_schema_hash_does_not_cover_invariant_behaviour`.
+
+### 8.3 The closed shape grammar
+
+`representation_schema_payload()` now renders one recursive grammar with nowhere to put a Python name:
+
+| Shape | Emitted for | Wire meaning |
+|---|---|---|
+| `{"kind": "integer"}` | `int` | JSON number |
+| `{"kind": "string"}` | `str` | JSON string, unconstrained |
+| `{"kind": "boolean"}` | `bool` | JSON boolean |
+| `{"kind": "enum", "values": [...]}` | any `StrEnum` | JSON string from a closed, sorted set |
+| `{"kind": "object", "fields": [{name, shape}]}` | any nested value object, **inlined** | JSON object with exactly those keys |
+| `{"kind": "array", "items": <shape>}` | `tuple[X, ...]` **and** `list[X]` alike | JSON array |
+| `"nullable": true` | `X \| None` | JSON null also admitted |
+
+An annotation outside the grammar **raises** `UnsupportedRepresentationShapeError` rather than rendering.
+This is the whole reason the leak cannot return: the old `_type_name` fell back to
+`getattr(annotation, "__name__", str(annotation))`, so every shape nobody had described silently became
+its Python name. There is now no fallback to fall into.
+
+Payload shape:
+
+```
+{"representation_schema_version": ..., "facts": [{"family", "fields"}], "draft_vocabularies": [{"path", "shape"}]}
+```
+
+Dropped: `fact_families[].type` (fact class name), the whole `value_objects` registry (value objects are
+inlined at each field site, so there is no name to reference and no reference that can dangle or alias),
+and `vocabularies[].name` (a closed vocabulary *is* its admitted value set at the wire).
+
+### 8.4 Draft-only vocabularies — the checkpoint's one open ownership question
+
+Five closed vocabularies are reached from the drafts rather than from any fact field, so nothing finds
+them by walking fact types. The checkpoint offered three placements and recommended the first; that is
+what was implemented.
+
+`_DRAFT_VOCABULARIES` is now keyed by **serialized path**, with the enum classes used only as the source
+of their admitted values:
+
+| Path | Admitted values from |
+|---|---|
+| `components[].handling` | `ComponentHandling` |
+| `provenance[].role` | `ProvenanceRole` |
+| `provenance[].target_kind` | `ProvenanceTargetKind` |
+| `records[].kind` | `RecordKind` |
+| `relationships[].kind` | `RelationshipKind` |
+
+The paths are hand-written in `representation.py` while the payload emitting them is built by
+`projection.representation_payload`. That duplication is real and is **guarded, not trusted**:
+`test_every_declared_draft_path_resolves_in_a_real_payload` serializes a representative draft through the
+production serializer and resolves every declared path against it, asserting the collection is non-empty
+*and* the key present on every element *and* each observed value inside the declared set. A resolver that
+passed on an empty collection would prove nothing, which is why non-emptiness is asserted first.
+
+Verified by deliberate breakage: renaming the table's key to `records[].record_kind` fails the test with
+`records[].record_kind: absent from ['kind', 'parent_key', 'semantic_key']`.
+
+`representation_payload` was not moved, no new shared module was created, and no second serializer exists.
+
+### 8.5 What the implementation found beyond the reported three
+
+* **`tuple` container spelling was a fourth leak.** `_type_name` rendered `tuple[DamageType,...]`, but
+  `_canonical_value` maps tuple and list to the same JSON array, so the Python container spelling was
+  never wire-observable. Now both render `array`, proved by
+  `test_tuple_and_list_are_the_same_array_contract`, which asserts the serializer equivalence alongside
+  the descriptor equality rather than asserting the claim bare.
+* **`None` was the contract in a Python spelling.** `type(None).__name__` produced `None|int`; nullability
+  is genuinely wire-observable, so it survives as an explicit `nullable` flag rather than a type name.
+* **Subclass dispatch would have collapsed 33 vocabularies into one shape, silently.** `bool` is a
+  subclass of `int` and every `StrEnum` is a subclass of `str`. `_PRIMITIVE_SHAPES` is therefore matched
+  by **exact type identity**, and `test_primitives_are_matched_by_exact_type_not_by_subclass` pins it.
+  This failure mode raises no error and produces a plausible descriptor, so it needed its own test.
+* **The pinned-hash count is two, not the one the checkpoint estimated.** `EXPECTED_SCHEMA_HASH` in the
+  identity test and `data/bounded_oracle.json`. `tests/ingestion/mechanical/conftest.py` computes
+  `SCHEMA_HASH` from `representation_schema_hash()`, so it needed no edit.
+
+### 8.6 Structurally identical shapes are permitted, deliberately
+
+Under structural identity, two vocabularies admitting the same values — or two value objects with the same
+fields — render identically. That is **wire-correct**: neither carries a type tag, so nothing reading a
+payload could distinguish them either. Context comes from the enclosing family discriminator, the field
+name, or the draft path. No global uniqueness invariant was introduced.
+
+Measured on this head: no vocabulary collisions, no value-object collisions, and **one** family pair
+sharing a field shape — `action_economy` and `action_restriction` are both `{cost: <ActionCost values>}`.
+They stay distinct because families are keyed by their discriminator, which is the concrete evidence that
+the discriminator belongs in the descriptor. `test_no_two_closed_shapes_currently_collide` records all
+three facts as a change-detector, so a future collision surfaces as a decision rather than a silent merge.
+
+### 8.7 Test matrix
+
+`tests/ingestion/mechanical/test_representation_schema_identity.py`, 55 tests.
+
+| # | Perturbation | Expected | Test |
+|---|---|---|---|
+| I1 | fact class renamed | invariant | `..._a_family_entry_has_nowhere_to_put_a_class_name` (no `type` slot exists) |
+| I1–I3 | holder, nested value object, **and** enum all renamed | invariant | `..._renaming_every_python_class_in_reach_leaves_the_contract` |
+| I4/I5 | field and vocabulary declaration order permuted | invariant | `..._declaration_order_does_not_reach_the_contract` |
+| I6 | `tuple[X, ...]` vs `list[X]` | invariant | `..._tuple_and_list_are_the_same_array_contract` |
+| I7 | `Optional[X]` vs `X \| None` | invariant | `..._optional_spellings_agree` |
+| I8 | docstring reworded | invariant | `..._prose_only_edits_leave_the_hash` (re-executes an edited copy of the module) |
+| M1 | family discriminator changed | moves | `..._a_changed_family_discriminator_moves_the_contract` |
+| M2–M8 | field added/removed/renamed/retyped, nullability, array↔scalar, nested reshape, vocabulary value | moves | `..._an_observable_change_still_moves_the_contract`, `..._a_removed_field_moves_the_contract` |
+| M9 | draft vocabulary values changed | moves | `..._changing_a_draft_vocabulary_moves_the_contract` |
+| M10 | draft **path** changed | moves | `..._changing_a_draft_path_moves_the_contract` |
+| S1 | every collection canonically ordered, recursively | — | `..._every_collection_in_the_payload_is_canonically_ordered` |
+| S2 | no Python class name anywhere in the descriptor | — | `..._no_python_class_name_appears_in_the_contract` |
+| S3 | every `FactFamily` described exactly once | — | `..._every_family_is_described_exactly_once` |
+| S4 | every draft path resolves in a real payload | — | `..._every_declared_draft_path_resolves_in_a_real_payload` |
+| S5 | undescribable annotation fails closed | — | `..._an_undescribable_annotation_fails_closed` (×5), `..._primitives_are_matched_by_exact_type_not_by_subclass` |
+| S6 | no closed-shape collisions today | — | `..._no_two_closed_shapes_currently_collide` |
+| S7 | pinned hash canary | — | `..._the_committed_union_still_hashes_to_its_recorded_value` |
+
+S2 is a **supplementary** canary, not the authority: a substring scan proves today's 75 class names are
+absent, while the behavioural rename tests prove the property that keeps tomorrow's absent too. Both were
+verified by deliberate breakage — reintroducing `fact_families[].type` fails S2 and I1 together.
+
+Six existing tests in this module were **rewritten rather than retained**, because they indexed
+`payload["value_objects"]` / `payload["vocabularies"]` by class name or asserted the literal rendered type
+`"AbilityScore|None"`. Their assertions survive in the new form; their old shape could not.
+
+### 8.8 Identity and version
+
+`REPRESENTATION_SCHEMA_VERSION` stays `5d-representation-schema-1`. Nothing has been accepted, persisted,
+or published under any earlier form of this unmerged contract, so this corrects the initial contract
+rather than succeeding it; inventing a historical `2` would fabricate a version nothing was ever built
+under. The structural hash moves once, deliberately:
+
+| | |
+|---|---|
+| before | `09dcd290ba6b24b80f6f74c922103f8b39865f609f8b9407271c92c0aac39066` |
+| after | `44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3` |
+
+Updated in exactly two places: `EXPECTED_SCHEMA_HASH` and `data/bounded_oracle.json`.
+
+### 8.9 Patch footprint
+
+| File | Change |
+|---|---|
+| `src/afterworlds/ingestion/mechanical/representation.py` | one region: `_type_name`/`_declared_fields`/`_walk` replaced by `_shape`/`_wire_fields`; `_DRAFT_VOCABULARIES` rekeyed by path; `_PRIMITIVE_SHAPES` and `UnsupportedRepresentationShapeError` added (the error exported); `representation_schema_payload` rewritten; the constant's ownership docstring corrected |
+| `tests/ingestion/mechanical/test_representation_schema_identity.py` | six tests rewritten, the matrix added, canary updated |
+| `tests/ingestion/mechanical/data/bounded_oracle.json` | one declared hash |
+
+**Untouched, and no change was needed:** the `{version, hash}` declaration shape, and therefore
+`AcceptedOracle`, `ProjectionCandidate`, `projection_payload`, `oracle_payload`, `MechanicalProposal`,
+`accept_proposal`, the projection header columns, `reconstruct_candidate`, the persisted-state digest, the
+publication gate, and migration 0027. No ORM change, no migration, no production content.

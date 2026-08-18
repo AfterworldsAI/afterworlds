@@ -168,6 +168,7 @@ __all__ = [
     # Errors and helpers
     "MalformedFactPayloadError",
     "UnknownFactFamilyError",
+    "UnsupportedRepresentationShapeError",
     "fact_from_payload",
     "fact_invariant_violations",
     "fact_key",
@@ -2787,14 +2788,15 @@ assert (
 #: derivation exists to avoid. The cost of that choice is exactly this manual
 #: obligation, and it is stated here rather than left to be inferred.
 #:
-#: What the identity **owns**, settled during review and enforced by tests:
-#: the semantic closed representation contract, not the Python declaration
-#: layout that expresses it. Every collection in
-#: :func:`representation_schema_payload` is named or set-like in meaning, so
-#: each is ordered by its own semantic key — families by discriminator, fields
-#: by name (keeping the rendered type), vocabulary members by value. Moving a
-#: field or an enum member up two lines changes no contract and must therefore
-#: change no identity; adding, removing, renaming, or retyping one still must.
+#: What the identity **owns**, settled during review and enforced by tests: the
+#: canonical *serialized* contract, never the Python implementation expressing
+#: it. Renaming a fact class, a value-object class, an enum class, a module, or
+#: a local symbol changes nothing any payload can observe, and must therefore
+#: move nothing here. Renaming a family discriminator or a serialized field,
+#: adding or removing an admitted vocabulary value, or changing a primitive,
+#: nullability, array, or nested-object shape still must.
+#: :func:`representation_schema_payload` renders that contract in a closed
+#: shape grammar which has nowhere to put a Python name.
 #:
 #: Version ``1`` describes the union as it stands after the conditions-batch
 #: expansion, **including** the vacuity invariants corrected during review of
@@ -2804,136 +2806,179 @@ assert (
 #: version nothing was ever built under.
 REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-1"
 
-#: Closed vocabularies the drafts use directly rather than through a fact field.
-#: They are part of the representation contract — #137 contract 3 names the
-#: record and relationship vocabularies as closed — but nothing reaches them by
-#: walking fact fields, so they are named here explicitly.
-_DRAFT_VOCABULARIES: tuple[type[StrEnum], ...] = (
-    ComponentHandling,
-    ProvenanceRole,
-    ProvenanceTargetKind,
-    RecordKind,
-    RelationshipKind,
-)
+
+class UnsupportedRepresentationShapeError(TypeError):
+    """Raised when a declared annotation has no canonical wire shape.
+
+    Fail closed, deliberately. The alternative — rendering an undescribed
+    annotation as its Python name or its ``str()`` — is precisely the leak this
+    grammar exists to remove, and it would return silently the first time the
+    union grew a shape nobody described. A family whose contract cannot be
+    stated at the wire is a family whose identity cannot be honestly computed.
+    """
 
 
-def _type_name(annotation: object) -> str:
-    """Render one field annotation as a stable, comparable descriptor.
+#: Closed vocabularies the drafts use directly rather than through a fact
+#: field, keyed by the **serialized path** they appear at. They are part of the
+#: representation contract — #137 contract 3 names the record and relationship
+#: vocabularies as closed — but nothing reaches them by walking fact fields, so
+#: they are named here explicitly.
+#:
+#: Keyed by path rather than by class because the path is what a payload
+#: exposes: ``records[].kind`` is where a reader finds these values, and
+#: ``RecordKind`` is a name no payload carries. The enum classes appear here
+#: only as the source of their admitted values.
+#:
+#: These paths are written in the module that owns the schema, while the
+#: payload emitting them is built in :mod:`projection`. That duplication is
+#: real, and it is held honest rather than trusted: a test serializes a
+#: representative draft through ``representation_payload`` and resolves every
+#: path below against it, so a serializer change that moved one of these keys
+#: fails loudly instead of leaving this table describing a path nothing emits.
+_DRAFT_VOCABULARIES: Mapping[str, type[StrEnum]] = {
+    "components[].handling": ComponentHandling,
+    "provenance[].role": ProvenanceRole,
+    "provenance[].target_kind": ProvenanceTargetKind,
+    "records[].kind": RecordKind,
+    "relationships[].kind": RelationshipKind,
+}
 
-    Rendered rather than hashed as an object: the goal is a value that changes
-    when the *declared contract* changes and not when the source file does.
-    Union members are sorted, so ``X | None`` and ``None | X`` are one contract
-    and a reordering during a refactor is not a schema change.
+#: JSON primitive shapes, matched by **exact type identity**. Both hazards this
+#: avoids are silent ones: ``bool`` is a subclass of ``int``, and every
+#: :class:`StrEnum` is a subclass of ``str``, so a subclass test would render
+#: all 33 closed vocabularies as one unconstrained string — collapsing distinct
+#: contracts into a single shape with no error raised anywhere. An identity
+#: lookup cannot do that.
+_PRIMITIVE_SHAPES: Mapping[type, str] = {
+    bool: "boolean",
+    int: "integer",
+    str: "string",
+}
+
+
+def _shape(annotation: object) -> dict[str, object]:
+    """Render one declared annotation as its canonical wire shape.
+
+    The grammar is closed: ``integer``, ``string``, ``boolean``,
+    ``enum(values)``, ``object(fields)``, ``array(items)``, and a ``nullable``
+    flag. Every member describes something a JSON payload can exhibit, which is
+    the entire rule — a Python class name describes the implementation, so this
+    grammar has nowhere to put one, and an annotation it cannot describe raises
+    instead of falling back to a name.
     """
     origin = get_origin(annotation)
     args = get_args(annotation)
-    if args:
-        if origin in (Union, UnionType):
-            return "|".join(sorted(_type_name(a) for a in args))
-        name = getattr(origin, "__name__", str(origin))
-        return f"{name}[{','.join(_type_name(a) for a in args)}]"
-    if annotation is type(None):
-        return "None"
-    if annotation is Ellipsis:
-        return "..."
-    return getattr(annotation, "__name__", str(annotation))
+
+    if origin in (Union, UnionType):
+        # ``X | None`` admits null under the same key. Nothing else in the
+        # closed union is a union, and a genuine sum type would need a wire
+        # discriminator this grammar does not define — so it is refused rather
+        # than flattened into something that reads as settled.
+        inner = tuple(a for a in args if a is not type(None))
+        if len(inner) != 1 or len(inner) == len(args):
+            raise UnsupportedRepresentationShapeError(
+                f"{annotation!r} is not an optional of a single shape; the "
+                "closed representation admits no other union at the wire"
+            )
+        return {**_shape(inner[0]), "nullable": True}
+
+    if origin in (tuple, list):
+        # ``tuple[X, ...]`` and ``list[X]`` are the same JSON array — the
+        # canonical serializer maps both to one — so the container's Python
+        # spelling is not part of the contract and must not reach identity.
+        items = tuple(a for a in args if a is not Ellipsis)
+        if len(items) != 1:
+            raise UnsupportedRepresentationShapeError(
+                f"{annotation!r} is not a homogeneous sequence of one shape"
+            )
+        return {"kind": "array", "items": _shape(items[0])}
+
+    if origin is None and isinstance(annotation, type):
+        primitive = _PRIMITIVE_SHAPES.get(annotation)
+        if primitive is not None:
+            return {"kind": primitive}
+        if issubclass(annotation, StrEnum):
+            # A closed vocabulary *is* its admitted value set at the wire.
+            return {"kind": "enum", "values": sorted(m.value for m in annotation)}
+        if is_dataclass(annotation):
+            # Inlined, not referenced by name: a nested value object serializes
+            # as a bare object carrying no type tag, so there is no name to
+            # record and no reference that could dangle or alias. Reshaping one
+            # is a contract change, and it shows up here directly.
+            return {"kind": "object", "fields": _wire_fields(annotation)}
+
+    raise UnsupportedRepresentationShapeError(
+        f"{annotation!r} has no canonical wire shape in the closed "
+        "representation; describe it in the grammar rather than letting "
+        "identity fall back to a Python name"
+    )
 
 
-def _declared_fields(cls: type) -> list[dict[str, str]]:
-    """One entry per declared field: its name and its rendered type.
+def _wire_fields(cls: type) -> list[dict[str, object]]:
+    """Serialized fields of *cls* — one ``{name, shape}`` entry each, by name.
 
     **Sorted by field name, not by declaration order.** The contract this
     describes is a named-field set: a payload names its fields, and
     ``fact_from_payload`` matches them by name and rejects on the name set
     rather than on position. Declaration order is Python layout, so letting it
     reach the hash would remint every projection for moving a field up two
-    lines — and, since the version must be bumped whenever the hash moves, would
-    remint stored authority for an edit that changed no meaning.
+    lines — and, since the version must be bumped whenever the hash moves,
+    would remint stored authority for an edit that changed no meaning.
+
+    Iterates :func:`dataclasses.fields` rather than the resolved hints:
+    ``family`` is a ``ClassVar`` that ``fact_payload`` emits as the
+    discriminator, so it is described once per family instead of appearing as a
+    field of every one.
     """
     hints = get_type_hints(cls)
     return sorted(
-        ({"name": f.name, "type": _type_name(hints[f.name])} for f in fields(cls)),
-        key=lambda entry: entry["name"],
+        ({"name": f.name, "shape": _shape(hints[f.name])} for f in fields(cls)),
+        key=lambda entry: cast(str, entry["name"]),
     )
-
-
-def _walk(cls: type, vocab: dict[str, type[StrEnum]], objects: dict[str, type]) -> None:
-    """Collect every closed vocabulary and nested value object *cls* reaches.
-
-    Recursive on purpose. A nested value object is as much a part of the
-    contract as the family holding it — adding a field to ``RollSpec`` changes
-    what an ``AdvantageFact`` can say — so recording only the class *name*
-    would leave exactly the reshape this identity exists to catch invisible.
-    """
-    for field_ in fields(cls):
-        for part in get_type_hints(cls)[field_.name], *get_args(
-            get_type_hints(cls)[field_.name]
-        ):
-            if not isinstance(part, type):
-                continue
-            if issubclass(part, StrEnum):
-                vocab[part.__name__] = part
-            elif is_dataclass(part) and part.__name__ not in objects:
-                objects[part.__name__] = part
-                _walk(part, vocab, objects)
 
 
 def representation_schema_payload() -> dict[str, object]:
     """Canonical, identity-bearing description of the closed representation.
 
-    Derived from the declared types themselves, never from the source file's
-    bytes. A comment, a docstring, a reordered definition, or a renamed local
-    leaves this identical; adding a family, adding or retyping a field, or
-    adding an enum member changes it. That is the whole point: authority must be
-    reminted when the contract moves and left alone when only the prose around
-    it does.
+    Describes the **serialized contract**: derived from the declared types, and
+    never from the source file's bytes or the names written in it. A comment, a
+    docstring, a reordered definition, a renamed class, or a moved module
+    leaves this identical; adding a family, adding, removing, renaming, or
+    retyping a field, reshaping a nested value object, changing nullability or
+    a container shape, or altering an admitted vocabulary value changes it.
+    That is the whole point: authority must be reminted when the contract moves
+    and left alone when only the implementation does.
+
+    **What is emitted, and what deliberately is not.** Families are keyed by
+    their discriminator — the string ``fact_payload`` writes and
+    ``fact_from_payload`` dispatches on; fields by their serialized name;
+    vocabularies by their sorted admitted values; nested value objects by their
+    inlined structure. No class name appears anywhere, because no payload
+    carries one, and identity may not depend on what a payload cannot show.
 
     **Canonicalization.** Every collection here is named or set-like in
-    meaning, so each is ordered by its own semantic key rather than by the order
-    Python happened to declare it in:
+    meaning, so each is ordered by its own semantic key: families by
+    discriminator, fields by name, vocabulary values by value, draft
+    vocabularies by path. Reordering declarations therefore leaves this payload
+    — and the hash over it — untouched.
 
-    * fact families by their family discriminator;
-    * dataclass and value-object fields by field name, keeping the rendered
-      type alongside; and
-    * closed vocabulary members by their value.
-
-    Reordering definitions without changing those contents therefore leaves this
-    payload — and the hash over it — untouched, while adding, removing,
-    renaming, or retyping a family, field, nested value object, or vocabulary
-    member still moves it. The promise in the paragraph above is only true
-    because of this, which is why it is enforced by tests rather than left to
-    care.
+    **Structurally identical shapes render identically, and that is correct.**
+    Two vocabularies admitting the same values, or two value objects with the
+    same fields, are indistinguishable to anything reading a payload, because
+    neither carries a type tag. Context comes from the enclosing family
+    discriminator, the field name, or the draft path; there is no global
+    uniqueness invariant to enforce, and inventing one would assert a
+    distinction the wire does not make.
     """
-    vocab: dict[str, type[StrEnum]] = {}
-    objects: dict[str, type] = {}
-    families = []
-    for family in sorted(FactFamily, key=lambda f: f.value):
-        cls = _FACT_TYPES[family]
-        _walk(cls, vocab, objects)
-        families.append(
-            {
-                "family": family.value,
-                "type": cls.__name__,
-                "fields": _declared_fields(cls),
-            }
-        )
-    for enum_cls in _DRAFT_VOCABULARIES:
-        vocab[enum_cls.__name__] = enum_cls
-
     return {
         "representation_schema_version": REPRESENTATION_SCHEMA_VERSION,
-        "fact_families": families,
-        "value_objects": [
-            {"name": name, "fields": _declared_fields(objects[name])}
-            for name in sorted(objects)
+        "facts": [
+            {"family": family.value, "fields": _wire_fields(_FACT_TYPES[family])}
+            for family in sorted(FactFamily, key=lambda f: f.value)
         ],
-        "vocabularies": [
-            # Members sorted by their semantic value for the same reason fields
-            # are sorted by name: a closed vocabulary is a *set* of admissible
-            # values. Nothing in the representation depends on the order they
-            # were declared in, so nothing about that order belongs in identity.
-            {"name": name, "members": sorted(m.value for m in vocab[name])}
-            for name in sorted(vocab)
+        "draft_vocabularies": [
+            {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
+            for path in sorted(_DRAFT_VOCABULARIES)
         ],
     }
 

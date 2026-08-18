@@ -15,15 +15,20 @@ here.
 
 from __future__ import annotations
 
+import importlib.util
 import json
-from dataclasses import dataclass, replace
+import sys
+from dataclasses import dataclass, field, fields, is_dataclass, replace
 from enum import StrEnum
 from pathlib import Path
+from typing import Any, Optional, cast, get_args, get_type_hints
 
 import pytest
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.corpus.hashing import canonical_bytes
+from afterworlds.ingestion.mechanical import representation
 from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
     run_publication_gate,
@@ -44,6 +49,7 @@ from afterworlds.ingestion.mechanical.persistence import (
 from afterworlds.ingestion.mechanical.projection import (
     identify_projection,
     projection_payload,
+    representation_payload,
     validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.representation import (
@@ -55,6 +61,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     DcKind,
     DieSize,
+    FactFamily,
     MalformedFactPayloadError,
     RecordDraft,
     RecordKind,
@@ -62,7 +69,8 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     RollContext,
     RollSpec,
-    _declared_fields,
+    UnsupportedRepresentationShapeError,
+    _wire_fields,
     fact_from_payload,
     fact_invariant_violations,
     fact_payload,
@@ -379,23 +387,54 @@ def test_the_gate_refuses_a_projection_whose_union_differs_from_the_oracle(
 # ---------------------------------------------------------------------------
 
 
-def test_the_schema_payload_describes_the_declared_contract() -> None:
-    """Derived from the declared types, so it moves only when they do."""
+def _facts() -> list[dict[str, Any]]:
+    return cast("list[dict[str, Any]]", representation_schema_payload()["facts"])
+
+
+def _family(name: str) -> dict[str, Any]:
+    return next(f for f in _facts() if f["family"] == name)
+
+
+def _field(holder: dict[str, Any], name: str) -> dict[str, Any]:
+    return next(f for f in holder["fields"] if f["name"] == name)
+
+
+def _draft_vocabularies() -> list[dict[str, Any]]:
     payload = representation_schema_payload()
-    families = {f["family"] for f in payload["fact_families"]}  # type: ignore[union-attr]
+    return cast("list[dict[str, Any]]", payload["draft_vocabularies"])
+
+
+def test_the_schema_payload_describes_the_serialized_contract() -> None:
+    """Derived from the declared types, rendered as what a payload can show."""
+    families = {f["family"] for f in _facts()}
     assert "advantage" in families and "state_effect" in families
-    # Nested value objects appear with their own structure, not just a name:
-    # adding a field to RollSpec must change the contract.
-    rollspec = next(
-        v
-        for v in payload["value_objects"]  # type: ignore[union-attr]
-        if v["name"] == "RollSpec"
-    )
-    assert {f["name"] for f in rollspec["fields"]} == {"actor", "context", "ability"}
-    # Vocabularies the drafts use directly are included even though no fact
-    # field reaches them.
-    names = {v["name"] for v in payload["vocabularies"]}  # type: ignore[union-attr]
-    assert {"RecordKind", "RelationshipKind", "ComponentHandling"} <= names
+
+    roll = _field(_family("advantage"), "roll")
+    # A nested value object appears *inlined*, carrying its own structure —
+    # adding a field to RollSpec must change the contract, and there is no
+    # class name standing in for it.
+    assert roll["shape"]["kind"] == "object"
+    assert {f["name"] for f in roll["shape"]["fields"]} == {
+        "actor",
+        "context",
+        "ability",
+    }
+    # The enum inside is its admitted value set, and its optionality is a flag
+    # rather than the Python spelling ``| None``.
+    ability = _field(roll["shape"], "ability")
+    assert ability["shape"]["kind"] == "enum"
+    assert ability["shape"]["nullable"] is True
+    assert "charisma" in ability["shape"]["values"]
+
+    # Vocabularies the drafts use directly appear at their serialized path,
+    # which is what a reader of a payload actually has.
+    assert {v["path"] for v in _draft_vocabularies()} == {
+        "components[].handling",
+        "provenance[].role",
+        "provenance[].target_kind",
+        "records[].kind",
+        "relationships[].kind",
+    }
 
 
 def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
@@ -417,13 +456,14 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: this makes an unintended union change legible in one failure message instead
 #: of as a wall of moved identities.
 #:
-#: Updated deliberately in review round 3. Canonicalizing the payload by
-#: semantic key changed its byte representation without changing the contract it
-#: describes, so the value moves and the version does not: this is still the
-#: unmerged initial contract, and nothing accepted, persisted, or published
-#: exists under it.
+#: Updated deliberately in review round 4. Rendering the payload as the
+#: canonical *wire* contract — no class names, explicit nullability, arrays
+#: instead of ``tuple``, vocabularies keyed by serialized path — changed its
+#: byte representation without changing the contract it describes, so the value
+#: moves and the version does not: this is still the unmerged initial contract,
+#: and nothing accepted, persisted, or published exists under it.
 EXPECTED_SCHEMA_HASH = (
-    "09dcd290ba6b24b80f6f74c922103f8b39865f609f8b9407271c92c0aac39066"
+    "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"
 )
 
 
@@ -472,9 +512,8 @@ def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
     changes meaning. Nothing here can enforce that; what it can do is stop the
     gap from being invisible.
     """
-    payload = representation_schema_payload()
-    rendered = json.dumps(payload)
-    # The declared contract mentions the family and its field...
+    rendered = json.dumps(representation_schema_payload())
+    # The declared contract names the family and its field...
     assert "critical_hit_rule" in rendered
     assert "threshold" in rendered
     # ...and says nothing about which values that field may take.
@@ -484,137 +523,452 @@ def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Canonicalization — the schema describes a contract, not a source layout
+# The identity describes the canonical wire contract, not the Python that
+# expresses it
 # ---------------------------------------------------------------------------
 #
-# Review round 3 (Codex P2). Every collection in the schema payload is named or
-# set-like in meaning, so each is ordered by its own semantic key. The rule has
-# two halves and both are load-bearing: reordering declarations must leave the
-# contract identical, and changing what the contract *admits* must still move
-# it. Failing the first half would remint stored authority for an edit that
-# changed no meaning — and, because the version must be bumped whenever the hash
-# moves, would do it under a version bump that says nothing changed.
+# Review round 4 (Codex P2). The rule has two halves and both are load-bearing:
+# a change no payload can observe must leave identity untouched, and a change
+# any payload *can* observe must move it. Failing the first half remints stored
+# authority for a refactor — and, because the version must be bumped whenever
+# the hash moves, does it under a bump asserting a contract change that never
+# happened. Failing the second half is worse: two different contracts sharing
+# one identity is the defect the whole mechanism exists to prevent.
+#
+# Invariance is proved with locally declared doubles whose Python *names* differ
+# and whose wire contract does not; sensitivity is proved against those doubles
+# and, where it can be, against the real union.
 
 
-@dataclass(frozen=True)
-class _Declared:
-    alpha: int
-    beta: str | None = None
-
-
-@dataclass(frozen=True)
-class _Reordered:
-    """The same named-field contract, declared the other way round."""
-
-    beta: str | None = None
-    alpha: int = 0
-
-
-@dataclass(frozen=True)
-class _Renamed:
-    alpha: int
-    gamma: str | None = None
-
-
-@dataclass(frozen=True)
-class _Retyped:
-    alpha: str
-    beta: str | None = None
-
-
-@dataclass(frozen=True)
-class _Widened:
-    alpha: int
-    beta: str | None = None
-    delta: int = 0
-
-
-def test_field_declaration_order_does_not_reach_the_contract() -> None:
-    """The defect: the field builder preserved dataclass declaration order."""
-    assert _declared_fields(_Declared) == _declared_fields(_Reordered)
-
-
-@pytest.mark.parametrize(
-    ("other", "what"),
-    [(_Renamed, "rename"), (_Retyped, "retype"), (_Widened, "added field")],
-)
-def test_a_real_field_change_still_moves_the_contract(other: type, what: str) -> None:
-    assert _declared_fields(_Declared) != _declared_fields(other), what
-
-
-class _Vocab(StrEnum):
+class _WireVocab(StrEnum):
     X = "x"
     Y = "y"
 
 
-class _VocabReordered(StrEnum):
-    """The same admissible values, declared the other way round."""
+class _WireVocabRenamed(StrEnum):
+    """The same admitted values under a different Python name."""
 
-    Y = "y"
     X = "x"
+    Y = "y"
 
 
-class _VocabWidened(StrEnum):
+class _WireVocabWidened(StrEnum):
     X = "x"
     Y = "y"
     Z = "z"
 
 
-def _vocab_members(name: str) -> list[str]:
-    return next(
-        v["members"]
-        for v in representation_schema_payload()["vocabularies"]  # type: ignore[union-attr]
-        if v["name"] == name
-    )
+@dataclass(frozen=True)
+class _WireNested:
+    alpha: int
+    beta: _WireVocab | None = None
 
 
-def test_vocabulary_declaration_order_does_not_reach_the_contract() -> None:
-    """The analogous defect on the vocabulary half of the payload."""
-    assert sorted(m.value for m in _Vocab) == sorted(m.value for m in _VocabReordered)
+@dataclass(frozen=True)
+class _WireNestedRenamed:
+    """The same nested contract; only the class and its enum are renamed."""
+
+    alpha: int
+    beta: _WireVocabRenamed | None = None
+
+
+@dataclass(frozen=True)
+class _WireNestedReshaped:
+    """A field added *inside* the nested object — invisible to a name."""
+
+    alpha: int
+    beta: _WireVocab | None = None
+    added: int = 0
+
+
+@dataclass(frozen=True)
+class _Holder:
+    flag: bool
+    nested: _WireNested
+    tags: tuple[_WireVocab, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderRenamed:
+    """Every class in reach renamed; not one serialized name changed."""
+
+    flag: bool
+    nested: _WireNestedRenamed
+    tags: tuple[_WireVocabRenamed, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderReordered:
+    """The same named-field contract, declared the other way round."""
+
+    nested: _WireNested = _WireNested(0)
+    tags: tuple[_WireVocab, ...] = ()
+    flag: bool = False
+
+
+@dataclass(frozen=True)
+class _HolderListSpelled:
+    """``list[X]`` where the original says ``tuple[X, ...]`` — one JSON array."""
+
+    flag: bool
+    nested: _WireNested
+    tags: list[_WireVocab] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class _HolderOptionalSpelled:
+    """``Optional[X]`` where the original says ``X | None``."""
+
+    alpha: int
+    beta: Optional[_WireVocab] = None  # noqa: UP045 - the point of the test
+
+
+@dataclass(frozen=True)
+class _HolderNestedReshaped:
+    flag: bool
+    nested: _WireNestedReshaped
+    tags: tuple[_WireVocab, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderFieldAdded:
+    flag: bool
+    nested: _WireNested
+    tags: tuple[_WireVocab, ...] = ()
+    added: int = 0
+
+
+@dataclass(frozen=True)
+class _HolderFieldRenamed:
+    banner: bool
+    nested: _WireNested
+    tags: tuple[_WireVocab, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderFieldRetyped:
+    flag: str
+    nested: _WireNested
+    tags: tuple[_WireVocab, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderFieldNullable:
+    flag: bool | None
+    nested: _WireNested
+    tags: tuple[_WireVocab, ...] = ()
+
+
+@dataclass(frozen=True)
+class _HolderScalarNotArray:
+    flag: bool
+    nested: _WireNested
+    tags: _WireVocab = _WireVocab.X
+
+
+@dataclass(frozen=True)
+class _HolderVocabWidened:
+    flag: bool
+    nested: _WireNested
+    tags: tuple[_WireVocabWidened, ...] = ()
+
+
+# --- must be invariant -----------------------------------------------------
+
+
+def test_renaming_every_python_class_in_reach_leaves_the_contract() -> None:
+    """I1/I2/I3, the reported defect.
+
+    ``_HolderRenamed`` renames the holder, the nested value object, and the
+    enum. No serialized name changes, so no payload could tell the two apart —
+    and neither may the identity.
+    """
+    assert _wire_fields(_Holder) == _wire_fields(_HolderRenamed)
+
+
+def test_a_family_entry_has_nowhere_to_put_a_class_name() -> None:
+    """I1 on the real union: the entry *is* its discriminator plus its fields.
+
+    The old payload carried ``fact_families[].type``, the fact class's Python
+    name, which nothing serialized and nothing read back. There is no such slot
+    now, so a fact class rename cannot reach identity through one.
+    """
+    for entry in _facts():
+        assert set(entry) == {"family", "fields"}
+
+
+def test_declaration_order_does_not_reach_the_contract() -> None:
+    """I4/I5: fields sorted by name, vocabulary values sorted by value."""
+    assert _wire_fields(_Holder) == _wire_fields(_HolderReordered)
     # DieSize is declared d4, d6, d8, d10, d12, d20, d100 — not value order — so
     # it is the real vocabulary that proves the payload no longer follows it.
-    assert _vocab_members("DieSize") == sorted(_vocab_members("DieSize"))
-    assert _vocab_members("DieSize") != [d.value for d in DieSize]
+    die = _field(_family("resource_recovery"), "recharge_die")["shape"]["values"]
+    assert die == sorted(die)
+    assert die != [d.value for d in DieSize]
 
 
-def test_adding_or_removing_a_vocabulary_value_still_moves_the_contract() -> None:
-    base = sorted(m.value for m in _Vocab)
-    assert base != sorted(m.value for m in _VocabWidened)
-    assert base != base[:-1]
+def test_tuple_and_list_are_the_same_array_contract() -> None:
+    """I6, grounded rather than asserted.
+
+    The claim is only true because the canonical serializer maps both to the
+    same JSON array, so that is checked here alongside the descriptor.
+    """
+    assert canonical_bytes((_WireVocab.X,)) == canonical_bytes([_WireVocab.X])
+    assert _wire_fields(_Holder) == _wire_fields(_HolderListSpelled)
+
+
+def test_optional_spellings_agree() -> None:
+    """I7: ``Optional[X]`` and ``X | None`` are one nullable shape."""
+    assert _wire_fields(_WireNested) == _wire_fields(_HolderOptionalSpelled)
+
+
+def test_prose_only_edits_leave_the_hash(tmp_path: Path) -> None:
+    """I8: a docstring or comment edit is not a contract change.
+
+    Proved by rebuilding the descriptor from a copy of the module whose
+    docstrings and comments differ, rather than by asserting the hash is stable
+    across a run in which nothing was edited at all.
+    """
+    source = (
+        Path(__file__).resolve().parents[3]
+        / "src/afterworlds/ingestion/mechanical/representation.py"
+    ).read_text(encoding="utf-8")
+    edited = source.replace(
+        '"""SHA-256 of the closed representation contract."""',
+        '"""SHA-256 of the closed representation contract. Reworded."""',
+        1,
+    )
+    assert edited != source
+    module_path = tmp_path / "edited_representation.py"
+    module_path.write_text(edited, encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("edited_representation", module_path)
+    assert spec is not None and spec.loader is not None
+    edited_module = importlib.util.module_from_spec(spec)
+    # Registered before execution because ``@dataclass`` resolves its own
+    # module through ``sys.modules``; removed after, so nothing else sees it.
+    sys.modules[spec.name] = edited_module
+    try:
+        spec.loader.exec_module(edited_module)
+        assert (
+            edited_module.representation_schema_hash() == representation_schema_hash()
+        )
+    finally:
+        del sys.modules[spec.name]
+
+
+# --- must move identity ----------------------------------------------------
+
+
+def test_a_changed_family_discriminator_moves_the_contract() -> None:
+    """M1. The discriminator is what ``fact_from_payload`` dispatches on."""
+    payload = representation_schema_payload()
+    assert any(f["family"] == "advantage" for f in _facts())
+    moved = json.loads(json.dumps(payload))
+    for entry in moved["facts"]:
+        if entry["family"] == "advantage":
+            entry["family"] = "advantage_renamed"
+    assert canonical_bytes(moved) != canonical_bytes(payload)
+
+
+@pytest.mark.parametrize(
+    ("other", "what"),
+    [
+        (_HolderFieldAdded, "M2 field added"),
+        (_HolderFieldRenamed, "M3 field renamed"),
+        (_HolderFieldRetyped, "M4 field retyped"),
+        (_HolderFieldNullable, "M5 nullability added"),
+        (_HolderScalarNotArray, "M6 array became a scalar"),
+        (_HolderNestedReshaped, "M7 nested value object reshaped"),
+        (_HolderVocabWidened, "M8 vocabulary value added"),
+    ],
+)
+def test_an_observable_change_still_moves_the_contract(other: type, what: str) -> None:
+    assert _wire_fields(_Holder) != _wire_fields(other), what
+
+
+def test_a_removed_field_moves_the_contract() -> None:
+    """M2, the other direction."""
+    assert _wire_fields(_WireNested) != _wire_fields(_WireNestedReshaped)
+
+
+def test_changing_a_draft_vocabulary_moves_the_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """M9: the admitted values behind a draft path."""
+    before = representation_schema_hash()
+    monkeypatch.setitem(
+        representation._DRAFT_VOCABULARIES, "records[].kind", _WireVocab
+    )
+    assert representation_schema_hash() != before
+
+
+def test_changing_a_draft_path_moves_the_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """M10: the path is the wire role, so moving it is a contract change."""
+    before = representation_schema_hash()
+    patched = dict(representation._DRAFT_VOCABULARIES)
+    patched["records[].record_kind"] = patched.pop("records[].kind")
+    monkeypatch.setattr(representation, "_DRAFT_VOCABULARIES", patched)
+    assert representation_schema_hash() != before
+
+
+# --- structural integrity --------------------------------------------------
 
 
 def test_every_collection_in_the_payload_is_canonically_ordered() -> None:
-    """The rule stated once, over the real contract rather than a fixture."""
+    """S1, over the real contract rather than a fixture."""
     payload = representation_schema_payload()
-
-    families = [f["family"] for f in payload["fact_families"]]  # type: ignore[union-attr]
+    families = [f["family"] for f in _facts()]
     assert families == sorted(families)
 
-    vocab_names = [v["name"] for v in payload["vocabularies"]]  # type: ignore[union-attr]
-    assert vocab_names == sorted(vocab_names)
-    for entry in payload["vocabularies"]:  # type: ignore[union-attr]
-        assert entry["members"] == sorted(entry["members"])
+    paths = [v["path"] for v in _draft_vocabularies()]
+    assert paths == sorted(paths)
+    for entry in _draft_vocabularies():
+        assert entry["shape"]["values"] == sorted(entry["shape"]["values"])
 
-    object_names = [v["name"] for v in payload["value_objects"]]  # type: ignore[union-attr]
-    assert object_names == sorted(object_names)
+    def walk(shape: dict[str, Any]) -> None:
+        if shape["kind"] == "enum":
+            assert shape["values"] == sorted(shape["values"]), shape
+        elif shape["kind"] == "object":
+            names = [f["name"] for f in shape["fields"]]
+            assert names == sorted(names), shape
+            for nested in shape["fields"]:
+                walk(nested["shape"])
+        elif shape["kind"] == "array":
+            walk(shape["items"])
 
-    for holder in (*payload["fact_families"], *payload["value_objects"]):  # type: ignore[misc]
-        names = [f["name"] for f in holder["fields"]]
-        assert names == sorted(names), holder
+    for entry in _facts():
+        names = [f["name"] for f in entry["fields"]]
+        assert names == sorted(names), entry
+        for declared in entry["fields"]:
+            walk(declared["shape"])
+    assert payload["representation_schema_version"] == REPRESENTATION_SCHEMA_VERSION
 
 
-def test_the_rendered_type_survives_the_field_sort() -> None:
-    """Sorting is by name; the declared type must still travel with it."""
-    rollspec = next(
-        v
-        for v in representation_schema_payload()["value_objects"]  # type: ignore[union-attr]
-        if v["name"] == "RollSpec"
-    )
-    assert {f["name"]: f["type"] for f in rollspec["fields"]} == {
-        "ability": "AbilityScore|None",
-        "actor": "RollActor",
-        "context": "RollContext",
+def test_no_python_class_name_appears_in_the_contract() -> None:
+    """S2, the canary that would have caught this finding.
+
+    Supplementary to the behavioural rename tests above, not a substitute for
+    them: a substring scan proves today's names are absent, while
+    ``test_renaming_every_python_class_in_reach_leaves_the_contract`` proves the
+    property that makes tomorrow's absent too.
+    """
+    rendered = json.dumps(representation_schema_payload())
+    names = {
+        obj.__name__
+        for obj in vars(representation).values()
+        if isinstance(obj, type) and (issubclass(obj, StrEnum) or is_dataclass(obj))
     }
+    assert len(names) > 50, "the scan found almost nothing; it is not looking"
+    assert sorted(n for n in names if n in rendered) == []
+
+
+def test_every_family_is_described_exactly_once() -> None:
+    """S3."""
+    families = [f["family"] for f in _facts()]
+    assert sorted(families) == sorted(f.value for f in FactFamily)
+    assert len(families) == len(set(families))
+
+
+def test_every_declared_draft_path_resolves_in_a_real_payload() -> None:
+    """S4: the guard that makes the hand-written path table honest.
+
+    The table lives in ``representation.py`` and the payload is built in
+    ``projection.py``, so nothing but this test stops the two from drifting —
+    a moved key would otherwise leave the descriptor naming a path nothing
+    emits, silently. Each collection must be non-empty and every element must
+    carry the key, or the resolution would pass by describing nothing.
+    """
+    payload = representation_payload(build_representation())
+    for entry in _draft_vocabularies():
+        collection, _, key = entry["path"].partition("[].")
+        items = cast("list[dict[str, Any]]", payload[collection])
+        assert items, f"{entry['path']}: {collection} is empty; nothing is proved"
+        for item in items:
+            assert key in item, f"{entry['path']}: absent from {sorted(item)}"
+            assert (
+                item[key] in entry["shape"]["values"]
+            ), f"{entry['path']}: {item[key]!r} is outside the declared values"
+
+
+@pytest.mark.parametrize(
+    "annotation",
+    [float, dict[str, int], int | str, tuple[int, str], set[int]],
+)
+def test_an_undescribable_annotation_fails_closed(annotation: object) -> None:
+    """S5. The alternative is a silent fallback to a Python name."""
+    with pytest.raises(UnsupportedRepresentationShapeError):
+        representation._shape(annotation)
+
+
+def test_primitives_are_matched_by_exact_type_not_by_subclass() -> None:
+    """S5's companion: the two collapses that would fail silently.
+
+    ``bool`` is a subclass of ``int`` and every ``StrEnum`` is a subclass of
+    ``str``, so a subclass test would render 33 distinct closed vocabularies as
+    one unconstrained string — different contracts sharing one identity, with
+    no error raised anywhere.
+    """
+    assert representation._shape(bool) == {"kind": "boolean"}
+    assert representation._shape(int) == {"kind": "integer"}
+    assert representation._shape(str) == {"kind": "string"}
+    assert representation._shape(_WireVocab) == {"kind": "enum", "values": ["x", "y"]}
+
+
+def test_no_two_closed_shapes_currently_collide() -> None:
+    """S6: a change-detector, deliberately not an invariant.
+
+    Structural identity means two vocabularies admitting the same values, or
+    two value objects with the same fields, render identically — which is
+    *wire-correct*, since neither carries a type tag and nothing reading a
+    payload could distinguish them either. Today none collide. If that changes,
+    this surfaces it as a decision to make rather than a silent merge; the
+    answer may well be that the collision is fine.
+    """
+    vocabularies: dict[str, set[str]] = {}
+    objects: dict[str, set[str]] = {}
+
+    def collect(cls: type) -> None:
+        hints = get_type_hints(cls)
+        for declared in fields(cls):
+            for part in (
+                hints[declared.name],
+                *get_args(hints[declared.name]),
+            ):
+                if not isinstance(part, type):
+                    continue
+                if issubclass(part, StrEnum):
+                    vocabularies.setdefault(part.__name__, set()).update(
+                        m.value for m in part
+                    )
+                elif is_dataclass(part) and part.__name__ not in objects:
+                    objects[part.__name__] = {f.name for f in fields(part)}
+                    collect(part)
+
+    for family in FactFamily:
+        collect(representation._FACT_TYPES[family])
+
+    def duplicates(catalog: dict[str, set[str]]) -> list[str]:
+        seen: dict[tuple[str, ...], str] = {}
+        clashes = []
+        for name, members in catalog.items():
+            key = tuple(sorted(members))
+            if key in seen:
+                clashes.append(f"{seen[key]} vs {name}: {key}")
+            seen[key] = name
+        return clashes
+
+    assert len(vocabularies) > 20 and len(objects) > 5, "the walk found too little"
+    assert duplicates(vocabularies) == []
+    assert duplicates(objects) == []
+    # Two *families* do share a field shape; they stay distinct because
+    # families are keyed by their discriminator. That pair is the concrete
+    # reason the discriminator belongs in the descriptor.
+    economy = _family("action_economy")["fields"]
+    restriction = _family("action_restriction")["fields"]
+    assert economy == restriction
+    assert _family("action_economy") != _family("action_restriction")
 
 
 # ---------------------------------------------------------------------------
