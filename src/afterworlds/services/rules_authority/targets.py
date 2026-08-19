@@ -122,13 +122,26 @@ class MechanicalTarget:
 def target_payload(target: MechanicalTarget) -> dict[str, object]:
     """Canonical identity-bearing payload of one target.
 
-    Absent keys are serialized as ``None`` rather than omitted, so a component
-    target and a fact target can never canonicalize to the same bytes through a
-    missing key.
+    Absent *kind-determined* keys are serialized as ``None`` rather than
+    omitted, so a component target and a fact target can never canonicalize to
+    the same bytes through a missing key.
+
+    ``option_key`` is the deliberate exception: it is present only when it is
+    non-``None``. Emitting it as ``None`` on every target would remint the
+    identity of every override set already authored against a direct fact —
+    the same authority, under a new identifier, with the retained version it
+    names no longer reachable. A direct target therefore keeps exactly the
+    payload it had before options existed, and an option-qualified target
+    carries a fifth key no direct target can produce. There is no collision:
+    ``__post_init__`` already refuses a blank ``option_key``, so a present key
+    always names a real option scope.
     """
-    return {
+    payload: dict[str, object] = {
         "kind": target.kind.value,
         "record_key": target.record_key,
         "component_key": target.component_key,
         "fact_key": target.fact_key,
     }
+    if target.option_key is not None:
+        payload["option_key"] = target.option_key
+    return payload

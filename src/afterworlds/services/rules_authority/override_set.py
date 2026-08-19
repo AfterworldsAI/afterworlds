@@ -197,6 +197,7 @@ def _parse_row(
             record_key=row.target_record_key,
             component_key=row.target_component_key,
             fact_key=row.target_fact_key,
+            option_key=row.target_option_key,
         )
     except TargetShapeError as exc:
         raise OverrideStateError(f"override {row.override_id}: {exc}") from exc

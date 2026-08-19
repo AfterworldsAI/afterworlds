@@ -574,7 +574,15 @@ def _finalize_component(
         else component.irreducibility_reason_code
     )
     return replace(
-        component, facts=facts, handling=handling, irreducibility_reason_code=reason
+        component,
+        facts=facts,
+        # The rebuilt options, not the originals: they are what ``facts_present``
+        # was derived from, and returning the unfiltered ones would leave a
+        # disabled option fact visible in the assembled projection while the
+        # handling above already accounted for its removal.
+        options=options,
+        handling=handling,
+        irreducibility_reason_code=reason,
     )
 
 
@@ -779,7 +787,11 @@ def _apply_entry(
             disabled_components.add((target.record_key, target.component_key))
             return True, "component suppressed"
         assert target.fact_key is not None
-        if _find_fact(found[1], target.fact_key) is None:
+        # Scoped, not scope-blind. A choice component holds no direct facts, so
+        # a scope-blind lookup rejects every valid option-fact disable as
+        # INVALID_OVERRIDE; and where the same fact key appears in two options
+        # it would resolve one option's target onto the other.
+        if _find_fact(found[1], target.fact_key, target.option_key) is None:
             raise OverrideApplicationError(
                 entry.override_id,
                 f"target {target.describe()} names no fact of "

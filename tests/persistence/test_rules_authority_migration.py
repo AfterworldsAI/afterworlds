@@ -207,6 +207,35 @@ def test_the_migrated_guards_refuse_every_rewrite_path(
         con.close()
 
 
+def test_the_entry_guard_covers_the_new_option_scope_column(
+    migrated: Path,
+) -> None:
+    """PR #155: a content column outside the guard is content it cannot protect.
+
+    ``prevent_rp_override_set_entries_reinsert`` names its columns explicitly,
+    so adding ``target_option_key`` without recreating the trigger would leave
+    the option scope of a retained entry silently rewritable. The trigger-set
+    test above compares *names* only and would not have caught it.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        _seed(con)
+        # ``INSERT OR REPLACE``, like the sibling case above: a plain INSERT
+        # violates ``uq_rp_override_set_entry_order`` on its own, so it would
+        # raise whether or not the trigger covers the column.
+        with pytest.raises(sqlite3.IntegrityError):
+            con.execute(
+                "INSERT OR REPLACE INTO rp_override_set_entries (override_set_uuid,"
+                " apply_order, override_id, override_origin, target_kind,"
+                " target_record_key, target_component_key, target_fact_key,"
+                " target_option_key, override_operation, precedence, is_enabled,"
+                " payload) VALUES ('v1', 0, 'o', 'house_rule', 'record', 'r',"
+                " NULL, NULL, 'forged-option', 'disable', 1, 1, '{}')"
+            )
+    finally:
+        con.close()
+
+
 def test_an_identical_reinsert_is_permitted_on_the_migrated_schema(
     migrated: Path,
 ) -> None:
