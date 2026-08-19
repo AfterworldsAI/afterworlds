@@ -58,6 +58,7 @@ Both are pinned as literals in
 | `application.py::_finalize_component()` final `replace()` | **patched** — returns the rebuilt `options` |
 | `conftest.py::_ENTRY_CONTENT_COLUMNS` | **patched** — mirrors the migration's guard |
 | `conftest.py::author_override()` | **patched** — writes `target_option_key` |
+| fixture trigger mirror vs. migrated guard | **patched** — newly asserted; they were two unchecked copies |
 | `MechanicalTarget.__post_init__` | already safe — rejects blank and non-FACT `option_key` |
 | `MechanicalTarget.describe()` | already safe — renders `[option]` |
 | `application.py::_find_fact()` | already safe — already scope-aware |
@@ -180,6 +181,20 @@ component- and option-level scopes the task names.
 
 * The `5d-representation-schema-2` structural hash `ca27a746…` is **untouched**.
   Override target columns are runtime authority, not representation shape.
+* The suite's trigger mirror (`conftest.py::_ENTRY_CONTENT_COLUMNS`) and the
+  migration are two hand-maintained copies of one guard, and the pre-existing
+  trigger-set test compares only *names*. A new assertion reads the migrated
+  trigger's own SQL and requires every mirrored column to appear in it; it was
+  verified to fail on an injected drift. Without it, drift would leave every
+  retention and override-set test passing against a guard the production schema
+  does not have.
+* The two end-to-end persistence corruptions were checked for vacuity rather
+  than assumed non-vacuous: the persisted fixture carries a stored qualifier on
+  3 of 3 component rows and 2 of 2 option rows, and the component-scope failure
+  is attributed to `rp_mech_components spell:wish/descriptor`. (SQLAlchemy's
+  `sa.JSON` stores Python `None` as a JSON `null` literal rather than SQL NULL,
+  which is why the component rows are non-NULL despite the draft declaring no
+  component-level qualifier.)
 * Black reformatted 11 unrelated `alembic/versions/*.py` files when run outside
   the repository's stated `src/ tests/` gate scope; those were reverted and only
   `0028` carries a formatting change.
