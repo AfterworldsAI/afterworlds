@@ -40,6 +40,7 @@ from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
+    Applicability,
     RepresentationDraft,
     fact_key,
     fact_payload,
@@ -48,6 +49,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.ingestion.mechanical.validation import validate_representation
 
 __all__ = [
+    "applicability_payload",
     "IdentifiedProjection",
     "ProjectionCandidate",
     "ReleaseBinding",
@@ -139,6 +141,18 @@ def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
                 "handling": c.handling.value,
                 "irreducibility_reason_code": c.irreducibility_reason_code,
                 "facts": canonical_order(fact_payload(f) for f in c.facts),
+                "applies_when": applicability_payload(c.applies_when),
+                # Options are canonically ordered by their key, so the source's
+                # order of "crawl or ... right yourself" does not reach the
+                # payload hash: the source states no precedence between them.
+                "options": canonical_order(
+                    {
+                        "semantic_key": o.semantic_key,
+                        "facts": canonical_order(fact_payload(f) for f in o.facts),
+                        "applies_when": applicability_payload(o.applies_when),
+                    }
+                    for o in c.options
+                ),
             }
             for c in draft.components
         ),
@@ -262,17 +276,65 @@ def derive_component_id(
     )
 
 
+def applicability_payload(
+    applicability: Applicability | None,
+) -> dict[str, object] | None:
+    """Canonical payload of one applicability, or ``None``.
+
+    Every field is emitted, including the unset ones, so a payload's key set is
+    the shape rather than a function of which kind wrote it — the same rule
+    ``fact_payload`` follows, and what lets the loader reject on the key set.
+    """
+    if applicability is None:
+        return None
+    return {
+        "kind": applicability.kind.value,
+        "negated": applicability.negated,
+        "quantity": (
+            None if applicability.quantity is None else applicability.quantity.value
+        ),
+        "comparison": (
+            None if applicability.comparison is None else applicability.comparison.value
+        ),
+        "value": applicability.value,
+        "any_of": [
+            {
+                "category": None if c.category is None else c.category.value,
+                "relation": None if c.relation is None else c.relation.value,
+                "at_least": c.at_least,
+            }
+            for c in applicability.any_of
+        ],
+        "trigger": (
+            None if applicability.trigger is None else applicability.trigger.value
+        ),
+        "phase": None if applicability.phase is None else applicability.phase.value,
+    }
+
+
 def derive_fact_id(
-    projection_uuid_: str, record_key: str, component_key: str, fact: object
+    projection_uuid_: str,
+    record_key: str,
+    component_key: str,
+    fact: object,
+    option_key: str = "",
 ) -> str:
-    """Stable fact ID, keyed by the fact's content rather than its position."""
-    return content_id(
-        "mechanical_fact",
+    """Stable fact ID, keyed by the fact's content rather than its position.
+
+    A fact held directly on the component derives from the same four parts it
+    always has, so **every pre-schema-2 fact id is unchanged**; an option fact
+    adds its option key, which is what keeps one fact appearing in two options
+    of a component from collapsing to a single id.
+    """
+    parts: tuple[str, ...] = (
         projection_uuid_,
         record_key,
         component_key,
         fact_key(fact),
     )
+    if option_key:
+        parts = (*parts, option_key)
+    return content_id("mechanical_fact", *parts)
 
 
 @dataclass(frozen=True)
@@ -284,7 +346,9 @@ class IdentifiedProjection:
     payload_hash: str
     record_ids: dict[str, str]
     component_ids: dict[tuple[str, str], str]
-    fact_ids: dict[tuple[str, str, str], str]
+    #: Keyed ``(record_key, component_key, option_key, fact_key)`` — the
+    #: option key is ``""`` for a fact held directly on the component.
+    fact_ids: dict[tuple[str, str, str, str], str]
 
 
 def identify_projection(candidate: ProjectionCandidate) -> IdentifiedProjection:
@@ -306,12 +370,19 @@ def identify_projection(candidate: ProjectionCandidate) -> IdentifiedProjection:
         )
         for c in draft.components
     }
+    # Keyed by option as well as component: the same fact in two options of
+    # one component is two distinct pieces of authority, and a shared id would
+    # make one of them unaddressable in persistence and provenance alike.
     fact_ids = {
-        (c.record_key, c.semantic_key, fact_key(f)): derive_fact_id(
-            uuid_, c.record_key, c.semantic_key, f
+        (c.record_key, c.semantic_key, option_key, fact_key(f)): derive_fact_id(
+            uuid_, c.record_key, c.semantic_key, f, option_key
         )
         for c in draft.components
-        for f in c.facts
+        for option_key, scoped in (
+            ("", c.facts),
+            *((o.semantic_key, o.facts) for o in c.options),
+        )
+        for f in scoped
     }
 
     return IdentifiedProjection(

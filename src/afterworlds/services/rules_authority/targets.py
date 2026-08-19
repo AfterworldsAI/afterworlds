@@ -68,6 +68,13 @@ class MechanicalTarget:
     record_key: str
     component_key: str | None = None
     fact_key: str | None = None
+    #: The owning option of a fact target, when the fact lives inside an
+    #: exhaustive actor choice. ``None`` means the fact is held directly on the
+    #: component — the pre-schema-2 shape, so every existing target is
+    #: unchanged. Options are not independently targetable: there is no OPTION
+    #: target kind, because disabling one arm of a choice the source states as
+    #: exhaustive would publish a choice the source never states.
+    option_key: str | None = None
 
     def __post_init__(self) -> None:
         if not self.record_key.strip():
@@ -86,16 +93,27 @@ class MechanicalTarget:
         if self.kind is MechanicalTargetKind.FACT:
             if not (self.fact_key or "").strip():
                 raise TargetShapeError("fact target requires a fact_key")
-        elif self.fact_key is not None:
-            raise TargetShapeError(
-                f"{self.kind.value} target must not carry a fact_key"
-            )
+            if self.option_key is not None and not self.option_key.strip():
+                raise TargetShapeError("fact target carries a blank option_key")
+        else:
+            if self.fact_key is not None:
+                raise TargetShapeError(
+                    f"{self.kind.value} target must not carry a fact_key"
+                )
+            if self.option_key is not None:
+                raise TargetShapeError(
+                    f"{self.kind.value} target must not carry an option_key"
+                )
 
     def describe(self) -> str:
         """Human-readable target, used in typed failure detail."""
         parts = [self.record_key]
         if self.component_key is not None:
             parts.append(self.component_key)
+        if self.option_key is not None:
+            # Rendered, not dropped: two fact targets differing only by option
+            # would otherwise describe identically in every typed failure.
+            parts.append(f"[{self.option_key}]")
         if self.fact_key is not None:
             parts.append(self.fact_key)
         return f"{self.kind.value}:{'/'.join(parts)}"

@@ -248,6 +248,29 @@ class MechanicalComponentORM(_ProjectionScoped):
     irreducibility_reason_code: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
+    #: The closed applicability qualifier, or NULL when the component applies
+    #: unconditionally. Stored as the canonical payload rather than as columns
+    #: so one shape change does not become a table migration per field.
+    applies_when: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
+
+
+class MechanicalComponentOptionORM(_ProjectionScoped):
+    """One option of a component's exhaustive actor choice.
+
+    A row exists only for a component that *is* a choice; a conjunction has
+    none. The option's facts live in ``rp_mech_facts`` carrying this row's
+    ``semantic_key`` in their ``option_key``, so one query returns every fact
+    of a projection and the option boundary is recovered by grouping rather
+    than by a second traversal.
+    """
+
+    __tablename__ = "rp_mech_component_options"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    semantic_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    applies_when: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
 
 
 class MechanicalFactORM(_ProjectionScoped):
@@ -259,6 +282,12 @@ class MechanicalFactORM(_ProjectionScoped):
     fact_id: Mapped[str] = mapped_column(sa.String(36), nullable=False, index=True)
     record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
     component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    #: The owning option's semantic key, or "" for a fact held directly on the
+    #: component. Not nullable: "no option" is a real, addressable scope, and a
+    #: NULL would make the grouping key three-valued for no benefit.
+    option_key: Mapped[str] = mapped_column(
+        sa.String(255), nullable=False, server_default=""
+    )
     fact_key: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     family: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     payload: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)

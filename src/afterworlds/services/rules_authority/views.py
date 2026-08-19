@@ -43,13 +43,14 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
-from afterworlds.ingestion.mechanical.representation import RecordKind
+from afterworlds.ingestion.mechanical.representation import Applicability, RecordKind
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.services.rules_authority.application import (
     AppliedOverride,
     EffectiveAuthority,
     EffectiveComponent,
     EffectiveFact,
+    EffectiveOption,
     EffectiveRecord,
     GoverningProseEntry,
     SourceProse,
@@ -101,9 +102,19 @@ class GameMasterComponent:
     #: Typed facts, supplied as *context* for judgement. A GameMaster reading
     #: this view is adjudicating, not executing; the facts are here so the
     #: judgement is made against exact authority rather than recollection.
+    #:
+    #: **Direct facts only.** Facts belonging to an exhaustive actor choice are
+    #: in :attr:`options` instead, because they are mutually exclusive: putting
+    #: them here would present "you may crawl" and "you may stand up" as
+    #: simultaneously applicable, which is not what the rule says.
     structured_context: tuple[EffectiveFact, ...]
     span_ids: tuple[str, ...]
     supplied_by_override_id: str | None
+    #: The component's exhaustive actor choice, when it states one. Exactly one
+    #: option applies per exercise of the choice; the reader picks.
+    options: tuple[EffectiveOption, ...] = ()
+    #: When the component applies at all, when the source conditions it.
+    applies_when: Applicability | None = None
 
 
 @dataclass(frozen=True)
@@ -170,6 +181,8 @@ def _gamemaster_component(
             _resolve_prose(entry, prose) for entry in component.governing_prose
         ),
         structured_context=component.facts,
+        options=component.options,
+        applies_when=component.applies_when,
         span_ids=component.span_ids,
         supplied_by_override_id=component.supplied_by_override_id,
     )

@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
+    ComponentDraft,
     FactFamily,
     ProseBindingDraft,
     ProvenanceRole,
@@ -43,6 +44,8 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordKind,
     RelationshipKind,
     RepresentationDraft,
+    UnknownFactFamilyError,
+    applicability_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
@@ -90,6 +93,62 @@ def _validate_records(draft: RepresentationDraft) -> list[str]:
     return findings
 
 
+def _validate_options(component: ComponentDraft, tag: str) -> list[str]:
+    """Check the exhaustive actor-choice contract of one component.
+
+    ``options`` means *exactly one of these is taken per exercise of the
+    choice*. Everything rejected here is a shape that would read as something
+    else: a conjunction wearing a choice's clothes, a choice with nothing to
+    choose between, or two options a consumer could not tell apart.
+    """
+    findings: list[str] = []
+    if not component.options:
+        return findings
+
+    if component.facts:
+        # A component is a conjunction or a choice. Both at once has no single
+        # reading: are the direct facts always true, or only alongside the
+        # chosen option? The source never states that shape, so it is refused
+        # rather than given an invented meaning.
+        findings.append(
+            f"{tag}: states both direct facts and an actor choice; a component "
+            "is a conjunction or a choice, never both"
+        )
+    if len(component.options) < 2:
+        findings.append(
+            f"{tag}: actor choice with {len(component.options)} option; a choice "
+            "of one is a plain component misdescribed"
+        )
+
+    seen_keys: set[str] = set()
+    seen_facts: set[tuple[str, ...]] = set()
+    for option in component.options:
+        otag = f"{tag} option {option.semantic_key}"
+        if not option.semantic_key.strip():
+            findings.append(f"{tag}: option with a blank semantic key")
+        elif option.semantic_key in seen_keys:
+            # Keys address an option's facts for provenance and for override
+            # targeting; two options sharing one would make both unaddressable.
+            findings.append(f"{tag}: duplicate option key {option.semantic_key!r}")
+        seen_keys.add(option.semantic_key)
+
+        if not option.facts:
+            findings.append(f"{otag}: option states no typed facts")
+        try:
+            signature = tuple(sorted(fact_key(f) for f in option.facts))
+        except UnknownFactFamilyError:
+            signature = ()
+        if signature and signature in seen_facts:
+            findings.append(f"{tag}: two options state the same typed facts")
+        seen_facts.add(signature)
+
+        if option.applies_when is not None:
+            findings.extend(
+                f"{otag}: {v}" for v in applicability_violations(option.applies_when)
+            )
+    return findings
+
+
 def _validate_components(draft: RepresentationDraft) -> list[str]:
     findings: list[str] = []
     record_keys = {r.semantic_key for r in draft.records}
@@ -106,27 +165,44 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         if component.record_key not in record_keys:
             findings.append(f"{tag}: unknown record {component.record_key}")
 
-        fact_keys: set[str] = set()
-        for fact in component.facts:
-            # Family membership *and* the family's own contract: a fact can
-            # belong to the closed union and still contradict itself, and such
-            # a fact would persist as mechanically unusable authority.
-            violations = fact_invariant_violations(fact)
-            if violations:
-                findings.extend(f"{tag}: {v}" for v in violations)
-                continue
-            key_ = fact_key(fact)
-            # Facts are identified by content, so a repeat is not a second
-            # claim — it is the same claim counted twice, which is exactly the
-            # duplicate-as-coverage inflation the completeness proof rejects.
-            if key_ in fact_keys:
-                findings.append(f"{tag}: duplicate typed fact {key_}")
-            fact_keys.add(key_)
+        # Facts are checked per *scope*: the component's own list, and each
+        # option's list. Duplicates are a defect within a scope, because a
+        # repeat is the same claim counted twice — but the same fact appearing
+        # in two mutually exclusive options is not a repeat, it is one claim
+        # each, and collapsing the two scopes would report a defect that is not
+        # there.
+        scopes: list[tuple[str, tuple[object, ...]]] = [("", component.facts)]
+        scopes.extend((o.semantic_key, o.facts) for o in component.options)
+        for option_key, scoped in scopes:
+            scope_tag = tag if not option_key else f"{tag} option {option_key}"
+            fact_keys: set[str] = set()
+            for fact in scoped:
+                # Family membership *and* the family's own contract: a fact can
+                # belong to the closed union and still contradict itself, and
+                # such a fact would persist as mechanically unusable authority.
+                violations = fact_invariant_violations(fact)
+                if violations:
+                    findings.extend(f"{scope_tag}: {v}" for v in violations)
+                    continue
+                key_ = fact_key(fact)
+                if key_ in fact_keys:
+                    findings.append(f"{scope_tag}: duplicate typed fact {key_}")
+                fact_keys.add(key_)
+
+        findings.extend(_validate_options(component, tag))
+        if component.applies_when is not None:
+            findings.extend(
+                f"{tag}: {v}" for v in applicability_violations(component.applies_when)
+            )
 
         has_prose = key in bound_prose
         code = component.irreducibility_reason_code
+        # Option facts are structured authority exactly as direct facts are: a
+        # component whose whole meaning is an actor choice publishes typed
+        # facts, they simply live one level down.
+        published = component.all_facts()
         if component.handling is ComponentHandling.STRUCTURED:
-            if not component.facts:
+            if not published:
                 findings.append(f"{tag}: structured handling with no typed facts")
             if has_prose:
                 findings.append(f"{tag}: structured handling with a prose binding")
@@ -137,9 +213,9 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         else:
             handling = component.handling.value
             if component.handling is ComponentHandling.PROSE_BOUND:
-                if component.facts:
+                if published:
                     findings.append(f"{tag}: {handling} handling with typed facts")
-            elif not component.facts:
+            elif not published:
                 findings.append(f"{tag}: mixed handling with no typed facts")
             if not has_prose:
                 findings.append(f"{tag}: {handling} handling with no bound prose")
@@ -345,7 +421,7 @@ def _validate_spell_list_membership(
             )
 
     for component in draft.components:
-        for fact in component.facts:
+        for fact in component.all_facts():
             if getattr(fact, "FAMILY", None) is not FactFamily.SPELL_LIST_QUALIFIER:
                 continue
             target = getattr(fact, "spell_record_key", "")

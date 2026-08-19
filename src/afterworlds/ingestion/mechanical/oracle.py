@@ -71,20 +71,31 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    ApplicabilityKind,
+    Comparison,
     ComponentDraft,
+    ComponentOption,
+    CreatureSize,
     FactFamily,
     MalformedFactPayloadError,
+    Phase,
     ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordDraft,
     RecordKind,
+    RecoveryTrigger,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    SizeComparison,
+    SizeRelation,
+    TrackedQuantity,
     UnknownFactFamilyError,
+    applicability_violations,
     fact_from_payload,
 )
 
@@ -238,7 +249,7 @@ def derive_obligations(
     families: dict[str, set[FactFamily]] = {}
     prose: dict[str, set[str]] = {}
     for component in representation.components:
-        for fact in component.facts:
+        for fact in component.all_facts():
             family = getattr(fact, "FAMILY", None)
             if isinstance(family, FactFamily):
                 families.setdefault(component.record_key, set()).add(family)
@@ -317,7 +328,20 @@ def oracle_identity(oracle: AcceptedOracle) -> str:
 # what publication tolerates.
 
 
-def _require(payload: object, keys: tuple[str, ...], where: str) -> dict[str, Any]:
+def _require(
+    payload: object,
+    keys: tuple[str, ...],
+    where: str,
+    optional: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    """Check a payload's key set exactly.
+
+    ``optional`` names keys that may be absent *and* may be present. It is used
+    only where absence is an unambiguous real state rather than lost content —
+    a component with no applicability and no options is exactly a schema-1
+    component. Everything else stays strict: an unknown key is still rejected,
+    so a misspelling cannot enter as silently ignored.
+    """
     if not isinstance(payload, dict):
         raise OracleLoadError(
             f"{where}: expected an object, got {type(payload).__name__}"
@@ -325,7 +349,7 @@ def _require(payload: object, keys: tuple[str, ...], where: str) -> dict[str, An
     supplied = set(payload)
     if missing := sorted(set(keys) - supplied):
         raise OracleLoadError(f"{where}: missing {missing}")
-    if extra := sorted(supplied - set(keys)):
+    if extra := sorted(supplied - set(keys) - set(optional)):
         raise OracleLoadError(f"{where}: unexpected {extra}")
     return payload
 
@@ -386,6 +410,71 @@ def _string_list(value: object, where: str) -> list[str]:
     return [
         _string(item, f"{where}[{i}]") for i, item in enumerate(_list(value, where))
     ]
+
+
+def _applicability(raw: object, where: str) -> Applicability | None:
+    """Load one stored applicability, or ``None``.
+
+    Delegates the shape contract to the same invariant checker the build side
+    uses, so a payload the builder would have refused cannot enter through the
+    loader instead.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise OracleLoadError(f"{where}: applicability must be an object or null")
+    try:
+        built = Applicability(
+            kind=ApplicabilityKind(raw["kind"]),
+            negated=bool(raw["negated"]),
+            quantity=(
+                None if raw["quantity"] is None else TrackedQuantity(raw["quantity"])
+            ),
+            comparison=(
+                None if raw["comparison"] is None else Comparison(raw["comparison"])
+            ),
+            value=raw["value"],
+            any_of=tuple(
+                SizeComparison(
+                    category=(
+                        None if c["category"] is None else CreatureSize(c["category"])
+                    ),
+                    relation=(
+                        None if c["relation"] is None else SizeRelation(c["relation"])
+                    ),
+                    at_least=c["at_least"],
+                )
+                for c in _object_list(raw["any_of"], f"{where}.any_of")
+            ),
+            trigger=(
+                None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
+            ),
+            phase=None if raw["phase"] is None else Phase(raw["phase"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise OracleLoadError(f"{where}: {exc}") from exc
+    violations = applicability_violations(built)
+    if violations:
+        raise OracleLoadError(f"{where}: {'; '.join(violations)}")
+    return built
+
+
+def _component_option(raw: object, where: str) -> ComponentOption:
+    """Load one option of an exhaustive actor choice."""
+    if not isinstance(raw, dict):
+        raise OracleLoadError(f"{where}: option must be an object")
+    o = _require(raw, ("semantic_key", "facts"), where, optional=("applies_when",))
+    try:
+        facts = tuple(
+            fact_from_payload(f) for f in _object_list(o["facts"], f"{where}.facts")
+        )
+    except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
+        raise OracleLoadError(f"{where}: {exc}") from exc
+    return ComponentOption(
+        semantic_key=_string(o["semantic_key"], f"{where}.semantic_key"),
+        facts=facts,
+        applies_when=_applicability(o.get("applies_when"), f"{where}.applies_when"),
+    )
 
 
 def _object_list(value: object, where: str) -> list[dict[str, Any]]:
@@ -489,6 +578,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
+            optional=("applies_when", "options"),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -513,6 +603,23 @@ def _representation(payload: object) -> RepresentationDraft:
                     f"{where}.irreducibility_reason_code",
                 ),
                 facts=facts,
+                # Optional, unlike the required keys above, and deliberately:
+                # absence is an unambiguous real state — a component with no
+                # applicability and no options is exactly a schema-1 component,
+                # which remains valid schema-2 content. Nothing is hidden by
+                # the leniency: ``projection_payload`` always emits both keys,
+                # and the gate rebuilds and re-hashes the payload, so a key
+                # dropped or misspelled anywhere upstream fails there rather
+                # than loading as silently empty.
+                applies_when=_applicability(
+                    c.get("applies_when"), f"{where}.applies_when"
+                ),
+                options=tuple(
+                    _component_option(o, f"{where}.options[{j}]")
+                    for j, o in enumerate(
+                        _object_list(c.get("options", []), f"{where}.options")
+                    )
+                ),
             )
         )
 

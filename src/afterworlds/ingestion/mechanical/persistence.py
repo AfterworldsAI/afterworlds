@@ -39,6 +39,8 @@ distinction decides which may be supplied by a caller:
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -58,6 +60,7 @@ from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
     ProjectionCandidate,
     ReleaseBinding,
+    applicability_payload,
     identify_projection,
     projection_payload,
 )
@@ -68,20 +71,31 @@ from afterworlds.ingestion.mechanical.raw_state import (
     validate_raw_closure,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    ApplicabilityKind,
+    Comparison,
     ComponentDraft,
+    ComponentOption,
+    CreatureSize,
     MalformedFactPayloadError,
     MechanicalFact,
+    Phase,
     ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordDraft,
     RecordKind,
+    RecoveryTrigger,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    SizeComparison,
+    SizeRelation,
+    TrackedQuantity,
     UnknownFactFamilyError,
+    applicability_violations,
     fact_from_payload,
     fact_key,
     fact_payload,
@@ -91,6 +105,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
     MechanicalBatchScopeORM,
+    MechanicalComponentOptionORM,
     MechanicalComponentORM,
     MechanicalFactORM,
     MechanicalProjectionORM,
@@ -241,23 +256,44 @@ def persist_draft(
                 semantic_key=component.semantic_key,
                 handling=component.handling.value,
                 irreducibility_reason_code=component.irreducibility_reason_code,
+                applies_when=applicability_payload(component.applies_when),
             )
         )
-        for fact in component.facts:
-            key_ = fact_key(fact)
+        for option in component.options:
             session.add(
-                MechanicalFactORM(
+                MechanicalComponentOptionORM(
                     projection_uuid=uuid_,
-                    fact_id=identified.fact_ids[
-                        (component.record_key, component.semantic_key, key_)
-                    ],
                     record_key=component.record_key,
                     component_key=component.semantic_key,
-                    fact_key=key_,
-                    family=str(fact_payload(fact)["family"]),
-                    payload=fact_payload(fact),
+                    semantic_key=option.semantic_key,
+                    applies_when=applicability_payload(option.applies_when),
                 )
             )
+        for option_key, scoped in (
+            ("", component.facts),
+            *((o.semantic_key, o.facts) for o in component.options),
+        ):
+            for fact in scoped:
+                key_ = fact_key(fact)
+                session.add(
+                    MechanicalFactORM(
+                        projection_uuid=uuid_,
+                        fact_id=identified.fact_ids[
+                            (
+                                component.record_key,
+                                component.semantic_key,
+                                option_key,
+                                key_,
+                            )
+                        ],
+                        record_key=component.record_key,
+                        component_key=component.semantic_key,
+                        option_key=option_key,
+                        fact_key=key_,
+                        family=str(fact_payload(fact)["family"]),
+                        payload=fact_payload(fact),
+                    )
+                )
 
     for binding in draft.prose_bindings:
         session.add(
@@ -307,6 +343,59 @@ def persist_draft(
         )
 
     session.flush()
+
+
+def _applicability_from_row(
+    payload: dict[str, object] | None, table: str, where: str
+) -> Applicability | None:
+    """Rebuild one stored applicability, refusing anything it cannot rebuild.
+
+    The stored payload is plain JSON, so every field is checked before it is
+    turned into a vocabulary member. Nothing is coerced: a value outside a
+    declared vocabulary fails the reconstruction rather than silently becoming
+    a different condition.
+    """
+    if payload is None:
+        return None
+    raw = cast("dict[str, Any]", payload)
+    try:
+        built = Applicability(
+            kind=ApplicabilityKind(raw["kind"]),
+            negated=bool(raw["negated"]),
+            quantity=(
+                None if raw["quantity"] is None else TrackedQuantity(raw["quantity"])
+            ),
+            comparison=(
+                None if raw["comparison"] is None else Comparison(raw["comparison"])
+            ),
+            value=cast("int | None", raw["value"]),
+            any_of=tuple(
+                SizeComparison(
+                    category=(
+                        None if c["category"] is None else CreatureSize(c["category"])
+                    ),
+                    relation=(
+                        None if c["relation"] is None else SizeRelation(c["relation"])
+                    ),
+                    at_least=c["at_least"],
+                )
+                for c in cast("list[dict[str, Any]]", raw["any_of"])
+            ),
+            trigger=(
+                None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
+            ),
+            phase=None if raw["phase"] is None else Phase(raw["phase"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise PersistedStateReconstructionError(
+            f"{table} {where}: stored applicability cannot be rebuilt: {exc}"
+        ) from exc
+    violations = applicability_violations(built)
+    if violations:
+        raise PersistedStateReconstructionError(
+            f"{table} {where}: {'; '.join(violations)}"
+        )
+    return built
 
 
 def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
@@ -456,7 +545,38 @@ def reconstruct_candidate(
             facts=tuple(
                 _fact_from_row(f)
                 for f in raw.facts
-                if (f.record_key, f.component_key) == (c.record_key, c.semantic_key)
+                if (f.record_key, f.component_key, f.option_key)
+                == (c.record_key, c.semantic_key, "")
+            ),
+            applies_when=_applicability_from_row(
+                c.applies_when, "rp_mech_components", f"{c.record_key}/{c.semantic_key}"
+            ),
+            # Options are rebuilt in canonical key order, matching the payload,
+            # so a reconstruction never depends on row order.
+            options=tuple(
+                ComponentOption(
+                    semantic_key=o.semantic_key,
+                    facts=tuple(
+                        _fact_from_row(f)
+                        for f in raw.facts
+                        if (f.record_key, f.component_key, f.option_key)
+                        == (c.record_key, c.semantic_key, o.semantic_key)
+                    ),
+                    applies_when=_applicability_from_row(
+                        o.applies_when,
+                        "rp_mech_component_options",
+                        f"{c.record_key}/{c.semantic_key}/{o.semantic_key}",
+                    ),
+                )
+                for o in sorted(
+                    (
+                        o
+                        for o in raw.component_options
+                        if (o.record_key, o.component_key)
+                        == (c.record_key, c.semantic_key)
+                    ),
+                    key=lambda o: o.semantic_key,
+                )
             ),
         )
         for c in raw.components
@@ -755,12 +875,14 @@ def verify_persisted_state(
         .all()
     ):
         expected = reidentified.fact_ids.get(
-            (frow.record_key, frow.component_key, frow.fact_key)
+            (frow.record_key, frow.component_key, frow.option_key, frow.fact_key)
         )
         if expected != frow.fact_id:
+            scope = f"[{frow.option_key}]" if frow.option_key else ""
             findings.append(
-                f"fact {frow.record_key}/{frow.component_key}/{frow.fact_key}: "
-                f"persisted id {frow.fact_id} != derived {expected}"
+                f"fact {frow.record_key}/{frow.component_key}{scope}/"
+                f"{frow.fact_key}: persisted id {frow.fact_id} != derived "
+                f"{expected}"
             )
 
     return tuple(findings)

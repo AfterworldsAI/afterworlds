@@ -47,6 +47,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionEffectFact,
     ConditionEffectKind,
     ConditionKind,
+    ConditionLevelFact,
     CreatureAbilityScoreFact,
     CreatureChallengeFact,
     CreatureDefenseFact,
@@ -66,10 +67,16 @@ from afterworlds.ingestion.mechanical.representation import (
     EquipmentDescriptorFact,
     FactFamily,
     HealingFact,
+    LevelDirection,
     MalformedFactPayloadError,
     Money,
+    MovementAmount,
+    MovementCostFact,
+    MovementCostKind,
     MovementMode,
+    MovementPermissionFact,
     ProgressionEntryFact,
+    QuantityMultiplierFact,
     RangeKind,
     Rational,
     RecordDraft,
@@ -85,6 +92,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ScalingBasis,
     ScalingEffect,
     ScalingFact,
+    Sense,
+    SensoryCapabilityFact,
     SpeedChange,
     SpeedModificationFact,
     SpellCastingTime,
@@ -98,6 +107,9 @@ from afterworlds.ingestion.mechanical.representation import (
     StateEffectFact,
     StateEffectKind,
     TimeUnit,
+    TrackedQuantity,
+    TransformationFact,
+    TransformedForm,
     UnknownFactFamilyError,
     WeaponProperty,
     WeaponPropertyFact,
@@ -219,6 +231,34 @@ EXEMPLARS: dict[FactFamily, Any] = {
     ),
     # Incapacitated: "Your Concentration is broken."
     FactFamily.STATE_EFFECT: StateEffectFact(StateEffectKind.CONCENTRATION_BROKEN),
+    # Blinded: "You can't see".
+    FactFamily.SENSORY_CAPABILITY: SensoryCapabilityFact(
+        sense=Sense.SIGHT, can_perceive=False
+    ),
+    # Exhaustion: "Each time you receive it, you gain 1 Exhaustion level."
+    FactFamily.CONDITION_LEVEL: ConditionLevelFact(
+        condition=ConditionKind.EXHAUSTION,
+        direction=LevelDirection.GAIN,
+        amount=1,
+        cumulative=True,
+    ),
+    # Grappled: "every foot of movement costs it 1 extra foot".
+    FactFamily.MOVEMENT_COST: MovementCostFact(
+        kind=MovementCostKind.PER_FOOT_SURCHARGE,
+        amount=MovementAmount.FEET,
+        feet=1,
+    ),
+    # Prone: "your only movement options are to crawl or ...".
+    FactFamily.MOVEMENT_PERMISSION: MovementPermissionFact(mode=MovementMode.CRAWL),
+    # Petrified: "You are transformed, along with any nonmagical objects you
+    # are wearing and carrying, into a solid inanimate substance".
+    FactFamily.TRANSFORMATION: TransformationFact(
+        becomes=TransformedForm.OBJECT, carried_nonmagical_included=True
+    ),
+    # Petrified: "Your weight increases by a factor of ten."
+    FactFamily.QUANTITY_MULTIPLIER: QuantityMultiplierFact(
+        quantity=TrackedQuantity.WEIGHT, factor=10
+    ),
     # "The damage increases by 1d10 for each spell slot level above 4."
     FactFamily.SCALING: ScalingFact(
         basis=ScalingBasis.HIGHER_LEVEL_SPELL_SLOT,
