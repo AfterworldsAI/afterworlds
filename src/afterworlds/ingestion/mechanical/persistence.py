@@ -61,6 +61,7 @@ from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
     applicability_payload,
+    applicability_payload_violations,
     identify_projection,
     projection_payload,
 )
@@ -358,17 +359,28 @@ def _applicability_from_row(
     if payload is None:
         return None
     raw = cast("dict[str, Any]", payload)
+    # Same closed key set the accepted-input loader enforces, for the same
+    # reason: a payload key the typed invariants cannot see is a field that
+    # was never checked.
+    if shape := applicability_payload_violations(raw):
+        raise PersistedStateReconstructionError(f"{table} {where}: {'; '.join(shape)}")
     try:
         built = Applicability(
             kind=ApplicabilityKind(raw["kind"]),
-            negated=bool(raw["negated"]),
+            # Never coerced. ``bool("false")`` is ``True``, and a stored
+            # applicability that reconstructs as its own negation is worse than
+            # one that refuses to reconstruct at all.
+            negated=raw["negated"],
             quantity=(
                 None if raw["quantity"] is None else TrackedQuantity(raw["quantity"])
             ),
             comparison=(
                 None if raw["comparison"] is None else Comparison(raw["comparison"])
             ),
-            value=cast("int | None", raw["value"]),
+            # No cast: the stored value is unverified JSON, and asserting a
+            # type the invariant checker is about to test would be a lie that
+            # mypy then trusts.
+            value=raw["value"],
             any_of=tuple(
                 SizeComparison(
                     category=(
@@ -379,7 +391,7 @@ def _applicability_from_row(
                     ),
                     at_least=c["at_least"],
                 )
-                for c in cast("list[dict[str, Any]]", raw["any_of"])
+                for c in raw["any_of"]
             ),
             trigger=(
                 None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])

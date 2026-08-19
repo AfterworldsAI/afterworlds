@@ -3893,9 +3893,39 @@ def _is_set(applicability: Applicability, field: str) -> bool:
     return bool(value) if field == "any_of" else value is not None
 
 
+def _exact_optional_int(value: object, where: str) -> str | None:
+    """Reject anything that is not exactly a JSON integer or ``None``.
+
+    ``bool`` is an ``int`` subclass, so ``True`` would otherwise satisfy every
+    downstream range test as the quantity ``1``; a string would raise an
+    incidental ``TypeError`` from the comparison rather than a stated finding.
+    Both are malformed authority and both must be refused here, before any
+    range comparison reads them.
+    """
+    if value is None or type(value) is int:
+        return None
+    return f"{where} is {type(value).__name__} {value!r}, not an integer"
+
+
 def size_comparison_violations(comparison: SizeComparison) -> list[str]:
     """Violations of one size test's own contract."""
     findings: list[str] = []
+    if comparison.category is not None and not isinstance(
+        comparison.category, CreatureSize
+    ):
+        findings.append(f"{comparison.category!r} is not a declared CreatureSize")
+    if comparison.relation is not None and not isinstance(
+        comparison.relation, SizeRelation
+    ):
+        findings.append(f"{comparison.relation!r} is not a declared SizeRelation")
+    if finding := _exact_optional_int(comparison.at_least, "size distance"):
+        findings.append(finding)
+    if findings:
+        # The type domain first, with its own early return: the relative and
+        # absolute checks below read these fields, and reporting a range
+        # opinion about a value that is not of the declared type at all would
+        # be a second, misleading finding about the same defect.
+        return findings
     absolute = comparison.category is not None
     relative = comparison.relation is not None or comparison.at_least is not None
     if absolute and relative:
@@ -3927,6 +3957,36 @@ def applicability_violations(applicability: Applicability) -> list[str]:
     """
     if not isinstance(applicability.kind, ApplicabilityKind):
         return [f"{applicability.kind!r} is not a declared ApplicabilityKind"]
+    # The type domain, before ``_is_set`` and before any range comparison.
+    # ``_is_set`` reports ``value=True`` as populated and ``True < 0`` is
+    # ``False``, so a malformed boolean would otherwise pass every later check
+    # silently; ``value="3"`` would raise an incidental ``TypeError`` instead
+    # of a stated finding. Neither is an acceptable answer for malformed
+    # authority, and both loaders inherit this guard through their existing
+    # post-construction call.
+    typed: list[str] = []
+    if type(applicability.negated) is not bool:
+        typed.append(
+            f"negated is {type(applicability.negated).__name__} "
+            f"{applicability.negated!r}, not a boolean"
+        )
+    if finding := _exact_optional_int(applicability.value, "threshold value"):
+        typed.append(finding)
+    for name, member in (
+        ("quantity", TrackedQuantity),
+        ("comparison", Comparison),
+        ("trigger", RecoveryTrigger),
+        ("phase", Phase),
+    ):
+        held = getattr(applicability, name)
+        if held is not None and not isinstance(held, member):
+            typed.append(f"{held!r} is not a declared {member.__name__}")
+    if not isinstance(applicability.any_of, tuple) or any(
+        not isinstance(c, SizeComparison) for c in applicability.any_of
+    ):
+        typed.append("any_of is not a tuple of size comparisons")
+    if typed:
+        return typed
     allowed = _APPLICABILITY_FIELDS[applicability.kind]
     findings: list[str] = []
     for field in sorted(_APPLICABILITY_ALL_FIELDS - allowed):

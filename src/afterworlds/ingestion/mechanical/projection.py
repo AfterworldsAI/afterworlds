@@ -312,6 +312,66 @@ def applicability_payload(
     }
 
 
+#: The exact key set :func:`applicability_payload` emits, and therefore the
+#: exact key set a stored or committed applicability payload must carry. It is
+#: closed in both directions: a missing key is lost content, and an extra key
+#: is a claim about a field the shape does not have — most often a misspelling
+#: that would otherwise enter as silently ignored.
+_APPLICABILITY_PAYLOAD_KEYS = frozenset(
+    {
+        "kind",
+        "negated",
+        "quantity",
+        "comparison",
+        "value",
+        "any_of",
+        "trigger",
+        "phase",
+    }
+)
+_SIZE_COMPARISON_PAYLOAD_KEYS = frozenset({"category", "relation", "at_least"})
+
+
+def applicability_payload_violations(raw: object) -> list[str]:
+    """Violations of one applicability *payload*'s key set and array shape.
+
+    The typed invariant checker owns the field contract, but it can only see
+    what was already constructed: a payload with a misspelled or missing key
+    never reaches it as the field it was meant to be. This is the half of the
+    contract that lives in the JSON, and both the accepted-input loader and the
+    persisted-state loader run it before constructing anything.
+
+    Primitive *types* are deliberately not re-checked here — the typed
+    invariants own that, so there is one statement of the rule rather than two
+    that can drift.
+    """
+    if not isinstance(raw, dict):
+        return [f"applicability is {type(raw).__name__}, not an object"]
+    findings: list[str] = []
+    supplied = set(raw)
+    if missing := sorted(_APPLICABILITY_PAYLOAD_KEYS - supplied):
+        findings.append(f"applicability payload is missing {missing}")
+    if extra := sorted(supplied - _APPLICABILITY_PAYLOAD_KEYS):
+        findings.append(f"applicability payload carries unexpected {extra}")
+    any_of = raw.get("any_of")
+    if "any_of" in supplied:
+        if not isinstance(any_of, list):
+            findings.append(f"any_of is {type(any_of).__name__}, not an array")
+        else:
+            for index, member in enumerate(any_of):
+                if not isinstance(member, dict):
+                    findings.append(
+                        f"any_of[{index}] is {type(member).__name__}, not an object"
+                    )
+                    continue
+                held = set(member)
+                if lost := sorted(_SIZE_COMPARISON_PAYLOAD_KEYS - held):
+                    findings.append(f"any_of[{index}] is missing {lost}")
+                if odd := sorted(held - _SIZE_COMPARISON_PAYLOAD_KEYS):
+                    findings.append(f"any_of[{index}] carries unexpected {odd}")
+    return findings
+
+
 def derive_fact_id(
     projection_uuid_: str,
     record_key: str,

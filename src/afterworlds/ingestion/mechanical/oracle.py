@@ -68,6 +68,7 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
+    applicability_payload_violations,
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
@@ -423,10 +424,19 @@ def _applicability(raw: object, where: str) -> Applicability | None:
         return None
     if not isinstance(raw, dict):
         raise OracleLoadError(f"{where}: applicability must be an object or null")
+    # The key set first: a misspelled or missing key never reaches the typed
+    # invariants as the field it was meant to be, so it has to be refused
+    # before anything is constructed.
+    if shape := applicability_payload_violations(raw):
+        raise OracleLoadError(f"{where}: {'; '.join(shape)}")
     try:
         built = Applicability(
             kind=ApplicabilityKind(raw["kind"]),
-            negated=bool(raw["negated"]),
+            # Carried through exactly as stored, never coerced: ``bool("false")``
+            # is ``True``, so coercion here would publish the opposite
+            # applicability from what the malformed input states. The exact-type
+            # rule is stated once, by the invariant checker below.
+            negated=raw["negated"],
             quantity=(
                 None if raw["quantity"] is None else TrackedQuantity(raw["quantity"])
             ),
