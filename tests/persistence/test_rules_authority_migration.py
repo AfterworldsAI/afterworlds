@@ -20,7 +20,10 @@ from pathlib import Path
 import pytest
 
 from afterworlds.persistence.orm.base import Base
-from tests.services.rules_authority.conftest import _trigger_names
+from tests.services.rules_authority.conftest import (
+    _ENTRY_CONTENT_COLUMNS,
+    _trigger_names,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -234,6 +237,28 @@ def test_the_entry_guard_covers_the_new_option_scope_column(
             )
     finally:
         con.close()
+
+
+def test_the_fixture_mirror_guards_every_column_the_migration_guards(
+    migrated: Path,
+) -> None:
+    """The suite's trigger mirror and the migration must name the same columns.
+
+    They are two hand-maintained copies of one guard, and the trigger-set test
+    above compares only *names*. If they drift, every retention and
+    override-set test runs against a guard the production schema does not
+    have — and passes, silently.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        (sql,) = con.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = "
+            "'prevent_rp_override_set_entries_reinsert'"
+        ).fetchone()
+    finally:
+        con.close()
+    missing = [c for c in _ENTRY_CONTENT_COLUMNS if f"{c} IS NOT NEW.{c}" not in sql]
+    assert not missing, f"migrated guard does not cover {missing}"
 
 
 def test_an_identical_reinsert_is_permitted_on_the_migrated_schema(
