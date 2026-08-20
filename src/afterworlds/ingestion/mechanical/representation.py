@@ -2252,6 +2252,25 @@ def _check_condition_level(fact: ConditionLevelFact) -> list[str]:
     return findings
 
 
+#: The legal ``(kind, amount)`` matrix. Stated as the allowed set rather than as
+#: two prohibitions, because both prohibitions the review names —
+#: ``PER_FOOT_SURCHARGE`` requires ``FEET``, and ``HALF_SPEED`` requires
+#: ``EXPENDITURE`` — forbid the *same single cell*, and reporting one malformed
+#: fact twice would describe two defects where there is one. An allowed set also
+#: stays correct if either vocabulary gains a member: a new pairing is refused
+#: until it is deliberately admitted, rather than silently legal.
+_MOVEMENT_COST_MATRIX: frozenset[tuple[MovementCostKind, MovementAmount]] = frozenset(
+    {
+        # "each foot of movement costs 1 extra foot" — a rate, stated in feet.
+        (MovementCostKind.PER_FOOT_SURCHARGE, MovementAmount.FEET),
+        # "spend 10 feet of movement" — a lump cost stated as a fixed distance.
+        (MovementCostKind.EXPENDITURE, MovementAmount.FEET),
+        # "spend movement equal to half your Speed" — a lump cost, no number.
+        (MovementCostKind.EXPENDITURE, MovementAmount.HALF_SPEED),
+    }
+)
+
+
 def _check_movement_cost(fact: MovementCostFact) -> list[str]:
     findings = [
         *_enum_field(fact.kind, MovementCostKind, "kind"),
@@ -2260,6 +2279,11 @@ def _check_movement_cost(fact: MovementCostFact) -> list[str]:
     ]
     if findings:
         return findings
+    if (fact.kind, fact.amount) not in _MOVEMENT_COST_MATRIX:
+        # A per-foot *rate* cannot be stated as half a Speed: the declared kind
+        # charges per foot of movement, while HALF_SPEED is the lump form. The
+        # combination reads as a rule but names no computable cost.
+        return [f"{fact.kind.value} cannot state a {fact.amount.value} amount"]
     if fact.amount is MovementAmount.FEET:
         if fact.feet is None:
             findings.append("a stated distance carries no feet")
@@ -3964,6 +3988,80 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
         elif comparison.at_least < 1:
             findings.append(
                 f"relative size distance {comparison.at_least} compares nothing"
+            )
+    return findings
+
+
+def option_set_violations(
+    facts: tuple[MechanicalFact, ...],
+    options: tuple[ComponentOption, ...],
+    tag: str,
+) -> list[str]:
+    """Violations of one component's exhaustive actor-choice contract.
+
+    Stated over ``(facts, options)`` rather than over a whole
+    :class:`ComponentDraft` so the *same* rule governs both places a component's
+    content can be authored: the build-time representation, and an
+    override-supplied complete component patch. A runtime patch layer restating
+    these rules would be a looser second copy of the schema, and the two would
+    drift.
+
+    Everything rejected here is a shape that would read as something else: a
+    conjunction wearing a choice's clothes, a choice with nothing to choose
+    between, or two options a consumer could not tell apart.
+    """
+    findings: list[str] = []
+    if not options:
+        return findings
+
+    if facts:
+        # A component is a conjunction or a choice. Both at once has no single
+        # reading: are the direct facts always true, or only alongside the
+        # chosen option? The source never states that shape, so it is refused
+        # rather than given an invented meaning.
+        findings.append(
+            f"{tag}: states both direct facts and an actor choice; a component "
+            "is a conjunction or a choice, never both"
+        )
+    if len(options) < 2:
+        findings.append(
+            f"{tag}: actor choice with {len(options)} option; a choice "
+            "of one is a plain component misdescribed"
+        )
+
+    seen_keys: set[str] = set()
+    seen_facts: set[tuple[str, ...]] = set()
+    for option in options:
+        otag = f"{tag} option {option.semantic_key}"
+        # Exactly this closed type. Same family as the applicability
+        # structures: an option subclass could carry a meaning-bearing field
+        # that no payload emits, so two options asserting different authority
+        # would persist and canonicalize identically — and a redefined
+        # ``__eq__`` could evade the duplicate checks immediately below.
+        if drift := exact_type_violations(option, ComponentOption, otag):
+            findings.extend(drift)
+            continue
+        if not option.semantic_key.strip():
+            findings.append(f"{tag}: option with a blank semantic key")
+        elif option.semantic_key in seen_keys:
+            # Keys address an option's facts for provenance and for override
+            # targeting; two options sharing one would make both unaddressable.
+            findings.append(f"{tag}: duplicate option key {option.semantic_key!r}")
+        seen_keys.add(option.semantic_key)
+
+        if not option.facts:
+            findings.append(f"{otag}: option states no typed facts")
+        try:
+            signature = tuple(sorted(fact_key(f) for f in option.facts))
+        except UnknownFactFamilyError:
+            signature = ()
+        if signature and signature in seen_facts:
+            findings.append(f"{tag}: two options state the same typed facts")
+        seen_facts.add(signature)
+
+        if option.applies_when is not None:
+            findings.extend(
+                f"{otag}: {v}" for v in applicability_violations(option.applies_when)
             )
     return findings
 

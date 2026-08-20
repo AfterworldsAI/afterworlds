@@ -415,3 +415,143 @@ published**, since acceptance is the point at which an unclosed structure could
 persist undeclared state under a canonical identity. Recorded in the PR summary
 as deferred residue. `known_unknowns.md` is unchanged — this is scheduled
 implementation work with a known shape, not an undecided question.
+
+---
+
+# Round 6 — two P1 findings
+
+Reviewed head `22872cd9ef8f02269289073a756d6e2f5aeab156`, verified unmoved before
+starting. Both threads left **unresolved**; eight threads now stand open. Scope
+held: no schema hash change, no OPTION decision reopened, no ADR or Issue
+amendment, no acceptance/publication/activation, `known_unknowns.md` unchanged,
+no legacy removal or 2b / 15c / #129 / production-authoring work.
+
+## Finding 1 — complete component patches dropped schema-2 shape
+
+**Thread:** `representation.py:3694` (P1).
+
+**Root cause.** Schema 2 made `applies_when` and `options` part of a component's
+authoritative shape, but the patch layer never learned them: `ComponentBody`
+held neither field, `_build_component_body()` rejected both keys as unexpected,
+`_component_body_payload()` emitted neither, and `_component_from_body()` always
+constructed `EffectiveComponent` with their empty defaults. No complete
+component patch could author a conditioned or choice-bearing component, and
+replacing an existing one silently discarded whatever qualifier and option
+structure the base projection gave it.
+
+### The rules are stated once, not copied
+
+The task forbids "a looser runtime copy of the schema", and the largest risk
+here was exactly that — six option-set rules restated in `patches.py`.
+
+* **Option-set validity** moved from `validation.py::_validate_options` to
+  `representation.option_set_violations(facts, options, tag)`, stated over the
+  two fields rather than over a whole `ComponentDraft` (which a replacement body
+  cannot supply — it has no `record_key`). `_validate_options` now delegates, so
+  its existing callers and tests are unchanged, and the patch parser calls the
+  same function. Exhaustiveness, duplicate keys, duplicate fact sets, empty
+  options, the exact `ComponentOption` type, direct-facts-versus-options, and
+  per-option applicability are therefore one rule with two callers.
+* **Applicability** is read in `patches.py` through the same two gates the
+  accepted-input and persisted-state loaders already use —
+  `applicability_payload_violations` for the closed key set, then
+  `applicability_violations` for the typed contract — raising
+  `InvalidPatchError`. That is a third *reader* of the rules, not a third copy;
+  collapsing all three constructions into one builder would have rewritten two
+  loaders that passed review last round, which this finding does not ask for.
+
+### Seam dispositions
+
+| Seam | Disposition |
+|---|---|
+| `ComponentBody` | **patched** — `applies_when`, `options`, reusing the representation's own types |
+| `_build_component_body()` | **patched** — both keys optional on the way in; applicability and options parsed strictly |
+| handling-honesty predicate | **patched** — counts option facts. A choice component has **no direct facts by contract**, so the old `if not facts` refusal would have rejected every honest option-bearing component. Same predicate as `_finalize_component`'s `facts_present`. |
+| `_component_body_payload()` | **patched** — omits both when they hold legacy defaults; options sorted by `semantic_key`, each option's facts by `fact_key` |
+| `_build_replace_record` / `_build_replace_component` / `_build_append_component` | **already safe** — all three route through `_build_component_body`, so one change closes all three families |
+| `application.py::_component_from_body()` | **patched** — builds `applies_when` and `EffectiveOption` entries; every option fact carries `option_key` plus the supplying override's identity and origin |
+| completeness of replacement | **already safe, asserted** — builds a fresh `EffectiveComponent` rather than `replace()`-ing the base, so omission removes rather than inherits. Proven against a base component that *does* carry a qualifier. |
+| `_finalize_component`, `disabled_facts.difference_update` | **already safe** — both handle options generically since round 3 |
+| `views.py::_gamemaster_component` | **already safe, asserted** — passes `options`/`applies_when` through generically; driven end to end rather than dispositioned by inspection, per the round-4 correction |
+| `_REQUIRED_FAMILY` | **untouched** — an OPTION-target append (one fact into an existing option) and a component patch carrying options are different operations that coexist; conflating them would reopen the settled decision |
+| top-level draft subclass closure | **still deferred** — unchanged from round 5, not expanded into here |
+
+### Legacy compatibility
+
+Captured on `22872cd` **before any edit**, by running the pre-change emitter —
+the claim is unfalsifiable if computed with post-change code:
+
+| Family | Override-set identity |
+|---|---|
+| `REPLACE_COMPONENT` | `e71ba996-4bc3-5ed3-8f2f-10ac83009a8f` |
+| `APPEND_COMPONENT` | `95b4f149-8ce4-5a4b-98be-209c924907e2` |
+| `REPLACE_RECORD` | `eaf62f89-5582-5fdf-ba74-8e94918f5bb3` |
+
+All three payloads are byte-identical after the change and all three identities
+are unmoved, pinned as literals. A legacy component payload still carries
+exactly `{handling, facts, authored_prose}` and gains no new keys.
+
+### Alternate spellings
+
+Four pairs proven to canonicalize to one payload: absent versus explicit-`null`
+`applies_when`; absent versus `[]` `options`; options supplied in reversed
+order; option facts supplied in reversed order. A negative control proves the
+dedup did not flatten real content — a qualifier being present or absent still
+moves the payload. A round-trip property
+(`payload(parse(payload(p))) == payload(p)`) catches emitter/parser divergence
+in one assertion across all three families.
+
+## Finding 2 — `MovementCostFact`'s legal value matrix
+
+**Thread:** `representation.py:2263` (P1).
+
+**Root cause.** `_check_movement_cost()` validated `feet` against `amount` but
+never `kind` against `amount`, so `PER_FOOT_SURCHARGE` + `HALF_SPEED` passed
+with no findings — a declared per-foot *rate* stated in the lump form, naming no
+computable cost, publishable as mechanical canon.
+
+**One rule, not two, and the arithmetic was checked before choosing.** Both
+prohibitions the task names — `PER_FOOT_SURCHARGE` requires `FEET`, and
+`HALF_SPEED` requires `EXPENDITURE` — forbid the *same single cell* with both
+vocabularies at two members. Stating them separately would report one malformed
+fact as two defects, contradicting the one-defect-one-finding discipline round 4
+established. `_MOVEMENT_COST_MATRIX` is therefore the allowed set, which also
+stays correct if either vocabulary grows: a new pairing is refused until
+deliberately admitted.
+
+**Fixed-feet expenditures preserved.** `(EXPENDITURE, FEET, n>0)` remains valid;
+nothing in the repository disproves it. Every committed instance was checked
+first — the exemplars and the closure proof use `(PER_FOOT_SURCHARGE, FEET, 1)`
+and `(EXPENDITURE, HALF_SPEED)`, neither of which is the forbidden cell.
+
+### Sibling audit — the other five schema-2 families
+
+| Family | Discriminator/payload pair | Disposition |
+|---|---|---|
+| `sensory_capability` | `can_perceive` vs `range_feet` | **already safe** — a removed capability carrying a range is already refused |
+| `condition_level` | `all_levels` vs `amount`; `cumulative` vs `direction` | **already safe** — both cross-checks present |
+| `movement_permission` | none — a single enum | **already safe** by shape |
+| `quantity_multiplier` | none — `factor` is not conditioned on `quantity` | **already safe** by shape |
+| `transformation` | none — the bool is independent of `becomes` | **already safe** by shape |
+
+**Boundary, reported not fixed:** the advisor flagged a possible `bool`-as-`int`
+gap in `_optional_int_field`. It does not exist — `_is_int` already excludes
+`bool` — so it is reported as already safe rather than patched. Had it existed
+it would have been a primitive-type gap, not the discriminator-mismatch family
+this finding names.
+
+## Regression evidence
+
+`tests/services/rules_authority/test_review_round_5_component_patch_schema2.py`
+(35) and `tests/ingestion/mechanical/test_review_round_5_movement_cost_matrix.py`
+(18). Both were verified to **fail against their reinstated defects** before
+being kept: disabling the matrix check fails 5 movement tests; disabling the
+payload omission fails 7 component tests. The matrix test carries an
+exhaustiveness guard that fails if either vocabulary grows without the table.
+
+## Note
+
+`git stash pop` reported success while leaving `validation.py` unrestored, which
+was caught by the file's absence from `git status` rather than by the command's
+exit status. Restored from the stash entry explicitly and re-verified before
+committing.

@@ -388,19 +388,41 @@ def _component_from_body(
     semantic_key: str,
     entry: EffectiveOverrideEntry,
 ) -> EffectiveComponent:
+    def _supplied(
+        facts: tuple[MechanicalFact, ...], option_key: str | None
+    ) -> tuple[EffectiveFact, ...]:
+        return tuple(
+            EffectiveFact(
+                fact_key=fact_key(f),
+                fact=f,
+                option_key=option_key,
+                supplied_by_override_id=entry.override_id,
+                supplied_by_origin=entry.origin,
+            )
+            for f in facts
+        )
+
     return EffectiveComponent(
         record_key=record_key,
         semantic_key=semantic_key,
         handling=body.handling,
         irreducibility_reason_code=None,
-        facts=tuple(
-            EffectiveFact(
-                fact_key=fact_key(f),
-                fact=f,
-                supplied_by_override_id=entry.override_id,
-                supplied_by_origin=entry.origin,
+        facts=_supplied(body.facts, None),
+        # Built fresh rather than by replacing the base component, so a
+        # replacement that omits these fields genuinely removes the qualifier
+        # and option set the base projection carried instead of inheriting
+        # stale state. Component replacement is complete by contract.
+        applies_when=body.applies_when,
+        options=tuple(
+            EffectiveOption(
+                semantic_key=option.semantic_key,
+                # An option's facts are override-supplied authority exactly as
+                # direct facts are, so each carries the supplying override's
+                # identity and origin and names 5c spans nowhere.
+                facts=_supplied(option.facts, option.semantic_key),
+                applies_when=option.applies_when,
             )
-            for f in body.facts
+            for option in body.options
         ),
         governing_prose=(
             (

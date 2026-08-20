@@ -37,7 +37,6 @@ from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
     ComponentDraft,
-    ComponentOption,
     FactFamily,
     ProseBindingDraft,
     ProvenanceRole,
@@ -45,12 +44,11 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordKind,
     RelationshipKind,
     RepresentationDraft,
-    UnknownFactFamilyError,
     applicability_violations,
     declared_provenance_targets,
-    exact_type_violations,
     fact_invariant_violations,
     fact_key,
+    option_set_violations,
     prose_bindings_by_target_key,
 )
 
@@ -96,67 +94,12 @@ def _validate_records(draft: RepresentationDraft) -> list[str]:
 
 
 def _validate_options(component: ComponentDraft, tag: str) -> list[str]:
-    """Check the exhaustive actor-choice contract of one component.
+    """The component-draft spelling of the shared option-set contract.
 
-    ``options`` means *exactly one of these is taken per exercise of the
-    choice*. Everything rejected here is a shape that would read as something
-    else: a conjunction wearing a choice's clothes, a choice with nothing to
-    choose between, or two options a consumer could not tell apart.
+    The rule itself lives in :func:`.representation.option_set_violations` so
+    the override patch path enforces the same one rather than a second copy.
     """
-    findings: list[str] = []
-    if not component.options:
-        return findings
-
-    if component.facts:
-        # A component is a conjunction or a choice. Both at once has no single
-        # reading: are the direct facts always true, or only alongside the
-        # chosen option? The source never states that shape, so it is refused
-        # rather than given an invented meaning.
-        findings.append(
-            f"{tag}: states both direct facts and an actor choice; a component "
-            "is a conjunction or a choice, never both"
-        )
-    if len(component.options) < 2:
-        findings.append(
-            f"{tag}: actor choice with {len(component.options)} option; a choice "
-            "of one is a plain component misdescribed"
-        )
-
-    seen_keys: set[str] = set()
-    seen_facts: set[tuple[str, ...]] = set()
-    for option in component.options:
-        otag = f"{tag} option {option.semantic_key}"
-        # Exactly this closed type. Same family as the applicability structures:
-        # an option subclass could carry a meaning-bearing field that no payload
-        # emits, so two options asserting different authority would persist and
-        # canonicalize identically — and a redefined ``__eq__`` could evade the
-        # duplicate-key and duplicate-fact checks immediately below.
-        if drift := exact_type_violations(option, ComponentOption, otag):
-            findings.extend(drift)
-            continue
-        if not option.semantic_key.strip():
-            findings.append(f"{tag}: option with a blank semantic key")
-        elif option.semantic_key in seen_keys:
-            # Keys address an option's facts for provenance and for override
-            # targeting; two options sharing one would make both unaddressable.
-            findings.append(f"{tag}: duplicate option key {option.semantic_key!r}")
-        seen_keys.add(option.semantic_key)
-
-        if not option.facts:
-            findings.append(f"{otag}: option states no typed facts")
-        try:
-            signature = tuple(sorted(fact_key(f) for f in option.facts))
-        except UnknownFactFamilyError:
-            signature = ()
-        if signature and signature in seen_facts:
-            findings.append(f"{tag}: two options state the same typed facts")
-        seen_facts.add(signature)
-
-        if option.applies_when is not None:
-            findings.extend(
-                f"{otag}: {v}" for v in applicability_violations(option.applies_when)
-            )
-    return findings
+    return option_set_violations(component.facts, component.options, tag)
 
 
 def _validate_components(draft: RepresentationDraft) -> list[str]:
