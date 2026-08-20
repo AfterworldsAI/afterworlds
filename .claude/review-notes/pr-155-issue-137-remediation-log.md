@@ -555,3 +555,130 @@ exhaustiveness guard that fails if either vocabulary grows without the table.
 was caught by the file's absence from `git status` rather than by the command's
 exit status. Restored from the stash entry explicitly and re-verified before
 committing.
+
+---
+
+# Round 7 — two P1 findings
+
+Reviewed head `8091ec5d192a9411500d88f37fa2dccf73e81ab9`, verified unmoved
+before starting. Both threads left **unresolved**; ten threads now stand open.
+Scope held: schema-2 hash unchanged, OPTION decision not reopened, no ADR or
+Issue amendment, no acceptance/publication/activation, `known_unknowns.md`
+unchanged, override precedence untouched, deferred top-level draft closure not
+expanded into, and no legacy removal or 2b / 15c / #129 work.
+
+## Finding 1 — final effective option invariants
+
+**Thread:** `application.py:965` (P1). Defect class: effective-state /
+schema-invariant gap. The sibling gate had fired.
+
+**Root cause.** Every existing check is *per-scope*. An `APPEND` or `REPLACE`
+inside one option sees only that option's facts; a fact-scoped `DISABLE` is not
+resolved into removal until `_finalize_component()`. None of them can observe
+that two arms have become indistinguishable, or that an arm has been emptied —
+those are component-wide properties of the **final** state. So options `{A}` and
+`{A, B}` become two identical arms once `B` is appended to the first, and
+`option_set_violations()` rejects exactly that shape at build time while nothing
+asked it after override application.
+
+**Where the check runs, and why there.** `_verify_final_option_sets` runs once,
+after `surviving` is assembled — after the whole ordered set has been applied
+*and* suppression resolved. That is what makes it final-state rather than
+intermediate-state validation: a shape one entry creates and a later entry
+legitimately repairs is never rejected, which is proven by a positive control
+whose intermediate state is invalid and whose final state is valid.
+
+**The rule is reused, not restated.** The effective view is projected back into
+the representation's own types — `EffectiveFact.fact`, and `ComponentOption`
+rebuilt from `EffectiveOption` — and handed to
+`representation.option_set_violations`, the same function the corpus is built
+under and the same one the patch parser calls since round 6. The projection
+deliberately discards provenance: the contract is about what the facts *say*,
+not which override supplied them. Provenance on the published view is untouched,
+and asserted so.
+
+**Attribution.** A final-state violation has no single culprit; an earlier entry
+may create the shape a later one completes. `_blame_for` names the last applied
+override that targeted that record and component — the one whose application
+produced the invalid state — and the detail string says that is the rule, so a
+reader is not misled into thinking it is the only cause.
+
+### Sibling dispositions
+
+| Seam | Disposition |
+|---|---|
+| option-scoped `APPEND` / `REPLACE` / `DISABLE` | **patched** — all three covered by one final-state check |
+| facts removed only in `_finalize_component()` | **patched** — the check runs after finalization, which is the whole point |
+| complete component addition / replacement | **already safe** — `_build_component_body` validates the option set at parse time (round 6), *and* the final check covers whatever they install |
+| `REPLACE_RECORD` components | **already safe** — same parse-time path, same final check |
+| record- and component-level `DISABLE` | **already safe, asserted** — a suppressed component publishes nothing, so it states no invalid choice; both proven not to raise spuriously |
+| direct-fact operations on a component with no options | **already safe, asserted** — the check early-returns on `not component.options` |
+| base projection with no overrides | **already safe, asserted** — the check must not reject authority the corpus already accepted |
+| GameMaster and typed views | **already safe** — both build from the validated `EffectiveAuthority`; an invalid set now fails before either is constructed |
+| fact provenance | **already safe, asserted** — validation reads the view, never rewrites it |
+
+## Finding 2 — schema-1 identity across migration 0028
+
+**Thread:** `projection.py:144` (P1). **Owner Decision 2026-08-20, Option A.**
+
+**Root cause.** Schema 2 added `applies_when` and `options` to the canonical
+component payload. A schema-1 projection has neither in its stored rows, so
+reconstruction supplies the new fields' defaults — and the serializer emitted
+them as `null` and `[]`. Those keys were absent from the original
+identity-bearing payload, so `identify_projection(reconstruct_candidate(...))`
+derived a different UUID and payload hash, and `verify_persisted_state` rejected
+otherwise unchanged historical state.
+
+**The decision, and its exact bounds.** A schema-1 projection persisted under
+0027 must reconstruct after the upgrade with its original projection UUID,
+payload hash, derived IDs, and recorded persisted-state digest. **Narrow to the
+`0027 -> 0028` boundary.** It does not revoke #137's clean-baseline policy, does
+not establish general legacy compatibility, and does not make a schema-1
+projection activatable.
+
+**Feasibility was checked before building.** The question that decided the whole
+design was whether historical verification routes through
+`validate_schema_binding`, which refuses any candidate not declaring the current
+schema. It does not: `verify_persisted_state` calls `reconstruct_candidate` and
+`identify_projection`, both of which are free of that gate, which lives only in
+`validate_candidate` and `gate.py`. So no gate had to be weakened — and a test
+asserts a schema-1 candidate is *still* refused as current authority, which is
+what keeps Option A narrow.
+
+**Implementation.** `representation_payload(draft, *, schema_version=...)`
+defaults to the current schema, so every existing caller is byte-identical
+without passing anything, and `projection_payload` passes
+`candidate.schema_version` — the same reasoning the schema block itself already
+follows: substituting current code there would re-identify history.
+`_component_schema_2_payload` holds the omission and the fail-closed check
+**together on purpose**: the branch that decides to drop a field is the branch
+that proves the field is empty, so the two cannot drift into silently discarding
+meaning. A schema-1 declaration carrying a real qualifier or option set raises
+`LegacySchemaPayloadError` rather than being quietly serialized without it.
+
+**Literals captured from real pre-change code.** A detached worktree at
+`f6d2813~1` produced every schema-1 value; computing both sides with post-change
+code would make the claim unfalsifiable.
+
+| | |
+|---|---|
+| schema-1 version / hash | `5d-representation-schema-1` / `44bf8519…` |
+| projection UUID | `5925934a-3692-551d-babe-2df5a6fa6752` |
+| payload hash | `0df49dee…` |
+| record / component / fact id | `96de01e9…` / `3377d6db…` / `919810ef…` |
+
+**One correction to my own first reading.** An initial comparison reported the
+fact ids as changed. They had not: the derived id value is identical, and what
+gained an option slot is the *in-memory dict key* of `IdentifiedProjection.
+fact_ids` — a lookup shape, not an identity. The test asserts the id values and
+says why.
+
+## Regression evidence
+
+`tests/services/rules_authority/test_review_round_6_final_option_invariants.py`
+(12) and `tests/ingestion/mechanical/test_review_round_6_schema1_identity.py`
+(15). Both verified to **fail against their reinstated defects** — disabling the
+two guards fails 15 of the 27. The schema-1 suite persists into a database built
+by the real migration chain through `head` (past 0028), reconstructs, and checks
+the recorded digest and `verify_persisted_state`, so it exercises the actual
+post-upgrade state rather than a serializer in isolation.

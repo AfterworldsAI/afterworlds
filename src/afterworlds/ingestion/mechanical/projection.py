@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
+    ComponentDraft,
     RepresentationDraft,
     fact_key,
     fact_payload,
@@ -62,6 +63,8 @@ __all__ = [
     "release_binding_payload",
     "representation_payload",
     "validate_candidate",
+    "LegacySchemaPayloadError",
+    "SCHEMA_1_VERSION",
     "validate_schema_binding",
 ]
 
@@ -116,7 +119,75 @@ def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
     }
 
 
-def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
+#: The representation schema version whose canonical component payload had no
+#: ``applies_when`` and no ``options`` keys at all. Schema 2 added both, so a
+#: projection persisted under schema 1 must still serialize without them or it
+#: re-identifies as a different projection.
+SCHEMA_1_VERSION = "5d-representation-schema-1"
+
+
+class LegacySchemaPayloadError(ValueError):
+    """Raised when a schema-1 candidate carries schema-2 meaning.
+
+    Omitting a *default* field to reproduce an old identity is compatibility;
+    omitting a field that carries meaning would be forging one. A schema-1
+    declaration holding a real qualifier or a real option set is a state that
+    cannot honestly be serialized under either schema, so it fails closed.
+    """
+
+
+def _component_schema_2_payload(
+    component: ComponentDraft, schema_version: str
+) -> dict[str, object]:
+    """The component keys schema 2 added, or nothing under schema 1.
+
+    Owner Decision 2026-08-20 (Option A), narrow to the ``0027 -> 0028``
+    boundary: a projection persisted under schema 1 must still reconstruct with
+    its original UUID, payload hash, derived IDs, and recorded digest after the
+    upgrade. Its canonical wire payload never had these two keys, so emitting
+    them — even as ``null`` and ``[]`` — re-identifies unchanged historical
+    state as a different projection and makes ``verify_persisted_state`` reject
+    it.
+
+    This preserves historical *reconstruction* only. It does not revoke #137's
+    clean-baseline policy, does not establish general legacy compatibility, and
+    does not make a schema-1 projection activatable — ``validate_schema_binding``
+    still refuses one as current authority, unchanged.
+
+    The omission and the fail-closed check live together on purpose: the branch
+    that decides to drop a field is the branch that must prove the field is
+    empty, or the two could drift into silently discarding meaning.
+    """
+    if schema_version == SCHEMA_1_VERSION:
+        if component.applies_when is not None or component.options:
+            raise LegacySchemaPayloadError(
+                f"component {component.record_key}/{component.semantic_key} "
+                f"declares schema {SCHEMA_1_VERSION!r} but carries schema-2 "
+                "applicability or options; refusing to omit meaning-bearing "
+                "data to reproduce a legacy identity"
+            )
+        return {}
+    return {
+        "applies_when": applicability_payload(component.applies_when),
+        # Options are canonically ordered by their key, so the source's
+        # order of "crawl or ... right yourself" does not reach the
+        # payload hash: the source states no precedence between them.
+        "options": canonical_order(
+            {
+                "semantic_key": o.semantic_key,
+                "facts": canonical_order(fact_payload(f) for f in o.facts),
+                "applies_when": applicability_payload(o.applies_when),
+            }
+            for o in component.options
+        ),
+    }
+
+
+def representation_payload(
+    draft: RepresentationDraft,
+    *,
+    schema_version: str = REPRESENTATION_SCHEMA_VERSION,
+) -> dict[str, object]:
     """Canonical, identity-bearing payload of the keyed representation.
 
     Every collection here is unordered by meaning, so each is ordered by its
@@ -141,18 +212,7 @@ def representation_payload(draft: RepresentationDraft) -> dict[str, object]:
                 "handling": c.handling.value,
                 "irreducibility_reason_code": c.irreducibility_reason_code,
                 "facts": canonical_order(fact_payload(f) for f in c.facts),
-                "applies_when": applicability_payload(c.applies_when),
-                # Options are canonically ordered by their key, so the source's
-                # order of "crawl or ... right yourself" does not reach the
-                # payload hash: the source states no precedence between them.
-                "options": canonical_order(
-                    {
-                        "semantic_key": o.semantic_key,
-                        "facts": canonical_order(fact_payload(f) for f in o.facts),
-                        "applies_when": applicability_payload(o.applies_when),
-                    }
-                    for o in c.options
-                ),
+                **_component_schema_2_payload(c, schema_version),
             }
             for c in draft.components
         ),
@@ -224,7 +284,13 @@ def projection_payload(candidate: ProjectionCandidate) -> dict[str, object]:
             "version": candidate.schema_version,
             "hash": candidate.schema_hash,
         },
-        "representation": representation_payload(candidate.representation),
+        # Serialized under the candidate's *own* declared schema, for the same
+        # reason the schema block above is taken from the declaration rather
+        # than the module constants: substituting current code here would
+        # re-identify history.
+        "representation": representation_payload(
+            candidate.representation, schema_version=candidate.schema_version
+        ),
     }
 
 

@@ -40,12 +40,14 @@ from afterworlds.ingestion.mechanical.projection import ProjectionCandidate
 from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ComponentDraft,
+    ComponentOption,
     MechanicalFact,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
     fact_key,
     fact_target_key,
+    option_set_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.models.rules_package import RulesPackageBinding
@@ -677,11 +679,88 @@ def apply_override_set(
         for key, record in sorted(records.items())
         if key not in disabled_records
     )
+    _verify_final_option_sets(surviving, provenance)
     return EffectiveAuthority(
         binding=binding,
         records=surviving,
         applied_overrides=tuple(provenance),
     )
+
+
+def _blame_for(
+    record_key: str, component_key: str, provenance: list[AppliedOverride]
+) -> str:
+    """Which override to name for a *final-state* violation.
+
+    There is no single culprit for an invariant that only fails once the whole
+    ordered set has been applied — an earlier entry may have created the shape
+    a later one completed. The last applied override that touched this
+    component is the one whose application produced the invalid state, so it is
+    the honest anchor for the report; the detail string says so, rather than
+    implying it is the only cause.
+    """
+    touched = [
+        o
+        for o in provenance
+        if o.applied
+        and o.target.record_key == record_key
+        and o.target.component_key == component_key
+    ]
+    if touched:
+        return touched[-1].override_id
+    applied = [o for o in provenance if o.applied]
+    return applied[-1].override_id if applied else "?"
+
+
+def _verify_final_option_sets(
+    records: tuple[EffectiveRecord, ...], provenance: list[AppliedOverride]
+) -> None:
+    """Every surviving component must still satisfy the choice contract.
+
+    The local checks inside the fact operations are per-scope: an append or a
+    replacement inside one option sees only that option's facts, and a
+    fact-scoped ``DISABLE`` is not resolved into removal until
+    ``_finalize_component``. None of them can see that two arms have become
+    indistinguishable, or that an arm has been emptied — component-wide
+    properties of the *final* state.
+
+    Checked here, after the whole ordered set has been applied and suppression
+    resolved, so an intermediate shape a later entry legitimately repairs is
+    never rejected. A violation fails the entire application through the
+    established ``INVALID_OVERRIDE`` path: a view missing one authored change,
+    or publishing a choice whose arms cannot be told apart, is worse than no
+    view at all.
+
+    The rule itself is
+    :func:`~afterworlds.ingestion.mechanical.representation.option_set_violations`
+    — the same one the corpus is built under. The effective view is projected
+    back into the representation's own types to ask it, which deliberately
+    discards provenance: the contract is about what the facts *say*, not about
+    which override supplied them.
+    """
+    for record in records:
+        for component in record.components:
+            if not component.options:
+                continue
+            violations = option_set_violations(
+                tuple(f.fact for f in component.facts),
+                tuple(
+                    ComponentOption(
+                        semantic_key=option.semantic_key,
+                        facts=tuple(f.fact for f in option.facts),
+                        applies_when=option.applies_when,
+                    )
+                    for option in component.options
+                ),
+                f"component {record.semantic_key}/{component.semantic_key}",
+            )
+            if violations:
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves an invalid actor choice "
+                    f"(reported against the last override to touch it): "
+                    f"{'; '.join(violations)}",
+                )
 
 
 def _apply_prose_entry(
