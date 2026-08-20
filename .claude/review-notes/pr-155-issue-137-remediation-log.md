@@ -343,3 +343,75 @@ The representation schema version and hash are **unchanged** —
 and asserted after the change. OPTION is a runtime override target kind; it does
 not participate in representation identity, and repository evidence confirms that
 rather than the claim resting on inspection.
+
+---
+
+# Round 5 — authority-consistency remediation
+
+Reviewed head `9608a80373a15f35a6e5aa29cbc2cd282de4a348`, verified unmoved before
+starting. Bounded to reconciling governing texts and correcting stale
+implementation documentation. No implementation reopened, no OPTION redesign, no
+review thread resolved, `known_unknowns.md` unchanged.
+
+## Finding 1 — governing authorities were not actually reconciled
+
+**This was an overclaim in my own round-4 PR body**, and the correction is
+recorded here rather than quietly fixed. That body stated the Owner Decision was
+"reconciled" with ADR-005d Decision 10 and Issue #137. What was actually
+reconciled was the *implementing code's* self-description —
+`targets.py`'s module docstring and `patches.py`'s matrix comment. Neither
+authoritative text was touched, and the round-4 commit range contains no ADR
+change. Under CLAUDE.md's authority order the ADR and the governing issue rank
+above source code, so describing a docstring edit as an authority reconciliation
+inverted that order.
+
+Both texts are now amended narrowly, in each document's established
+"**Amended by Owner Decision …**" voice:
+
+| Document | Change | Preservation |
+|---|---|---|
+| `docs/decisions/adr-005d-complete-typed-mechanical-authority.md`, end of Decision 10 | +36 lines, 0 removed | pure insertion; rest byte-for-byte |
+| GitHub Issue #137, contract 6, after the 2026-08-08 prose-overlay amendment | +2505 chars | rest byte-for-byte apart from one trailing newline GitHub appends |
+
+Each records the same six points: `OPTION` as a fifth exact typed target grain
+(`record_key` + `component_key` + nonblank `option_key`, `fact_key` forbidden);
+the option targeted only as the owning container for fact addition; only
+`(APPEND, OPTION) → FactAdditionPatch` permitted; `DISABLE`/`REPLACE` on
+`OPTION` unsupported because altering an arm would falsify an exhaustive
+source-authored choice; `APPEND` on `FACT` unsupported because a fact has no
+multiplicity; and the identity envelope — reuses `target_option_key`, changes
+override-set identity where an `OPTION` target is present, leaves existing
+direct-target canonical payloads and identities unchanged, does not change
+representation schema identity.
+
+**Verified against the live Issue after editing** rather than trusting the
+command's exit status: the amendment is present once, all six points are
+present, and a normalised diff of the live body minus the amendment against the
+pre-edit body is identical across all 700 lines.
+
+## Finding 2 — stale implementation documentation
+
+`MechanicalTarget.option_key`'s comment still asserted *"there is no OPTION
+target kind"* — true when written, false since round 4. It now describes the
+actual split: on `FACT` the field is an optional qualifier naming an existing
+fact's owning option; on `OPTION` it is required and is the target itself,
+naming an APPEND-only fact container. The closing sentence keeps the rule both
+forms share — neither makes an option suppressible or replaceable.
+
+Comment-only: the diff contains no non-comment lines, and behaviour is unchanged.
+
+## Deferred residue — top-level draft closure
+
+`ComponentDraft`, `RecordDraft`, `ProseBindingDraft`, and `ProvenanceClaim`
+accept subclasses in the same general closed-structure family round 4 closed for
+`Applicability`, `SizeComparison`, and `ComponentOption`. **Deliberately not
+closed here, and not partially closed.** Exact-gating `ComponentDraft` alone
+would leave its siblings open while implying the family was handled, which is
+worse than leaving all four visibly open.
+
+This is separate 5d implementation work that must be closed coherently across
+the whole top-level draft boundary **before any proposal is accepted or
+published**, since acceptance is the point at which an unclosed structure could
+persist undeclared state under a canonical identity. Recorded in the PR summary
+as deferred residue. `known_unknowns.md` is unchanged — this is scheduled
+implementation work with a known shape, not an undecided question.

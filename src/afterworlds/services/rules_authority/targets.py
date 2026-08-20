@@ -82,12 +82,19 @@ class MechanicalTarget:
     record_key: str
     component_key: str | None = None
     fact_key: str | None = None
-    #: The owning option of a fact target, when the fact lives inside an
-    #: exhaustive actor choice. ``None`` means the fact is held directly on the
-    #: component — the pre-schema-2 shape, so every existing target is
-    #: unchanged. Options are not independently targetable: there is no OPTION
-    #: target kind, because disabling one arm of a choice the source states as
-    #: exhaustive would publish a choice the source never states.
+    #: The option scope, which two grains read differently.
+    #:
+    #: * On a ``FACT`` target it is an optional *qualifier*: it names the owning
+    #:   option of an existing fact when that fact lives inside an exhaustive
+    #:   actor choice. ``None`` means the fact is held directly on the component
+    #:   — the pre-schema-2 shape, so every existing target is unchanged.
+    #: * On an ``OPTION`` target it is *required* and is the target itself: it
+    #:   names one option as the container a fact is appended into, and that
+    #:   grain permits nothing but ``APPEND`` (Owner Decision 2026-08-19).
+    #:
+    #: Neither form makes an option suppressible or replaceable. Disabling or
+    #: replacing one arm of a choice the source states as exhaustive would
+    #: publish a choice the source never states, so no target kind offers it.
     option_key: str | None = None
 
     def __post_init__(self) -> None:
