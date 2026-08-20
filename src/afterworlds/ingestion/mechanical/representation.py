@@ -1774,11 +1774,24 @@ def _optional_enum_field(
     return _enum_field(value, enum_cls, field)
 
 
-def _vo_field(value: object, cls: type, field: str) -> list[str]:
-    """The field must hold that exact value-object type, or nothing."""
+def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
+    """The field must hold that exact closed type, or nothing.
+
+    A subclass is refused, not accepted as a narrower case. Every closed
+    structure here is identified by the payload its declared fields produce, so
+    a subclass carrying an undeclared meaning-bearing field would canonicalize —
+    and persist, and hash — identically to one asserting something else. A
+    subclass may also redefine ``__eq__``, which would let it slip past the
+    duplicate checks that use set membership.
+    """
     if type(value) is not cls:
         return [f"{field} must be {cls.__name__}, got {type(value).__name__} {value!r}"]
     return []
+
+
+#: The name this rule has had since the fact-family validators; kept so the
+#: many internal call sites read unchanged.
+_vo_field = exact_type_violations
 
 
 def _check_dice(value: object, field: str) -> list[str]:
@@ -3909,6 +3922,14 @@ def _exact_optional_int(value: object, where: str) -> str | None:
 
 def size_comparison_violations(comparison: SizeComparison) -> list[str]:
     """Violations of one size test's own contract."""
+    # Exactly this closed type, before any field is read. A subclass is not a
+    # narrower size test: it can carry a meaning-bearing field that
+    # ``applicability_payload`` does not emit, so two comparisons asserting
+    # different conditions would share one canonical payload and one identity.
+    # It can also redefine equality, which would let a duplicate slip past the
+    # ``seen`` check in :func:`applicability_violations`.
+    if drift := _vo_field(comparison, SizeComparison, "size comparison"):
+        return drift
     findings: list[str] = []
     if comparison.category is not None and not isinstance(
         comparison.category, CreatureSize
@@ -3955,6 +3976,13 @@ def applicability_violations(applicability: Applicability) -> list[str]:
     threshold *and* a size set and mean their conjunction, because carrying
     both is rejected rather than interpreted.
     """
+    # The exact closed type first — before ``kind`` is even read, since a
+    # subclass could shadow it. Same reasoning as
+    # :func:`size_comparison_violations`: undeclared state that
+    # ``applicability_payload`` omits would give distinct authority one
+    # canonical representation.
+    if drift := _vo_field(applicability, Applicability, "applicability"):
+        return drift
     if not isinstance(applicability.kind, ApplicabilityKind):
         return [f"{applicability.kind!r} is not a declared ApplicabilityKind"]
     # The type domain, before ``_is_set`` and before any range comparison.
@@ -3982,7 +4010,7 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         if held is not None and not isinstance(held, member):
             typed.append(f"{held!r} is not a declared {member.__name__}")
     if not isinstance(applicability.any_of, tuple) or any(
-        not isinstance(c, SizeComparison) for c in applicability.any_of
+        type(c) is not SizeComparison for c in applicability.any_of
     ):
         typed.append("any_of is not a tuple of size comparisons")
     if typed:

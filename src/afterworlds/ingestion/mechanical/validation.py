@@ -37,6 +37,7 @@ from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
     ComponentDraft,
+    ComponentOption,
     FactFamily,
     ProseBindingDraft,
     ProvenanceRole,
@@ -47,6 +48,7 @@ from afterworlds.ingestion.mechanical.representation import (
     UnknownFactFamilyError,
     applicability_violations,
     declared_provenance_targets,
+    exact_type_violations,
     fact_invariant_violations,
     fact_key,
     prose_bindings_by_target_key,
@@ -124,6 +126,14 @@ def _validate_options(component: ComponentDraft, tag: str) -> list[str]:
     seen_facts: set[tuple[str, ...]] = set()
     for option in component.options:
         otag = f"{tag} option {option.semantic_key}"
+        # Exactly this closed type. Same family as the applicability structures:
+        # an option subclass could carry a meaning-bearing field that no payload
+        # emits, so two options asserting different authority would persist and
+        # canonicalize identically — and a redefined ``__eq__`` could evade the
+        # duplicate-key and duplicate-fact checks immediately below.
+        if drift := exact_type_violations(option, ComponentOption, otag):
+            findings.extend(drift)
+            continue
         if not option.semantic_key.strip():
             findings.append(f"{tag}: option with a blank semantic key")
         elif option.semantic_key in seen_keys:
