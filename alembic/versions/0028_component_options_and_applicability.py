@@ -83,6 +83,79 @@ _ENTRY_CONTENT_COLUMNS = (
 )
 
 
+def _entry_triggers(columns: tuple[str, ...]) -> list[str]:
+    """Every ``rp_override_set_entries`` trigger ``0024`` installs.
+
+    All four, not just the one this migration's column set changes. SQLite
+    ``ALTER TABLE ... DROP COLUMN`` is implemented by rebuilding the table, and
+    a rebuild drops every trigger attached to the old one — so a downgrade that
+    restored only the re-insert guard left retained evidence updatable,
+    deletable, and extendable past its seal. Both directions call this, and the
+    SQL is copied from ``0024`` verbatim so the two cannot drift.
+
+    Order matters for ``seal_``: it reads ``rp_override_set_versions``, which
+    both directions leave in place, so it is safe last.
+    """
+    return [
+        """
+        CREATE TRIGGER prevent_rp_override_set_entries_update
+        BEFORE UPDATE ON rp_override_set_entries
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_entries is append-only: UPDATE is forbidden'
+            );
+        END
+        """,
+        """
+        CREATE TRIGGER prevent_rp_override_set_entries_delete
+        BEFORE DELETE ON rp_override_set_entries
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_entries is append-only: DELETE is forbidden'
+            );
+        END
+        """,
+        _entries_reinsert_trigger(columns),
+        """
+        CREATE TRIGGER seal_rp_override_set_entries
+        BEFORE INSERT ON rp_override_set_entries
+        WHEN (
+            SELECT COUNT(*) FROM rp_override_set_entries
+            WHERE override_set_uuid = NEW.override_set_uuid
+        ) >= (
+            SELECT entry_count FROM rp_override_set_versions
+            WHERE override_set_uuid = NEW.override_set_uuid
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM rp_override_set_entries
+            WHERE override_set_uuid = NEW.override_set_uuid
+              AND apply_order = NEW.apply_order
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'rp_override_set_entries is sealed: version already complete'
+            );
+        END
+        """,
+    ]
+
+
+_ENTRY_TRIGGER_NAMES = (
+    "prevent_rp_override_set_entries_update",
+    "prevent_rp_override_set_entries_delete",
+    "prevent_rp_override_set_entries_reinsert",
+    "seal_rp_override_set_entries",
+)
+
+
+def _drop_entry_triggers() -> None:
+    for name in _ENTRY_TRIGGER_NAMES:
+        op.execute(f"DROP TRIGGER IF EXISTS {name}")
+
+
 def _entries_reinsert_trigger(columns: tuple[str, ...]) -> str:
     differs = "\n                OR ".join(f"{c} IS NOT NEW.{c}" for c in columns)
     return f"""
@@ -125,11 +198,13 @@ def upgrade() -> None:
                 sa.Column("target_option_key", sa.String(255), nullable=True)
             )
 
-    # Recreated, not left standing: the guard names its columns explicitly, so
-    # until it does the new one a re-insert could change the option scope of a
-    # retained entry without being refused.
-    op.execute("DROP TRIGGER IF EXISTS prevent_rp_override_set_entries_reinsert")
-    op.execute(_entries_reinsert_trigger(_ENTRY_CONTENT_COLUMNS))
+    # SQLite ADD COLUMN does not rebuild the table, so the other three guards
+    # survive this direction; only the re-insert guard's column set changes.
+    # The whole family is recreated regardless, so both directions leave
+    # identical schema and neither has to be reasoned about separately.
+    _drop_entry_triggers()
+    for statement in _entry_triggers(_ENTRY_CONTENT_COLUMNS):
+        op.execute(statement)
 
     op.create_table(
         _OPTIONS,
@@ -157,15 +232,18 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table(_OPTIONS)
-    op.execute("DROP TRIGGER IF EXISTS prevent_rp_override_set_entries_reinsert")
+    _drop_entry_triggers()
     for table in (_ENTRIES, _OVERRIDES):
         with op.batch_alter_table(table) as batch:
             batch.drop_column("target_option_key")
-    op.execute(
-        _entries_reinsert_trigger(
-            tuple(c for c in _ENTRY_CONTENT_COLUMNS if c != "target_option_key")
-        )
-    )
+    # The batch rebuild above dropped every trigger on the rebuilt table, not
+    # only the one whose column set changed. Restoring just the re-insert guard
+    # left retained evidence updatable, deletable, and extendable past its seal
+    # after a rollback.
+    for statement in _entry_triggers(
+        tuple(c for c in _ENTRY_CONTENT_COLUMNS if c != "target_option_key")
+    ):
+        op.execute(statement)
     with op.batch_alter_table(_FACTS) as batch:
         batch.drop_column("option_key")
     with op.batch_alter_table(_COMPONENTS) as batch:
