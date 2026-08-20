@@ -6,6 +6,16 @@ component. Nothing else is addressable. There is deliberately no JSON path, no
 selector expression, and no wildcard — #137 contract 6 forbids them, and each
 of those would let an override reach authority nobody reviewed it against.
 
+**An option is a container grain, not a choice-arm target.** Owner Decision
+2026-08-19 admits ``OPTION`` for exactly one purpose: naming the multiplicity a
+fact is appended *into*. ``(APPEND, OPTION) -> FactAdditionPatch`` is the only
+permitted pairing. ``DISABLE`` and ``REPLACE`` on an option stay unsupported,
+because the source states the choice as *exhaustive* — suppressing or replacing
+one arm would publish a choice the source never states, which is the same
+reason there is no option axis on the suppression hierarchy. ``(APPEND, FACT)``
+also stays unsupported: a fact has no multiplicity to append into. So an option
+is addressable as a fact container and in no other way.
+
 **Prose is its own grain, not a component subtype.** A ``COMPONENT``-kind
 ``DISABLE`` already means "remove the whole component" (Decision 10). Prose
 authority needs to be suppressible, replaceable, or extensible on its own —
@@ -46,6 +56,10 @@ class MechanicalTargetKind(StrEnum):
     COMPONENT = "component"
     FACT = "fact"
     PROSE = "prose"
+    #: One option of an exhaustive actor choice, addressed as the **container**
+    #: a fact is appended into — never as a suppressible or replaceable arm of
+    #: the choice. See the module docstring.
+    OPTION = "option"
 
 
 class TargetShapeError(ValueError):
@@ -83,6 +97,7 @@ class MechanicalTarget:
             MechanicalTargetKind.COMPONENT,
             MechanicalTargetKind.FACT,
             MechanicalTargetKind.PROSE,
+            MechanicalTargetKind.OPTION,
         )
         if needs_component and not (self.component_key or "").strip():
             raise TargetShapeError(f"{self.kind.value} target requires a component_key")
@@ -90,7 +105,15 @@ class MechanicalTarget:
             raise TargetShapeError(
                 f"{self.kind.value} target must not carry a component_key"
             )
-        if self.kind is MechanicalTargetKind.FACT:
+        if self.kind is MechanicalTargetKind.OPTION:
+            # The option *is* the target, so its key is required rather than an
+            # optional qualifier; and an option names a container, never one
+            # fact inside it, so a fact_key here would be two targets in one.
+            if not (self.option_key or "").strip():
+                raise TargetShapeError("option target requires an option_key")
+            if self.fact_key is not None:
+                raise TargetShapeError("option target must not carry a fact_key")
+        elif self.kind is MechanicalTargetKind.FACT:
             if not (self.fact_key or "").strip():
                 raise TargetShapeError("fact target requires a fact_key")
             if self.option_key is not None and not self.option_key.strip():

@@ -198,3 +198,147 @@ component- and option-level scopes the task names.
 * Black reformatted 11 unrelated `alembic/versions/*.py` files when run outside
   the repository's stated `src/ tests/` gate scope; those were reverted and only
   `0028` carries a formatting change.
+
+---
+
+# Round 4 — three P1 findings
+
+Reviewed head `3eeda482cbd2b0cbbc20fcc9624066f60538953d`, verified unmoved before
+starting. Three threads, all left **unresolved** for Owner review. Scope held as
+in round 3: no proposal accepted or published, no partial projection activated,
+`known_unknowns.md` unchanged, no legacy authority removed, override precedence
+untouched, and no Issue 2b / 15c / #129 / production-authoring work.
+
+## Finding 1 — retained-entry triggers lost on downgrade
+
+**Thread:** `0028:163` (P1).
+
+**Root cause.** SQLite implements `ALTER TABLE … DROP COLUMN` by rebuilding the
+table, and a rebuild drops every trigger attached to the old one. `downgrade()`
+restored only `prevent_rp_override_set_entries_reinsert`, so after rolling 0028
+back to 0027 the retained evidence was updatable, deletable, and extendable past
+its seal.
+
+**Measured before fixing**, rather than reasoned about:
+
+| Direction | Triggers present after |
+|---|---|
+| 0027 → 0028 (`ADD COLUMN`) | all four — **already preserved** |
+| 0028 → 0027 (`DROP COLUMN`) | `reinsert` only — **three lost** |
+
+| Trigger | 0027→0028 | 0028→0027 |
+|---|---|---|
+| `prevent_rp_override_set_entries_update` | already preserved | **patched** |
+| `prevent_rp_override_set_entries_delete` | already preserved | **patched** |
+| `prevent_rp_override_set_entries_reinsert` | patched in round 3 (column set) | already restored |
+| `seal_rp_override_set_entries` | already preserved | **patched** |
+
+`_entry_triggers(columns)` now returns all four, with the update/delete/seal SQL
+copied from `0024` verbatim so the two cannot drift, and **both** directions call
+it — upgrade recreates the family too, so neither direction has to be reasoned
+about separately. `seal_` is emitted last; it reads `rp_override_set_versions`,
+which both directions leave in place.
+
+**Tests.** A direct 0028↔0027 boundary test (the existing downgrade test walks to
+0023, where the table no longer exists — which is why this was invisible), plus
+behavioural injection of update, delete, conflicting reinsert, and post-seal
+extension against a genuinely rolled-back database: presence in `sqlite_master`
+is not the claim, refusal is. A third test proves the restored 0027 guard sheds
+`target_option_key` and keeps every other column. All were verified to fail
+against the reinstated defect.
+
+## Finding 2 — closed schema-2 structures accepted subclasses
+
+**Thread:** `representation.py:3986` (P1).
+
+**Defect family: closed-structure identity leak.** `applicability_violations()`
+never required `type(applicability) is Applicability`, and the `any_of` loop used
+`isinstance`. A dataclass subclass carrying an undeclared meaning-bearing field
+validated cleanly while `applicability_payload()` emitted only the declared keys
+— so two structures asserting *different* conditions received one canonical
+payload, one persisted form, and one identity. A subclass may also redefine
+equality, letting a duplicate slip past the `seen` set in the size-comparison
+dedup check.
+
+The rule already existed as `_vo_field`, used by the fact-family validators. It
+is now published as `exact_type_violations` and applied at the three leaking
+sites.
+
+| Structure | Disposition |
+|---|---|
+| `Applicability` | **patched** — gate is the first statement, before `kind` is read (a subclass could shadow it) |
+| `SizeComparison` (top level) | **patched** — gate first, before any field read |
+| `SizeComparison` (inside `any_of`) | **patched** — `isinstance` → exact type |
+| `ComponentOption` | **patched** — `validation.py::_validate_options`, before the key/fact reads and dedup checks it would evade |
+| six new schema-2 fact families | **already safe** — `fact_invariant_violations` already tests `_FACT_TYPES[family] is not type(fact)` |
+| `ComponentDraft`, `RecordDraft`, `ProseBindingDraft`, `ProvenanceClaim` | **out of scope** — same latent exposure, but pre-existing top-level draft structures, not newly introduced by schema 2. Guarding one and not the rest would be arbitrary, and guarding all of them is the repository-wide dataclass refactor this task forbids. **Surfaced, not silently fixed.** |
+
+**Tests.** Subclasses carrying extra meaning-bearing fields at each site; a
+`kind`-shadowing subclass proving the gate precedes every field read; an
+`eq=False` subclass whose two distinct instances collide as one set member,
+proving the dedup-evasion vector and that the gate fires before dedup runs; a
+property test showing two differing subclass instances emit byte-identical
+canonical payloads (the leak itself); and component-level and option-level
+applicability both failing deterministically for the same stated reason.
+
+## Finding 3 — option-scoped fact appends were unreachable
+
+**Thread:** `targets.py:105` (P1). Owner Decision 2026-08-19 approved.
+
+**Root cause.** Schema 2 added option-aware append code to `_apply_entry()` that
+nothing could reach. `(APPEND, FACT)` is unsupported, `(APPEND, COMPONENT)` was
+the only fact addition, and `MechanicalTarget` rejected `option_key` on every
+non-`FACT` target — so appending a fact to either arm of a choice always fell
+into the *"must be appended to one of its options, not beside them"* refusal. A
+schema-permitted operation had no encoding.
+
+`MechanicalTargetKind.OPTION` is that encoding, and only that:
+`record_key` + `component_key` + nonblank `option_key`, `fact_key` forbidden.
+`(APPEND, OPTION) → FactAdditionPatch` is the sole permitted pairing.
+
+`DISABLE` and `REPLACE` on `OPTION` stay unsupported, and deliberately for a
+*different* reason than `(APPEND, FACT)`: an option does have content that could
+be suppressed or replaced, but the source states the choice as **exhaustive**, so
+removing or rewriting one arm would publish a choice the source never states.
+`required_patch_family` now says so rather than reusing the "no multiplicity"
+message, which would have been inaccurate for this grain.
+
+| Seam | Disposition |
+|---|---|
+| `MechanicalTargetKind.OPTION` | **patched** |
+| `__post_init__` shape rules | **patched** — third branch, not the `else` that forbids `option_key` |
+| `_REQUIRED_FAMILY[(APPEND, OPTION)]` | **patched** |
+| `required_patch_family` refusal message | **patched** — states exhaustiveness, not absent multiplicity |
+| `_suppressed_by` | **patched** — OPTION branch before the `assert … is FACT`; record and component disables suppress it, an individual fact disable does not |
+| `target_payload()` | **already safe** — the round-3 conditional already emits the fifth key, and `kind` differs |
+| `describe()` | **already safe** — already renders `[option]` |
+| `_parse_row` / `_entry_from_row` | **already safe** — `MechanicalTargetKind(row.target_kind)` and the existing `target_option_key` column |
+| `retain_override_set` insert | **already safe** — copies `target.option_key` regardless of kind |
+| `_apply_entry` fact dispatch | **already safe** — an OPTION target arrives with non-`None` `option_key` and no `fact_key`, exactly the shape the addition path wants |
+| migration / ORM | **already safe** — reuses `target_option_key`; **no new migration**, no second scope field |
+| `views.py`, `service.py` | **already safe** — neither switches on target kind |
+
+**Tests.** Append into each named option; the appended fact naming its override
+rather than a 5c span; both options appended independently; duplicate detection
+scoped per option; a fact a *sibling* option already holds still appending (the
+isolation case a scope-blind check would refuse); missing option, missing
+component, and option-target-on-a-non-choice failures; `DISABLE`/`REPLACE` on
+OPTION and `APPEND` on FACT all refused; suppression by an earlier record and
+component disable; a prose-bound component still refusing; authoring-row and
+retained-replay round trips verified after the mutable row is retargeted and
+deleted; a stored OPTION row carrying a `fact_key` failing closed; and the
+round-3 pinned direct-target identity re-asserted unmoved.
+
+## Authority reconciliation
+
+ADR-005d Decision 10 and #137's typed-target/APPEND contract are reconciled in
+`targets.py`'s module docstring and `patches.py`'s matrix comment: **OPTION is an
+APPEND-only container grain, not a generally suppressible or replaceable
+choice-arm target.**
+
+The representation schema version and hash are **unchanged** —
+`5d-representation-schema-2` /
+`ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c`, re-derived
+and asserted after the change. OPTION is a runtime override target kind; it does
+not participate in representation identity, and repository evidence confirms that
+rather than the claim resting on inspection.

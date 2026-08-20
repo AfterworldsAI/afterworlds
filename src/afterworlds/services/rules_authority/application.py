@@ -496,6 +496,13 @@ def _suppressed_by(
         if (target.record_key, target.component_key) in disabled_prose:
             return "prose"
         return None
+    if target.kind is MechanicalTargetKind.OPTION:
+        # An option target names the container, not a fact, so no individual
+        # fact disable suppresses it — but the record and component disables
+        # above already did, which is the whole inheritance it participates in.
+        # Appending into an option of a suppressed component would resurrect
+        # authority the disable removed.
+        return None
     assert target.kind is MechanicalTargetKind.FACT
     assert target.fact_key is not None
     if (
@@ -899,8 +906,10 @@ def _apply_entry(
             f"{target.record_key!r}",
         )
     index, component = found
-    # Reachable only for a FACT target: PROSE returned above, and RECORD/
-    # COMPONENT patches were each handled and returned by their own branch.
+    # Reachable for a FACT or OPTION target: PROSE returned above, and RECORD/
+    # COMPONENT patches were each handled and returned by their own branch. An
+    # OPTION target reaches here carrying a non-None option_key and no
+    # fact_key, which is exactly the shape the addition path below wants.
     assert isinstance(patch, (FactReplacementPatch, FactAdditionPatch))
     new_fact = patch.fact
     new_key = fact_key(new_fact)

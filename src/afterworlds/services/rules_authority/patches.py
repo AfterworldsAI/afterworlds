@@ -281,8 +281,19 @@ _REQUIRED_FAMILY: dict[
         OverrideOperationEnum.APPEND,
         MechanicalTargetKind.PROSE,
     ): PatchFamily.APPEND_PROSE,
+    (
+        OverrideOperationEnum.APPEND,
+        MechanicalTargetKind.OPTION,
+    ): PatchFamily.APPEND_FACT,
     # (APPEND, FACT) is absent on purpose — a fact has no multiplicity to
     # append into, so there is no honest family for it.
+    #
+    # (DISABLE, OPTION) and (REPLACE, OPTION) are absent for a different
+    # reason, and deliberately not the same one: an option *does* have content
+    # to suppress or replace, but the source states the choice as exhaustive,
+    # so removing or rewriting one arm would publish a choice the source never
+    # states. An option is a container an override may add a fact to, and
+    # nothing else (Owner Decision 2026-08-19).
 }
 
 
@@ -297,9 +308,19 @@ def required_patch_family(
     """
     family = _REQUIRED_FAMILY.get((operation, target_kind))
     if family is None:
+        # Two different refusals wearing one shape would be a worse message
+        # than either. An option is not missing multiplicity — it has content
+        # and could be suppressed or replaced; it is the *exhaustiveness* of
+        # the choice that forbids it.
+        why = (
+            "an option is an exhaustive arm of a choice, addressable only as a "
+            "container to append a fact into"
+            if target_kind is MechanicalTargetKind.OPTION
+            else "the owning schema declares no multiplicity there"
+        )
         raise InvalidPatchError(
-            f"{operation.value} is not permitted on a {target_kind.value} target: "
-            "the owning schema declares no multiplicity there"
+            f"{operation.value} is not permitted on a {target_kind.value} "
+            f"target: {why}"
         )
     return family
 
