@@ -86,6 +86,10 @@ from afterworlds.services.rules_authority.targets import (
     TargetShapeError,
     target_payload,
 )
+from afterworlds.services.rules_authority.views import (
+    build_gamemaster_view,
+    build_typed_view,
+)
 from tests.services.rules_authority.conftest import (
     DISABLE_PAYLOAD,
     NOW,
@@ -593,3 +597,42 @@ def test_a_stored_option_row_carrying_a_fact_key_fails_closed(
         collect_current_override_state(
             runtime.session, str(runtime.package_uuid), runtime.release_version
         )
+
+
+# ---------------------------------------------------------------------------
+# The published views
+# ---------------------------------------------------------------------------
+#
+# `views.py` does not branch on target kind — but that only proves no code path
+# inspects the new grain, not that a fact arriving in an option via override
+# renders correctly. These drive the append all the way to published output.
+
+
+def test_the_gamemaster_view_publishes_the_appended_fact_inside_its_option() -> None:
+    """Never as a simultaneous direct fact.
+
+    Flattening an option into ``structured_context`` would publish "you may
+    crawl **and** you may swim" as jointly applicable, which is exactly the
+    mutual exclusivity the option boundary exists to preserve.
+    """
+    view = build_gamemaster_view(_resolved(_entry(CRAWL_TARGET)), {})
+    choice = next(c for c in view.components if c.component_key == CHOICE_KEY)
+
+    # The appended fact is in its own option and nowhere else.
+    assert [f.fact_key for f in choice.structured_context] == []
+    scopes = {o.semantic_key: [f.fact_key for f in o.facts] for o in choice.options}
+    assert ADDED_KEY in scopes[CRAWL_OPTION]
+    assert ADDED_KEY not in scopes[STAND_OPTION]
+
+    # And it has not leaked onto the sibling component's direct facts.
+    direct = next(c for c in view.components if c.component_key == DIRECT_KEY)
+    assert ADDED_KEY not in [f.fact_key for f in direct.structured_context]
+
+
+def test_the_typed_view_carries_the_appended_option_fact() -> None:
+    view = build_typed_view(_resolved(_entry(STAND_TARGET)))
+    (record,) = view.records
+    choice = next(c for c in record.components if c.semantic_key == CHOICE_KEY)
+    stand = next(o for o in choice.options if o.semantic_key == STAND_OPTION)
+    assert ADDED_KEY in [f.fact_key for f in stand.facts]
+    assert view.applied_overrides[0].target.kind is MechanicalTargetKind.OPTION

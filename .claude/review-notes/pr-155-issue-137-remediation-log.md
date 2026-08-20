@@ -316,7 +316,8 @@ message, which would have been inaccurate for this grain.
 | `retain_override_set` insert | **already safe** — copies `target.option_key` regardless of kind |
 | `_apply_entry` fact dispatch | **already safe** — an OPTION target arrives with non-`None` `option_key` and no `fact_key`, exactly the shape the addition path wants |
 | migration / ORM | **already safe** — reuses `target_option_key`; **no new migration**, no second scope field |
-| `views.py`, `service.py` | **already safe** — neither switches on target kind |
+| `service.py` | **already safe** — does not switch on target kind |
+| `views.py` | **already safe, asserted** — grep proved no kind-branching, which is not the same as correct published output. Driven end to end instead: `build_gamemaster_view` publishes an appended option fact inside its own option, absent from `structured_context` and from the sibling option, so mutual exclusivity survives the new grain. |
 
 **Tests.** Append into each named option; the appended fact naming its override
 rather than a 5c span; both options appended independently; duplicate detection
