@@ -3993,9 +3993,15 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
 
 
 #: Every direct element type of :class:`RepresentationDraft`, keyed by the field
-#: that holds it. Derived from the dataclass rather than restated: a seventh
-#: collection added later must appear here or the change-detector test fails,
-#: so a new sibling cannot enter the authority boundary ungated.
+#: that holds it. An **explicit map guarded by a dataclass-derived change
+#: detector**: this literal is maintained by hand, and a test reads
+#: ``dataclasses.fields(RepresentationDraft)`` and fails if the two disagree —
+#: so a seventh collection added later must appear here or the suite breaks,
+#: and a new sibling cannot enter the authority boundary ungated.
+#:
+#: Stated precisely because an earlier revision of this comment claimed the map
+#: was *derived* from the dataclass. It is not; the guarantee comes from the
+#: detector, not from derivation.
 _DRAFT_ELEMENT_TYPES: Mapping[str, type] = {
     "records": RecordDraft,
     "components": ComponentDraft,
@@ -4033,10 +4039,17 @@ def representation_draft_violations(draft: object) -> list[str]:
     violations: list[str] = []
     for field_name, expected in _DRAFT_ELEMENT_TYPES.items():
         held = getattr(draft, field_name)
-        if not isinstance(held, tuple):
-            violations.append(
-                f"representation.{field_name} is " f"{type(held).__name__}, not a tuple"
-            )
+        # Exactly ``tuple``, and checked **before** the collection is iterated.
+        # ``isinstance`` was the original spelling here and was wrong for the
+        # same reason it is wrong everywhere else in this family: a tuple
+        # subclass *is* a tuple. It can carry undeclared metadata that
+        # ``representation_payload`` never emits — so two drafts asserting
+        # different authority canonicalize to identical bytes — and it can
+        # override ``__iter__``, so validation and serialization would observe
+        # different elements from the same object. Iterating first to find out
+        # is exactly the observation being refused.
+        if drift := exact_type_violations(held, tuple, f"representation.{field_name}"):
+            violations.extend(drift)
             continue
         for index, element in enumerate(held):
             violations.extend(

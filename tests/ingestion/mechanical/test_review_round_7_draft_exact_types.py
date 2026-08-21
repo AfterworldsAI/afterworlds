@@ -445,9 +445,13 @@ def test_an_empty_draft_is_accepted() -> None:
 
 
 def test_a_non_tuple_collection_is_refused() -> None:
-    """A list is not the declared shape, and would sort/dedup differently."""
+    """A list is not the declared shape, and would sort/dedup differently.
+
+    Reported through the same ``exact_type_violations`` rule as every other
+    type refusal here, rather than through a bespoke message.
+    """
     findings = representation_draft_violations(draft(records=[RECORD]))  # type: ignore[arg-type]
-    assert any("not a tuple" in f for f in findings)
+    assert any("must be tuple" in f for f in findings)
 
 
 def test_the_schema_version_and_hash_are_unchanged() -> None:
@@ -501,3 +505,126 @@ def test_the_acceptance_merge_still_accepts_exact_drafts() -> None:
     merged = _merge_representation(None, draft())
     assert merged == draft()
     assert _merge_representation(draft(), draft()) == draft()
+
+
+# ---------------------------------------------------------------------------
+# The collection itself must be exactly ``tuple``
+# ---------------------------------------------------------------------------
+#
+# Round 8's first cut wrote ``isinstance(held, tuple)`` inside the very gate
+# that exists to forbid ``isinstance``. A tuple subclass *is* a tuple, so the
+# collection was the one place the boundary still leaked: it can carry
+# undeclared metadata the payload never emits, and it can override ``__iter__``
+# so validation and serialization observe different elements from one object.
+
+
+class TupleWithMetadata(tuple):  # noqa: SLOT001 - a deliberate hostile shape
+    """A tuple carrying meaning no canonical payload emits."""
+
+    provenance_note: str
+
+    def __new__(
+        cls, items: tuple[object, ...], provenance_note: str = ""
+    ) -> TupleWithMetadata:
+        created = super().__new__(cls, items)  # type: ignore[arg-type]
+        created.provenance_note = provenance_note
+        return created
+
+
+class TupleThatLiesWhenIterated(tuple):  # noqa: SLOT001 - deliberate
+    """Iterating raises. Reaching the raise at all is the defect."""
+
+    def __iter__(self) -> object:  # type: ignore[override]
+        raise AssertionError(
+            "the gate iterated a collection whose exact type it had not checked"
+        )
+
+
+def test_a_tuple_subclass_holding_valid_elements_is_refused() -> None:
+    """The elements are exact; the container is not. That is enough."""
+    findings = representation_draft_violations(
+        draft(records=TupleWithMetadata((RECORD, OTHER_RECORD)))
+    )
+    assert findings == [
+        "representation.records must be tuple, got TupleWithMetadata "
+        f"{(RECORD, OTHER_RECORD)!r}"
+    ]
+
+
+@pytest.mark.parametrize("field_name", sorted(EXPECTED_ELEMENTS))
+def test_every_collection_field_requires_an_exact_tuple(field_name: str) -> None:
+    """Not just ``records`` — all six, so the fix is not one-field-deep."""
+    existing = getattr(draft(), field_name)
+    findings = representation_draft_violations(
+        draft(**{field_name: TupleWithMetadata(existing)})
+    )
+    assert findings
+    assert all(
+        f"representation.{field_name} must be tuple" in f for f in findings
+    ), findings
+
+
+def test_undeclared_container_metadata_would_otherwise_share_canonical_bytes() -> None:
+    """The leak, run rather than asserted — same shape as the element-level case.
+
+    Two drafts whose collections hold identical elements but different
+    container-level metadata emit byte-identical canonical payloads, because
+    the emitter walks elements and never sees the container's own state.
+    """
+    quiet = draft(records=TupleWithMetadata((RECORD, OTHER_RECORD), "reviewed"))
+    loud = draft(records=TupleWithMetadata((RECORD, OTHER_RECORD), "disputed"))
+    assert quiet.records.provenance_note != loud.records.provenance_note  # type: ignore[union-attr]
+    assert representation_payload(quiet) == representation_payload(loud)
+
+    assert representation_draft_violations(quiet)
+    assert representation_draft_violations(loud)
+
+
+def test_a_hostile_iterator_is_never_reached() -> None:
+    """The check precedes iteration, so the raise never fires.
+
+    If the gate iterated first to discover the type, this test would fail with
+    the subclass's own ``AssertionError`` rather than returning a finding.
+    """
+    findings = representation_draft_violations(
+        draft(records=TupleThatLiesWhenIterated((RECORD,)))
+    )
+    assert findings
+    assert all("must be tuple" in f for f in findings), findings
+
+
+def test_a_list_is_still_refused_with_the_same_rule() -> None:
+    """The looser wrong type keeps failing, now through one shared rule."""
+    findings = representation_draft_violations(draft(records=[RECORD]))  # type: ignore[arg-type]
+    assert findings == [f"representation.records must be tuple, got list {[RECORD]!r}"]
+
+
+def test_exact_tuples_are_still_accepted_after_the_tightening() -> None:
+    assert representation_draft_violations(draft()) == []
+    assert (
+        representation_draft_violations(
+            RepresentationDraft(
+                records=(),
+                components=(),
+                prose_bindings=(),
+                relationships=(),
+                references=(),
+                provenance=(),
+            )
+        )
+        == []
+    )
+
+
+def test_the_element_map_is_explicit_and_guarded_not_derived() -> None:
+    """States the actual guarantee, correcting an earlier overclaim.
+
+    ``_DRAFT_ELEMENT_TYPES`` is a hand-maintained literal. Nothing derives it;
+    what protects it is this file's dataclass-derived change detector, which is
+    a different and weaker claim than "derived" — and worth being precise about,
+    since an earlier comment said the wrong one.
+    """
+    from afterworlds.ingestion.mechanical.representation import _DRAFT_ELEMENT_TYPES
+
+    assert dict(_DRAFT_ELEMENT_TYPES) == EXPECTED_ELEMENTS
+    assert set(_DRAFT_ELEMENT_TYPES) == {f.name for f in fields(RepresentationDraft)}

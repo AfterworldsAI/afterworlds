@@ -732,10 +732,16 @@ structures, and options already use. `isinstance` is deliberately *not* used:
 a subclass *is* an instance of its base, which is precisely the case being
 refused.
 
-The element map is derived from the dataclass rather than restated, and a
-change-detector test reads `dataclasses.fields(RepresentationDraft)` and fails
-if the two disagree — so an eighth collection cannot enter the boundary
-ungated. That is the specific failure mode this round exists to correct.
+The element map is an **explicit map guarded by a dataclass-derived change
+detector**: `_DRAFT_ELEMENT_TYPES` is a hand-maintained literal, and a test
+reads `dataclasses.fields(RepresentationDraft)` and fails if the two disagree —
+so an eighth collection cannot enter the boundary ungated. That is the specific
+failure mode this round exists to correct.
+
+*(Corrected in round 9: this paragraph originally said the map was "derived
+from the dataclass". It is not derived; the guarantee comes from the detector.
+The distinction matters because a derived map cannot drift, while a guarded one
+can drift until the test runs.)*
 
 ## Sibling dispositions — the complete audited set
 
@@ -804,3 +810,93 @@ collection refused; the schema version and hash asserted unchanged; and both
 authority-bearing routes exercised end to end.
 
 Verified to fail against a disabled gate — 14 of the 22 fail.
+
+---
+
+# Round 9 — the boundary gate's own leak
+
+Reviewed head `d50a7f1e593a76f25c3df98e91cd69738e213be0`, verified unmoved
+before starting. One P1, in code round 8 added. Ten threads remain open and
+unresolved.
+
+## Finding — the gate used the check it exists to forbid
+
+`representation_draft_violations()` exact-checked `RepresentationDraft` and
+every direct element, then admitted the *collections* through:
+
+```python
+if not isinstance(held, tuple):
+```
+
+**This is my own defect, introduced by round 8**, and it is the same
+closed-structure identity-leak family that round was written to close — spelled
+with the loose check the whole family exists to refuse. A tuple subclass *is* a
+tuple, so the container was the one position where the boundary still leaked.
+
+Two distinct consequences, both real:
+
+* **Undeclared container metadata.** A tuple subclass can carry state that
+  `representation_payload` never emits, because the emitter walks elements and
+  never sees the container's own attributes. Two drafts asserting different
+  authority therefore canonicalize to byte-identical payloads and share one
+  projection identity — the exact leak, one level out from the elements.
+* **Divergent iteration.** A subclass can override `__iter__`, so validation
+  and serialization observe *different* elements from one object. Iterating to
+  find out what a collection holds is itself the observation being refused,
+  which is why the type check must precede iteration rather than follow it.
+
+## The change
+
+The collection check now reuses `exact_type_violations(held, tuple, ...)` —
+the same rule every other refusal in this family uses, producing the same
+deterministic message shape — and runs **before** the collection is iterated.
+Scoped to the six direct `RepresentationDraft` collection fields; no
+repository-wide container refactor.
+
+Exact `tuple` collections, including empty ones, remain accepted; every
+existing fixture is unchanged. A `list` is still refused, now through the
+shared rule instead of a bespoke message.
+
+## Correcting the "derived map" claim
+
+Round 8's code comment, remediation log, and PR body each said
+`_DRAFT_ELEMENT_TYPES` was **derived from the dataclass**. It is not: the map is
+a hand-maintained literal. What exists is an **explicit map guarded by a
+dataclass-derived change detector** — a test reads
+`dataclasses.fields(RepresentationDraft)` and fails if the two disagree.
+
+The distinction is not cosmetic. A derived map *cannot* drift; a guarded one
+can drift until the test runs. All three statements are corrected to the
+accurate wording, and a test now asserts the actual property rather than the
+claimed one.
+
+## Regression evidence
+
+Nine tests added to
+`tests/ingestion/mechanical/test_review_round_7_draft_exact_types.py` (34
+total): a tuple subclass holding valid exact elements refused; **every one of
+the six collection fields** parametrized, so the fix is not one-field-deep; two
+tuple subclasses differing only in undeclared container metadata proven to emit
+byte-identical canonical payloads and then both refused; a subclass whose
+`__iter__` raises, proving the check precedes iteration — if the gate iterated
+first, that test fails with the subclass's own `AssertionError` rather than
+returning a finding; a `list` still refused; exact and empty tuples still
+accepted; and the element map asserted to be explicit-and-guarded rather than
+derived.
+
+Verified against the reinstated `isinstance` defect: **11 of 34 fail**,
+including the hostile-iterator case.
+
+*A process note worth keeping.* The first sabotage run reported all 34 tests
+passing, which would have meant the suite could not see the defect. It was the
+sabotage that failed, not the tests: `black` had collapsed the multi-line call
+to one line, so the replacement never matched. The second attempt asserted the
+match count before running. A verification that silently does nothing is
+indistinguishable from a verification that passes.
+
+## Schema identity
+
+Re-derived and asserted, not assumed: version `5d-representation-schema-2`,
+structural hash
+`ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c`. Checker
+code changed; the wire contract did not.
