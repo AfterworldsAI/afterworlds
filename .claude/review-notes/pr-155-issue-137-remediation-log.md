@@ -271,7 +271,7 @@ sites.
 | `SizeComparison` (inside `any_of`) | **patched** — `isinstance` → exact type |
 | `ComponentOption` | **patched** — `validation.py::_validate_options`, before the key/fact reads and dedup checks it would evade |
 | six new schema-2 fact families | **already safe** — `fact_invariant_violations` already tests `_FACT_TYPES[family] is not type(fact)` |
-| `ComponentDraft`, `RecordDraft`, `ProseBindingDraft`, `ProvenanceClaim` | **out of scope** — same latent exposure, but pre-existing top-level draft structures, not newly introduced by schema 2. Guarding one and not the rest would be arbitrary, and guarding all of them is the repository-wide dataclass refactor this task forbids. **Surfaced, not silently fixed.** |
+| `ComponentDraft`, `RecordDraft`, `ProseBindingDraft`, `ProvenanceClaim` | ~~out of scope~~ — **superseded by round 8**, which closed the whole boundary and recorded that this four-class list was *incomplete*: `RelationshipDraft`, `ReferenceDraft`, and `RepresentationDraft` itself also belonged to it. |
 
 **Tests.** Subclasses carrying extra meaning-bearing fields at each site; a
 `kind`-shadowing subclass proving the gate precedes every field read; an
@@ -682,3 +682,125 @@ two guards fails 15 of the 27. The schema-1 suite persists into a database built
 by the real migration chain through `head` (past 0028), reconstructs, and checks
 the recorded digest and `verify_persisted_state`, so it exercises the actual
 post-upgrade state rather than a serializer in isolation.
+
+---
+
+# Round 8 — closing the representation-draft exact-type boundary
+
+Reviewed head `79147574df80990dc6187a61e0a295ef8516ec82`, verified unmoved
+before starting. Owner Decision 2026-08-20: close the closed-structure identity
+leak coherently across the whole top-level draft boundary **within #155, before
+schema 2 merges**. Ten threads remain open and unresolved; this round replaces
+the standing "deferred residue" disposition rather than adding to it.
+
+## Correcting the earlier accounting
+
+Rounds 4 through 7 recorded this residue as **four** structures —
+`ComponentDraft`, `RecordDraft`, `ProseBindingDraft`, `ProvenanceClaim` — and
+each round repeated that number in the log, the PR body, and an inline reply.
+
+**That audit was incomplete, not merely narrowed.** Two more direct
+`RepresentationDraft` collection elements were never listed:
+
+* `RelationshipDraft`
+* `ReferenceDraft`
+
+and `RepresentationDraft` itself was never considered, though it can be
+subclassed exactly as its elements can — and a subclass of it can carry an
+entire additional top-level collection that no payload emits.
+
+The real boundary is **seven** types. The count was wrong in every prior
+round's reporting, and this section is the correction rather than a quiet
+restatement.
+
+## The defect
+
+A subclass of any of these may carry an undeclared meaning-bearing field,
+shadow a declared one, or redefine `__eq__`/`__hash__`. Validation reads the
+objects as their base classes and `representation_payload` emits only the
+declared base fields, so two drafts asserting *different* authority validate
+cleanly, canonicalize to byte-identical payloads, and receive one projection
+identity. A hostile `__eq__` need only be consulted once — in any of the set and
+dict comprehensions the validators build — to collapse two distinct elements
+into one, after which the finding it should have produced no longer exists.
+
+## The gate
+
+`representation.representation_draft_violations(draft)` reuses
+`exact_type_violations` — the same rule the fact families, applicability
+structures, and options already use. `isinstance` is deliberately *not* used:
+a subclass *is* an instance of its base, which is precisely the case being
+refused.
+
+The element map is derived from the dataclass rather than restated, and a
+change-detector test reads `dataclasses.fields(RepresentationDraft)` and fails
+if the two disagree — so an eighth collection cannot enter the boundary
+ungated. That is the specific failure mode this round exists to correct.
+
+## Sibling dispositions — the complete audited set
+
+| Structure | Disposition |
+|---|---|
+| `RepresentationDraft` | **patched** — gated first; a hostile draft is refused before any element is read |
+| `RecordDraft` | **patched** |
+| `ComponentDraft` | **patched** |
+| `ProseBindingDraft` | **patched** |
+| `RelationshipDraft` | **patched** — missed by the round-4 audit |
+| `ReferenceDraft` | **patched** — missed by the round-4 audit |
+| `ProvenanceClaim` | **patched** |
+| `ComponentOption` | **already safe** — gated in round 6 via `option_set_violations` |
+| `Applicability`, `SizeComparison` | **already safe** — gated in round 4 |
+| the typed fact families | **already safe** — `fact_invariant_violations` tests `_FACT_TYPES[family] is not type(fact)` |
+| `ClassificationLedger`, `BoundCorpusSnapshot` | **out of scope, stated** — parameters of the validators but not representation authority; outside the boundary this decision draws |
+
+## Authority-bearing routes traced
+
+| Route | Disposition |
+|---|---|
+| `validation.validate_representation` | **patched** — gate first, **early return**. Every validator below it reads fields, builds keys, and dedups; running them on a refused type would let a hostile `__eq__` act and would bury the real finding under downstream noise. |
+| `projection.validate_candidate` → `validate_representation` | **already safe** — the only caller, covered by the above |
+| `gate.run_publication_gate` → `validate_candidate` | **already safe** — routes through the gated validator |
+| `oracle.load_accepted_inputs` (→ `RepresentationDraft` at `oracle.py:719`) | **already safe, with evidence** — constructs every element by exact base-class name from JSON; no caller-supplied type reaches it |
+| `persistence.reconstruct_candidate` (→ `persistence.py:597`) | **already safe, with evidence** — same, constructed by name from stored rows |
+| `gate._accepted_identity` → `identify_projection` | **already safe, with evidence** — builds identity from the **oracle**, which is loader-constructed, not from a merged or caller-supplied draft |
+| `acceptance._merge_representation` | **patched** — see below |
+
+**The acceptance merge needed its own gate, and this is why.** `MechanicalProposal`
+has **no loader in `src/`** — it is constructed in process by a generating tool,
+so its `representation` is the one authority-bearing draft that does not arrive
+through a base-class-constructing loader. `_merged_collection` then builds
+`key_of(...)` keys and compares elements to decide what is already accepted:
+a redefined `__eq__` there silently drops an element or admits a conflicting
+one. The gate runs before the keyed union, on **both** `proposed` and `prior`.
+`prior` is loader-built and therefore already exact, but it is checked rather
+than trusted — a rule with an exception is a rule someone finds the exception
+in.
+
+## Schema identity
+
+Schema 2 is still unmerged, so this corrects its invariant before reachability.
+Re-derived and asserted, not assumed:
+
+* version `5d-representation-schema-2`
+* structural hash `ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c`
+
+No schema 3. Checker code changed; the wire contract did not. Schema-1 and
+schema-2 canonical payloads, projection identities, derived IDs, and Option A
+historical reconstruction are unchanged and covered by their existing suites.
+
+## Regression evidence
+
+`tests/ingestion/mechanical/test_review_round_7_draft_exact_types.py` (22): an
+extra-field subclass refused for each of the six collections, with a matrix
+exhaustiveness check; `RepresentationDraft` itself refused, including a subclass
+carrying an extra top-level collection, and refused *before* its elements are
+read; field-shadowing subclasses failing as type refusals rather than as
+downstream enum findings; an `eq=False` subclass demonstrated to collapse two
+distinct records into one set member and then refused before any dedup runs; the
+canonical-payload leak **run rather than asserted** — two subclass instances
+differing only in undeclared meaning proven to emit identical bytes, then both
+refused; exact base classes and an empty draft still accepted; a non-tuple
+collection refused; the schema version and hash asserted unchanged; and both
+authority-bearing routes exercised end to end.
+
+Verified to fail against a disabled gate — 14 of the 22 fail.

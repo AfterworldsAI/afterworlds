@@ -3992,6 +3992,61 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
     return findings
 
 
+#: Every direct element type of :class:`RepresentationDraft`, keyed by the field
+#: that holds it. Derived from the dataclass rather than restated: a seventh
+#: collection added later must appear here or the change-detector test fails,
+#: so a new sibling cannot enter the authority boundary ungated.
+_DRAFT_ELEMENT_TYPES: Mapping[str, type] = {
+    "records": RecordDraft,
+    "components": ComponentDraft,
+    "prose_bindings": ProseBindingDraft,
+    "relationships": RelationshipDraft,
+    "references": ReferenceDraft,
+    "provenance": ProvenanceClaim,
+}
+
+
+def representation_draft_violations(draft: object) -> list[str]:
+    """Exact runtime type of the draft and of every element it holds.
+
+    The closed-structure identity leak, closed at the top-level boundary. A
+    subclass of any of these may carry an undeclared meaning-bearing field,
+    shadow a declared one, or redefine ``__eq__``/``__hash__``. Validation reads
+    them as their base classes and ``representation_payload`` emits only the
+    declared base fields, so two drafts asserting *different* authority would
+    validate identically, canonicalize to the same bytes, and share one
+    projection identity.
+
+    ``isinstance`` is not enough and is deliberately not used: a subclass *is*
+    an instance of its base, which is exactly the case being refused. The rule
+    is :func:`exact_type_violations`, the same one the fact families,
+    applicability structures, and options already use.
+
+    Called **before** any field access, key construction, comprehension, or
+    equality/hash-based deduplication downstream — a hostile ``__eq__`` only
+    has to be consulted once to collapse two distinct elements into one, and by
+    then the finding it should have produced is gone.
+    """
+    if findings := exact_type_violations(draft, RepresentationDraft, "representation"):
+        return findings
+    assert isinstance(draft, RepresentationDraft)
+    violations: list[str] = []
+    for field_name, expected in _DRAFT_ELEMENT_TYPES.items():
+        held = getattr(draft, field_name)
+        if not isinstance(held, tuple):
+            violations.append(
+                f"representation.{field_name} is " f"{type(held).__name__}, not a tuple"
+            )
+            continue
+        for index, element in enumerate(held):
+            violations.extend(
+                exact_type_violations(
+                    element, expected, f"representation.{field_name}[{index}]"
+                )
+            )
+    return violations
+
+
 def option_set_violations(
     facts: tuple[MechanicalFact, ...],
     options: tuple[ComponentOption, ...],

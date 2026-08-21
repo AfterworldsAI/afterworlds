@@ -50,6 +50,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_key,
     option_set_violations,
     prose_bindings_by_target_key,
+    representation_draft_violations,
 )
 
 __all__ = ["validate_representation"]
@@ -555,6 +556,16 @@ def validate_representation(
     of release-scoped truth these validators read, so no validator needs a
     database of its own.
     """
+    # The exact-type boundary first, and nothing else if it fails. Every
+    # validator below reads fields, builds keys, and dedups through sets and
+    # dicts; a subclass with a hostile ``__eq__`` only has to be consulted once
+    # to collapse two distinct elements into one, and the finding it should
+    # have produced is gone by then. Returning early also keeps the report
+    # about the actual defect rather than burying it under downstream noise
+    # produced by reading a type we have just refused.
+    if drift := representation_draft_violations(draft):
+        return tuple(drift)
+
     findings: list[str] = []
     findings.extend(_validate_records(draft))
     findings.extend(_validate_components(draft))
