@@ -159,12 +159,17 @@ def _component_schema_2_payload(
     empty, or the two could drift into silently discarding meaning.
     """
     if schema_version == SCHEMA_1_VERSION:
-        if component.applies_when is not None or component.options:
+        if (
+            component.applies_when is not None
+            or component.options
+            or component.fact_qualifiers
+        ):
             raise LegacySchemaPayloadError(
                 f"component {component.record_key}/{component.semantic_key} "
                 f"declares schema {SCHEMA_1_VERSION!r} but carries schema-2 "
-                "applicability or options; refusing to omit meaning-bearing "
-                "data to reproduce a legacy identity"
+                "applicability or options, or a schema-3 fact qualifier; "
+                "refusing to omit meaning-bearing data to reproduce a legacy "
+                "identity"
             )
         return {}
     return {
@@ -179,6 +184,17 @@ def _component_schema_2_payload(
                 "applies_when": applicability_payload(o.applies_when),
             }
             for o in component.options
+        ),
+        # Keyed by the fact they qualify and its scope, so canonical ordering
+        # is over meaning rather than authoring order — the same rule every
+        # other collection in this payload follows.
+        "fact_qualifiers": canonical_order(
+            {
+                "fact_key": q.fact_key,
+                "option_key": q.option_key,
+                "applies_when": applicability_payload(q.applies_when),
+            }
+            for q in component.fact_qualifiers
         ),
     }
 

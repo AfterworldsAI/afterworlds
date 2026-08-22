@@ -41,12 +41,14 @@ from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ComponentDraft,
     ComponentOption,
+    FactQualifier,
     MechanicalFact,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
     component_participant_violations,
     fact_key,
+    fact_qualifier_target_key,
     fact_target_key,
     option_set_violations,
 )
@@ -80,6 +82,7 @@ __all__ = [
     "EffectiveAuthority",
     "EffectiveComponent",
     "EffectiveFact",
+    "EffectiveFactQualifier",
     "EffectiveRecord",
     "GoverningProseEntry",
     "OverrideApplicationError",
@@ -98,6 +101,28 @@ class OverrideApplicationError(ValueError):
 
 
 @dataclass(frozen=True)
+class EffectiveFactQualifier:
+    """A fact's applicability limitation, carrying its *own* authority.
+
+    Separate from the fact's provenance on purpose. When an override replaces a
+    source fact whose source-authored qualifier survives, the two halves have
+    different authors: the fact came from the override, and the limitation
+    still comes from the 5c span that states it. A consumer must be able to
+    tell *"this fact came from override X"* from *"this limitation came from
+    source span Y"*, and a single merged span set cannot say that.
+
+    ``span_ids`` is empty exactly when an override supplied the qualifier, in
+    which case ``supplied_by_*`` names it — the same convention
+    :class:`EffectiveFact` already uses.
+    """
+
+    applies_when: Applicability
+    span_ids: tuple[str, ...] = ()
+    supplied_by_override_id: str | None = None
+    supplied_by_origin: OverrideOriginEnum | None = None
+
+
+@dataclass(frozen=True)
 class EffectiveFact:
     """One typed fact in the effective view, with its exact provenance."""
 
@@ -112,6 +137,10 @@ class EffectiveFact:
     #: The override that supplied this fact, when one did.
     supplied_by_override_id: str | None = None
     supplied_by_origin: OverrideOriginEnum | None = None
+    #: This fact's own condition, or ``None`` when it is limited only by its
+    #: enclosing component or option. Held on the fact so suppression cannot
+    #: leave a qualifier behind: removing the fact removes it by construction.
+    qualifier: EffectiveFactQualifier | None = None
 
 
 @dataclass(frozen=True)
@@ -277,6 +306,33 @@ def _provenance_index(
     }
 
 
+def _base_qualifier(
+    component: ComponentDraft,
+    fact: MechanicalFact,
+    option_key: str,
+    spans: dict[tuple[ProvenanceTargetKind, tuple[str, ...]], tuple[str, ...]],
+) -> EffectiveFactQualifier | None:
+    """One base fact's qualifier, with the qualifier's own source spans."""
+    applies_when = component.qualifier_for(fact, option_key)
+    if applies_when is None:
+        return None
+    return EffectiveFactQualifier(
+        applies_when=applies_when,
+        span_ids=spans.get(
+            (
+                ProvenanceTargetKind.FACT_QUALIFIER,
+                fact_qualifier_target_key(
+                    component.record_key,
+                    component.semantic_key,
+                    fact_key(fact),
+                    option_key,
+                ),
+            ),
+            (),
+        ),
+    )
+
+
 def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
     """Assemble the immutable base projection as an effective view."""
     draft = candidate.representation
@@ -326,6 +382,10 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                         ),
                         (),
                     ),
+                    # The qualifier's own spans, keyed by its own target kind.
+                    # Same coordinates as the fact, different authority — which
+                    # is exactly why the kind separates them.
+                    qualifier=_base_qualifier(component, fact, option_key, spans),
                 )
                 for fact in scoped
             )
@@ -391,6 +451,12 @@ def _component_from_body(
     semantic_key: str,
     entry: EffectiveOverrideEntry,
 ) -> EffectiveComponent:
+    #: Qualifiers by the exact scope they address, so a body's qualifier for
+    #: one option's fact can never attach to an identical fact in another arm.
+    supplied_qualifiers = {
+        (q.option_key, q.fact_key): q.applies_when for q in body.fact_qualifiers
+    }
+
     def _supplied(
         facts: tuple[MechanicalFact, ...], option_key: str | None
     ) -> tuple[EffectiveFact, ...]:
@@ -401,6 +467,24 @@ def _component_from_body(
                 option_key=option_key,
                 supplied_by_override_id=entry.override_id,
                 supplied_by_origin=entry.origin,
+                # Complete like every other field of a component patch: a
+                # qualifier the body omits is genuinely absent, never inherited
+                # from the component being replaced. It is override authority,
+                # so it names 5c spans nowhere.
+                qualifier=(
+                    EffectiveFactQualifier(
+                        applies_when=applies_when,
+                        supplied_by_override_id=entry.override_id,
+                        supplied_by_origin=entry.origin,
+                    )
+                    if (
+                        applies_when := supplied_qualifiers.get(
+                            (option_key or "", fact_key(f))
+                        )
+                    )
+                    is not None
+                    else None
+                ),
             )
             for f in facts
         )
@@ -765,6 +849,36 @@ def _verify_final_option_sets(
                 )
 
 
+def _effective_qualifiers(component: EffectiveComponent) -> tuple[FactQualifier, ...]:
+    """The component's per-fact conditions, projected back into draft types.
+
+    The effective view holds a qualifier on its fact; the representation rule
+    reads them as a component-level set. Converting here keeps the rule itself
+    single-sourced rather than growing a second effective-view spelling of it.
+    """
+    return (
+        *(
+            FactQualifier(
+                fact_key=f.fact_key,
+                option_key="",
+                applies_when=f.qualifier.applies_when,
+            )
+            for f in component.facts
+            if f.qualifier is not None
+        ),
+        *(
+            FactQualifier(
+                fact_key=f.fact_key,
+                option_key=option.semantic_key,
+                applies_when=f.qualifier.applies_when,
+            )
+            for option in component.options
+            for f in option.facts
+            if f.qualifier is not None
+        ),
+    )
+
+
 def _verify_final_participant_rules(
     records: tuple[EffectiveRecord, ...], provenance: list[AppliedOverride]
 ) -> None:
@@ -811,6 +925,11 @@ def _verify_final_participant_rules(
                 ),
                 component.applies_when,
                 f"component {record.semantic_key}/{component.semantic_key}",
+                # A qualifier can name the counterpart too, so the final state
+                # has to be asked about it as well — otherwise an override
+                # could introduce a counterpart-bearing limitation into a
+                # component that establishes nothing.
+                _effective_qualifiers(component),
             )
             if violations:
                 raise OverrideApplicationError(
@@ -1111,7 +1230,7 @@ def _apply_entry(
                 f"target {target.describe()} names no fact of "
                 f"{target.component_key!r}",
             )
-        fact_index, _old = position
+        fact_index, old_fact = position
         if (
             new_key != target.fact_key
             and _find_fact(component, new_key, option_key) is not None
@@ -1122,14 +1241,25 @@ def _apply_entry(
                 f"{target.component_key!r}",
             )
         facts = list(_scope())
+        # The replacement's authority is the override; the surviving
+        # qualifier's authority is unchanged. A fact REPLACE says nothing about
+        # the limitation the source put on it, so the association is retargeted
+        # from the old fact_key to the new one rather than being dropped with
+        # the fact it named. Dropping it would silently widen the rule; copying
+        # the override's provenance onto it would misattribute source text.
         facts[fact_index] = EffectiveFact(
             fact_key=new_key,
             fact=new_fact,
             option_key=option_key,
             supplied_by_override_id=entry.override_id,
             supplied_by_origin=entry.origin,
+            qualifier=old_fact.qualifier,
         )
-        note = "fact replaced"
+        note = (
+            "fact replaced, qualifier retargeted"
+            if old_fact.qualifier is not None
+            else "fact replaced"
+        )
     else:
         assert isinstance(patch, FactAdditionPatch)
         if _find_fact(component, new_key, option_key) is not None:

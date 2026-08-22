@@ -183,7 +183,10 @@ __all__ = [
     "TransformedForm",
     "TransportKind",
     "applicability_violations",
+    "FactQualifier",
     "component_participant_violations",
+    "fact_qualifier_target_key",
+    "fact_qualifier_violations",
     "size_comparison_violations",
     "ComponentDraft",
     "ProseBindingDraft",
@@ -257,6 +260,14 @@ class ProvenanceTargetKind(StrEnum):
     RECORD = "record"
     COMPONENT = "component"
     FACT = "fact"
+    #: A fact's own applicability qualifier. Distinct from ``FACT`` because a
+    #: qualifier is meaning-bearing authority in its own right: the span that
+    #: states *"unless you are Tiny or two or more sizes smaller than it"* is
+    #: not the span that states the surcharge it limits, and an override that
+    #: replaces the fact must not inherit — or discard — the qualifier's
+    #: source. The remaining coordinates are identical to the fact's by
+    #: design; the kind is what separates them.
+    FACT_QUALIFIER = "fact_qualifier"
     PROSE_BINDING = "prose_binding"
     RELATIONSHIP = "relationship"
     REFERENCE = "reference"
@@ -3937,6 +3948,47 @@ class ComponentOption:
 
 
 @dataclass(frozen=True)
+class FactQualifier:
+    """One fact's own condition, where it differs from its siblings'.
+
+    A component's ``applies_when`` says when the *whole component* applies, and
+    that is too broad whenever the source qualifies only part of what a
+    component states. Grappled is the forced instance: *"The grappler can drag
+    or carry you when it moves, but every foot of movement costs it 1 extra
+    foot **unless you are Tiny or two or more sizes smaller than it**"* — the
+    exception attaches to the surcharge, and the transport permission is
+    unconditional. Represented component-wide, a Tiny subject would stop being
+    transportable at all, which the source never says.
+
+    Not a Grappled anomaly. Water Elemental's Whelm — *"the target has the
+    Restrained condition, **is suffocating unless it can breathe water**, and
+    takes 9 (2d8) Bludgeoning damage"* — and the Aboleth's curse — *"the
+    target's skin becomes slimy, the target can breathe air and water, and
+    **it can't regain Hit Points unless it is underwater**"* — each qualify
+    exactly one of three coordinate claims. Cleave and Light do the same for a
+    damage modifier.
+
+    **Addressed by content, not position.** ``fact_key`` is the same
+    content-derived key provenance and override targeting already use, and
+    ``option_key`` scopes it exactly as :func:`fact_target_key`'s fourth
+    element does — so this introduces no second way to name a fact and nothing
+    that canonical reordering could invalidate.
+
+    **Composes conjunctively, and redefines nothing.** A component's
+    ``applies_when`` keeps its existing meaning; an option's keeps its own; a
+    qualified fact additionally requires this. Scopes narrow inward and never
+    replace one another.
+    """
+
+    #: The fact this condition belongs to, by its content-derived key.
+    fact_key: str
+    applies_when: Applicability
+    #: The owning option, or ``""`` for a fact held directly on the component —
+    #: the same scoping distinction ``fact_target_key`` draws.
+    option_key: str = ""
+
+
+@dataclass(frozen=True)
 class ComponentDraft:
     """One publishable component of a record.
 
@@ -3962,6 +4014,23 @@ class ComponentDraft:
     #: An exhaustive actor choice. Empty, or at least two uniquely keyed
     #: options; never non-empty alongside ``facts``.
     options: tuple[ComponentOption, ...] = ()
+    #: Per-fact conditions, for facts the source qualifies individually. Each
+    #: names one fact in this component by ``(option_key, fact_key)``; a fact
+    #: with no entry here is conditioned only by its enclosing scopes.
+    fact_qualifiers: tuple[FactQualifier, ...] = ()
+
+    def qualifier_for(self, fact: object, option_key: str = "") -> Applicability | None:
+        """This component's own condition for *fact* in the given scope.
+
+        Scoped lookup rather than a bare ``fact_key`` match: the same fact may
+        legitimately appear in two option arms, and a qualifier on one must
+        never be read as governing the other.
+        """
+        key = fact_key(fact)
+        for qualifier in self.fact_qualifiers:
+            if qualifier.fact_key == key and qualifier.option_key == option_key:
+                return qualifier.applies_when
+        return None
 
     def all_facts(self) -> tuple[MechanicalFact, ...]:
         """Every typed fact this component publishes, direct and per-option.
@@ -4101,6 +4170,27 @@ def fact_target_key(
     """
     base = (record_key, component_key, fact_key(fact))
     return base if not option_key else (*base, option_key)
+
+
+def fact_qualifier_target_key(
+    record_key: str, component_key: str, fact_key_: str, option_key: str = ""
+) -> tuple[str, ...]:
+    """Provenance key of one fact's applicability qualifier.
+
+    Deliberately the *same coordinates* a fact target carries — the qualifier
+    is addressed by the fact it belongs to and that fact's scope — with
+    :attr:`ProvenanceTargetKind.FACT_QUALIFIER` doing the separating. Encoding
+    the distinction in the key instead would either change
+    :func:`fact_target_key`'s shape, which stored override targets and the
+    schema-1 identity literals both depend on, or invent a second spelling of a
+    fact's coordinates that could drift from the first.
+
+    ``option_key`` is always present here, unlike in :func:`fact_target_key`
+    where it is appended only for an option fact. A qualifier's scope is part
+    of how it resolves — the same fact may appear in two arms — so the key
+    states it explicitly rather than by length.
+    """
+    return (record_key, component_key, fact_key_, option_key)
 
 
 def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
@@ -4368,6 +4458,7 @@ def component_participant_violations(
     options: Sequence[object],
     applies_when: object,
     tag: str,
+    fact_qualifiers: Sequence[object] = (),
 ) -> list[str]:
     """Violations of the counterpart-establishment rule within one component.
 
@@ -4398,10 +4489,25 @@ def component_participant_violations(
     creature that scope never named.
     """
     component_establishes = _establishes_counterpart(facts)
+    # A qualifier is counterpart-bearing authority exactly as an applicability
+    # on the component is, and it is scoped the same way: one attached to a
+    # direct fact answers to the component, one attached to an option's fact
+    # answers to that option.
+    scoped_qualifiers: dict[str, list[object]] = {}
+    for qualifier in fact_qualifiers:
+        if type(qualifier) is not FactQualifier:
+            # Qualifier-shape drift belongs to fact_qualifier_violations.
+            continue
+        scoped_qualifiers.setdefault(qualifier.option_key, []).append(
+            qualifier.applies_when
+        )
     findings = [
         f"{tag}: {v}"
         for v in _counterpart_scope_violations(
-            facts, [applies_when], component_establishes, "the component"
+            facts,
+            [applies_when, *scoped_qualifiers.get("", [])],
+            component_establishes,
+            "the component",
         )
     ]
     for option in options:
@@ -4412,10 +4518,92 @@ def component_participant_violations(
             f"{tag} option {option.semantic_key}: {v}"
             for v in _counterpart_scope_violations(
                 option.facts,
-                [option.applies_when],
+                [
+                    option.applies_when,
+                    *scoped_qualifiers.get(option.semantic_key, []),
+                ],
                 component_establishes or _establishes_counterpart(option.facts),
                 "the component or this option",
             )
+        )
+    return findings
+
+
+def fact_qualifier_violations(
+    facts: Sequence[object],
+    options: Sequence[object],
+    fact_qualifiers: Sequence[object],
+    tag: str,
+) -> list[str]:
+    """Violations of one component's per-fact qualifier contract.
+
+    Stated over the component's parts rather than over a whole
+    :class:`ComponentDraft`, for the same reason :func:`option_set_violations`
+    and :func:`component_participant_violations` are: one rule governs both the
+    build-time representation and the final effective view after overrides.
+
+    Three ways a qualifier can be dishonest, and each is refused:
+
+    * **dangling** — naming a fact the component does not hold. A condition on
+      nothing is not a weaker condition, it is a claim about authority that
+      does not exist, and it would survive silently as unreadable data;
+    * **wrong scope** — naming a fact that exists in a *different* option arm.
+      The same fact may legitimately appear in two arms, so a qualifier that
+      resolved by ``fact_key`` alone could condition the arm it was never
+      written for; and
+    * **duplicated** — two qualifiers for one scoped fact. No corpus instance
+      states two independent conditions on one fact, and admitting a pair would
+      leave their composition undefined: nothing says whether they conjoin or
+      alternate. A single closed :class:`Applicability` is the whole contract.
+    """
+    findings: list[str] = []
+    scoped_keys: set[tuple[str, str]] = {
+        ("", fact_key(f)) for f in facts if _is_declared_fact(f)
+    }
+    for option in options:
+        if type(option) is not ComponentOption:
+            continue
+        scoped_keys |= {
+            (option.semantic_key, fact_key(f))
+            for f in option.facts
+            if _is_declared_fact(f)
+        }
+
+    seen: set[tuple[str, str]] = set()
+    for qualifier in fact_qualifiers:
+        if drift := exact_type_violations(
+            qualifier, FactQualifier, f"{tag} fact qualifier"
+        ):
+            findings.extend(drift)
+            continue
+        assert isinstance(qualifier, FactQualifier)
+        scope = (qualifier.option_key, qualifier.fact_key)
+        where = (
+            f"{tag}: fact qualifier {qualifier.fact_key}"
+            if not qualifier.option_key
+            else f"{tag} option {qualifier.option_key}: "
+            f"fact qualifier {qualifier.fact_key}"
+        )
+        if not isinstance(qualifier.fact_key, str) or not qualifier.fact_key.strip():
+            findings.append(f"{where}: names no fact")
+            continue
+        if not isinstance(qualifier.option_key, str):
+            findings.append(f"{where}: option scope is not a string")
+            continue
+        if scope in seen:
+            findings.append(f"{where}: duplicate qualifier for one scoped fact")
+        seen.add(scope)
+        if scope not in scoped_keys:
+            # Distinguish "no such fact anywhere" from "that fact is in another
+            # scope": the second is the subtler defect and the more useful
+            # report, because the key resolves and the authoring still misses.
+            elsewhere = any(k == qualifier.fact_key for _, k in scoped_keys)
+            findings.append(
+                f"{where}: names a fact this scope does not hold"
+                + (" (it exists in another scope)" if elsewhere else "")
+            )
+        findings.extend(
+            f"{where}: {v}" for v in applicability_violations(qualifier.applies_when)
         )
     return findings
 
@@ -4666,12 +4854,27 @@ def declared_provenance_targets(
                 except UnknownFactFamilyError:
                     continue
 
+    qualifiers: set[tuple[str, ...]] = set()
+    for component in draft.components:
+        for qualifier in component.fact_qualifiers:
+            if type(qualifier) is not FactQualifier:
+                continue
+            qualifiers.add(
+                fact_qualifier_target_key(
+                    component.record_key,
+                    component.semantic_key,
+                    qualifier.fact_key,
+                    qualifier.option_key,
+                )
+            )
+
     return {
         ProvenanceTargetKind.RECORD: {record_target_key(r) for r in draft.records},
         ProvenanceTargetKind.COMPONENT: {
             component_target_key(c) for c in draft.components
         },
         ProvenanceTargetKind.FACT: facts,
+        ProvenanceTargetKind.FACT_QUALIFIER: qualifiers,
         ProvenanceTargetKind.PROSE_BINDING: {
             prose_binding_target_key(b) for b in draft.prose_bindings
         },
@@ -4689,8 +4892,14 @@ def declared_provenance_targets(
 #: coverage under the classification contract, not a per-element edge, and
 #: conflating the two would let a component claim stand in for the traceability
 #: of every fact beneath it.
+#:
+#: ``FACT_QUALIFIER`` joins them: a qualifier states a limitation the source
+#: puts in words, so it owes the same per-element traceability a fact does.
+#: Letting the fact's claim stand in for it is exactly the conflation the note
+#: above rejects for components.
 PROVENANCE_REQUIRED_KINDS: tuple[ProvenanceTargetKind, ...] = (
     ProvenanceTargetKind.FACT,
+    ProvenanceTargetKind.FACT_QUALIFIER,
     ProvenanceTargetKind.PROSE_BINDING,
     ProvenanceTargetKind.RELATIONSHIP,
     ProvenanceTargetKind.REFERENCE,

@@ -70,6 +70,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Comparison,
     ComponentOption,
     CreatureSize,
+    FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
     ParticipantRole,
@@ -85,6 +86,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_invariant_violations,
     fact_key,
     fact_payload,
+    fact_qualifier_violations,
     option_set_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum
@@ -177,6 +179,10 @@ class ComponentBody:
     #: An exhaustive actor choice. Empty, or at least two uniquely keyed
     #: options; never non-empty alongside ``facts``.
     options: tuple[ComponentOption, ...] = ()
+    #: Per-fact conditions, addressed by ``(option_key, fact_key)``. Complete
+    #: like every other field here: a replacement that omits a qualifier the
+    #: base component had drops it rather than inheriting it.
+    fact_qualifiers: tuple[FactQualifier, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -514,7 +520,9 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         # Optional on the way in: a legacy payload predating schema 2 never
         # mentions either, and _component_body_payload omits them again when
         # they hold their legacy defaults, so those bytes are unchanged.
-        optional=frozenset({"authored_prose", "applies_when", "options"}),
+        optional=frozenset(
+            {"authored_prose", "applies_when", "options", "fact_qualifiers"}
+        ),
     )
 
     raw_handling = value["handling"]
@@ -570,6 +578,21 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
     if violations := option_set_violations(facts, options, what):
         raise InvalidPatchError("; ".join(violations))
 
+    raw_qualifiers = value.get("fact_qualifiers")
+    if raw_qualifiers is None:
+        raw_qualifiers = []
+    if not isinstance(raw_qualifiers, list):
+        raise InvalidPatchError(f"{what} fact_qualifiers must be a list")
+    fact_qualifiers = tuple(
+        _build_fact_qualifier(entry, f"{what} fact qualifier {index}")
+        for index, entry in enumerate(raw_qualifiers)
+    )
+    # Again the representation's own rule rather than a runtime copy: every
+    # qualifier must name exactly one fact in its exact scope, with no
+    # dangling, wrong-scope, or duplicated entry.
+    if violations := fact_qualifier_violations(facts, options, fact_qualifiers, what):
+        raise InvalidPatchError("; ".join(violations))
+
     if handling is ComponentHandling.PROSE_BOUND:
         if facts or options:
             raise InvalidPatchError(
@@ -608,6 +631,34 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         authored_prose=authored_prose,
         applies_when=applies_when,
         options=options,
+        fact_qualifiers=fact_qualifiers,
+    )
+
+
+def _build_fact_qualifier(value: object, what: str) -> FactQualifier:
+    """Rebuild one fact qualifier, refusing anything the projection would.
+
+    ``applies_when`` is required and may not be null: a qualifier that states
+    no condition is not a weaker qualifier, it is an entry that means nothing.
+    """
+    if not isinstance(value, Mapping):
+        raise InvalidPatchError(
+            f"{what} must be a payload object, got {type(value).__name__}"
+        )
+    _require_keys(
+        value, {"fact_key", "applies_when"}, what, optional=frozenset({"option_key"})
+    )
+    raw_key = value["fact_key"]
+    if type(raw_key) is not str or not raw_key.strip():
+        raise InvalidPatchError(f"{what} fact_key must be a non-blank string")
+    raw_scope = value.get("option_key", "")
+    if type(raw_scope) is not str:
+        raise InvalidPatchError(f"{what} option_key must be a string")
+    applies_when = _build_applicability(value["applies_when"], what)
+    if applies_when is None:
+        raise InvalidPatchError(f"{what} states no condition")
+    return FactQualifier(
+        fact_key=raw_key, option_key=raw_scope, applies_when=applies_when
     )
 
 
@@ -770,6 +821,21 @@ def _component_body_payload(body: ComponentBody) -> dict[str, object]:
                 "applies_when": applicability_payload(option.applies_when),
             }
             for option in sorted(body.options, key=lambda o: o.semantic_key)
+        ]
+    if body.fact_qualifiers:
+        # By the scope they address, for the same reason facts and options are
+        # ordered by theirs: authoring order is not meaning. Omitted entirely
+        # when empty, so a patch authored before schema 3 keeps its exact bytes
+        # and its override-set identity.
+        payload["fact_qualifiers"] = [
+            {
+                "fact_key": q.fact_key,
+                "option_key": q.option_key,
+                "applies_when": applicability_payload(q.applies_when),
+            }
+            for q in sorted(
+                body.fact_qualifiers, key=lambda q: (q.option_key, q.fact_key)
+            )
         ]
     return payload
 

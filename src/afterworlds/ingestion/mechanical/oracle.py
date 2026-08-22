@@ -79,6 +79,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentOption,
     CreatureSize,
     FactFamily,
+    FactQualifier,
     MalformedFactPayloadError,
     ParticipantRole,
     Phase,
@@ -495,6 +496,27 @@ def _component_option(raw: object, where: str) -> ComponentOption:
     )
 
 
+def _fact_qualifier(raw: object, where: str) -> FactQualifier:
+    """Load one fact's own condition.
+
+    ``applies_when`` is required here, unlike on a component or an option: a
+    qualifier whose condition is absent states nothing and would be a row of
+    pure noise, where an absent component qualifier is the real, meaningful
+    state "applies unconditionally".
+    """
+    if not isinstance(raw, dict):
+        raise OracleLoadError(f"{where}: fact qualifier must be an object")
+    q = _require(raw, ("fact_key", "applies_when"), where, optional=("option_key",))
+    applies_when = _applicability(q["applies_when"], f"{where}.applies_when")
+    if applies_when is None:
+        raise OracleLoadError(f"{where}.applies_when: a fact qualifier states none")
+    return FactQualifier(
+        fact_key=_string(q["fact_key"], f"{where}.fact_key"),
+        option_key=_string(q.get("option_key", ""), f"{where}.option_key"),
+        applies_when=applies_when,
+    )
+
+
 def _object_list(value: object, where: str) -> list[dict[str, Any]]:
     """A JSON array of objects, checked before anything indexes an element."""
     items = _list(value, where)
@@ -596,7 +618,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
-            optional=("applies_when", "options"),
+            optional=("applies_when", "options", "fact_qualifiers"),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -636,6 +658,14 @@ def _representation(payload: object) -> RepresentationDraft:
                     _component_option(o, f"{where}.options[{j}]")
                     for j, o in enumerate(
                         _object_list(c.get("options", []), f"{where}.options")
+                    )
+                ),
+                fact_qualifiers=tuple(
+                    _fact_qualifier(q, f"{where}.fact_qualifiers[{j}]")
+                    for j, q in enumerate(
+                        _object_list(
+                            c.get("fact_qualifiers", []), f"{where}.fact_qualifiers"
+                        )
                     )
                 ),
             )

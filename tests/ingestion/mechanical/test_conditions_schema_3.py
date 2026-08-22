@@ -18,10 +18,16 @@ refused rather than published.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
-from afterworlds.ingestion.mechanical.projection import applicability_payload
+from afterworlds.ingestion.mechanical.projection import (
+    applicability_payload,
+    representation_payload,
+)
 from afterworlds.ingestion.mechanical.representation import (
+    PROVENANCE_REQUIRED_KINDS,
     Applicability,
     ApplicabilityKind,
     ComponentDraft,
@@ -31,6 +37,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionEffectKind,
     ConditionKind,
     CreatureSize,
+    FactQualifier,
     MovementAmount,
     MovementCostFact,
     MovementCostKind,
@@ -38,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementPermissionFact,
     MovementTransportFact,
     ParticipantRole,
+    ProvenanceTargetKind,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
@@ -46,16 +54,21 @@ from afterworlds.ingestion.mechanical.representation import (
     SizeRelation,
     TransportKind,
     component_participant_violations,
+    declared_provenance_targets,
     fact_from_payload,
     fact_invariant_violations,
     fact_key,
     fact_payload,
+    fact_qualifier_target_key,
+    fact_qualifier_violations,
+    fact_target_key,
     size_comparison_violations,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from tests.ingestion.mechanical.conftest import bound_corpus, build_ledger
 
 SUBJECT, COUNTERPART = ParticipantRole.SUBJECT, ParticipantRole.COUNTERPART
+CRAWL_FACT = MovementPermissionFact(mode=MovementMode.CRAWL)
 
 #: Grappled > Movable, stated in full. "The grappler can drag or carry you when
 #: it moves, but every foot of movement costs it 1 extra foot unless you are
@@ -528,3 +541,165 @@ def test_validate_representation_reports_rather_than_raising(
     )
     assert findings, "malformed authority must produce findings"
     assert all(isinstance(f, str) for f in findings)
+
+
+# ---------------------------------------------------------------------------
+# Fact-scoped applicability (Codex PR #157, P1 round 2)
+# ---------------------------------------------------------------------------
+#
+# Grappled's "unless" clause qualifies the surcharge alone; the grappler's
+# permission to transport is unconditional. A component-wide applies_when
+# cannot say that, and splitting the facts into two components is refused by
+# the counterpart rule — so the qualifier belongs to the fact.
+
+QUALIFIED_MOVABLE = ComponentDraft(
+    record_key="condition.grappled",
+    semantic_key="movable",
+    handling=ComponentHandling.STRUCTURED,
+    facts=(GRAPPLED_TRANSPORT, GRAPPLED_SURCHARGE),
+    fact_qualifiers=(
+        FactQualifier(
+            fact_key=fact_key(GRAPPLED_SURCHARGE),
+            applies_when=GRAPPLED_SIZE_EXCEPTION,
+        ),
+    ),
+)
+
+
+def _qualifier_findings(component: ComponentDraft) -> list[str]:
+    return fact_qualifier_violations(
+        component.facts, component.options, component.fact_qualifiers, "component"
+    )
+
+
+def test_grappled_transport_is_unconditional_while_the_surcharge_is_not() -> None:
+    """The rule this whole structure exists to represent."""
+    assert QUALIFIED_MOVABLE.applies_when is None, "transport must not be gated"
+    assert QUALIFIED_MOVABLE.qualifier_for(GRAPPLED_TRANSPORT) is None
+    assert QUALIFIED_MOVABLE.qualifier_for(GRAPPLED_SURCHARGE) == (
+        GRAPPLED_SIZE_EXCEPTION
+    )
+    assert _qualifier_findings(QUALIFIED_MOVABLE) == []
+    assert _violations(QUALIFIED_MOVABLE) == []
+
+
+def test_a_qualifier_naming_no_such_fact_is_refused() -> None:
+    component = replace(
+        QUALIFIED_MOVABLE,
+        fact_qualifiers=(
+            FactQualifier(fact_key="0" * 16, applies_when=GRAPPLED_SIZE_EXCEPTION),
+        ),
+    )
+    findings = _qualifier_findings(component)
+    assert any("names a fact this scope does not hold" in f for f in findings), findings
+
+
+def test_a_qualifier_naming_a_fact_in_another_scope_is_refused() -> None:
+    """The subtler defect: the key resolves, but not in the scope claimed."""
+    component = ComponentDraft(
+        record_key="condition.grappled",
+        semantic_key="movement-choice",
+        handling=ComponentHandling.STRUCTURED,
+        options=(
+            ComponentOption(semantic_key="carried", facts=(GRAPPLED_TRANSPORT,)),
+            ComponentOption(semantic_key="crawl", facts=(CRAWL_FACT,)),
+        ),
+        fact_qualifiers=(
+            FactQualifier(
+                fact_key=fact_key(GRAPPLED_TRANSPORT),
+                option_key="crawl",
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+            ),
+        ),
+    )
+    findings = _qualifier_findings(component)
+    assert any("it exists in another scope" in f for f in findings), findings
+
+
+def test_two_qualifiers_for_one_scoped_fact_are_refused() -> None:
+    """Composition is undefined, so a pair is refused rather than guessed."""
+    component = replace(
+        QUALIFIED_MOVABLE,
+        fact_qualifiers=(
+            FactQualifier(
+                fact_key=fact_key(GRAPPLED_SURCHARGE),
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+            ),
+            FactQualifier(
+                fact_key=fact_key(GRAPPLED_SURCHARGE),
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+            ),
+        ),
+    )
+    findings = _qualifier_findings(component)
+    assert any("duplicate qualifier" in f for f in findings), findings
+
+
+def test_a_qualifier_may_name_the_counterpart_the_component_establishes() -> None:
+    """The size test binds to the relation the transport fact states."""
+    assert _violations(QUALIFIED_MOVABLE) == []
+
+
+def test_a_qualifier_naming_an_unestablished_counterpart_is_refused() -> None:
+    component = ComponentDraft(
+        record_key="condition.prone",
+        semantic_key="restricted_movement",
+        handling=ComponentHandling.STRUCTURED,
+        facts=(GRAPPLED_SURCHARGE,),
+        fact_qualifiers=(
+            FactQualifier(
+                fact_key=fact_key(GRAPPLED_SURCHARGE),
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+            ),
+        ),
+    )
+    findings = _violations(component)
+    assert findings, "a counterpart-bearing qualifier needs an establishing relation"
+
+
+def test_the_qualifier_reaches_the_component_wire_payload() -> None:
+    """A qualifier the payload drops is authority the identity cannot see."""
+    payload = representation_payload(
+        RepresentationDraft(
+            records=(
+                RecordDraft(
+                    semantic_key="condition.grappled", kind=RecordKind.CONDITION
+                ),
+            ),
+            components=(QUALIFIED_MOVABLE,),
+            prose_bindings=(),
+            relationships=(),
+            references=(),
+            provenance=(),
+        )
+    )
+    (component,) = payload["components"]  # type: ignore[index]
+    (qualifier,) = component["fact_qualifiers"]
+    assert qualifier["fact_key"] == fact_key(GRAPPLED_SURCHARGE)
+    assert qualifier["option_key"] == ""
+    assert qualifier["applies_when"] is not None
+
+
+def test_a_qualifier_is_its_own_provenance_target() -> None:
+    """FACT and FACT_QUALIFIER share coordinates; the kind separates them."""
+    draft = RepresentationDraft(
+        records=(
+            RecordDraft(semantic_key="condition.grappled", kind=RecordKind.CONDITION),
+        ),
+        components=(QUALIFIED_MOVABLE,),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+    declared = declared_provenance_targets(draft)
+    fact_key_tuple = fact_target_key(
+        "condition.grappled", "movable", GRAPPLED_SURCHARGE, ""
+    )
+    qualifier_key = fact_qualifier_target_key(
+        "condition.grappled", "movable", fact_key(GRAPPLED_SURCHARGE), ""
+    )
+    assert fact_key_tuple in declared[ProvenanceTargetKind.FACT]
+    assert qualifier_key in declared[ProvenanceTargetKind.FACT_QUALIFIER]
+    # The qualifier is a required-provenance element in its own right.
+    assert ProvenanceTargetKind.FACT_QUALIFIER in PROVENANCE_REQUIRED_KINDS

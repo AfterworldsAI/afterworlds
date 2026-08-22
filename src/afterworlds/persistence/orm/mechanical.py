@@ -291,6 +291,13 @@ class MechanicalFactORM(_ProjectionScoped):
     fact_key: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     family: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     payload: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
+    #: This fact's own condition, or NULL when it is conditioned only by its
+    #: enclosing component or option. Lives on the fact row because a qualifier
+    #: is one-to-at-most-one with a fact and the row already carries the exact
+    #: scope — ``component_key`` plus ``option_key`` — that the qualifier is
+    #: addressed by. Stored as the canonical applicability payload, for the
+    #: same reason the component's own qualifier is.
+    applies_when: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
 
 
 class MechanicalProseBindingORM(_ProjectionScoped):

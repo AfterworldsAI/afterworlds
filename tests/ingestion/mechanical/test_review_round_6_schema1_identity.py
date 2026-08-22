@@ -351,10 +351,14 @@ def test_each_merged_schema_version_has_its_own_structural_identity() -> None:
     assert len({SCHEMA_1_HASH, SCHEMA_2_HASH, current}) == 3
 
 
-def test_the_current_component_payload_still_emits_both_schema_2_keys() -> None:
+def test_the_current_component_payload_still_emits_every_post_schema_1_key() -> None:
     payload = representation_payload(legacy_draft())
     (component,) = payload["components"]  # type: ignore[index]
-    assert set(component) == LEGACY_COMPONENT_KEYS | {"applies_when", "options"}
+    assert set(component) == LEGACY_COMPONENT_KEYS | {
+        "applies_when",
+        "options",
+        "fact_qualifiers",
+    }
     assert component["applies_when"] is None
     assert component["options"] == []
 

@@ -78,6 +78,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     ComponentOption,
     CreatureSize,
+    FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
     ParticipantRole,
@@ -292,6 +293,9 @@ def persist_draft(
                         component_key=component.semantic_key,
                         option_key=option_key,
                         fact_key=key_,
+                        applies_when=applicability_payload(
+                            component.qualifier_for(fact, option_key)
+                        ),
                         family=str(fact_payload(fact)["family"]),
                         payload=fact_payload(fact),
                     )
@@ -550,6 +554,37 @@ def reconstruct_candidate(
         for a in raw.acceptances
     )
 
+    def _qualifiers_for(c: MechanicalComponentORM) -> tuple[FactQualifier, ...]:
+        """Rebuild a component's per-fact conditions from its own fact rows.
+
+        The qualifier lives on the fact row, so reconstruction reads it back
+        from the exact scope it was written in — no join, and no way for a
+        qualifier to be resurrected against a fact that is no longer there.
+        """
+        rebuilt: list[FactQualifier] = []
+        for f in raw.facts:
+            if f.applies_when is None:
+                continue
+            if (f.record_key, f.component_key) != (c.record_key, c.semantic_key):
+                continue
+            qualifier = _applicability_from_row(
+                f.applies_when,
+                "rp_mech_facts",
+                f"{f.record_key}/{f.component_key}/{f.option_key}/{f.fact_key}",
+            )
+            # ``_applicability_from_row`` returns None only for a NULL column,
+            # which the guard above already excluded; asserting it keeps the
+            # non-optional field honest instead of coercing a None into one.
+            assert qualifier is not None
+            rebuilt.append(
+                FactQualifier(
+                    fact_key=f.fact_key,
+                    option_key=f.option_key,
+                    applies_when=qualifier,
+                )
+            )
+        return tuple(rebuilt)
+
     components = tuple(
         ComponentDraft(
             record_key=c.record_key,
@@ -571,6 +606,7 @@ def reconstruct_candidate(
             applies_when=_applicability_from_row(
                 c.applies_when, "rp_mech_components", f"{c.record_key}/{c.semantic_key}"
             ),
+            fact_qualifiers=_qualifiers_for(c),
             # Options are rebuilt in canonical key order, matching the payload,
             # so a reconstruction never depends on row order.
             options=tuple(

@@ -35,6 +35,7 @@ from afterworlds.ingestion.mechanical.policy import (
 from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
+    applicability_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
@@ -43,6 +44,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     ComponentHandling,
     ComponentOption,
+    FactQualifier,
     MovementAmount,
     MovementCostFact,
     MovementCostKind,
@@ -50,6 +52,9 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementPermissionFact,
     MovementTransportFact,
     ParticipantRole,
+    ProvenanceClaim,
+    ProvenanceRole,
+    ProvenanceTargetKind,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
@@ -59,6 +64,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TransportKind,
     fact_key,
     fact_payload,
+    fact_qualifier_target_key,
     representation_schema_hash,
 )
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
@@ -71,6 +77,10 @@ from afterworlds.services.rules_authority.override_set import (
     EMPTY_OVERRIDE_SET_UUID,
     EffectiveOverrideEntry,
     EffectiveOverrideSet,
+)
+from afterworlds.services.rules_authority.patches import (
+    InvalidPatchError,
+    patch_from_payload,
 )
 from afterworlds.services.rules_authority.targets import (
     MechanicalTarget,
@@ -516,3 +526,203 @@ def test_component_level_transport_establishes_for_every_arm() -> None:
     (record,) = view.records
     (component,) = record.components
     assert component.applies_when == SIZE_EXCEPTION
+
+
+# ---------------------------------------------------------------------------
+# Fact-scoped qualifiers through the override path (PR #157, round 2)
+# ---------------------------------------------------------------------------
+#
+# The qualifier's authority and the fact's authority are separable, and an
+# override that touches one must not silently rewrite the other.
+
+SIZE_QUALIFIER = FactQualifier(
+    fact_key=fact_key(SURCHARGE), applies_when=SIZE_EXCEPTION
+)
+QUALIFIER_SPAN = "span-size-exception"
+
+
+def _qualified_candidate() -> ProjectionCandidate:
+    """Grappled as the source states it: unconditional transport, qualified cost."""
+    component = ComponentDraft(
+        record_key=RECORD_KEY,
+        semantic_key=MOVABLE_KEY,
+        handling=ComponentHandling.STRUCTURED,
+        facts=(TRANSPORT, SURCHARGE),
+        fact_qualifiers=(SIZE_QUALIFIER,),
+    )
+    draft = RepresentationDraft(
+        records=(RecordDraft(semantic_key=RECORD_KEY, kind=RecordKind.CONDITION),),
+        components=(component,),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(
+            ProvenanceClaim(
+                target_kind=ProvenanceTargetKind.FACT_QUALIFIER,
+                target_key=fact_qualifier_target_key(
+                    RECORD_KEY, MOVABLE_KEY, fact_key(SURCHARGE), ""
+                ),
+                span_id=QUALIFIER_SPAN,
+                role=ProvenanceRole.PRIMARY,
+            ),
+        ),
+    )
+    return ProjectionCandidate(
+        schema_version=REPRESENTATION_SCHEMA_VERSION,
+        schema_hash=representation_schema_hash(),
+        binding=_BINDING,
+        classification=_CLASSIFICATION,
+        representation=draft,
+    )
+
+
+def _fact(view, key):  # type: ignore[no-untyped-def]
+    (record,) = view.records
+    (component,) = record.components
+    return next(f for f in component.facts if f.fact_key == key)
+
+
+def test_the_base_view_carries_the_qualifier_with_its_own_source_span() -> None:
+    view = _apply(_qualified_candidate())
+    transport = _fact(view, fact_key(TRANSPORT))
+    surcharge = _fact(view, fact_key(SURCHARGE))
+    assert transport.qualifier is None, "transport is unconditional"
+    assert surcharge.qualifier is not None
+    assert surcharge.qualifier.applies_when == SIZE_EXCEPTION
+    assert surcharge.qualifier.span_ids == (QUALIFIER_SPAN,)
+    # The qualifier's span is its own; it is not merged into the fact's set.
+    assert QUALIFIER_SPAN not in surcharge.span_ids
+
+
+def test_fact_replace_retargets_the_qualifier_and_keeps_its_provenance() -> None:
+    """The two halves have different authors, and the view says so.
+
+    The replacement fact came from the override; the limitation still comes
+    from the source span that states it.
+    """
+    replacement = MovementCostFact(
+        kind=MovementCostKind.PER_FOOT_SURCHARGE,
+        amount=MovementAmount.FEET,
+        payer=COUNTERPART,
+        feet=2,
+    )
+    view = _apply(
+        _qualified_candidate(),
+        _entry(
+            _fact_target(fact_key(SURCHARGE)),
+            OverrideOperationEnum.REPLACE,
+            {"patch": "replace_fact", "fact": fact_payload(replacement)},
+        ),
+    )
+    new = _fact(view, fact_key(replacement))
+    # Fact authority: the override.
+    assert new.supplied_by_override_id == "ov-1"
+    assert new.span_ids == ()
+    # Qualifier authority: still the source span it always had.
+    assert new.qualifier is not None
+    assert new.qualifier.applies_when == SIZE_EXCEPTION
+    assert new.qualifier.span_ids == (QUALIFIER_SPAN,)
+    assert new.qualifier.supplied_by_override_id is None
+
+
+def test_fact_disable_removes_the_qualifier_with_its_fact() -> None:
+    """No dangling qualifier can survive: it lives on the fact."""
+    view = _apply(
+        _qualified_candidate(),
+        _entry(
+            _fact_target(fact_key(SURCHARGE)),
+            OverrideOperationEnum.DISABLE,
+            {"patch": "disable"},
+        ),
+    )
+    (record,) = view.records
+    (component,) = record.components
+    assert [f.fact_key for f in component.facts] == [fact_key(TRANSPORT)]
+    assert all(f.qualifier is None for f in component.facts)
+
+
+def test_fact_append_creates_an_unqualified_fact() -> None:
+    added = MovementPermissionFact(mode=MovementMode.SWIM)
+    view = _apply(
+        _candidate(_movable(TRANSPORT, SURCHARGE)),
+        _entry(
+            MechanicalTarget(
+                kind=MechanicalTargetKind.COMPONENT,
+                record_key=RECORD_KEY,
+                component_key=MOVABLE_KEY,
+            ),
+            OverrideOperationEnum.APPEND,
+            {"patch": "append_fact", "fact": fact_payload(added)},
+        ),
+    )
+    assert _fact(view, fact_key(added)).qualifier is None
+
+
+def test_component_replacement_carries_its_complete_qualifier_set() -> None:
+    """Complete, like every other field of a component patch."""
+    view = _apply(
+        _qualified_candidate(),
+        _entry(
+            COMPONENT_TARGET,
+            OverrideOperationEnum.REPLACE,
+            {
+                "patch": "replace_component",
+                "component": {
+                    "handling": "structured",
+                    "facts": [fact_payload(TRANSPORT), fact_payload(SURCHARGE)],
+                    "fact_qualifiers": [
+                        {
+                            "fact_key": fact_key(SURCHARGE),
+                            "option_key": "",
+                            "applies_when": applicability_payload(SIZE_EXCEPTION),
+                        }
+                    ],
+                },
+            },
+        ),
+    )
+    surcharge = _fact(view, fact_key(SURCHARGE))
+    assert surcharge.qualifier is not None
+    # Override-supplied authority names 5c spans nowhere.
+    assert surcharge.qualifier.span_ids == ()
+    assert surcharge.qualifier.supplied_by_override_id == "ov-1"
+
+
+def test_a_replacement_omitting_a_qualifier_drops_it_rather_than_inheriting() -> None:
+    view = _apply(
+        _qualified_candidate(),
+        _entry(
+            COMPONENT_TARGET,
+            OverrideOperationEnum.REPLACE,
+            {
+                "patch": "replace_component",
+                "component": {
+                    "handling": "structured",
+                    "facts": [fact_payload(TRANSPORT), fact_payload(SURCHARGE)],
+                },
+            },
+        ),
+    )
+    assert _fact(view, fact_key(SURCHARGE)).qualifier is None
+
+
+def test_a_component_patch_qualifier_naming_no_such_fact_is_refused() -> None:
+    with pytest.raises(InvalidPatchError, match="does not hold"):
+        patch_from_payload(
+            {
+                "patch": "replace_component",
+                "component": {
+                    "handling": "structured",
+                    "facts": [fact_payload(TRANSPORT)],
+                    "fact_qualifiers": [
+                        {
+                            "fact_key": fact_key(SURCHARGE),
+                            "option_key": "",
+                            "applies_when": applicability_payload(SIZE_EXCEPTION),
+                        }
+                    ],
+                },
+            },
+            operation=OverrideOperationEnum.REPLACE,
+            target=COMPONENT_TARGET,
+        )
