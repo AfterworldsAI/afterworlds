@@ -4285,31 +4285,21 @@ def _names_counterpart(fact: object) -> bool:
     )
 
 
-def component_participant_violations(
-    facts: Sequence[object], applicabilities: Sequence[Applicability | None]
+def _counterpart_scope_violations(
+    facts: Sequence[object],
+    applicabilities: Sequence[Applicability | None],
+    established: bool,
+    where: str,
 ) -> list[str]:
-    """Violations of the counterpart-establishment rule within one component.
-
-    ``COUNTERPART`` is only meaningful where the owning mechanic constitutively
-    establishes exactly one other participant. Grappled's ``movable`` component
-    carries :class:`MovementTransportFact` beside its cost and its size
-    exception, so all three resolve against the same established counterpart.
-    A component that names the counterpart without establishing it is asserting
-    a relation it never stated, which is the "some other entity in the prose"
-    failure this role exists to prevent.
-
-    Component-scoped rather than fact-scoped on purpose: no single fact can see
-    whether its neighbour establishes the relation it depends on.
-    """
-    establishes = any(isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in facts)
-    if establishes:
+    """Counterpart references in one scope, given whether it is established."""
+    if established:
         return []
     findings: list[str] = []
     for fact in facts:
         if _names_counterpart(fact):
             findings.append(
-                f"{fact_key(fact)} names the counterpart, but nothing in the "
-                "component establishes one"
+                f"{fact_key(fact)} names the counterpart, but nothing in "
+                f"{where} establishes one"
             )
     for applicability in applicabilities:
         if applicability is None:
@@ -4324,9 +4314,56 @@ def component_participant_violations(
                 comparison.reference,
             ):
                 findings.append(
-                    "size comparison names the counterpart, but nothing in the "
-                    "component establishes one"
+                    "size comparison names the counterpart, but nothing in "
+                    f"{where} establishes one"
                 )
+    return findings
+
+
+def component_participant_violations(component: ComponentDraft) -> list[str]:
+    """Violations of the counterpart-establishment rule within one component.
+
+    ``COUNTERPART`` is only meaningful where the owning mechanic constitutively
+    establishes exactly one other participant. Grappled's ``movable`` component
+    carries :class:`MovementTransportFact` beside its cost and its size
+    exception, so all three resolve against the same established counterpart.
+    A component that names the counterpart without establishing it is asserting
+    a relation it never stated, which is the "some other entity in the prose"
+    failure this role exists to prevent.
+
+    Component-scoped rather than fact-scoped on purpose: no single fact can see
+    whether its neighbour establishes the relation it depends on.
+
+    **Establishment does not cross option arms.** A component's own facts
+    establish the counterpart for every scope, because they hold whichever
+    option is taken. An *option's* facts establish it only within that option:
+    the arms of an exhaustive choice are mutually exclusive, so a transport
+    stated in one arm has not happened when a sibling arm is exercised, and
+    letting it establish the counterpart there would license a reference to a
+    creature that scope never named.
+    """
+    findings = _counterpart_scope_violations(
+        component.facts,
+        [component.applies_when],
+        any(isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in component.facts),
+        "the component",
+    )
+    component_establishes = any(
+        isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in component.facts
+    )
+    for option in component.options:
+        findings.extend(
+            f"option {option.semantic_key}: {v}"
+            for v in _counterpart_scope_violations(
+                option.facts,
+                [option.applies_when],
+                component_establishes
+                or any(
+                    isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in option.facts
+                ),
+                "the component or this option",
+            )
+        )
     return findings
 
 

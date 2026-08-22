@@ -173,7 +173,10 @@ def test_grappleds_component_establishes_its_own_counterpart() -> None:
     """
     assert (
         component_participant_violations(
-            [GRAPPLED_TRANSPORT, GRAPPLED_SURCHARGE], [GRAPPLED_SIZE_EXCEPTION]
+            _component(
+                facts=(GRAPPLED_TRANSPORT, GRAPPLED_SURCHARGE),
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+            )
         )
         == []
     )
@@ -185,13 +188,15 @@ def test_a_counterpart_paid_cost_without_transport_is_refused() -> None:
     Nothing in this component says who the counterpart *is*, so the claim is
     about an entity the typed structure cannot name.
     """
-    findings = component_participant_violations([GRAPPLED_SURCHARGE], [None])
+    findings = component_participant_violations(_component(facts=(GRAPPLED_SURCHARGE,)))
     assert len(findings) == 1
     assert "nothing in the component establishes one" in findings[0]
 
 
 def test_a_counterpart_size_test_without_transport_is_refused() -> None:
-    findings = component_participant_violations([], [GRAPPLED_SIZE_EXCEPTION])
+    findings = component_participant_violations(
+        _component(applies_when=GRAPPLED_SIZE_EXCEPTION)
+    )
     assert findings
     assert all("establishes one" in f for f in findings)
 
@@ -204,7 +209,7 @@ def test_a_subject_only_component_needs_no_counterpart() -> None:
         payer=SUBJECT,
         rounding=RoundingRule.DOWN,
     )
-    assert component_participant_violations([prone_stand], [None]) == []
+    assert component_participant_violations(_component(facts=(prone_stand,))) == []
 
 
 def test_the_rule_reaches_option_facts_and_option_applicability() -> None:
@@ -222,11 +227,9 @@ def test_the_rule_reaches_option_facts_and_option_applicability() -> None:
             ComponentOption(semantic_key="dragged", facts=(GRAPPLED_SURCHARGE,)),
         )
     )
-    findings = component_participant_violations(
-        [*component.facts, *(f for o in component.options for f in o.facts)],
-        [component.applies_when, *(o.applies_when for o in component.options)],
-    )
+    findings = component_participant_violations(component)
     assert findings, "an option's counterpart cost must still be caught"
+    assert all(f.startswith("option dragged:") for f in findings), findings
 
 
 def test_transport_on_the_component_establishes_it_for_an_option() -> None:
@@ -245,11 +248,44 @@ def test_transport_on_the_component_establishes_it_for_an_option() -> None:
             ),
         ),
     )
-    findings = component_participant_violations(
-        [*component.facts, *(f for o in component.options for f in o.facts)],
-        [component.applies_when, *(o.applies_when for o in component.options)],
+    assert component_participant_violations(component) == []
+
+
+def test_establishment_does_not_cross_two_mutually_exclusive_options() -> None:
+    """An arm that was not taken cannot establish anything for the arm that was.
+
+    Options are mutually exclusive per exercise of the choice, so a transport
+    stated in one arm has not happened when a sibling arm is exercised. Letting
+    it establish the counterpart there would license a reference to a creature
+    that scope never named — the flattened-scope defect this rule exists to
+    prevent, one level down.
+    """
+    component = _component(
+        options=(
+            ComponentOption(semantic_key="carried", facts=(GRAPPLED_TRANSPORT,)),
+            ComponentOption(semantic_key="surcharged", facts=(GRAPPLED_SURCHARGE,)),
+        )
     )
-    assert findings == []
+    findings = component_participant_violations(component)
+    assert findings, "a sibling arm must not establish the counterpart"
+    assert all(f.startswith("option surcharged:") for f in findings), findings
+
+
+def test_an_option_may_establish_its_own_counterpart() -> None:
+    """Within one arm, transport and the cost it carries resolve together."""
+    component = _component(
+        options=(
+            ComponentOption(
+                semantic_key="carried",
+                facts=(GRAPPLED_TRANSPORT, GRAPPLED_SURCHARGE),
+            ),
+            ComponentOption(
+                semantic_key="crawl",
+                facts=(MovementPermissionFact(mode=MovementMode.CRAWL),),
+            ),
+        )
+    )
+    assert component_participant_violations(component) == []
 
 
 # ---------------------------------------------------------------------------
