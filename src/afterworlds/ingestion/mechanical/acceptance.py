@@ -77,6 +77,7 @@ from afterworlds.ingestion.mechanical.representation import (
     record_target_key,
     reference_target_key,
     relationship_target_key,
+    representation_draft_violations,
 )
 
 __all__ = ["AcceptanceError", "accept_proposal"]
@@ -168,6 +169,24 @@ def _merge_representation(
     orders every collection), so imposing a second ordering here would add a
     rule without adding a guarantee.
     """
+    # Before the keyed union, because the union itself is what a hostile
+    # subclass would subvert: ``_merged_collection`` builds ``key_of`` keys and
+    # compares elements to decide what is "already accepted". A redefined
+    # ``__eq__`` there silently drops an element or admits a conflicting one.
+    #
+    # ``prior`` is loader-built and therefore already exact (see
+    # ``oracle.load_accepted_inputs``), but it is checked too rather than
+    # trusted: this is the seam where a proposal becomes accepted authority,
+    # and a rule with an exception is a rule someone will find the exception in.
+    for label, candidate in (("proposed", proposed), ("prior", prior)):
+        if candidate is None:
+            continue
+        if drift := representation_draft_violations(candidate):
+            raise AcceptanceError(
+                f"{label} representation is not the closed declared shape: "
+                + "; ".join(drift)
+            )
+
     if prior is None:
         return proposed
 

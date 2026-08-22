@@ -83,6 +83,12 @@ class MechanicalOverrideORM(Base):
         sa.String(255), nullable=True
     )
     target_fact_key: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    #: The owning option of a fact target, or NULL for a fact held directly on
+    #: the component. Nullable rather than empty-string-defaulted because a
+    #: non-fact target must carry no option scope at all, and NULL is the only
+    #: value that says so; the loaders reject a non-NULL value on a target kind
+    #: that cannot hold one.
+    target_option_key: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 
     override_origin: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     override_operation: Mapped[str] = mapped_column(sa.String(16), nullable=False)
@@ -230,6 +236,7 @@ class OverrideSetEntryORM(Base):
         sa.String(255), nullable=True
     )
     target_fact_key: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    target_option_key: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     override_operation: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     precedence: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     is_enabled: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)

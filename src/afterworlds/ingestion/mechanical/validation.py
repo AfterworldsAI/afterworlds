@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
+    ComponentDraft,
     FactFamily,
     ProseBindingDraft,
     ProvenanceRole,
@@ -43,10 +44,13 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordKind,
     RelationshipKind,
     RepresentationDraft,
+    applicability_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
+    option_set_violations,
     prose_bindings_by_target_key,
+    representation_draft_violations,
 )
 
 __all__ = ["validate_representation"]
@@ -90,6 +94,15 @@ def _validate_records(draft: RepresentationDraft) -> list[str]:
     return findings
 
 
+def _validate_options(component: ComponentDraft, tag: str) -> list[str]:
+    """The component-draft spelling of the shared option-set contract.
+
+    The rule itself lives in :func:`.representation.option_set_violations` so
+    the override patch path enforces the same one rather than a second copy.
+    """
+    return option_set_violations(component.facts, component.options, tag)
+
+
 def _validate_components(draft: RepresentationDraft) -> list[str]:
     findings: list[str] = []
     record_keys = {r.semantic_key for r in draft.records}
@@ -106,27 +119,44 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         if component.record_key not in record_keys:
             findings.append(f"{tag}: unknown record {component.record_key}")
 
-        fact_keys: set[str] = set()
-        for fact in component.facts:
-            # Family membership *and* the family's own contract: a fact can
-            # belong to the closed union and still contradict itself, and such
-            # a fact would persist as mechanically unusable authority.
-            violations = fact_invariant_violations(fact)
-            if violations:
-                findings.extend(f"{tag}: {v}" for v in violations)
-                continue
-            key_ = fact_key(fact)
-            # Facts are identified by content, so a repeat is not a second
-            # claim — it is the same claim counted twice, which is exactly the
-            # duplicate-as-coverage inflation the completeness proof rejects.
-            if key_ in fact_keys:
-                findings.append(f"{tag}: duplicate typed fact {key_}")
-            fact_keys.add(key_)
+        # Facts are checked per *scope*: the component's own list, and each
+        # option's list. Duplicates are a defect within a scope, because a
+        # repeat is the same claim counted twice — but the same fact appearing
+        # in two mutually exclusive options is not a repeat, it is one claim
+        # each, and collapsing the two scopes would report a defect that is not
+        # there.
+        scopes: list[tuple[str, tuple[object, ...]]] = [("", component.facts)]
+        scopes.extend((o.semantic_key, o.facts) for o in component.options)
+        for option_key, scoped in scopes:
+            scope_tag = tag if not option_key else f"{tag} option {option_key}"
+            fact_keys: set[str] = set()
+            for fact in scoped:
+                # Family membership *and* the family's own contract: a fact can
+                # belong to the closed union and still contradict itself, and
+                # such a fact would persist as mechanically unusable authority.
+                violations = fact_invariant_violations(fact)
+                if violations:
+                    findings.extend(f"{scope_tag}: {v}" for v in violations)
+                    continue
+                key_ = fact_key(fact)
+                if key_ in fact_keys:
+                    findings.append(f"{scope_tag}: duplicate typed fact {key_}")
+                fact_keys.add(key_)
+
+        findings.extend(_validate_options(component, tag))
+        if component.applies_when is not None:
+            findings.extend(
+                f"{tag}: {v}" for v in applicability_violations(component.applies_when)
+            )
 
         has_prose = key in bound_prose
         code = component.irreducibility_reason_code
+        # Option facts are structured authority exactly as direct facts are: a
+        # component whose whole meaning is an actor choice publishes typed
+        # facts, they simply live one level down.
+        published = component.all_facts()
         if component.handling is ComponentHandling.STRUCTURED:
-            if not component.facts:
+            if not published:
                 findings.append(f"{tag}: structured handling with no typed facts")
             if has_prose:
                 findings.append(f"{tag}: structured handling with a prose binding")
@@ -137,9 +167,9 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         else:
             handling = component.handling.value
             if component.handling is ComponentHandling.PROSE_BOUND:
-                if component.facts:
+                if published:
                     findings.append(f"{tag}: {handling} handling with typed facts")
-            elif not component.facts:
+            elif not published:
                 findings.append(f"{tag}: mixed handling with no typed facts")
             if not has_prose:
                 findings.append(f"{tag}: {handling} handling with no bound prose")
@@ -345,7 +375,7 @@ def _validate_spell_list_membership(
             )
 
     for component in draft.components:
-        for fact in component.facts:
+        for fact in component.all_facts():
             if getattr(fact, "FAMILY", None) is not FactFamily.SPELL_LIST_QUALIFIER:
                 continue
             target = getattr(fact, "spell_record_key", "")
@@ -526,6 +556,16 @@ def validate_representation(
     of release-scoped truth these validators read, so no validator needs a
     database of its own.
     """
+    # The exact-type boundary first, and nothing else if it fails. Every
+    # validator below reads fields, builds keys, and dedups through sets and
+    # dicts; a subclass with a hostile ``__eq__`` only has to be consulted once
+    # to collapse two distinct elements into one, and the finding it should
+    # have produced is gone by then. Returning early also keeps the report
+    # about the actual defect rather than burying it under downstream noise
+    # produced by reading a type we have just refused.
+    if drift := representation_draft_violations(draft):
+        return tuple(drift)
+
     findings: list[str] = []
     findings.extend(_validate_records(draft))
     findings.extend(_validate_components(draft))

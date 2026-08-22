@@ -166,6 +166,7 @@ def retain_override_set(
                     target_record_key=entry.target.record_key,
                     target_component_key=entry.target.component_key,
                     target_fact_key=entry.target.fact_key,
+                    target_option_key=entry.target.option_key,
                     override_operation=entry.operation.value,
                     precedence=entry.precedence,
                     is_enabled=entry.is_enabled,
@@ -209,6 +210,7 @@ def _entry_from_row(row: OverrideSetEntryORM) -> EffectiveOverrideEntry:
             record_key=row.target_record_key,
             component_key=row.target_component_key,
             fact_key=row.target_fact_key,
+            option_key=row.target_option_key,
         )
     except (ValueError, TargetShapeError) as exc:
         raise OverrideSetRetentionError(

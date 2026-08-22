@@ -320,7 +320,7 @@ def _comparable_collections(
             **fact_payload(f),
         }
         for c in draft.components
-        for f in c.facts
+        for f in c.all_facts()
     )
     return collections
 
@@ -346,7 +346,7 @@ def _check_obligations(
 
     families_by_record: dict[str, set[FactFamily]] = {}
     for component in draft.components:
-        for fact in component.facts:
+        for fact in component.all_facts():
             family = getattr(fact, "FAMILY", None)
             if isinstance(family, FactFamily):
                 families_by_record.setdefault(component.record_key, set()).add(family)
@@ -690,7 +690,7 @@ def run_publication_gate(
         "accepted_spans": len(ledger.spans),
         "records": len(draft.records),
         "components": len(draft.components),
-        "facts": sum(len(c.facts) for c in draft.components),
+        "facts": sum(len(c.all_facts()) for c in draft.components),
         "prose_bindings": len(draft.prose_bindings),
         "relationships": len(draft.relationships),
         "references": len(draft.references),

@@ -43,6 +43,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalActiveProjectionORM,
     MechanicalBatchDiffORM,
     MechanicalBatchScopeORM,
+    MechanicalComponentOptionORM,
     MechanicalComponentORM,
     MechanicalFactORM,
     MechanicalProjectionORM,
@@ -60,6 +61,7 @@ from tests.ingestion.mechanical.conftest import (
     batch_accepted_ledger,
     build_candidate,
     build_representation,
+    build_representation_with_options,
     reference_claim,
 )
 
@@ -77,6 +79,10 @@ TABLE_POLICY: dict[type, str] = {
     MechanicalAcceptanceORM: "evidence",
     MechanicalRecordORM: "semantic+derived_id",
     MechanicalComponentORM: "semantic+derived_id",
+    # "semantic", not "semantic+derived_id": an option carries no id of its
+    # own. Its identity is its semantic key within its component, and the facts
+    # beneath it derive ids that already include that key.
+    MechanicalComponentOptionORM: "semantic",
     MechanicalFactORM: "semantic+derived_id",
     MechanicalProseBindingORM: "semantic",
     MechanicalRelationshipORM: "semantic",
@@ -147,7 +153,14 @@ def _persist(session: Session, **overrides: object):  # type: ignore[no-untyped-
 
 
 def _persist_batch(session: Session):  # type: ignore[no-untyped-def]
-    return _persist(session, ledger=batch_accepted_ledger())
+    # The option-bearing draft, so every projection-scoped table — including
+    # rp_mech_component_options — actually carries rows here. A closure proof
+    # over a row set that never exercises a table proves nothing about it.
+    return _persist(
+        session,
+        ledger=batch_accepted_ledger(),
+        representation=build_representation_with_options(),
+    )
 
 
 def _assert_rejected(session: Session, identified, fragment: str) -> None:  # type: ignore[no-untyped-def]

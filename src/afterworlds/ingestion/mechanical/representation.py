@@ -158,6 +158,28 @@ __all__ = [
     "StateEffectFact",
     "WeaponPropertyFact",
     # Keyed drafts
+    "Applicability",
+    "ApplicabilityKind",
+    "Comparison",
+    "ComponentOption",
+    "ConditionLevelFact",
+    "CreatureSize",
+    "LevelDirection",
+    "MovementAmount",
+    "MovementCostFact",
+    "MovementCostKind",
+    "MovementPermissionFact",
+    "Phase",
+    "QuantityMultiplierFact",
+    "Sense",
+    "SensoryCapabilityFact",
+    "SizeComparison",
+    "SizeRelation",
+    "TrackedQuantity",
+    "TransformationFact",
+    "TransformedForm",
+    "applicability_violations",
+    "size_comparison_violations",
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
@@ -392,6 +414,11 @@ class MovementMode(StrEnum):
     WALK = "walk"
     BURROW = "burrow"
     CLIMB = "climb"
+    #: Playing the Game > Movement and Position prints the mode list — "Your
+    #: movement can include climbing, crawling, jumping, and swimming" — and
+    #: Rules Glossary > Speed cross-references the same set, so this is a
+    #: printed-vocabulary member rather than an inferred one.
+    CRAWL = "crawl"
     FLY = "fly"
     SWIM = "swim"
 
@@ -567,6 +594,128 @@ class StateEffectKind(StrEnum):
     #: "You're unaware of your surroundings." — Glossary and Spells. The
     #: thinnest member admitted: two instances in two sections.
     UNAWARE_OF_SURROUNDINGS = "unaware_of_surroundings"
+    #: "You die if your Exhaustion level is 6." — the death transition itself,
+    #: separate from whatever threshold triggers it. 86 occurrences across 8
+    #: sections, including Playing the Game's Instant Death rules.
+    DIES = "dies"
+    #: "you cease aging" — Petrified, and Imprisonment's "it doesn't age".
+    #: Two instances in two sections: as thin as UNAWARE_OF_SURROUNDINGS, and
+    #: admitted on the same bar rather than on a lower one.
+    AGING_SUSPENDED = "aging_suspended"
+
+
+class Sense(StrEnum):
+    """A perceptual capability a rule grants or removes.
+
+    SIGHT and HEARING are what Blinded and Deafened remove. The vocabulary is
+    printed rather than inferred: Blindsight, Darkvision, Tremorsense and
+    Truesight are Rules Glossary entries, and Blindsight's own text ties
+    sight-capability to the condition — "you can see ... even if you have the
+    Blinded condition". Only the two members conditions-1 instantiates are
+    declared; the printed senses are the extension seam, not decoration, and a
+    batch that grants one adds it with its own evidence.
+    """
+
+    SIGHT = "sight"
+    HEARING = "hearing"
+
+
+class LevelDirection(StrEnum):
+    """Whether a condition-level change adds or removes levels."""
+
+    GAIN = "gain"
+    REMOVE = "remove"
+
+
+class MovementCostKind(StrEnum):
+    """What a stated movement cost is charged against."""
+
+    #: "each foot of movement costs 1 extra foot" — a rate change.
+    PER_FOOT_SURCHARGE = "per_foot_surcharge"
+    #: "spend an amount of movement equal to half your Speed" — a lump cost.
+    EXPENDITURE = "expenditure"
+
+
+class MovementAmount(StrEnum):
+    """How the source states a movement amount."""
+
+    FEET = "feet"
+    HALF_SPEED = "half_speed"
+
+
+class TransformedForm(StrEnum):
+    """What a transformation turns its subject into."""
+
+    #: Petrified; True Polymorph's "If you turn a creature into an object".
+    OBJECT = "object"
+    #: Wild Shape, Animal Shapes, and the Monsters A-Z shape-shift traits.
+    CREATURE_FORM = "creature_form"
+
+
+class TrackedQuantity(StrEnum):
+    """A quantity the source tests against a threshold or multiplies.
+
+    Closed, and deliberately not a general variable namespace: each member is a
+    quantity the corpus states a rule about directly.
+    """
+
+    #: "if your Speed is 0" — Prone, and Playing the Game > Dropping Prone.
+    SPEED = "speed"
+    #: "if your Exhaustion level is 6" / "reaches 0".
+    CONDITION_LEVEL = "condition_level"
+    #: "Your weight increases by a factor of ten."
+    WEIGHT = "weight"
+
+
+class Comparison(StrEnum):
+    """How a quantity is tested against a stated value."""
+
+    #: "if your Exhaustion level is 6", "if your Speed is 0".
+    EQUALS = "equals"
+    #: "When your Exhaustion level reaches 0".
+    REACHES = "reaches"
+
+
+class Phase(StrEnum):
+    """When, relative to the owning effect's life, a component applies."""
+
+    WHILE_ACTIVE = "while_active"
+    #: "When this condition ends, you remain Prone." 34 occurrences across 4
+    #: sections in the "when the spell/effect/condition ends" form.
+    ON_END = "on_end"
+
+
+class CreatureSize(StrEnum):
+    """The printed size categories — Rules Glossary > Size."""
+
+    TINY = "tiny"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE = "large"
+    HUGE = "huge"
+    GARGANTUAN = "gargantuan"
+
+
+class SizeRelation(StrEnum):
+    """The direction of a relative size comparison."""
+
+    SMALLER = "smaller"
+    LARGER = "larger"
+
+
+class ApplicabilityKind(StrEnum):
+    """The closed set of conditions under which a component applies.
+
+    Each member ranges over a vocabulary that is already closed. A condition
+    the source states over anything else is not admitted here and its span
+    stays UNRESOLVED — that refusal is what keeps this from becoming a
+    predicate language.
+    """
+
+    QUANTITY_THRESHOLD = "quantity_threshold"
+    SIZE_COMPARISON = "size_comparison"
+    TRIGGER = "trigger"
+    PHASE = "phase"
 
 
 class Currency(StrEnum):
@@ -649,6 +798,7 @@ class FactFamily(StrEnum):
     ATTACK_ROLL = "attack_roll"
     AUTOMATIC_OUTCOME = "automatic_outcome"
     CONDITION_EFFECT = "condition_effect"
+    CONDITION_LEVEL = "condition_level"
     CRITICAL_HIT_RULE = "critical_hit_rule"
     CREATURE_ABILITY_SCORE = "creature_ability_score"
     CREATURE_CHALLENGE = "creature_challenge"
@@ -658,14 +808,19 @@ class FactFamily(StrEnum):
     DAMAGE_RESPONSE = "damage_response"
     EQUIPMENT_DESCRIPTOR = "equipment_descriptor"
     HEALING = "healing"
+    MOVEMENT_COST = "movement_cost"
+    MOVEMENT_PERMISSION = "movement_permission"
     PROGRESSION_ENTRY = "progression_entry"
+    QUANTITY_MULTIPLIER = "quantity_multiplier"
     RESOURCE_RECOVERY = "resource_recovery"
     SCALING = "scaling"
+    SENSORY_CAPABILITY = "sensory_capability"
     SPEED_MODIFICATION = "speed_modification"
     SPELL_DESCRIPTOR = "spell_descriptor"
     SPELL_LIST_QUALIFIER = "spell_list_qualifier"
     SPELL_SLOT_PROGRESSION = "spell_slot_progression"
     STATE_EFFECT = "state_effect"
+    TRANSFORMATION = "transformation"
     WEAPON_PROPERTY = "weapon_property"
 
 
@@ -760,6 +915,21 @@ class SpellDuration:
     amount: int | None = None
     unit: TimeUnit | None = None
     concentration: bool = False
+
+
+@dataclass(frozen=True)
+class SizeComparison:
+    """One size test: an absolute category, or a distance in categories.
+
+    *"unless you are Tiny or two or more sizes smaller than it"* is two of
+    these, both over the printed size vocabulary. Absolute and relative are
+    distinct forms and never combine: a comparison carrying both would be two
+    claims wearing one shape.
+    """
+
+    category: CreatureSize | None = None
+    relation: SizeRelation | None = None
+    at_least: int | None = None
 
 
 @dataclass(frozen=True)
@@ -1183,6 +1353,120 @@ class StateEffectFact:
 
 
 @dataclass(frozen=True)
+class SensoryCapabilityFact:
+    """A perceptual capability a rule grants or removes.
+
+    *"You can't see"* (Blinded) and *"You can't hear"* (Deafened) state
+    deterministic capability states. That some downstream consequences are
+    contextual is a fact about narration, not about the rule, so these are
+    typed rather than prose-bound. ``range_feet`` is set only for a grant that
+    states one; a removal has no range.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SENSORY_CAPABILITY
+
+    sense: Sense
+    can_perceive: bool
+    range_feet: int | None = None
+
+
+@dataclass(frozen=True)
+class ConditionLevelFact:
+    """A stated change to how many levels of a condition the subject has.
+
+    :class:`ConditionEffectFact` says a condition applies or is removed;
+    it cannot say *how many levels*, and for Exhaustion the level is the
+    mechanic — level 1 and level 6 differ by death. Exactly one of ``amount``
+    and ``all_levels`` is set: *"removes 1 of your Exhaustion levels"* against
+    Suffocation's *"removes all levels of Exhaustion"*.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CONDITION_LEVEL
+
+    condition: ConditionKind
+    direction: LevelDirection
+    amount: int | None = None
+    all_levels: bool = False
+    #: "This condition is cumulative." Stated only where the source states it.
+    cumulative: bool = False
+
+
+@dataclass(frozen=True)
+class MovementCostFact:
+    """What movement costs — a per-foot surcharge, or a lump expenditure.
+
+    The movement-economy counterpart of :class:`ActionEconomyFact`: it states
+    the cost, never what the cost buys. ``feet`` is set exactly for
+    :attr:`MovementAmount.FEET`; ``HALF_SPEED`` states no number, the same way
+    :attr:`SpeedChange.HALVED` does.
+
+    Distinct from :class:`SpeedModificationFact`, and the distinction is not
+    cosmetic: Prone charges a one-off expenditure derived from Speed, it does
+    not halve Speed, so ``SpeedModificationFact(HALVED)`` here would be false
+    rather than lossy.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_COST
+
+    kind: MovementCostKind
+    amount: MovementAmount
+    feet: int | None = None
+
+
+@dataclass(frozen=True)
+class MovementPermissionFact:
+    """A movement mode the subject may use.
+
+    Prone's *"to crawl"*, and Tsunami's *"A creature caught in the wall can
+    move by swimming."* Two instances in two sections: the thinnest family
+    admitted here, and stated as such. Its vocabulary is stronger than its
+    sibling count — the mode list is printed at Playing the Game > Movement and
+    Position.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_PERMISSION
+
+    mode: MovementMode
+
+
+@dataclass(frozen=True)
+class TransformationFact:
+    """The subject's form changes, and whether carried gear changes with it.
+
+    Petrified transforms a creature into an object *"along with any nonmagical
+    objects you are wearing and carrying"*; True Polymorph states the identical
+    structure, and the Monsters A-Z shape-shift traits state its inverse —
+    *"Any equipment it is wearing or carrying isn't transformed."* Both
+    ``becomes`` members and both inclusion values are instantiated by the
+    corpus.
+
+    What the subject becomes in the fiction — Petrified's *"(usually stone)"* —
+    is not here: the source hedges it, so it is governing prose.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TRANSFORMATION
+
+    becomes: TransformedForm
+    carried_nonmagical_included: bool
+
+
+@dataclass(frozen=True)
+class QuantityMultiplierFact:
+    """A stated quantity multiplied by a factor.
+
+    *"Your weight increases by a factor of ten."* Distinct from
+    :class:`ScalingFact`, which states an increase driven by a *basis* such as
+    a spell slot level; this states a flat multiplication with no basis, and
+    representing it as scaling would invent a basis the source does not state.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.QUANTITY_MULTIPLIER
+
+    quantity: TrackedQuantity
+    factor: int
+
+
+@dataclass(frozen=True)
 class ScalingFact:
     """What the source says increases, and with what.
 
@@ -1247,7 +1531,13 @@ MechanicalFact = (
     | AttackRollFact
     | AutomaticOutcomeFact
     | ConditionEffectFact
+    | ConditionLevelFact
     | CriticalHitRuleFact
+    | MovementCostFact
+    | MovementPermissionFact
+    | QuantityMultiplierFact
+    | SensoryCapabilityFact
+    | TransformationFact
     | SpeedModificationFact
     | StateEffectFact
     | CreatureAbilityScoreFact
@@ -1287,6 +1577,12 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact,
     FactFamily.RESOURCE_RECOVERY: ResourceRecoveryFact,
     FactFamily.SCALING: ScalingFact,
+    FactFamily.CONDITION_LEVEL: ConditionLevelFact,
+    FactFamily.MOVEMENT_COST: MovementCostFact,
+    FactFamily.MOVEMENT_PERMISSION: MovementPermissionFact,
+    FactFamily.QUANTITY_MULTIPLIER: QuantityMultiplierFact,
+    FactFamily.SENSORY_CAPABILITY: SensoryCapabilityFact,
+    FactFamily.TRANSFORMATION: TransformationFact,
     FactFamily.SPEED_MODIFICATION: SpeedModificationFact,
     FactFamily.SPELL_DESCRIPTOR: SpellDescriptorFact,
     FactFamily.SPELL_LIST_QUALIFIER: SpellListQualifierFact,
@@ -1478,11 +1774,24 @@ def _optional_enum_field(
     return _enum_field(value, enum_cls, field)
 
 
-def _vo_field(value: object, cls: type, field: str) -> list[str]:
-    """The field must hold that exact value-object type, or nothing."""
+def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
+    """The field must hold that exact closed type, or nothing.
+
+    A subclass is refused, not accepted as a narrower case. Every closed
+    structure here is identified by the payload its declared fields produce, so
+    a subclass carrying an undeclared meaning-bearing field would canonicalize —
+    and persist, and hash — identically to one asserting something else. A
+    subclass may also redefine ``__eq__``, which would let it slip past the
+    duplicate checks that use set membership.
+    """
     if type(value) is not cls:
         return [f"{field} must be {cls.__name__}, got {type(value).__name__} {value!r}"]
     return []
+
+
+#: The name this rule has had since the fact-family validators; kept so the
+#: many internal call sites read unchanged.
+_vo_field = exact_type_violations
 
 
 def _check_dice(value: object, field: str) -> list[str]:
@@ -1904,6 +2213,114 @@ def _check_speed_modification(fact: SpeedModificationFact) -> list[str]:
     return findings
 
 
+def _check_sensory_capability(fact: SensoryCapabilityFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.sense, Sense, "sense"),
+        *_bool_field(fact.can_perceive, "can_perceive"),
+        *_optional_int_field(fact.range_feet, "range_feet"),
+    ]
+    if findings:
+        return findings
+    if not fact.can_perceive and fact.range_feet is not None:
+        findings.append("a removed capability carries a range; the source states none")
+    elif fact.range_feet is not None and fact.range_feet <= 0:
+        findings.append(f"sense range {fact.range_feet} is not a distance")
+    return findings
+
+
+def _check_condition_level(fact: ConditionLevelFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.condition, ConditionKind, "condition"),
+        *_enum_field(fact.direction, LevelDirection, "direction"),
+        *_optional_int_field(fact.amount, "amount"),
+        *_bool_field(fact.all_levels, "all_levels"),
+        *_bool_field(fact.cumulative, "cumulative"),
+    ]
+    if findings:
+        return findings
+    if fact.all_levels:
+        if fact.amount is not None:
+            findings.append("all_levels carries an amount; the two are alternatives")
+    elif fact.amount is None:
+        findings.append("a level change states neither an amount nor all_levels")
+    elif fact.amount <= 0:
+        findings.append(f"level change of {fact.amount} changes nothing")
+    if fact.cumulative and fact.direction is not LevelDirection.GAIN:
+        findings.append("only an accrual can be cumulative")
+    if fact.all_levels and fact.direction is not LevelDirection.REMOVE:
+        findings.append("all_levels states a removal, not an accrual")
+    return findings
+
+
+#: The legal ``(kind, amount)`` matrix. Stated as the allowed set rather than as
+#: two prohibitions, because both prohibitions the review names —
+#: ``PER_FOOT_SURCHARGE`` requires ``FEET``, and ``HALF_SPEED`` requires
+#: ``EXPENDITURE`` — forbid the *same single cell*, and reporting one malformed
+#: fact twice would describe two defects where there is one. An allowed set also
+#: stays correct if either vocabulary gains a member: a new pairing is refused
+#: until it is deliberately admitted, rather than silently legal.
+_MOVEMENT_COST_MATRIX: frozenset[tuple[MovementCostKind, MovementAmount]] = frozenset(
+    {
+        # "each foot of movement costs 1 extra foot" — a rate, stated in feet.
+        (MovementCostKind.PER_FOOT_SURCHARGE, MovementAmount.FEET),
+        # "spend 10 feet of movement" — a lump cost stated as a fixed distance.
+        (MovementCostKind.EXPENDITURE, MovementAmount.FEET),
+        # "spend movement equal to half your Speed" — a lump cost, no number.
+        (MovementCostKind.EXPENDITURE, MovementAmount.HALF_SPEED),
+    }
+)
+
+
+def _check_movement_cost(fact: MovementCostFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.kind, MovementCostKind, "kind"),
+        *_enum_field(fact.amount, MovementAmount, "amount"),
+        *_optional_int_field(fact.feet, "feet"),
+    ]
+    if findings:
+        return findings
+    if (fact.kind, fact.amount) not in _MOVEMENT_COST_MATRIX:
+        # A per-foot *rate* cannot be stated as half a Speed: the declared kind
+        # charges per foot of movement, while HALF_SPEED is the lump form. The
+        # combination reads as a rule but names no computable cost.
+        return [f"{fact.kind.value} cannot state a {fact.amount.value} amount"]
+    if fact.amount is MovementAmount.FEET:
+        if fact.feet is None:
+            findings.append("a stated distance carries no feet")
+        elif fact.feet <= 0:
+            findings.append(f"movement cost of {fact.feet} feet costs nothing")
+    elif fact.feet is not None:
+        findings.append(
+            f"{fact.amount.value} carries a distance; the source states none"
+        )
+    return findings
+
+
+def _check_movement_permission(fact: MovementPermissionFact) -> list[str]:
+    return [*_enum_field(fact.mode, MovementMode, "mode")]
+
+
+def _check_transformation(fact: TransformationFact) -> list[str]:
+    return [
+        *_enum_field(fact.becomes, TransformedForm, "becomes"),
+        *_bool_field(fact.carried_nonmagical_included, "carried_nonmagical_included"),
+    ]
+
+
+def _check_quantity_multiplier(fact: QuantityMultiplierFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.quantity, TrackedQuantity, "quantity"),
+        *_int_field(fact.factor, "factor"),
+    ]
+    if findings:
+        return findings
+    if fact.factor < 2:
+        # A factor of 1 multiplies nothing and 0 is not a multiplication the
+        # corpus states; both would be a rule that changes no value.
+        findings.append(f"multiplier of {fact.factor} states no change")
+    return findings
+
+
 def _check_condition_effect(fact: ConditionEffectFact) -> list[str]:
     return [
         *_enum_field(fact.condition, ConditionKind, "condition"),
@@ -2098,6 +2515,12 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ATTACK_ROLL: _check_attack_roll,
     FactFamily.AUTOMATIC_OUTCOME: _check_automatic_outcome,
     FactFamily.CONDITION_EFFECT: _check_condition_effect,
+    FactFamily.CONDITION_LEVEL: _check_condition_level,
+    FactFamily.MOVEMENT_COST: _check_movement_cost,
+    FactFamily.MOVEMENT_PERMISSION: _check_movement_permission,
+    FactFamily.QUANTITY_MULTIPLIER: _check_quantity_multiplier,
+    FactFamily.SENSORY_CAPABILITY: _check_sensory_capability,
+    FactFamily.TRANSFORMATION: _check_transformation,
     FactFamily.CRITICAL_HIT_RULE: _check_critical_hit_rule,
     FactFamily.CREATURE_ABILITY_SCORE: _check_creature_ability_score,
     FactFamily.CREATURE_CHALLENGE: _check_creature_challenge,
@@ -2549,6 +2972,95 @@ def _build_speed_modification(p: Mapping[str, Any]) -> SpeedModificationFact:
     )
 
 
+def _build_sensory_capability(p: Mapping[str, Any]) -> SensoryCapabilityFact:
+    _reject(
+        FactFamily.SENSORY_CAPABILITY,
+        [
+            *_json_enum(p["sense"], Sense, "sense"),
+            *_bool_field(p["can_perceive"], "can_perceive"),
+            *_optional_int_field(p["range_feet"], "range_feet"),
+        ],
+    )
+    return SensoryCapabilityFact(
+        sense=Sense(p["sense"]),
+        can_perceive=p["can_perceive"],
+        range_feet=p["range_feet"],
+    )
+
+
+def _build_condition_level(p: Mapping[str, Any]) -> ConditionLevelFact:
+    _reject(
+        FactFamily.CONDITION_LEVEL,
+        [
+            *_json_enum(p["condition"], ConditionKind, "condition"),
+            *_json_enum(p["direction"], LevelDirection, "direction"),
+            *_optional_int_field(p["amount"], "amount"),
+            *_bool_field(p["all_levels"], "all_levels"),
+            *_bool_field(p["cumulative"], "cumulative"),
+        ],
+    )
+    return ConditionLevelFact(
+        condition=ConditionKind(p["condition"]),
+        direction=LevelDirection(p["direction"]),
+        amount=p["amount"],
+        all_levels=p["all_levels"],
+        cumulative=p["cumulative"],
+    )
+
+
+def _build_movement_cost(p: Mapping[str, Any]) -> MovementCostFact:
+    _reject(
+        FactFamily.MOVEMENT_COST,
+        [
+            *_json_enum(p["kind"], MovementCostKind, "kind"),
+            *_json_enum(p["amount"], MovementAmount, "amount"),
+            *_optional_int_field(p["feet"], "feet"),
+        ],
+    )
+    return MovementCostFact(
+        kind=MovementCostKind(p["kind"]),
+        amount=MovementAmount(p["amount"]),
+        feet=p["feet"],
+    )
+
+
+def _build_movement_permission(p: Mapping[str, Any]) -> MovementPermissionFact:
+    _reject(
+        FactFamily.MOVEMENT_PERMISSION,
+        [*_json_enum(p["mode"], MovementMode, "mode")],
+    )
+    return MovementPermissionFact(mode=MovementMode(p["mode"]))
+
+
+def _build_transformation(p: Mapping[str, Any]) -> TransformationFact:
+    _reject(
+        FactFamily.TRANSFORMATION,
+        [
+            *_json_enum(p["becomes"], TransformedForm, "becomes"),
+            *_bool_field(
+                p["carried_nonmagical_included"], "carried_nonmagical_included"
+            ),
+        ],
+    )
+    return TransformationFact(
+        becomes=TransformedForm(p["becomes"]),
+        carried_nonmagical_included=p["carried_nonmagical_included"],
+    )
+
+
+def _build_quantity_multiplier(p: Mapping[str, Any]) -> QuantityMultiplierFact:
+    _reject(
+        FactFamily.QUANTITY_MULTIPLIER,
+        [
+            *_json_enum(p["quantity"], TrackedQuantity, "quantity"),
+            *_int_field(p["factor"], "factor"),
+        ],
+    )
+    return QuantityMultiplierFact(
+        quantity=TrackedQuantity(p["quantity"]), factor=p["factor"]
+    )
+
+
 def _build_condition_effect(p: Mapping[str, Any]) -> ConditionEffectFact:
     _reject(
         FactFamily.CONDITION_EFFECT,
@@ -2721,6 +3233,12 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.ATTACK_ROLL: _build_attack_roll,
     FactFamily.AUTOMATIC_OUTCOME: _build_automatic_outcome,
     FactFamily.CONDITION_EFFECT: _build_condition_effect,
+    FactFamily.CONDITION_LEVEL: _build_condition_level,
+    FactFamily.MOVEMENT_COST: _build_movement_cost,
+    FactFamily.MOVEMENT_PERMISSION: _build_movement_permission,
+    FactFamily.QUANTITY_MULTIPLIER: _build_quantity_multiplier,
+    FactFamily.SENSORY_CAPABILITY: _build_sensory_capability,
+    FactFamily.TRANSFORMATION: _build_transformation,
     FactFamily.CRITICAL_HIT_RULE: _build_critical_hit_rule,
     FactFamily.CREATURE_ABILITY_SCORE: _build_creature_ability_score,
     FactFamily.CREATURE_CHALLENGE: _build_creature_challenge,
@@ -2798,13 +3316,21 @@ assert (
 #: :func:`representation_schema_payload` renders that contract in a closed
 #: shape grammar which has nowhere to put a Python name.
 #:
-#: Version ``1`` describes the union as it stands after the conditions-batch
-#: expansion, **including** the vacuity invariants corrected during review of
-#: that same unmerged change. No accepted, persisted, or published projection
-#: has ever existed under any earlier form of ``1``, so those corrections belong
-#: to the initial contract; inventing a historical ``2`` would fabricate a
-#: version nothing was ever built under.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-1"
+#: **When a version must be succeeded rather than corrected in place.** Version
+#: ``1`` was corrected in place during its own review because it was unmerged:
+#: nothing outside that change could have been built against it. That rationale
+#: expired at merge and must not be reused. Once a version is **merged**, it is
+#: the contract other work builds against, and any meaning-changing addition
+#: succeeds it — whether or not a projection has yet been accepted, persisted,
+#: or published under it. Acceptance is not the test; reachability is. A schema
+#: addition that changes what the union admits therefore always bumps this
+#: constant, and the absence of an accepted release never licenses retaining
+#: the previous number.
+#:
+#: Version ``2`` adds the conditions-1 zero-path bundle: six fact families, the
+#: component-level applicability qualifier, and the exhaustive actor-choice
+#: option set, together with their closed vocabularies.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-2"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -2866,6 +3392,13 @@ def _shape(annotation: object) -> dict[str, object]:
     grammar has nowhere to put one, and an annotation it cannot describe raises
     instead of falling back to a name.
     """
+    if annotation == MechanicalFact:
+        # The closed typed-fact union, described once under ``facts`` and
+        # referenced here. A component and an option both carry a list of
+        # them, so the reference must be nameable without repeating 31 family
+        # descriptions at every site that holds facts.
+        return {"kind": "fact"}
+
     origin = get_origin(annotation)
     args = get_args(annotation)
 
@@ -2976,6 +3509,7 @@ def representation_schema_payload() -> dict[str, object]:
             {"family": family.value, "fields": _wire_fields(_FACT_TYPES[family])}
             for family in sorted(FactFamily, key=lambda f: f.value)
         ],
+        "components": _wire_fields(ComponentDraft),
         "draft_vocabularies": [
             {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
             for path in sorted(_DRAFT_VOCABULARIES)
@@ -3107,8 +3641,69 @@ class RecordDraft:
 
 
 @dataclass(frozen=True)
+class Applicability:
+    """One closed condition under which a component or option applies.
+
+    Deliberately **not** a predicate language. ``kind`` selects exactly one
+    closed vocabulary, ``negated`` negates the whole predicate and never a
+    sub-term, and there are no sub-terms to negate: no operator, no nesting,
+    and no way to combine two of these into a third. A condition the source
+    states over anything outside these vocabularies is not admitted, and its
+    span stays UNRESOLVED rather than being coerced into an approximation.
+
+    *"unless you are Tiny or two or more sizes smaller than it"* is one
+    ``SIZE_COMPARISON`` with ``negated=True`` and two entries in ``any_of`` —
+    a homogeneous set of size tests, not a Boolean expression.
+    """
+
+    kind: ApplicabilityKind
+    negated: bool = False
+    #: QUANTITY_THRESHOLD
+    quantity: TrackedQuantity | None = None
+    comparison: Comparison | None = None
+    value: int | None = None
+    #: SIZE_COMPARISON — satisfied when *any* member matches.
+    any_of: tuple[SizeComparison, ...] = ()
+    #: TRIGGER — reuses the recovery-cadence vocabulary rather than a second
+    #: spelling of "finishing a Long Rest".
+    trigger: RecoveryTrigger | None = None
+    #: PHASE
+    phase: Phase | None = None
+
+
+@dataclass(frozen=True)
+class ComponentOption:
+    """One complete typed option of an exhaustive actor choice.
+
+    Holds no options of its own, so the structure is exactly one level deep by
+    construction rather than by a check that could be forgotten. Each option is
+    mutually exclusive with its siblings per exercise of the choice; selecting
+    one does not permanently remove the others.
+
+    ``semantic_key`` is what makes an option's facts addressable — for
+    provenance, for override targeting, and for the duplicate check — without
+    depending on position, which canonical ordering would make unstable.
+    """
+
+    semantic_key: str
+    facts: tuple[MechanicalFact, ...] = ()
+    applies_when: Applicability | None = None
+
+
+@dataclass(frozen=True)
 class ComponentDraft:
-    """One publishable component of a record."""
+    """One publishable component of a record.
+
+    A component is either a **conjunction** — everything in ``facts`` holds
+    together — or an exhaustive **actor choice** — exactly one member of
+    ``options`` is taken per exercise. Never both: the two fields are mutually
+    exclusive, so nothing can be authored that reads as either.
+
+    ``options`` is exhaustive by definition in this schema version. Prone's
+    *"your **only** movement options are"* is the evidence, and no corpus
+    instance of a non-exhaustive option set has been found; a future version
+    may add one when evidence requires it.
+    """
 
     record_key: str
     semantic_key: str
@@ -3116,6 +3711,22 @@ class ComponentDraft:
     #: Required for PROSE_BOUND and MIXED; must name a closed catalog reason.
     irreducibility_reason_code: str | None = None
     facts: tuple[MechanicalFact, ...] = ()
+    #: When this component applies at all. ``None`` means unconditionally.
+    applies_when: Applicability | None = None
+    #: An exhaustive actor choice. Empty, or at least two uniquely keyed
+    #: options; never non-empty alongside ``facts``.
+    options: tuple[ComponentOption, ...] = ()
+
+    def all_facts(self) -> tuple[MechanicalFact, ...]:
+        """Every typed fact this component publishes, direct and per-option.
+
+        For counting, family recognition, and obligation satisfaction, an
+        option's facts are authority exactly as direct facts are. This
+        deliberately **loses** the option boundary, so it must never be used
+        where mutual exclusivity matters — the runtime views build from
+        ``facts`` and ``options`` separately for exactly that reason.
+        """
+        return (*self.facts, *(f for o in self.options for f in o.facts))
 
 
 @dataclass(frozen=True)
@@ -3231,10 +3842,19 @@ def component_target_key(component: ComponentDraft) -> tuple[str, ...]:
 
 
 def fact_target_key(
-    record_key: str, component_key: str, fact: object
+    record_key: str, component_key: str, fact: object, option_key: str = ""
 ) -> tuple[str, ...]:
-    """Provenance key of one typed fact, keyed by content rather than position."""
-    return (record_key, component_key, fact_key(fact))
+    """Provenance key of one typed fact, keyed by content rather than position.
+
+    ``option_key`` names the owning :class:`ComponentOption`. A fact held
+    directly on the component keeps the **three**-element key it has always
+    had, so every existing claim, override target, and stored id is unchanged;
+    only an option fact carries the fourth element. Without it, the same fact
+    appearing in two options of one component would collapse to a single key
+    and one option's provenance would silently address the other's.
+    """
+    base = (record_key, component_key, fact_key(fact))
+    return base if not option_key else (*base, option_key)
 
 
 def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
@@ -3287,6 +3907,308 @@ def prose_bindings_by_target_key(
     return {prose_binding_target_key(b): b for b in draft.prose_bindings}
 
 
+#: Which ``Applicability`` fields each kind populates. A kind carrying a field
+#: outside its set is not a weaker claim — it is a claim about a vocabulary it
+#: does not range over, and accepting it would let identity depend on fields
+#: that mean nothing for that kind.
+_APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
+    ApplicabilityKind.QUANTITY_THRESHOLD: frozenset(
+        {"quantity", "comparison", "value"}
+    ),
+    ApplicabilityKind.SIZE_COMPARISON: frozenset({"any_of"}),
+    ApplicabilityKind.TRIGGER: frozenset({"trigger"}),
+    ApplicabilityKind.PHASE: frozenset({"phase"}),
+}
+
+_APPLICABILITY_ALL_FIELDS = frozenset(
+    {"quantity", "comparison", "value", "any_of", "trigger", "phase"}
+)
+
+
+def _is_set(applicability: Applicability, field: str) -> bool:
+    value = getattr(applicability, field)
+    return bool(value) if field == "any_of" else value is not None
+
+
+def _exact_optional_int(value: object, where: str) -> str | None:
+    """Reject anything that is not exactly a JSON integer or ``None``.
+
+    ``bool`` is an ``int`` subclass, so ``True`` would otherwise satisfy every
+    downstream range test as the quantity ``1``; a string would raise an
+    incidental ``TypeError`` from the comparison rather than a stated finding.
+    Both are malformed authority and both must be refused here, before any
+    range comparison reads them.
+    """
+    if value is None or type(value) is int:
+        return None
+    return f"{where} is {type(value).__name__} {value!r}, not an integer"
+
+
+def size_comparison_violations(comparison: SizeComparison) -> list[str]:
+    """Violations of one size test's own contract."""
+    # Exactly this closed type, before any field is read. A subclass is not a
+    # narrower size test: it can carry a meaning-bearing field that
+    # ``applicability_payload`` does not emit, so two comparisons asserting
+    # different conditions would share one canonical payload and one identity.
+    # It can also redefine equality, which would let a duplicate slip past the
+    # ``seen`` check in :func:`applicability_violations`.
+    if drift := _vo_field(comparison, SizeComparison, "size comparison"):
+        return drift
+    findings: list[str] = []
+    if comparison.category is not None and not isinstance(
+        comparison.category, CreatureSize
+    ):
+        findings.append(f"{comparison.category!r} is not a declared CreatureSize")
+    if comparison.relation is not None and not isinstance(
+        comparison.relation, SizeRelation
+    ):
+        findings.append(f"{comparison.relation!r} is not a declared SizeRelation")
+    if finding := _exact_optional_int(comparison.at_least, "size distance"):
+        findings.append(finding)
+    if findings:
+        # The type domain first, with its own early return: the relative and
+        # absolute checks below read these fields, and reporting a range
+        # opinion about a value that is not of the declared type at all would
+        # be a second, misleading finding about the same defect.
+        return findings
+    absolute = comparison.category is not None
+    relative = comparison.relation is not None or comparison.at_least is not None
+    if absolute and relative:
+        findings.append(
+            "size comparison states both an absolute category and a relative "
+            "distance; they are alternatives"
+        )
+    elif not absolute and not relative:
+        findings.append("size comparison states neither a category nor a distance")
+    if relative:
+        if comparison.relation is None:
+            findings.append("relative size comparison states no direction")
+        if comparison.at_least is None:
+            findings.append("relative size comparison states no distance")
+        elif comparison.at_least < 1:
+            findings.append(
+                f"relative size distance {comparison.at_least} compares nothing"
+            )
+    return findings
+
+
+#: Every direct element type of :class:`RepresentationDraft`, keyed by the field
+#: that holds it. An **explicit map guarded by a dataclass-derived change
+#: detector**: this literal is maintained by hand, and a test reads
+#: ``dataclasses.fields(RepresentationDraft)`` and fails if the two disagree —
+#: so a seventh collection added later must appear here or the suite breaks,
+#: and a new sibling cannot enter the authority boundary ungated.
+#:
+#: Stated precisely because an earlier revision of this comment claimed the map
+#: was *derived* from the dataclass. It is not; the guarantee comes from the
+#: detector, not from derivation.
+_DRAFT_ELEMENT_TYPES: Mapping[str, type] = {
+    "records": RecordDraft,
+    "components": ComponentDraft,
+    "prose_bindings": ProseBindingDraft,
+    "relationships": RelationshipDraft,
+    "references": ReferenceDraft,
+    "provenance": ProvenanceClaim,
+}
+
+
+def representation_draft_violations(draft: object) -> list[str]:
+    """Exact runtime type of the draft and of every element it holds.
+
+    The closed-structure identity leak, closed at the top-level boundary. A
+    subclass of any of these may carry an undeclared meaning-bearing field,
+    shadow a declared one, or redefine ``__eq__``/``__hash__``. Validation reads
+    them as their base classes and ``representation_payload`` emits only the
+    declared base fields, so two drafts asserting *different* authority would
+    validate identically, canonicalize to the same bytes, and share one
+    projection identity.
+
+    ``isinstance`` is not enough and is deliberately not used: a subclass *is*
+    an instance of its base, which is exactly the case being refused. The rule
+    is :func:`exact_type_violations`, the same one the fact families,
+    applicability structures, and options already use.
+
+    Called **before** any field access, key construction, comprehension, or
+    equality/hash-based deduplication downstream — a hostile ``__eq__`` only
+    has to be consulted once to collapse two distinct elements into one, and by
+    then the finding it should have produced is gone.
+    """
+    if findings := exact_type_violations(draft, RepresentationDraft, "representation"):
+        return findings
+    assert isinstance(draft, RepresentationDraft)
+    violations: list[str] = []
+    for field_name, expected in _DRAFT_ELEMENT_TYPES.items():
+        held = getattr(draft, field_name)
+        # Exactly ``tuple``, and checked **before** the collection is iterated.
+        # ``isinstance`` was the original spelling here and was wrong for the
+        # same reason it is wrong everywhere else in this family: a tuple
+        # subclass *is* a tuple. It can carry undeclared metadata that
+        # ``representation_payload`` never emits — so two drafts asserting
+        # different authority canonicalize to identical bytes — and it can
+        # override ``__iter__``, so validation and serialization would observe
+        # different elements from the same object. Iterating first to find out
+        # is exactly the observation being refused.
+        if drift := exact_type_violations(held, tuple, f"representation.{field_name}"):
+            violations.extend(drift)
+            continue
+        for index, element in enumerate(held):
+            violations.extend(
+                exact_type_violations(
+                    element, expected, f"representation.{field_name}[{index}]"
+                )
+            )
+    return violations
+
+
+def option_set_violations(
+    facts: tuple[MechanicalFact, ...],
+    options: tuple[ComponentOption, ...],
+    tag: str,
+) -> list[str]:
+    """Violations of one component's exhaustive actor-choice contract.
+
+    Stated over ``(facts, options)`` rather than over a whole
+    :class:`ComponentDraft` so the *same* rule governs both places a component's
+    content can be authored: the build-time representation, and an
+    override-supplied complete component patch. A runtime patch layer restating
+    these rules would be a looser second copy of the schema, and the two would
+    drift.
+
+    Everything rejected here is a shape that would read as something else: a
+    conjunction wearing a choice's clothes, a choice with nothing to choose
+    between, or two options a consumer could not tell apart.
+    """
+    findings: list[str] = []
+    if not options:
+        return findings
+
+    if facts:
+        # A component is a conjunction or a choice. Both at once has no single
+        # reading: are the direct facts always true, or only alongside the
+        # chosen option? The source never states that shape, so it is refused
+        # rather than given an invented meaning.
+        findings.append(
+            f"{tag}: states both direct facts and an actor choice; a component "
+            "is a conjunction or a choice, never both"
+        )
+    if len(options) < 2:
+        findings.append(
+            f"{tag}: actor choice with {len(options)} option; a choice "
+            "of one is a plain component misdescribed"
+        )
+
+    seen_keys: set[str] = set()
+    seen_facts: set[tuple[str, ...]] = set()
+    for option in options:
+        otag = f"{tag} option {option.semantic_key}"
+        # Exactly this closed type. Same family as the applicability
+        # structures: an option subclass could carry a meaning-bearing field
+        # that no payload emits, so two options asserting different authority
+        # would persist and canonicalize identically — and a redefined
+        # ``__eq__`` could evade the duplicate checks immediately below.
+        if drift := exact_type_violations(option, ComponentOption, otag):
+            findings.extend(drift)
+            continue
+        if not option.semantic_key.strip():
+            findings.append(f"{tag}: option with a blank semantic key")
+        elif option.semantic_key in seen_keys:
+            # Keys address an option's facts for provenance and for override
+            # targeting; two options sharing one would make both unaddressable.
+            findings.append(f"{tag}: duplicate option key {option.semantic_key!r}")
+        seen_keys.add(option.semantic_key)
+
+        if not option.facts:
+            findings.append(f"{otag}: option states no typed facts")
+        try:
+            signature = tuple(sorted(fact_key(f) for f in option.facts))
+        except UnknownFactFamilyError:
+            signature = ()
+        if signature and signature in seen_facts:
+            findings.append(f"{tag}: two options state the same typed facts")
+        seen_facts.add(signature)
+
+        if option.applies_when is not None:
+            findings.extend(
+                f"{otag}: {v}" for v in applicability_violations(option.applies_when)
+            )
+    return findings
+
+
+def applicability_violations(applicability: Applicability) -> list[str]:
+    """Violations of one applicability's own contract.
+
+    The kind determines the populated field set exactly. This is what keeps the
+    shape from drifting into a general predicate: a payload cannot carry a
+    threshold *and* a size set and mean their conjunction, because carrying
+    both is rejected rather than interpreted.
+    """
+    # The exact closed type first — before ``kind`` is even read, since a
+    # subclass could shadow it. Same reasoning as
+    # :func:`size_comparison_violations`: undeclared state that
+    # ``applicability_payload`` omits would give distinct authority one
+    # canonical representation.
+    if drift := _vo_field(applicability, Applicability, "applicability"):
+        return drift
+    if not isinstance(applicability.kind, ApplicabilityKind):
+        return [f"{applicability.kind!r} is not a declared ApplicabilityKind"]
+    # The type domain, before ``_is_set`` and before any range comparison.
+    # ``_is_set`` reports ``value=True`` as populated and ``True < 0`` is
+    # ``False``, so a malformed boolean would otherwise pass every later check
+    # silently; ``value="3"`` would raise an incidental ``TypeError`` instead
+    # of a stated finding. Neither is an acceptable answer for malformed
+    # authority, and both loaders inherit this guard through their existing
+    # post-construction call.
+    typed: list[str] = []
+    if type(applicability.negated) is not bool:
+        typed.append(
+            f"negated is {type(applicability.negated).__name__} "
+            f"{applicability.negated!r}, not a boolean"
+        )
+    if finding := _exact_optional_int(applicability.value, "threshold value"):
+        typed.append(finding)
+    for name, member in (
+        ("quantity", TrackedQuantity),
+        ("comparison", Comparison),
+        ("trigger", RecoveryTrigger),
+        ("phase", Phase),
+    ):
+        held = getattr(applicability, name)
+        if held is not None and not isinstance(held, member):
+            typed.append(f"{held!r} is not a declared {member.__name__}")
+    if not isinstance(applicability.any_of, tuple) or any(
+        type(c) is not SizeComparison for c in applicability.any_of
+    ):
+        typed.append("any_of is not a tuple of size comparisons")
+    if typed:
+        return typed
+    allowed = _APPLICABILITY_FIELDS[applicability.kind]
+    findings: list[str] = []
+    for field in sorted(_APPLICABILITY_ALL_FIELDS - allowed):
+        if _is_set(applicability, field):
+            findings.append(
+                f"{applicability.kind.value} applicability carries {field}, "
+                "which it does not range over"
+            )
+    for field in sorted(allowed):
+        if not _is_set(applicability, field):
+            findings.append(
+                f"{applicability.kind.value} applicability states no {field}"
+            )
+    if findings:
+        return findings
+    if applicability.kind is ApplicabilityKind.QUANTITY_THRESHOLD:
+        if applicability.value is not None and applicability.value < 0:
+            findings.append(f"threshold value {applicability.value} is not a quantity")
+    elif applicability.kind is ApplicabilityKind.SIZE_COMPARISON:
+        seen: set[SizeComparison] = set()
+        for comparison in applicability.any_of:
+            findings.extend(size_comparison_violations(comparison))
+            if comparison in seen:
+                findings.append("duplicate size comparison in one applicability")
+            seen.add(comparison)
+    return findings
+
+
 def declared_provenance_targets(
     draft: RepresentationDraft,
 ) -> dict[ProvenanceTargetKind, set[tuple[str, ...]]]:
@@ -3297,13 +4219,24 @@ def declared_provenance_targets(
     """
     facts: set[tuple[str, ...]] = set()
     for component in draft.components:
-        for fact in component.facts:
-            try:
-                facts.add(
-                    fact_target_key(component.record_key, component.semantic_key, fact)
-                )
-            except UnknownFactFamilyError:
-                continue
+        # Direct facts and option facts alike: an option's fact is authority
+        # that must carry its own provenance, and omitting it here would make
+        # every such claim read as naming an undeclared element.
+        scopes: list[tuple[str, tuple[MechanicalFact, ...]]] = [("", component.facts)]
+        scopes.extend((o.semantic_key, o.facts) for o in component.options)
+        for option_key, scoped in scopes:
+            for fact in scoped:
+                try:
+                    facts.add(
+                        fact_target_key(
+                            component.record_key,
+                            component.semantic_key,
+                            fact,
+                            option_key,
+                        )
+                    )
+                except UnknownFactFamilyError:
+                    continue
 
     return {
         ProvenanceTargetKind.RECORD: {record_target_key(r) for r in draft.records},

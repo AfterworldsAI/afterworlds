@@ -252,6 +252,7 @@ class TestRpTablePrefix:
             "rp_mech_batch_diff",
             "rp_mech_acceptances",
             "rp_mech_records",
+            "rp_mech_component_options",
             "rp_mech_components",
             "rp_mech_facts",
             "rp_mech_prose_bindings",

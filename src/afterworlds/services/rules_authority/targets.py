@@ -6,6 +6,16 @@ component. Nothing else is addressable. There is deliberately no JSON path, no
 selector expression, and no wildcard — #137 contract 6 forbids them, and each
 of those would let an override reach authority nobody reviewed it against.
 
+**An option is a container grain, not a choice-arm target.** Owner Decision
+2026-08-19 admits ``OPTION`` for exactly one purpose: naming the multiplicity a
+fact is appended *into*. ``(APPEND, OPTION) -> FactAdditionPatch`` is the only
+permitted pairing. ``DISABLE`` and ``REPLACE`` on an option stay unsupported,
+because the source states the choice as *exhaustive* — suppressing or replacing
+one arm would publish a choice the source never states, which is the same
+reason there is no option axis on the suppression hierarchy. ``(APPEND, FACT)``
+also stays unsupported: a fact has no multiplicity to append into. So an option
+is addressable as a fact container and in no other way.
+
 **Prose is its own grain, not a component subtype.** A ``COMPONENT``-kind
 ``DISABLE`` already means "remove the whole component" (Decision 10). Prose
 authority needs to be suppressible, replaceable, or extensible on its own —
@@ -46,6 +56,10 @@ class MechanicalTargetKind(StrEnum):
     COMPONENT = "component"
     FACT = "fact"
     PROSE = "prose"
+    #: One option of an exhaustive actor choice, addressed as the **container**
+    #: a fact is appended into — never as a suppressible or replaceable arm of
+    #: the choice. See the module docstring.
+    OPTION = "option"
 
 
 class TargetShapeError(ValueError):
@@ -68,6 +82,20 @@ class MechanicalTarget:
     record_key: str
     component_key: str | None = None
     fact_key: str | None = None
+    #: The option scope, which two grains read differently.
+    #:
+    #: * On a ``FACT`` target it is an optional *qualifier*: it names the owning
+    #:   option of an existing fact when that fact lives inside an exhaustive
+    #:   actor choice. ``None`` means the fact is held directly on the component
+    #:   — the pre-schema-2 shape, so every existing target is unchanged.
+    #: * On an ``OPTION`` target it is *required* and is the target itself: it
+    #:   names one option as the container a fact is appended into, and that
+    #:   grain permits nothing but ``APPEND`` (Owner Decision 2026-08-19).
+    #:
+    #: Neither form makes an option suppressible or replaceable. Disabling or
+    #: replacing one arm of a choice the source states as exhaustive would
+    #: publish a choice the source never states, so no target kind offers it.
+    option_key: str | None = None
 
     def __post_init__(self) -> None:
         if not self.record_key.strip():
@@ -76,6 +104,7 @@ class MechanicalTarget:
             MechanicalTargetKind.COMPONENT,
             MechanicalTargetKind.FACT,
             MechanicalTargetKind.PROSE,
+            MechanicalTargetKind.OPTION,
         )
         if needs_component and not (self.component_key or "").strip():
             raise TargetShapeError(f"{self.kind.value} target requires a component_key")
@@ -83,19 +112,38 @@ class MechanicalTarget:
             raise TargetShapeError(
                 f"{self.kind.value} target must not carry a component_key"
             )
-        if self.kind is MechanicalTargetKind.FACT:
+        if self.kind is MechanicalTargetKind.OPTION:
+            # The option *is* the target, so its key is required rather than an
+            # optional qualifier; and an option names a container, never one
+            # fact inside it, so a fact_key here would be two targets in one.
+            if not (self.option_key or "").strip():
+                raise TargetShapeError("option target requires an option_key")
+            if self.fact_key is not None:
+                raise TargetShapeError("option target must not carry a fact_key")
+        elif self.kind is MechanicalTargetKind.FACT:
             if not (self.fact_key or "").strip():
                 raise TargetShapeError("fact target requires a fact_key")
-        elif self.fact_key is not None:
-            raise TargetShapeError(
-                f"{self.kind.value} target must not carry a fact_key"
-            )
+            if self.option_key is not None and not self.option_key.strip():
+                raise TargetShapeError("fact target carries a blank option_key")
+        else:
+            if self.fact_key is not None:
+                raise TargetShapeError(
+                    f"{self.kind.value} target must not carry a fact_key"
+                )
+            if self.option_key is not None:
+                raise TargetShapeError(
+                    f"{self.kind.value} target must not carry an option_key"
+                )
 
     def describe(self) -> str:
         """Human-readable target, used in typed failure detail."""
         parts = [self.record_key]
         if self.component_key is not None:
             parts.append(self.component_key)
+        if self.option_key is not None:
+            # Rendered, not dropped: two fact targets differing only by option
+            # would otherwise describe identically in every typed failure.
+            parts.append(f"[{self.option_key}]")
         if self.fact_key is not None:
             parts.append(self.fact_key)
         return f"{self.kind.value}:{'/'.join(parts)}"
@@ -104,13 +152,26 @@ class MechanicalTarget:
 def target_payload(target: MechanicalTarget) -> dict[str, object]:
     """Canonical identity-bearing payload of one target.
 
-    Absent keys are serialized as ``None`` rather than omitted, so a component
-    target and a fact target can never canonicalize to the same bytes through a
-    missing key.
+    Absent *kind-determined* keys are serialized as ``None`` rather than
+    omitted, so a component target and a fact target can never canonicalize to
+    the same bytes through a missing key.
+
+    ``option_key`` is the deliberate exception: it is present only when it is
+    non-``None``. Emitting it as ``None`` on every target would remint the
+    identity of every override set already authored against a direct fact —
+    the same authority, under a new identifier, with the retained version it
+    names no longer reachable. A direct target therefore keeps exactly the
+    payload it had before options existed, and an option-qualified target
+    carries a fifth key no direct target can produce. There is no collision:
+    ``__post_init__`` already refuses a blank ``option_key``, so a present key
+    always names a real option scope.
     """
-    return {
+    payload: dict[str, object] = {
         "kind": target.kind.value,
         "record_key": target.record_key,
         "component_key": target.component_key,
         "fact_key": target.fact_key,
     }
+    if target.option_key is not None:
+        payload["option_key"] = target.option_key
+    return payload

@@ -39,6 +39,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
     MechanicalBatchScopeORM,
+    MechanicalComponentOptionORM,
     MechanicalComponentORM,
     MechanicalFactORM,
     MechanicalProjectionORM,
@@ -111,6 +112,9 @@ class RawProjectionState:
     relationships: Sequence[MechanicalRelationshipORM]
     references: Sequence[MechanicalReferenceORM]
     provenance: Sequence[MechanicalProvenanceORM]
+    #: Empty for any component that states a conjunction rather than a choice,
+    #: which is every component built before schema 2.
+    component_options: Sequence[MechanicalComponentOptionORM] = ()
 
 
 def load_raw_state(
@@ -137,6 +141,7 @@ def load_raw_state(
         acceptances=rows(MechanicalAcceptanceORM),
         records=rows(MechanicalRecordORM),
         components=rows(MechanicalComponentORM),
+        component_options=rows(MechanicalComponentOptionORM),
         facts=rows(MechanicalFactORM),
         prose_bindings=rows(MechanicalProseBindingORM),
         relationships=rows(MechanicalRelationshipORM),
@@ -241,14 +246,42 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
                 f"{component.record_key!r} with no row in this projection"
             )
 
+    option_keys = set()
+    for option in raw.component_options:
+        if (option.record_key, option.component_key) not in component_keys:
+            problems.append(
+                f"rp_mech_component_options row {option.row_id}: names component "
+                f"{[option.record_key, option.component_key]} with no row in "
+                "this projection"
+            )
+        key = (option.record_key, option.component_key, option.semantic_key)
+        if key in option_keys:
+            problems.append(
+                f"rp_mech_component_options row {option.row_id}: duplicate option "
+                f"{option.semantic_key!r}"
+            )
+        option_keys.add(key)
+
     # Facts are selected while iterating components during reconstruction, so
-    # an unparented fact would simply never be visited.
+    # an unparented fact would simply never be visited. An option fact whose
+    # option row is missing is the same defect one level down: it would be
+    # dropped in silence, which is exactly what this closure check exists to
+    # turn into a reported problem.
     for fact in raw.facts:
         if (fact.record_key, fact.component_key) not in component_keys:
             problems.append(
                 f"rp_mech_facts row {fact.row_id}: names component "
                 f"{[fact.record_key, fact.component_key]} with no row in this "
                 "projection"
+            )
+        elif (
+            fact.option_key
+            and (fact.record_key, fact.component_key, fact.option_key)
+            not in option_keys
+        ):
+            problems.append(
+                f"rp_mech_facts row {fact.row_id}: names option "
+                f"{fact.option_key!r} with no row in this projection"
             )
 
     for binding in raw.prose_bindings:

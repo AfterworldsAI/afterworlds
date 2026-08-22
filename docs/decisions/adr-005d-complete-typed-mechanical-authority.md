@@ -429,6 +429,42 @@ pre-release mechanism. They are not a second concurrent mechanical or GameMaster
 path and views this ADR governs never read them, and their removal remains scheduled for the final
 activation/legacy-retirement PR, not the PR that introduces this overlay.
 
+**Amended by Owner Decision 2026-08-19 — an APPEND-only `OPTION` container target.** Representation
+schema 2 admits a component that states an exhaustive actor choice: one whose meaning is a set of mutually
+exclusive `options`, each holding its own typed facts. That structure created a multiplicity seam this
+decision's `APPEND` clause above could not address. A component-scoped `APPEND` adds a fact *beside* the
+options, which a choice component's schema forbids, and `(APPEND, FACT)` has never been permitted — so
+adding a typed fact to one arm of a choice was a schema-permitted operation with no valid encoding. This
+amendment supplies exactly that encoding and nothing more:
+
+- `OPTION` is a **fifth exact typed target grain**, shaped by `record_key`, `component_key`, and a
+  nonblank `option_key`, with `fact_key` **forbidden**. It is scoped by stable semantic identity like
+  every other grain — never a JSON path, an index, or an unscoped selector — and a container together
+  with one of its members is two targets, not one.
+- It targets an option **only as the owning container for fact addition**. `OPTION` is not a general
+  handle on a choice arm.
+- Only `(APPEND, OPTION) → FactAdditionPatch` is permitted. Every other operation/`OPTION` pairing fails
+  explicitly as an invalid override, exactly like any other unsupported typed pairing.
+- `DISABLE` and `REPLACE` on `OPTION` remain **unsupported**, and deliberately not for the same reason
+  `(APPEND, FACT)` is. An option is not missing multiplicity — it holds content that could in principle
+  be suppressed or replaced. It is the **exhaustiveness** of the choice that forbids it: the source states
+  these options as the complete set of what the actor may do, so removing or rewriting one arm would
+  publish a choice the source never authored. That is a falsification of source authority, not a
+  permitted narrowing of it.
+- `APPEND` on `FACT` remains unsupported on its original grounds, unchanged by this amendment: a fact has
+  no multiplicity to append into.
+
+An option is therefore addressable as a fact container and in no other way.
+
+This amendment is **runtime-only and identity-narrow**. `OPTION` reuses the existing `target_option_key`
+column that already carries an option-qualified `FACT` target's scope; it introduces no second scope
+field. Because a target's exact identity participates in the override-set payload (Decision 9), an
+`OPTION` target changes the override-set identity of any state containing one — as any new authority
+must. It leaves **every existing direct-target canonical payload and every already-derived override-set
+identity unchanged**, so no previously recorded binding is reminted or orphaned from the retained version
+it names. It does **not** change representation schema identity: `OPTION` is an override target grain, not
+a representation structure, and the representation schema version and hash are unaffected.
+
 ### Decision 11 — Downstream ownership remains downstream
 
 5d does not decide:

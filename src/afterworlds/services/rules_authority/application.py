@@ -38,11 +38,16 @@ from dataclasses import dataclass, replace
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.projection import ProjectionCandidate
 from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    ComponentDraft,
+    ComponentOption,
     MechanicalFact,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
     fact_key,
+    fact_target_key,
+    option_set_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.models.rules_package import RulesPackageBinding
@@ -97,6 +102,9 @@ class EffectiveFact:
 
     fact_key: str
     fact: MechanicalFact
+    #: The owning option, when this fact lives inside an exhaustive actor
+    #: choice; ``None`` for a fact held directly on the component.
+    option_key: str | None = None
     #: 5c leaf subspans accepted as this fact's provenance. Empty exactly when
     #: the fact came from an override rather than from the source corpus.
     span_ids: tuple[str, ...] = ()
@@ -154,14 +162,37 @@ GoverningProseEntry = SourceProse | AuthoredProse
 
 
 @dataclass(frozen=True)
+class EffectiveOption:
+    """One option of an exhaustive actor choice, in the effective view.
+
+    Kept as its own element rather than folded into the component's facts:
+    the options of a choice are **mutually exclusive**, and flattening them
+    would publish "you may crawl *and* you may stand up" as simultaneously
+    applicable authority. Every consumer that reads facts for adjudication
+    must read this boundary too.
+    """
+
+    semantic_key: str
+    facts: tuple[EffectiveFact, ...]
+    applies_when: Applicability | None = None
+
+
+@dataclass(frozen=True)
 class EffectiveComponent:
-    """One component of the effective view."""
+    """One component of the effective view.
+
+    A component is either a conjunction (``facts``) or an exhaustive actor
+    choice (``options``), never both — the projection contract enforces it, and
+    consumers may rely on it.
+    """
 
     record_key: str
     semantic_key: str
     handling: ComponentHandling
     irreducibility_reason_code: str | None
     facts: tuple[EffectiveFact, ...]
+    options: tuple[EffectiveOption, ...] = ()
+    applies_when: Applicability | None = None
     #: Exact ordered governing prose: 5c-bound, authored, or both, in the
     #: order overrides resolve in. Empty for a purely structured component
     #: that has never had authored prose attached to it.
@@ -268,19 +299,44 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
 
     components: dict[str, list[EffectiveComponent]] = {}
     for component in draft.components:
-        facts = tuple(
-            EffectiveFact(
-                fact_key=fact_key(fact),
-                fact=fact,
-                span_ids=spans.get(
-                    (
-                        ProvenanceTargetKind.FACT,
-                        (component.record_key, component.semantic_key, fact_key(fact)),
+
+        def _effective(
+            scoped: tuple[MechanicalFact, ...],
+            option_key: str,
+            component: ComponentDraft = component,
+        ) -> tuple[EffectiveFact, ...]:
+            return tuple(
+                EffectiveFact(
+                    fact_key=fact_key(fact),
+                    fact=fact,
+                    option_key=option_key or None,
+                    # Built by the same function the projection used, so the
+                    # two cannot drift: a direct fact keeps its three-element
+                    # key and only an option fact carries the fourth.
+                    span_ids=spans.get(
+                        (
+                            ProvenanceTargetKind.FACT,
+                            fact_target_key(
+                                component.record_key,
+                                component.semantic_key,
+                                fact,
+                                option_key,
+                            ),
+                        ),
+                        (),
                     ),
-                    (),
-                ),
+                )
+                for fact in scoped
             )
-            for fact in component.facts
+
+        facts = _effective(component.facts, "")
+        options = tuple(
+            EffectiveOption(
+                semantic_key=option.semantic_key,
+                facts=_effective(option.facts, option.semantic_key),
+                applies_when=option.applies_when,
+            )
+            for option in component.options
         )
         components.setdefault(component.record_key, []).append(
             EffectiveComponent(
@@ -289,6 +345,8 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 handling=component.handling,
                 irreducibility_reason_code=component.irreducibility_reason_code,
                 facts=facts,
+                options=options,
+                applies_when=component.applies_when,
                 governing_prose=tuple(
                     prose.get((component.record_key, component.semantic_key), ())
                 ),
@@ -332,19 +390,41 @@ def _component_from_body(
     semantic_key: str,
     entry: EffectiveOverrideEntry,
 ) -> EffectiveComponent:
+    def _supplied(
+        facts: tuple[MechanicalFact, ...], option_key: str | None
+    ) -> tuple[EffectiveFact, ...]:
+        return tuple(
+            EffectiveFact(
+                fact_key=fact_key(f),
+                fact=f,
+                option_key=option_key,
+                supplied_by_override_id=entry.override_id,
+                supplied_by_origin=entry.origin,
+            )
+            for f in facts
+        )
+
     return EffectiveComponent(
         record_key=record_key,
         semantic_key=semantic_key,
         handling=body.handling,
         irreducibility_reason_code=None,
-        facts=tuple(
-            EffectiveFact(
-                fact_key=fact_key(f),
-                fact=f,
-                supplied_by_override_id=entry.override_id,
-                supplied_by_origin=entry.origin,
+        facts=_supplied(body.facts, None),
+        # Built fresh rather than by replacing the base component, so a
+        # replacement that omits these fields genuinely removes the qualifier
+        # and option set the base projection carried instead of inheriting
+        # stale state. Component replacement is complete by contract.
+        applies_when=body.applies_when,
+        options=tuple(
+            EffectiveOption(
+                semantic_key=option.semantic_key,
+                # An option's facts are override-supplied authority exactly as
+                # direct facts are, so each carries the supplying override's
+                # identity and origin and names 5c spans nowhere.
+                facts=_supplied(option.facts, option.semantic_key),
+                applies_when=option.applies_when,
             )
-            for f in body.facts
+            for option in body.options
         ),
         governing_prose=(
             (
@@ -372,19 +452,46 @@ def _find_component(
 
 
 def _find_fact(
-    component: EffectiveComponent, key: str
+    component: EffectiveComponent, key: str, option_key: str | None = None
 ) -> tuple[int, EffectiveFact] | None:
-    for index, fact in enumerate(component.facts):
+    """Locate a fact within its own scope.
+
+    ``option_key`` is ``None`` for the component's direct facts and names an
+    option otherwise. The scopes are searched separately on purpose: the same
+    fact may legitimately appear in two options, and a scope-blind lookup would
+    resolve a target for one of them onto the other.
+    """
+    scoped = (
+        component.facts
+        if option_key is None
+        else next(
+            (o.facts for o in component.options if o.semantic_key == option_key), ()
+        )
+    )
+    for index, fact in enumerate(scoped):
         if fact.fact_key == key:
             return index, fact
     return None
+
+
+def component_published_facts(
+    component: EffectiveComponent,
+) -> tuple[EffectiveFact, ...]:
+    """Every fact the component publishes, direct and per-option.
+
+    For counting and family recognition only. This **loses** mutual
+    exclusivity, so it must never reach a consumer that presents facts as
+    simultaneously applicable — the GameMaster view builds from ``facts`` and
+    ``options`` separately for exactly that reason.
+    """
+    return (*component.facts, *(f for o in component.options for f in o.facts))
 
 
 def _suppressed_by(
     target: MechanicalTarget,
     disabled_records: set[str],
     disabled_components: set[tuple[str, str]],
-    disabled_facts: set[tuple[str, str, str]],
+    disabled_facts: set[tuple[str, str, str, str]],
     disabled_prose: set[tuple[str, str]],
 ) -> str | None:
     """Is this target already suppressed by an earlier ``DISABLE``?
@@ -413,9 +520,21 @@ def _suppressed_by(
         if (target.record_key, target.component_key) in disabled_prose:
             return "prose"
         return None
+    if target.kind is MechanicalTargetKind.OPTION:
+        # An option target names the container, not a fact, so no individual
+        # fact disable suppresses it — but the record and component disables
+        # above already did, which is the whole inheritance it participates in.
+        # Appending into an option of a suppressed component would resurrect
+        # authority the disable removed.
+        return None
     assert target.kind is MechanicalTargetKind.FACT
     assert target.fact_key is not None
-    if (target.record_key, target.component_key, target.fact_key) in disabled_facts:
+    if (
+        target.record_key,
+        target.component_key,
+        target.fact_key,
+        target.option_key or "",
+    ) in disabled_facts:
         return "fact"
     return None
 
@@ -423,7 +542,7 @@ def _suppressed_by(
 def _finalize_component(
     record: EffectiveRecord,
     component: EffectiveComponent,
-    disabled_facts: set[tuple[str, str, str]],
+    disabled_facts: set[tuple[str, str, str, str]],
 ) -> EffectiveComponent:
     """Filter disabled facts and derive final effective handling from what
     survives — unconditionally, for every component, from its own final
@@ -447,10 +566,30 @@ def _finalize_component(
     facts = tuple(
         fact
         for fact in component.facts
-        if (record.semantic_key, component.semantic_key, fact.fact_key)
+        if (record.semantic_key, component.semantic_key, fact.fact_key, "")
         not in disabled_facts
     )
-    facts_present = bool(facts)
+    # Suppression reaches inside a choice: disabling a record or a component
+    # disables the facts beneath it wherever they live, and an option's facts
+    # are beneath it exactly as direct facts are.
+    options = tuple(
+        replace(
+            option,
+            facts=tuple(
+                fact
+                for fact in option.facts
+                if (
+                    record.semantic_key,
+                    component.semantic_key,
+                    fact.fact_key,
+                    option.semantic_key,
+                )
+                not in disabled_facts
+            ),
+        )
+        for option in component.options
+    )
+    facts_present = bool(facts) or any(o.facts for o in options)
     prose_present = bool(component.governing_prose)
     if facts_present and prose_present:
         handling = ComponentHandling.MIXED
@@ -466,7 +605,15 @@ def _finalize_component(
         else component.irreducibility_reason_code
     )
     return replace(
-        component, facts=facts, handling=handling, irreducibility_reason_code=reason
+        component,
+        facts=facts,
+        # The rebuilt options, not the originals: they are what ``facts_present``
+        # was derived from, and returning the unfiltered ones would leave a
+        # disabled option fact visible in the assembled projection while the
+        # handling above already accounted for its removal.
+        options=options,
+        handling=handling,
+        irreducibility_reason_code=reason,
     )
 
 
@@ -486,7 +633,7 @@ def apply_override_set(
     records = _base_records(candidate)
     disabled_records: set[str] = set()
     disabled_components: set[tuple[str, str]] = set()
-    disabled_facts: set[tuple[str, str, str]] = set()
+    disabled_facts: set[tuple[str, str, str, str]] = set()
     disabled_prose: set[tuple[str, str]] = set()
     provenance: list[AppliedOverride] = []
 
@@ -532,11 +679,88 @@ def apply_override_set(
         for key, record in sorted(records.items())
         if key not in disabled_records
     )
+    _verify_final_option_sets(surviving, provenance)
     return EffectiveAuthority(
         binding=binding,
         records=surviving,
         applied_overrides=tuple(provenance),
     )
+
+
+def _blame_for(
+    record_key: str, component_key: str, provenance: list[AppliedOverride]
+) -> str:
+    """Which override to name for a *final-state* violation.
+
+    There is no single culprit for an invariant that only fails once the whole
+    ordered set has been applied — an earlier entry may have created the shape
+    a later one completed. The last applied override that touched this
+    component is the one whose application produced the invalid state, so it is
+    the honest anchor for the report; the detail string says so, rather than
+    implying it is the only cause.
+    """
+    touched = [
+        o
+        for o in provenance
+        if o.applied
+        and o.target.record_key == record_key
+        and o.target.component_key == component_key
+    ]
+    if touched:
+        return touched[-1].override_id
+    applied = [o for o in provenance if o.applied]
+    return applied[-1].override_id if applied else "?"
+
+
+def _verify_final_option_sets(
+    records: tuple[EffectiveRecord, ...], provenance: list[AppliedOverride]
+) -> None:
+    """Every surviving component must still satisfy the choice contract.
+
+    The local checks inside the fact operations are per-scope: an append or a
+    replacement inside one option sees only that option's facts, and a
+    fact-scoped ``DISABLE`` is not resolved into removal until
+    ``_finalize_component``. None of them can see that two arms have become
+    indistinguishable, or that an arm has been emptied — component-wide
+    properties of the *final* state.
+
+    Checked here, after the whole ordered set has been applied and suppression
+    resolved, so an intermediate shape a later entry legitimately repairs is
+    never rejected. A violation fails the entire application through the
+    established ``INVALID_OVERRIDE`` path: a view missing one authored change,
+    or publishing a choice whose arms cannot be told apart, is worse than no
+    view at all.
+
+    The rule itself is
+    :func:`~afterworlds.ingestion.mechanical.representation.option_set_violations`
+    — the same one the corpus is built under. The effective view is projected
+    back into the representation's own types to ask it, which deliberately
+    discards provenance: the contract is about what the facts *say*, not about
+    which override supplied them.
+    """
+    for record in records:
+        for component in record.components:
+            if not component.options:
+                continue
+            violations = option_set_violations(
+                tuple(f.fact for f in component.facts),
+                tuple(
+                    ComponentOption(
+                        semantic_key=option.semantic_key,
+                        facts=tuple(f.fact for f in option.facts),
+                        applies_when=option.applies_when,
+                    )
+                    for option in component.options
+                ),
+                f"component {record.semantic_key}/{component.semantic_key}",
+            )
+            if violations:
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves an invalid actor choice "
+                    f"(reported against the last override to touch it): "
+                    f"{'; '.join(violations)}",
+                )
 
 
 def _apply_prose_entry(
@@ -614,7 +838,7 @@ def _apply_entry(
     records: dict[str, EffectiveRecord],
     disabled_records: set[str],
     disabled_components: set[tuple[str, str]],
-    disabled_facts: set[tuple[str, str, str]],
+    disabled_facts: set[tuple[str, str, str, str]],
     disabled_prose: set[tuple[str, str]],
 ) -> tuple[bool, str]:
     """Apply one enabled entry, returning whether it changed anything."""
@@ -671,13 +895,24 @@ def _apply_entry(
             disabled_components.add((target.record_key, target.component_key))
             return True, "component suppressed"
         assert target.fact_key is not None
-        if _find_fact(found[1], target.fact_key) is None:
+        # Scoped, not scope-blind. A choice component holds no direct facts, so
+        # a scope-blind lookup rejects every valid option-fact disable as
+        # INVALID_OVERRIDE; and where the same fact key appears in two options
+        # it would resolve one option's target onto the other.
+        if _find_fact(found[1], target.fact_key, target.option_key) is None:
             raise OverrideApplicationError(
                 entry.override_id,
                 f"target {target.describe()} names no fact of "
                 f"{target.component_key!r}",
             )
-        disabled_facts.add((target.record_key, target.component_key, target.fact_key))
+        disabled_facts.add(
+            (
+                target.record_key,
+                target.component_key,
+                target.fact_key,
+                target.option_key or "",
+            )
+        )
         return True, "fact suppressed"
 
     if isinstance(patch, RecordReplacementPatch):
@@ -772,15 +1007,46 @@ def _apply_entry(
             f"{target.record_key!r}",
         )
     index, component = found
-    # Reachable only for a FACT target: PROSE returned above, and RECORD/
-    # COMPONENT patches were each handled and returned by their own branch.
+    # Reachable for a FACT or OPTION target: PROSE returned above, and RECORD/
+    # COMPONENT patches were each handled and returned by their own branch. An
+    # OPTION target reaches here carrying a non-None option_key and no
+    # fact_key, which is exactly the shape the addition path below wants.
     assert isinstance(patch, (FactReplacementPatch, FactAdditionPatch))
     new_fact = patch.fact
     new_key = fact_key(new_fact)
 
+    # Every fact operation resolves inside one scope: the component's direct
+    # facts, or one named option's. A target naming an option that does not
+    # exist fails rather than silently falling back to the direct facts.
+    option_key = target.option_key
+    if option_key is not None and not any(
+        o.semantic_key == option_key for o in component.options
+    ):
+        raise OverrideApplicationError(
+            entry.override_id,
+            f"target {target.describe()} names no option of "
+            f"{target.component_key!r}",
+        )
+
+    def _scope() -> tuple[EffectiveFact, ...]:
+        if option_key is None:
+            return component.facts
+        return next(o.facts for o in component.options if o.semantic_key == option_key)
+
+    def _rebuild(updated: list[EffectiveFact]) -> EffectiveComponent:
+        if option_key is None:
+            return replace(component, facts=tuple(updated))
+        return replace(
+            component,
+            options=tuple(
+                replace(o, facts=tuple(updated)) if o.semantic_key == option_key else o
+                for o in component.options
+            ),
+        )
+
     if isinstance(patch, FactReplacementPatch):
         assert target.fact_key is not None
-        position = _find_fact(component, target.fact_key)
+        position = _find_fact(component, target.fact_key, option_key)
         if position is None:
             raise OverrideApplicationError(
                 entry.override_id,
@@ -788,23 +1054,27 @@ def _apply_entry(
                 f"{target.component_key!r}",
             )
         fact_index, _old = position
-        if new_key != target.fact_key and _find_fact(component, new_key) is not None:
+        if (
+            new_key != target.fact_key
+            and _find_fact(component, new_key, option_key) is not None
+        ):
             raise OverrideApplicationError(
                 entry.override_id,
                 f"replacement fact {new_key} already exists in component "
                 f"{target.component_key!r}",
             )
-        facts = list(component.facts)
+        facts = list(_scope())
         facts[fact_index] = EffectiveFact(
             fact_key=new_key,
             fact=new_fact,
+            option_key=option_key,
             supplied_by_override_id=entry.override_id,
             supplied_by_origin=entry.origin,
         )
         note = "fact replaced"
     else:
         assert isinstance(patch, FactAdditionPatch)
-        if _find_fact(component, new_key) is not None:
+        if _find_fact(component, new_key, option_key) is not None:
             raise OverrideApplicationError(
                 entry.override_id,
                 f"appending fact {new_key} to component {target.component_key!r} "
@@ -820,11 +1090,22 @@ def _apply_entry(
                 f"component {target.component_key!r} is prose-bound; a typed "
                 "fact cannot be appended to it",
             )
+        if option_key is None and component.options:
+            # A choice's direct-fact list is empty by contract. Appending to it
+            # would publish a fact that holds alongside *whichever* option is
+            # taken — a shape the projection refuses at build time, so an
+            # override may not create it either.
+            raise OverrideApplicationError(
+                entry.override_id,
+                f"component {target.component_key!r} states an actor choice; a "
+                "fact must be appended to one of its options, not beside them",
+            )
         facts = [
-            *component.facts,
+            *_scope(),
             EffectiveFact(
                 fact_key=new_key,
                 fact=new_fact,
+                option_key=option_key,
                 supplied_by_override_id=entry.override_id,
                 supplied_by_origin=entry.origin,
             ),
@@ -832,6 +1113,6 @@ def _apply_entry(
         note = "fact appended"
 
     components = list(record.components)
-    components[index] = replace(component, facts=tuple(facts))
+    components[index] = _rebuild(facts)
     records[target.record_key] = replace(record, components=tuple(components))
     return True, note

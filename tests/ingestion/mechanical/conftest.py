@@ -100,7 +100,16 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
+    Applicability,
+    ApplicabilityKind,
+    Comparison,
     ComponentDraft,
+    ComponentOption,
+    MovementAmount,
+    MovementCostFact,
+    MovementCostKind,
+    MovementMode,
+    MovementPermissionFact,
     ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
@@ -113,6 +122,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
     SpellDescriptorFact,
     SpellSchool,
+    TrackedQuantity,
     fact_key,
     prose_binding_target_key,
     reference_target_key,
@@ -357,6 +367,65 @@ DESCRIPTOR_FACT = SpellDescriptorFact(
     level=9, school=SpellSchool.CONJURATION, ritual=False, concentration=False
 )
 DESCRIPTOR_FACT_KEY = fact_key(DESCRIPTOR_FACT)
+
+# --- exhaustive actor choice -------------------------------------------------
+# Kept out of `build_representation` on purpose: that fixture's element counts
+# are asserted by a great many tests, and silently growing it would change what
+# those tests mean. Anything exercising the option boundary opts in through
+# `build_representation_with_options` instead.
+CHOICE_KEY = "movement-choice"
+CRAWL_OPTION = "crawl"
+STAND_OPTION = "stand"
+CRAWL_FACT = MovementPermissionFact(mode=MovementMode.CRAWL)
+STAND_FACT = MovementCostFact(
+    kind=MovementCostKind.EXPENDITURE, amount=MovementAmount.HALF_SPEED
+)
+CRAWL_FACT_KEY = fact_key(CRAWL_FACT)
+STAND_FACT_KEY = fact_key(STAND_FACT)
+NOT_SPEED_ZERO = Applicability(
+    kind=ApplicabilityKind.QUANTITY_THRESHOLD,
+    negated=True,
+    quantity=TrackedQuantity.SPEED,
+    comparison=Comparison.EQUALS,
+    value=0,
+)
+CHOICE_COMPONENT = ComponentDraft(
+    record_key=SPELL_KEY,
+    semantic_key=CHOICE_KEY,
+    handling=ComponentHandling.STRUCTURED,
+    options=(
+        ComponentOption(semantic_key=CRAWL_OPTION, facts=(CRAWL_FACT,)),
+        ComponentOption(
+            semantic_key=STAND_OPTION, facts=(STAND_FACT,), applies_when=NOT_SPEED_ZERO
+        ),
+    ),
+)
+CHOICE_PROVENANCE = (
+    # Option facts carry their own edges, keyed by the owning option, so two
+    # options can never address one another's provenance.
+    ProvenanceClaim(
+        ProvenanceTargetKind.FACT,
+        (SPELL_KEY, CHOICE_KEY, CRAWL_FACT_KEY, CRAWL_OPTION),
+        SPELL_SPAN,
+        ProvenanceRole.PRIMARY,
+    ),
+    ProvenanceClaim(
+        ProvenanceTargetKind.FACT,
+        (SPELL_KEY, CHOICE_KEY, STAND_FACT_KEY, STAND_OPTION),
+        SPELL_SPAN,
+        ProvenanceRole.PRIMARY,
+    ),
+)
+
+
+def build_representation_with_options() -> RepresentationDraft:
+    """The shared draft plus one component stating an exhaustive actor choice."""
+    base = build_representation()
+    return replace(
+        base,
+        components=(*base.components, CHOICE_COMPONENT),
+        provenance=(*base.provenance, *CHOICE_PROVENANCE),
+    )
 
 
 def build_ledger(
@@ -655,10 +724,15 @@ def candidate_of(
 
 def build_candidate(**overrides: object) -> ProjectionCandidate:
     ledger = overrides.pop("ledger", None)
+    representation = overrides.pop("representation", None)
     return ProjectionCandidate(
         binding=RELEASE_BINDING,
         classification=ledger if ledger is not None else build_ledger(),  # type: ignore[arg-type]
-        representation=build_representation(**overrides),
+        representation=(  # type: ignore[arg-type]
+            representation
+            if representation is not None
+            else build_representation(**overrides)
+        ),
         schema_version=str(
             overrides.pop("schema_version", REPRESENTATION_SCHEMA_VERSION)
         ),

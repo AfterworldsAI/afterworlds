@@ -60,15 +60,31 @@ from enum import StrEnum
 from typing import Any
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
+from afterworlds.ingestion.mechanical.projection import (
+    applicability_payload,
+    applicability_payload_violations,
+)
 from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    ApplicabilityKind,
+    Comparison,
+    ComponentOption,
+    CreatureSize,
     MalformedFactPayloadError,
     MechanicalFact,
+    Phase,
     RecordKind,
+    RecoveryTrigger,
+    SizeComparison,
+    SizeRelation,
+    TrackedQuantity,
     UnknownFactFamilyError,
+    applicability_violations,
     fact_from_payload,
     fact_invariant_violations,
     fact_key,
     fact_payload,
+    option_set_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum
 from afterworlds.services.rules_authority.targets import (
@@ -137,12 +153,29 @@ class ComponentBody:
     when ``handling`` is ``PROSE_BOUND`` or ``MIXED`` and forbidden for
     ``STRUCTURED``, mirroring the honesty invariant the build-time projection
     validator already enforces for the base corpus.
+
+    ``applies_when`` and ``options`` are schema 2's component-level shape, and a
+    complete component patch must be able to carry both or it cannot author the
+    components the representation admits. Both are optional *on the way in* —
+    a legacy payload never mentions them — and both are omitted from the
+    canonical payload when they hold their legacy defaults, so an unconditional
+    direct-fact component keeps exactly the bytes and the override-set identity
+    it always had.
+
+    Replacement stays **complete**: omitting either field means unconditional /
+    no-options, and the replaced component therefore loses any qualifier or
+    option set the base projection gave it rather than silently inheriting it.
     """
 
     handling: ComponentHandling
     facts: tuple[MechanicalFact, ...]
     semantic_key: str | None = None
     authored_prose: str | None = None
+    #: When this component applies at all. ``None`` means unconditionally.
+    applies_when: Applicability | None = None
+    #: An exhaustive actor choice. Empty, or at least two uniquely keyed
+    #: options; never non-empty alongside ``facts``.
+    options: tuple[ComponentOption, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -281,8 +314,19 @@ _REQUIRED_FAMILY: dict[
         OverrideOperationEnum.APPEND,
         MechanicalTargetKind.PROSE,
     ): PatchFamily.APPEND_PROSE,
+    (
+        OverrideOperationEnum.APPEND,
+        MechanicalTargetKind.OPTION,
+    ): PatchFamily.APPEND_FACT,
     # (APPEND, FACT) is absent on purpose — a fact has no multiplicity to
     # append into, so there is no honest family for it.
+    #
+    # (DISABLE, OPTION) and (REPLACE, OPTION) are absent for a different
+    # reason, and deliberately not the same one: an option *does* have content
+    # to suppress or replace, but the source states the choice as exhaustive,
+    # so removing or rewriting one arm would publish a choice the source never
+    # states. An option is a container an override may add a fact to, and
+    # nothing else (Owner Decision 2026-08-19).
 }
 
 
@@ -297,9 +341,19 @@ def required_patch_family(
     """
     family = _REQUIRED_FAMILY.get((operation, target_kind))
     if family is None:
+        # Two different refusals wearing one shape would be a worse message
+        # than either. An option is not missing multiplicity — it has content
+        # and could be suppressed or replaced; it is the *exhaustiveness* of
+        # the choice that forbids it.
+        why = (
+            "an option is an exhaustive arm of a choice, addressable only as a "
+            "container to append a fact into"
+            if target_kind is MechanicalTargetKind.OPTION
+            else "the owning schema declares no multiplicity there"
+        )
         raise InvalidPatchError(
-            f"{operation.value} is not permitted on a {target_kind.value} target: "
-            "the owning schema declares no multiplicity there"
+            f"{operation.value} is not permitted on a {target_kind.value} "
+            f"target: {why}"
         )
     return family
 
@@ -341,6 +395,85 @@ def _build_fact(value: object, what: str) -> MechanicalFact:
     return fact
 
 
+def _build_applicability(raw: object, what: str) -> Applicability | None:
+    """Rebuild one applicability from patch JSON, or ``None``.
+
+    Two gates, the same pair the accepted-input and persisted-state loaders
+    already run and in the same order: the closed key set first — a misspelled
+    key never reaches the typed invariants as the field it was meant to be —
+    then the typed contract, which owns every exact-primitive and exact-type
+    rule. Nothing is coerced, defaulted, or reinterpreted; the rules are stated
+    once, in the representation, and this is a third reader of them rather than
+    a third copy.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping):
+        raise InvalidPatchError(f"{what} applies_when must be an object or null")
+    if shape := applicability_payload_violations(dict(raw)):
+        raise InvalidPatchError(f"{what} applies_when: {'; '.join(shape)}")
+    try:
+        built = Applicability(
+            kind=ApplicabilityKind(raw["kind"]),
+            negated=raw["negated"],
+            quantity=(
+                None if raw["quantity"] is None else TrackedQuantity(raw["quantity"])
+            ),
+            comparison=(
+                None if raw["comparison"] is None else Comparison(raw["comparison"])
+            ),
+            value=raw["value"],
+            any_of=tuple(
+                SizeComparison(
+                    category=(
+                        None if c["category"] is None else CreatureSize(c["category"])
+                    ),
+                    relation=(
+                        None if c["relation"] is None else SizeRelation(c["relation"])
+                    ),
+                    at_least=c["at_least"],
+                )
+                for c in raw["any_of"]
+            ),
+            trigger=(
+                None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
+            ),
+            phase=None if raw["phase"] is None else Phase(raw["phase"]),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise InvalidPatchError(f"{what} applies_when: {exc}") from exc
+    if violations := applicability_violations(built):
+        raise InvalidPatchError(f"{what} applies_when: {'; '.join(violations)}")
+    return built
+
+
+def _build_option(raw: object, what: str) -> ComponentOption:
+    """Rebuild one option of an override-supplied exhaustive actor choice."""
+    if not isinstance(raw, Mapping):
+        raise InvalidPatchError(f"{what} must be a payload object")
+    _require_keys(
+        raw, {"semantic_key", "facts"}, what, optional=frozenset({"applies_when"})
+    )
+    raw_key = raw["semantic_key"]
+    if type(raw_key) is not str or not raw_key.strip():
+        raise InvalidPatchError(f"{what} semantic_key must be a non-blank string")
+    raw_facts = raw["facts"]
+    if not isinstance(raw_facts, list):
+        raise InvalidPatchError(f"{what} facts must be a list")
+    facts = tuple(
+        _build_fact(entry, f"{what} fact {index}")
+        for index, entry in enumerate(raw_facts)
+    )
+    keys = [fact_key(f) for f in facts]
+    if len(set(keys)) != len(keys):
+        raise InvalidPatchError(f"{what} repeats the same typed fact")
+    return ComponentOption(
+        semantic_key=raw_key,
+        facts=facts,
+        applies_when=_build_applicability(raw.get("applies_when"), what),
+    )
+
+
 def _build_component_body(value: object, what: str, *, keyed: bool) -> ComponentBody:
     """Rebuild one component body, refusing anything the projection would.
 
@@ -366,7 +499,15 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
     # that predate Owner Decision 2026-08-08 never mention it — but
     # _component_body_payload always emits it explicitly, so the canonical
     # form is never ambiguous about whether it was "omitted" or "null".
-    _require_keys(value, expected, what, optional=frozenset({"authored_prose"}))
+    _require_keys(
+        value,
+        expected,
+        what,
+        # Optional on the way in: a legacy payload predating schema 2 never
+        # mentions either, and _component_body_payload omits them again when
+        # they hold their legacy defaults, so those bytes are unchanged.
+        optional=frozenset({"authored_prose", "applies_when", "options"}),
+    )
 
     raw_handling = value["handling"]
     if type(raw_handling) is not str:
@@ -403,15 +544,40 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
     if len(set(keys)) != len(keys):
         raise InvalidPatchError(f"{what} repeats the same typed fact")
 
+    applies_when = _build_applicability(value.get("applies_when"), what)
+
+    raw_options = value.get("options")
+    if raw_options is None:
+        raw_options = []
+    if not isinstance(raw_options, list):
+        raise InvalidPatchError(f"{what} options must be a list")
+    options = tuple(
+        _build_option(entry, f"{what} option {index}")
+        for index, entry in enumerate(raw_options)
+    )
+    # The same rule the representation enforces, not a runtime restatement of
+    # it: exhaustiveness, duplicate keys, duplicate fact sets, empty options,
+    # the exact ComponentOption type, direct-facts-versus-options, and each
+    # option's own applicability.
+    if violations := option_set_violations(facts, options, what):
+        raise InvalidPatchError("; ".join(violations))
+
     if handling is ComponentHandling.PROSE_BOUND:
-        if facts:
-            raise InvalidPatchError(f"{what} declares prose_bound handling with facts")
+        if facts or options:
+            raise InvalidPatchError(
+                f"{what} declares prose_bound handling with typed facts"
+            )
         if authored_prose is None:
             raise InvalidPatchError(
                 f"{what} declares prose_bound handling with no authored prose"
             )
     else:
-        if not facts:
+        # An option's facts are published authority exactly as direct facts
+        # are — a choice component has no direct facts by contract, so
+        # counting only ``facts`` would reject every honest option-bearing
+        # component. Same predicate as ``_finalize_component``'s
+        # ``facts_present``.
+        if not facts and not any(o.facts for o in options):
             # Structured/mixed handling with no facts is the dishonest
             # declaration the projection validator already rejects for the
             # base corpus; a patch may not introduce it either.
@@ -432,6 +598,8 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         facts=facts,
         semantic_key=semantic_key,
         authored_prose=authored_prose,
+        applies_when=applies_when,
+        options=options,
     )
 
 
@@ -573,6 +741,28 @@ def _component_body_payload(body: ComponentBody) -> dict[str, object]:
     # component patches differing only in authored text canonicalize to
     # identical bytes and silently share an override-set UUID.
     payload["authored_prose"] = body.authored_prose
+    # The schema-2 fields are emitted only when they carry meaning. Emitting
+    # them unconditionally as null/[] would remint the identity of every
+    # component patch already authored against an unconditional direct-fact
+    # component — the same authority under a new identifier, no longer naming
+    # the retained version it was recorded against. The parser accepts an
+    # absent field and an explicit legacy default identically, so the two
+    # spellings canonicalize to one payload and one identity.
+    if body.applies_when is not None:
+        payload["applies_when"] = applicability_payload(body.applies_when)
+    if body.options:
+        # Options by their own key, and each option's facts by content-derived
+        # fact key — the same ordering rule the top-level facts already use and
+        # the same one projection.py applies. Authoring order is not meaning,
+        # and letting it through would mint two identities for one choice.
+        payload["options"] = [
+            {
+                "semantic_key": option.semantic_key,
+                "facts": [fact_payload(f) for f in sorted(option.facts, key=fact_key)],
+                "applies_when": applicability_payload(option.applies_when),
+            }
+            for option in sorted(body.options, key=lambda o: o.semantic_key)
+        ]
     return payload
 
 

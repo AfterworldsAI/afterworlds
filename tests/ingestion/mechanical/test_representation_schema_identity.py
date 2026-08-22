@@ -463,7 +463,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
 EXPECTED_SCHEMA_HASH = (
-    "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"
+    "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
 )
 
 

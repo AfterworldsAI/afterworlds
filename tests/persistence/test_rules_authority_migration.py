@@ -20,7 +20,10 @@ from pathlib import Path
 import pytest
 
 from afterworlds.persistence.orm.base import Base
-from tests.services.rules_authority.conftest import _trigger_names
+from tests.services.rules_authority.conftest import (
+    _ENTRY_CONTENT_COLUMNS,
+    _trigger_names,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -205,6 +208,166 @@ def test_the_migrated_guards_refuse_every_rewrite_path(
             con.execute(sql)
     finally:
         con.close()
+
+
+def test_the_entry_guard_covers_the_new_option_scope_column(
+    migrated: Path,
+) -> None:
+    """PR #155: a content column outside the guard is content it cannot protect.
+
+    ``prevent_rp_override_set_entries_reinsert`` names its columns explicitly,
+    so adding ``target_option_key`` without recreating the trigger would leave
+    the option scope of a retained entry silently rewritable. The trigger-set
+    test above compares *names* only and would not have caught it.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        _seed(con)
+        # ``INSERT OR REPLACE``, like the sibling case above: a plain INSERT
+        # violates ``uq_rp_override_set_entry_order`` on its own, so it would
+        # raise whether or not the trigger covers the column.
+        with pytest.raises(sqlite3.IntegrityError):
+            con.execute(
+                "INSERT OR REPLACE INTO rp_override_set_entries (override_set_uuid,"
+                " apply_order, override_id, override_origin, target_kind,"
+                " target_record_key, target_component_key, target_fact_key,"
+                " target_option_key, override_operation, precedence, is_enabled,"
+                " payload) VALUES ('v1', 0, 'o', 'house_rule', 'record', 'r',"
+                " NULL, NULL, 'forged-option', 'disable', 1, 1, '{}')"
+            )
+    finally:
+        con.close()
+
+
+#: Every guard ``0024`` attaches to the retained-entry table. A downgrade that
+#: rebuilds that table must leave all four standing, not only the one whose
+#: column set the migration changed.
+_ENTRY_TRIGGERS = (
+    "prevent_rp_override_set_entries_update",
+    "prevent_rp_override_set_entries_delete",
+    "prevent_rp_override_set_entries_reinsert",
+    "seal_rp_override_set_entries",
+)
+
+
+def _entry_triggers_on(db: Path) -> set[str]:
+    return {n for n in _names(db, "trigger") if "override_set_entries" in n}
+
+
+@pytest.mark.parametrize("direction", ["upgrade", "downgrade"])
+def test_the_0028_boundary_leaves_every_retained_entry_guard_standing(
+    tmp_path: Path, direction: str
+) -> None:
+    """PR #155 round 4: the 0028<->0027 boundary, not the chain through 0024.
+
+    SQLite implements ``DROP COLUMN`` by rebuilding the table, and a rebuild
+    drops every trigger attached to the old one. Downgrading only 0028
+    restored just the re-insert guard, leaving retained evidence updatable,
+    deletable, and extendable past its seal.
+
+    This asserts the boundary directly. The existing downgrade test walks to
+    0023, where the table no longer exists — which is exactly why the gap was
+    invisible.
+    """
+    db = tmp_path / "boundary.db"
+    _alembic(db, "upgrade", "0027")
+    _alembic(db, "upgrade", "0028")
+    if direction == "downgrade":
+        _alembic(db, "downgrade", "0027")
+    assert _entry_triggers_on(db) == set(_ENTRY_TRIGGERS)
+
+
+def test_the_downgraded_guards_still_refuse_every_rewrite_path(
+    tmp_path: Path,
+) -> None:
+    """Presence is not the claim; refusal is.
+
+    A recreated trigger whose SQL was weakened would still be *named* in
+    ``sqlite_master``. Each of the four is therefore exercised through the
+    behaviour it exists to refuse, on a database that has actually been rolled
+    back from 0028 to 0027.
+    """
+    db = tmp_path / "rolled-back.db"
+    _alembic(db, "upgrade", "0028")
+    _alembic(db, "downgrade", "0027")
+
+    con = sqlite3.connect(db)
+    try:
+        _seed(con)
+        attempts = {
+            "update": "UPDATE rp_override_set_entries SET precedence = 9",
+            "delete": "DELETE FROM rp_override_set_entries",
+            "conflicting reinsert": (
+                "INSERT OR REPLACE INTO rp_override_set_entries (override_set_uuid,"
+                " apply_order, override_id, override_origin, target_kind,"
+                " target_record_key, target_component_key, target_fact_key,"
+                " override_operation, precedence, is_enabled, payload) VALUES"
+                " ('v1', 0, 'forged', 'house_rule', 'record', 'r', NULL, NULL,"
+                " 'disable', 1, 1, '{}')"
+            ),
+            "extension past the seal": (
+                "INSERT INTO rp_override_set_entries (override_set_uuid,"
+                " apply_order, override_id, override_origin, target_kind,"
+                " target_record_key, target_component_key, target_fact_key,"
+                " override_operation, precedence, is_enabled, payload) VALUES"
+                " ('v1', 1, 'extra', 'house_rule', 'record', 'r', NULL, NULL,"
+                " 'disable', 1, 1, '{}')"
+            ),
+        }
+        for label, sql in attempts.items():
+            with pytest.raises(sqlite3.IntegrityError):
+                con.execute(sql)
+                pytest.fail(f"{label} was not refused after rollback")
+    finally:
+        con.close()
+
+
+def test_the_downgraded_reinsert_guard_sheds_only_the_dropped_column(
+    tmp_path: Path,
+) -> None:
+    """0027's guard must cover 0027's columns — no more, no less.
+
+    Recreating the family must not smuggle ``target_option_key`` back into a
+    schema that no longer has the column, which would make every retained
+    insert fail on an unknown identifier.
+    """
+    db = tmp_path / "shed.db"
+    _alembic(db, "upgrade", "0028")
+    _alembic(db, "downgrade", "0027")
+    con = sqlite3.connect(db)
+    try:
+        (sql,) = con.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = "
+            "'prevent_rp_override_set_entries_reinsert'"
+        ).fetchone()
+    finally:
+        con.close()
+    assert "target_option_key" not in sql
+    for column in _ENTRY_CONTENT_COLUMNS:
+        if column != "target_option_key":
+            assert f"{column} IS NOT NEW.{column}" in sql
+
+
+def test_the_fixture_mirror_guards_every_column_the_migration_guards(
+    migrated: Path,
+) -> None:
+    """The suite's trigger mirror and the migration must name the same columns.
+
+    They are two hand-maintained copies of one guard, and the trigger-set test
+    above compares only *names*. If they drift, every retention and
+    override-set test runs against a guard the production schema does not
+    have — and passes, silently.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        (sql,) = con.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = "
+            "'prevent_rp_override_set_entries_reinsert'"
+        ).fetchone()
+    finally:
+        con.close()
+    missing = [c for c in _ENTRY_CONTENT_COLUMNS if f"{c} IS NOT NEW.{c}" not in sql]
+    assert not missing, f"migrated guard does not cover {missing}"
 
 
 def test_an_identical_reinsert_is_permitted_on_the_migrated_schema(
