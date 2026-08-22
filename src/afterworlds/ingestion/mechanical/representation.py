@@ -77,7 +77,7 @@ eligibility, choices, sequencing.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import StrEnum
 from types import UnionType
@@ -169,16 +169,21 @@ __all__ = [
     "MovementCostFact",
     "MovementCostKind",
     "MovementPermissionFact",
+    "MovementTransportFact",
+    "ParticipantRole",
     "Phase",
     "QuantityMultiplierFact",
     "Sense",
     "SensoryCapabilityFact",
+    "RoundingRule",
     "SizeComparison",
     "SizeRelation",
     "TrackedQuantity",
     "TransformationFact",
     "TransformedForm",
+    "TransportKind",
     "applicability_violations",
+    "component_participant_violations",
     "size_comparison_violations",
     "ComponentDraft",
     "ProseBindingDraft",
@@ -487,6 +492,77 @@ class RollContext(StrEnum):
     SAVING_THROW = "saving_throw"
     INITIATIVE = "initiative"
     D20_TEST = "d20_test"
+
+
+class ParticipantRole(StrEnum):
+    """Which of the two participants of a binary mechanic a claim is about.
+
+    Closed at two members because every relation admitting it is binary: the
+    record's own subject, and the single counterpart the owning mechanic
+    *constitutively establishes*. Not an actor namespace, not a participant
+    list, and never a semantic key standing in for an entity.
+
+    ``COUNTERPART`` is admissible only where a closed structure in the same
+    component establishes it — in this version, :class:`MovementTransportFact`
+    and nothing else (see :func:`component_participant_violations`). That
+    restriction is the whole reason this is not "some other entity the prose
+    mentions": the counterpart is recovered from typed structure, never by
+    reading a noun phrase out of the source.
+
+    Deliberately not named for transport, because it is also the payer of a
+    cost no transport is involved in — Prone spends *"half your Speed"* with no
+    second party at all. Shared for the same reason :class:`RollSpec` is shared
+    across families: the common thing is "which of two participants", and three
+    spellings of it would drift.
+
+    Deliberately not :class:`RollActor`. ``AGAINST_SUBJECT`` means "the one
+    rolling against you", which is adversarial-roll semantics; a grappler rolls
+    against nobody, and reusing that vocabulary would assert a relation the
+    source does not state.
+    """
+
+    SUBJECT = "subject"
+    COUNTERPART = "counterpart"
+
+
+class TransportKind(StrEnum):
+    """Whether a carrier may transport the carried creature, or does so always.
+
+    Both members are instantiated by the corpus, and the distinction is stated
+    rather than inferred: Grappled says the grappler *can* drag or carry — an
+    option the carrier exercises — while Gelatinous Cube and Shambling Mound
+    say the target *moves with* the carrier whenever it moves.
+    """
+
+    #: Grappled — "The grappler *can* drag or carry you when it moves".
+    PERMITTED = "permitted"
+    #: Gelatinous Cube, Shambling Mound — "the target moves with it".
+    AUTOMATIC = "automatic"
+
+
+class RoundingRule(StrEnum):
+    """How a stated fractional quantity resolves to an integer.
+
+    Two members because the corpus states exactly two. Rules Glossary >
+    Round Down establishes the game-wide default and names the only exception
+    form: *"Whenever you divide or multiply a number in the game, round down if
+    you end up with a fraction, even if the fraction is one-half or greater.
+    Some rules make an exception and tell you to round up."*
+
+    ``DOWN`` is therefore a **derived value of a stated rule**, not a runtime
+    arithmetic convention this schema is quietly relying on; ``UP`` is the
+    marked case and is never inferred. Both are instantiated many times over —
+    Prone and Mounting and Dismonting state ``DOWN`` locally, Multiclassing
+    Spellcasting and Wizard Arcane Recovery state ``UP``.
+
+    Declared as a shared vocabulary because damage, healing, and progression
+    all state rounding too; only :class:`MovementCostFact` uses it in this
+    version, and a later family adopting it must reuse this spelling rather
+    than mint a second one.
+    """
+
+    DOWN = "down"
+    UP = "up"
 
 
 class RollActor(StrEnum):
@@ -810,6 +886,7 @@ class FactFamily(StrEnum):
     HEALING = "healing"
     MOVEMENT_COST = "movement_cost"
     MOVEMENT_PERMISSION = "movement_permission"
+    MOVEMENT_TRANSPORT = "movement_transport"
     PROGRESSION_ENTRY = "progression_entry"
     QUANTITY_MULTIPLIER = "quantity_multiplier"
     RESOURCE_RECOVERY = "resource_recovery"
@@ -925,11 +1002,36 @@ class SizeComparison:
     these, both over the printed size vocabulary. Absolute and relative are
     distinct forms and never combine: a comparison carrying both would be two
     claims wearing one shape.
+
+    **Operands are explicit, and both were missing.** The corpus reverses them
+    using this identical shape: Grappled measures the subject against the
+    counterpart (*"**you** are … two or more sizes smaller than **it**"*),
+    while Unarmed Strike measures the counterpart against the subject
+    (*"**the target** is no more than one size larger than **you**"*). Without
+    ``measured``/``reference`` those two produce the same typed authority for
+    opposite tests — the defect :class:`RollSpec` already fixed for rolls.
+
+    ``reference`` is set exactly for the relative form and is ``None`` for the
+    absolute one, which has no second operand; that is the same
+    absolute/relative split the form itself observes, enforced rather than
+    trusted.
+
+    **The bound has a direction.** ``at_least`` carries *"two or more sizes
+    smaller"*; ``at_most`` carries *"no more than one size larger"*. Exactly
+    one is set: no corpus instance states a two-sided range, and admitting one
+    would invent a form the source never uses.
     """
 
+    #: Which participant the test is *about*. Required — a defaulted operand
+    #: cannot be told from a derived one, because both values are legal.
+    measured: ParticipantRole
     category: CreatureSize | None = None
     relation: SizeRelation | None = None
     at_least: int | None = None
+    at_most: int | None = None
+    #: Which participant the measured one is compared against. Relative form
+    #: only; ``None`` for an absolute category test.
+    reference: ParticipantRole | None = None
 
 
 @dataclass(frozen=True)
@@ -1404,13 +1506,36 @@ class MovementCostFact:
     cosmetic: Prone charges a one-off expenditure derived from Speed, it does
     not halve Speed, so ``SpeedModificationFact(HALVED)`` here would be false
     rather than lossy.
+
+    **``payer`` names whose movement budget is charged.** Grappled charges the
+    *grappler* — *"every foot of movement costs **it** 1 extra foot"* — which is
+    not the record's subject. Without this field that rule and its exact inverse
+    are byte-identical typed authority, which is false rather than lossy.
+    Measured corpus-wide: across every movement cost in the SRD, Grappled is the
+    only one charged to a non-subject, and it says so explicitly.
+
+    ``payer`` is **required and undefaulted**. ``SUBJECT`` being overwhelmingly
+    common is a fact about the corpus, not a licence to supply it by omission:
+    no checker can distinguish a payer that was derived from one that was
+    defaulted, because both values are legal in isolation. The guarantee has to
+    come from the type.
+
+    **``rounding`` is set exactly for a fractional amount.** ``HALF_SPEED``
+    states a fraction and the source says how it resolves — Prone's *"half your
+    Speed (round down)"*, and Mounting and Dismounting's identical wording.
+    ``FEET`` states an exact integer and needs none, so the field is ``None``
+    there; that mirrors the existing ``feet`` rule, where ``FEET`` requires a
+    distance and ``HALF_SPEED`` forbids one.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_COST
 
     kind: MovementCostKind
     amount: MovementAmount
+    #: Whose movement budget is charged. Required; see the class docstring.
+    payer: ParticipantRole
     feet: int | None = None
+    rounding: RoundingRule | None = None
 
 
 @dataclass(frozen=True)
@@ -1427,6 +1552,50 @@ class MovementPermissionFact:
     FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_PERMISSION
 
     mode: MovementMode
+
+
+@dataclass(frozen=True)
+class MovementTransportFact:
+    """One creature's movement relocates another.
+
+    Grappled's *"The grappler can drag or carry you when it moves"* — a
+    mechanical permission that had no typed home and was previously recorded as
+    framing prose. Distinct from :class:`MovementPermissionFact`, which names a
+    locomotion mode *the subject itself may use* and cannot carry a second
+    participant at all.
+
+    **Both roles are stated**, even though two members plus the distinctness
+    invariant carry one bit of information. The corpus reverses them: Grappled
+    and Darkmantle carry the subject, while Gelatinous Cube and Shambling Mound
+    carry the counterpart. An implied carrier would reintroduce exactly the
+    by-convention inference that made those pairs indistinguishable, and stating
+    both survives a third role being admitted later without re-meaning a field.
+
+    **States the coupling only.** What transport costs is a
+    :class:`MovementCostFact` beside it, because the corpus states transport
+    with a cost (Grappled), with no cost statement at all (Gelatinous Cube),
+    and with an explicit absence of cost (Shambling Mound, whose waiver targets
+    a surcharge defined in *another record* and is deliberately not represented
+    in this version — see ``docs/architecture/known_unknowns.md``).
+
+    **The family boundary is creature-to-creature transport**, and the test is
+    whether the mover spends a movement budget. An effect anchored to a creature
+    — an Emanation, Arcane Hand, a Scrying sensor, the Djinni's whirlwind, whose
+    *"moves with the whirlwind"* is phrased identically to the cube's — has no
+    budget to charge and never states a cost. Admitting those would need a
+    participant vocabulary containing "an effect", which is the generic-actor
+    escape hatch ADR-005d Decision 4 forbids. Forced displacement (push, pull,
+    shove) is a one-off relocation over a stated distance, not a continuing
+    coupling, and is likewise out.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_TRANSPORT
+
+    #: Whose movement relocates the pair.
+    carrier: ParticipantRole
+    #: Who is relocated by it.
+    carried: ParticipantRole
+    kind: TransportKind
 
 
 @dataclass(frozen=True)
@@ -1535,6 +1704,7 @@ MechanicalFact = (
     | CriticalHitRuleFact
     | MovementCostFact
     | MovementPermissionFact
+    | MovementTransportFact
     | QuantityMultiplierFact
     | SensoryCapabilityFact
     | TransformationFact
@@ -1580,6 +1750,7 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.CONDITION_LEVEL: ConditionLevelFact,
     FactFamily.MOVEMENT_COST: MovementCostFact,
     FactFamily.MOVEMENT_PERMISSION: MovementPermissionFact,
+    FactFamily.MOVEMENT_TRANSPORT: MovementTransportFact,
     FactFamily.QUANTITY_MULTIPLIER: QuantityMultiplierFact,
     FactFamily.SENSORY_CAPABILITY: SensoryCapabilityFact,
     FactFamily.TRANSFORMATION: TransformationFact,
@@ -2271,14 +2442,39 @@ _MOVEMENT_COST_MATRIX: frozenset[tuple[MovementCostKind, MovementAmount]] = froz
 )
 
 
+#: Amounts that state a fraction and therefore must say how it resolves. An
+#: allowed *set* rather than a test against ``HALF_SPEED``, for the same reason
+#: ``_MOVEMENT_COST_MATRIX`` is a set: a second fractional amount added later is
+#: refused until it is deliberately admitted here, instead of silently
+#: inheriting whichever branch an inequality happened to take.
+_FRACTIONAL_MOVEMENT_AMOUNTS: frozenset[MovementAmount] = frozenset(
+    {MovementAmount.HALF_SPEED}
+)
+
+
 def _check_movement_cost(fact: MovementCostFact) -> list[str]:
     findings = [
         *_enum_field(fact.kind, MovementCostKind, "kind"),
         *_enum_field(fact.amount, MovementAmount, "amount"),
+        *_enum_field(fact.payer, ParticipantRole, "payer"),
         *_optional_int_field(fact.feet, "feet"),
     ]
+    if fact.rounding is not None and not isinstance(fact.rounding, RoundingRule):
+        findings.append(f"{fact.rounding!r} is not a declared RoundingRule")
     if findings:
         return findings
+    # Rounding belongs to the amount, not to the cost: a fraction must say how
+    # it resolves, and an exact distance has nothing to resolve. Stated as the
+    # same iff the ``feet`` rule below uses, so neither can drift.
+    if fact.amount in _FRACTIONAL_MOVEMENT_AMOUNTS:
+        if fact.rounding is None:
+            findings.append(
+                f"{fact.amount.value} states a fraction but no rounding rule"
+            )
+    elif fact.rounding is not None:
+        findings.append(
+            f"{fact.amount.value} is exact; the source states no rounding for it"
+        )
     if (fact.kind, fact.amount) not in _MOVEMENT_COST_MATRIX:
         # A per-foot *rate* cannot be stated as half a Speed: the declared kind
         # charges per foot of movement, while HALF_SPEED is the lump form. The
@@ -2298,6 +2494,25 @@ def _check_movement_cost(fact: MovementCostFact) -> list[str]:
 
 def _check_movement_permission(fact: MovementPermissionFact) -> list[str]:
     return [*_enum_field(fact.mode, MovementMode, "mode")]
+
+
+def _check_movement_transport(fact: MovementTransportFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.carrier, ParticipantRole, "carrier"),
+        *_enum_field(fact.carried, ParticipantRole, "carried"),
+        *_enum_field(fact.kind, TransportKind, "kind"),
+    ]
+    if findings:
+        return findings
+    if fact.carrier is fact.carried:
+        # A creature transporting itself is ordinary movement. Admitting it
+        # would let a transport fact assert a relation with one participant,
+        # which is not the binary mechanic this family represents.
+        findings.append(
+            f"transport carrier and carried are both {fact.carrier.value}; "
+            "a creature moving itself is not transport"
+        )
+    return findings
 
 
 def _check_transformation(fact: TransformationFact) -> list[str]:
@@ -2518,6 +2733,7 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.CONDITION_LEVEL: _check_condition_level,
     FactFamily.MOVEMENT_COST: _check_movement_cost,
     FactFamily.MOVEMENT_PERMISSION: _check_movement_permission,
+    FactFamily.MOVEMENT_TRANSPORT: _check_movement_transport,
     FactFamily.QUANTITY_MULTIPLIER: _check_quantity_multiplier,
     FactFamily.SENSORY_CAPABILITY: _check_sensory_capability,
     FactFamily.TRANSFORMATION: _check_transformation,
@@ -3014,13 +3230,33 @@ def _build_movement_cost(p: Mapping[str, Any]) -> MovementCostFact:
         [
             *_json_enum(p["kind"], MovementCostKind, "kind"),
             *_json_enum(p["amount"], MovementAmount, "amount"),
+            *_json_enum(p["payer"], ParticipantRole, "payer"),
             *_optional_int_field(p["feet"], "feet"),
+            *_optional_json_enum(p["rounding"], RoundingRule, "rounding"),
         ],
     )
     return MovementCostFact(
         kind=MovementCostKind(p["kind"]),
         amount=MovementAmount(p["amount"]),
+        payer=ParticipantRole(p["payer"]),
         feet=p["feet"],
+        rounding=None if p["rounding"] is None else RoundingRule(p["rounding"]),
+    )
+
+
+def _build_movement_transport(p: Mapping[str, Any]) -> MovementTransportFact:
+    _reject(
+        FactFamily.MOVEMENT_TRANSPORT,
+        [
+            *_json_enum(p["carrier"], ParticipantRole, "carrier"),
+            *_json_enum(p["carried"], ParticipantRole, "carried"),
+            *_json_enum(p["kind"], TransportKind, "kind"),
+        ],
+    )
+    return MovementTransportFact(
+        carrier=ParticipantRole(p["carrier"]),
+        carried=ParticipantRole(p["carried"]),
+        kind=TransportKind(p["kind"]),
     )
 
 
@@ -3236,6 +3472,7 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.CONDITION_LEVEL: _build_condition_level,
     FactFamily.MOVEMENT_COST: _build_movement_cost,
     FactFamily.MOVEMENT_PERMISSION: _build_movement_permission,
+    FactFamily.MOVEMENT_TRANSPORT: _build_movement_transport,
     FactFamily.QUANTITY_MULTIPLIER: _build_quantity_multiplier,
     FactFamily.SENSORY_CAPABILITY: _build_sensory_capability,
     FactFamily.TRANSFORMATION: _build_transformation,
@@ -3330,7 +3567,16 @@ assert (
 #: Version ``2`` adds the conditions-1 zero-path bundle: six fact families, the
 #: component-level applicability qualifier, and the exhaustive actor-choice
 #: option set, together with their closed vocabularies.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-2"
+#:
+#: Version ``3`` closes the conditions-1 semantic-review rejection: actor-
+#: relative creature transport (:class:`MovementTransportFact`), the movement
+#: cost's payer, explicit rounding for a fractional amount, and size
+#: comparisons that keep their operands and admit an at-most bound — with
+#: :class:`ParticipantRole`, :class:`TransportKind`, and :class:`RoundingRule`
+#: as their closed vocabularies. Version 2 is merged and therefore reachable,
+#: so it is succeeded rather than corrected in place, exactly as the rule above
+#: requires.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-3"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -3963,7 +4209,15 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
         comparison.relation, SizeRelation
     ):
         findings.append(f"{comparison.relation!r} is not a declared SizeRelation")
+    if not isinstance(comparison.measured, ParticipantRole):
+        findings.append(f"{comparison.measured!r} is not a declared ParticipantRole")
+    if comparison.reference is not None and not isinstance(
+        comparison.reference, ParticipantRole
+    ):
+        findings.append(f"{comparison.reference!r} is not a declared ParticipantRole")
     if finding := _exact_optional_int(comparison.at_least, "size distance"):
+        findings.append(finding)
+    if finding := _exact_optional_int(comparison.at_most, "size distance"):
         findings.append(finding)
     if findings:
         # The type domain first, with its own early return: the relative and
@@ -3972,7 +4226,8 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
         # be a second, misleading finding about the same defect.
         return findings
     absolute = comparison.category is not None
-    relative = comparison.relation is not None or comparison.at_least is not None
+    bounds = [b for b in (comparison.at_least, comparison.at_most) if b is not None]
+    relative = comparison.relation is not None or bool(bounds)
     if absolute and relative:
         findings.append(
             "size comparison states both an absolute category and a relative "
@@ -3983,12 +4238,95 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
     if relative:
         if comparison.relation is None:
             findings.append("relative size comparison states no direction")
-        if comparison.at_least is None:
+        if not bounds:
             findings.append("relative size comparison states no distance")
-        elif comparison.at_least < 1:
+        elif len(bounds) == 2:
+            # "two or more sizes smaller" and "no more than one size larger"
+            # are the two forms the corpus states, and it never states a
+            # two-sided range. Admitting one would invent a form and leave the
+            # bound direction ambiguous to every consumer.
             findings.append(
-                f"relative size distance {comparison.at_least} compares nothing"
+                "relative size comparison states both a minimum and a maximum "
+                "distance; the source states one bound or the other"
             )
+        elif bounds[0] < 1:
+            findings.append(f"relative size distance {bounds[0]} compares nothing")
+        # The reference operand is what makes the direction mean anything:
+        # "two sizes smaller" is not a claim until it says smaller *than whom*.
+        if comparison.reference is None:
+            findings.append("relative size comparison names no reference participant")
+        elif comparison.reference is comparison.measured:
+            findings.append(
+                f"size comparison measures {comparison.measured.value} against "
+                "itself; a creature is never a size apart from itself"
+            )
+    elif comparison.reference is not None:
+        findings.append(
+            "absolute size comparison names a reference participant; an absolute "
+            "category test has no second operand"
+        )
+    return findings
+
+
+#: The closed structures that establish a binary counterpart. A component may
+#: name :attr:`ParticipantRole.COUNTERPART` only when one of these is present in
+#: it, so the counterpart is recovered from typed structure rather than from a
+#: noun phrase in the prose. Stated as a set because widening it is a deliberate
+#: act with its own evidence — an attack/target relation would be a second
+#: member, and until one is admitted the spans needing it stay UNRESOLVED.
+_COUNTERPART_ESTABLISHING_FACTS: tuple[type, ...] = (MovementTransportFact,)
+
+
+def _names_counterpart(fact: object) -> bool:
+    """Whether *fact* names the counterpart in any of its own fields."""
+    return any(
+        getattr(fact, f.name, None) is ParticipantRole.COUNTERPART
+        for f in fields(fact)  # type: ignore[arg-type]
+    )
+
+
+def component_participant_violations(
+    facts: Sequence[object], applicabilities: Sequence[Applicability | None]
+) -> list[str]:
+    """Violations of the counterpart-establishment rule within one component.
+
+    ``COUNTERPART`` is only meaningful where the owning mechanic constitutively
+    establishes exactly one other participant. Grappled's ``movable`` component
+    carries :class:`MovementTransportFact` beside its cost and its size
+    exception, so all three resolve against the same established counterpart.
+    A component that names the counterpart without establishing it is asserting
+    a relation it never stated, which is the "some other entity in the prose"
+    failure this role exists to prevent.
+
+    Component-scoped rather than fact-scoped on purpose: no single fact can see
+    whether its neighbour establishes the relation it depends on.
+    """
+    establishes = any(isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in facts)
+    if establishes:
+        return []
+    findings: list[str] = []
+    for fact in facts:
+        if _names_counterpart(fact):
+            findings.append(
+                f"{fact_key(fact)} names the counterpart, but nothing in the "
+                "component establishes one"
+            )
+    for applicability in applicabilities:
+        if applicability is None:
+            continue
+        for comparison in applicability.any_of:
+            if not isinstance(comparison, SizeComparison):
+                # Type drift is size_comparison_violations' finding to report;
+                # reading fields off it here would raise instead.
+                continue
+            if ParticipantRole.COUNTERPART in (
+                comparison.measured,
+                comparison.reference,
+            ):
+                findings.append(
+                    "size comparison names the counterpart, but nothing in the "
+                    "component establishes one"
+                )
     return findings
 
 

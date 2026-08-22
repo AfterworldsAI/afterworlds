@@ -45,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
     RepresentationDraft,
     applicability_violations,
+    component_participant_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
@@ -148,6 +149,20 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
             findings.extend(
                 f"{tag}: {v}" for v in applicability_violations(component.applies_when)
             )
+
+        # The counterpart rule is component-scoped and cannot live on a fact:
+        # no fact can see whether a neighbour establishes the relation it
+        # depends on. Every scope of the component is offered at once —
+        # direct facts, option facts, and both levels of applicability — so a
+        # transport fact on the component establishes the counterpart for an
+        # option's cost, which is how Grappled's `movable` states it.
+        findings.extend(
+            f"{tag}: {v}"
+            for v in component_participant_violations(
+                [*component.facts, *(f for o in component.options for f in o.facts)],
+                [component.applies_when, *(o.applies_when for o in component.options)],
+            )
+        )
 
         has_prose = key in bound_prose
         code = component.irreducibility_reason_code

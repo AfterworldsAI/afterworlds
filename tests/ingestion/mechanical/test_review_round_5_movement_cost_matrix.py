@@ -24,11 +24,22 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementAmount,
     MovementCostFact,
     MovementCostKind,
+    ParticipantRole,
+    RoundingRule,
     fact_invariant_violations,
 )
 
 K = MovementCostKind
 A = MovementAmount
+R = RoundingRule
+#: The overwhelmingly common payer, so the matrix below varies only the axes it
+#: is about. The payer axis has its own table further down.
+PAYS = ParticipantRole.SUBJECT
+
+#: Schema 3 requires a fractional amount to state how it resolves, so every
+#: ``HALF_SPEED`` cell carries a rounding rule and every ``FEET`` cell carries
+#: none. The rounding axis has its own exhaustive table below.
+ROUNDING: dict[A, R | None] = {A.FEET: None, A.HALF_SPEED: R.DOWN}
 
 #: Every ``kind × amount × feet-presence`` cell with its expected disposition.
 #: ``None`` means the fact is valid; a string is the fragment its sole finding
@@ -65,7 +76,13 @@ def test_every_movement_cost_cell_has_an_explicit_disposition(
     kind: K, amount: A, feet: int | None, expected: str | None
 ) -> None:
     findings = fact_invariant_violations(
-        MovementCostFact(kind=kind, amount=amount, feet=feet)
+        MovementCostFact(
+            kind=kind,
+            amount=amount,
+            payer=PAYS,
+            feet=feet,
+            rounding=ROUNDING[amount],
+        )
     )
     if expected is None:
         assert findings == (), f"expected valid, got {findings}"
@@ -87,7 +104,12 @@ def test_one_malformed_fact_yields_one_finding() -> None:
     as two rules would produce two findings describing one thing.
     """
     findings = fact_invariant_violations(
-        MovementCostFact(kind=K.PER_FOOT_SURCHARGE, amount=A.HALF_SPEED)
+        MovementCostFact(
+            kind=K.PER_FOOT_SURCHARGE,
+            amount=A.HALF_SPEED,
+            payer=PAYS,
+            rounding=R.DOWN,
+        )
     )
     assert len(findings) == 1
 
@@ -99,7 +121,13 @@ def test_the_kind_amount_check_precedes_the_feet_checks() -> None:
     "half_speed carries a distance" — true, but not the defect.
     """
     (finding,) = fact_invariant_violations(
-        MovementCostFact(kind=K.PER_FOOT_SURCHARGE, amount=A.HALF_SPEED, feet=10)
+        MovementCostFact(
+            kind=K.PER_FOOT_SURCHARGE,
+            amount=A.HALF_SPEED,
+            payer=PAYS,
+            feet=10,
+            rounding=R.DOWN,
+        )
     )
     assert "cannot state a half_speed amount" in finding
 
@@ -112,6 +140,117 @@ def test_a_boolean_is_not_a_distance(bad: bool) -> None:
     otherwise read ``True`` as the distance ``1``.
     """
     findings = fact_invariant_violations(
-        MovementCostFact(kind=K.EXPENDITURE, amount=A.FEET, feet=bad)  # type: ignore[arg-type]
+        MovementCostFact(
+            kind=K.EXPENDITURE,
+            amount=A.FEET,
+            payer=PAYS,
+            feet=bad,  # type: ignore[arg-type]
+        )
     )
     assert any("must be an integer" in f for f in findings)
+
+
+# ---------------------------------------------------------------------------
+# Schema 3: the payer and rounding axes
+# ---------------------------------------------------------------------------
+#
+# Both are stated as their own exhaustive tables rather than as extra columns
+# on MATRIX, for the same reason MATRIX is an allowed set: a vocabulary that
+# grows must break a guard rather than quietly acquire a legal cell.
+
+#: Every ``amount × rounding-presence`` cell. Rounding belongs to the amount —
+#: a fraction must say how it resolves, and an exact distance has nothing to
+#: resolve — so this is the same iff the ``feet`` column above tests.
+ROUNDING_MATRIX: list[tuple[A, R | None, str | None]] = [
+    # Prone and Mounting and Dismounting: "half your Speed (round down)".
+    (A.HALF_SPEED, R.DOWN, None),
+    # The marked exception form the Round Down glossary rule names.
+    (A.HALF_SPEED, R.UP, None),
+    (A.HALF_SPEED, None, "states a fraction but no rounding rule"),
+    # "spend 10 feet of movement" is exact; rounding it would be a claim the
+    # source never makes.
+    (A.FEET, None, None),
+    (A.FEET, R.DOWN, "is exact; the source states no rounding"),
+    (A.FEET, R.UP, "is exact; the source states no rounding"),
+]
+
+
+@pytest.mark.parametrize(
+    ("amount", "rounding", "expected"),
+    ROUNDING_MATRIX,
+    ids=[f"{a.value}-{r.value if r else None}" for a, r, _ in ROUNDING_MATRIX],
+)
+def test_every_rounding_cell_has_an_explicit_disposition(
+    amount: A, rounding: R | None, expected: str | None
+) -> None:
+    findings = fact_invariant_violations(
+        MovementCostFact(
+            kind=K.EXPENDITURE,
+            amount=amount,
+            payer=PAYS,
+            feet=10 if amount is A.FEET else None,
+            rounding=rounding,
+        )
+    )
+    if expected is None:
+        assert findings == (), f"expected valid, got {findings}"
+    else:
+        assert any(expected in f for f in findings), findings
+
+
+def test_the_rounding_matrix_covers_every_amount_and_rule_pairing() -> None:
+    covered = {(a, r) for a, r, _ in ROUNDING_MATRIX}
+    assert covered == {(a, r) for a in A for r in [*R, None]}
+
+
+@pytest.mark.parametrize("payer", list(ParticipantRole))
+def test_either_payer_is_admitted_and_changes_the_fact(
+    payer: ParticipantRole,
+) -> None:
+    """Grappled charges the counterpart; every other cost charges the subject.
+
+    Both are legal, which is exactly why the field cannot be defaulted: no
+    checker can tell a derived payer from an omitted one.
+    """
+    fact = MovementCostFact(
+        kind=K.PER_FOOT_SURCHARGE, amount=A.FEET, payer=payer, feet=1
+    )
+    assert fact_invariant_violations(fact) == ()
+
+
+def test_the_payer_distinguishes_two_otherwise_identical_costs() -> None:
+    """The defect schema 2 could not express, asserted directly.
+
+    "every foot of movement costs **it** 1 extra foot" (Grappled, charged to
+    the grappler) and the same surcharge charged to the subject must not
+    collapse to one identity.
+    """
+    from afterworlds.ingestion.mechanical.representation import fact_key
+
+    grappler_pays = MovementCostFact(
+        kind=K.PER_FOOT_SURCHARGE,
+        amount=A.FEET,
+        payer=ParticipantRole.COUNTERPART,
+        feet=1,
+    )
+    subject_pays = MovementCostFact(
+        kind=K.PER_FOOT_SURCHARGE,
+        amount=A.FEET,
+        payer=ParticipantRole.SUBJECT,
+        feet=1,
+    )
+    assert grappler_pays != subject_pays
+    assert fact_key(grappler_pays) != fact_key(subject_pays)
+
+
+@pytest.mark.parametrize("bad", ["subject", 0, None])
+def test_a_non_role_payer_is_a_finding_not_a_type_error(bad: object) -> None:
+    findings = fact_invariant_violations(
+        MovementCostFact(
+            kind=K.EXPENDITURE,
+            amount=A.FEET,
+            payer=bad,  # type: ignore[arg-type]
+            feet=10,
+        )
+    )
+    assert any("payer" in f for f in findings), findings

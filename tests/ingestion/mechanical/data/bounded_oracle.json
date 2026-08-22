@@ -11,8 +11,8 @@
   "semantic_policy_version": "5d-semantic-policy-1",
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
   "representation_schema": {
-    "version": "5d-representation-schema-2",
-    "hash": "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+    "version": "5d-representation-schema-3",
+    "hash": "7c914db4b4f74882ecd1a6fb9581480ac4d9d2dc0fe47ee75c0f20880e4917e4"
   },
   "spans": [
     {

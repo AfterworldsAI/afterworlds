@@ -9,6 +9,13 @@ a conjunction, or a qualifier that can carry two vocabularies at once, would let
 mutually exclusive authority be published as simultaneously applicable — which
 is the one thing this structure exists to prevent, and the one failure no
 downstream consumer could detect.
+
+**Kept under its original name after schema 3 succeeded schema 2.** The
+structures it guards — applicability, the exhaustive actor choice, and the six
+families schema 2 added — are all still current; only the *types* used to build
+them gained fields. Its facts are therefore constructed as valid schema-3 facts
+while every assertion remains schema 2's. What schema 3 itself added is tested
+in ``test_conditions_schema_3.py``.
 """
 
 from __future__ import annotations
@@ -34,9 +41,12 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementCostKind,
     MovementMode,
     MovementPermissionFact,
+    MovementTransportFact,
+    ParticipantRole,
     Phase,
     QuantityMultiplierFact,
     RecoveryTrigger,
+    RoundingRule,
     Sense,
     SensoryCapabilityFact,
     SizeComparison,
@@ -46,6 +56,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TrackedQuantity,
     TransformationFact,
     TransformedForm,
+    TransportKind,
     applicability_violations,
     fact_from_payload,
     fact_invariant_violations,
@@ -57,7 +68,10 @@ from afterworlds.ingestion.mechanical.validation import _validate_options
 
 CRAWL = MovementPermissionFact(mode=MovementMode.CRAWL)
 STAND = MovementCostFact(
-    kind=MovementCostKind.EXPENDITURE, amount=MovementAmount.HALF_SPEED
+    kind=MovementCostKind.EXPENDITURE,
+    amount=MovementAmount.HALF_SPEED,
+    payer=ParticipantRole.SUBJECT,
+    rounding=RoundingRule.DOWN,
 )
 NOT_SPEED_ZERO = Applicability(
     kind=ApplicabilityKind.QUANTITY_THRESHOLD,
@@ -99,7 +113,13 @@ def _component(**overrides: object) -> ComponentDraft:
         MovementCostFact(
             kind=MovementCostKind.PER_FOOT_SURCHARGE,
             amount=MovementAmount.FEET,
+            payer=ParticipantRole.COUNTERPART,
             feet=1,
+        ),
+        MovementTransportFact(
+            carrier=ParticipantRole.COUNTERPART,
+            carried=ParticipantRole.SUBJECT,
+            kind=TransportKind.PERMITTED,
         ),
         STAND,
         CRAWL,
@@ -155,13 +175,17 @@ def test_a_new_family_round_trips_and_holds_its_contract(fact: object) -> None:
             MovementCostFact(
                 kind=MovementCostKind.EXPENDITURE,
                 amount=MovementAmount.HALF_SPEED,
+                payer=ParticipantRole.SUBJECT,
                 feet=15,
+                rounding=RoundingRule.DOWN,
             ),
             "carries a distance",
         ),
         (
             MovementCostFact(
-                kind=MovementCostKind.PER_FOOT_SURCHARGE, amount=MovementAmount.FEET
+                kind=MovementCostKind.PER_FOOT_SURCHARGE,
+                amount=MovementAmount.FEET,
+                payer=ParticipantRole.SUBJECT,
             ),
             "no feet",
         ),
@@ -201,8 +225,16 @@ def test_a_vacuous_or_contradictory_fact_is_refused(
             kind=ApplicabilityKind.SIZE_COMPARISON,
             negated=True,
             any_of=(
-                SizeComparison(category=CreatureSize.TINY),
-                SizeComparison(relation=SizeRelation.SMALLER, at_least=2),
+                SizeComparison(
+                    category=CreatureSize.TINY,
+                    measured=ParticipantRole.SUBJECT,
+                ),
+                SizeComparison(
+                    relation=SizeRelation.SMALLER,
+                    at_least=2,
+                    measured=ParticipantRole.SUBJECT,
+                    reference=ParticipantRole.COUNTERPART,
+                ),
             ),
         ),
     ],
@@ -229,7 +261,12 @@ def test_a_well_formed_applicability_is_accepted(applicability: Applicability) -
                 quantity=TrackedQuantity.SPEED,
                 comparison=Comparison.EQUALS,
                 value=0,
-                any_of=(SizeComparison(category=CreatureSize.TINY),),
+                any_of=(
+                    SizeComparison(
+                        category=CreatureSize.TINY,
+                        measured=ParticipantRole.SUBJECT,
+                    ),
+                ),
             ),
             "carries any_of",
         ),
@@ -246,8 +283,14 @@ def test_a_well_formed_applicability_is_accepted(applicability: Applicability) -
             Applicability(
                 kind=ApplicabilityKind.SIZE_COMPARISON,
                 any_of=(
-                    SizeComparison(category=CreatureSize.TINY),
-                    SizeComparison(category=CreatureSize.TINY),
+                    SizeComparison(
+                        category=CreatureSize.TINY,
+                        measured=ParticipantRole.SUBJECT,
+                    ),
+                    SizeComparison(
+                        category=CreatureSize.TINY,
+                        measured=ParticipantRole.SUBJECT,
+                    ),
                 ),
             ),
             "duplicate size comparison",
@@ -264,14 +307,33 @@ def test_a_malformed_applicability_is_refused(
 @pytest.mark.parametrize(
     ("comparison", "fragment"),
     [
-        (SizeComparison(), "neither a category nor a distance"),
         (
-            SizeComparison(category=CreatureSize.TINY, relation=SizeRelation.SMALLER),
+            SizeComparison(measured=ParticipantRole.SUBJECT),
+            "neither a category nor a distance",
+        ),
+        (
+            SizeComparison(
+                category=CreatureSize.TINY,
+                relation=SizeRelation.SMALLER,
+                measured=ParticipantRole.SUBJECT,
+            ),
             "both an absolute category and a relative distance",
         ),
-        (SizeComparison(relation=SizeRelation.SMALLER), "states no distance"),
         (
-            SizeComparison(relation=SizeRelation.SMALLER, at_least=0),
+            SizeComparison(
+                relation=SizeRelation.SMALLER,
+                measured=ParticipantRole.SUBJECT,
+                reference=ParticipantRole.COUNTERPART,
+            ),
+            "states no distance",
+        ),
+        (
+            SizeComparison(
+                relation=SizeRelation.SMALLER,
+                at_least=0,
+                measured=ParticipantRole.SUBJECT,
+                reference=ParticipantRole.COUNTERPART,
+            ),
             "compares nothing",
         ),
     ],
@@ -316,6 +378,7 @@ def test_a_well_formed_choice_is_accepted() -> None:
                             MovementCostFact(
                                 kind=MovementCostKind.PER_FOOT_SURCHARGE,
                                 amount=MovementAmount.FEET,
+                                payer=ParticipantRole.SUBJECT,
                                 feet=1,
                             ),
                         ),

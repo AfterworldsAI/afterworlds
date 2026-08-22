@@ -80,6 +80,7 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureSize,
     FactFamily,
     MalformedFactPayloadError,
+    ParticipantRole,
     Phase,
     ProseBindingDraft,
     ProvenanceClaim,
@@ -453,6 +454,13 @@ def _applicability(raw: object, where: str) -> Applicability | None:
                         None if c["relation"] is None else SizeRelation(c["relation"])
                     ),
                     at_least=c["at_least"],
+                    at_most=c["at_most"],
+                    measured=ParticipantRole(c["measured"]),
+                    reference=(
+                        None
+                        if c["reference"] is None
+                        else ParticipantRole(c["reference"])
+                    ),
                 )
                 for c in _object_list(raw["any_of"], f"{where}.any_of")
             ),

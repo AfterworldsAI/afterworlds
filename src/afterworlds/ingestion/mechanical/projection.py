@@ -368,6 +368,9 @@ def applicability_payload(
                 "category": None if c.category is None else c.category.value,
                 "relation": None if c.relation is None else c.relation.value,
                 "at_least": c.at_least,
+                "at_most": c.at_most,
+                "measured": c.measured.value,
+                "reference": None if c.reference is None else c.reference.value,
             }
             for c in applicability.any_of
         ],
@@ -395,7 +398,9 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
         "phase",
     }
 )
-_SIZE_COMPARISON_PAYLOAD_KEYS = frozenset({"category", "relation", "at_least"})
+_SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
+    {"category", "relation", "at_least", "at_most", "measured", "reference"}
+)
 
 
 def applicability_payload_violations(raw: object) -> list[str]:

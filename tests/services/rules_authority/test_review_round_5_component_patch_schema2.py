@@ -52,9 +52,11 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementCostKind,
     MovementMode,
     MovementPermissionFact,
+    ParticipantRole,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
+    RoundingRule,
     TrackedQuantity,
     fact_key,
     fact_payload,
@@ -104,7 +106,10 @@ _SCOPE_UUID = uuid5(UUID("2f2b6d9c-0e2a-5f31-9a44-6b0c1d2e3f40"), "component-pat
 
 CRAWL = MovementPermissionFact(mode=MovementMode.CRAWL)
 STAND = MovementCostFact(
-    kind=MovementCostKind.EXPENDITURE, amount=MovementAmount.HALF_SPEED
+    kind=MovementCostKind.EXPENDITURE,
+    amount=MovementAmount.HALF_SPEED,
+    payer=ParticipantRole.SUBJECT,
+    rounding=RoundingRule.DOWN,
 )
 SWIM = MovementPermissionFact(mode=MovementMode.SWIM)
 
@@ -740,7 +745,13 @@ def test_retained_replay_survives_editing_and_deleting_the_authoring_row(
 
 
 def test_the_representation_schema_hash_is_untouched() -> None:
-    """``ComponentBody`` is patch-layer shape, not representation shape."""
+    """``ComponentBody`` is patch-layer shape, not representation shape.
+
+    The literal moved to schema 3's hash because schema 3 changed the
+    representation contract deliberately. What this test asserts is unchanged:
+    the *patch layer* does not participate in representation identity, so this
+    canary may only move when the representation itself does.
+    """
     assert representation_schema_hash() == (
-        "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+        "7c914db4b4f74882ecd1a6fb9581480ac4d9d2dc0fe47ee75c0f20880e4917e4"
     )
