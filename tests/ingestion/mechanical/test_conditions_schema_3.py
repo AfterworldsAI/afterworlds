@@ -38,6 +38,9 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementPermissionFact,
     MovementTransportFact,
     ParticipantRole,
+    RecordDraft,
+    RecordKind,
+    RepresentationDraft,
     RoundingRule,
     SizeComparison,
     SizeRelation,
@@ -49,6 +52,8 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_payload,
     size_comparison_violations,
 )
+from afterworlds.ingestion.mechanical.validation import validate_representation
+from tests.ingestion.mechanical.conftest import bound_corpus, build_ledger
 
 SUBJECT, COUNTERPART = ParticipantRole.SUBJECT, ParticipantRole.COUNTERPART
 
@@ -77,6 +82,16 @@ GRAPPLED_SIZE_EXCEPTION = Applicability(
         ),
     ),
 )
+
+
+def _violations(component: ComponentDraft) -> list[str]:
+    """The component-scoped rule, asked the way both callers ask it."""
+    return component_participant_violations(
+        component.facts,
+        component.options,
+        component.applies_when,
+        "component",
+    )
 
 
 def _component(
@@ -172,7 +187,7 @@ def test_grappleds_component_establishes_its_own_counterpart() -> None:
     both operands of the size exception resolve against the same counterpart.
     """
     assert (
-        component_participant_violations(
+        _violations(
             _component(
                 facts=(GRAPPLED_TRANSPORT, GRAPPLED_SURCHARGE),
                 applies_when=GRAPPLED_SIZE_EXCEPTION,
@@ -188,15 +203,13 @@ def test_a_counterpart_paid_cost_without_transport_is_refused() -> None:
     Nothing in this component says who the counterpart *is*, so the claim is
     about an entity the typed structure cannot name.
     """
-    findings = component_participant_violations(_component(facts=(GRAPPLED_SURCHARGE,)))
+    findings = _violations(_component(facts=(GRAPPLED_SURCHARGE,)))
     assert len(findings) == 1
     assert "nothing in the component establishes one" in findings[0]
 
 
 def test_a_counterpart_size_test_without_transport_is_refused() -> None:
-    findings = component_participant_violations(
-        _component(applies_when=GRAPPLED_SIZE_EXCEPTION)
-    )
+    findings = _violations(_component(applies_when=GRAPPLED_SIZE_EXCEPTION))
     assert findings
     assert all("establishes one" in f for f in findings)
 
@@ -209,7 +222,7 @@ def test_a_subject_only_component_needs_no_counterpart() -> None:
         payer=SUBJECT,
         rounding=RoundingRule.DOWN,
     )
-    assert component_participant_violations(_component(facts=(prone_stand,))) == []
+    assert _violations(_component(facts=(prone_stand,))) == []
 
 
 def test_the_rule_reaches_option_facts_and_option_applicability() -> None:
@@ -227,9 +240,9 @@ def test_the_rule_reaches_option_facts_and_option_applicability() -> None:
             ComponentOption(semantic_key="dragged", facts=(GRAPPLED_SURCHARGE,)),
         )
     )
-    findings = component_participant_violations(component)
+    findings = _violations(component)
     assert findings, "an option's counterpart cost must still be caught"
-    assert all(f.startswith("option dragged:") for f in findings), findings
+    assert all(f.startswith("component option dragged:") for f in findings), findings
 
 
 def test_transport_on_the_component_establishes_it_for_an_option() -> None:
@@ -248,7 +261,7 @@ def test_transport_on_the_component_establishes_it_for_an_option() -> None:
             ),
         ),
     )
-    assert component_participant_violations(component) == []
+    assert _violations(component) == []
 
 
 def test_establishment_does_not_cross_two_mutually_exclusive_options() -> None:
@@ -266,9 +279,9 @@ def test_establishment_does_not_cross_two_mutually_exclusive_options() -> None:
             ComponentOption(semantic_key="surcharged", facts=(GRAPPLED_SURCHARGE,)),
         )
     )
-    findings = component_participant_violations(component)
+    findings = _violations(component)
     assert findings, "a sibling arm must not establish the counterpart"
-    assert all(f.startswith("option surcharged:") for f in findings), findings
+    assert all(f.startswith("component option surcharged:") for f in findings), findings
 
 
 def test_an_option_may_establish_its_own_counterpart() -> None:
@@ -285,7 +298,7 @@ def test_an_option_may_establish_its_own_counterpart() -> None:
             ),
         )
     )
-    assert component_participant_violations(component) == []
+    assert _violations(component) == []
 
 
 # ---------------------------------------------------------------------------
@@ -395,3 +408,123 @@ def test_the_size_operands_reach_the_wire_payload() -> None:
     assert relative["reference"] == "counterpart"
     assert relative["at_least"] == 2
     assert relative["at_most"] is None
+
+
+# ---------------------------------------------------------------------------
+# Malformed authority is reported, never raised (Codex PR #157, P2)
+# ---------------------------------------------------------------------------
+#
+# The participant scan runs after fact_invariant_violations and
+# applicability_violations have already identified a value as outside the
+# closed types. Reading fields off such a value would raise TypeError or
+# AttributeError and replace the whole collected report with a crash — losing
+# the very findings that identified the defect. Every scope the scan reaches
+# is covered here, because each was a separate way in.
+
+
+class NotAFact:
+    """Outside the closed union, and not a dataclass at all."""
+
+
+class NotAnApplicability:
+    """Outside the closed applicability type, with no ``any_of`` to read."""
+
+
+def _draft_with(component: ComponentDraft) -> RepresentationDraft:
+    return RepresentationDraft(
+        records=(
+            RecordDraft(semantic_key="condition.grappled", kind=RecordKind.CONDITION),
+        ),
+        components=(component,),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+
+
+@pytest.mark.parametrize(
+    ("component", "why"),
+    [
+        (
+            _component(facts=(NotAFact(),)),
+            "an unknown component fact",
+        ),
+        (
+            _component(
+                options=(
+                    ComponentOption(semantic_key="a", facts=(NotAFact(),)),
+                    ComponentOption(
+                        semantic_key="b",
+                        facts=(MovementPermissionFact(mode=MovementMode.CRAWL),),
+                    ),
+                )
+            ),
+            "an unknown option fact",
+        ),
+        (
+            _component(applies_when=NotAnApplicability()),  # type: ignore[arg-type]
+            "a malformed component applicability",
+        ),
+        (
+            _component(
+                options=(
+                    ComponentOption(
+                        semantic_key="a",
+                        facts=(MovementPermissionFact(mode=MovementMode.CRAWL),),
+                        applies_when=NotAnApplicability(),  # type: ignore[arg-type]
+                    ),
+                    ComponentOption(semantic_key="b", facts=(GRAPPLED_TRANSPORT,)),
+                )
+            ),
+            "a malformed option applicability",
+        ),
+        (
+            _component(
+                facts=(GRAPPLED_SURCHARGE,),
+                applies_when=Applicability(
+                    kind=ApplicabilityKind.SIZE_COMPARISON,
+                    any_of=(NotAFact(),),  # type: ignore[arg-type]
+                ),
+            ),
+            "a malformed any_of member",
+        ),
+    ],
+)
+def test_the_participant_scan_declines_malformed_values(
+    component: ComponentDraft, why: str
+) -> None:
+    """The scan itself must not raise on anything already outside the types."""
+    assert _violations(component) is not None, why
+
+
+@pytest.mark.parametrize(
+    "component",
+    [
+        _component(facts=(NotAFact(),)),
+        _component(applies_when=NotAnApplicability()),  # type: ignore[arg-type]
+        _component(
+            options=(
+                ComponentOption(semantic_key="a", facts=(NotAFact(),)),
+                ComponentOption(
+                    semantic_key="b",
+                    facts=(MovementPermissionFact(mode=MovementMode.CRAWL),),
+                ),
+            )
+        ),
+    ],
+)
+def test_validate_representation_reports_rather_than_raising(
+    component: ComponentDraft,
+) -> None:
+    """The property that matters to a caller: findings come back, not a crash.
+
+    A malformed component must still produce an actionable violation report —
+    the closed-union or applicability finding that names the defect — instead
+    of aborting the pass that was collecting it.
+    """
+    findings = validate_representation(
+        _draft_with(component), build_ledger(), bound_corpus()
+    )
+    assert findings, "malformed authority must produce findings"
+    assert all(isinstance(f, str) for f in findings)

@@ -45,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
+    component_participant_violations,
     fact_key,
     fact_target_key,
     option_set_violations,
@@ -680,6 +681,7 @@ def apply_override_set(
         if key not in disabled_records
     )
     _verify_final_option_sets(surviving, provenance)
+    _verify_final_participant_rules(surviving, provenance)
     return EffectiveAuthority(
         binding=binding,
         records=surviving,
@@ -760,6 +762,62 @@ def _verify_final_option_sets(
                     "the applied override set leaves an invalid actor choice "
                     f"(reported against the last override to touch it): "
                     f"{'; '.join(violations)}",
+                )
+
+
+def _verify_final_participant_rules(
+    records: tuple[EffectiveRecord, ...], provenance: list[AppliedOverride]
+) -> None:
+    """Every surviving component must still establish the counterparts it names.
+
+    The sibling of :func:`_verify_final_option_sets`, and it exists for exactly
+    the same reason. ``COUNTERPART`` is only meaningful where a closed
+    structure in the same component establishes the binary relation, and no
+    per-scope operation can see whether that relation survives: a complete
+    component patch supplies its own facts without seeing what it replaced, and
+    a fact-scoped ``DISABLE`` is not resolved into removal until
+    ``_finalize_component``. Two ways an ordered set could otherwise publish
+    what the base schema refuses:
+
+    * a ``REPLACE``/``APPEND`` introducing a ``COUNTERPART``-paid cost, or a
+      counterpart-bearing size test, into a component that establishes nothing;
+    * a ``DISABLE``/``REPLACE`` removing the sole
+      :class:`~afterworlds.ingestion.mechanical.representation.MovementTransportFact`
+      while counterpart-bearing authority survives beside it.
+
+    Both leave a claim about a creature the typed structure can no longer name
+    — the "some other entity in the prose" failure the role exists to prevent.
+
+    Checked after the whole ordered set has been applied and suppression
+    resolved, so an intermediate shape a later entry legitimately repairs is
+    never rejected, and failing through the established ``INVALID_OVERRIDE``
+    path. The rule itself is
+    :func:`~afterworlds.ingestion.mechanical.representation.component_participant_violations`
+    — the same one the corpus is built under, asked of the effective view
+    projected back into the representation's own types. It is not restated
+    here, because a second copy would drift from the schema it is enforcing.
+    """
+    for record in records:
+        for component in record.components:
+            violations = component_participant_violations(
+                tuple(f.fact for f in component.facts),
+                tuple(
+                    ComponentOption(
+                        semantic_key=option.semantic_key,
+                        facts=tuple(f.fact for f in option.facts),
+                        applies_when=option.applies_when,
+                    )
+                    for option in component.options
+                ),
+                component.applies_when,
+                f"component {record.semantic_key}/{component.semantic_key}",
+            )
+            if violations:
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves a counterpart reference "
+                    "nothing establishes (reported against the last override to "
+                    f"touch it): {'; '.join(violations)}",
                 )
 
 

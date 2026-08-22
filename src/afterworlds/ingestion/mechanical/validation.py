@@ -152,11 +152,13 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
 
         # The counterpart rule is component-scoped and cannot live on a fact:
         # no fact can see whether a neighbour establishes the relation it
-        # depends on. It reads the component whole, because establishment
-        # flows from the component into its options but never across two
-        # mutually exclusive arms.
+        # depends on. Establishment flows from the component into its options
+        # but never across two mutually exclusive arms. The same function is
+        # asked again of the final effective view after overrides resolve.
         findings.extend(
-            f"{tag}: {v}" for v in component_participant_violations(component)
+            component_participant_violations(
+                component.facts, component.options, component.applies_when, tag
+            )
         )
 
         has_prose = key in bound_prose

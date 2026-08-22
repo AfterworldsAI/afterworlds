@@ -4276,38 +4276,81 @@ def size_comparison_violations(comparison: SizeComparison) -> list[str]:
 #: member, and until one is admitted the spans needing it stay UNRESOLVED.
 _COUNTERPART_ESTABLISHING_FACTS: tuple[type, ...] = (MovementTransportFact,)
 
+#: Every declared fact type, by exact identity. The participant scan runs after
+#: other validators have already reported a value as outside the closed union,
+#: so it must decline to inspect one rather than read fields off it: raising
+#: there would replace a collected violation report with a crash, losing every
+#: finding the pass had gathered.
+_DECLARED_FACT_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values())
+
+
+def _is_declared_fact(fact: object) -> bool:
+    """Whether *fact* is exactly one of the closed union's declared types.
+
+    Exact type, not ``isinstance``: a subclass can carry an undeclared
+    meaning-bearing field, which is the case the closed-structure rule refuses
+    everywhere else in this module.
+    """
+    return type(fact) in _DECLARED_FACT_TYPES
+
 
 def _names_counterpart(fact: object) -> bool:
-    """Whether *fact* names the counterpart in any of its own fields."""
+    """Whether *fact* names the counterpart in any of its own fields.
+
+    Only ever called for a value :func:`_is_declared_fact` has already
+    admitted, so ``fields()`` has a dataclass to read.
+    """
     return any(
         getattr(fact, f.name, None) is ParticipantRole.COUNTERPART
         for f in fields(fact)  # type: ignore[arg-type]
     )
 
 
+def _establishes_counterpart(facts: Sequence[object]) -> bool:
+    """Whether any declared fact in *facts* establishes the binary relation."""
+    return any(
+        _is_declared_fact(f) and isinstance(f, _COUNTERPART_ESTABLISHING_FACTS)
+        for f in facts
+    )
+
+
 def _counterpart_scope_violations(
     facts: Sequence[object],
-    applicabilities: Sequence[Applicability | None],
+    applicabilities: Sequence[object],
     established: bool,
     where: str,
 ) -> list[str]:
-    """Counterpart references in one scope, given whether it is established."""
+    """Counterpart references in one scope, given whether it is established.
+
+    **Declines to inspect anything already outside the closed types.** A fact
+    that is not exactly a declared family, an applicability that is not exactly
+    :class:`Applicability`, and an ``any_of`` member that is not exactly
+    :class:`SizeComparison` are each another validator's finding to report —
+    ``fact_invariant_violations`` and ``applicability_violations`` have run on
+    the same component and already named them. Reading fields off such a value
+    here would raise ``TypeError``/``AttributeError`` and replace the whole
+    collected report with a crash, losing the findings that identified the
+    defect in the first place.
+    """
     if established:
         return []
     findings: list[str] = []
     for fact in facts:
+        if not _is_declared_fact(fact):
+            continue
         if _names_counterpart(fact):
             findings.append(
                 f"{fact_key(fact)} names the counterpart, but nothing in "
                 f"{where} establishes one"
             )
     for applicability in applicabilities:
-        if applicability is None:
+        if type(applicability) is not Applicability:
             continue
-        for comparison in applicability.any_of:
-            if not isinstance(comparison, SizeComparison):
-                # Type drift is size_comparison_violations' finding to report;
-                # reading fields off it here would raise instead.
+        any_of = applicability.any_of
+        if type(any_of) is not tuple:
+            continue
+        for comparison in any_of:
+            if type(comparison) is not SizeComparison:
                 continue
             if ParticipantRole.COUNTERPART in (
                 comparison.measured,
@@ -4320,7 +4363,12 @@ def _counterpart_scope_violations(
     return findings
 
 
-def component_participant_violations(component: ComponentDraft) -> list[str]:
+def component_participant_violations(
+    facts: Sequence[object],
+    options: Sequence[object],
+    applies_when: object,
+    tag: str,
+) -> list[str]:
     """Violations of the counterpart-establishment rule within one component.
 
     ``COUNTERPART`` is only meaningful where the owning mechanic constitutively
@@ -4334,6 +4382,13 @@ def component_participant_violations(component: ComponentDraft) -> list[str]:
     Component-scoped rather than fact-scoped on purpose: no single fact can see
     whether its neighbour establishes the relation it depends on.
 
+    Stated over ``(facts, options, applies_when)`` rather than over a whole
+    :class:`ComponentDraft` for the same reason :func:`option_set_violations`
+    is: the *same* rule has to govern both places a component's content can
+    exist — the build-time representation, and the final effective view after
+    an override set has been applied. A runtime layer restating it would be a
+    looser second copy of the schema, and the two would drift.
+
     **Establishment does not cross option arms.** A component's own facts
     establish the counterpart for every scope, because they hold whichever
     option is taken. An *option's* facts establish it only within that option:
@@ -4342,25 +4397,23 @@ def component_participant_violations(component: ComponentDraft) -> list[str]:
     letting it establish the counterpart there would license a reference to a
     creature that scope never named.
     """
-    findings = _counterpart_scope_violations(
-        component.facts,
-        [component.applies_when],
-        any(isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in component.facts),
-        "the component",
-    )
-    component_establishes = any(
-        isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in component.facts
-    )
-    for option in component.options:
+    component_establishes = _establishes_counterpart(facts)
+    findings = [
+        f"{tag}: {v}"
+        for v in _counterpart_scope_violations(
+            facts, [applies_when], component_establishes, "the component"
+        )
+    ]
+    for option in options:
+        if type(option) is not ComponentOption:
+            # Option-shape drift belongs to option_set_violations.
+            continue
         findings.extend(
-            f"option {option.semantic_key}: {v}"
+            f"{tag} option {option.semantic_key}: {v}"
             for v in _counterpart_scope_violations(
                 option.facts,
                 [option.applies_when],
-                component_establishes
-                or any(
-                    isinstance(f, _COUNTERPART_ESTABLISHING_FACTS) for f in option.facts
-                ),
+                component_establishes or _establishes_counterpart(option.facts),
                 "the component or this option",
             )
         )
