@@ -265,7 +265,7 @@ def test_the_production_path_refuses_the_real_release(
     judged the release at all. Authority now exists and resolves, so the refusal
     moves to ``INCOMPLETE`` — the accepted artifact covers 16 condition records
     while the persisted projection covers the whole SRD. The change of *reason*
-    is the point: publication is refused because the Issue 5d corpus is
+    is the point: publication is refused because the CRD Issue 5d corpus is
     unfinished, not because nothing was ever reviewed.
     """
     result = publish_from_committed_oracle(

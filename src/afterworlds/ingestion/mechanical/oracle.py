@@ -33,11 +33,15 @@ independent accepted authority with its own publication proof. Re-declaring
 28,109 leaf ids in a committed file would add a second place to drift from 5c
 without adding a second opinion.
 
-**What is committed today.** ``oracles/`` holds no production SRD authority, so
-the production 5c release resolves to nothing and its projection cannot be
-published. Later content PRs commit accepted full-corpus authority through the
-propose → review → accept workflow (:mod:`proposal`, :mod:`acceptance`); the
-machinery that judges it lives here.
+**What is committed today.** ``oracles/`` holds accepted authority for the
+production SRD 5.2.1 release covering CRD Issue 5d batch ``conditions-1`` only,
+so that release resolves to a committed oracle — but not to full-corpus
+authority. A projection over the whole release therefore fails the gate as
+incomplete rather than as unjudged, and nothing over it has been published or
+activated. Later content batches extend that same artifact through the
+propose → review → accept workflow (:mod:`proposal`, :mod:`acceptance`), which
+merges over prior accepted inputs rather than replacing them; the machinery that
+judges the result lives here.
 """
 
 from __future__ import annotations

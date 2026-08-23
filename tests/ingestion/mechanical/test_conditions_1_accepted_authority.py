@@ -304,7 +304,7 @@ def test_the_accepted_authority_covers_conditions_only() -> None:
     keys = sorted(r.semantic_key for r in oracle.representation.records)
     assert len(keys) == RECORDS
     # Fifteen conditions plus the glossary entry that defines the list. Nothing
-    # from any other Issue 5d batch is in here.
+    # from any other CRD Issue 5d batch is in here.
     conditions = [k for k in keys if k.startswith("condition.")]
     assert len(conditions) == 15, conditions
     assert [k for k in keys if not k.startswith("condition.")] == [

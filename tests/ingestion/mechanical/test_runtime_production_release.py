@@ -6,11 +6,13 @@ and finalized through CRD Issue 5c's own lifecycle — and proves the claim this
 PR must not overstate.
 
 The runtime binding path resolves the real release's package and reports
-``UNPUBLISHED``: no accepted oracle is committed for that release, so no
-mechanical projection over it has been published, so there is no active
-mechanical authority to bind. That is the honest state, and it is asserted here
-as a *typed* outcome rather than as an absence — a resolver that answered
-"nothing" would be indistinguishable from one that had lost the release.
+``UNPUBLISHED``. Accepted authority for that release *is* committed — CRD Issue
+5d batch ``conditions-1`` — so the oracle resolves; but acceptance is not
+publication, no mechanical projection over the release has been published or
+activated, and so there is no active mechanical authority to bind. That is the
+honest state, and it is asserted here as a *typed* outcome rather than as an
+absence — a resolver that answered "nothing" would be indistinguishable from one
+that had lost the release.
 
 It also re-confirms the exact production release identity from current ``main``
 rather than restating a previously reported value.

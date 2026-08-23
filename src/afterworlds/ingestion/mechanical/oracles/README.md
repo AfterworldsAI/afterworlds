@@ -23,7 +23,7 @@ release. A later batch therefore **extends this file** — `accept_proposal` tak
 the loaded artifact as `prior` and merges, so an added batch cannot silently
 discard an earlier one's reviewed work — rather than adding a second file.
 
-**The Issue 5d corpus is incomplete, so this release still cannot publish.**
+**The CRD Issue 5d corpus is incomplete, so this release still cannot publish.**
 Accepted authority now exists and resolves, but the publication gate compares it
 against the *whole* persisted projection: a projection carrying any record this
 artifact does not accept fails with `MISSING_AUTHORITY` / `UNEXPECTED_AUTHORITY`.
