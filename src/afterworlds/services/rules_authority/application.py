@@ -453,8 +453,15 @@ def _component_from_body(
 ) -> EffectiveComponent:
     #: Qualifiers by the exact scope they address, so a body's qualifier for
     #: one option's fact can never attach to an identical fact in another arm.
+    #: A patch body reaches here already parsed, so its coordinates are
+    #: strings — but this dict is keyed by them, and a malformed pair would
+    #: raise while building it rather than being refused as a patch. Filtering
+    #: keeps the same rule the representation applies: an invalid coordinate is
+    #: never consumed by code that assumes a valid one.
     supplied_qualifiers = {
-        (q.option_key, q.fact_key): q.applies_when for q in body.fact_qualifiers
+        (q.option_key, q.fact_key): q.applies_when
+        for q in body.fact_qualifiers
+        if type(q.fact_key) is str and type(q.option_key) is str
     }
 
     def _supplied(

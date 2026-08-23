@@ -703,3 +703,108 @@ def test_a_qualifier_is_its_own_provenance_target() -> None:
     assert qualifier_key in declared[ProvenanceTargetKind.FACT_QUALIFIER]
     # The qualifier is a required-provenance element in its own right.
     assert ProvenanceTargetKind.FACT_QUALIFIER in PROVENANCE_REQUIRED_KINDS
+
+
+# ---------------------------------------------------------------------------
+# Malformed qualifier coordinates fail closed (Codex PR #157, P2 round 2)
+# ---------------------------------------------------------------------------
+#
+# A qualifier is addressed by (option_key, fact_key), and every consumer puts
+# that pair into a set, a dict, or a provenance target tuple. An invalid
+# coordinate is fact_qualifier_violations' finding to report — but reporting it
+# does not stop the pass, so a consumer that hashes it afterwards raises and
+# destroys the whole collected report. The rule under test: an invalid
+# coordinate is reported, and never subsequently consumed.
+#
+# Both coordinates, and several unhashable/wrong types, because the crash is a
+# property of the *type*, not of the particular value.
+
+MALFORMED_COORDINATES = [
+    ("list fact_key", {"fact_key": ["x"]}),
+    ("int fact_key", {"fact_key": 7}),
+    ("none fact_key", {"fact_key": None}),
+    ("list option_key", {"fact_key": "abcdef0123456789", "option_key": ["o"]}),
+    ("dict option_key", {"fact_key": "abcdef0123456789", "option_key": {"a": 1}}),
+    ("int option_key", {"fact_key": "abcdef0123456789", "option_key": 3}),
+]
+
+
+def _malformed_component(**coords: object) -> ComponentDraft:
+    return ComponentDraft(
+        record_key="condition.grappled",
+        semantic_key="movable",
+        handling=ComponentHandling.STRUCTURED,
+        facts=(GRAPPLED_TRANSPORT,),
+        fact_qualifiers=(
+            FactQualifier(
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+                **coords,  # type: ignore[arg-type]
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "coords"),
+    MALFORMED_COORDINATES,
+    ids=[label for label, _ in MALFORMED_COORDINATES],
+)
+def test_malformed_qualifier_coordinates_are_reported_not_raised(
+    label: str, coords: dict[str, object]
+) -> None:
+    """The property a caller depends on: findings come back, not a crash."""
+    component = _malformed_component(**coords)
+    findings = validate_representation(
+        _draft_with(component), build_ledger(), bound_corpus()
+    )
+    assert findings, label
+    assert all(isinstance(f, str) for f in findings)
+
+
+@pytest.mark.parametrize(
+    ("label", "coords"),
+    MALFORMED_COORDINATES,
+    ids=[label for label, _ in MALFORMED_COORDINATES],
+)
+def test_every_coordinate_consumer_declines_a_malformed_qualifier(
+    label: str, coords: dict[str, object]
+) -> None:
+    """Each site that keys on the coordinates, checked directly.
+
+    Asserted per consumer rather than only through ``validate_representation``
+    so a future caller added to this family cannot pass the end-to-end test by
+    accident while still hashing an invalid coordinate itself.
+    """
+    component = _malformed_component(**coords)
+    draft = _draft_with(component)
+
+    # 1. The provenance target index — the reported crash.
+    declared = declared_provenance_targets(draft)
+    assert declared[ProvenanceTargetKind.FACT_QUALIFIER] == set(), label
+
+    # 2. The counterpart scan, which keys a dict by option_key.
+    assert isinstance(_violations(component), list), label
+
+    # 3. The qualifier's own validator still reports it.
+    assert _qualifier_findings(component), label
+
+    # 4. Scoped lookup resolves to nothing rather than coercing a match.
+    assert component.qualifier_for(GRAPPLED_TRANSPORT) is None, label
+
+
+def test_a_malformed_coordinate_is_never_coerced_into_a_match() -> None:
+    """Not merely "no crash": it must not silently become authority.
+
+    A qualifier whose fact_key is the *list* form of a real key must not
+    resolve against that fact — that would attach a limitation the draft never
+    validly stated.
+    """
+    real = fact_key(GRAPPLED_TRANSPORT)
+    component = _malformed_component(fact_key=[real])
+    assert component.qualifier_for(GRAPPLED_TRANSPORT) is None
+    assert (
+        declared_provenance_targets(_draft_with(component))[
+            ProvenanceTargetKind.FACT_QUALIFIER
+        ]
+        == set()
+    )

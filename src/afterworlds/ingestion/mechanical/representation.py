@@ -4028,6 +4028,10 @@ class ComponentDraft:
         """
         key = fact_key(fact)
         for qualifier in self.fact_qualifiers:
+            # A malformed qualifier resolves to nothing rather than being
+            # coerced into a match: it is a finding, not authority.
+            if not _usable_qualifier_coordinates(qualifier):
+                continue
             if qualifier.fact_key == key and qualifier.option_key == option_key:
                 return qualifier.applies_when
         return None
@@ -4384,6 +4388,29 @@ def _is_declared_fact(fact: object) -> bool:
     return type(fact) in _DECLARED_FACT_TYPES
 
 
+def _usable_qualifier_coordinates(qualifier: object) -> bool:
+    """Whether a qualifier's scope can be used as a key.
+
+    A qualifier is addressed by ``(option_key, fact_key)``, and every consumer
+    puts that pair into a set, a dict, or a provenance target tuple. A
+    coordinate of the wrong type is already
+    :func:`fact_qualifier_violations`' finding to report — but reporting it
+    does not stop the pass, and the next consumer to *hash* it raises
+    ``TypeError`` and destroys the whole collected report.
+
+    So the rule this encodes: an invalid coordinate is reported by validation
+    and is never subsequently consumed by code that assumes a valid one.
+    Exact ``str``, not ``isinstance``: a ``str`` subclass can redefine
+    ``__eq__``/``__hash__`` and make two distinct scopes collide, which is the
+    same closed-structure argument used for facts and options.
+    """
+    return (
+        type(qualifier) is FactQualifier
+        and type(qualifier.fact_key) is str
+        and type(qualifier.option_key) is str
+    )
+
+
 def _names_counterpart(fact: object) -> bool:
     """Whether *fact* names the counterpart in any of its own fields.
 
@@ -4495,9 +4522,12 @@ def component_participant_violations(
     # answers to that option.
     scoped_qualifiers: dict[str, list[object]] = {}
     for qualifier in fact_qualifiers:
-        if type(qualifier) is not FactQualifier:
-            # Qualifier-shape drift belongs to fact_qualifier_violations.
+        # Shape *and* coordinates: the scope is used as a dict key below, so a
+        # non-string one would raise instead of letting
+        # fact_qualifier_violations report it.
+        if not _usable_qualifier_coordinates(qualifier):
             continue
+        assert isinstance(qualifier, FactQualifier)
         scoped_qualifiers.setdefault(qualifier.option_key, []).append(
             qualifier.applies_when
         )
@@ -4857,7 +4887,10 @@ def declared_provenance_targets(
     qualifiers: set[tuple[str, ...]] = set()
     for component in draft.components:
         for qualifier in component.fact_qualifiers:
-            if type(qualifier) is not FactQualifier:
+            # Coordinates first: a malformed one is another validator's
+            # finding, and building a target key out of it would raise here
+            # rather than letting that finding be returned.
+            if not _usable_qualifier_coordinates(qualifier):
                 continue
             qualifiers.add(
                 fact_qualifier_target_key(
