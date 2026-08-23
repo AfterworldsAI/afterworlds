@@ -48,6 +48,10 @@ import pytest
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.persistence import _persist_package_and_source
+from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
+    run_publication_gate,
+)
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.persistence import (
     compute_persisted_state_digest,
@@ -69,6 +73,7 @@ from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
     UnsupportedSchemaVersionError,
+    applicability_payload,
     identify_projection,
     representation_payload,
     validate_schema_binding,
@@ -91,6 +96,18 @@ from afterworlds.ingestion.mechanical.representation import (
     representation_schema_hash,
 )
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
+from afterworlds.persistence.orm.mechanical import (
+    MechanicalComponentOptionORM,
+    MechanicalFactORM,
+    MechanicalProjectionORM,
+    MechanicalRecordORM,
+)
+from tests.ingestion.mechanical.conftest import (
+    RELEASE_BINDING,
+    build_ledger,
+    build_representation,
+    candidate_of,
+)
 
 # ---------------------------------------------------------------------------
 # Literals captured at 7395c52 with pre-change code
@@ -513,8 +530,6 @@ def test_verify_persisted_state_still_detects_tampering(session: Session) -> Non
     key changed after the digest was recorded, must still be reported. A
     verification that cannot fail proves nothing about the one that passes.
     """
-    from afterworlds.persistence.orm.mechanical import MechanicalComponentOptionORM
-
     _seed_schema_2_release(session)
     identified = identify_projection(schema_2_candidate())
     persist_draft(session, identified, now="2026-08-20T00:00:00Z")
@@ -538,3 +553,155 @@ def test_a_schema_2_projection_is_still_not_activatable() -> None:
     findings = validate_schema_binding(schema_2_candidate())
     assert findings
     assert any(SCHEMA_2_VERSION in f for f in findings)
+
+
+# ---------------------------------------------------------------------------
+# 8. The verifier reports the refusal instead of raising it (round 10)
+# ---------------------------------------------------------------------------
+#
+# Codex review on PR #157, P2. Round 9 made every merged version serialize its
+# own key set and taught ``verify_persisted_state`` to *report* an unrecognised
+# stored declaration. It taught it only half the family: rows that carry
+# meaning their declared version has no key for raise
+# ``LegacySchemaPayloadError`` from the same call, and that still propagated.
+#
+# Both are the same defect and take the same disposition — the stored
+# declaration and the stored rows disagree, no identity can be derived, and a
+# caller assembling findings must receive one rather than an exception through
+# the middle of its report.
+#
+# Immediate sibling paths in this function, audited and not widened past:
+#
+#   * ``_header``               -> ProjectionNotPersistedError    already handled
+#   * ``reconstruct_candidate`` -> PersistedStateReconstructionError
+#                                  already handled, and it already wraps
+#                                  MalformedFactPayloadError / UnknownFactFamilyError
+#   * ``identify_projection``   -> UnsupportedSchemaVersionError   handled in round 9
+#                                  LegacySchemaPayloadError        *this fix*
+#   * ``compute_persisted_state_digest`` -> can raise both of the above itself,
+#                                  but is reached only after the call above has
+#                                  proved neither fires. Safe by ordering,
+#                                  which the source now says out loud.
+
+
+def _persisted_schema_2(session: Session) -> str:
+    """A valid schema-2 projection on disk, with its digest recorded."""
+    _seed_schema_2_release(session)
+    identified = identify_projection(schema_2_candidate())
+    persist_draft(session, identified, now="2026-08-20T00:00:00Z")
+    record_persisted_state_digest(session, SCHEMA_2_UUID)
+    session.flush()
+    return SCHEMA_2_UUID
+
+
+def _tamper_a_fact_qualifier(session: Session) -> None:
+    """Give one stored fact row a qualifier its declared schema cannot hold.
+
+    Reconstruction *succeeds* — the row is well formed and rebuilds into a
+    ``FactQualifier``. The disagreement only surfaces when the rebuilt
+    candidate is serialized under its own recorded version, which is exactly
+    where the verifier used to raise.
+    """
+    row = (
+        session.query(MechanicalFactORM)
+        .filter_by(projection_uuid=SCHEMA_2_UUID)
+        .order_by(MechanicalFactORM.fact_key)
+        .first()
+    )
+    assert row is not None
+    row.applies_when = applicability_payload(WHILE_ACTIVE)
+    session.flush()
+
+
+def test_a_schema_3_qualifier_on_a_schema_2_row_is_reported_not_raised(
+    session: Session,
+) -> None:
+    """The reported defect, asserted as a finding rather than an exception."""
+    uuid_ = _persisted_schema_2(session)
+    _tamper_a_fact_qualifier(session)
+
+    findings = verify_persisted_state(session, uuid_)
+    assert findings
+    assert any("fact_qualifiers" in f for f in findings), findings
+    # And the message says which contract the meaning arrived with, so the
+    # finding is actionable rather than merely negative.
+    assert any("schema-3" in f for f in findings), findings
+
+
+def test_the_valid_schema_2_projection_beside_it_still_verifies(
+    session: Session,
+) -> None:
+    """The control. A verifier that cannot pass proves nothing when it fails."""
+    uuid_ = _persisted_schema_2(session)
+    assert verify_persisted_state(session, uuid_) == ()
+
+
+def test_a_genuine_hash_and_identity_mismatch_is_still_reported(
+    session: Session,
+) -> None:
+    """Catching the refusal must not swallow the ordinary tamper findings.
+
+    The early return sits above every content comparison, so a bug there would
+    read as "verification passes" for real corruption. Both surviving shapes
+    are asserted: a stored payload hash that no longer matches what the rows
+    derive, and a corrupted derived id — neither of which disturbs
+    reconstruction, so neither is caught by the guard above.
+    """
+    uuid_ = _persisted_schema_2(session)
+    header = (
+        session.query(MechanicalProjectionORM).filter_by(projection_uuid=uuid_).one()
+    )
+    header.payload_hash = "f" * 64
+    record = session.query(MechanicalRecordORM).filter_by(projection_uuid=uuid_).one()
+    record.record_id = "00000000-0000-5000-8000-000000000000"
+    session.flush()
+
+    findings = verify_persisted_state(session, uuid_)
+    assert any("payload hash does not match" in f for f in findings), findings
+    assert any("persisted id" in f for f in findings), findings
+
+
+def test_the_publication_gate_still_fails_closed_on_the_finding(
+    session: Session, committed_oracle
+) -> None:  # type: ignore[no-untyped-def]
+    """The caller this exists for.
+
+    The gate categorises whatever ``verify_persisted_state`` reports as
+    ``PERSISTED_STATE``. While the refusal propagated, the gate did not fail
+    closed — it failed *open* in the worst way available to it, by raising out
+    of the publication path instead of returning a refusal.
+
+    Built on the bound-release fixture rather than this module's own package,
+    because the gate stops at step 0 on a release it cannot verify and would
+    never reach the persisted-state proof. Declared under schema 2 so the
+    tampered qualifier is meaning its own contract has no key for.
+    """
+    identified = identify_projection(
+        candidate_of(
+            RELEASE_BINDING,
+            build_ledger(),
+            build_representation(),
+            schema_version=SCHEMA_2_VERSION,
+            schema_hash=SCHEMA_2_HASH,
+        )
+    )
+    persist_draft(session, identified, now="2026-08-20T00:00:00Z")
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+
+    row = (
+        session.query(MechanicalFactORM)
+        .filter_by(projection_uuid=identified.projection_uuid)
+        .order_by(MechanicalFactORM.fact_key)
+        .first()
+    )
+    assert row is not None
+    row.applies_when = applicability_payload(WHILE_ACTIVE)
+    session.flush()
+
+    result = run_publication_gate(
+        session, identified.projection_uuid, oracle=committed_oracle
+    )
+    assert not result.passed
+    assert GateFailureCategory.PERSISTED_STATE in {f.category for f in result.failures}
+    assert any("fact_qualifiers" in f.detail for f in result.failures)

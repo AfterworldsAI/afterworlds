@@ -58,6 +58,7 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
+    LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
     UnsupportedSchemaVersionError,
@@ -864,13 +865,20 @@ def verify_persisted_state(
 
     try:
         reidentified = identify_projection(reconstructed)
-    except UnsupportedSchemaVersionError as exc:
-        # A stored declaration naming a version this build cannot serialize is
-        # tamper or a downgrade, and it is reported for the same reason a row
-        # that cannot rebuild is: this function's contract is to *collect*
-        # findings, so raising past a caller assembling them would destroy the
-        # rest of the report. Failing closed and reporting are the same act
-        # here — no identity is derived under an unrecognised contract.
+    except (UnsupportedSchemaVersionError, LegacySchemaPayloadError) as exc:
+        # Two ways the stored declaration and the stored rows can disagree, and
+        # one disposition. Either the version is one this build cannot
+        # serialize, or the rows carry meaning that version has no key for — a
+        # schema-2 projection whose fact row holds a schema-3 qualifier, say.
+        # Both are tamper or a downgrade, and both are reported for the same
+        # reason a row that cannot rebuild is: this function's contract is to
+        # *collect* findings, so raising past a caller assembling them would
+        # destroy the rest of the report. Failing closed and reporting are the
+        # same act here — no identity is derived either way.
+        #
+        # This is also why the digest below is safe. It re-serializes the same
+        # rows and can raise both of these itself, but it is only reached once
+        # this call has proved neither fires — an ordering, not a coincidence.
         return (f"projection {uuid_}: {exc}",)
 
     if reidentified.projection_uuid != uuid_:

@@ -295,3 +295,49 @@ vocabulary, override behaviour, and current canonical payload untouched.
    asserts the UUIDs differ, which is the defect the declaration exists to prevent. The property it
    used to need is now guaranteed structurally instead: no two merged versions share a component
    key set, so content alone cannot collide across contracts before the declaration is consulted.
+
+---
+
+## Round 7 — P2: the verifier reported half the refusal family and raised the other half
+
+**Finding.** Round 6 taught `verify_persisted_state` to *report* an unrecognised stored
+declaration. It taught it only half the family: rows carrying meaning their declared version has
+no key for raise `LegacySchemaPayloadError` from the same `identify_projection` call, and that
+still propagated. Codex reproduced it by giving a persisted schema-2 fact row a non-null
+`applies_when` — reconstruction succeeds, the disagreement surfaces only on re-serialization.
+
+**Disposition.** Operational reliability, not a new security model. Malformed or inconsistent
+persisted authority fails closed; verification and publication callers receive actionable findings.
+No signing, authentication, MACs, or other adversarial-security machinery is introduced — the
+change is one `except` clause widened to the sibling exception.
+
+**Why it is the same defect.** Either the version is one this build cannot serialize, or the rows
+carry meaning that version has no key for. Both mean the stored declaration and the stored rows
+disagree, no identity can be derived, and a caller assembling findings must receive one rather
+than an exception through the middle of its report. Failing closed and reporting are the same act.
+
+**Sibling audit, bounded to this function's own raise sites as directed.**
+
+| Call | Raises | Disposition |
+| --- | --- | --- |
+| `_header` | `ProjectionNotPersistedError` | already handled |
+| `reconstruct_candidate` | `PersistedStateReconstructionError` | already handled — and it already wraps `MalformedFactPayloadError` / `UnknownFactFamilyError` |
+| `identify_projection` | `UnsupportedSchemaVersionError` | handled in round 6 |
+| `identify_projection` | `LegacySchemaPayloadError` | **patched** |
+| `compute_persisted_state_digest` | both of the above, via `projection_payload` | `already safe` — reached only after the call above proves neither fires. An ordering, not a coincidence, and the source now says so |
+
+Not widened past those. No unrelated historical-schema work.
+
+**Coverage.** A persisted schema-2 row carrying schema-3 qualifier data yields a finding naming
+both `fact_qualifiers` and the contract it arrived with; the valid schema-2 projection beside it
+still verifies clean; a genuine payload-hash and derived-id mismatch is still reported, proving the
+early return did not swallow the ordinary comparisons; and the publication gate returns a
+`PERSISTED_STATE` refusal rather than raising out of the publication path. The gate case is built
+on the bound-release fixture rather than this module's own package, because the gate stops at step
+0 on a release it cannot verify and would never reach the persisted-state proof.
+
+**Negative control.** Narrowing the catch back to `UnsupportedSchemaVersionError` alone fails 2
+tests with the raw exception.
+
+**No schema, vocabulary, identity, or hash change.** Version and structural hash unmoved at
+`43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05`.
