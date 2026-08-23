@@ -114,8 +114,9 @@ class GameMasterComponent:
     #: *"unless you are Tiny or two or more sizes smaller than it"* while the
     #: transport permission beside it is unconditional, and the two are
     #: distinguishable without consulting anything outside the fact. The
-    #: qualifier also carries its own provenance, so a reader can tell a fact
-    #: an override supplied from a limitation the source states.
+    #: qualifier also carries its own provenance, so the span stating the
+    #: limitation is distinguishable from the spans accounting for the fact
+    #: itself — they are usually different clauses.
     structured_context: tuple[EffectiveFact, ...]
     span_ids: tuple[str, ...]
     supplied_by_override_id: str | None

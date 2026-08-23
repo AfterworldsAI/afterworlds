@@ -104,16 +104,20 @@ class OverrideApplicationError(ValueError):
 class EffectiveFactQualifier:
     """A fact's applicability limitation, carrying its *own* authority.
 
-    Separate from the fact's provenance on purpose. When an override replaces a
-    source fact whose source-authored qualifier survives, the two halves have
-    different authors: the fact came from the override, and the limitation
-    still comes from the 5c span that states it. A consumer must be able to
-    tell *"this fact came from override X"* from *"this limitation came from
-    source span Y"*, and a single merged span set cannot say that.
+    Separate from the fact's provenance on purpose. A fact and the limitation
+    on it are usually stated by *different* spans: Grappled's surcharge is one
+    clause and the size exception limiting it is another. Merging them into the
+    fact's span set would make *"this limitation comes from span Y"*
+    indistinguishable from the fact's own accounting, which is why the
+    qualifier is addressed by its own
+    :attr:`~afterworlds.ingestion.mechanical.representation.ProvenanceTargetKind.FACT_QUALIFIER`
+    target rather than sharing the fact's.
 
     ``span_ids`` is empty exactly when an override supplied the qualifier, in
     which case ``supplied_by_*`` names it — the same convention
-    :class:`EffectiveFact` already uses.
+    :class:`EffectiveFact` already uses. A qualifier's authorship always
+    matches its fact's, because a qualifier only ever arrives with the fact it
+    limits: from the base projection, or from a component patch supplying both.
     """
 
     applies_when: Applicability
@@ -1237,7 +1241,7 @@ def _apply_entry(
                 f"target {target.describe()} names no fact of "
                 f"{target.component_key!r}",
             )
-        fact_index, old_fact = position
+        fact_index, _ = position
         if (
             new_key != target.fact_key
             and _find_fact(component, new_key, option_key) is not None
@@ -1248,25 +1252,22 @@ def _apply_entry(
                 f"{target.component_key!r}",
             )
         facts = list(_scope())
-        # The replacement's authority is the override; the surviving
-        # qualifier's authority is unchanged. A fact REPLACE says nothing about
-        # the limitation the source put on it, so the association is retargeted
-        # from the old fact_key to the new one rather than being dropped with
-        # the fact it named. Dropping it would silently widen the rule; copying
-        # the override's provenance onto it would misattribute source text.
+        # REPLACE supplies a *complete* fact, so the replacement is
+        # unqualified: the old fact's qualifier leaves the view with the fact
+        # it named. Carrying it forward would preserve a source-authored
+        # limitation the replacement payload never declares, and nothing in
+        # REPLACE constrains the replacement's family — the same size clause
+        # could end up limiting unrelated authority while citing the source
+        # span that states it. A replacement meant to stay conditional is
+        # authored as a component patch carrying its own ``fact_qualifiers``.
         facts[fact_index] = EffectiveFact(
             fact_key=new_key,
             fact=new_fact,
             option_key=option_key,
             supplied_by_override_id=entry.override_id,
             supplied_by_origin=entry.origin,
-            qualifier=old_fact.qualifier,
         )
-        note = (
-            "fact replaced, qualifier retargeted"
-            if old_fact.qualifier is not None
-            else "fact replaced"
-        )
+        note = "fact replaced"
     else:
         assert isinstance(patch, FactAdditionPatch)
         if _find_fact(component, new_key, option_key) is not None:

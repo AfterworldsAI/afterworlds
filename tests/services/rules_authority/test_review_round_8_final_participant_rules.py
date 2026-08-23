@@ -532,23 +532,31 @@ def test_component_level_transport_establishes_for_every_arm() -> None:
 # Fact-scoped qualifiers through the override path (PR #157, round 2)
 # ---------------------------------------------------------------------------
 #
-# The qualifier's authority and the fact's authority are separable, and an
-# override that touches one must not silently rewrite the other.
+# A qualifier lives on the fact it limits and never outlives it. REPLACE and
+# DISABLE both remove it with that fact; APPEND adds an unqualified one; and a
+# complete component patch states its own set or has none. So the qualifier's
+# authorship always matches its fact's, and no operation can leave a
+# source-authored limitation attached to authority that never declared it.
 
-SIZE_QUALIFIER = FactQualifier(
-    fact_key=fact_key(SURCHARGE), applies_when=SIZE_EXCEPTION
-)
 QUALIFIER_SPAN = "span-size-exception"
 
 
-def _qualified_candidate() -> ProjectionCandidate:
+def _qualified_candidate(
+    facts: tuple[object, ...] = (TRANSPORT, SURCHARGE),
+    qualified: object = SURCHARGE,
+) -> ProjectionCandidate:
     """Grappled as the source states it: unconditional transport, qualified cost."""
     component = ComponentDraft(
         record_key=RECORD_KEY,
         semantic_key=MOVABLE_KEY,
         handling=ComponentHandling.STRUCTURED,
-        facts=(TRANSPORT, SURCHARGE),
-        fact_qualifiers=(SIZE_QUALIFIER,),
+        facts=facts,  # type: ignore[arg-type]
+        fact_qualifiers=(
+            FactQualifier(
+                fact_key=fact_key(qualified),  # type: ignore[arg-type]
+                applies_when=SIZE_EXCEPTION,
+            ),
+        ),
     )
     draft = RepresentationDraft(
         records=(RecordDraft(semantic_key=RECORD_KEY, kind=RecordKind.CONDITION),),
@@ -560,7 +568,10 @@ def _qualified_candidate() -> ProjectionCandidate:
             ProvenanceClaim(
                 target_kind=ProvenanceTargetKind.FACT_QUALIFIER,
                 target_key=fact_qualifier_target_key(
-                    RECORD_KEY, MOVABLE_KEY, fact_key(SURCHARGE), ""
+                    RECORD_KEY,
+                    MOVABLE_KEY,
+                    fact_key(qualified),  # type: ignore[arg-type]
+                    "",
                 ),
                 span_id=QUALIFIER_SPAN,
                 role=ProvenanceRole.PRIMARY,
@@ -594,35 +605,200 @@ def test_the_base_view_carries_the_qualifier_with_its_own_source_span() -> None:
     assert QUALIFIER_SPAN not in surcharge.span_ids
 
 
-def test_fact_replace_retargets_the_qualifier_and_keeps_its_provenance() -> None:
-    """The two halves have different authors, and the view says so.
+def _all_span_ids(view) -> set[str]:  # type: ignore[no-untyped-def]
+    """Every 5c span the effective view still cites, wherever it cites it."""
+    seen: set[str] = set()
+    for record in view.records:
+        for component in record.components:
+            seen.update(component.span_ids)
+            facts = (
+                *component.facts,
+                *(f for option in component.options for f in option.facts),
+            )
+            for f in facts:
+                seen.update(f.span_ids)
+                if f.qualifier is not None:
+                    seen.update(f.qualifier.span_ids)
+    return seen
 
-    The replacement fact came from the override; the limitation still comes
-    from the source span that states it.
+
+#: The families a replacement can arrive as. REPLACE constrains none of them,
+#: which is why inheritance could not be made safe by a compatibility test: the
+#: first is the closest possible relative of the fact it replaces, and is still
+#: not evidence that a size exception written for the original applies to it.
+REPLACEMENTS = [
+    (
+        "same family",
+        MovementCostFact(
+            kind=MovementCostKind.PER_FOOT_SURCHARGE,
+            amount=MovementAmount.FEET,
+            payer=COUNTERPART,
+            feet=2,
+        ),
+    ),
+    ("different family", MovementPermissionFact(mode=MovementMode.SWIM)),
+]
+
+
+@pytest.mark.parametrize(
+    ("label", "replacement"), REPLACEMENTS, ids=[label for label, _ in REPLACEMENTS]
+)
+def test_fact_replace_drops_the_qualifier_with_the_fact_it_named(
+    label: str, replacement: object
+) -> None:
+    """Owner decision, PR #157 finding 6.
+
+    ``REPLACE`` supplies a *complete* validated fact, so the replacement is
+    unqualified. Inheriting would preserve a source-authored limitation the
+    replacement payload never declares — and since nothing constrains the
+    replacement's family, Grappled's size exception could end up limiting
+    unrelated authority while still citing the clause that states it.
     """
-    replacement = MovementCostFact(
-        kind=MovementCostKind.PER_FOOT_SURCHARGE,
-        amount=MovementAmount.FEET,
-        payer=COUNTERPART,
-        feet=2,
-    )
     view = _apply(
         _qualified_candidate(),
         _entry(
             _fact_target(fact_key(SURCHARGE)),
             OverrideOperationEnum.REPLACE,
-            {"patch": "replace_fact", "fact": fact_payload(replacement)},
+            {
+                "patch": "replace_fact",
+                "fact": fact_payload(replacement),  # type: ignore[arg-type]
+            },
         ),
     )
-    new = _fact(view, fact_key(replacement))
-    # Fact authority: the override.
+    new = _fact(view, fact_key(replacement))  # type: ignore[arg-type]
+    # Fact authority: the override, as before.
     assert new.supplied_by_override_id == "ov-1"
     assert new.span_ids == ()
-    # Qualifier authority: still the source span it always had.
-    assert new.qualifier is not None
-    assert new.qualifier.applies_when == SIZE_EXCEPTION
-    assert new.qualifier.span_ids == (QUALIFIER_SPAN,)
-    assert new.qualifier.supplied_by_override_id is None
+    # And it carries no limitation the override did not state.
+    assert new.qualifier is None, label
+    # Nothing else picked the qualifier up either, and its source span is gone
+    # from the view entirely — "qualifier is None" alone would not prove the
+    # provenance had not leaked somewhere else.
+    (record,) = view.records
+    (component,) = record.components
+    assert all(f.qualifier is None for f in component.facts), label
+    assert QUALIFIER_SPAN not in _all_span_ids(view), label
+
+
+def test_a_conditional_replacement_is_authored_as_a_component_patch() -> None:
+    """The supported way to replace a fact and keep it conditional.
+
+    Fact ``REPLACE`` cannot say "and it still only applies when…" — that is a
+    two-part claim and the patch carries one fact. A component patch carries
+    both, so a conditional replacement is authored there, and the qualifier is
+    then the override's own authority rather than inherited source text.
+    """
+    view = _apply(
+        _qualified_candidate(),
+        _entry(
+            COMPONENT_TARGET,
+            OverrideOperationEnum.REPLACE,
+            {
+                "patch": "replace_component",
+                "component": {
+                    "handling": "structured",
+                    "facts": [fact_payload(TRANSPORT), fact_payload(PRONE_STAND)],
+                    "fact_qualifiers": [
+                        {
+                            "fact_key": fact_key(PRONE_STAND),
+                            "option_key": "",
+                            "applies_when": applicability_payload(SIZE_EXCEPTION),
+                        }
+                    ],
+                },
+            },
+        ),
+    )
+    stand = _fact(view, fact_key(PRONE_STAND))
+    assert stand.qualifier is not None
+    assert stand.qualifier.applies_when == SIZE_EXCEPTION
+    # Override authority: it names the override, and no 5c span anywhere.
+    assert stand.qualifier.supplied_by_override_id == "ov-1"
+    assert stand.qualifier.span_ids == ()
+    assert QUALIFIER_SPAN not in _all_span_ids(view)
+
+
+# Dropping a qualifier is a *widening*, and a qualifier can name COUNTERPART,
+# so the final participant rule has to be asked of the dropped state. Both
+# directions below: what the qualifier stops claiming, and what the
+# replacement starts claiming.
+
+
+def _counterpart_only_in_the_qualifier() -> ProjectionCandidate:
+    """Transport, a subject-paid cost, and COUNTERPART named only by the qualifier.
+
+    ``SIZE_EXCEPTION`` compares the subject *to the counterpart*, so with the
+    cost beside it subject-paid, the qualifier is the sole counterpart
+    reference.
+    """
+    return _qualified_candidate((TRANSPORT, PRONE_STAND), PRONE_STAND)
+
+
+def test_a_qualifier_naming_the_counterpart_still_needs_it_established() -> None:
+    """Control: the final rule reads qualifiers, so the next case means something."""
+    with pytest.raises(OverrideApplicationError, match="nothing establishes"):
+        _apply(
+            _counterpart_only_in_the_qualifier(),
+            _entry(
+                _fact_target(fact_key(TRANSPORT)),
+                OverrideOperationEnum.DISABLE,
+                {"patch": "disable"},
+            ),
+        )
+
+
+def test_dropping_a_qualifier_drops_the_counterpart_reference_it_carried() -> None:
+    """And the final rule sees the dropped state, not the state before it.
+
+    Replacing the qualified fact removes the only claim about the counterpart,
+    so disabling transport afterwards is accepted where the control above
+    refuses it. Pinned deliberately: that is the correct consequence of the
+    owner's REPLACE semantics, not a weakened invariant.
+    """
+    view = _apply(
+        _counterpart_only_in_the_qualifier(),
+        _entry(
+            _fact_target(fact_key(PRONE_STAND)),
+            OverrideOperationEnum.REPLACE,
+            {"patch": "replace_fact", "fact": fact_payload(CRAWL)},
+        ),
+        _entry(
+            _fact_target(fact_key(TRANSPORT)),
+            OverrideOperationEnum.DISABLE,
+            {"patch": "disable"},
+            override_id="ov-2",
+        ),
+    )
+    (record,) = view.records
+    (component,) = record.components
+    assert [f.fact_key for f in component.facts] == [fact_key(CRAWL)]
+    assert all(f.qualifier is None for f in component.facts)
+
+
+def test_a_replacement_naming_the_counterpart_itself_is_still_checked() -> None:
+    """The other direction: the replacement's own COUNTERPART needs establishing.
+
+    Dropping the qualifier does not weaken the rule for what the override
+    *does* say — the counterpart-paid replacement is accepted here only because
+    transport survives beside it.
+    """
+    surcharge_2ft = MovementCostFact(
+        kind=MovementCostKind.PER_FOOT_SURCHARGE,
+        amount=MovementAmount.FEET,
+        payer=COUNTERPART,
+        feet=2,
+    )
+    replace_it = _entry(
+        _fact_target(fact_key(PRONE_STAND)),
+        OverrideOperationEnum.REPLACE,
+        {"patch": "replace_fact", "fact": fact_payload(surcharge_2ft)},
+    )
+    view = _apply(_counterpart_only_in_the_qualifier(), replace_it)
+    assert _fact(view, fact_key(surcharge_2ft)).qualifier is None
+
+    # The same override, with nothing establishing the counterpart: refused.
+    with pytest.raises(OverrideApplicationError, match="nothing establishes"):
+        _apply(_qualified_candidate((PRONE_STAND,), PRONE_STAND), replace_it)
 
 
 def test_fact_disable_removes_the_qualifier_with_its_fact() -> None:
