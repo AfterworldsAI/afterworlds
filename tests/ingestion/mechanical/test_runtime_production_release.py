@@ -84,16 +84,21 @@ def test_the_production_release_identity(production) -> None:  # type: ignore[no
     assert release.release.release_version == EXPECTED_RELEASE_VERSION
 
 
-def test_no_mechanical_projection_is_published_for_the_real_release(
+def test_accepted_authority_resolves_but_nothing_is_published(
     production,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Nothing judges the real SRD release yet, so nothing over it is active."""
+    """Accepted authority exists for the real release; none of it is active.
+
+    Acceptance and publication are separate acts. Committing a reviewed
+    artifact records what a human accepted; it publishes no rules package and
+    activates no release, which the sibling test below asserts directly.
+    """
     _session, release = production
     assert (
         committed_oracle_for(
             release.release.package_uuid, release.release.release_version
         )
-        is None
+        is not None
     )
 
 

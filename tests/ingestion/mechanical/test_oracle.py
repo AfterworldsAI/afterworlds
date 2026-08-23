@@ -21,6 +21,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     OracleLoadError,
     _resolve_committed_oracle,
     derive_obligations,
+    load_accepted_inputs,
     load_oracle,
     oracle_identity,
     oracle_payload,
@@ -72,14 +73,29 @@ def test_oracle_module_cannot_reach_the_state_it_judges() -> None:
     assert offending == [], f"oracle must not import {offending}"
 
 
-def test_no_committed_oracle_is_generated_into_the_source_tree() -> None:
-    """The committed oracle directory holds no production authority yet.
+def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None:
+    """Exactly one committed artifact, and it is reviewed content.
 
-    The production SRD release therefore resolves to no accepted authority and
-    cannot be published. When a later content PR commits one, this test is the
-    place that says so out loud.
+    This asserted an empty directory until the Owner accepted ``conditions-1``.
+    What it protects is unchanged: nothing in ``src/`` writes here, so a file
+    appearing without a reviewed acceptance action is a defect. The resolver
+    refuses two artifacts claiming one release, so "one per release" is the
+    invariant, not "one in total".
     """
-    assert sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json")) == []
+    committed = sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json"))
+    assert committed == ["srd-5-2-1-corpus-36b786d8-fa2.json"]
+    releases = [
+        (
+            load_accepted_inputs(
+                COMMITTED_ORACLE_DIR / name
+            ).oracle.binding.package_uuid,
+            load_accepted_inputs(
+                COMMITTED_ORACLE_DIR / name
+            ).oracle.binding.release_version,
+        )
+        for name in committed
+    ]
+    assert len(set(releases)) == len(releases), releases
 
 
 def test_declared_policy_comes_from_the_file_not_current_code(tmp_path: Path) -> None:

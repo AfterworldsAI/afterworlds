@@ -239,26 +239,39 @@ def test_the_bound_release_supplies_the_accounting_population(
 # ---------------------------------------------------------------------------
 
 
-def test_no_accepted_oracle_is_committed_for_the_production_release(
+def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Nothing judges the real SRD release yet, so nothing over it can publish."""
-    assert (
-        committed_oracle_for(
-            production.binding.package_uuid, production.binding.release_version
-        )
-        is None
+    """Accepted authority exists for the real SRD release — batch conditions-1.
+
+    It judges the 16 condition records and nothing else, which is exactly why
+    the publication test below still refuses.
+    """
+    resolved = committed_oracle_for(
+        production.binding.package_uuid, production.binding.release_version
     )
+    assert resolved is not None
+    assert resolved.binding == production.binding
+    assert len(resolved.representation.records) == 16
+    assert len(resolved.spans) == 185
 
 
 def test_the_production_path_refuses_the_real_release(
     production: ProductionFixture,
 ) -> None:
-    """``publish_from_committed_oracle`` fails closed on the real release."""
+    """``publish_from_committed_oracle`` still fails closed — for a new reason.
+
+    Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
+    judged the release at all. Authority now exists and resolves, so the refusal
+    moves to ``INCOMPLETE`` — the accepted artifact covers 16 condition records
+    while the persisted projection covers the whole SRD. The change of *reason*
+    is the point: publication is refused because the Issue 5d corpus is
+    unfinished, not because nothing was ever reviewed.
+    """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW
     )
-    assert result.outcome is PublicationOutcome.ABSENT
+    assert result.outcome is PublicationOutcome.INCOMPLETE
     assert (
         resolve_active_projection(
             production.session, production.binding.package_uuid
