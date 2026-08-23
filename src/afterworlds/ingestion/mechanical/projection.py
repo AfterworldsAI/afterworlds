@@ -25,6 +25,7 @@ persistence and gate layers. Nothing here activates anything.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
@@ -65,6 +66,9 @@ __all__ = [
     "validate_candidate",
     "LegacySchemaPayloadError",
     "SCHEMA_1_VERSION",
+    "SCHEMA_2_VERSION",
+    "SCHEMA_3_VERSION",
+    "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
 
@@ -124,63 +128,185 @@ def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
 #: projection persisted under schema 1 must still serialize without them or it
 #: re-identifies as a different projection.
 SCHEMA_1_VERSION = "5d-representation-schema-1"
+#: Schema 2 added ``applies_when`` and ``options``; schema 3 added
+#: ``fact_qualifiers`` beside them. Each merged version is named here because
+#: each one is a contract something may already be persisted under.
+SCHEMA_2_VERSION = "5d-representation-schema-2"
+SCHEMA_3_VERSION = "5d-representation-schema-3"
 
 
 class LegacySchemaPayloadError(ValueError):
-    """Raised when a schema-1 candidate carries schema-2 meaning.
+    """Raised when a candidate carries meaning its declared schema cannot hold.
 
     Omitting a *default* field to reproduce an old identity is compatibility;
     omitting a field that carries meaning would be forging one. A schema-1
-    declaration holding a real qualifier or a real option set is a state that
-    cannot honestly be serialized under either schema, so it fails closed.
+    declaration holding a real qualifier or a real option set, or a schema-2
+    one holding a real fact qualifier, is a state that cannot honestly be
+    serialized under either contract, so it fails closed.
     """
 
 
-def _component_schema_2_payload(
-    component: ComponentDraft, schema_version: str
-) -> dict[str, object]:
-    """The component keys schema 2 added, or nothing under schema 1.
+class UnsupportedSchemaVersionError(ValueError):
+    """Raised when a payload is requested under a version this build cannot serialize.
 
-    Owner Decision 2026-08-20 (Option A), narrow to the ``0027 -> 0028``
-    boundary: a projection persisted under schema 1 must still reconstruct with
-    its original UUID, payload hash, derived IDs, and recorded digest after the
-    upgrade. Its canonical wire payload never had these two keys, so emitting
-    them — even as ``null`` and ``[]`` — re-identifies unchanged historical
-    state as a different projection and makes ``verify_persisted_state`` reject
-    it.
-
-    This preserves historical *reconstruction* only. It does not revoke #137's
-    clean-baseline policy, does not establish general legacy compatibility, and
-    does not make a schema-1 projection activatable — ``validate_schema_binding``
-    still refuses one as current authority, unchanged.
-
-    The omission and the fail-closed check live together on purpose: the branch
-    that decides to drop a field is the branch that must prove the field is
-    empty, or the two could drift into silently discarding meaning.
+    Distinct from :class:`LegacySchemaPayloadError` on purpose. That one means
+    *this draft* says more than the named contract can hold; this one means the
+    contract itself is unknown, so nothing can be said about what it holds. A
+    caller reconstructing historical state must not have an unrecognised
+    version quietly fall through to current-schema behaviour and derive an
+    identity under a contract that was never asked for.
     """
-    if schema_version == SCHEMA_1_VERSION:
-        if component.applies_when is not None or component.options:
-            raise LegacySchemaPayloadError(
-                f"component {component.record_key}/{component.semantic_key} "
-                f"declares schema {SCHEMA_1_VERSION!r} but carries schema-2 "
-                "applicability or options; refusing to omit meaning-bearing "
-                "data to reproduce a legacy identity"
-            )
-        return {}
-    return {
-        "applies_when": applicability_payload(component.applies_when),
-        # Options are canonically ordered by their key, so the source's
-        # order of "crawl or ... right yourself" does not reach the
-        # payload hash: the source states no precedence between them.
-        "options": canonical_order(
+
+    def __init__(self, schema_version: str) -> None:
+        super().__init__(
+            f"representation schema {schema_version!r} is not a version this "
+            f"build can serialize; known versions are "
+            f"{sorted(_MERGED_COMPONENT_FIELDS)}"
+        )
+        self.schema_version = schema_version
+
+
+@dataclass(frozen=True)
+class _VersionedComponentField:
+    """One component payload key, and the version that introduced it.
+
+    ``holds_meaning`` is what makes omission honest. The rule the schema-1
+    branch established and this generalises: *the code that decides to drop a
+    field is the code that must prove the field is empty*, or the two drift
+    into silently discarding meaning. Keeping the emitter and the proof on the
+    same object is what stops the next added field from acquiring one without
+    the other.
+    """
+
+    key: str
+    #: Named in the refusal so the message says which contract introduced the
+    #: field, not merely that some field was too new.
+    introduced_in: str
+    payload: Callable[[ComponentDraft], object]
+    holds_meaning: Callable[[ComponentDraft], bool]
+
+
+_COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
+    _VersionedComponentField(
+        key="applies_when",
+        introduced_in="schema-2",
+        payload=lambda c: applicability_payload(c.applies_when),
+        holds_meaning=lambda c: c.applies_when is not None,
+    ),
+    _VersionedComponentField(
+        key="options",
+        introduced_in="schema-2",
+        # Options are canonically ordered by their key, so the source's order
+        # of "crawl or ... right yourself" does not reach the payload hash:
+        # the source states no precedence between them.
+        payload=lambda c: canonical_order(
             {
                 "semantic_key": o.semantic_key,
                 "facts": canonical_order(fact_payload(f) for f in o.facts),
                 "applies_when": applicability_payload(o.applies_when),
             }
-            for o in component.options
+            for o in c.options
         ),
-    }
+        holds_meaning=lambda c: bool(c.options),
+    ),
+    _VersionedComponentField(
+        key="fact_qualifiers",
+        introduced_in="schema-3",
+        # Keyed by the fact they qualify and its scope, so canonical ordering
+        # is over meaning rather than authoring order — the same rule every
+        # other collection in this payload follows.
+        payload=lambda c: canonical_order(
+            {
+                "fact_key": q.fact_key,
+                "option_key": q.option_key,
+                "applies_when": applicability_payload(q.applies_when),
+            }
+            for q in c.fact_qualifiers
+        ),
+        holds_meaning=lambda c: bool(c.fact_qualifiers),
+    ),
+)
+
+#: Every merged representation schema version, and the component payload keys
+#: *that* version emits beyond the five schema 1 already had.
+#:
+#: A registry rather than a chain of version comparisons. Each merged contract
+#: is a thing state may already be persisted under, so each states its own key
+#: set explicitly and a later succession cannot silently redefine an earlier
+#: one. Written as literals for the same reason: keying the current row by
+#: ``REPRESENTATION_SCHEMA_VERSION`` would make schema 4 quietly inherit schema
+#: 3's row and delete schema 3's, which is the exact failure this table exists
+#: to prevent.
+_MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
+    SCHEMA_1_VERSION: frozenset(),
+    SCHEMA_2_VERSION: frozenset({"applies_when", "options"}),
+    SCHEMA_3_VERSION: frozenset({"applies_when", "options", "fact_qualifiers"}),
+}
+
+# Minting a new schema without giving it a row here would leave the current
+# contract unserializable rather than silently wrong, which is the direction
+# this whole module fails in.
+assert REPRESENTATION_SCHEMA_VERSION in _MERGED_COMPONENT_FIELDS, (
+    f"representation schema {REPRESENTATION_SCHEMA_VERSION!r} declares no "
+    "component key set; add its row to _MERGED_COMPONENT_FIELDS"
+)
+
+
+def _emitted_component_fields(schema_version: str) -> frozenset[str]:
+    """The component keys *schema_version* emits, or fail closed.
+
+    Resolved once per payload rather than per component, so a draft with no
+    components still refuses an unknown version instead of serializing an empty
+    component list under a contract nobody recognises.
+    """
+    try:
+        return _MERGED_COMPONENT_FIELDS[schema_version]
+    except KeyError:
+        raise UnsupportedSchemaVersionError(schema_version) from None
+
+
+def _component_versioned_payload(
+    component: ComponentDraft, schema_version: str, emitted: frozenset[str]
+) -> dict[str, object]:
+    """The post-schema-1 component keys *this* schema version emits.
+
+    Owner Decision 2026-08-20 (Option A) established the rule at the
+    ``0027 -> 0028`` boundary: a projection persisted under schema 1 must still
+    reconstruct with its original UUID, payload hash, derived IDs, and recorded
+    digest after the upgrade. Its canonical wire payload never had those keys,
+    so emitting them — even as ``null`` and ``[]`` — re-identifies unchanged
+    historical state as a different projection and makes
+    ``verify_persisted_state`` reject it.
+
+    The rule is general, not a schema-1 exception: **every** merged version
+    serializes exactly its own key set. Schema 3 proved why. It added
+    ``fact_qualifiers`` with only a schema-1 branch in place, so schema-2
+    payloads silently gained a key their merged contract never had and
+    re-identified the same way schema 1 once did.
+
+    This preserves historical *reconstruction* only. It does not revoke #137's
+    clean-baseline policy, does not establish general legacy compatibility, and
+    does not make a superseded projection activatable —
+    ``validate_schema_binding`` still refuses one as current authority,
+    unchanged.
+
+    The omission and the fail-closed check are the same loop on purpose: the
+    code that decides to drop a field is the code that must prove the field is
+    empty, or the two could drift into silently discarding meaning.
+    """
+    payload: dict[str, object] = {}
+    for field in _COMPONENT_FIELDS:
+        if field.key in emitted:
+            payload[field.key] = field.payload(component)
+        elif field.holds_meaning(component):
+            raise LegacySchemaPayloadError(
+                f"component {component.record_key}/{component.semantic_key} "
+                f"declares schema {schema_version!r}, which has no "
+                f"{field.key!r} key — that arrived with {field.introduced_in}; "
+                "refusing to omit meaning-bearing data to reproduce a legacy "
+                "identity"
+            )
+    return payload
 
 
 def representation_payload(
@@ -195,7 +321,12 @@ def representation_payload(
     fields — see :mod:`canonical` for why a partial sort key is a defect
     waiting for the next field. Keyed throughout, so nothing derived from the
     identity is inside the thing the identity is computed from.
+
+    Resolving the version's key set here — once, before any component — is what
+    makes an unrecognised version fail closed even for a draft with no
+    components at all.
     """
+    emitted = _emitted_component_fields(schema_version)
     return {
         "records": canonical_order(
             {
@@ -212,7 +343,7 @@ def representation_payload(
                 "handling": c.handling.value,
                 "irreducibility_reason_code": c.irreducibility_reason_code,
                 "facts": canonical_order(fact_payload(f) for f in c.facts),
-                **_component_schema_2_payload(c, schema_version),
+                **_component_versioned_payload(c, schema_version, emitted),
             }
             for c in draft.components
         ),
@@ -368,6 +499,9 @@ def applicability_payload(
                 "category": None if c.category is None else c.category.value,
                 "relation": None if c.relation is None else c.relation.value,
                 "at_least": c.at_least,
+                "at_most": c.at_most,
+                "measured": c.measured.value,
+                "reference": None if c.reference is None else c.reference.value,
             }
             for c in applicability.any_of
         ],
@@ -395,7 +529,9 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
         "phase",
     }
 )
-_SIZE_COMPARISON_PAYLOAD_KEYS = frozenset({"category", "relation", "at_least"})
+_SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
+    {"category", "relation", "at_least", "at_most", "measured", "reference"}
+)
 
 
 def applicability_payload_violations(raw: object) -> list[str]:

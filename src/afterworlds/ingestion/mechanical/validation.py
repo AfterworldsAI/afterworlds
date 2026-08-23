@@ -45,9 +45,11 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
     RepresentationDraft,
     applicability_violations,
+    component_participant_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
+    fact_qualifier_violations,
     option_set_violations,
     prose_bindings_by_target_key,
     representation_draft_violations,
@@ -148,6 +150,30 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
             findings.extend(
                 f"{tag}: {v}" for v in applicability_violations(component.applies_when)
             )
+
+        # The counterpart rule is component-scoped and cannot live on a fact:
+        # no fact can see whether a neighbour establishes the relation it
+        # depends on. Establishment flows from the component into its options
+        # but never across two mutually exclusive arms. The same function is
+        # asked again of the final effective view after overrides resolve.
+        findings.extend(
+            component_participant_violations(
+                component.facts,
+                component.options,
+                component.applies_when,
+                tag,
+                component.fact_qualifiers,
+            )
+        )
+
+        # A qualifier must name exactly one fact in its exact scope. Checked
+        # here rather than per fact because resolving a qualifier means looking
+        # at the component's whole fact population, direct and per-option.
+        findings.extend(
+            fact_qualifier_violations(
+                component.facts, component.options, component.fact_qualifiers, tag
+            )
+        )
 
         has_prose = key in bound_prose
         code = component.irreducibility_reason_code

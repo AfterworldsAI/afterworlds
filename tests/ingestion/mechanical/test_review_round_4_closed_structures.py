@@ -38,6 +38,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentHandling,
     ComponentOption,
     CreatureSize,
+    ParticipantRole,
     Phase,
     SizeComparison,
     SizeRelation,
@@ -142,7 +143,12 @@ def test_the_type_gate_precedes_every_field_read() -> None:
 
 def test_a_size_comparison_subclass_is_refused() -> None:
     findings = size_comparison_violations(
-        SizeComparisonWithReach(relation=SizeRelation.SMALLER, at_least=2)
+        SizeComparisonWithReach(
+            relation=SizeRelation.SMALLER,
+            at_least=2,
+            measured=ParticipantRole.SUBJECT,
+            reference=ParticipantRole.COUNTERPART,
+        )
     )
     assert any("must be SizeComparison" in f for f in findings)
 
@@ -153,7 +159,12 @@ def test_a_size_comparison_subclass_inside_any_of_is_refused() -> None:
         Applicability(
             kind=ApplicabilityKind.SIZE_COMPARISON,
             any_of=(
-                SizeComparisonWithReach(relation=SizeRelation.SMALLER, at_least=2),
+                SizeComparisonWithReach(
+                    relation=SizeRelation.SMALLER,
+                    at_least=2,
+                    measured=ParticipantRole.SUBJECT,
+                    reference=ParticipantRole.COUNTERPART,
+                ),
             ),
         )
     )
@@ -187,9 +198,18 @@ def test_a_subclass_can_evade_duplicate_detection_and_is_refused_first() -> None
     duplicate is never reported *and* the differing ``reach_feet`` never reaches
     the payload. The gate fires before the dedup loop runs.
     """
-    a = SizeComparisonIgnoringReach(relation=SizeRelation.SMALLER, at_least=2)
+    a = SizeComparisonIgnoringReach(
+        relation=SizeRelation.SMALLER,
+        at_least=2,
+        measured=ParticipantRole.SUBJECT,
+        reference=ParticipantRole.COUNTERPART,
+    )
     b = SizeComparisonIgnoringReach(
-        relation=SizeRelation.SMALLER, at_least=2, reach_feet=99
+        relation=SizeRelation.SMALLER,
+        at_least=2,
+        measured=ParticipantRole.SUBJECT,
+        reference=ParticipantRole.COUNTERPART,
+        reach_feet=99,
     )
     assert a == b and a.reach_feet != b.reach_feet
     assert len({a, b}) == 1  # the collision the dedup check would have seen
@@ -305,7 +325,12 @@ def test_both_loaders_still_accept_the_declared_types() -> None:
     payload = applicability_payload(
         Applicability(
             kind=ApplicabilityKind.SIZE_COMPARISON,
-            any_of=(SizeComparison(category=CreatureSize.TINY),),
+            any_of=(
+                SizeComparison(
+                    category=CreatureSize.TINY,
+                    measured=ParticipantRole.SUBJECT,
+                ),
+            ),
         )
     )
     assert payload is not None

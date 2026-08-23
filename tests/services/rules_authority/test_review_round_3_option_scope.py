@@ -42,9 +42,11 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementCostKind,
     MovementMode,
     MovementPermissionFact,
+    ParticipantRole,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
+    RoundingRule,
     fact_key,
     representation_schema_hash,
 )
@@ -92,7 +94,10 @@ CRAWL_OPTION = "crawl"
 STAND_OPTION = "stand"
 CRAWL_FACT = MovementPermissionFact(mode=MovementMode.CRAWL)
 STAND_FACT = MovementCostFact(
-    kind=MovementCostKind.EXPENDITURE, amount=MovementAmount.HALF_SPEED
+    kind=MovementCostKind.EXPENDITURE,
+    amount=MovementAmount.HALF_SPEED,
+    payer=ParticipantRole.SUBJECT,
+    rounding=RoundingRule.DOWN,
 )
 CRAWL_FACT_KEY = fact_key(CRAWL_FACT)
 STAND_FACT_KEY = fact_key(STAND_FACT)

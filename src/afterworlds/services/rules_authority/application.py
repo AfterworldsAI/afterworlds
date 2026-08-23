@@ -41,11 +41,14 @@ from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ComponentDraft,
     ComponentOption,
+    FactQualifier,
     MechanicalFact,
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
+    component_participant_violations,
     fact_key,
+    fact_qualifier_target_key,
     fact_target_key,
     option_set_violations,
 )
@@ -79,6 +82,7 @@ __all__ = [
     "EffectiveAuthority",
     "EffectiveComponent",
     "EffectiveFact",
+    "EffectiveFactQualifier",
     "EffectiveRecord",
     "GoverningProseEntry",
     "OverrideApplicationError",
@@ -97,6 +101,32 @@ class OverrideApplicationError(ValueError):
 
 
 @dataclass(frozen=True)
+class EffectiveFactQualifier:
+    """A fact's applicability limitation, carrying its *own* authority.
+
+    Separate from the fact's provenance on purpose. A fact and the limitation
+    on it are usually stated by *different* spans: Grappled's surcharge is one
+    clause and the size exception limiting it is another. Merging them into the
+    fact's span set would make *"this limitation comes from span Y"*
+    indistinguishable from the fact's own accounting, which is why the
+    qualifier is addressed by its own
+    :attr:`~afterworlds.ingestion.mechanical.representation.ProvenanceTargetKind.FACT_QUALIFIER`
+    target rather than sharing the fact's.
+
+    ``span_ids`` is empty exactly when an override supplied the qualifier, in
+    which case ``supplied_by_*`` names it — the same convention
+    :class:`EffectiveFact` already uses. A qualifier's authorship always
+    matches its fact's, because a qualifier only ever arrives with the fact it
+    limits: from the base projection, or from a component patch supplying both.
+    """
+
+    applies_when: Applicability
+    span_ids: tuple[str, ...] = ()
+    supplied_by_override_id: str | None = None
+    supplied_by_origin: OverrideOriginEnum | None = None
+
+
+@dataclass(frozen=True)
 class EffectiveFact:
     """One typed fact in the effective view, with its exact provenance."""
 
@@ -111,6 +141,10 @@ class EffectiveFact:
     #: The override that supplied this fact, when one did.
     supplied_by_override_id: str | None = None
     supplied_by_origin: OverrideOriginEnum | None = None
+    #: This fact's own condition, or ``None`` when it is limited only by its
+    #: enclosing component or option. Held on the fact so suppression cannot
+    #: leave a qualifier behind: removing the fact removes it by construction.
+    qualifier: EffectiveFactQualifier | None = None
 
 
 @dataclass(frozen=True)
@@ -276,6 +310,33 @@ def _provenance_index(
     }
 
 
+def _base_qualifier(
+    component: ComponentDraft,
+    fact: MechanicalFact,
+    option_key: str,
+    spans: dict[tuple[ProvenanceTargetKind, tuple[str, ...]], tuple[str, ...]],
+) -> EffectiveFactQualifier | None:
+    """One base fact's qualifier, with the qualifier's own source spans."""
+    applies_when = component.qualifier_for(fact, option_key)
+    if applies_when is None:
+        return None
+    return EffectiveFactQualifier(
+        applies_when=applies_when,
+        span_ids=spans.get(
+            (
+                ProvenanceTargetKind.FACT_QUALIFIER,
+                fact_qualifier_target_key(
+                    component.record_key,
+                    component.semantic_key,
+                    fact_key(fact),
+                    option_key,
+                ),
+            ),
+            (),
+        ),
+    )
+
+
 def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
     """Assemble the immutable base projection as an effective view."""
     draft = candidate.representation
@@ -325,6 +386,10 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                         ),
                         (),
                     ),
+                    # The qualifier's own spans, keyed by its own target kind.
+                    # Same coordinates as the fact, different authority — which
+                    # is exactly why the kind separates them.
+                    qualifier=_base_qualifier(component, fact, option_key, spans),
                 )
                 for fact in scoped
             )
@@ -390,6 +455,19 @@ def _component_from_body(
     semantic_key: str,
     entry: EffectiveOverrideEntry,
 ) -> EffectiveComponent:
+    #: Qualifiers by the exact scope they address, so a body's qualifier for
+    #: one option's fact can never attach to an identical fact in another arm.
+    #: A patch body reaches here already parsed, so its coordinates are
+    #: strings — but this dict is keyed by them, and a malformed pair would
+    #: raise while building it rather than being refused as a patch. Filtering
+    #: keeps the same rule the representation applies: an invalid coordinate is
+    #: never consumed by code that assumes a valid one.
+    supplied_qualifiers = {
+        (q.option_key, q.fact_key): q.applies_when
+        for q in body.fact_qualifiers
+        if type(q.fact_key) is str and type(q.option_key) is str
+    }
+
     def _supplied(
         facts: tuple[MechanicalFact, ...], option_key: str | None
     ) -> tuple[EffectiveFact, ...]:
@@ -400,6 +478,24 @@ def _component_from_body(
                 option_key=option_key,
                 supplied_by_override_id=entry.override_id,
                 supplied_by_origin=entry.origin,
+                # Complete like every other field of a component patch: a
+                # qualifier the body omits is genuinely absent, never inherited
+                # from the component being replaced. It is override authority,
+                # so it names 5c spans nowhere.
+                qualifier=(
+                    EffectiveFactQualifier(
+                        applies_when=applies_when,
+                        supplied_by_override_id=entry.override_id,
+                        supplied_by_origin=entry.origin,
+                    )
+                    if (
+                        applies_when := supplied_qualifiers.get(
+                            (option_key or "", fact_key(f))
+                        )
+                    )
+                    is not None
+                    else None
+                ),
             )
             for f in facts
         )
@@ -680,6 +776,7 @@ def apply_override_set(
         if key not in disabled_records
     )
     _verify_final_option_sets(surviving, provenance)
+    _verify_final_participant_rules(surviving, provenance)
     return EffectiveAuthority(
         binding=binding,
         records=surviving,
@@ -760,6 +857,97 @@ def _verify_final_option_sets(
                     "the applied override set leaves an invalid actor choice "
                     f"(reported against the last override to touch it): "
                     f"{'; '.join(violations)}",
+                )
+
+
+def _effective_qualifiers(component: EffectiveComponent) -> tuple[FactQualifier, ...]:
+    """The component's per-fact conditions, projected back into draft types.
+
+    The effective view holds a qualifier on its fact; the representation rule
+    reads them as a component-level set. Converting here keeps the rule itself
+    single-sourced rather than growing a second effective-view spelling of it.
+    """
+    return (
+        *(
+            FactQualifier(
+                fact_key=f.fact_key,
+                option_key="",
+                applies_when=f.qualifier.applies_when,
+            )
+            for f in component.facts
+            if f.qualifier is not None
+        ),
+        *(
+            FactQualifier(
+                fact_key=f.fact_key,
+                option_key=option.semantic_key,
+                applies_when=f.qualifier.applies_when,
+            )
+            for option in component.options
+            for f in option.facts
+            if f.qualifier is not None
+        ),
+    )
+
+
+def _verify_final_participant_rules(
+    records: tuple[EffectiveRecord, ...], provenance: list[AppliedOverride]
+) -> None:
+    """Every surviving component must still establish the counterparts it names.
+
+    The sibling of :func:`_verify_final_option_sets`, and it exists for exactly
+    the same reason. ``COUNTERPART`` is only meaningful where a closed
+    structure in the same component establishes the binary relation, and no
+    per-scope operation can see whether that relation survives: a complete
+    component patch supplies its own facts without seeing what it replaced, and
+    a fact-scoped ``DISABLE`` is not resolved into removal until
+    ``_finalize_component``. Two ways an ordered set could otherwise publish
+    what the base schema refuses:
+
+    * a ``REPLACE``/``APPEND`` introducing a ``COUNTERPART``-paid cost, or a
+      counterpart-bearing size test, into a component that establishes nothing;
+    * a ``DISABLE``/``REPLACE`` removing the sole
+      :class:`~afterworlds.ingestion.mechanical.representation.MovementTransportFact`
+      while counterpart-bearing authority survives beside it.
+
+    Both leave a claim about a creature the typed structure can no longer name
+    — the "some other entity in the prose" failure the role exists to prevent.
+
+    Checked after the whole ordered set has been applied and suppression
+    resolved, so an intermediate shape a later entry legitimately repairs is
+    never rejected, and failing through the established ``INVALID_OVERRIDE``
+    path. The rule itself is
+    :func:`~afterworlds.ingestion.mechanical.representation.component_participant_violations`
+    — the same one the corpus is built under, asked of the effective view
+    projected back into the representation's own types. It is not restated
+    here, because a second copy would drift from the schema it is enforcing.
+    """
+    for record in records:
+        for component in record.components:
+            violations = component_participant_violations(
+                tuple(f.fact for f in component.facts),
+                tuple(
+                    ComponentOption(
+                        semantic_key=option.semantic_key,
+                        facts=tuple(f.fact for f in option.facts),
+                        applies_when=option.applies_when,
+                    )
+                    for option in component.options
+                ),
+                component.applies_when,
+                f"component {record.semantic_key}/{component.semantic_key}",
+                # A qualifier can name the counterpart too, so the final state
+                # has to be asked about it as well — otherwise an override
+                # could introduce a counterpart-bearing limitation into a
+                # component that establishes nothing.
+                _effective_qualifiers(component),
+            )
+            if violations:
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves a counterpart reference "
+                    "nothing establishes (reported against the last override to "
+                    f"touch it): {'; '.join(violations)}",
                 )
 
 
@@ -1053,7 +1241,7 @@ def _apply_entry(
                 f"target {target.describe()} names no fact of "
                 f"{target.component_key!r}",
             )
-        fact_index, _old = position
+        fact_index, _ = position
         if (
             new_key != target.fact_key
             and _find_fact(component, new_key, option_key) is not None
@@ -1064,6 +1252,14 @@ def _apply_entry(
                 f"{target.component_key!r}",
             )
         facts = list(_scope())
+        # REPLACE supplies a *complete* fact, so the replacement is
+        # unqualified: the old fact's qualifier leaves the view with the fact
+        # it named. Carrying it forward would preserve a source-authored
+        # limitation the replacement payload never declares, and nothing in
+        # REPLACE constrains the replacement's family — the same size clause
+        # could end up limiting unrelated authority while citing the source
+        # span that states it. A replacement meant to stay conditional is
+        # authored as a component patch carrying its own ``fact_qualifiers``.
         facts[fact_index] = EffectiveFact(
             fact_key=new_key,
             fact=new_fact,

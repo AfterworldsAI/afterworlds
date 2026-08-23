@@ -58,8 +58,10 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
+    LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
+    UnsupportedSchemaVersionError,
     applicability_payload,
     applicability_payload_violations,
     identify_projection,
@@ -78,8 +80,10 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     ComponentOption,
     CreatureSize,
+    FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
+    ParticipantRole,
     Phase,
     ProseBindingDraft,
     ProvenanceClaim,
@@ -291,6 +295,9 @@ def persist_draft(
                         component_key=component.semantic_key,
                         option_key=option_key,
                         fact_key=key_,
+                        applies_when=applicability_payload(
+                            component.qualifier_for(fact, option_key)
+                        ),
                         family=str(fact_payload(fact)["family"]),
                         payload=fact_payload(fact),
                     )
@@ -390,6 +397,13 @@ def _applicability_from_row(
                         None if c["relation"] is None else SizeRelation(c["relation"])
                     ),
                     at_least=c["at_least"],
+                    at_most=c["at_most"],
+                    measured=ParticipantRole(c["measured"]),
+                    reference=(
+                        None
+                        if c["reference"] is None
+                        else ParticipantRole(c["reference"])
+                    ),
                 )
                 for c in raw["any_of"]
             ),
@@ -542,6 +556,37 @@ def reconstruct_candidate(
         for a in raw.acceptances
     )
 
+    def _qualifiers_for(c: MechanicalComponentORM) -> tuple[FactQualifier, ...]:
+        """Rebuild a component's per-fact conditions from its own fact rows.
+
+        The qualifier lives on the fact row, so reconstruction reads it back
+        from the exact scope it was written in — no join, and no way for a
+        qualifier to be resurrected against a fact that is no longer there.
+        """
+        rebuilt: list[FactQualifier] = []
+        for f in raw.facts:
+            if f.applies_when is None:
+                continue
+            if (f.record_key, f.component_key) != (c.record_key, c.semantic_key):
+                continue
+            qualifier = _applicability_from_row(
+                f.applies_when,
+                "rp_mech_facts",
+                f"{f.record_key}/{f.component_key}/{f.option_key}/{f.fact_key}",
+            )
+            # ``_applicability_from_row`` returns None only for a NULL column,
+            # which the guard above already excluded; asserting it keeps the
+            # non-optional field honest instead of coercing a None into one.
+            assert qualifier is not None
+            rebuilt.append(
+                FactQualifier(
+                    fact_key=f.fact_key,
+                    option_key=f.option_key,
+                    applies_when=qualifier,
+                )
+            )
+        return tuple(rebuilt)
+
     components = tuple(
         ComponentDraft(
             record_key=c.record_key,
@@ -563,6 +608,7 @@ def reconstruct_candidate(
             applies_when=_applicability_from_row(
                 c.applies_when, "rp_mech_components", f"{c.record_key}/{c.semantic_key}"
             ),
+            fact_qualifiers=_qualifiers_for(c),
             # Options are rebuilt in canonical key order, matching the payload,
             # so a reconstruction never depends on row order.
             options=tuple(
@@ -817,7 +863,23 @@ def verify_persisted_state(
         # exception to a caller collecting findings.
         return (f"projection {uuid_}: persisted state does not reconstruct: {exc}",)
 
-    reidentified = identify_projection(reconstructed)
+    try:
+        reidentified = identify_projection(reconstructed)
+    except (UnsupportedSchemaVersionError, LegacySchemaPayloadError) as exc:
+        # Two ways the stored declaration and the stored rows can disagree, and
+        # one disposition. Either the version is one this build cannot
+        # serialize, or the rows carry meaning that version has no key for — a
+        # schema-2 projection whose fact row holds a schema-3 qualifier, say.
+        # Both are tamper or a downgrade, and both are reported for the same
+        # reason a row that cannot rebuild is: this function's contract is to
+        # *collect* findings, so raising past a caller assembling them would
+        # destroy the rest of the report. Failing closed and reporting are the
+        # same act here — no identity is derived either way.
+        #
+        # This is also why the digest below is safe. It re-serializes the same
+        # rows and can raise both of these itself, but it is only reached once
+        # this call has proved neither fires — an ordering, not a coincidence.
+        return (f"projection {uuid_}: {exc}",)
 
     if reidentified.projection_uuid != uuid_:
         findings.append(

@@ -296,6 +296,51 @@ says *"has the Blinded condition"*), Exhaustion's cumulative level accrual, deat
 level removal on a Long Rest, movement options and per-foot movement cost, size-comparative eligibility,
 Petrified's transformation, and one sequencing clause.
 
+**Narrowed by representation schema 3 (conditions-1 semantic review).** Semantic review rejected the
+conditions-1 schema-2 proposal because the union could not carry Grappled > Movable faithfully, and in
+three respects could not carry it *at all*: creature-to-creature transport had no family, so *"The
+grappler can drag or carry you when it moves"* was recorded as supporting authority and produced no
+typed fact; a movement cost named no payer, so Grappled's grappler-paid surcharge and a subject-paid one
+were the same typed authority; and a size comparison kept neither operand, so *"you are two or more
+sizes smaller than it"* and its reverse were indistinguishable. A fourth gap surfaced in the same
+review: Prone's *"half your Speed (round down)"* stated a rounding the union could not record at all.
+
+Schema 3 discharges those four. Added: `MovementTransportFact` over a closed `ParticipantRole`
+(`SUBJECT`/`COUNTERPART`) and `TransportKind`; `MovementCostFact.payer`; `MovementCostFact.rounding`
+over a `RoundingRule` whose `DOWN` default is derived from the Rules Glossary *Round Down* entry rather
+than from a runtime arithmetic convention; and `SizeComparison.measured`/`reference`/`at_most`.
+`COUNTERPART` is admissible only where a closed structure in the same component establishes the binary
+relation — in schema 3, `MovementTransportFact` alone — so the role can never become "some other entity
+the prose mentions".
+
+**Retained successors, none of them forced by conditions-1.** Each was surfaced by the schema-3 sibling
+audit and is deliberately not decided here:
+
+* **Source-authored cross-record suppression of a surcharge.** Shambling Mound's Engulf states *"costing
+  it no extra movement"*, waiving a surcharge defined in the Grappled condition — a different record.
+  Swimming and Climbing state their own waivers *beside* their own surcharge, which is an applicability
+  negation the union already has, so the Mound is the only instance of the cross-record form. This is
+  **base-projection semantics and is not a `RuleOverride`**: an override is authored suppression, while
+  this is what the source itself says. Owner-confirmed as deferred; unresolved.
+* **Counterpart establishment outside transport.** Unarmed Strike's Grapple/Shove size restriction
+  establishes its counterpart through an attack/target relation, so it cannot use `COUNTERPART` until
+  the admitted set of counterpart-establishing structures is widened. That widening is a validation
+  change, not necessarily a schema mint.
+* **Third-party size comparisons.** Black Pudding and Ochre Jelly Split compare a created creature to
+  the originating one; neither operand is the record's subject, so the two-member role vocabulary does
+  not reach them. Likely a creature-creation structure rather than an applicability condition.
+* **Ratio-form movement costs.** Gust of Wind, Plant Growth, and Wall of Thorns state *"spend 4 feet of
+  movement for every 1 foot"*. `MovementCostKind` has no ratio member, and converting the ratio to an
+  equivalent surcharge would record a claim the source never makes.
+* **Rounding supplied by the governing rule rather than stated locally.** Where a future fractional
+  quantity does not restate its rounding, the value comes from the *Round Down* glossary entry, which is
+  itself corpus content awaiting a batch. A fact must not claim provenance over a span it did not
+  account for.
+* **Applicability over a capability predicate.** Swimming's and Climbing's *"if you have a Swim Speed and
+  use it to swim"* ranges over possessing and using a movement mode, outside `ApplicabilityKind`'s four
+  closed vocabularies. Related to the targeting-restriction disposition above: revisit when a batch
+  forces a referent set that closes.
+
 Still outstanding inside CRD Issue 5d: **no production accepted authority has been reviewed or
 committed**, so the production SRD 5.2.1 mechanical projection remains unpublished and inactive; and the
 obsolete `MechanicalEntity` path and the legacy chunk-targeting prose override path both remain in place

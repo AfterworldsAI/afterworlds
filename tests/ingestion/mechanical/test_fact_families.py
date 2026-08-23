@@ -75,6 +75,8 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementCostKind,
     MovementMode,
     MovementPermissionFact,
+    MovementTransportFact,
+    ParticipantRole,
     ProgressionEntryFact,
     QuantityMultiplierFact,
     RangeKind,
@@ -110,6 +112,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TrackedQuantity,
     TransformationFact,
     TransformedForm,
+    TransportKind,
     UnknownFactFamilyError,
     WeaponProperty,
     WeaponPropertyFact,
@@ -246,7 +249,14 @@ EXEMPLARS: dict[FactFamily, Any] = {
     FactFamily.MOVEMENT_COST: MovementCostFact(
         kind=MovementCostKind.PER_FOOT_SURCHARGE,
         amount=MovementAmount.FEET,
+        payer=ParticipantRole.COUNTERPART,
         feet=1,
+    ),
+    # Grappled: "The grappler can drag or carry you when it moves".
+    FactFamily.MOVEMENT_TRANSPORT: MovementTransportFact(
+        carrier=ParticipantRole.COUNTERPART,
+        carried=ParticipantRole.SUBJECT,
+        kind=TransportKind.PERMITTED,
     ),
     # Prone: "your only movement options are to crawl or ...".
     FactFamily.MOVEMENT_PERMISSION: MovementPermissionFact(mode=MovementMode.CRAWL),

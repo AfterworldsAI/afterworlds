@@ -49,6 +49,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ApplicabilityKind,
     Comparison,
     CreatureSize,
+    ParticipantRole,
     SizeComparison,
     SizeRelation,
     TrackedQuantity,
@@ -72,8 +73,16 @@ SIZE = Applicability(
     kind=ApplicabilityKind.SIZE_COMPARISON,
     negated=True,
     any_of=(
-        SizeComparison(category=CreatureSize.TINY),
-        SizeComparison(relation=SizeRelation.SMALLER, at_least=2),
+        SizeComparison(
+            category=CreatureSize.TINY,
+            measured=ParticipantRole.SUBJECT,
+        ),
+        SizeComparison(
+            relation=SizeRelation.SMALLER,
+            at_least=2,
+            measured=ParticipantRole.SUBJECT,
+            reference=ParticipantRole.COUNTERPART,
+        ),
     ),
 )
 
@@ -249,7 +258,12 @@ def test_a_non_integer_size_distance_is_a_finding_not_a_type_error(
     bad: object,
 ) -> None:
     findings = size_comparison_violations(
-        SizeComparison(relation=SizeRelation.SMALLER, at_least=bad)  # type: ignore[arg-type]
+        SizeComparison(
+            relation=SizeRelation.SMALLER,
+            at_least=bad,  # type: ignore[arg-type]
+            measured=ParticipantRole.SUBJECT,
+            reference=ParticipantRole.COUNTERPART,
+        )
     )
     assert any("not an integer" in f for f in findings)
 
@@ -262,7 +276,12 @@ def test_the_type_domain_reports_before_the_range_domain() -> None:
     supplied.
     """
     findings = size_comparison_violations(
-        SizeComparison(relation=SizeRelation.SMALLER, at_least=True)  # type: ignore[arg-type]
+        SizeComparison(
+            relation=SizeRelation.SMALLER,
+            at_least=True,  # type: ignore[arg-type]
+            measured=ParticipantRole.SUBJECT,
+            reference=ParticipantRole.COUNTERPART,
+        )
     )
     assert findings == ["size distance is bool True, not an integer"]
 
@@ -270,7 +289,15 @@ def test_the_type_domain_reports_before_the_range_domain() -> None:
 def test_a_well_formed_applicability_still_reports_nothing() -> None:
     assert applicability_violations(THRESHOLD) == []
     assert applicability_violations(SIZE) == []
-    assert size_comparison_violations(SizeComparison(category=CreatureSize.TINY)) == []
+    assert (
+        size_comparison_violations(
+            SizeComparison(
+                category=CreatureSize.TINY,
+                measured=ParticipantRole.SUBJECT,
+            )
+        )
+        == []
+    )
 
 
 # ---------------------------------------------------------------------------

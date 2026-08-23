@@ -43,6 +43,7 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_1_VERSION,
+    SCHEMA_2_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -77,6 +78,9 @@ from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 # ---------------------------------------------------------------------------
 
 SCHEMA_1_HASH = "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"
+#: Retained as a historical literal after schema 3 succeeded it. It is no
+#: longer what the build computes, and it is kept so the succession itself can
+#: be asserted: three merged contracts, three distinct identities.
 SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
 
 LEGACY_UUID = "5925934a-3692-551d-babe-2df5a6fa6752"
@@ -329,21 +333,54 @@ def test_the_fail_closed_check_reaches_the_identity_path() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Schema-2 bytes and identity are untouched
+# The schema-1 boundary survives every later succession
 # ---------------------------------------------------------------------------
 
 
-def test_the_schema_2_structural_hash_is_unchanged() -> None:
-    assert representation_schema_hash() == SCHEMA_2_HASH
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-2"
+def test_each_merged_schema_version_has_its_own_structural_identity() -> None:
+    """Schema 3 succeeded schema 2; neither may reuse an earlier identity.
+
+    This test previously pinned the current hash to schema 2's, asserting that
+    the schema-1 work had not disturbed the then-current contract. Schema 3
+    changes that contract deliberately, so what is asserted now is the property
+    that outlives any one version: each merged contract has a distinct
+    structural identity, and the schema-1 literal above is untouched by both
+    successions.
+    """
+    current = representation_schema_hash()
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-3"
+    assert len({SCHEMA_1_HASH, SCHEMA_2_HASH, current}) == 3
 
 
-def test_the_schema_2_component_payload_still_emits_both_keys() -> None:
-    payload = representation_payload(legacy_draft())
+def test_the_schema_2_component_payload_still_emits_both_schema_2_keys() -> None:
+    """Schema 2's own contract, restored (PR #157, round 9).
+
+    ``b898922`` widened this assertion to include ``fact_qualifiers`` when
+    schema 3 added it, which absorbed a schema-3 key into the schema-2
+    expectation and deleted the only guard against exactly that. Each merged
+    version is asserted separately now, and this one is asked of schema 2
+    itself rather than of whatever the current schema happens to emit.
+    """
+    payload = representation_payload(legacy_draft(), schema_version=SCHEMA_2_VERSION)
     (component,) = payload["components"]  # type: ignore[index]
     assert set(component) == LEGACY_COMPONENT_KEYS | {"applies_when", "options"}
     assert component["applies_when"] is None
     assert component["options"] == []
+    assert "fact_qualifiers" not in component
+
+
+def test_the_current_component_payload_adds_the_schema_3_key_beside_them() -> None:
+    """Schema 3's own contract, as its own assertion."""
+    payload = representation_payload(legacy_draft())
+    (component,) = payload["components"]  # type: ignore[index]
+    assert set(component) == LEGACY_COMPONENT_KEYS | {
+        "applies_when",
+        "options",
+        "fact_qualifiers",
+    }
+    assert component["applies_when"] is None
+    assert component["options"] == []
+    assert component["fact_qualifiers"] == []
 
 
 def test_schema_1_and_schema_2_are_different_projections() -> None:

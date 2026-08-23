@@ -107,13 +107,25 @@ class GameMasterComponent:
     #: in :attr:`options` instead, because they are mutually exclusive: putting
     #: them here would present "you may crawl" and "you may stand up" as
     #: simultaneously applicable, which is not what the rule says.
+    #:
+    #: **A fact's own limitation travels with it.** Each entry carries its
+    #: :attr:`~...application.EffectiveFact.qualifier`, so a conditional fact
+    #: can never be read here as unconditional: Grappled's surcharge applies
+    #: *"unless you are Tiny or two or more sizes smaller than it"* while the
+    #: transport permission beside it is unconditional, and the two are
+    #: distinguishable without consulting anything outside the fact. The
+    #: qualifier also carries its own provenance, so the span stating the
+    #: limitation is distinguishable from the spans accounting for the fact
+    #: itself — they are usually different clauses.
     structured_context: tuple[EffectiveFact, ...]
     span_ids: tuple[str, ...]
     supplied_by_override_id: str | None
     #: The component's exhaustive actor choice, when it states one. Exactly one
     #: option applies per exercise of the choice; the reader picks.
     options: tuple[EffectiveOption, ...] = ()
-    #: When the component applies at all, when the source conditions it.
+    #: When the *whole component* applies, when the source conditions it.
+    #: Narrower conditions the source puts on individual facts are on those
+    #: facts, not here; the two compose conjunctively.
     applies_when: Applicability | None = None
 
 
