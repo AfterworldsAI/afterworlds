@@ -60,6 +60,7 @@ from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
     ProjectionCandidate,
     ReleaseBinding,
+    UnsupportedSchemaVersionError,
     applicability_payload,
     applicability_payload_violations,
     identify_projection,
@@ -861,7 +862,16 @@ def verify_persisted_state(
         # exception to a caller collecting findings.
         return (f"projection {uuid_}: persisted state does not reconstruct: {exc}",)
 
-    reidentified = identify_projection(reconstructed)
+    try:
+        reidentified = identify_projection(reconstructed)
+    except UnsupportedSchemaVersionError as exc:
+        # A stored declaration naming a version this build cannot serialize is
+        # tamper or a downgrade, and it is reported for the same reason a row
+        # that cannot rebuild is: this function's contract is to *collect*
+        # findings, so raising past a caller assembling them would destroy the
+        # rest of the report. Failing closed and reporting are the same act
+        # here — no identity is derived under an unrecognised contract.
+        return (f"projection {uuid_}: {exc}",)
 
     if reidentified.projection_uuid != uuid_:
         findings.append(

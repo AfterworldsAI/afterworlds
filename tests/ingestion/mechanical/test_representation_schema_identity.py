@@ -47,6 +47,7 @@ from afterworlds.ingestion.mechanical.persistence import (
     verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.projection import (
+    SCHEMA_2_VERSION,
     identify_projection,
     projection_payload,
     representation_payload,
@@ -91,8 +92,21 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
+#: A declaration this build does not implement. Used only where nothing is
+#: serialized *under* it — an arbitrary version must still move an identity and
+#: an oracle payload, and neither of those asks this build to produce a
+#: component payload shaped for a union it has never seen.
 OTHER_VERSION = "5d-representation-schema-99"
 OTHER_HASH = "9" * 64
+
+#: The real contract schema 3 succeeded, for everything that does serialize.
+#: Since PR #157 round 9 a payload can only be produced under a version this
+#: build has a component key set for — a fabricated one fails closed rather
+#: than silently borrowing the current shape, which is what it used to do.
+#: Schema 2 is the truer stand-in anyway: an actual superseded union, not a
+#: hypothetical one.
+PRIOR_VERSION = SCHEMA_2_VERSION
+PRIOR_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
 
 
 # ---------------------------------------------------------------------------
@@ -125,16 +139,32 @@ def test_a_candidate_of_only_unaffected_families_still_reidentifies() -> None:
     """The exact defect this identity exists for.
 
     Nothing about this candidate's content mentions a family the expansion
-    added or reshaped, so without the schema declaration it would carry the
-    same UUID under both union contracts.
+    added or reshaped: the records block and the component's own facts
+    serialize byte-identically under both contracts. Without the schema
+    declaration in the payload, that would carry the same UUID under two
+    different unions.
+
+    The whole-payload equality this once asserted was only ever satisfiable
+    because a fabricated version silently borrowed the current component
+    shape — the borrowing that PR #157 round 9 removed. Every merged version
+    now has a distinct component key set by construction
+    (``test_no_two_merged_versions_share_a_key_set``), which is a stronger
+    guarantee than the one this test needed: content alone can no longer
+    collide across contracts even before the declaration is consulted.
     """
     here = candidate_of(RELEASE_BINDING, build_ledger(), UNAFFECTED_ONLY)
-    there = replace(here, schema_version=OTHER_VERSION, schema_hash=OTHER_HASH)
+    there = replace(here, schema_version=PRIOR_VERSION, schema_hash=PRIOR_HASH)
+    here_repr = projection_payload(here)["representation"]
+    there_repr = projection_payload(there)["representation"]
 
-    # The content really is identical — this is what made the omission invisible.
-    assert projection_payload(here)["representation"] == (
-        projection_payload(there)["representation"]
-    )
+    # The content really is identical — this is what made the omission
+    # invisible. Asserted where it holds: the records, and the facts inside the
+    # component, are the same bytes under both unions.
+    assert here_repr["records"] == there_repr["records"]  # type: ignore[index]
+    (here_component,) = here_repr["components"]  # type: ignore[index]
+    (there_component,) = there_repr["components"]  # type: ignore[index]
+    assert here_component["facts"] == there_component["facts"]
+
     assert (
         identify_projection(here).projection_uuid
         != identify_projection(there).projection_uuid
@@ -143,7 +173,7 @@ def test_a_candidate_of_only_unaffected_families_still_reidentifies() -> None:
 
 def test_two_schema_versions_reidentify_the_bounded_fixture() -> None:
     base = candidate_of(RELEASE_BINDING, build_ledger(), build_representation())
-    other = replace(base, schema_version=OTHER_VERSION, schema_hash=OTHER_HASH)
+    other = replace(base, schema_version=PRIOR_VERSION, schema_hash=PRIOR_HASH)
     assert (
         identify_projection(base).projection_uuid
         != identify_projection(other).projection_uuid
@@ -154,7 +184,9 @@ def test_the_version_and_the_hash_each_move_the_identity() -> None:
     """Both halves are identity-bearing, not just whichever one a test perturbs."""
     base = candidate_of(RELEASE_BINDING, build_ledger(), build_representation())
     uuid_ = identify_projection(base).projection_uuid
-    only_version = replace(base, schema_version=OTHER_VERSION)
+    # The version half must name a contract this build can serialize; the hash
+    # half is free to be arbitrary, because nothing is serialized under it.
+    only_version = replace(base, schema_version=PRIOR_VERSION)
     only_hash = replace(base, schema_hash=OTHER_HASH)
     assert identify_projection(only_version).projection_uuid != uuid_
     assert identify_projection(only_hash).projection_uuid != uuid_
@@ -214,15 +246,15 @@ def test_reconstruction_reads_the_stored_declaration_not_current_code(
         RELEASE_BINDING,
         build_ledger(),
         build_representation(),
-        schema_version=OTHER_VERSION,
-        schema_hash=OTHER_HASH,
+        schema_version=PRIOR_VERSION,
+        schema_hash=PRIOR_HASH,
     )
     identified = identify_projection(stale)
     persist_draft(session, identified, now=NOW)
     session.flush()
 
     rebuilt = reconstruct_candidate(session, identified.projection_uuid)
-    assert (rebuilt.schema_version, rebuilt.schema_hash) == (OTHER_VERSION, OTHER_HASH)
+    assert (rebuilt.schema_version, rebuilt.schema_hash) == (PRIOR_VERSION, PRIOR_HASH)
     assert rebuilt.schema_version != REPRESENTATION_SCHEMA_VERSION
     # And the stale declaration is *reported*, not silently accepted.
     assert validate_schema_binding(rebuilt)
@@ -242,8 +274,8 @@ def test_audit_retrieval_of_a_historical_projection_states_its_union(
             RELEASE_BINDING,
             build_ledger(),
             build_representation(),
-            schema_version=OTHER_VERSION,
-            schema_hash=OTHER_HASH,
+            schema_version=PRIOR_VERSION,
+            schema_hash=PRIOR_HASH,
         )
     )
     persist_draft(session, identified, now=NOW)
@@ -251,7 +283,7 @@ def test_audit_retrieval_of_a_historical_projection_states_its_union(
 
     rebuilt = reconstruct_candidate(session, identified.projection_uuid)
     assert rebuilt.classification.policy_version  # policy still stated
-    assert rebuilt.schema_version == OTHER_VERSION  # and now the union too
+    assert rebuilt.schema_version == PRIOR_VERSION  # and now the union too
 
 
 # ---------------------------------------------------------------------------
@@ -334,12 +366,43 @@ def test_tampering_with_the_persisted_declaration_is_detected(
     session.execute(
         update(MechanicalProjectionORM)
         .where(MechanicalProjectionORM.projection_uuid == identified.projection_uuid)
-        .values(representation_schema_version=OTHER_VERSION)
+        .values(representation_schema_version=PRIOR_VERSION)
     )
     session.flush()
 
     assert compute_persisted_state_digest(session, identified.projection_uuid) != before
     assert verify_persisted_state(session, identified.projection_uuid)
+
+
+def test_tampering_the_declaration_to_an_unknown_union_is_reported_not_raised(
+    session: Session,
+) -> None:
+    """The other tamper shape, and it must still come back as a finding.
+
+    Since PR #157 round 9 a payload cannot be produced under a version this
+    build has no key set for. That is deliberate — no identity is derived under
+    an unrecognised contract — but ``verify_persisted_state`` collects findings
+    for a caller, so raising past it would destroy the rest of the report. The
+    refusal and the report are the same act here.
+    """
+    identified = identify_projection(
+        candidate_of(RELEASE_BINDING, build_ledger(), build_representation())
+    )
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+    assert not verify_persisted_state(session, identified.projection_uuid)
+
+    session.execute(
+        update(MechanicalProjectionORM)
+        .where(MechanicalProjectionORM.projection_uuid == identified.projection_uuid)
+        .values(representation_schema_version=OTHER_VERSION)
+    )
+    session.flush()
+
+    findings = verify_persisted_state(session, identified.projection_uuid)
+    assert findings
+    assert any(OTHER_VERSION in f for f in findings)
 
 
 # ---------------------------------------------------------------------------
@@ -367,8 +430,8 @@ def test_the_gate_refuses_a_projection_whose_union_differs_from_the_oracle(
             RELEASE_BINDING,
             build_ledger(),
             build_representation(),
-            schema_version=OTHER_VERSION,
-            schema_hash=OTHER_HASH,
+            schema_version=PRIOR_VERSION,
+            schema_hash=PRIOR_HASH,
         )
     )
     persist_draft(session, identified, now=NOW)

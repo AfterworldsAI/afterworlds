@@ -193,3 +193,105 @@ an immutable base projection; the candidate's provenance is not rewritten by it.
 * The five further schema-3 successors retained in `known_unknowns.md`: counterpart establishment
   outside transport, third-party size comparisons, ratio-form movement costs, rounding supplied by
   the governing rule, and applicability over a capability predicate. Disposition: `out of scope`.
+
+---
+
+## Round 6 — P1: every merged schema version must serialize its own key set
+
+**Finding.** Schema 3 added `fact_qualifiers` to the canonical component payload while the
+serializer branched on **schema 1 only**. A schema-2 candidate fell through to current behaviour
+and gained a key its merged contract never had. `projection_payload` deliberately serializes
+reconstructed history under the candidate's *own* recorded version, so the extra key re-derived
+the projection UUID and payload hash and `verify_persisted_state` rejected otherwise unchanged
+schema-2 state. Schema 2 also silently serialized a nonempty schema-3 qualifier where schema 1
+refuses.
+
+**Reproduced before fixing, and proved reachable rather than latent.**
+
+```
+payload hash, this branch  : 8a57c1e239dd196d02c951dce5e780ab38447890b32db80a1b5fdd53cb97d345
+payload hash, merged shape : 5883adc051d22599856a5705c8bbfdab5c91e8e39b66fb22f4f11a2d9d88c39d
+agree                      : False
+```
+
+`reconstruct_candidate` reads `header.representation_schema_version` verbatim
+(`persistence.py:730`) with no version filter — that is why the `SCHEMA_1_VERSION` omission branch
+exists at all — and `verify_persisted_state` calls `identify_projection` directly rather than
+through `validate_schema_binding`.
+
+**Owner Decision (2026-08-22), superseding the earlier "no schema-2 reconstruction branch"
+direction.** That direction rested on the absence of accepted or published schema-2 authority, but
+the relevant boundary is *persisted identity*, not publication: CRD Issue 5d permits persisted
+proposed/draft state and requires persisted state to reconstruct deterministically.
+
+**How it slipped through.** `b898922` widened
+`test_the_current_component_payload_still_emits_both_schema_2_keys` to include `fact_qualifiers`
+instead of leaving the schema-2 assertion intact and adding a schema-3 one. That widening deleted
+the only guard, and nothing else pinned a merged version's payload shape when serializing under
+that version.
+
+**Fix — the general rule, not another version `if`.** `_MERGED_COMPONENT_FIELDS` gives every merged
+version its own explicit component key set; `_COMPONENT_FIELDS` pairs each post-schema-1 key with
+both its emitter and its `holds_meaning` proof, so the loop that omits a field is the loop that
+proves the field is empty. The registry rows are written as literals rather than keyed by
+`REPRESENTATION_SCHEMA_VERSION`, because keying the current row that way would let schema 4
+silently inherit schema 3's row and delete schema 3's — the exact failure the table exists to
+prevent. A module-level assertion requires the current version to have a row, so a mint that
+forgets one makes the current contract unserializable rather than quietly wrong.
+
+`UnsupportedSchemaVersionError` is distinct from `LegacySchemaPayloadError` on purpose: one means
+*this draft* says more than the named contract can hold, the other means the contract itself is
+unknown. The version is resolved once in `representation_payload`, before any component, so a
+draft with **no components** still fails closed instead of deriving an identity under a contract
+nobody recognises.
+
+**Canaries, one per merged version, independently captured.** Every `SCHEMA_2_*` literal in
+`test_review_round_9_schema_version_payloads.py` was produced by running the pre-change code at
+`7395c52` (a `git archive` export of `origin/main`, not a worktree), so the claim is falsifiable.
+The captured structural hash equals the `SCHEMA_2_HASH` literal `test_review_round_6_schema1_identity`
+already pins from its own independent capture — the cross-check that the export really ran old
+code. The widened round-6 assertion is split back into a schema-2 test and a separate schema-3 one.
+
+**Negative control.** Restoring the pre-fix resolution (schema 1 special-cased, everything else
+current) fails **16** tests.
+
+**Sibling audit — two more schema-3 payload changes, both `already safe (fails closed)`.**
+`SizeComparison` gained `at_most`/`measured`/`reference` and `MovementCostFact` gained
+`payer`/`rounding`. Neither can produce a *silent* identity divergence: both are refused at the
+reconstruction boundary (`any_of[0] is missing ['at_most', 'measured', 'reference']`,
+`movement_cost payload is missing ['payer', 'rounding']`), so a schema-2 projection containing one
+fails to reconstruct rather than re-identifying wrongly. Consequence stated rather than fixed: such
+a projection **cannot be verified at all**, and reproducing it would require per-version fact
+schemas plus a value for `payer` the source never stated. Found in this pass, before patching, and
+dispositioned — not a returning review finding.
+
+**No schema change.** Version and structural hash unmoved at
+`43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05`; schema-3 semantics,
+vocabulary, override behaviour, and current canonical payload untouched.
+
+**Two consequences found by the gate, not by review, and fixed in the same commit.**
+
+1. *`verify_persisted_state` must report an unrecognised declaration, not raise.* Failing closed
+   and collecting findings are the same act there: a stored `representation_schema_version` this
+   build cannot serialize is tamper or a downgrade, and raising past a caller assembling findings
+   would destroy the rest of the report — the same rule round 2 applied to the participant scan.
+   The `UnsupportedSchemaVersionError` is caught beside the existing
+   `PersistedStateReconstructionError` and returned as a finding. Negative control: removing the
+   catch fails the new tamper test with the raw exception.
+
+2. *`test_representation_schema_identity.py` used a fabricated `"5d-representation-schema-99"` in
+   seven places.* Those cases passed only because a fabricated version silently borrowed the
+   current component shape — the borrowing this remediation removes — so they were exercising the
+   defect. Five now use `SCHEMA_2_VERSION` with its real captured hash, which is the truer stand-in
+   (an actual superseded union rather than a hypothetical one). `OTHER_VERSION` is kept where
+   nothing is serialized under it: the oracle payload, the hash-only half of the perturbation test,
+   and the new unknown-declaration tamper case.
+
+   `test_a_candidate_of_only_unaffected_families_still_reidentifies` is the one whose assertion
+   changed rather than moved, and it is called out here because an edited identity canary is
+   exactly the shape this round's finding was about. Its whole-payload equality was satisfiable
+   *only* under the fabricated borrowing. It now asserts the equality where it holds — the records
+   block and the component's own facts are byte-identical across the two contracts — and still
+   asserts the UUIDs differ, which is the defect the declaration exists to prevent. The property it
+   used to need is now guaranteed structurally instead: no two merged versions share a component
+   key set, so content alone cannot collide across contracts before the declaration is consulted.
