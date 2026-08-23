@@ -4607,19 +4607,31 @@ def fact_qualifier_violations(
             findings.extend(drift)
             continue
         assert isinstance(qualifier, FactQualifier)
-        scope = (qualifier.option_key, qualifier.fact_key)
         where = (
             f"{tag}: fact qualifier {qualifier.fact_key}"
             if not qualifier.option_key
             else f"{tag} option {qualifier.option_key}: "
             f"fact qualifier {qualifier.fact_key}"
         )
-        if not isinstance(qualifier.fact_key, str) or not qualifier.fact_key.strip():
-            findings.append(f"{where}: names no fact")
+        # **Exact ``str``, and before ``scope`` is built or hashed.** The
+        # consumers decline anything that is not exactly a string, so an
+        # ``isinstance`` check here would disagree with them in both
+        # directions: a ``str`` subclass with ``__hash__ = None`` would reach
+        # the membership test below and raise, and an ordinarily hashable
+        # subclass would pass validation silently while every consumer dropped
+        # it — losing the qualifier with no finding to say so. The predicate is
+        # shared so the two can never drift again.
+        if type(qualifier.fact_key) is not str:
+            findings.append(f"{where}: fact key is not a string")
             continue
-        if not isinstance(qualifier.option_key, str):
+        if type(qualifier.option_key) is not str:
             findings.append(f"{where}: option scope is not a string")
             continue
+        if not qualifier.fact_key.strip():
+            findings.append(f"{where}: names no fact")
+            continue
+        assert _usable_qualifier_coordinates(qualifier)
+        scope = (qualifier.option_key, qualifier.fact_key)
         if scope in seen:
             findings.append(f"{where}: duplicate qualifier for one scoped fact")
         seen.add(scope)

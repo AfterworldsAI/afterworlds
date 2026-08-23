@@ -808,3 +808,95 @@ def test_a_malformed_coordinate_is_never_coerced_into_a_match() -> None:
         ]
         == set()
     )
+
+
+# ---------------------------------------------------------------------------
+# str subtypes are not strings here (Codex PR #157, P2 round 3)
+# ---------------------------------------------------------------------------
+#
+# The consumers decline anything that is not exactly ``str``. When the
+# validator used ``isinstance`` it disagreed with them in both directions, and
+# both were defects:
+#
+#   * a subclass with ``__hash__ = None`` passed validation and then raised in
+#     the membership test, destroying the collected report; and
+#   * an ordinarily hashable subclass passed validation with *no finding* while
+#     every consumer silently dropped it — losing authority with nothing to say
+#     so, which is the worse of the two.
+#
+# Both are asserted, because the second cannot be caught by "does it crash".
+
+
+class UnhashableKey(str):
+    """A str subclass that cannot be hashed at all."""
+
+    __hash__ = None  # type: ignore[assignment]
+
+
+class HashableKey(str):
+    """An ordinary str subclass — hashable, and still not exactly a str."""
+
+
+def _subtype_component(**coords: object) -> ComponentDraft:
+    return ComponentDraft(
+        record_key="condition.grappled",
+        semantic_key="movable",
+        handling=ComponentHandling.STRUCTURED,
+        facts=(GRAPPLED_TRANSPORT,),
+        fact_qualifiers=(
+            FactQualifier(
+                applies_when=GRAPPLED_SIZE_EXCEPTION,
+                **coords,  # type: ignore[arg-type]
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("label", "coords"),
+    [
+        ("unhashable fact_key", {"fact_key": UnhashableKey("a" * 16)}),
+        ("hashable fact_key subtype", {"fact_key": HashableKey("a" * 16)}),
+        (
+            "unhashable option_key",
+            {"fact_key": "a" * 16, "option_key": UnhashableKey("arm")},
+        ),
+        (
+            "hashable option_key subtype",
+            {"fact_key": "a" * 16, "option_key": HashableKey("arm")},
+        ),
+    ],
+    ids=["unhashable-fact", "subtype-fact", "unhashable-option", "subtype-option"],
+)
+def test_a_str_subtype_coordinate_is_reported_not_silently_dropped(
+    label: str, coords: dict[str, object]
+) -> None:
+    """The validator must agree with the consumers, in both directions."""
+    component = _subtype_component(**coords)
+    findings = _qualifier_findings(component)
+    assert findings, f"{label}: a subtype coordinate must produce a finding"
+    assert any("is not a string" in f for f in findings), findings
+    # And the whole pass still returns rather than raising.
+    assert validate_representation(
+        _draft_with(component), build_ledger(), bound_corpus()
+    )
+
+
+def test_a_hashable_subtype_matching_a_real_key_is_still_refused() -> None:
+    """The silent-loss case, stated directly.
+
+    A subclass carrying the exact text of a real fact key is hashable and
+    compares equal, so nothing crashes and nothing looks wrong — but the
+    consumers decline it, so without a finding the qualifier would vanish from
+    lookup and from provenance with no record that it ever existed.
+    """
+    real = fact_key(GRAPPLED_TRANSPORT)
+    component = _subtype_component(fact_key=HashableKey(real))
+    assert component.qualifier_for(GRAPPLED_TRANSPORT) is None
+    assert (
+        declared_provenance_targets(_draft_with(component))[
+            ProvenanceTargetKind.FACT_QUALIFIER
+        ]
+        == set()
+    )
+    assert any("is not a string" in f for f in _qualifier_findings(component))
