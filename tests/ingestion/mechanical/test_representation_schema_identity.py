@@ -481,7 +481,18 @@ def test_the_schema_payload_describes_the_serialized_contract() -> None:
         "actor",
         "context",
         "ability",
+        "skill",
     }
+    # A post-schema-3 field states its omission rule in the contract itself.
+    # The rule is part of the serialized grammar — a reader has to know that
+    # this key's absence is a declared state rather than lost content — so
+    # changing it has to move the identity rather than pass unnoticed.
+    skill = _field(roll["shape"], "skill")
+    assert skill["omitted_when_empty"] is True
+    assert skill["introduced_in"] == "5d-representation-schema-4"
+    # Fields that predate schema 4 carry no such flag: their unconditional
+    # emission is what holds the committed conditions-1 identities still.
+    assert "omitted_when_empty" not in _field(roll["shape"], "ability")
     # The enum inside is its admitted value set, and its optionality is a flag
     # rather than the Python spelling ``| None``.
     ability = _field(roll["shape"], "ability")

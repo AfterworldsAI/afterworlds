@@ -818,6 +818,33 @@ class Comparison(StrEnum):
     EQUALS = "equals"
     #: "When your Exhaustion level reaches 0".
     REACHES = "reaches"
+    #: "drinks less than half the required water for a day".
+    LESS_THAN = "less_than"
+
+
+class RequiredQuantity(StrEnum):
+    """A consumable the source keys to a printed per-size requirement table.
+
+    Shared with :class:`SizeKeyedQuantityFact`, so this is the vocabulary of
+    *what the table states*, not a vocabulary of the two clauses that test it.
+    """
+
+    WATER = "water"
+    FOOD = "food"
+
+
+class DamageOutcome(StrEnum):
+    """Whether a stated effect turns on damage having been taken.
+
+    *"unless it avoids taking any damage from the fall"* (Falling), *"ends early
+    ... if it takes any damage"* (Classes), *"It wakes up if it takes any
+    damage"* (Spells) — 25 rules across six top-level sections test a damage
+    result rather than a roll result, which is why this is not
+    ``AutomaticOutcome``.
+    """
+
+    ANY_DAMAGE = "any_damage"
+    NO_DAMAGE = "no_damage"
 
 
 class Phase(StrEnum):
@@ -860,6 +887,15 @@ class ApplicabilityKind(StrEnum):
     SIZE_COMPARISON = "size_comparison"
     TRIGGER = "trigger"
     PHASE = "phase"
+    #: "On a successful check, any damage ... is halved" — 112 rules / 9 sections.
+    ROLL_OUTCOME = "roll_outcome"
+    #: "unless it avoids taking any damage from the fall" — 25 rules / 6 sections.
+    DAMAGE_OUTCOME = "damage_outcome"
+    #: "drinks less than half the required water for a day". The operand is the
+    #: record's own printed requirement table, not world-state judgement.
+    CONSUMPTION_THRESHOLD = "consumption_threshold"
+    #: "A creature that eats nothing for 5 days".
+    ELAPSED_DURATION = "elapsed_duration"
 
 
 class Currency(StrEnum):
@@ -4065,6 +4101,15 @@ _register_post_schema_3(
         introduced_in="5d-representation-schema-4",
         is_empty=_empty_false,
     ),
+    *(
+        _PostSchema3Field(
+            owner="Applicability",
+            key=key,
+            introduced_in="5d-representation-schema-4",
+            is_empty=_empty_none,
+        )
+        for key in ("outcome", "damage_outcome", "required_quantity", "fraction", "unit")
+    ),
 )
 
 
@@ -4191,6 +4236,17 @@ class Applicability:
     trigger: RecoveryTrigger | None = None
     #: PHASE
     phase: Phase | None = None
+    #: ROLL_OUTCOME — reuses the existing automatic-outcome vocabulary rather
+    #: than a second spelling of "on a success".
+    outcome: AutomaticOutcome | None = None
+    #: DAMAGE_OUTCOME
+    damage_outcome: DamageOutcome | None = None
+    #: CONSUMPTION_THRESHOLD — the requirement tested, and the fraction of it.
+    #: ``comparison`` carries the direction, so no second comparison spelling.
+    required_quantity: RequiredQuantity | None = None
+    fraction: Rational | None = None
+    #: ELAPSED_DURATION — ``value`` carries the count, this its unit.
+    unit: TimeUnit | None = None
 
 
 @dataclass(frozen=True)
@@ -4523,10 +4579,28 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     ApplicabilityKind.SIZE_COMPARISON: frozenset({"any_of"}),
     ApplicabilityKind.TRIGGER: frozenset({"trigger"}),
     ApplicabilityKind.PHASE: frozenset({"phase"}),
+    ApplicabilityKind.ROLL_OUTCOME: frozenset({"outcome"}),
+    ApplicabilityKind.DAMAGE_OUTCOME: frozenset({"damage_outcome"}),
+    ApplicabilityKind.CONSUMPTION_THRESHOLD: frozenset(
+        {"required_quantity", "fraction", "comparison"}
+    ),
+    ApplicabilityKind.ELAPSED_DURATION: frozenset({"value", "unit"}),
 }
 
 _APPLICABILITY_ALL_FIELDS = frozenset(
-    {"quantity", "comparison", "value", "any_of", "trigger", "phase"}
+    {
+        "quantity",
+        "comparison",
+        "value",
+        "any_of",
+        "trigger",
+        "phase",
+        "outcome",
+        "damage_outcome",
+        "required_quantity",
+        "fraction",
+        "unit",
+    }
 )
 
 
@@ -5094,6 +5168,10 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         ("comparison", Comparison),
         ("trigger", RecoveryTrigger),
         ("phase", Phase),
+        ("outcome", AutomaticOutcome),
+        ("damage_outcome", DamageOutcome),
+        ("required_quantity", RequiredQuantity),
+        ("unit", TimeUnit),
     ):
         held = getattr(applicability, name)
         if held is not None and not isinstance(held, member):
@@ -5102,6 +5180,8 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         type(c) is not SizeComparison for c in applicability.any_of
     ):
         typed.append("any_of is not a tuple of size comparisons")
+    if applicability.fraction is not None and type(applicability.fraction) is not Rational:
+        typed.append("fraction is not a Rational")
     if typed:
         return typed
     allowed = _APPLICABILITY_FIELDS[applicability.kind]

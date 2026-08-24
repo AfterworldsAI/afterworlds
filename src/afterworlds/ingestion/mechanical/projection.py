@@ -40,6 +40,7 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
+    _dataclass_payload,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
@@ -478,38 +479,19 @@ def applicability_payload(
 ) -> dict[str, object] | None:
     """Canonical payload of one applicability, or ``None``.
 
-    Every field is emitted, including the unset ones, so a payload's key set is
-    the shape rather than a function of which kind wrote it — the same rule
-    ``fact_payload`` follows, and what lets the loader reject on the key set.
+    Delegates to the representation walker rather than restating the field list
+    here. Two hand-written serializations of one structure is exactly the drift
+    this module refuses elsewhere, and the walker already owns the rule that
+    matters: a post-schema-3 field is omitted when it carries no meaning, which
+    is what keeps a schema-3 applicability byte-identical after schema 4 exists.
+
+    Every schema-1..3 field is still emitted unconditionally, including the
+    unset ones, so a payload's key set remains the shape for those and the
+    loader can still reject on it.
     """
     if applicability is None:
         return None
-    return {
-        "kind": applicability.kind.value,
-        "negated": applicability.negated,
-        "quantity": (
-            None if applicability.quantity is None else applicability.quantity.value
-        ),
-        "comparison": (
-            None if applicability.comparison is None else applicability.comparison.value
-        ),
-        "value": applicability.value,
-        "any_of": [
-            {
-                "category": None if c.category is None else c.category.value,
-                "relation": None if c.relation is None else c.relation.value,
-                "at_least": c.at_least,
-                "at_most": c.at_most,
-                "measured": c.measured.value,
-                "reference": None if c.reference is None else c.reference.value,
-            }
-            for c in applicability.any_of
-        ],
-        "trigger": (
-            None if applicability.trigger is None else applicability.trigger.value
-        ),
-        "phase": None if applicability.phase is None else applicability.phase.value,
-    }
+    return _dataclass_payload(applicability)
 
 
 #: The exact key set :func:`applicability_payload` emits, and therefore the
@@ -528,6 +510,14 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
         "trigger",
         "phase",
     }
+)
+
+#: Post-schema-3 applicability keys. Admissible when present and admissible when
+#: absent — the canonical payload omits them when they carry no meaning, so
+#: absence reads as the declared default and nothing is lost. They are kept out
+#: of the required set above so a schema-3 payload still validates unchanged.
+_APPLICABILITY_OPTIONAL_KEYS = frozenset(
+    {"outcome", "damage_outcome", "required_quantity", "fraction", "unit"}
 )
 _SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
     {"category", "relation", "at_least", "at_most", "measured", "reference"}
@@ -553,7 +543,9 @@ def applicability_payload_violations(raw: object) -> list[str]:
     supplied = set(raw)
     if missing := sorted(_APPLICABILITY_PAYLOAD_KEYS - supplied):
         findings.append(f"applicability payload is missing {missing}")
-    if extra := sorted(supplied - _APPLICABILITY_PAYLOAD_KEYS):
+    if extra := sorted(
+        supplied - _APPLICABILITY_PAYLOAD_KEYS - _APPLICABILITY_OPTIONAL_KEYS
+    ):
         findings.append(f"applicability payload carries unexpected {extra}")
     any_of = raw.get("any_of")
     if "any_of" in supplied:
