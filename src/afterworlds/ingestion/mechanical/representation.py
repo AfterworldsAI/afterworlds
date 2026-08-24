@@ -78,7 +78,7 @@ eligibility, choices, sequencing.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import asdict, dataclass, fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from enum import StrEnum
 from types import UnionType
 from typing import Any, ClassVar, Union, cast, get_args, get_origin, get_type_hints
@@ -2522,6 +2522,7 @@ def _check_condition_level(fact: ConditionLevelFact) -> list[str]:
         *_optional_int_field(fact.amount, "amount"),
         *_bool_field(fact.all_levels, "all_levels"),
         *_bool_field(fact.cumulative, "cumulative"),
+        *_bool_field(fact.cause_scoped, "cause_scoped"),
     ]
     if findings:
         return findings
@@ -3228,9 +3229,7 @@ def _build_healing(p: Mapping[str, Any]) -> HealingFact:
 
 def _build_rollspec(value: object, where: str) -> RollSpec:
     """Rebuild the shared roll specification from its persisted payload."""
-    p = _json_object(
-        value, ("actor", "context", "ability"), where, optional=("skill",)
-    )
+    p = _json_object(value, ("actor", "context", "ability"), where, optional=("skill",))
     raw_skill = p.get("skill")
     _reject_at(
         where,
@@ -4048,19 +4047,23 @@ def _collect_post_schema_3(
     value: object, schema_version: str, path: str, findings: list[str]
 ) -> None:
     if is_dataclass(value) and not isinstance(value, type):
-        omitted = _POST_SCHEMA_3_FIELDS.get(type(value).__name__, {})
-        for field in fields(value):
+        declared = _declared_type(value)
+        omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
+        for field in fields(declared):
             child = getattr(value, field.name)
             where = f"{path}.{field.name}" if path else field.name
             rule = omitted.get(field.name)
-            if rule is not None and not rule.is_empty(child):
-                if not _version_states(schema_version, rule.introduced_in):
-                    findings.append(
-                        f"{where}: declares schema {schema_version!r}, which has "
-                        f"no {rule.key!r} key — that arrived with "
-                        f"{rule.introduced_in}; refusing to omit meaning-bearing "
-                        "data to reproduce a legacy identity"
-                    )
+            if (
+                rule is not None
+                and not rule.is_empty(child)
+                and not _version_states(schema_version, rule.introduced_in)
+            ):
+                findings.append(
+                    f"{where}: declares schema {schema_version!r}, which has "
+                    f"no {rule.key!r} key — that arrived with "
+                    f"{rule.introduced_in}; refusing to omit meaning-bearing "
+                    "data to reproduce a legacy identity"
+                )
             _collect_post_schema_3(child, schema_version, where, findings)
         return
     if isinstance(value, (list, tuple)):
@@ -4108,7 +4111,13 @@ _register_post_schema_3(
             introduced_in="5d-representation-schema-4",
             is_empty=_empty_none,
         )
-        for key in ("outcome", "damage_outcome", "required_quantity", "fraction", "unit")
+        for key in (
+            "outcome",
+            "damage_outcome",
+            "required_quantity",
+            "fraction",
+            "unit",
+        )
     ),
 )
 
@@ -4143,6 +4152,23 @@ def fact_payload(fact: object) -> dict[str, object]:
     return {"family": family.value, **_dataclass_payload(cast(Any, fact))}
 
 
+def _declared_type(obj: object) -> type:
+    """The closed declared class *obj* is an instance of.
+
+    A subclass is resolved to the declared class it extends, so the payload
+    stays a **whitelist of declared fields**. Undeclared subclass state must
+    never reach a canonical payload: it would let a class nobody declared inject
+    keys into an identity. The exact-type gates refuse such a value before it can
+    be persisted, and this keeps the serializer from depending on that.
+    """
+    if type(obj) in _CLOSED_TYPES:
+        return type(obj)
+    for base in type(obj).__mro__:
+        if base in _CLOSED_TYPES:
+            return base
+    return type(obj)
+
+
 def _dataclass_payload(obj: Any) -> dict[str, object]:
     """Canonical payload of one declared dataclass, field by field.
 
@@ -4152,9 +4178,10 @@ def _dataclass_payload(obj: Any) -> dict[str, object]:
     post-schema-3 omission rule below. ``RollSpec`` nested inside an
     ``AdvantageFact`` has to be recognised as a ``RollSpec``.
     """
-    omitted = _POST_SCHEMA_3_FIELDS.get(type(obj).__name__, {})
+    declared = _declared_type(obj)
+    omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
     payload: dict[str, object] = {}
-    for field in fields(obj):
+    for field in fields(declared):
         value = getattr(obj, field.name)
         rule = omitted.get(field.name)
         if rule is not None and rule.is_empty(value):
@@ -4600,6 +4627,30 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
         "required_quantity",
         "fraction",
         "unit",
+    }
+)
+
+
+#: Every closed declared structure the canonical serializer may emit fields of.
+#:
+#: :func:`_declared_type` resolves an instance to its member here, so a subclass
+#: is serialized as the class it extends and undeclared state can never enter a
+#: canonical payload. Built from the fact union plus the shared value objects,
+#: rather than listed by hand twice, so a new family joins it automatically.
+_CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
+    {
+        Applicability,
+        ComponentOption,
+        DiceExpression,
+        FactQualifier,
+        Money,
+        Rational,
+        RollSpec,
+        SizeComparison,
+        SpellCastingTime,
+        SpellComponents,
+        SpellDuration,
+        SpellRange,
     }
 )
 
@@ -5180,7 +5231,10 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         type(c) is not SizeComparison for c in applicability.any_of
     ):
         typed.append("any_of is not a tuple of size comparisons")
-    if applicability.fraction is not None and type(applicability.fraction) is not Rational:
+    if (
+        applicability.fraction is not None
+        and type(applicability.fraction) is not Rational
+    ):
         typed.append("fraction is not a Rational")
     if typed:
         return typed

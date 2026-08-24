@@ -40,11 +40,11 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
-    _dataclass_payload,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
     RepresentationDraft,
+    _dataclass_payload,
     fact_key,
     fact_payload,
     representation_schema_hash,
@@ -69,6 +69,7 @@ __all__ = [
     "SCHEMA_1_VERSION",
     "SCHEMA_2_VERSION",
     "SCHEMA_3_VERSION",
+    "SCHEMA_4_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -134,6 +135,7 @@ SCHEMA_1_VERSION = "5d-representation-schema-1"
 #: each one is a contract something may already be persisted under.
 SCHEMA_2_VERSION = "5d-representation-schema-2"
 SCHEMA_3_VERSION = "5d-representation-schema-3"
+SCHEMA_4_VERSION = "5d-representation-schema-4"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -242,6 +244,11 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_1_VERSION: frozenset(),
     SCHEMA_2_VERSION: frozenset({"applies_when", "options"}),
     SCHEMA_3_VERSION: frozenset({"applies_when", "options", "fact_qualifiers"}),
+    # Its own row, written out rather than inherited. Schema 4's post-schema-3
+    # additions are all *fact and value-object* fields, which the representation
+    # walker omits when empty; no component key joins the set here. A component
+    # key that does join it later must be added to this row explicitly.
+    SCHEMA_4_VERSION: frozenset({"applies_when", "options", "fact_qualifiers"}),
 }
 
 # Minting a new schema without giving it a row here would leave the current

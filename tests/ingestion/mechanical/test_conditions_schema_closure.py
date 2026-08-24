@@ -56,6 +56,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ScalingDirection,
     ScalingEffect,
     ScalingFact,
+    Skill,
     SpeedChange,
     SpeedModificationFact,
     StateEffectFact,
@@ -433,8 +434,40 @@ def test_a_rollspec_replaced_by_a_look_alike_dict_is_rejected() -> None:
 
 
 def test_an_extra_rollspec_key_is_rejected_not_dropped() -> None:
+    """An undeclared key is refused rather than silently ignored.
+
+    This used to inject ``skill``, which representation schema 4 declares, so
+    the probe moved to a key no schema states. The property under test is
+    unchanged: a key the shape does not have is most often a misspelling, and
+    dropping it would admit the misspelled value as absent content.
+    """
     payload = fact_payload(RESTRAINED_SAVE)
-    payload["roll"]["skill"] = "acrobatics"  # type: ignore[index]
+    payload["roll"]["proficiency"] = "expertise"  # type: ignore[index]
+    with pytest.raises(MalformedFactPayloadError):
+        fact_from_payload(payload)
+
+
+def test_a_rollspec_skill_round_trips_and_is_checked() -> None:
+    """``skill`` is declared from schema 4, so it loads — but only when valid.
+
+    Its *absence* is admissible because the canonical payload omits it when it
+    carries no meaning; that is the rule holding inherited identities still. Its
+    presence is held to the closed vocabulary like every other enum.
+    """
+    qualified = replace(
+        RESTRAINED_SAVE,
+        roll=replace(RESTRAINED_SAVE.roll, skill=Skill.ACROBATICS),
+    )
+    payload = fact_payload(qualified)
+    assert payload["roll"]["skill"] == "acrobatics"  # type: ignore[index]
+    assert fact_from_payload(payload) == qualified
+
+    # Absent is the declared default, and round-trips as such.
+    bare = fact_payload(RESTRAINED_SAVE)
+    assert "skill" not in bare["roll"]  # type: ignore[operator]
+    assert fact_from_payload(bare) == RESTRAINED_SAVE
+
+    payload["roll"]["skill"] = "haggling"  # type: ignore[index]
     with pytest.raises(MalformedFactPayloadError):
         fact_from_payload(payload)
 
