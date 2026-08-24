@@ -294,6 +294,63 @@ class AbilityScore(StrEnum):
     CHARISMA = "charisma"
 
 
+class Skill(StrEnum):
+    """The eighteen printed skills (``Playing the Game > Proficiency``).
+
+    Derived from the source's own Skills table, not invented: the source prints
+    the skill in parentheses after the ability — *"a DC 15 Dexterity (Stealth)
+    check"* — and without this axis that check and *"Dexterity (Acrobatics)"*
+    reduce to the same typed fact. Measured corpus-wide: 128 leaves across 11
+    top-level sections state a skill-qualified check.
+
+    Each member's governing ability is fixed by the same printed table and is
+    enforced by :func:`roll_spec_violations`, so a mismatched pair is a
+    build-time error rather than data a consumer has to second-guess.
+    """
+
+    ATHLETICS = "athletics"
+    ACROBATICS = "acrobatics"
+    SLEIGHT_OF_HAND = "sleight_of_hand"
+    STEALTH = "stealth"
+    ARCANA = "arcana"
+    HISTORY = "history"
+    INVESTIGATION = "investigation"
+    NATURE = "nature"
+    RELIGION = "religion"
+    ANIMAL_HANDLING = "animal_handling"
+    INSIGHT = "insight"
+    MEDICINE = "medicine"
+    PERCEPTION = "perception"
+    SURVIVAL = "survival"
+    DECEPTION = "deception"
+    INTIMIDATION = "intimidation"
+    PERFORMANCE = "performance"
+    PERSUASION = "persuasion"
+
+
+#: Each skill's governing ability, exactly as the Skills table prints it.
+SKILL_ABILITY: Mapping[Skill, AbilityScore] = {
+    Skill.ATHLETICS: AbilityScore.STRENGTH,
+    Skill.ACROBATICS: AbilityScore.DEXTERITY,
+    Skill.SLEIGHT_OF_HAND: AbilityScore.DEXTERITY,
+    Skill.STEALTH: AbilityScore.DEXTERITY,
+    Skill.ARCANA: AbilityScore.INTELLIGENCE,
+    Skill.HISTORY: AbilityScore.INTELLIGENCE,
+    Skill.INVESTIGATION: AbilityScore.INTELLIGENCE,
+    Skill.NATURE: AbilityScore.INTELLIGENCE,
+    Skill.RELIGION: AbilityScore.INTELLIGENCE,
+    Skill.ANIMAL_HANDLING: AbilityScore.WISDOM,
+    Skill.INSIGHT: AbilityScore.WISDOM,
+    Skill.MEDICINE: AbilityScore.WISDOM,
+    Skill.PERCEPTION: AbilityScore.WISDOM,
+    Skill.SURVIVAL: AbilityScore.WISDOM,
+    Skill.DECEPTION: AbilityScore.CHARISMA,
+    Skill.INTIMIDATION: AbilityScore.CHARISMA,
+    Skill.PERFORMANCE: AbilityScore.CHARISMA,
+    Skill.PERSUASION: AbilityScore.CHARISMA,
+}
+
+
 class SpellSchool(StrEnum):
     ABJURATION = "abjuration"
     CONJURATION = "conjuration"
@@ -1074,6 +1131,11 @@ class RollSpec:
     #: Set exactly when the source names an ability, which it does only for
     #: ability checks and saving throws.
     ability: AbilityScore | None = None
+    #: Set exactly when the source prints a skill in parentheses after the
+    #: ability. Post-schema-3: omitted from the canonical payload when unset, so
+    #: a schema-3 roll keeps its exact key after being lifted. See
+    #: :class:`_PostSchema3Field`.
+    skill: Skill | None = None
 
 
 @dataclass(frozen=True)
@@ -1502,6 +1564,13 @@ class ConditionLevelFact:
     all_levels: bool = False
     #: "This condition is cumulative." Stated only where the source states it.
     cumulative: bool = False
+    #: "Exhaustion caused by dehydration", "levels it gained from suffocating" —
+    #: this change reaches only the levels the **owning record** caused, not
+    #: every level of the condition. Scoped at record grain because that is the
+    #: grain the source states it at; a record with several gain paths scopes
+    #: all of them alike, which is exactly what "caused by malnutrition" means.
+    #: Post-schema-3: omitted when False, so a schema-3 level fact keeps its key.
+    cause_scoped: bool = False
 
 
 @dataclass(frozen=True)
@@ -2861,7 +2930,19 @@ def _build_creature_ability_score(p: Mapping[str, Any]) -> CreatureAbilityScoreF
 # inside a typed fact.
 
 
-def _json_object(value: object, keys: tuple[str, ...], where: str) -> Mapping[str, Any]:
+def _json_object(
+    value: object,
+    keys: tuple[str, ...],
+    where: str,
+    optional: tuple[str, ...] = (),
+) -> Mapping[str, Any]:
+    """Check a nested value object's key set exactly.
+
+    ``optional`` names post-schema-3 keys, which the canonical payload omits
+    when they carry no meaning — so their absence is admissible and reads as the
+    declared default. Every other key stays required, and an unknown key is
+    still refused rather than ignored.
+    """
     if type(value) is not dict:
         raise MalformedFactPayloadError(
             f"{where} must be an object, got {type(value).__name__} {value!r}"
@@ -2869,7 +2950,7 @@ def _json_object(value: object, keys: tuple[str, ...], where: str) -> Mapping[st
     supplied = set(value)
     if missing := sorted(set(keys) - supplied):
         raise MalformedFactPayloadError(f"{where} is missing {missing}")
-    if extra := sorted(supplied - set(keys)):
+    if extra := sorted(supplied - set(keys) - set(optional)):
         raise MalformedFactPayloadError(f"{where} carries extra {extra}")
     return value
 
@@ -3111,19 +3192,24 @@ def _build_healing(p: Mapping[str, Any]) -> HealingFact:
 
 def _build_rollspec(value: object, where: str) -> RollSpec:
     """Rebuild the shared roll specification from its persisted payload."""
-    p = _json_object(value, ("actor", "context", "ability"), where)
+    p = _json_object(
+        value, ("actor", "context", "ability"), where, optional=("skill",)
+    )
+    raw_skill = p.get("skill")
     _reject_at(
         where,
         [
             *_json_enum(p["actor"], RollActor, f"{where}.actor"),
             *_json_enum(p["context"], RollContext, f"{where}.context"),
             *_optional_json_enum(p["ability"], AbilityScore, f"{where}.ability"),
+            *_optional_json_enum(raw_skill, Skill, f"{where}.skill"),
         ],
     )
     return RollSpec(
         actor=RollActor(p["actor"]),
         context=RollContext(p["context"]),
         ability=None if p["ability"] is None else AbilityScore(p["ability"]),
+        skill=None if raw_skill is None else Skill(raw_skill),
     )
 
 
@@ -3224,6 +3310,7 @@ def _build_condition_level(p: Mapping[str, Any]) -> ConditionLevelFact:
             *_optional_int_field(p["amount"], "amount"),
             *_bool_field(p["all_levels"], "all_levels"),
             *_bool_field(p["cumulative"], "cumulative"),
+            *_bool_field(p.get("cause_scoped", False), "cause_scoped"),
         ],
     )
     return ConditionLevelFact(
@@ -3232,6 +3319,7 @@ def _build_condition_level(p: Mapping[str, Any]) -> ConditionLevelFact:
         amount=p["amount"],
         all_levels=p["all_levels"],
         cumulative=p["cumulative"],
+        cause_scoped=bool(p.get("cause_scoped", False)),
     )
 
 
@@ -3721,10 +3809,19 @@ def _wire_fields(cls: type) -> list[dict[str, object]]:
     field of every one.
     """
     hints = get_type_hints(cls)
-    return sorted(
-        ({"name": f.name, "shape": _shape(hints[f.name])} for f in fields(cls)),
-        key=lambda entry: cast(str, entry["name"]),
-    )
+    omitted = _POST_SCHEMA_3_FIELDS.get(cls.__name__, {})
+    entries: list[dict[str, object]] = []
+    for f in fields(cls):
+        entry: dict[str, object] = {"name": f.name, "shape": _shape(hints[f.name])}
+        if f.name in omitted:
+            # Part of the serialized grammar, not an implementation detail: a
+            # reader of a payload needs to know that this key's absence is a
+            # declared state rather than lost content, and the identity has to
+            # move if that rule is ever changed for a field.
+            entry["omitted_when_empty"] = True
+            entry["introduced_in"] = omitted[f.name].introduced_in
+        entries.append(entry)
+    return sorted(entries, key=lambda entry: cast(str, entry["name"]))
 
 
 def representation_schema_payload() -> dict[str, object]:
@@ -3815,9 +3912,16 @@ def fact_from_payload(
             f"{family.value!r}"
         )
 
-    expected = {f.name for f in fields(_FACT_TYPES[family])} | {"family"}
+    fact_type = _FACT_TYPES[family]
+    expected = {f.name for f in fields(fact_type)} | {"family"}
+    # A post-schema-3 field is omitted from the canonical payload when it
+    # carries no meaning, so its *absence* is admissible and has exactly one
+    # reading — the declared default. Nothing else is defaulted: a field whose
+    # absence could mean two things stays required, so a truncated payload is
+    # still refused rather than silently completed.
+    optional = set(_POST_SCHEMA_3_FIELDS.get(fact_type.__name__, {}))
     supplied = set(payload)
-    if missing := sorted(expected - supplied):
+    if missing := sorted(expected - optional - supplied):
         raise MalformedFactPayloadError(f"{family.value} payload is missing {missing}")
     if extra := sorted(supplied - expected):
         raise MalformedFactPayloadError(f"{family.value} payload carries extra {extra}")
@@ -3830,11 +3934,149 @@ def fact_from_payload(
         ) from exc
 
 
+@dataclass(frozen=True)
+class _PostSchema3Field:
+    """One field introduced after representation schema 3.
+
+    **Why these fields serialize differently from every earlier one.**
+
+    Owner Decision 2026-08-20 settled that historical state must keep its
+    identity across a schema succession, and :mod:`projection` implements that
+    for *component* keys by emitting exactly the key set the declared version
+    had. That mechanism cannot reach a fact: ``fact_key`` is derived from the
+    fact's own canonical payload, and a fact nested in an accepted component has
+    no version of its own to key on.
+
+    Owner Decision 2026-08-24 extends the same guarantee to facts and their
+    nested value objects, and settles the rule that makes it possible: a field
+    introduced after schema 3 is **omitted when it carries no meaning**. An
+    absent field and a field at its declared default say the same thing, so one
+    canonical form serves both — which is what lets a schema-3 fact lifted into
+    schema 4 hash to the byte-identical key it already had.
+
+    The rule is deliberately *value*-keyed rather than *version*-keyed, so the
+    canonical form of a fact does not depend on which schema is declared. The
+    declared version decides only **legality**: a post-schema-3 field holding
+    meaning under an older declaration is refused by
+    :func:`post_schema_3_violations`, never silently dropped.
+
+    Fields introduced at or before schema 3 are deliberately **not** listed
+    here. Their unconditional emission is load-bearing — the committed
+    conditions-1 artifact contains ``"applies_when": null`` and
+    ``"fact_qualifiers": []`` — so switching them to omit-when-empty would move
+    exactly the identities this rule exists to hold still.
+    """
+
+    owner: str
+    key: str
+    introduced_in: str
+    is_empty: Callable[[object], bool]
+
+
+def _empty_none(value: object) -> bool:
+    return value is None
+
+
+def _empty_false(value: object) -> bool:
+    return value is False
+
+
+def _empty_seq(value: object) -> bool:
+    return not value
+
+
+#: Post-schema-3 fields, by owning dataclass name then field name. Keyed by
+#: ``__name__`` rather than by the class so this table can be declared before
+#: the classes it names, which keeps it next to the rule it implements.
+_POST_SCHEMA_3_FIELDS: dict[str, dict[str, _PostSchema3Field]] = {}
+
+
+def _register_post_schema_3(*specs: _PostSchema3Field) -> None:
+    for spec in specs:
+        _POST_SCHEMA_3_FIELDS.setdefault(spec.owner, {})[spec.key] = spec
+
+
+def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
+    """Post-schema-3 fields holding meaning that *schema_version* cannot state.
+
+    The legality half of the omission rule. Recurses through nested value
+    objects and collections so a ``RollSpec.skill`` buried in an
+    ``AdvantageFact`` inside a ``ComponentOption`` is still caught.
+    """
+    findings: list[str] = []
+    _collect_post_schema_3(obj, schema_version, "", findings)
+    return findings
+
+
+def _collect_post_schema_3(
+    value: object, schema_version: str, path: str, findings: list[str]
+) -> None:
+    if is_dataclass(value) and not isinstance(value, type):
+        omitted = _POST_SCHEMA_3_FIELDS.get(type(value).__name__, {})
+        for field in fields(value):
+            child = getattr(value, field.name)
+            where = f"{path}.{field.name}" if path else field.name
+            rule = omitted.get(field.name)
+            if rule is not None and not rule.is_empty(child):
+                if not _version_states(schema_version, rule.introduced_in):
+                    findings.append(
+                        f"{where}: declares schema {schema_version!r}, which has "
+                        f"no {rule.key!r} key — that arrived with "
+                        f"{rule.introduced_in}; refusing to omit meaning-bearing "
+                        "data to reproduce a legacy identity"
+                    )
+            _collect_post_schema_3(child, schema_version, where, findings)
+        return
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            _collect_post_schema_3(item, schema_version, f"{path}[{index}]", findings)
+
+
+def _version_states(declared: str, introduced_in: str) -> bool:
+    """Whether *declared* is a version whose contract includes *introduced_in*.
+
+    Membership, never ordering: a lexical or numeric ">=" on version strings is
+    exactly the "newer version is compatible" inference this module refuses. The
+    table is explicit, so an unrecognised declaration states nothing.
+    """
+    return introduced_in in _VERSION_STATES.get(declared, frozenset())
+
+
+#: Which post-schema-3 introductions each merged version is allowed to state.
+#: Explicit rows for the same reason ``_MERGED_COMPONENT_FIELDS`` uses them: a
+#: later succession must not silently inherit an earlier row.
+_VERSION_STATES: dict[str, frozenset[str]] = {
+    "5d-representation-schema-1": frozenset(),
+    "5d-representation-schema-2": frozenset(),
+    "5d-representation-schema-3": frozenset(),
+    "5d-representation-schema-4": frozenset({"5d-representation-schema-4"}),
+}
+
+_register_post_schema_3(
+    _PostSchema3Field(
+        owner="RollSpec",
+        key="skill",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="ConditionLevelFact",
+        key="cause_scoped",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_false,
+    ),
+)
+
+
 def fact_key(fact: object) -> str:
     """Stable content-derived key for one fact within its component.
 
     Derived from the canonical payload, never from a position in the component's
     fact tuple, so reordering or inserting a sibling fact cannot churn it.
+
+    Version-independent by construction: the payload omits post-schema-3 fields
+    that carry no meaning (see :class:`_PostSchema3Field`), so a fact accepted
+    under schema 3 keeps this exact key after being lifted into schema 4.
     """
     return sha256_hex(canonical_bytes(fact_payload(fact)))[:16]
 
@@ -3852,26 +4094,49 @@ def fact_payload(fact: object) -> dict[str, object]:
             f"{type(fact).__name__} is not a member of the closed typed-fact union"
         )
     # Safe now: the family check above proved *fact* is one of the declared
-    # frozen dataclasses, which is what asdict needs.
-    payload: dict[str, object] = {"family": family.value}
-    for key, value in sorted(asdict(cast(Any, fact)).items()):
-        payload[key] = _canonical_value(value)
+    # frozen dataclasses, which is what the walker needs.
+    return {"family": family.value, **_dataclass_payload(cast(Any, fact))}
+
+
+def _dataclass_payload(obj: Any) -> dict[str, object]:
+    """Canonical payload of one declared dataclass, field by field.
+
+    Walks declared fields rather than calling ``asdict`` because ``asdict``
+    flattens a nested value object into a plain dict and loses the type — and
+    the type is exactly what says whether a field is subject to the
+    post-schema-3 omission rule below. ``RollSpec`` nested inside an
+    ``AdvantageFact`` has to be recognised as a ``RollSpec``.
+    """
+    omitted = _POST_SCHEMA_3_FIELDS.get(type(obj).__name__, {})
+    payload: dict[str, object] = {}
+    for field in fields(obj):
+        value = getattr(obj, field.name)
+        rule = omitted.get(field.name)
+        if rule is not None and rule.is_empty(value):
+            # Absent and default mean the same thing for a post-schema-3 field,
+            # so the empty case is not written. See _PostSchema3Field.
+            continue
+        payload[field.name] = _canonical_value(value)
     return payload
 
 
 def _canonical_value(value: object) -> object:
     """Canonical JSON form of one field value, however deeply nested.
 
-    ``asdict`` already turns a nested value object into a dict, but it leaves
-    ``StrEnum`` members as enum instances. They *are* strings, so a serializer
-    would accept them — and then a payload rebuilt from storage would hold a
-    plain ``str`` where the freshly built one holds an enum, and the two would
-    be the same bytes but different objects. Normalizing here means the
-    canonical form is the *stored* form, so a round trip is a fixed point
-    rather than something that merely happens to hash the same.
+    ``StrEnum`` members are normalized to their value: they *are* strings, so a
+    serializer would accept them — and then a payload rebuilt from storage would
+    hold a plain ``str`` where the freshly built one holds an enum, and the two
+    would be the same bytes but different objects. Normalizing here means the
+    canonical form is the *stored* form, so a round trip is a fixed point rather
+    than something that merely happens to hash the same.
+
+    Nested dataclasses recurse through :func:`_dataclass_payload` so the
+    omission rule reaches them with their type intact.
     """
     if isinstance(value, StrEnum):
         return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return _dataclass_payload(cast(Any, value))
     if isinstance(value, dict):
         return {k: _canonical_value(v) for k, v in sorted(value.items())}
     if isinstance(value, (list, tuple)):
