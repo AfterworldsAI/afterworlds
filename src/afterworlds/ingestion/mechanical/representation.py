@@ -3728,7 +3728,7 @@ assert (
 #: as their closed vocabularies. Version 2 is merged and therefore reachable,
 #: so it is succeeded rather than corrected in place, exactly as the rule above
 #: requires.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-3"
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-4"
 
 
 class UnsupportedRepresentationShapeError(TypeError):

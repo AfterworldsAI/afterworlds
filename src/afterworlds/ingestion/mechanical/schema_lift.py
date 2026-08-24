@@ -40,7 +40,8 @@ restamping this module exists to refuse.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.projection import representation_payload
@@ -49,8 +50,12 @@ from afterworlds.ingestion.mechanical.representation import (
     post_schema_3_violations,
 )
 
+if TYPE_CHECKING:  # pragma: no cover - import cycle guard
+    from afterworlds.ingestion.mechanical.oracle import AcceptedInputs
+
 __all__ = [
     "SCHEMA_LIFTS",
+    "lift_accepted_inputs",
     "SchemaLift",
     "SchemaLiftError",
     "SchemaLiftRecord",
@@ -63,7 +68,7 @@ SCHEMA_3_VERSION = "5d-representation-schema-3"
 SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
 SCHEMA_4_VERSION = "5d-representation-schema-4"
 #: Pinned literally. See the module docstring for why this is not derived.
-SCHEMA_4_HASH = "0000000000000000000000000000000000000000000000000000000000000000"
+SCHEMA_4_HASH = "4b1f89d51511e1ef68660bc15f9e647a091722d6d16d11469efd23ff59543a70"
 
 
 class SchemaLiftError(ValueError):
@@ -203,3 +208,38 @@ def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecor
         to_hash=lift.to_hash,
         verified_counts=tuple(counts),
     )
+
+
+def lift_accepted_inputs(
+    inputs: AcceptedInputs, target: tuple[str, str]
+) -> tuple[AcceptedInputs, SchemaLiftRecord]:
+    """Re-declare *inputs* under *target*, having proved nothing moved.
+
+    The whole-artifact form of :func:`verify_lift`, and the shape
+    ``accept_proposal`` uses when a proposal extends accepted authority across a
+    schema succession.
+
+    What changes is exactly one thing: the oracle's declared
+    ``(schema_version, schema_hash)``. Every span, record, component, option,
+    fact, qualifier, prose binding, reference, relationship and provenance claim
+    is carried through **by identity, not by transformation** — they are the same
+    objects, and :func:`verify_lift` has already proved their canonical payloads
+    are byte-identical under both contracts before this returns.
+
+    The acceptance evidence is untouched for the same reason it is untouched by
+    an ordinary extension: ``batches``, ``acceptances``, each batch's
+    ``proposal_identity``, reviewer, timestamp, rule, scope and diff record what
+    a human reviewed and when. A schema succession is not a review, so it may not
+    edit them.
+    """
+    lift = lift_for((inputs.oracle.schema_version, inputs.oracle.schema_hash), target)
+    record = verify_lift(lift, inputs.oracle.representation)
+    lifted = replace(
+        inputs,
+        oracle=replace(
+            inputs.oracle,
+            schema_version=lift.to_version,
+            schema_hash=lift.to_hash,
+        ),
+    )
+    return lifted, record

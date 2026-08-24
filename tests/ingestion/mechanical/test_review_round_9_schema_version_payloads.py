@@ -249,7 +249,7 @@ def test_the_captured_structural_hash_is_the_one_already_pinned() -> None:
     contract must agree, and neither may be the current one.
     """
     assert representation_schema_hash() != SCHEMA_2_HASH
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_3_VERSION
+    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_4_VERSION
 
 
 # ---------------------------------------------------------------------------

@@ -753,5 +753,5 @@ def test_the_representation_schema_hash_is_untouched() -> None:
     canary may only move when the representation itself does.
     """
     assert representation_schema_hash() == (
-        "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
+        "4b1f89d51511e1ef68660bc15f9e647a091722d6d16d11469efd23ff59543a70"
     )

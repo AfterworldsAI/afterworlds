@@ -42,7 +42,15 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
+    fact_qualifier_target_key,
+    fact_target_key,
+    prose_binding_target_key,
+    reference_target_key,
     representation_schema_hash,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_3_HASH,
+    lift_accepted_inputs,
 )
 
 PACKAGE_UUID = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
@@ -203,11 +211,31 @@ def test_the_artifact_is_accepted_authority_not_a_proposal() -> None:
     assert all(s.review_state is ReviewState.ACCEPTED for s in inputs.oracle.spans)
 
 
-def test_the_declared_schema_is_the_one_this_build_implements() -> None:
+def test_the_declared_schema_is_the_one_it_was_accepted_under() -> None:
+    """The artifact keeps naming schema 3, and that is the point.
+
+    This test used to require the committed declaration to equal the build's
+    current schema. That premise ended when schema 4 landed: an accepted
+    artifact records the contract a human reviewed it under, so its declaration
+    is historical and must never be restamped to match whatever the build now
+    implements. Reaching the current contract is a registered lift's job.
+    """
     oracle = load_oracle(ARTIFACT_PATH)
-    assert oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
     assert oracle.schema_version == "5d-representation-schema-3"
-    assert oracle.schema_hash == representation_schema_hash()
+    assert oracle.schema_hash == SCHEMA_3_HASH
+    assert oracle.schema_version != REPRESENTATION_SCHEMA_VERSION
+    assert oracle.schema_hash != representation_schema_hash()
+
+
+def test_the_committed_artifact_is_not_current_authority_on_its_own() -> None:
+    """Fail-closed: a schema-3 artifact cannot be built as schema-4 authority.
+
+    Not a defect — the refusal is what stops accepted content being replayed
+    under a union it never agreed to. The authorized way through is the lift,
+    and it is the next test.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) != ()
 
 
 # ---------------------------------------------------------------------------
@@ -234,17 +262,110 @@ def test_the_accepted_candidate_reproduces_every_derived_identity() -> None:
     become the candidate that gets persisted. If the artifact derived a
     different projection than the one reviewed, acceptance would name one thing
     and the build would produce another.
+
+    Asserted **under the schema the artifact declares**, which is the whole
+    point after schema 4: the historical identity has to remain exactly
+    reproducible on a build that implements a later contract. It is not built as
+    current authority here — ``validate_schema_binding`` refuses that, and the
+    test above asserts the refusal.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    candidate = candidate_from_accepted_inputs(inputs)
-    assert validate_schema_binding(candidate) == ()
-
-    identified = identify_projection(candidate)
+    identified = identify_projection(candidate_from_accepted_inputs(inputs))
     assert identified.projection_uuid == PROJECTION_UUID
     assert identified.payload_hash == PROJECTION_PAYLOAD_HASH
     assert len(identified.record_ids) == RECORDS
     assert len(identified.component_ids) == COMPONENTS
     assert len(identified.fact_ids) == FACTS
+
+
+def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
+    """The authorized succession, and exactly what it is allowed to change.
+
+    One thing moves: the oracle's declared ``(schema_version, schema_hash)``.
+    Every element is carried **by identity rather than by transformation**, and
+    ``verify_lift`` has already proved their canonical payloads byte-identical
+    under both contracts before this returns.
+
+    The projection UUID does move, and that is correct rather than a leak: the
+    schema declaration is identity-bearing (ADR-005d Decision 6), so a
+    projection built under a wider contract is a different projection. What may
+    not move — the semantic coordinates the Owner accepted — is asserted in
+    ``test_every_accepted_semantic_coordinate_survives_the_lift``.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lifted, record = lift_accepted_inputs(
+        inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    )
+    assert record.lift_id == "5d-lift-schema-3-to-4"
+    assert dict(record.verified_counts)["components"] == COMPONENTS
+    assert dict(record.verified_counts)["records"] == RECORDS
+
+    # Carried by identity, never transformed.
+    assert lifted.oracle.representation is inputs.oracle.representation
+    assert lifted.oracle.spans == inputs.oracle.spans
+    assert lifted.oracle.obligations == inputs.oracle.obligations
+    # Review evidence is not a review, so a succession may not edit it.
+    assert lifted.batches == inputs.batches
+    assert lifted.acceptances == inputs.acceptances
+    assert lifted.batches[0].proposal_identity == PROPOSAL_IDENTITY
+
+    # Only the declaration moved, and it now names current authority.
+    assert lifted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
+    assert lifted.oracle.schema_hash == representation_schema_hash()
+    candidate = candidate_from_accepted_inputs(lifted)
+    assert validate_schema_binding(candidate) == ()
+
+    identified = identify_projection(candidate)
+    assert len(identified.record_ids) == RECORDS
+    assert len(identified.component_ids) == COMPONENTS
+    assert len(identified.fact_ids) == FACTS
+    # A wider contract is a different projection, as Decision 6 requires.
+    assert identified.projection_uuid != PROJECTION_UUID
+
+
+def test_every_accepted_semantic_coordinate_survives_the_lift() -> None:
+    """Zero movement, stated over the coordinates the Owner accepted.
+
+    Owner Decision 2026-08-24: a previously accepted fact key or provenance
+    coordinate may not move. This is that invariant as an exact assertion over
+    the committed bytes rather than a count — every stored fact, qualifier,
+    prose-binding and reference coordinate must re-derive exactly from the
+    lifted representation.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lifted, _ = lift_accepted_inputs(
+        inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    )
+    stored = {
+        tuple(claim["target_key"])
+        for claim in json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))[
+            "representation"
+        ]["provenance"]
+    }
+
+    derived: set[tuple[str, ...]] = set()
+    for component in lifted.oracle.representation.components:
+        key = (component.record_key, component.semantic_key)
+        derived.add(key)
+        for fact in component.facts:
+            derived.add(fact_target_key(*key, fact))
+        for option in component.options:
+            for fact in option.facts:
+                derived.add(fact_target_key(*key, fact, option.semantic_key))
+        for qualifier in component.fact_qualifiers:
+            derived.add(
+                fact_qualifier_target_key(
+                    *key, qualifier.fact_key, qualifier.option_key
+                )
+            )
+    for binding in lifted.oracle.representation.prose_bindings:
+        derived.add(prose_binding_target_key(binding))
+    for reference in lifted.oracle.representation.references:
+        derived.add(reference_target_key(reference))
+    for record in lifted.oracle.representation.records:
+        derived.add((record.semantic_key,))
+
+    assert not stored - derived, sorted(stored - derived)
 
 
 def test_review_evidence_is_not_identity_bearing() -> None:

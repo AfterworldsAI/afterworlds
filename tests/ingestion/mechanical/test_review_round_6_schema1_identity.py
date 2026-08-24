@@ -348,7 +348,7 @@ def test_each_merged_schema_version_has_its_own_structural_identity() -> None:
     successions.
     """
     current = representation_schema_hash()
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-3"
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-4"
     assert len({SCHEMA_1_HASH, SCHEMA_2_HASH, current}) == 3
 
 

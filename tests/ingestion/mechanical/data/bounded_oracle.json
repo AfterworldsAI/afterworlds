@@ -1,222 +1,222 @@
 {
-  "artifact_kind": "accepted_authority",
-  "release_binding": {
-    "package_uuid": "pkg-5c",
-    "release_version": "rel-5c",
-    "authoritative_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "transform_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "bundle_root_hash": "07ecf2c0ff0a4071c942c806767edafcbd46ee1b55ee02cfa5515fed5583b807",
-    "persisted_corpus_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-  },
-  "semantic_policy_version": "5d-semantic-policy-1",
-  "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
-  "representation_schema": {
-    "version": "5d-representation-schema-3",
-    "hash": "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
-  },
-  "spans": [
-    {
-      "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-      "leaf_id": "leaf-spell",
-      "char_start": 0,
-      "char_end": 40,
-      "disposition": "substantive",
-      "non_mechanical_reason_code": null
-    },
-    {
-      "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-      "leaf_id": "leaf-prose",
-      "char_start": 0,
-      "char_end": 30,
-      "disposition": "substantive",
-      "non_mechanical_reason_code": null
-    },
-    {
-      "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
-      "leaf_id": "leaf-support",
-      "char_start": 0,
-      "char_end": 20,
-      "disposition": "supporting_authority",
-      "non_mechanical_reason_code": null
-    }
+ "acceptance": {
+  "batches": [
+   {
+    "batch_id": "batch-wish",
+    "diff": [
+     {
+      "accepted_disposition": "substantive",
+      "accepted_reason_code": null,
+      "prior_disposition": null,
+      "prior_reason_code": null,
+      "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766"
+     },
+     {
+      "accepted_disposition": "substantive",
+      "accepted_reason_code": null,
+      "prior_disposition": null,
+      "prior_reason_code": null,
+      "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857"
+     },
+     {
+      "accepted_disposition": "supporting_authority",
+      "accepted_reason_code": null,
+      "prior_disposition": null,
+      "prior_reason_code": null,
+      "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
+     }
+    ],
+    "proposal_identity": "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9",
+    "resolved_scope": [
+     "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+     "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+     "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
+    ],
+    "rule": "every span of the Wish authority reviewed together",
+    "semantic_diff_hash": "6b6513a81284ab14856f2300113ae4bcea68f62978daf31deb9c61bd6e876808"
+   }
   ],
-  "acceptance": {
-    "batches": [
-      {
-        "batch_id": "batch-wish",
-        "rule": "every span of the Wish authority reviewed together",
-        "resolved_scope": [
-          "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-          "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-          "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
-        ],
-        "diff": [
-          {
-            "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null
-          },
-          {
-            "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null
-          },
-          {
-            "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null
-          }
-        ],
-        "semantic_diff_hash": "6b6513a81284ab14856f2300113ae4bcea68f62978daf31deb9c61bd6e876808",
-        "proposal_identity": "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
-      }
-    ],
-    "records": [
-      {
-        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-        "batch_id": "batch-wish",
-        "reviewer": "owner",
-        "accepted_at": "2026-07-31T00:00:00Z"
-      },
-      {
-        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-        "batch_id": "batch-wish",
-        "reviewer": "owner",
-        "accepted_at": "2026-07-31T00:00:00Z"
-      },
-      {
-        "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
-        "batch_id": "batch-wish",
-        "reviewer": "owner",
-        "accepted_at": "2026-07-31T00:00:00Z"
-      }
-    ]
-  },
-  "representation": {
-    "records": [
-      {
-        "semantic_key": "spell:wish",
-        "kind": "spell",
-        "parent_key": null
-      },
-      {
-        "semantic_key": "creature:wish-scoped-servant",
-        "kind": "creature",
-        "parent_key": "spell:wish"
-      }
-    ],
-    "components": [
-      {
-        "record_key": "spell:wish",
-        "semantic_key": "descriptor",
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "facts": [
-          {
-            "family": "spell_descriptor",
-            "concentration": false,
-            "level": 9,
-            "ritual": false,
-            "school": "conjuration",
-            "casting_time": null,
-            "spell_range": null,
-            "components": null,
-            "duration": null
-          }
-        ]
-      },
-      {
-        "record_key": "spell:wish",
-        "semantic_key": "open-ended-clause",
-        "handling": "prose_bound",
-        "irreducibility_reason_code": "open_ended_effect",
-        "facts": []
-      }
-    ],
-    "prose_bindings": [
-      {
-        "record_key": "spell:wish",
-        "component_key": "open-ended-clause",
-        "chunk_id": "chunk-wish-0001",
-        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-        "chunk_char_start": 0,
-        "chunk_char_end": 30,
-        "irreducibility_reason_code": "open_ended_effect"
-      }
-    ],
-    "relationships": [
-      {
-        "source_record_key": "creature:wish-scoped-servant",
-        "target_record_key": "spell:wish",
-        "kind": "scoped_within"
-      }
-    ],
-    "references": [],
-    "provenance": [
-      {
-        "target_kind": "fact",
-        "target_key": [
-          "spell:wish",
-          "descriptor",
-          "31875ef3eacb7104"
-        ],
-        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-        "role": "primary"
-      },
-      {
-        "target_kind": "prose_binding",
-        "target_key": [
-          "spell:wish",
-          "open-ended-clause",
-          "chunk-wish-0001",
-          "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-          "open_ended_effect"
-        ],
-        "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
-        "role": "primary"
-      },
-      {
-        "target_kind": "record",
-        "target_key": [
-          "spell:wish"
-        ],
-        "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
-        "role": "contextual"
-      },
-      {
-        "target_kind": "relationship",
-        "target_key": [
-          "creature:wish-scoped-servant",
-          "spell:wish",
-          "scoped_within"
-        ],
-        "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
-        "role": "contextual"
-      }
-    ]
-  },
-  "obligations": [
-    {
-      "record_key": "spell:wish",
-      "kind": "spell",
-      "structured_fact_families": [
-        "spell_descriptor"
-      ],
-      "prose_bound_components": [
-        "open-ended-clause"
-      ]
-    },
-    {
-      "record_key": "creature:wish-scoped-servant",
-      "kind": "creature",
-      "structured_fact_families": [],
-      "prose_bound_components": []
-    }
+  "records": [
+   {
+    "accepted_at": "2026-07-31T00:00:00Z",
+    "batch_id": "batch-wish",
+    "reviewer": "owner",
+    "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766"
+   },
+   {
+    "accepted_at": "2026-07-31T00:00:00Z",
+    "batch_id": "batch-wish",
+    "reviewer": "owner",
+    "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857"
+   },
+   {
+    "accepted_at": "2026-07-31T00:00:00Z",
+    "batch_id": "batch-wish",
+    "reviewer": "owner",
+    "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
+   }
   ]
+ },
+ "artifact_kind": "accepted_authority",
+ "obligations": [
+  {
+   "kind": "spell",
+   "prose_bound_components": [
+    "open-ended-clause"
+   ],
+   "record_key": "spell:wish",
+   "structured_fact_families": [
+    "spell_descriptor"
+   ]
+  },
+  {
+   "kind": "creature",
+   "prose_bound_components": [],
+   "record_key": "creature:wish-scoped-servant",
+   "structured_fact_families": []
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "bundle_root_hash": "07ecf2c0ff0a4071c942c806767edafcbd46ee1b55ee02cfa5515fed5583b807",
+  "package_uuid": "pkg-5c",
+  "persisted_corpus_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "release_version": "rel-5c",
+  "transform_config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+ },
+ "representation": {
+  "components": [
+   {
+    "facts": [
+     {
+      "casting_time": null,
+      "components": null,
+      "concentration": false,
+      "duration": null,
+      "family": "spell_descriptor",
+      "level": 9,
+      "ritual": false,
+      "school": "conjuration",
+      "spell_range": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "record_key": "spell:wish",
+    "semantic_key": "descriptor"
+   },
+   {
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "spell:wish",
+    "semantic_key": "open-ended-clause"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 30,
+    "chunk_char_start": 0,
+    "chunk_id": "chunk-wish-0001",
+    "component_key": "open-ended-clause",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "spell:wish",
+    "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "primary",
+    "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+    "target_key": [
+     "spell:wish",
+     "descriptor",
+     "31875ef3eacb7104"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+    "target_key": [
+     "spell:wish",
+     "open-ended-clause",
+     "chunk-wish-0001",
+     "78377f22-9d54-510d-b2ae-b8ba6f5c5857",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24",
+    "target_key": [
+     "spell:wish"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766",
+    "target_key": [
+     "creature:wish-scoped-servant",
+     "spell:wish",
+     "scoped_within"
+    ],
+    "target_kind": "relationship"
+   }
+  ],
+  "records": [
+   {
+    "kind": "spell",
+    "parent_key": null,
+    "semantic_key": "spell:wish"
+   },
+   {
+    "kind": "creature",
+    "parent_key": "spell:wish",
+    "semantic_key": "creature:wish-scoped-servant"
+   }
+  ],
+  "references": [],
+  "relationships": [
+   {
+    "kind": "scoped_within",
+    "source_record_key": "creature:wish-scoped-servant",
+    "target_record_key": "spell:wish"
+   }
+  ]
+ },
+ "representation_schema": {
+  "hash": "4b1f89d51511e1ef68660bc15f9e647a091722d6d16d11469efd23ff59543a70",
+  "version": "5d-representation-schema-4"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1",
+ "spans": [
+  {
+   "char_end": 40,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "leaf-spell",
+   "non_mechanical_reason_code": null,
+   "span_id": "47d4cc94-8b98-5c55-a6bc-603b83d78766"
+  },
+  {
+   "char_end": 30,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "leaf-prose",
+   "non_mechanical_reason_code": null,
+   "span_id": "78377f22-9d54-510d-b2ae-b8ba6f5c5857"
+  },
+  {
+   "char_end": 20,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "leaf-support",
+   "non_mechanical_reason_code": null,
+   "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
+  }
+ ]
 }
