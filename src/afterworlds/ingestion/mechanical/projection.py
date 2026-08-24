@@ -43,6 +43,7 @@ from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
+    Recurrence,
     RepresentationDraft,
     _dataclass_payload,
     fact_key,
@@ -53,6 +54,7 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 
 __all__ = [
     "applicability_payload",
+    "recurrence_payload",
     "IdentifiedProjection",
     "ProjectionCandidate",
     "ReleaseBinding",
@@ -187,6 +189,12 @@ class _VersionedComponentField:
     introduced_in: str
     payload: Callable[[ComponentDraft], object]
     holds_meaning: Callable[[ComponentDraft], bool]
+    #: Post-schema-3 keys are omitted when they carry no meaning, so an
+    #: inherited schema-3 component is byte-identical under a later schema —
+    #: Owner Decision 2026-08-24. Schema 1-3 keys keep unconditional emission:
+    #: the committed conditions-1 artifact contains "applies_when": null, so
+    #: omitting it would move the identity this rule exists to hold still.
+    omit_when_empty: bool = False
 
 
 _COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
@@ -228,6 +236,13 @@ _COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
         ),
         holds_meaning=lambda c: bool(c.fact_qualifiers),
     ),
+    _VersionedComponentField(
+        key="recurs",
+        introduced_in="schema-4",
+        payload=lambda c: recurrence_payload(c.recurs),
+        holds_meaning=lambda c: c.recurs is not None,
+        omit_when_empty=True,
+    ),
 )
 
 #: Every merged representation schema version, and the component payload keys
@@ -248,7 +263,9 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     # additions are all *fact and value-object* fields, which the representation
     # walker omits when empty; no component key joins the set here. A component
     # key that does join it later must be added to this row explicitly.
-    SCHEMA_4_VERSION: frozenset({"applies_when", "options", "fact_qualifiers"}),
+    SCHEMA_4_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -304,6 +321,11 @@ def _component_versioned_payload(
     """
     payload: dict[str, object] = {}
     for field in _COMPONENT_FIELDS:
+        if field.omit_when_empty and not field.holds_meaning(component):
+            # Absent and default say the same thing for a post-schema-3 key, so
+            # one canonical form serves both and an inherited component keeps
+            # the exact payload it was accepted with.
+            continue
         if field.key in emitted:
             payload[field.key] = field.payload(component)
         elif field.holds_meaning(component):
@@ -479,6 +501,17 @@ def derive_component_id(
     return content_id(
         "mechanical_component", projection_uuid_, record_key, component_key
     )
+
+
+def recurrence_payload(recurrence: Recurrence | None) -> dict[str, object] | None:
+    """Canonical payload of one recurrence, or ``None``.
+
+    Delegates to the representation walker for the same reason
+    :func:`applicability_payload` does: one serialization of one structure.
+    """
+    if recurrence is None:
+        return None
+    return _dataclass_payload(recurrence)
 
 
 def applicability_payload(

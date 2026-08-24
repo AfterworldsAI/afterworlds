@@ -69,6 +69,7 @@ from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_1_VERSION,
     SCHEMA_2_VERSION,
     SCHEMA_3_VERSION,
+    SCHEMA_4_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -370,7 +371,11 @@ def test_the_current_schema_is_the_default_and_is_schema_3() -> None:
 # ---------------------------------------------------------------------------
 
 UNKNOWN_VERSIONS = [
-    "5d-representation-schema-4",
+    # "5d-representation-schema-4" used to sit here as the next unminted
+    # version. It is declared now, so the probe moves to the one after it —
+    # the property is that an *unrecognised* version is refused, not that a
+    # particular string is.
+    "5d-representation-schema-5",
     "5d-representation-schema-0",
     "representation-schema-3",
     "",
@@ -404,7 +409,7 @@ def test_an_unknown_version_is_refused_even_with_no_components() -> None:
         provenance=(),
     )
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(empty, schema_version="5d-representation-schema-4")
+        representation_payload(empty, schema_version="5d-representation-schema-5")
 
 
 def test_the_refusal_names_the_versions_this_build_knows() -> None:
@@ -435,7 +440,12 @@ def test_each_merged_version_extends_the_one_before_it() -> None:
     key was *removed*, which no merged contract has done — and if one ever
     does, that is a decision to make explicitly rather than to discover here.
     """
-    succession = [SCHEMA_1_VERSION, SCHEMA_2_VERSION, SCHEMA_3_VERSION]
+    succession = [
+        SCHEMA_1_VERSION,
+        SCHEMA_2_VERSION,
+        SCHEMA_3_VERSION,
+        SCHEMA_4_VERSION,
+    ]
     assert sorted(_MERGED_COMPONENT_FIELDS) == sorted(succession)
     for earlier, later in pairwise(succession):
         assert _MERGED_COMPONENT_FIELDS[earlier] < _MERGED_COMPONENT_FIELDS[later]

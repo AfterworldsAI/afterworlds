@@ -184,6 +184,9 @@ __all__ = [
     "TransportKind",
     "applicability_violations",
     "FactQualifier",
+    "Recurrence",
+    "RecurrenceBoundary",
+    "recurrence_violations",
     "component_participant_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
@@ -845,6 +848,21 @@ class DamageOutcome(StrEnum):
 
     ANY_DAMAGE = "any_damage"
     NO_DAMAGE = "no_damage"
+
+
+class RecurrenceBoundary(StrEnum):
+    """The closed set of boundaries at which a stated effect repeats.
+
+    Measured corpus-wide, not taken from one batch: 88 rules across seven
+    top-level sections state a turn boundary — *"at the start of each of its
+    turns"* (Burning), *"at the end of each of your turns"* (Spells) — and the
+    day boundary is the same shape at the cadence the hazards state their
+    accrual at.
+    """
+
+    START_OF_TURN = "start_of_turn"
+    END_OF_TURN = "end_of_turn"
+    END_OF_DAY = "end_of_day"
 
 
 class Phase(StrEnum):
@@ -4296,6 +4314,49 @@ class ComponentOption:
 
 
 @dataclass(frozen=True)
+class Recurrence:
+    """How often a component's stated effect repeats, and on whose clock.
+
+    A distinct axis from :class:`DurationKind`, which says how long something
+    lasts. Burning's damage repeats without ending and Suffocation's accrual
+    repeats while a state holds, so a duration field would assert an end the
+    source never states. Kept as its own optional field on the component rather
+    than folded into ``applies_when`` because Dodge states an applicability and
+    a duration at once, and collapsing the axes would lose one.
+
+    ``whose`` is required for a turn boundary and forbidden for the day
+    boundary: a turn belongs to a creature, a day does not.
+    """
+
+    boundary: RecurrenceBoundary
+    whose: RollActor | None = None
+
+
+def recurrence_violations(recurrence: Recurrence) -> list[str]:
+    """Violations of one recurrence's own contract."""
+    if drift := _vo_field(recurrence, Recurrence, "recurrence"):
+        return drift
+    if not isinstance(recurrence.boundary, RecurrenceBoundary):
+        return [f"{recurrence.boundary!r} is not a declared RecurrenceBoundary"]
+    if recurrence.whose is not None and not isinstance(recurrence.whose, RollActor):
+        return [f"{recurrence.whose!r} is not a declared RollActor"]
+    turn = recurrence.boundary in (
+        RecurrenceBoundary.START_OF_TURN,
+        RecurrenceBoundary.END_OF_TURN,
+    )
+    if turn and recurrence.whose is None:
+        return [
+            "a turn-boundary recurrence states no whose; a turn belongs to a creature"
+        ]
+    if not turn and recurrence.whose is not None:
+        return [
+            f"a {recurrence.boundary.value} recurrence carries whose, "
+            "which it does not range over"
+        ]
+    return []
+
+
+@dataclass(frozen=True)
 class FactQualifier:
     """One fact's own condition, where it differs from its siblings'.
 
@@ -4366,6 +4427,10 @@ class ComponentDraft:
     #: names one fact in this component by ``(option_key, fact_key)``; a fact
     #: with no entry here is conditioned only by its enclosing scopes.
     fact_qualifiers: tuple[FactQualifier, ...] = ()
+    #: How often this component's effect repeats. Post-schema-3, so it is
+    #: omitted from the canonical payload when unset — which is what keeps an
+    #: inherited schema-3 component byte-identical under schema 4.
+    recurs: Recurrence | None = None
 
     def qualifier_for(self, fact: object, option_key: str = "") -> Applicability | None:
         """This component's own condition for *fact* in the given scope.
@@ -4645,6 +4710,7 @@ _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
         FactQualifier,
         Money,
         Rational,
+        Recurrence,
         RollSpec,
         SizeComparison,
         SpellCastingTime,

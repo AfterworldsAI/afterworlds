@@ -94,16 +94,20 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    RollActor,
     SizeComparison,
     SizeRelation,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
     fact_from_payload,
+    recurrence_violations,
 )
 
 __all__ = [
@@ -419,6 +423,32 @@ def _string_list(value: object, where: str) -> list[str]:
     ]
 
 
+def _recurrence(raw: object, where: str) -> Recurrence | None:
+    """Load one stored recurrence, or ``None``.
+
+    Absent is the declared default: the canonical payload omits this key when
+    the component states no recurrence, which is what keeps a schema-3 component
+    byte-identical under schema 4. Present is held to the same typed invariants
+    the build side uses.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise OracleLoadError(f"{where}: recurrence must be an object or null")
+    payload = _require(raw, ("boundary",), where, optional=("whose",))
+    built = Recurrence(
+        boundary=_enum(RecurrenceBoundary, payload["boundary"], f"{where}.boundary"),
+        whose=(
+            None
+            if payload.get("whose") is None
+            else _enum(RollActor, payload["whose"], f"{where}.whose")
+        ),
+    )
+    if findings := recurrence_violations(built):
+        raise OracleLoadError(f"{where}: {'; '.join(findings)}")
+    return built
+
+
 def _applicability(raw: object, where: str) -> Applicability | None:
     """Load one stored applicability, or ``None``.
 
@@ -622,7 +652,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
-            optional=("applies_when", "options", "fact_qualifiers"),
+            optional=("applies_when", "options", "fact_qualifiers", "recurs"),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -655,6 +685,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 # and the gate rebuilds and re-hashes the payload, so a key
                 # dropped or misspelled anywhere upstream fails there rather
                 # than loading as silently empty.
+                recurs=_recurrence(c.get("recurs"), f"{where}.recurs"),
                 applies_when=_applicability(
                     c.get("applies_when"), f"{where}.applies_when"
                 ),

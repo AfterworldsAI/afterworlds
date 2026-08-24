@@ -63,7 +63,6 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     DieSize,
     FactFamily,
-    MalformedFactPayloadError,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
@@ -72,7 +71,6 @@ from afterworlds.ingestion.mechanical.representation import (
     RollSpec,
     UnsupportedRepresentationShapeError,
     _wire_fields,
-    fact_from_payload,
     fact_invariant_violations,
     fact_payload,
     representation_schema_hash,
@@ -1106,19 +1104,28 @@ def test_a_subclass_is_rejected_during_representation_validation() -> None:
 
 
 def test_validation_cannot_approve_what_reconstruction_cannot_rebuild() -> None:
-    """The property the fix exists to restore.
+    """The property the fix exists to restore, under the schema-4 serializer.
 
-    The subclass serializes its extra field, so before the fix validation
-    reported nothing while ``fact_from_payload`` refused the same fact — a
-    candidate that could persist and then fail to reconstruct.
+    This test used to assert the opposite serialization: ``asdict`` walked the
+    *instance's* fields, so the subclass's extra key entered the canonical
+    payload, and validation reported nothing while ``fact_from_payload`` refused
+    the same fact.
+
+    Schema 4's walker resolves an instance to the closed class it extends and
+    emits only that class's declared fields, so undeclared state no longer
+    reaches a payload at all. That is strictly narrower: an undeclared class can
+    no longer inject a key into an identity. The property under test is
+    unchanged and now holds from both directions — the payload carries only
+    declared keys, and the gate still refuses the value rather than letting it
+    persist as something reconstruction would reject.
     """
     fact = AdvantageFact(
         AdvantageState.DISADVANTAGE,
         _RollSpecSubclass(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
     )
     payload = fact_payload(fact)
-    assert "smuggled" in payload["roll"]  # type: ignore[operator]
-    with pytest.raises(MalformedFactPayloadError):
-        fact_from_payload(payload)
-    # Validation now refuses it too, so the two halves agree.
+    # Undeclared state is invisible to identity rather than smuggled into it.
+    assert "smuggled" not in payload["roll"]  # type: ignore[operator]
+    assert set(payload["roll"]) == {"actor", "context", "ability"}  # type: ignore[arg-type]
+    # ...and the gate is what stops the value reaching persistence at all.
     assert fact_invariant_violations(fact)
