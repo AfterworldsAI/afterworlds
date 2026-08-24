@@ -6,11 +6,12 @@ the distribution metadata, a source checkout publishes and an installed
 application silently returns ``ABSENT`` for every projection — publication
 failing for a reason that has nothing to do with the oracle.
 
-The directory is deliberately empty of production content today, so the defect
-cannot be caught by shipping the real oracle. Instead this builds a **copy** of
-the source tree carrying one valid sentinel oracle, produces a wheel and an
-sdist from it, installs each, and drives the genuine production resolution and
-publication entry point against the installed copy. Archive listings are checked
+The real SRD artifact would make a resolution hit ambiguous — it might succeed
+because packaging works, or because some other release happened to match. So
+this builds a **copy** of the source tree carrying one valid *sentinel* oracle
+bound to a release that exists nowhere else, produces a wheel and an sdist from
+it, installs each, and drives the genuine production resolution and publication
+entry point against the installed copy. Archive listings are checked
 too, but they are not the proof: the defect is runtime resource resolution, so
 the assertion that matters is that ``publish_from_committed_oracle`` reaches the
 packaged oracle instead of reporting ``ABSENT``.
@@ -153,8 +154,8 @@ def _staged_source_tree(tmp_path: Path) -> Path:
     """A build-able copy of the project carrying one sentinel oracle.
 
     A copy rather than the checkout: the sentinel must be present at build time
-    to prove the distribution metadata picks it up, and the real production
-    oracle directory must stay empty of accepted content.
+    to prove the distribution metadata picks it up, and it must never be written
+    into the real oracle directory, which holds reviewed content only.
     """
     staged = tmp_path / "src-tree"
     staged.mkdir()
@@ -242,14 +243,18 @@ def _probe_installed(target: Path, cwd: Path) -> dict[str, object]:
     return result
 
 
-def test_the_production_oracle_directory_ships_no_accepted_srd_oracle() -> None:
-    """The real directory stays semantically empty until the content PR.
+def test_the_production_oracle_directory_ships_only_reviewed_content() -> None:
+    """The real directory holds the accepted SRD artifact and nothing else.
 
-    Guards the sentinel from leaking into the checkout, and restates the claim
-    the PR makes: nothing over the production release can be published yet.
+    Guards the sentinel from leaking into the checkout — its release is chosen
+    to collide with nothing, so its presence here would mean a test wrote into
+    the source tree.
     """
     assert _PRODUCTION_ORACLES.is_dir()
-    assert list(_PRODUCTION_ORACLES.glob("*.json")) == []
+    assert sorted(p.name for p in _PRODUCTION_ORACLES.glob("*.json")) == [
+        "srd-5-2-1-corpus-36b786d8-fa2.json"
+    ]
+    assert not list(_PRODUCTION_ORACLES.glob(f"*{SENTINEL_PACKAGE}*"))
 
 
 def test_a_packaged_oracle_resolves_and_publishes_from_wheel_and_sdist(

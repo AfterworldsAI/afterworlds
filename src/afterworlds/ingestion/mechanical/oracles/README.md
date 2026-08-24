@@ -11,11 +11,24 @@ The schema is whatever `oracle.load_accepted_inputs` accepts; it rejects a
 missing key, an extra key, and an undeclared enum value rather than defaulting
 any of them.
 
-**This directory is deliberately empty of production content.** No accepted
-authority exists for the SRD 5.2.1 release yet, so that release resolves to
-nothing and its mechanical projection cannot be published — which is the honest
-state until the accepted full-corpus authority is reviewed and committed by a
-later CRD Issue 5d content PR.
+## What is committed here
+
+`srd-5-2-1-corpus-36b786d8-fa2.json` — accepted authority for the SRD 5.2.1
+release (`4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` /
+`5.2.1-corpus.36b786d8-fa2`), currently holding **batch `conditions-1` only**.
+
+The file is named for the release, not for the batch, because the resolver
+matches on the release binding and refuses outright when two artifacts claim one
+release. A later batch therefore **extends this file** — `accept_proposal` takes
+the loaded artifact as `prior` and merges, so an added batch cannot silently
+discard an earlier one's reviewed work — rather than adding a second file.
+
+**The CRD Issue 5d corpus is incomplete, so this release still cannot publish.**
+Accepted authority now exists and resolves, but the publication gate compares it
+against the *whole* persisted projection: a projection carrying any record this
+artifact does not accept fails with `MISSING_AUTHORITY` / `UNEXPECTED_AUTHORITY`.
+Nothing here publishes, activates, or retires anything — committing an accepted
+artifact is the acceptance action of record and nothing more.
 
 Files here are review artifacts, not build output. Nothing in `src/` writes to
 this directory, and no accepted artifact may be generated from a candidate or

@@ -6,11 +6,13 @@ and finalized through CRD Issue 5c's own lifecycle — and proves the claim this
 PR must not overstate.
 
 The runtime binding path resolves the real release's package and reports
-``UNPUBLISHED``: no accepted oracle is committed for that release, so no
-mechanical projection over it has been published, so there is no active
-mechanical authority to bind. That is the honest state, and it is asserted here
-as a *typed* outcome rather than as an absence — a resolver that answered
-"nothing" would be indistinguishable from one that had lost the release.
+``UNPUBLISHED``. Accepted authority for that release *is* committed — CRD Issue
+5d batch ``conditions-1`` — so the oracle resolves; but acceptance is not
+publication, no mechanical projection over the release has been published or
+activated, and so there is no active mechanical authority to bind. That is the
+honest state, and it is asserted here as a *typed* outcome rather than as an
+absence — a resolver that answered "nothing" would be indistinguishable from one
+that had lost the release.
 
 It also re-confirms the exact production release identity from current ``main``
 rather than restating a previously reported value.
@@ -84,16 +86,21 @@ def test_the_production_release_identity(production) -> None:  # type: ignore[no
     assert release.release.release_version == EXPECTED_RELEASE_VERSION
 
 
-def test_no_mechanical_projection_is_published_for_the_real_release(
+def test_accepted_authority_resolves_but_nothing_is_published(
     production,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Nothing judges the real SRD release yet, so nothing over it is active."""
+    """Accepted authority exists for the real release; none of it is active.
+
+    Acceptance and publication are separate acts. Committing a reviewed
+    artifact records what a human accepted; it publishes no rules package and
+    activates no release, which the sibling test below asserts directly.
+    """
     _session, release = production
     assert (
         committed_oracle_for(
             release.release.package_uuid, release.release.release_version
         )
-        is None
+        is not None
     )
 
 

@@ -609,10 +609,14 @@ def publish_from_committed_oracle(
     Re-publication and re-activation enter here too, and re-run the complete
     proof. There is no cheaper door.
 
-    No accepted oracle is committed for the production SRD 5.2.1 release, so
-    this path currently returns ``ABSENT`` for it. That is the honest state:
-    the accepted full-corpus authority has not been reviewed and committed yet,
-    and until it is, nothing over that release can be published.
+    Accepted authority *is* committed for the production SRD 5.2.1 release, but
+    it covers CRD Issue 5d batch ``conditions-1`` only, so this path currently
+    returns ``INCOMPLETE`` for the production projection: the oracle resolves,
+    and the gate then finds persisted records it does not accept. That is the
+    honest state — the refusal is about coverage, not about absence — and until
+    the remaining batches are reviewed and accepted, nothing over that release
+    can be published. ``ABSENT`` still answers the different question of a
+    release no committed artifact judges at all.
     """
     header = _header(session, projection_uuid)
     if header is None:
