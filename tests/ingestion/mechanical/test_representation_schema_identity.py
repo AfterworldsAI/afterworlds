@@ -48,6 +48,7 @@ from afterworlds.ingestion.mechanical.persistence import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_2_VERSION,
+    UnsupportedSchemaVersionError,
     identify_projection,
     projection_payload,
     representation_payload,
@@ -91,9 +92,15 @@ from tests.ingestion.mechanical.conftest import (
 )
 
 #: A declaration this build does not implement. Used only where nothing is
-#: serialized *under* it — an arbitrary version must still move an identity and
-#: an oracle payload, and neither of those asks this build to produce a
-#: component payload shaped for a union it has never seen.
+#: serialized *under* it — an arbitrary version must still move a projection
+#: identity, which does not ask this build to produce a component payload shaped
+#: for a union it has never seen.
+#:
+#: It is NOT usable against ``oracle_payload`` any more. Since D-2 that
+#: canonicalizes under the artifact's own declaration, so an unimplemented
+#: version fails closed there rather than quietly borrowing the current shape —
+#: asserted by
+#: ``test_an_oracle_declaring_a_union_this_build_cannot_serialize_fails_closed``.
 OTHER_VERSION = "5d-representation-schema-99"
 OTHER_HASH = "9" * 64
 
@@ -409,14 +416,42 @@ def test_tampering_the_declaration_to_an_unknown_union_is_reported_not_raised(
 
 
 def test_the_declaration_is_identity_bearing_in_the_oracle() -> None:
+    """Two declarations over one accepted content are two oracle payloads.
+
+    The perturbed declaration is a **real superseded union**, not a fabricated
+    one. It used to be ``OTHER_VERSION`` — an arbitrary string — on the reasoning
+    that "nothing is serialized under it". That reasoning ended when
+    ``oracle_payload`` began canonicalizing under the artifact's own declaration
+    (D-2): the version is no longer inert here, so a version this build cannot
+    serialize now fails closed instead of quietly borrowing the current shape.
+
+    That refusal is asserted too, immediately below, because it is the property
+    D-2 exists to give.
+    """
     oracle = load_accepted_inputs(BOUNDED_ORACLE_PATH).oracle
     assert oracle_payload(oracle)["representation_schema"] == {
         "version": SCHEMA_VERSION,
         "hash": SCHEMA_HASH,
     }
-    assert oracle_payload(replace(oracle, schema_version=OTHER_VERSION)) != (
-        oracle_payload(oracle)
-    )
+    superseded = replace(oracle, schema_version=PRIOR_VERSION, schema_hash=PRIOR_HASH)
+    assert oracle_payload(superseded) != oracle_payload(oracle)
+    assert oracle_payload(superseded)["representation_schema"] == {
+        "version": PRIOR_VERSION,
+        "hash": PRIOR_HASH,
+    }
+
+
+def test_an_oracle_declaring_a_union_this_build_cannot_serialize_fails_closed() -> None:
+    """D-2's fail-closed half.
+
+    An accepted artifact naming a contract this build has never seen cannot be
+    canonicalized honestly, and the alternative — serializing it under whatever
+    the build currently implements — is exactly the silent re-identification
+    Owner Decision 2026-08-20 refused for components.
+    """
+    oracle = load_accepted_inputs(BOUNDED_ORACLE_PATH).oracle
+    with pytest.raises(UnsupportedSchemaVersionError):
+        oracle_payload(replace(oracle, schema_version=OTHER_VERSION))
 
 
 def test_the_gate_refuses_a_projection_whose_union_differs_from_the_oracle(
