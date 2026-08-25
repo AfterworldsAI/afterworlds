@@ -44,12 +44,14 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordKind,
     RelationshipKind,
     RepresentationDraft,
+    UnknownFactFamilyError,
     applicability_violations,
     component_participant_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
     fact_qualifier_violations,
+    fact_target_key,
     option_set_violations,
     prose_bindings_by_target_key,
     representation_draft_violations,
@@ -571,6 +573,101 @@ def _validate_provenance(
     return findings
 
 
+def _validate_duplicated_fact_authority(
+    draft: RepresentationDraft, ledger: ClassificationLedger
+) -> list[str]:
+    """One source statement may not become two copies of the same authority.
+
+    ADR-005d Decision 5 requires a duplicated-fact projection to fail. The
+    per-scope duplicate check above cannot see this case: it compares facts
+    *within* one component's scope, so two sibling components each holding an
+    equivalent fact are two separate scopes and each looks clean.
+
+    That gap is real and was found by building it. A disjunctive trigger —
+    Suffocation's *"When a creature runs out of breath **or** is choking, it
+    gains 1 Exhaustion level"* — invites an authoring shape with one component
+    per arm, each carrying its own copy of the single stated consequence. The
+    whole representation validated, while publishing two accrual claims where
+    the source made one. Labelling one provenance edge ``PRIMARY`` and the other
+    ``CONTEXTUAL`` is what let it through, and that labelling is itself the
+    defect: the consequence clause *states* both facts, so calling it merely
+    contextual for one of them is false about where the authority came from.
+
+    **The rule, kept as narrow as the defect.** Two *different* components of one
+    record may not hold facts with the same content-derived key when both draw
+    that fact from the **same substantive span**. All three conditions are
+    required, and each one is load-bearing:
+
+    * **Different components.** Two options of one component are mutually
+      exclusive alternatives, not a repeat — the per-scope check already says so,
+      and this must not contradict it. Option facts resolve to their owning
+      component here, so a choice is never reported.
+    * **Equivalent fact, not merely equal family.** Keyed by ``fact_key``, the
+      same content-derived key persistence and override targeting use.
+    * **Shared substantive span.** The same mechanic stated by two genuinely
+      different rules is normal authority, so two components holding an
+      equivalent fact from *different* spans is left alone. Cross-record
+      duplication is likewise not this rule's business.
+
+    Deliberately **not** global cross-component fact uniqueness, and deliberately
+    not derived by reading positions out of a provenance target key: the sites
+    are built by walking the declared components, so a key's shape can change
+    without silently changing what this rule means. The role on the edge is not
+    consulted at all — the duplication is the same defect whichever label it
+    wears.
+    """
+    # Built from the declared components, never parsed back out of target keys.
+    sites: dict[tuple[str, ...], tuple[str, str, str]] = {}
+    for component in draft.components:
+        owner = (component.record_key, component.semantic_key)
+        for fact in component.facts:
+            try:
+                key = fact_key(fact)
+            except UnknownFactFamilyError:
+                continue
+            sites[fact_target_key(*owner, fact)] = (*owner, key)
+        for option in component.options:
+            for fact in option.facts:
+                try:
+                    key = fact_key(fact)
+                except UnknownFactFamilyError:
+                    continue
+                sites[fact_target_key(*owner, fact, option.semantic_key)] = (
+                    *owner,
+                    key,
+                )
+
+    substantive = {
+        span.span_id
+        for span in ledger.spans
+        if span.disposition is SemanticDisposition.SUBSTANTIVE
+    }
+    by_span: dict[str, set[tuple[str, str, str]]] = {}
+    for claim in draft.provenance:
+        if claim.target_kind is not ProvenanceTargetKind.FACT:
+            continue
+        if claim.span_id not in substantive:
+            continue
+        site = sites.get(claim.target_key)
+        if site is not None:
+            by_span.setdefault(claim.span_id, set()).add(site)
+
+    findings: list[str] = []
+    for span_id in sorted(by_span):
+        holders: dict[tuple[str, str], set[str]] = {}
+        for record_key, component_key, key in by_span[span_id]:
+            holders.setdefault((record_key, key), set()).add(component_key)
+        for (record_key, key), components in sorted(holders.items()):
+            if len(components) > 1:
+                findings.append(
+                    f"record {record_key}: fact {key} is stated once by span "
+                    f"{span_id} but held by sibling components "
+                    f"{sorted(components)}; one source statement may not become "
+                    "two copies of the same authority"
+                )
+    return findings
+
+
 def validate_representation(
     draft: RepresentationDraft,
     ledger: ClassificationLedger,
@@ -598,4 +695,5 @@ def validate_representation(
     findings.extend(_validate_prose_bindings(draft, ledger, corpus))
     findings.extend(_validate_relationships_and_references(draft))
     findings.extend(_validate_provenance(draft, ledger, corpus))
+    findings.extend(_validate_duplicated_fact_authority(draft, ledger))
     return tuple(findings)
