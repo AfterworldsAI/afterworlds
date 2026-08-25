@@ -276,7 +276,7 @@ def _compare_elements(
 
 
 def _comparable_collections(
-    draft: RepresentationDraft,
+    draft: RepresentationDraft, schema_version: str
 ) -> dict[str, list[dict[str, object]]]:
     """Flatten the representation into the collections the gate compares.
 
@@ -291,7 +291,10 @@ def _comparable_collections(
     * **components carry no facts**, so the same difference is not reported
       twice under two categories.
     """
-    payload = representation_payload(draft)
+    # Each side under its own declaration. The schema-mismatch check reports a
+    # disagreement in its own words; this must not turn one into a flood of
+    # spurious element differences by canonicalizing both under one contract.
+    payload = representation_payload(draft, schema_version=schema_version)
     collections: dict[str, list[dict[str, object]]] = {}
     for key in (
         "records",
@@ -655,8 +658,12 @@ def run_publication_gate(
         findings,
         _CLASSIFICATION_CATEGORIES,
     )
-    persisted_collections = _comparable_collections(candidate.representation)
-    accepted_collections = _comparable_collections(oracle.representation)
+    persisted_collections = _comparable_collections(
+        candidate.representation, candidate.schema_version
+    )
+    accepted_collections = _comparable_collections(
+        oracle.representation, oracle.schema_version
+    )
     for key in sorted(persisted_collections):
         _compare_elements(
             persisted_collections[key], accepted_collections[key], key, findings

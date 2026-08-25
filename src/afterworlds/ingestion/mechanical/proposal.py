@@ -146,8 +146,14 @@ def proposal_payload(proposal: MechanicalProposal) -> dict[str, object]:
             }
             for payload in span_payload(tuple(p.span for p in proposal.proposed_spans))
         ),
+        # Under the proposal's own declaration. The batch that accepts a
+        # proposal records its identity as evidence of what a human reviewed, so
+        # that identity has to stay re-derivable from the retained proposal
+        # artifact on a later build — otherwise the recorded value becomes
+        # unverifiable the moment the union widens.
         "proposed_representation": representation_payload(
-            proposal.proposed_representation
+            proposal.proposed_representation,
+            schema_version=proposal.schema_version,
         ),
     }
 

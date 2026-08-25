@@ -319,7 +319,15 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
             "hash": oracle.schema_hash,
         },
         "spans": span_payload(oracle.spans),
-        "representation": representation_payload(oracle.representation),
+        # Under the schema this ACCEPTED AUTHORITY declares, never the one the
+        # build happens to implement. The two coincided until schema 4 existed,
+        # which is why defaulting here was invisible: a schema-3 artifact loaded
+        # by a schema-4 build would have been canonicalized under schema-4 keys
+        # and silently re-identified — the same failure Owner Decision
+        # 2026-08-20 addressed for components, reappearing at this seam.
+        "representation": representation_payload(
+            oracle.representation, schema_version=oracle.schema_version
+        ),
         "obligations": canonical_order(
             obligation_payload(o) for o in oracle.obligations
         ),
