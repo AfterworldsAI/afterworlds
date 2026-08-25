@@ -66,6 +66,7 @@ from afterworlds.ingestion.mechanical.projection import (
     applicability_payload_violations,
     identify_projection,
     projection_payload,
+    recurrence_payload,
 )
 from afterworlds.ingestion.mechanical.raw_state import (
     PersistedStateReconstructionError,
@@ -92,10 +93,13 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    RollActor,
     SizeComparison,
     SizeRelation,
     TrackedQuantity,
@@ -104,6 +108,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_from_payload,
     fact_key,
     fact_payload,
+    recurrence_violations,
 )
 from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceBatchORM,
@@ -262,6 +267,7 @@ def persist_draft(
                 handling=component.handling.value,
                 irreducibility_reason_code=component.irreducibility_reason_code,
                 applies_when=applicability_payload(component.applies_when),
+                recurs=recurrence_payload(component.recurs),
             )
         )
         for option in component.options:
@@ -351,6 +357,42 @@ def persist_draft(
         )
 
     session.flush()
+
+
+def _recurrence_from_row(
+    payload: dict[str, object] | None, where: str
+) -> Recurrence | None:
+    """Rebuild one stored recurrence, refusing anything it cannot rebuild.
+
+    NULL is a real state — a component the source states no cadence for — so it
+    reconstructs as ``None`` rather than as a defect. Everything else is checked
+    against the same typed invariants the build side uses before it becomes a
+    vocabulary member, so a stored value outside a declared vocabulary fails
+    reconstruction instead of silently becoming a different cadence.
+    """
+    if payload is None:
+        return None
+    raw = cast("dict[str, Any]", payload)
+    unknown = sorted(set(raw) - {"boundary", "whose"})
+    if unknown or "boundary" not in raw:
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: recurrence payload keys {sorted(raw)} "
+            "are not the declared shape"
+        )
+    try:
+        built = Recurrence(
+            boundary=RecurrenceBoundary(raw["boundary"]),
+            whose=None if raw.get("whose") is None else RollActor(raw["whose"]),
+        )
+    except ValueError as exc:
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: {exc}"
+        ) from exc
+    if findings := recurrence_violations(built):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: {'; '.join(findings)}"
+        )
+    return built
 
 
 def _applicability_from_row(
@@ -608,6 +650,7 @@ def reconstruct_candidate(
             applies_when=_applicability_from_row(
                 c.applies_when, "rp_mech_components", f"{c.record_key}/{c.semantic_key}"
             ),
+            recurs=_recurrence_from_row(c.recurs, f"{c.record_key}/{c.semantic_key}"),
             fact_qualifiers=_qualifiers_for(c),
             # Options are rebuilt in canonical key order, matching the payload,
             # so a reconstruction never depends on row order.

@@ -252,6 +252,10 @@ class MechanicalComponentORM(_ProjectionScoped):
     #: unconditionally. Stored as the canonical payload rather than as columns
     #: so one shape change does not become a table migration per field.
     applies_when: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
+    #: How often this component's effect repeats, or NULL when the source states
+    #: no cadence. A distinct axis from duration: Burning's damage repeats
+    #: without ending, so a duration would assert an end the source never makes.
+    recurs: Mapped[dict[str, Any] | None] = mapped_column(sa.JSON, nullable=True)
 
 
 class MechanicalComponentOptionORM(_ProjectionScoped):
