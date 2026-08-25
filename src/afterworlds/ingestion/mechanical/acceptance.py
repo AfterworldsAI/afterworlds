@@ -79,6 +79,12 @@ from afterworlds.ingestion.mechanical.representation import (
     relationship_target_key,
     representation_draft_violations,
 )
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SchemaLiftError,
+    SchemaLiftRecord,
+    lift_for,
+    verify_lift,
+)
 
 __all__ = ["AcceptanceError", "accept_proposal"]
 
@@ -254,14 +260,33 @@ def accept_proposal(
             "accepted authority it would extend"
         )
 
+    # A schema difference is refused unless an authorized lift covers this exact
+    # transition. The check is widened, never removed: identical schemas remain
+    # directly acceptable, and everything else must be registered for its exact
+    # (version, hash) source and destination pair. An unknown, reversed, skipped,
+    # or hash-mismatched transition raises, and "a later version" is never
+    # evidence — SCHEMA_LIFTS is a table, not a comparison.
+    lift_record: SchemaLiftRecord | None = None
     if prior is not None and (
         prior.oracle.schema_version,
         prior.oracle.schema_hash,
     ) != (proposal.schema_version, proposal.schema_hash):
-        raise AcceptanceError(
-            "this proposal declares a different representation schema than the "
-            "prior accepted authority it would extend"
-        )
+        try:
+            lift = lift_for(
+                (prior.oracle.schema_version, prior.oracle.schema_hash),
+                (proposal.schema_version, proposal.schema_hash),
+            )
+            # Proves element by element that the prior accepted content is
+            # byte-identical under the destination schema *before* anything is
+            # re-declared. A lift may authorize a wider contract; it may never
+            # move a semantic identity the Owner already accepted.
+            lift_record = verify_lift(lift, prior.oracle.representation)
+        except SchemaLiftError as exc:
+            raise AcceptanceError(
+                "this proposal declares a different representation schema than "
+                "the prior accepted authority it would extend, and no verified "
+                f"lift authorizes the difference: {exc}"
+            ) from exc
 
     if batch_id in {b.batch_id for b in (prior.batches if prior else ())}:
         raise AcceptanceError(f"batch {batch_id!r} is already recorded")
@@ -335,6 +360,10 @@ def accept_proposal(
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
+        # Oldest first, and append-only: an artifact records every succession it
+        # was carried across, not merely the last one.
+        lifts=tuple(prior.lifts if prior else ())
+        + ((lift_record,) if lift_record is not None else ()),
     )
 
 

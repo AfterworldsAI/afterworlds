@@ -109,6 +109,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_from_payload,
     recurrence_violations,
 )
+from afterworlds.ingestion.mechanical.schema_lift import SchemaLiftRecord
 
 __all__ = [
     "ACCEPTED_ARTIFACT_KIND",
@@ -217,6 +218,12 @@ class AcceptedInputs:
     oracle: AcceptedOracle
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: Schema successions this artifact was carried across, oldest first.
+    #: Evidence, never identity: which contract an artifact was lifted through is
+    #: migration process, and process does not remint a projection (#137
+    #: acceptance criterion 11), so this sits beside the acceptance batches
+    #: rather than inside :class:`AcceptedOracle`.
+    lifts: tuple[SchemaLiftRecord, ...] = ()
 
     def classification(self) -> ClassificationLedger:
         """The complete accepted ledger, result and evidence together."""
@@ -886,11 +893,51 @@ def _check_obligations_closed(
 # out of it drops the evidence before identity is computed.
 
 
-def _acceptance(
-    payload: object, where: str
-) -> tuple[tuple[AcceptanceBatch, ...], tuple[AcceptanceRecord, ...]]:
+def _acceptance(payload: object, where: str) -> tuple[
+    tuple[AcceptanceBatch, ...],
+    tuple[AcceptanceRecord, ...],
+    tuple[SchemaLiftRecord, ...],
+]:
     """Load the review evidence half of a committed accepted-inputs file."""
-    p = _require(payload, ("batches", "records"), where)
+    p = _require(payload, ("batches", "records"), where, optional=("lifts",))
+
+    lifts = []
+    for i, raw_lift in enumerate(_object_list(p.get("lifts", []), f"{where}.lifts")):
+        at = f"{where}.lifts[{i}]"
+        entry = _require(
+            raw_lift,
+            (
+                "lift_id",
+                "from_version",
+                "from_hash",
+                "to_version",
+                "to_hash",
+                "verified_counts",
+            ),
+            at,
+        )
+        counts = []
+        for j, raw_count in enumerate(
+            _object_list(entry["verified_counts"], f"{at}.verified_counts")
+        ):
+            cat = f"{at}.verified_counts[{j}]"
+            c = _require(raw_count, ("collection", "elements"), cat)
+            counts.append(
+                (
+                    _string(c["collection"], f"{cat}.collection"),
+                    _offset(c["elements"], f"{cat}.elements"),
+                )
+            )
+        lifts.append(
+            SchemaLiftRecord(
+                lift_id=_string(entry["lift_id"], f"{at}.lift_id"),
+                from_version=_string(entry["from_version"], f"{at}.from_version"),
+                from_hash=_string(entry["from_hash"], f"{at}.from_hash"),
+                to_version=_string(entry["to_version"], f"{at}.to_version"),
+                to_hash=_string(entry["to_hash"], f"{at}.to_hash"),
+                verified_counts=tuple(counts),
+            )
+        )
 
     batches = []
     for i, raw in enumerate(_object_list(p["batches"], f"{where}.batches")):
@@ -970,7 +1017,7 @@ def _acceptance(
                 accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
             )
         )
-    return tuple(batches), tuple(records)
+    return tuple(batches), tuple(records), tuple(lifts)
 
 
 def load_accepted_inputs(path: Path) -> AcceptedInputs:
@@ -1032,7 +1079,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     )
     _check_obligations_closed(representation, obligations, path.name)
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances = _acceptance(p["acceptance"], "acceptance")
+    batches, acceptances, lifts = _acceptance(p["acceptance"], "acceptance")
 
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
@@ -1046,7 +1093,9 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         representation=representation,
         obligations=obligations,
     )
-    inputs = AcceptedInputs(oracle=oracle, batches=batches, acceptances=acceptances)
+    inputs = AcceptedInputs(
+        oracle=oracle, batches=batches, acceptances=acceptances, lifts=lifts
+    )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
     # batch retains a digest but not the diff it names, or that accepts a span
@@ -1177,8 +1226,28 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
     payload: dict[str, object] = {"artifact_kind": ACCEPTED_ARTIFACT_KIND}
     payload.update(oracle_payload(inputs.oracle))
     evidence = acceptance_evidence_payload(inputs.classification())
-    payload["acceptance"] = {
+    acceptance: dict[str, object] = {
         "batches": evidence["batches"],
         "records": evidence["acceptances"],
     }
+    if inputs.lifts:
+        # Emitted only when there is one, so an artifact that never crossed a
+        # succession keeps the exact bytes it was committed with. Same
+        # omit-when-empty discipline the post-schema-3 fields follow, and the
+        # reason the committed conditions-1 file still round-trips unchanged.
+        acceptance["lifts"] = [
+            {
+                "lift_id": lift.lift_id,
+                "from_version": lift.from_version,
+                "from_hash": lift.from_hash,
+                "to_version": lift.to_version,
+                "to_hash": lift.to_hash,
+                "verified_counts": [
+                    {"collection": name, "elements": count}
+                    for name, count in lift.verified_counts
+                ],
+            }
+            for lift in inputs.lifts
+        ]
+    payload["acceptance"] = acceptance
     return payload
