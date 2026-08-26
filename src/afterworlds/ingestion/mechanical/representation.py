@@ -208,6 +208,7 @@ __all__ = [
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
+    "RECORD_OWNED_REFERENCE",
     "RecordDraft",
     "ReferenceDraft",
     "RelationshipDraft",
@@ -5163,6 +5164,15 @@ class RelationshipDraft:
     kind: RelationshipKind
 
 
+#: ``ReferenceDraft.from_component_key`` when the *record itself* authored the
+#: reference. Schema 4, and the same spelling ``fact_target_key`` already uses
+#: for an absent option: the sentinel is the absence of a component, never a
+#: component whose key happens to be empty. It stays collision-free because
+#: :func:`~afterworlds.ingestion.mechanical.validation.validate_representation`
+#: refuses a component with a blank semantic key.
+RECORD_OWNED_REFERENCE = ""
+
+
 @dataclass(frozen=True)
 class ReferenceDraft:
     """A source-authored mechanical reference resolved at build time.
@@ -5170,9 +5180,29 @@ class ReferenceDraft:
     ``scope_key`` is the committed source scope the reference was resolved
     within, which is what makes a repeated name resolvable: the same wording in
     two scopes is two references, not one ambiguity.
+
+    **Ownership, schema 4.** Some records cite other records in their own right:
+    a hazard umbrella names the five hazards it collects, and no component of
+    that umbrella states the naming — the record does. Before schema 4 the only
+    way to project such a reference was to invent a component to hang it on,
+    which publishes a component the source never states. ``from_component_key``
+    is therefore widened rather than joined by a second field: it holds a real
+    component key for a component-owned reference, and
+    :data:`RECORD_OWNED_REFERENCE` for one the record owns directly.
+
+    Widened, not added, on purpose. A new ownership field would change every
+    reference's canonical payload and every reference provenance coordinate,
+    which Owner Decision 2026-08-24 forbids; a widened domain leaves all fifteen
+    accepted conditions-1 references byte-identical, because none of them is
+    empty. The two forms are mutually exclusive by construction — a reference
+    has exactly one ``from_component_key`` — so "exactly one ownership form"
+    needs no invariant to hold it, only the cross-form check in
+    ``validate_representation`` that stops one record from publishing the same
+    citation both ways.
     """
 
     from_record_key: str
+    #: A component key, or :data:`RECORD_OWNED_REFERENCE`.
     from_component_key: str
     source_text: str
     scope_key: str
@@ -5293,7 +5323,14 @@ def relationship_target_key(relationship: RelationshipDraft) -> tuple[str, ...]:
 
 
 def reference_target_key(reference: ReferenceDraft) -> tuple[str, ...]:
-    """Provenance key of one resolved reference, including its source ownership."""
+    """Provenance key of one resolved reference, including its source ownership.
+
+    A record-owned reference carries :data:`RECORD_OWNED_REFERENCE` in the
+    ownership position rather than a shorter key. The tuple keeps its shape so
+    stored coordinates, claim matching, and the accepted conditions-1 keys are
+    all unchanged, and so nothing downstream has to read a key's *length* to
+    learn what it addresses.
+    """
     return (
         reference.from_record_key,
         reference.from_component_key,

@@ -40,10 +40,12 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
+    RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
     Recurrence,
+    ReferenceDraft,
     RepresentationDraft,
     _dataclass_payload,
     fact_key,
@@ -290,6 +292,56 @@ def _emitted_component_fields(schema_version: str) -> frozenset[str]:
         raise UnsupportedSchemaVersionError(schema_version) from None
 
 
+#: Merged versions whose reference contract admits a record-owned reference
+#: (:data:`RECORD_OWNED_REFERENCE`). Its own registry rather than a row in
+#: ``_MERGED_COMPONENT_FIELDS``: that table answers "which component keys does
+#: this version emit", and record ownership adds no key — it widens an existing
+#: field's domain. Folding the two would make one table answer two questions,
+#: and the next reader would have to know which.
+#:
+#: Explicit membership, never ordering, for the same reason ``_VERSION_STATES``
+#: is: an unrecognised declaration states nothing and fails closed.
+_RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset({SCHEMA_4_VERSION})
+
+
+def _reference_payload(
+    reference: ReferenceDraft, schema_version: str
+) -> dict[str, object]:
+    """One reference's canonical payload under *schema_version*.
+
+    The payload itself is version-independent — schema 4 widened
+    ``from_component_key``'s domain rather than adding a key — so an inherited
+    component-owned reference is byte-identical under both contracts and the
+    fifteen accepted conditions-1 references do not move.
+
+    What *is* version-dependent is legality. A record-owned reference states
+    something a schema-3 contract cannot: that a record cites another record in
+    its own right. Serializing it under schema 3 would produce a payload whose
+    bytes an earlier reviewer would read as a component-owned reference to a
+    component named ``""``, which is a restamp. It is refused in the same words
+    and the same direction ``_component_versioned_payload`` refuses a too-new
+    component key.
+    """
+    if (
+        reference.from_component_key == RECORD_OWNED_REFERENCE
+        and schema_version not in _RECORD_OWNED_REFERENCE_VERSIONS
+    ):
+        raise LegacySchemaPayloadError(
+            f"reference {reference.scope_key}:{reference.source_text!r} is owned "
+            f"by record {reference.from_record_key} directly, but declares schema "
+            f"{schema_version!r}, which has no record-owned reference form — that "
+            f"arrived with {SCHEMA_4_VERSION}; refusing to omit meaning-bearing "
+            "data to reproduce a legacy identity"
+        )
+    return {
+        "from_record_key": reference.from_record_key,
+        "from_component_key": reference.from_component_key,
+        "source_text": reference.source_text,
+        "scope_key": reference.scope_key,
+        "target_record_key": reference.target_record_key,
+    }
+
+
 def _component_versioned_payload(
     component: ComponentDraft, schema_version: str, emitted: frozenset[str]
 ) -> dict[str, object]:
@@ -402,14 +454,7 @@ def representation_payload(
             for r in draft.relationships
         ),
         "references": canonical_order(
-            {
-                "from_record_key": r.from_record_key,
-                "from_component_key": r.from_component_key,
-                "source_text": r.source_text,
-                "scope_key": r.scope_key,
-                "target_record_key": r.target_record_key,
-            }
-            for r in draft.references
+            _reference_payload(r, schema_version) for r in draft.references
         ),
         "provenance": canonical_order(
             {

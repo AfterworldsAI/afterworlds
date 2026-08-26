@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
+    RECORD_OWNED_REFERENCE,
     ComponentDraft,
     FactFamily,
     ProseBindingDraft,
@@ -119,6 +120,15 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         if key in seen:
             findings.append(f"{tag}: duplicate semantic key")
         seen.add(key)
+
+        # A component addresses itself by this key everywhere: provenance
+        # coordinates, override targets, prose bindings, and a reference's
+        # ownership position. A blank one is unaddressable, and since schema 4
+        # spells record ownership as the *absence* of a component key, a
+        # blank-keyed component would also collide with every record-owned
+        # reference coordinate of the same record.
+        if not component.semantic_key.strip():
+            findings.append(f"{tag}: blank semantic key")
 
         if component.record_key not in record_keys:
             findings.append(f"{tag}: unknown record {component.record_key}")
@@ -322,12 +332,37 @@ def _validate_relationships_and_references(draft: RepresentationDraft) -> list[s
     # committed scope resolves to more than one target. Unique destination
     # names alone never establish intent, so the scope is what disambiguates.
     resolutions: dict[tuple[str, str], set[str]] = {}
+    # Which citations each record publishes in its own right, and which it
+    # publishes through a component. A record may legitimately do either; doing
+    # both for one citation is the same source statement published twice.
+    citations: dict[tuple[str, str, str, str], set[str]] = {}
     for ref in draft.references:
         tag = f"reference {ref.scope_key}:{ref.source_text!r}"
         if ref.from_record_key not in record_keys:
             findings.append(f"{tag}: unknown source record {ref.from_record_key}")
-        if (ref.from_record_key, ref.from_component_key) not in component_keys:
+        # Exactly one ownership form, and each is checked against what it
+        # claims. A component-owned reference must name a component that really
+        # exists in this record — unchanged. A record-owned one names no
+        # component at all, so there is nothing to dangle; its owner is the
+        # source record, already checked immediately above.
+        if (
+            ref.from_component_key != RECORD_OWNED_REFERENCE
+            and (
+                ref.from_record_key,
+                ref.from_component_key,
+            )
+            not in component_keys
+        ):
             findings.append(f"{tag}: unknown source component {ref.from_component_key}")
+        citations.setdefault(
+            (
+                ref.from_record_key,
+                ref.source_text,
+                ref.scope_key,
+                ref.target_record_key,
+            ),
+            set(),
+        ).add(ref.from_component_key)
         if not ref.target_record_key:
             findings.append(f"{tag}: unresolved reference")
         elif ref.target_record_key not in record_keys:
@@ -337,6 +372,21 @@ def _validate_relationships_and_references(draft: RepresentationDraft) -> list[s
         resolutions.setdefault((ref.scope_key, ref.source_text), set()).add(
             ref.target_record_key
         )
+
+    # Record ownership means *no legitimate component states it*. When a
+    # component of the same record does state it, the record-owned form
+    # contradicts its own justification and the pair publishes one citation
+    # twice — the reference-shaped case of the duplicated-projection defect
+    # ADR-005d Decision 5 forbids. Two *components* citing the same wording stay
+    # legal: each is its own claim, and each carries its own provenance.
+    for (record, text, scope, target), owners in sorted(citations.items()):
+        if RECORD_OWNED_REFERENCE in owners and len(owners) > 1:
+            findings.append(
+                f"reference {scope}:{text!r} -> {target}: record {record} states "
+                "it both directly and through "
+                f"{sorted(o for o in owners if o != RECORD_OWNED_REFERENCE)}; a "
+                "record owns a reference only where no component states it"
+            )
 
     for (scope, text), targets in sorted(resolutions.items()):
         if len(targets) > 1:
