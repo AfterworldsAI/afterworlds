@@ -183,6 +183,20 @@ __all__ = [
     "TransformedForm",
     "TransportKind",
     "applicability_violations",
+    "ConditionRemovalRestrictionFact",
+    "DamageModDirection",
+    "DamageModificationFact",
+    "DerivedQuantityFact",
+    "EffectTerminationFact",
+    "MeasureUnit",
+    "RequiredQuantity",
+    "DamageOutcome",
+    "SizeKeyedQuantityFact",
+    "SizeQuantity",
+    "Skill",
+    "SKILL_ABILITY",
+    "TerminationScope",
+    "TimePeriod",
     "FactQualifier",
     "Recurrence",
     "RecurrenceBoundary",
@@ -457,6 +471,11 @@ class ActionCost(StrEnum):
 class TimeUnit(StrEnum):
     """The closed time vocabulary for durations and casting times."""
 
+    #: Suffocation states its floor in seconds — "(minimum of 30 seconds)" —
+    #: while the derived value it floors is in minutes. Converting one into the
+    #: other would record a value the source never printed, so both units are
+    #: admitted and each stated amount keeps the unit it was written in.
+    SECOND = "second"
     ROUND = "round"
     TURN = "turn"
     MINUTE = "minute"
@@ -825,6 +844,50 @@ class Comparison(StrEnum):
     LESS_THAN = "less_than"
 
 
+class TerminationScope(StrEnum):
+    """What an effect-termination fact ends.
+
+    One member, and stated as a scope rather than as a named effect on purpose:
+    a vocabulary whose members each named one SRD clause would be exactly the
+    clause-shaped overfitting this union refuses. ``OWNING_EFFECT`` says "the
+    thing this component is about stops", which is what Burning's *"you can
+    extinguish fire on yourself"* and *"the fire also goes out"* both state.
+    """
+
+    OWNING_EFFECT = "owning_effect"
+
+
+class DamageModDirection(StrEnum):
+    """Whether a stated modification scales damage down or up.
+
+    Falling's *"any damage resulting from the fall is halved"* and the
+    Resistance/Vulnerability rules in *Playing the Game* are the two: a factor
+    alone would leave the direction implied by whether it is below or above one,
+    which is a meaning the schema never declared.
+    """
+
+    REDUCE = "reduce"
+    INCREASE = "increase"
+
+
+class MeasureUnit(StrEnum):
+    """The closed unit vocabulary for a size-keyed quantity requirement.
+
+    Printed by the tables themselves — gallons of water, pounds of food — rather
+    than invented. A quantity with no unit is a number whose meaning depends on
+    which table a reader happened to be looking at.
+    """
+
+    GALLON = "gallon"
+    POUND = "pound"
+
+
+class TimePeriod(StrEnum):
+    """The period a stated requirement is measured over."""
+
+    DAY = "day"
+
+
 class RequiredQuantity(StrEnum):
     """A consumable the source keys to a printed per-size requirement table.
 
@@ -954,6 +1017,11 @@ class ScalingBasis(StrEnum):
     #: A condition that accumulates levels — the Exhaustion level the source
     #: multiplies by: "the roll is reduced by 2 times your Exhaustion level".
     CONDITION_LEVEL = "condition_level"
+    #: Distance fallen: Falling's *"1d6 Bludgeoning damage ... for every 10 feet
+    #: it fell"*. Three rules across three top-level sections scale damage by a
+    #: distance, so this is a member on the existing family rather than a family
+    #: of its own — ``threshold`` already carries the per-unit interval.
+    DISTANCE_FALLEN = "distance_fallen"
 
 
 class ScalingEffect(StrEnum):
@@ -1021,6 +1089,15 @@ class FactFamily(StrEnum):
     STATE_EFFECT = "state_effect"
     TRANSFORMATION = "transformation"
     WEAPON_PROPERTY = "weapon_property"
+    #: Schema 4. Each is admitted because the closed union cannot carry
+    #: substantive authority the corpus states and no honest affirmative
+    #: prose-bound classification preserves its meaning (#137 contract 3,
+    #: ADR-005d Decision 4).
+    CONDITION_REMOVAL_RESTRICTION = "condition_removal_restriction"
+    DAMAGE_MODIFICATION = "damage_modification"
+    DERIVED_QUANTITY = "derived_quantity"
+    EFFECT_TERMINATION = "effect_termination"
+    SIZE_KEYED_QUANTITY = "size_keyed_quantity"
 
 
 # ---------------------------------------------------------------------------
@@ -1157,6 +1234,15 @@ class SizeComparison:
 
 
 @dataclass(frozen=True)
+class SizeQuantity:
+    """One row of a printed per-size requirement table."""
+
+    size: CreatureSize
+    amount: Rational
+    unit: MeasureUnit
+
+
+@dataclass(frozen=True)
 class RollSpec:
     """Exactly which roll a fact is about: whose, what kind, and of what ability.
 
@@ -1208,6 +1294,27 @@ class AbilityCheckFact:
     ability: AbilityScore
     dc_kind: DcKind
     dc_value: int | None = None
+    #: The skill the source prints in parentheses after the ability, when it
+    #: prints one. Its governing ability must be ``ability`` — the Skills table
+    #: fixes that pairing, so a mismatch is a build-time error rather than data
+    #: a consumer has to second-guess.
+    skill: Skill | None = None
+    #: Additional equally-valid rolls the source offers for this one DC:
+    #: Falling's *"a DC 15 Strength (Athletics) **or** Dexterity (Acrobatics)
+    #: check"*. Neither a bare Strength nor a bare Dexterity claim is true of
+    #: that rule, so without this the clause cannot be typed at all.
+    #:
+    #: A **closed set of same-shaped rolls**, not an expression: no operators,
+    #: no nesting, and nothing to negate. Three rules across two top-level
+    #: sections state this shape — Falling, Grappling, and the Rope of
+    #: Entanglement.
+    #:
+    #: The DC stays on the fact because the source states one DC for every
+    #: option. Held in canonical order rather than authoring order, so two
+    #: authorings of one set produce one ``fact_key``; the invariant enforces it
+    #: instead of the serializer, because :func:`fact_payload` is generic over
+    #: every family and must not acquire per-family ordering rules.
+    alternatives: tuple[RollSpec, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1346,6 +1453,18 @@ class DamageFact:
     dice: DiceExpression | None = None
     flat_amount: int | None = None
     stated_average: int | None = None
+    #: A stated ceiling on the number of dice, whatever the scaling would
+    #: otherwise reach: Falling's *"to a maximum of 20d6"*. The corpus states
+    #: this once, and it is admitted anyway — Issue #137 contract 3 and
+    #: ADR-005d Decision 4 require a specific typed family where the union
+    #: cannot carry substantive authority, unless an honest affirmative
+    #: prose-bound classification preserves the meaning. A dice ceiling is
+    #: mechanically crisp and not irreducible, so prose would be a backlog
+    #: state. This is the smallest faithful form: a nullable integer on the
+    #: family that already states the amount, with no vocabulary to overfit.
+    #: Post-schema-3, so it is omitted when unset and no accepted damage fact
+    #: moves.
+    maximum_dice: int | None = None
 
 
 @dataclass(frozen=True)
@@ -1826,6 +1945,117 @@ class WeaponPropertyFact:
     thrown_range_long_feet: int | None = None
 
 
+@dataclass(frozen=True)
+class EffectTerminationFact:
+    """The effect this component is about stops.
+
+    ``ConditionEffectKind.REMOVES`` removes a *condition*, and a hazard is not
+    one — using it for Burning would assert the removal of a condition named
+    "burning" that ``ConditionKind`` does not have. This states termination of
+    the owning effect instead, and carries no trigger: what ends it rides the
+    component's ``applies_when`` or its governing prose, exactly as every other
+    condition on a component does.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EFFECT_TERMINATION
+
+    scope: TerminationScope = TerminationScope.OWNING_EFFECT
+
+
+@dataclass(frozen=True)
+class SizeKeyedQuantityFact:
+    """A requirement the source keys to the subject's own size.
+
+    *"A creature requires an amount of water per day based on its size, as shown
+    in the Water Needs per Day table."* The table is the rule's operand, so the
+    rows are the fact rather than supporting decoration.
+
+    **Not a size comparison.** :class:`SizeComparison` relates two creatures;
+    this maps one creature's own size to a quantity, and has no second operand
+    at all. Encoding six rows as six applicability-qualified components would
+    multiply one rule into six and lose that the set is exhaustive.
+
+    ``values`` is canonically ordered by the declaration order of
+    :class:`CreatureSize` — the order the table prints — so two authorings of one
+    table produce one fact key.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SIZE_KEYED_QUANTITY
+
+    quantity: RequiredQuantity
+    period: TimePeriod
+    values: tuple[SizeQuantity, ...] = ()
+
+
+@dataclass(frozen=True)
+class ConditionRemovalRestrictionFact:
+    """This record's own condition levels cannot be removed until *until*.
+
+    *"Exhaustion caused by dehydration can't be removed until the creature
+    drinks the full amount of water required for a day."*
+
+    **Locally scoped, never a cross-record edit.** ``cause_scoped`` is required
+    to be ``True``: the restriction is a property of the levels *this record
+    causes*, not an amendment to ``condition.exhaustion``'s own removal rule. A
+    consumer composes the two at adjudication time, which is where cross-record
+    composition belongs (ADR-005d Decision 11). Without that invariant this
+    family would assert something about every level of the condition, which is
+    exactly the cross-record modification the schema refuses to represent.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CONDITION_REMOVAL_RESTRICTION
+
+    condition: ConditionKind
+    until: Applicability
+    cause_scoped: bool = True
+
+
+@dataclass(frozen=True)
+class DamageModificationFact:
+    """A stated change to a damage amount some other rule already stated.
+
+    *"On a successful check, any damage resulting from the fall is halved."*
+    :class:`DamageFact` states an amount; nothing modified one, and rewriting
+    the dice to express the halving would change what the source printed.
+
+    ``rounding`` is deliberately optional and is left unset where the source
+    states none. Falling says only "halved"; the *Round Down* glossary entry
+    states the rounding, and that entry is corpus content of its own. A fact
+    must not claim provenance over a span its batch never accounted, so the
+    projection records what *this* record says and a consumer composes the two.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_MODIFICATION
+
+    direction: DamageModDirection
+    factor: Rational
+    rounding: RoundingRule | None = None
+
+
+@dataclass(frozen=True)
+class DerivedQuantityFact:
+    """A quantity the source derives from an ability modifier, with a floor.
+
+    *"A creature can hold its breath for a number of minutes equal to 1 plus its
+    Constitution modifier (minimum of 30 seconds)."* Nothing else in the union
+    derives a value from a character statistic, so this clause had no home at
+    all — ``DiceExpression`` and ``Rational`` are literals.
+
+    The floor carries its own unit because the source states it in one:
+    *minutes* for the derived value, *seconds* for the minimum. Collapsing them
+    would require converting a stated value, which is a claim the source does
+    not make.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DERIVED_QUANTITY
+
+    base: int
+    modifier: AbilityScore
+    unit: TimeUnit
+    floor_amount: int | None = None
+    floor_unit: TimeUnit | None = None
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -1859,6 +2089,11 @@ MechanicalFact = (
     | SpellListQualifierFact
     | SpellSlotProgressionFact
     | WeaponPropertyFact
+    | ConditionRemovalRestrictionFact
+    | DamageModificationFact
+    | DerivedQuantityFact
+    | EffectTerminationFact
+    | SizeKeyedQuantityFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -1894,6 +2129,11 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.SPELL_SLOT_PROGRESSION: SpellSlotProgressionFact,
     FactFamily.STATE_EFFECT: StateEffectFact,
     FactFamily.WEAPON_PROPERTY: WeaponPropertyFact,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: ConditionRemovalRestrictionFact,
+    FactFamily.DAMAGE_MODIFICATION: DamageModificationFact,
+    FactFamily.DERIVED_QUANTITY: DerivedQuantityFact,
+    FactFamily.EFFECT_TERMINATION: EffectTerminationFact,
+    FactFamily.SIZE_KEYED_QUANTITY: SizeKeyedQuantityFact,
 }
 
 
@@ -1973,11 +2213,155 @@ def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]
     return []
 
 
+def _check_skill_pairing(skill: object, ability: object, where: str) -> list[str]:
+    """A printed skill must sit under the ability the Skills table gives it."""
+    if skill is None:
+        return []
+    if not isinstance(skill, Skill):
+        return [f"{skill!r} is not a declared Skill"]
+    governing = SKILL_ABILITY[skill]
+    if ability is not governing:
+        return [
+            f"{where} {skill.value} is governed by {governing.value}, "
+            f"not {getattr(ability, 'value', ability)!r}"
+        ]
+    return []
+
+
+def _check_alternatives(alternatives: object) -> list[str]:
+    """A closed set of same-shaped rolls, in canonical order, or nothing.
+
+    One alternative is a single roll misdescribed, and authoring order must not
+    reach the fact key — two authorings of one set are one claim.
+    """
+    if not isinstance(alternatives, tuple) or any(
+        type(r) is not RollSpec for r in alternatives
+    ):
+        return ["alternatives is not a tuple of roll specifications"]
+    if not alternatives:
+        return []
+    findings: list[str] = []
+    if len(alternatives) < 2:
+        findings.append(
+            "alternatives states one option; a choice of one is a single roll "
+            "misdescribed"
+        )
+    for index, roll in enumerate(alternatives):
+        findings.extend(_check_rollspec(roll, f"alternatives[{index}]"))
+        findings.extend(
+            _check_skill_pairing(roll.skill, roll.ability, f"alternatives[{index}]")
+        )
+    if findings:
+        return findings
+    payloads = [canonical_bytes(_dataclass_payload(r)) for r in alternatives]
+    if payloads != sorted(payloads):
+        findings.append("alternatives is not in canonical order")
+    if len(set(payloads)) != len(payloads):
+        findings.append("alternatives repeats a roll")
+    return findings
+
+
+def _check_effect_termination(fact: EffectTerminationFact) -> list[str]:
+    return _enum_field(fact.scope, TerminationScope, "scope")
+
+
+def _check_size_keyed_quantity(fact: SizeKeyedQuantityFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.quantity, RequiredQuantity, "quantity"),
+        *_enum_field(fact.period, TimePeriod, "period"),
+    ]
+    if not isinstance(fact.values, tuple) or any(
+        type(v) is not SizeQuantity for v in fact.values
+    ):
+        findings.append("values is not a tuple of size quantities")
+    if findings:
+        return findings
+    if not fact.values:
+        findings.append("a size-keyed requirement states no rows")
+        return findings
+    order = list(CreatureSize)
+    seen: list[CreatureSize] = []
+    for index, row in enumerate(fact.values):
+        where = f"values[{index}]"
+        findings.extend(_enum_field(row.size, CreatureSize, f"{where}.size"))
+        findings.extend(_enum_field(row.unit, MeasureUnit, f"{where}.unit"))
+        findings.extend(_check_rational(row.amount, f"{where}.amount"))
+        seen.append(row.size)
+    if findings:
+        return findings
+    if len(set(seen)) != len(seen):
+        findings.append("values states one size twice")
+    elif seen != sorted(seen, key=order.index):
+        # Authoring order must not reach the fact key: two authorings of one
+        # printed table are one claim.
+        findings.append("values is not in CreatureSize declaration order")
+    return findings
+
+
+def _check_removal_restriction(fact: ConditionRemovalRestrictionFact) -> list[str]:
+    findings = _enum_field(fact.condition, ConditionKind, "condition")
+    if type(fact.cause_scoped) is not bool:
+        findings.append("cause_scoped is not a boolean")
+    if type(fact.until) is not Applicability:
+        findings.append("until must be Applicability")
+    if findings:
+        return findings
+    findings.extend(applicability_violations(fact.until))
+    if not fact.cause_scoped:
+        # The guard that keeps this family local. Unscoped, it would assert
+        # something about every level of the condition — an edit to another
+        # record's authority rather than a statement about this record's own.
+        findings.append(
+            "a removal restriction must be cause_scoped; unscoped it would "
+            "restrict levels this record never caused"
+        )
+    return findings
+
+
+def _check_damage_modification(fact: DamageModificationFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.direction, DamageModDirection, "direction"),
+        *_check_rational(fact.factor, "factor"),
+    ]
+    if fact.rounding is not None and not isinstance(fact.rounding, RoundingRule):
+        findings.append(f"rounding {fact.rounding!r} is not a declared RoundingRule")
+    if findings:
+        return findings
+    if fact.factor.numerator == fact.factor.denominator:
+        findings.append("a modification by one changes nothing")
+    reduces = fact.factor.numerator < fact.factor.denominator
+    if reduces != (fact.direction is DamageModDirection.REDUCE):
+        findings.append(
+            f"direction {fact.direction.value} disagrees with factor "
+            f"{fact.factor.numerator}/{fact.factor.denominator}"
+        )
+    return findings
+
+
+def _check_derived_quantity(fact: DerivedQuantityFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.modifier, AbilityScore, "modifier"),
+        *_enum_field(fact.unit, TimeUnit, "unit"),
+        *_optional_int_field(fact.floor_amount, "floor_amount"),
+    ]
+    if type(fact.base) is not int:
+        findings.append("base is not an integer")
+    if fact.floor_unit is not None and not isinstance(fact.floor_unit, TimeUnit):
+        findings.append(f"floor_unit {fact.floor_unit!r} is not a declared TimeUnit")
+    if findings:
+        return findings
+    if (fact.floor_amount is None) != (fact.floor_unit is None):
+        findings.append("a floor states both an amount and a unit, or neither")
+    return findings
+
+
 def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
     findings = [
         *_enum_field(fact.ability, AbilityScore, "ability"),
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
         *_optional_int_field(fact.dc_value, "dc_value"),
+        *_check_skill_pairing(fact.skill, fact.ability, "skill"),
+        *_check_alternatives(fact.alternatives),
     ]
     if findings:
         # The DC relationship below reads dc_kind and dc_value; checking it
@@ -2319,9 +2703,20 @@ def _check_damage(fact: DamageFact) -> list[str]:
         *_check_optional_dice(fact.dice, "dice"),
         *_optional_int_field(fact.flat_amount, "flat_amount"),
         *_optional_int_field(fact.stated_average, "stated_average"),
+        *_optional_int_field(fact.maximum_dice, "maximum_dice"),
     ]
     if findings:
         return findings
+    if fact.maximum_dice is not None:
+        if fact.dice is None:
+            findings.append(
+                "maximum_dice caps a dice expression this damage does not state"
+            )
+        elif fact.maximum_dice < fact.dice.count:
+            findings.append(
+                f"maximum_dice {fact.maximum_dice} is below the stated "
+                f"{fact.dice.count} dice, so the cap is never reachable"
+            )
     if (fact.dice is None) == (fact.flat_amount is None):
         findings.append(
             "damage states exactly one of a dice expression or a flat amount"
@@ -2890,6 +3285,11 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.SPELL_SLOT_PROGRESSION: _check_spell_slot_progression,
     FactFamily.STATE_EFFECT: _check_state_effect,
     FactFamily.WEAPON_PROPERTY: _check_weapon_property,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: _check_removal_restriction,
+    FactFamily.DAMAGE_MODIFICATION: _check_damage_modification,
+    FactFamily.DERIVED_QUANTITY: _check_derived_quantity,
+    FactFamily.EFFECT_TERMINATION: _check_effect_termination,
+    FactFamily.SIZE_KEYED_QUANTITY: _check_size_keyed_quantity,
 }
 
 
@@ -2944,6 +3344,227 @@ def _reject(family: FactFamily, findings: list[str]) -> None:
         )
 
 
+def _build_effect_termination(p: Mapping[str, Any]) -> EffectTerminationFact:
+    _reject(
+        FactFamily.EFFECT_TERMINATION,
+        _json_enum(p["scope"], TerminationScope, "scope"),
+    )
+    return EffectTerminationFact(scope=TerminationScope(p["scope"]))
+
+
+def _build_size_keyed_quantity(p: Mapping[str, Any]) -> SizeKeyedQuantityFact:
+    _reject(
+        FactFamily.SIZE_KEYED_QUANTITY,
+        [
+            *_json_enum(p["quantity"], RequiredQuantity, "quantity"),
+            *_json_enum(p["period"], TimePeriod, "period"),
+        ],
+    )
+    raw_values = p["values"]
+    if not isinstance(raw_values, (list, tuple)):
+        _reject(FactFamily.SIZE_KEYED_QUANTITY, ["values is not an array"])
+    rows = []
+    for index, raw in enumerate(raw_values):
+        where = f"values[{index}]"
+        entry = _json_object(raw, ("size", "amount", "unit"), where)
+        _reject_at(
+            where,
+            [
+                *_json_enum(entry["size"], CreatureSize, f"{where}.size"),
+                *_json_enum(entry["unit"], MeasureUnit, f"{where}.unit"),
+            ],
+        )
+        rows.append(
+            SizeQuantity(
+                size=CreatureSize(entry["size"]),
+                amount=_build_rational(entry["amount"], f"{where}.amount"),
+                unit=MeasureUnit(entry["unit"]),
+            )
+        )
+    return SizeKeyedQuantityFact(
+        quantity=RequiredQuantity(p["quantity"]),
+        period=TimePeriod(p["period"]),
+        values=tuple(rows),
+    )
+
+
+def _build_applicability(value: object, where: str) -> Applicability:
+    """Rebuild one applicability held *inside a fact*.
+
+    A sibling of the accepted-input and persisted-state builders rather than a
+    third contract: each rebuilds the same closed shape and raises its own
+    layer's error, and all three finish by asking
+    :func:`applicability_violations` the same question. The key set is checked
+    first, because a misspelled key never reaches the typed invariants as the
+    field it was meant to be.
+
+    The five post-schema-3 keys are optional here for the reason they are
+    omitted from the payload: absent and default say the same thing.
+    """
+    p = _json_object(
+        value,
+        (
+            "kind",
+            "negated",
+            "quantity",
+            "comparison",
+            "value",
+            "any_of",
+            "trigger",
+            "phase",
+        ),
+        where,
+        optional=("outcome", "damage_outcome", "required_quantity", "fraction", "unit"),
+    )
+    _reject_at(
+        where,
+        [
+            *_json_enum(p["kind"], ApplicabilityKind, f"{where}.kind"),
+            *_optional_json_enum(p["quantity"], TrackedQuantity, f"{where}.quantity"),
+            *_optional_json_enum(p["comparison"], Comparison, f"{where}.comparison"),
+            *_optional_json_enum(p["trigger"], RecoveryTrigger, f"{where}.trigger"),
+            *_optional_json_enum(p["phase"], Phase, f"{where}.phase"),
+            *_optional_json_enum(
+                p.get("outcome"), AutomaticOutcome, f"{where}.outcome"
+            ),
+            *_optional_json_enum(
+                p.get("damage_outcome"), DamageOutcome, f"{where}.damage_outcome"
+            ),
+            *_optional_json_enum(
+                p.get("required_quantity"),
+                RequiredQuantity,
+                f"{where}.required_quantity",
+            ),
+            *_optional_json_enum(p.get("unit"), TimeUnit, f"{where}.unit"),
+        ],
+    )
+    raw_any_of = p["any_of"]
+    if not isinstance(raw_any_of, (list, tuple)):
+        _reject_at(where, [f"{where}.any_of is not an array"])
+    comparisons = []
+    for index, raw in enumerate(raw_any_of):
+        at = f"{where}.any_of[{index}]"
+        entry = _json_object(
+            raw,
+            ("category", "relation", "at_least", "at_most", "measured", "reference"),
+            at,
+        )
+        _reject_at(
+            at,
+            [
+                *_optional_json_enum(entry["category"], CreatureSize, f"{at}.category"),
+                *_optional_json_enum(entry["relation"], SizeRelation, f"{at}.relation"),
+                *_json_enum(entry["measured"], ParticipantRole, f"{at}.measured"),
+                *_optional_json_enum(
+                    entry["reference"], ParticipantRole, f"{at}.reference"
+                ),
+            ],
+        )
+        comparisons.append(
+            SizeComparison(
+                category=(
+                    None
+                    if entry["category"] is None
+                    else CreatureSize(entry["category"])
+                ),
+                relation=(
+                    None
+                    if entry["relation"] is None
+                    else SizeRelation(entry["relation"])
+                ),
+                at_least=entry["at_least"],
+                at_most=entry["at_most"],
+                measured=ParticipantRole(entry["measured"]),
+                reference=(
+                    None
+                    if entry["reference"] is None
+                    else ParticipantRole(entry["reference"])
+                ),
+            )
+        )
+    raw_fraction = p.get("fraction")
+    built = Applicability(
+        kind=ApplicabilityKind(p["kind"]),
+        negated=p["negated"],
+        quantity=None if p["quantity"] is None else TrackedQuantity(p["quantity"]),
+        comparison=None if p["comparison"] is None else Comparison(p["comparison"]),
+        value=p["value"],
+        any_of=tuple(comparisons),
+        trigger=None if p["trigger"] is None else RecoveryTrigger(p["trigger"]),
+        phase=None if p["phase"] is None else Phase(p["phase"]),
+        outcome=(None if p.get("outcome") is None else AutomaticOutcome(p["outcome"])),
+        damage_outcome=(
+            None
+            if p.get("damage_outcome") is None
+            else DamageOutcome(p["damage_outcome"])
+        ),
+        required_quantity=(
+            None
+            if p.get("required_quantity") is None
+            else RequiredQuantity(p["required_quantity"])
+        ),
+        fraction=(
+            None
+            if raw_fraction is None
+            else _build_rational(raw_fraction, f"{where}.fraction")
+        ),
+        unit=None if p.get("unit") is None else TimeUnit(p["unit"]),
+    )
+    _reject_at(where, applicability_violations(built))
+    return built
+
+
+def _build_removal_restriction(
+    p: Mapping[str, Any],
+) -> ConditionRemovalRestrictionFact:
+    _reject(
+        FactFamily.CONDITION_REMOVAL_RESTRICTION,
+        [
+            *_json_enum(p["condition"], ConditionKind, "condition"),
+            *_bool_field(p["cause_scoped"], "cause_scoped"),
+        ],
+    )
+    return ConditionRemovalRestrictionFact(
+        condition=ConditionKind(p["condition"]),
+        until=_build_applicability(p["until"], "until"),
+        cause_scoped=p["cause_scoped"],
+    )
+
+
+def _build_damage_modification(p: Mapping[str, Any]) -> DamageModificationFact:
+    _reject(
+        FactFamily.DAMAGE_MODIFICATION,
+        [
+            *_json_enum(p["direction"], DamageModDirection, "direction"),
+            *_optional_json_enum(p["rounding"], RoundingRule, "rounding"),
+        ],
+    )
+    return DamageModificationFact(
+        direction=DamageModDirection(p["direction"]),
+        factor=_build_rational(p["factor"], "factor"),
+        rounding=None if p["rounding"] is None else RoundingRule(p["rounding"]),
+    )
+
+
+def _build_derived_quantity(p: Mapping[str, Any]) -> DerivedQuantityFact:
+    _reject(
+        FactFamily.DERIVED_QUANTITY,
+        [
+            *_json_enum(p["modifier"], AbilityScore, "modifier"),
+            *_json_enum(p["unit"], TimeUnit, "unit"),
+            *_optional_int_field(p["floor_amount"], "floor_amount"),
+            *_optional_json_enum(p["floor_unit"], TimeUnit, "floor_unit"),
+        ],
+    )
+    return DerivedQuantityFact(
+        base=p["base"],
+        modifier=AbilityScore(p["modifier"]),
+        unit=TimeUnit(p["unit"]),
+        floor_amount=p["floor_amount"],
+        floor_unit=None if p["floor_unit"] is None else TimeUnit(p["floor_unit"]),
+    )
+
+
 def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
     _reject(
         FactFamily.ABILITY_CHECK,
@@ -2951,12 +3572,21 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
             *_json_enum(p["ability"], AbilityScore, "ability"),
             *_json_enum(p["dc_kind"], DcKind, "dc_kind"),
             *_optional_int_field(p["dc_value"], "dc_value"),
+            *_optional_json_enum(p.get("skill"), Skill, "skill"),
         ],
     )
+    raw_alternatives = p.get("alternatives", ())
+    if not isinstance(raw_alternatives, (list, tuple)):
+        _reject(FactFamily.ABILITY_CHECK, ["alternatives is not an array"])
     return AbilityCheckFact(
         ability=AbilityScore(p["ability"]),
         dc_kind=DcKind(p["dc_kind"]),
         dc_value=p["dc_value"],
+        skill=None if p.get("skill") is None else Skill(p["skill"]),
+        alternatives=tuple(
+            _build_rollspec(entry, f"alternatives[{i}]")
+            for i, entry in enumerate(raw_alternatives)
+        ),
     )
 
 
@@ -3220,6 +3850,7 @@ def _build_damage(p: Mapping[str, Any]) -> DamageFact:
             *_json_enum(p["damage_type"], DamageType, "damage_type"),
             *_optional_int_field(p["flat_amount"], "flat_amount"),
             *_optional_int_field(p["stated_average"], "stated_average"),
+            *_optional_int_field(p.get("maximum_dice"), "maximum_dice"),
         ],
     )
     return DamageFact(
@@ -3227,6 +3858,7 @@ def _build_damage(p: Mapping[str, Any]) -> DamageFact:
         dice=None if p["dice"] is None else _build_dice(p["dice"], "dice"),
         flat_amount=p["flat_amount"],
         stated_average=p["stated_average"],
+        maximum_dice=p.get("maximum_dice"),
     )
 
 
@@ -3646,6 +4278,11 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.SPELL_SLOT_PROGRESSION: _build_spell_slot_progression,
     FactFamily.STATE_EFFECT: _build_state_effect,
     FactFamily.WEAPON_PROPERTY: _build_weapon_property,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: _build_removal_restriction,
+    FactFamily.DAMAGE_MODIFICATION: _build_damage_modification,
+    FactFamily.DERIVED_QUANTITY: _build_derived_quantity,
+    FactFamily.EFFECT_TERMINATION: _build_effect_termination,
+    FactFamily.SIZE_KEYED_QUANTITY: _build_size_keyed_quantity,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -4113,6 +4750,24 @@ _register_post_schema_3(
     _PostSchema3Field(
         owner="RollSpec",
         key="skill",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="skill",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="alternatives",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_seq,
+    ),
+    _PostSchema3Field(
+        owner="DamageFact",
+        key="maximum_dice",
         introduced_in="5d-representation-schema-4",
         is_empty=_empty_none,
     ),
