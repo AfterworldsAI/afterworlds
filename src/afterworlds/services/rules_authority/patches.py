@@ -63,6 +63,7 @@ from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.projection import (
     applicability_payload,
     applicability_payload_violations,
+    recurrence_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
     Applicability,
@@ -77,6 +78,9 @@ from afterworlds.ingestion.mechanical.representation import (
     Phase,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
+    RollActor,
     SizeComparison,
     SizeRelation,
     TrackedQuantity,
@@ -88,6 +92,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_payload,
     fact_qualifier_violations,
     option_set_violations,
+    recurrence_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum
 from afterworlds.services.rules_authority.targets import (
@@ -183,6 +188,14 @@ class ComponentBody:
     #: like every other field here: a replacement that omits a qualifier the
     #: base component had drops it rather than inheriting it.
     fact_qualifiers: tuple[FactQualifier, ...] = ()
+    #: Schema 4's cadence. Overridable for the same reason ``applies_when`` and
+    #: ``fact_qualifiers`` are, and by the same existing contract rather than by
+    #: a new decision: ``recurs`` is a component-level meaning-bearing field on
+    #: :class:`ComponentDraft`, and a *complete* component patch that could not
+    #: carry it would silently republish a repeating effect as a one-off. Its
+    #: absence therefore means "states no cadence" — completely, like every
+    #: other field here — and never "inherit the base component's".
+    recurs: Recurrence | None = None
 
 
 @dataclass(frozen=True)
@@ -521,7 +534,13 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         # mentions either, and _component_body_payload omits them again when
         # they hold their legacy defaults, so those bytes are unchanged.
         optional=frozenset(
-            {"authored_prose", "applies_when", "options", "fact_qualifiers"}
+            {
+                "authored_prose",
+                "applies_when",
+                "options",
+                "fact_qualifiers",
+                "recurs",
+            }
         ),
     )
 
@@ -632,7 +651,35 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         applies_when=applies_when,
         options=options,
         fact_qualifiers=fact_qualifiers,
+        recurs=_build_recurrence(value.get("recurs"), what),
     )
+
+
+def _build_recurrence(value: object, what: str) -> Recurrence | None:
+    """Rebuild one cadence from patch JSON, or ``None``.
+
+    The same two gates in the same order as every other structure here: the
+    closed key set first, then the typed contract that owns the invariants — a
+    turn boundary needs a ``whose`` and a day boundary may not carry one. This
+    is a third reader of those rules, never a third copy.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise InvalidPatchError(f"{what} recurs must be an object or null")
+    _require_keys(
+        dict(value), {"boundary"}, f"{what} recurs", optional=frozenset({"whose"})
+    )
+    try:
+        built = Recurrence(
+            boundary=RecurrenceBoundary(value["boundary"]),
+            whose=(None if value.get("whose") is None else RollActor(value["whose"])),
+        )
+    except (TypeError, ValueError) as exc:
+        raise InvalidPatchError(f"{what} recurs: {exc}") from exc
+    if violations := recurrence_violations(built):
+        raise InvalidPatchError(f"{what} recurs: {'; '.join(violations)}")
+    return built
 
 
 def _build_fact_qualifier(value: object, what: str) -> FactQualifier:
@@ -837,6 +884,13 @@ def _component_body_payload(body: ComponentBody) -> dict[str, object]:
                 body.fact_qualifiers, key=lambda q: (q.option_key, q.fact_key)
             )
         ]
+    if body.recurs is not None:
+        # Omitted when absent, like every other post-legacy key here: a patch
+        # authored before schema 4 keeps its exact bytes and its override-set
+        # identity. Serialized through the representation's own walker, so the
+        # patch and the projection cannot disagree about a cadence's canonical
+        # form.
+        payload["recurs"] = recurrence_payload(body.recurs)
     return payload
 
 

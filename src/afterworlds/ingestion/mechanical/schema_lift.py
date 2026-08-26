@@ -47,6 +47,7 @@ from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.projection import representation_payload
 from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
+    held_structure_violations,
     post_schema_3_violations,
 )
 
@@ -178,6 +179,16 @@ def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecor
             f"the prior representation declares {lift.from_version!r} but carries "
             "content only a later schema can state, so it was not accepted under "
             "the schema it names: " + "; ".join(illegal)
+        )
+    # A subclassed nested value object would survive the byte-identity proof
+    # below for exactly the reason it survives everywhere else: it canonicalizes
+    # to its declared base's payload. Proving that such a prior is "unchanged"
+    # would be proving the wrong thing.
+    if drift := held_structure_violations(prior):
+        raise SchemaLiftError(
+            "the prior representation holds a structure outside its closed "
+            "declaration, so its canonical payload does not represent what it "
+            "carries: " + "; ".join(drift)
         )
 
     before = representation_payload(prior, schema_version=lift.from_version)

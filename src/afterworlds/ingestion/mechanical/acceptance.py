@@ -65,6 +65,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
     derive_obligations,
 )
+from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     proposal_identity,
@@ -73,6 +74,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     RepresentationDraft,
     component_target_key,
+    held_structure_violations,
     prose_binding_target_key,
     record_target_key,
     reference_target_key,
@@ -192,6 +194,17 @@ def _merge_representation(
                 f"{label} representation is not the closed declared shape: "
                 + "; ".join(drift)
             )
+        # ...and the same rule below the top level. A subclassed nested value
+        # object canonicalizes to its declared base's payload, so two proposals
+        # asserting different authority would merge identically and share one
+        # oracle identity. Every other authority-bearing path runs a validator
+        # that refuses such a value first; this seam has neither a ledger nor a
+        # bound corpus, so it cannot, and the leak is closed here instead.
+        if drift := held_structure_violations(candidate):
+            raise AcceptanceError(
+                f"{label} representation holds a structure outside its closed "
+                "declaration: " + "; ".join(drift)
+            )
 
     if prior is None:
         return proposed
@@ -281,7 +294,12 @@ def accept_proposal(
             # re-declared. A lift may authorize a wider contract; it may never
             # move a semantic identity the Owner already accepted.
             lift_record = verify_lift(lift, prior.oracle.representation)
-        except SchemaLiftError as exc:
+        # ``LegacySchemaPayloadError`` joins it: a prior whose declared schema
+        # cannot serialize its own content is uncanonicalizable, which is the
+        # same acceptance failure by a different route. Letting it escape this
+        # seam uncategorized would fail closed in the right direction but say
+        # the wrong thing about why.
+        except (SchemaLiftError, LegacySchemaPayloadError) as exc:
             raise AcceptanceError(
                 "this proposal declares a different representation schema than "
                 "the prior accepted authority it would extend, and no verified "

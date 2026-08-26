@@ -204,6 +204,7 @@ __all__ = [
     "component_participant_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
+    "held_structure_violations",
     "size_comparison_violations",
     "ComponentDraft",
     "ProseBindingDraft",
@@ -5864,6 +5865,75 @@ def representation_draft_violations(draft: object) -> list[str]:
                 )
             )
     return violations
+
+
+def held_structure_violations(draft: RepresentationDraft) -> list[str]:
+    """The closed-structure identity leak, closed at every depth below the top.
+
+    The other half of :func:`representation_draft_violations`, which closes the
+    leak at the *top-level boundary* — the draft and the six collections it
+    holds. Everything nested inside a component is out of that function's reach
+    by design, and this one covers exactly that remainder: the facts, the
+    options, the qualifiers, the applicabilities, and the cadence.
+
+    **Why the depth split matters here rather than everywhere.** A subclass of a
+    closed value object canonicalizes to its declared base's payload — see
+    :func:`_declared_type`, and the merged decision behind it: the serializer
+    narrows rather than raises, and the exact-type gates refuse the value before
+    it can be persisted. That is sound wherever a validator runs first.
+    ``accept_proposal`` is the one authority-bearing seam where none does. It
+    merges two representations and mints an oracle identity from the result, and
+    it has neither a ledger nor a bound corpus, so it cannot call
+    :func:`~afterworlds.ingestion.mechanical.validation.validate_representation`.
+    Without this, two proposals asserting *different* nested authority would
+    merge identically and share one accepted identity.
+
+    Deliberately not a second validator. Every finding here comes from the
+    validator that already owns the rule — a fact's own family contract, an
+    applicability's closed shape, an option set's exhaustiveness, a qualifier's
+    scope, a cadence's boundary — so there is one statement of each rule and
+    this is another reader of it.
+    """
+    findings: list[str] = []
+    for component in draft.components:
+        tag = f"component {component.record_key}/{component.semantic_key}"
+        scopes: list[tuple[str, Sequence[object], object]] = [
+            (tag, component.facts, component.applies_when)
+        ]
+        scopes.extend(
+            (f"{tag} option {o.semantic_key}", o.facts, o.applies_when)
+            for o in component.options
+            # An option that is not exactly ``ComponentOption`` is
+            # ``option_set_violations``' finding below; reading its fields here
+            # first would report the subclass as its contents instead.
+            if type(o) is ComponentOption
+        )
+        for scope_tag, facts, applies_when in scopes:
+            for fact in facts:
+                findings.extend(
+                    f"{scope_tag}: {v}" for v in fact_invariant_violations(fact)
+                )
+            if applies_when is not None:
+                findings.extend(
+                    f"{scope_tag}: {v}"
+                    for v in applicability_violations(cast(Any, applies_when))
+                )
+        findings.extend(
+            f"{v}"
+            for v in option_set_violations(component.facts, component.options, tag)
+        )
+        findings.extend(
+            f"{v}"
+            for v in fact_qualifier_violations(
+                component.facts, component.options, component.fact_qualifiers, tag
+            )
+        )
+        if component.recurs is not None:
+            findings.extend(
+                f"{tag}: {v}"
+                for v in recurrence_violations(cast(Any, component.recurs))
+            )
+    return findings
 
 
 def option_set_violations(
