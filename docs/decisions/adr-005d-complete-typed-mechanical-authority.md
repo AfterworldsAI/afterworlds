@@ -139,6 +139,21 @@ present exactly as required.
 Counts, extraction floors, prose percentages, and category ceilings may detect regressions but cannot
 prove completeness. An all-prose projection and a duplicated-fact projection must both fail.
 
+**Amended by Owner Decision 2026-08-24 — duplication is a shape, not only a fact.** "A duplicated-fact
+projection must fail" is the general rule that one source statement may not be published twice, and it
+binds every element kind the representation carries, not only typed facts. Two forms of it are now stated
+explicitly because both were reachable and neither was caught:
+
+- **Sibling components.** Two different components of one record may not hold facts with the same
+  `fact_key` when both draw it from the *same* substantive span. Facts equal by content alone are not
+  duplication — a rule genuinely restated in two places is two claims — so the rule is fact equivalence
+  **plus shared source provenance**, never fact equality alone, and never inferred from parsed target-key
+  positions. This is deliberately not global cross-component fact uniqueness.
+- **Reference ownership.** Where a record owns a citation directly (Decision 7 as amended), no component
+  of that same record may state the same citation. Record ownership *means* no component states it, so the
+  pair contradicts its own justification. Two different **components** citing the same wording stay legal:
+  each is its own claim and each carries its own provenance edge.
+
 ### Decision 6 — Complete meaning-bearing identity
 
 Mechanical projection identity binds:
@@ -169,6 +184,47 @@ applied at runtime, the projection they are applied over has exactly one `mechan
 authored overlay's own complete canonical form participates instead in the override-set identity governed
 by Decision 9.
 
+**Amended by Owner Decision 2026-08-24 — explicit verified schema succession, and zero identity movement
+across it.** Accepted authority is committed under the representation schema it was reviewed under, and
+identity binds that schema (above). A later content batch may need a wider schema, so the two have to
+meet. They meet on exactly these terms, and on no others:
+
+1. **Zero movement.** A previously accepted fact key or provenance coordinate may not move. The absence of
+   published consumers or overrides does not authorize identity churn. A succession that would move one is
+   refused; it is never reconciled, renumbered, or re-derived.
+
+2. **A field added after a schema is omitted from the canonical payload when it carries no meaning.** An
+   absent field and a field at its declared default state the same thing, so one canonical form serves
+   both. This is what makes zero movement achievable rather than merely required: an element accepted
+   under the earlier schema *already has* its later-schema canonical form, so nothing has to be rewritten
+   for it to be inherited. The rule is value-keyed, never version-keyed — a fact's canonical form does not
+   depend on which schema is declared.
+
+3. **The declared version decides legality, never canonical form.** A post-succession field holding
+   meaning under an earlier declaration is refused, and refused *as a restamp* — an artifact whose declared
+   schema and content disagree — rather than silently emptied to reproduce a legacy identity. Fields
+   introduced at or before the last-accepted schema keep unconditional emission; switching one to
+   omit-when-empty would move exactly the identities this rule exists to hold still.
+
+4. **Compatibility is declared, never inferred.** Each authorized succession is registered by its exact
+   `(version, hash)` source **and** destination pair, with its destination hash written literally rather
+   than derived from whatever the type surface currently is. Version ordering is not evidence: "schema 4
+   is newer than schema 3" says nothing about whether schema 4 can carry schema 3's accepted content, and
+   a rule that reasoned that way would authorize every future succession in advance. An unregistered,
+   reversed, skipped, or hash-mismatched transition fails closed.
+
+5. **A succession proves, it does not transform.** Before any re-declaration, every inherited element is
+   proved byte-identical under both schemas, collection by collection. Nothing is normalized, reshaped, or
+   defaulted on the way through: a difference is a semantic change the reviewer never saw. This is a
+   stronger guarantee than a transforming lift could give — a transforming lift has to *argue* that its
+   mapping preserved meaning; this one demonstrates that nothing moved.
+
+6. **The crossing is evidence, never identity.** That an artifact was carried across a succession is
+   recorded beside its acceptance batches, on the evidence half of accepted inputs, and never on the
+   accepted oracle. Which schema an artifact was carried across is review and migration process, and
+   process is not identity-bearing. The combined artifact declares the destination schema and takes the
+   new oracle identity that follows from declaring it.
+
 ### Decision 7 — Build-time reference resolution
 
 Mechanical references resolve at build time through committed source scope, aliases, and exact target
@@ -176,6 +232,27 @@ semantic keys. Unique destination names alone do not establish source intent. Ba
 similarity, and model selection are never authoritative references.
 
 Ambiguous, unresolved, invalid, or cross-release references block publication.
+
+**Amended by Owner Decision 2026-08-24 — a record may own the references it authors.** Some records cite
+other records in their own right: a hazard umbrella names the five hazards it collects, and no component
+of that umbrella states the naming. A reference therefore has exactly one owner, and it is either the
+source **record** or one named **component** of that record.
+
+- A component-owned reference must name a component that really exists within its source record —
+  unchanged, and every previously accepted reference is one.
+- A record-owned reference must name a real source record and must not carry a fabricated or dangling
+  component. It does not license inventing a component to hang a citation on, and a component invented for
+  that purpose publishes a component the source never states.
+- Everything else about a reference is unchanged and remains fail-closed: ambiguity, scope resolution,
+  target existence, per-element provenance, canonical ordering, persistence reconstruction, and digest
+  coverage.
+- An earlier schema continues to reject record-owned reference meaning. Serializing it under a schema that
+  has no such form would produce bytes an earlier reviewer would read as a component-owned reference to a
+  component with an empty key, which is the restamp Decision 6 as amended refuses.
+
+This ownership widening is a *domain* widening of the existing owner field rather than a new ownership
+field beside it, precisely so that no accepted reference's canonical payload or provenance coordinate
+moves.
 
 ### Decision 8 — Persist, reconstruct, prove, then publish
 
