@@ -54,17 +54,25 @@ from afterworlds.ingestion.mechanical.representation import (
     ApplicabilityKind,
     ComponentDraft,
     ComponentOption,
+    CreatureSize,
     DamageFact,
     DamageType,
     DiceExpression,
     DieSize,
+    FactQualifier,
+    MeasureUnit,
     Phase,
+    Rational,
     RecordDraft,
     RecordKind,
     Recurrence,
     RecurrenceBoundary,
     RepresentationDraft,
+    RequiredQuantity,
     RollActor,
+    SizeKeyedQuantityFact,
+    SizeQuantity,
+    TimePeriod,
     UnknownFactFamilyError,
     fact_key,
     fact_payload,
@@ -129,8 +137,23 @@ class OptionWithScope(ComponentOption):
     scope: str = ""
 
 
+@dataclass(frozen=True)
+class QualifierWithScope(FactQualifier):
+    scope: str = ""
+
+
+@dataclass(frozen=True)
+class SizeQuantityWithScope(SizeQuantity):
+    scope: str = ""
+
+
 def _damage(dice: DiceExpression) -> DamageFact:
     return DamageFact(damage_type=DamageType.FIRE, dice=dice)
+
+
+#: A fact with no nested structure of its own, so a qualifier case fails for the
+#: qualifier rather than for what it qualifies.
+_FLAT = DamageFact(damage_type=DamageType.FIRE, flat_amount=3)
 
 
 def _with_nested_subclass():
@@ -228,6 +251,43 @@ def test_merging_refuses_a_nested_subclass_before_minting_an_identity() -> None:
             ),
             "must be ComponentOption",
             id="option",
+        ),
+        pytest.param(
+            lambda c: replace(
+                c,
+                facts=(_FLAT,),
+                fact_qualifiers=(
+                    QualifierWithScope(
+                        fact_key=fact_key(_FLAT),
+                        option_key="",
+                        applies_when=Applicability(
+                            kind=ApplicabilityKind.PHASE,
+                            negated=False,
+                            phase=Phase.ON_END,
+                        ),
+                    ),
+                ),
+            ),
+            "must be FactQualifier",
+            id="fact-qualifier",
+        ),
+        pytest.param(
+            lambda c: replace(
+                c,
+                facts=(
+                    SizeKeyedQuantityFact(
+                        quantity=RequiredQuantity.WATER,
+                        period=TimePeriod.DAY,
+                        values=(
+                            SizeQuantityWithScope(
+                                CreatureSize.TINY, Rational(1, 4), MeasureUnit.GALLON
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            "size quantities",
+            id="size-quantity",
         ),
     ],
 )

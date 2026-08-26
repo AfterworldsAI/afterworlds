@@ -84,7 +84,14 @@ for path in PINS:
 
 # 3. The lift's destination pin only, rewritten by name.
 text = LIFT.read_text(encoding="utf-8")
-text = re.sub(r'SCHEMA_4_HASH = "[0-9a-f]{64}"', f'SCHEMA_4_HASH = "{HASH}"', text)
+# The trailing ``# pragma: allowlist secret`` is preserved: it is part of the
+# line's meaning to the secret scanner, and a rewrite that dropped it would
+# reintroduce a gate failure every time the pin moved.
+text = re.sub(
+    r'SCHEMA_4_HASH = "[0-9a-f]{64}"',
+    f'SCHEMA_4_HASH = "{HASH}"',
+    text,
+)
 assert (
     f'SCHEMA_3_HASH = "{SCHEMA_3_HASH}"' in text
 ), "the lift's source pin moved; it names the contract the artifact was accepted under"

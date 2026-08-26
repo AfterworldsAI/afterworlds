@@ -5406,6 +5406,7 @@ _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
         Recurrence,
         RollSpec,
         SizeComparison,
+        SizeQuantity,
         SpellCastingTime,
         SpellComponents,
         SpellDuration,
