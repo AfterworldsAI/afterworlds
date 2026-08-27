@@ -62,9 +62,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
 )
 
 ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
-PRIOR_PROPOSAL_IDENTITY = (
-    "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"
-)
+PRIOR_PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"  # noqa: E501  # pragma: allowlist secret
 PRIOR_SPANS = 185
 
 #: A leaf the accepted artifact does not touch, so the new scope is disjoint.

@@ -111,7 +111,7 @@ OTHER_HASH = "9" * 64
 #: Schema 2 is the truer stand-in anyway: an actual superseded union, not a
 #: hypothetical one.
 PRIOR_VERSION = SCHEMA_2_VERSION
-PRIOR_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+PRIOR_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"  # noqa: E501  # pragma: allowlist secret
 
 
 # ---------------------------------------------------------------------------
@@ -569,9 +569,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = (
-    "cddba5048a0f8e64dd289d3dd08b1c6f03e130120f89721288eb756b1f27011e"
-)
+EXPECTED_SCHEMA_HASH = "cddba5048a0f8e64dd289d3dd08b1c6f03e130120f89721288eb756b1f27011e"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

@@ -55,9 +55,7 @@ from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_3_HASH
 
 ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 #: The value recorded on the committed artifact's only acceptance batch.
-COMMITTED_ORACLE_IDENTITY = (
-    "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"
-)
+COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_build_implements_a_later_schema_than_the_artifact_declares() -> None:

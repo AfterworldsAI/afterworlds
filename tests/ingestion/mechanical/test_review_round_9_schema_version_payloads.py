@@ -114,11 +114,9 @@ from tests.ingestion.mechanical.conftest import (
 # Literals captured at 7395c52 with pre-change code
 # ---------------------------------------------------------------------------
 
-SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_2_UUID = "389df0d1-54e9-5f7b-864b-7f522e47a766"
-SCHEMA_2_PAYLOAD_HASH = (
-    "c2990446b1931c411e9bcbb33c5bb8ed40209cb9849f8720963f1536919b0b65"
-)
+SCHEMA_2_PAYLOAD_HASH = "c2990446b1931c411e9bcbb33c5bb8ed40209cb9849f8720963f1536919b0b65"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_2_RECORD_ID = "8b8458fe-2b4b-5471-be65-d8b55144aa7f"
 SCHEMA_2_COMPONENT_ID = "818624c3-9ad3-55ed-a514-318b8c142fae"
 SCHEMA_2_FACT_IDS = [

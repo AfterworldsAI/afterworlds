@@ -61,12 +61,10 @@ ARTIFACT_PATH = COMMITTED_ORACLE_DIR / ARTIFACT_NAME
 
 BATCH_ID = "conditions-1"
 REVIEWER = "Ravenlok (Owner)"
-PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"
-ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"
+PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"  # noqa: E501  # pragma: allowlist secret
+ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"  # noqa: E501  # pragma: allowlist secret
 PROJECTION_UUID = "48a015cb-a9bd-56c5-b4a4-1e5901d5be7b"
-PROJECTION_PAYLOAD_HASH = (
-    "9af8b93da4ab54ba43ad57a9fc08a48e3196d9b173e4f1e0210167d0504bef66"
-)
+PROJECTION_PAYLOAD_HASH = "9af8b93da4ab54ba43ad57a9fc08a48e3196d9b173e4f1e0210167d0504bef66"  # noqa: E501  # pragma: allowlist secret
 
 SPANS = 185
 RECORDS = 16
@@ -82,9 +80,9 @@ SUPPORTING = 98
 #: Refused by semantic review. Named here so "not selectable" is a test rather
 #: than a promise in a checkpoint document.
 REFUSED = (
-    "756922a3892f9420dc8bfb2fe6af8a5a4db491111d1786ab0de6c2ddbf7dbfa6",
-    "b9ac21bf045a3f5d1e020f91fd43fdd6e5f3fb0b3d0a715de556a574d3ab14a6",
-    "2f42f2bb82bcb4ed6ac489b47f774495d2ec5d985871a0d5b69f659fc83fb24b",
+    "756922a3892f9420dc8bfb2fe6af8a5a4db491111d1786ab0de6c2ddbf7dbfa6",  # noqa: E501  # pragma: allowlist secret
+    "b9ac21bf045a3f5d1e020f91fd43fdd6e5f3fb0b3d0a715de556a574d3ab14a6",  # noqa: E501  # pragma: allowlist secret
+    "2f42f2bb82bcb4ed6ac489b47f774495d2ec5d985871a0d5b69f659fc83fb24b",  # noqa: E501  # pragma: allowlist secret
 )
 
 

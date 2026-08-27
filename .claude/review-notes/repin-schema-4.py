@@ -37,7 +37,7 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
 
 #: The contract the committed conditions-1 artifact was accepted under. Constant
 #: for all time; asserted rather than rewritten.
-SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
+SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
 
 VERSION = REPRESENTATION_SCHEMA_VERSION
 HASH = representation_schema_hash()
