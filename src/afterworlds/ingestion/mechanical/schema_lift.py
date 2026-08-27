@@ -69,7 +69,7 @@ SCHEMA_3_VERSION = "5d-representation-schema-3"
 SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_4_VERSION = "5d-representation-schema-4"
 #: Pinned literally. See the module docstring for why this is not derived.
-SCHEMA_4_HASH = "cddba5048a0f8e64dd289d3dd08b1c6f03e130120f89721288eb756b1f27011e"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_4_HASH = "e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):

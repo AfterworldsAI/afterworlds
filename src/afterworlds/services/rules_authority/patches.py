@@ -68,21 +68,26 @@ from afterworlds.ingestion.mechanical.projection import (
 from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ApplicabilityKind,
+    AutomaticOutcome,
     Comparison,
     ComponentOption,
     CreatureSize,
+    DamageOutcome,
     FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
     ParticipantRole,
     Phase,
+    Rational,
     RecordKind,
     RecoveryTrigger,
     Recurrence,
     RecurrenceBoundary,
+    RequiredQuantity,
     RollActor,
     SizeComparison,
     SizeRelation,
+    TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
@@ -415,6 +420,29 @@ def _build_fact(value: object, what: str) -> MechanicalFact:
     return fact
 
 
+def _rational_operand(raw: object) -> Rational | None:
+    """Rebuild a stored ``Rational`` operand, or ``None``.
+
+    Nothing is coerced. A malformed shape raises out of the caller's ``try``
+    and becomes that module's own typed load failure, exactly as a bad
+    vocabulary member does — a fraction that reconstructs as a different
+    fraction is worse than one that refuses to reconstruct.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise TypeError(f"fraction must be an object, got {type(raw).__name__}")
+    # The exact key set, like every other closed structure here. An undeclared
+    # key entering unchecked is the same defect this builder exists to close:
+    # it is a field nothing validated, and it would be silently discarded.
+    if set(raw) != {"numerator", "denominator"}:
+        raise ValueError(
+            f"fraction must carry exactly numerator and denominator, got "
+            f"{sorted(raw)}"
+        )
+    return Rational(numerator=raw["numerator"], denominator=raw["denominator"])
+
+
 def _build_applicability(raw: object, what: str) -> Applicability | None:
     """Rebuild one applicability from patch JSON, or ``None``.
 
@@ -466,6 +494,29 @@ def _build_applicability(raw: object, what: str) -> Applicability | None:
                 None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
             ),
             phase=None if raw["phase"] is None else Phase(raw["phase"]),
+            # The schema-4 operands. Read with ``.get`` because they are
+            # post-schema-3 keys: the canonical payload omits one that carries
+            # no meaning, so a legal schema-3 payload has no such key at all and
+            # ``raw["outcome"]`` would fail on content that is entirely honest.
+            # Dropping them instead — which is what this builder did before —
+            # reconstructs an applicability whose required operand is absent, so
+            # ``applicability_violations`` rejects the rebuilt value and the
+            # artifact cannot load at all.
+            outcome=(
+                None if raw.get("outcome") is None else AutomaticOutcome(raw["outcome"])
+            ),
+            damage_outcome=(
+                None
+                if raw.get("damage_outcome") is None
+                else DamageOutcome(raw["damage_outcome"])
+            ),
+            required_quantity=(
+                None
+                if raw.get("required_quantity") is None
+                else RequiredQuantity(raw["required_quantity"])
+            ),
+            fraction=_rational_operand(raw.get("fraction")),
+            unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise InvalidPatchError(f"{what} applies_when: {exc}") from exc

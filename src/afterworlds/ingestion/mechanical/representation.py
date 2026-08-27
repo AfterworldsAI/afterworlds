@@ -4560,6 +4560,12 @@ def representation_schema_payload() -> dict[str, object]:
             {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
             for path in sorted(_DRAFT_VOCABULARIES)
         ],
+        # The version-legality contract, carried inside the identity it governs.
+        # Removing a row to let something through moves this hash, so the
+        # destination pin in ``schema_lift`` no longer matches and ``lift_for``
+        # refuses the transition. The contract cannot be loosened while the
+        # registered lift keeps working.
+        "introductions": introduction_manifest(),
     }
 
 
@@ -4688,6 +4694,126 @@ def _register_post_schema_3(*specs: _PostSchema3Field) -> None:
         _POST_SCHEMA_3_FIELDS.setdefault(spec.owner, {})[spec.key] = spec
 
 
+@dataclass(frozen=True)
+class _Introduction:
+    """One thing a schema admitted that its predecessor could not state.
+
+    The *type and vocabulary* half of version legality, beside
+    :class:`_PostSchema3Field`'s *field* half. Both answer one question — may
+    this content exist under the declared schema — and both are read by
+    :func:`post_schema_3_violations`.
+
+    **Why a field registry alone was not enough.** A field registry gates a
+    field's *presence*. It says nothing about a fact family that did not exist,
+    or about an enum member added to a field that did. An
+    ``EffectTerminationFact`` in a schema-3 prior declared no post-schema-3
+    field, so it produced no legality violation, serialized identically under
+    both requested versions, and would let ``verify_lift`` authorize restamped
+    authority no schema-3 reviewer could have reviewed.
+
+    ``kind`` is one of:
+
+    ``fact_family``
+        A family the union did not have. ``name`` is the discriminator
+        ``fact_payload`` writes — never a class name, because no payload
+        carries one.
+    ``vocabulary_member``
+        One admitted value of one closed vocabulary. ``owner`` is the
+        vocabulary, ``name`` the value. Registered for **every** member schema 4
+        added, including members of vocabularies that are themselves entirely
+        new. Those are reachable only through a family or field already
+        registered, so the rows are redundant — deliberately. Redundancy here
+        costs a duplicate finding; the alternative costs an argument about
+        reachability that has to be re-derived correctly at every future
+        succession, and getting a member into the wrong group is silent in both
+        directions.
+    ``reference_ownership``
+        The H-8 record-owned reference form. Its serialization seam refuses it
+        already; this row is what makes the *legality* contract see it too, so
+        ``verify_lift`` and ``accept_proposal`` refuse a restamped prior rather
+        than relying on a payload raise from somewhere else.
+    """
+
+    kind: str
+    owner: str
+    name: str
+    introduced_in: str
+
+
+def _introductions() -> tuple[_Introduction, ...]:
+    """Every schema-4 admission, derived from the declarations themselves.
+
+    Built from the live types rather than transcribed beside them. A literal
+    list would be a second statement of the same contract, and the two would
+    drift the first time a family or a vocabulary changed — with the schema hash
+    then certifying whichever one it happened to read.
+
+    The three vocabularies below name the members schema 4 added to
+    vocabularies schema 3 already had; the rest of each such vocabulary stays
+    legal under schema 3, which is the case the committed artifact exercises.
+    """
+    four = SCHEMA_4
+    rows: list[_Introduction] = [
+        _Introduction("fact_family", "FactFamily", family.value, four)
+        for family in _SCHEMA_4_FAMILIES
+    ]
+    for vocabulary, members in _SCHEMA_4_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, four)
+            for member in members
+        )
+    rows.append(
+        _Introduction("reference_ownership", "ReferenceDraft", "record_owned", four)
+    )
+    return tuple(sorted(rows, key=lambda r: (r.kind, r.owner, r.name)))
+
+
+def introduction_manifest() -> list[dict[str, object]]:
+    """The manifest, in the shape the schema payload carries it.
+
+    **Identity-bound on purpose.** This is emitted by
+    :func:`representation_schema_payload`, so the schema hash covers it.
+    Removing a row to let something through changes the hash, which no longer
+    matches the destination pin in
+    :mod:`~afterworlds.ingestion.mechanical.schema_lift`, so ``lift_for``
+    refuses the transition. The legality contract therefore cannot be quietly
+    loosened while the registered lift keeps working — loosening it invalidates
+    the lift, which is the failure this whole module is built around.
+    """
+    return [
+        {
+            "kind": row.kind,
+            # **No class name, here or anywhere in this payload.** A vocabulary
+            # is identified the way ``draft_vocabularies`` identifies one and the
+            # way the wire actually constrains it — by its complete admitted
+            # value set — because no payload carries a type tag and identity may
+            # not depend on what a payload cannot show. Two structurally
+            # identical vocabularies render identically, which this module
+            # already holds to be correct.
+            #
+            # The *lookup* keeps its class key internally and is deliberately not
+            # emitted: two vocabularies genuinely share the values ``day`` and
+            # ``increase`` across the schema-3/4 boundary, so a value-only
+            # decision would refuse content schema 3 states.
+            "vocabulary": _vocabulary_shape(row.owner),
+            "name": row.name,
+            "introduced_in": row.introduced_in,
+        }
+        for row in _introductions()
+    ]
+
+
+def _vocabulary_shape(owner: str) -> list[str] | None:
+    """The admitted values of *owner*, or ``None`` where it is not a vocabulary.
+
+    ``fact_family`` and ``reference_ownership`` rows name a discriminator and an
+    ownership form respectively; neither is a vocabulary, and inventing a value
+    set for them would assert a shape the wire does not have.
+    """
+    members = _SCHEMA_4_VOCABULARY_ALL.get(owner)
+    return None if members is None else sorted(members)
+
+
 def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
     """Post-schema-3 fields holding meaning that *schema_version* cannot state.
 
@@ -4703,8 +4829,47 @@ def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
 def _collect_post_schema_3(
     value: object, schema_version: str, path: str, findings: list[str]
 ) -> None:
+    if isinstance(value, StrEnum):
+        # A vocabulary member added to a field the declared schema already had.
+        # The field registry cannot see this case at all: the field is old, and
+        # only the *value* is new.
+        if (type(value).__name__, value.value) in _SCHEMA_4_MEMBER_INDEX and (
+            not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'value'}: declares schema {schema_version!r}, whose "
+                f"{type(value).__name__} does not admit {value.value!r} — that "
+                f"arrived with {SCHEMA_4}; refusing to read a value the "
+                "declared contract cannot state"
+            )
+        return
     if is_dataclass(value) and not isinstance(value, type):
         declared = _declared_type(value)
+        # A family the declared union did not have. Keyed by discriminator
+        # rather than class, because that is what a payload carries.
+        family = getattr(declared, "FAMILY", None)
+        if (
+            isinstance(family, FactFamily)
+            and family in _SCHEMA_4_FAMILIES
+            and not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'fact'}: declares schema {schema_version!r}, whose "
+                f"closed union has no {family.value!r} family — that arrived "
+                f"with {SCHEMA_4}; refusing to read authority the declared "
+                "contract cannot state"
+            )
+        if (
+            declared is ReferenceDraft
+            and getattr(value, "from_component_key", None) == RECORD_OWNED_REFERENCE
+            and not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'reference'}: declares schema {schema_version!r}, "
+                "which has no 'record_owned' reference form — that arrived "
+                f"with {SCHEMA_4}; refusing to read an ownership the declared "
+                "contract cannot state"
+            )
         omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
         for field in fields(declared):
             child = getattr(value, field.name)
@@ -4741,6 +4906,75 @@ def _version_states(declared: str, introduced_in: str) -> bool:
 #: Which post-schema-3 introductions each merged version is allowed to state.
 #: Explicit rows for the same reason ``_MERGED_COMPONENT_FIELDS`` uses them: a
 #: later succession must not silently inherit an earlier row.
+SCHEMA_4 = "5d-representation-schema-4"
+
+#: The families schema 4 admitted. Named by member so the set is auditable at a
+#: glance, and resolved to live enum members so a rename cannot leave a stale
+#: string behind.
+_SCHEMA_4_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.CONDITION_REMOVAL_RESTRICTION,
+    FactFamily.DAMAGE_MODIFICATION,
+    FactFamily.DERIVED_QUANTITY,
+    FactFamily.EFFECT_TERMINATION,
+    FactFamily.SIZE_KEYED_QUANTITY,
+)
+
+#: Every vocabulary value schema 4 admitted, by vocabulary.
+#:
+#: Two groups, deliberately in one table. The first four vocabularies existed at
+#: schema 3 and *gained* members, so only the named members are new and the rest
+#: stay legal — this is the group a field-keyed registry can never catch, since
+#: the field itself is old. The remainder are vocabularies schema 4 introduced
+#: whole; every member is new, and listing them is redundant with the family or
+#: field that reaches them. See :class:`_Introduction` for why the redundancy is
+#: kept.
+_SCHEMA_4_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    # Added to vocabularies schema 3 already had.
+    "ApplicabilityKind": (
+        ApplicabilityKind.CONSUMPTION_THRESHOLD.value,
+        ApplicabilityKind.DAMAGE_OUTCOME.value,
+        ApplicabilityKind.ELAPSED_DURATION.value,
+        ApplicabilityKind.ROLL_OUTCOME.value,
+    ),
+    "Comparison": (Comparison.LESS_THAN.value,),
+    "ScalingBasis": (ScalingBasis.DISTANCE_FALLEN.value,),
+    "TimeUnit": (TimeUnit.SECOND.value,),
+    # Vocabularies schema 4 introduced whole.
+    "DamageModDirection": tuple(m.value for m in DamageModDirection),
+    "DamageOutcome": tuple(m.value for m in DamageOutcome),
+    "MeasureUnit": tuple(m.value for m in MeasureUnit),
+    "RecurrenceBoundary": tuple(m.value for m in RecurrenceBoundary),
+    "RequiredQuantity": tuple(m.value for m in RequiredQuantity),
+    "Skill": tuple(m.value for m in Skill),
+    "TerminationScope": tuple(m.value for m in TerminationScope),
+    "TimePeriod": tuple(m.value for m in TimePeriod),
+}
+
+#: Every admitted value of each vocabulary the manifest names, for rendering it
+#: in the schema payload without naming its class. Derived from the live enums,
+#: so a member added later cannot leave a stale rendering behind.
+_SCHEMA_4_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+    "Comparison": tuple(m.value for m in Comparison),
+    "ScalingBasis": tuple(m.value for m in ScalingBasis),
+    "TimeUnit": tuple(m.value for m in TimeUnit),
+    "DamageModDirection": tuple(m.value for m in DamageModDirection),
+    "DamageOutcome": tuple(m.value for m in DamageOutcome),
+    "MeasureUnit": tuple(m.value for m in MeasureUnit),
+    "RecurrenceBoundary": tuple(m.value for m in RecurrenceBoundary),
+    "RequiredQuantity": tuple(m.value for m in RequiredQuantity),
+    "Skill": tuple(m.value for m in Skill),
+    "TerminationScope": tuple(m.value for m in TerminationScope),
+    "TimePeriod": tuple(m.value for m in TimePeriod),
+}
+
+#: Fast lookup for the recursion: ``(vocabulary, value) -> introduced_in``.
+_SCHEMA_4_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_4_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 _VERSION_STATES: dict[str, frozenset[str]] = {
     "5d-representation-schema-1": frozenset(),
     "5d-representation-schema-2": frozenset(),

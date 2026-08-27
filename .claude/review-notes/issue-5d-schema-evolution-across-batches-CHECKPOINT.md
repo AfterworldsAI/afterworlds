@@ -62,9 +62,18 @@ advantage    : {"family": "advantage", "state": "disadvantage",
 | `MovementCostFact` (the one `FactQualifier` target, `6e4c12d0fc868578`) | 1 | none | **no** — the qualifier's back-reference survives |
 | all other families (`action_restriction`, `condition_effect`, `critical_hit_rule`, `damage_response`, `movement_permission`, `movement_transport`, `quantity_multiplier`, `sensory_capability`, `speed_modification`, `state_effect`, `transformation`) | 30 | none | **no** |
 
-**Net: exactly 34 fact keys and 6 applicability payloads move; every other accepted element is
-byte-identical.** All 185 spans, all 16 records, all 54 component keys, all 15 prose bindings, all 15
-references, and all batch/acceptance evidence are untouched.
+**That table describes the design as first drafted, and it no longer describes the build.** Under the
+omission rule Owner Decision 2026-08-24 settled (§4.4), a post-schema-3 field is absent from the
+canonical payload when it carries no meaning — so a `RollSpec` with no `skill`, a `ConditionLevelFact`
+that is not cause-scoped, and an `Applicability` with none of the four new operands each emit exactly the
+bytes they emitted under schema 3.
+
+**Net, as built: zero fact keys and zero applicability payloads move.** All six inherited collections are
+byte-identical, all 185 spans, all 16 records, all 54 component keys, all 15 prose bindings, all 15
+references, all 161 stored provenance coordinates, and all batch/acceptance evidence are untouched, and
+`oracle_identity` stays at `a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda`. The rows
+above are retained because they name *which* structures the additions touch, which is still true and
+still the reason the omission rule had to exist.
 
 Designing schema 4 to avoid this is not available: H-4, H-5, H-10, H-11, H-12 and H-14 are each
 required for `hazards-1` to reach zero.
@@ -147,22 +156,29 @@ disjoint by batch as before.
 
 ### 4.4 Is the prior canonical payload byte-identical?
 
-**No, and this is the design's one real cost — stated plainly rather than buried.** The merged artifact
-declares **one** schema, because `candidate_from_accepted_inputs` copies the artifact's declaration and
-`validate_schema_binding` requires it to equal the build's version exactly. So lifted elements
-canonicalize under schema 4, and the 34 fact keys and 6 applicability payloads in §2 move.
+**Yes — proved element by element, not argued.** This section previously answered "no, and this is the
+design's one real cost." Owner Decision 2026-08-24 rejected that cost, and the mechanism that removes it
+is smaller than the one it replaces:
 
-Everything else is byte-identical, and nothing operational depends on the moved keys:
+> A field introduced after schema 3 is **omitted from the canonical payload when it carries no meaning.**
 
-* no mechanical projection has been published or activated — the release is `INCOMPLETE` and the
-  runtime binding reports `UNPUBLISHED`;
-* no `RuleOverride` exists, so no retained override-set version names any of these facts;
-* derived record/component/fact IDs come from the projection UUID plus semantic keys, and the
-  projection UUID changes anyway once content is added.
+An absent field and a field at its declared default say the same thing, so one canonical form serves
+both — and a schema-3 element therefore *already has* its schema-4 canonical form. Nothing is rewritten
+for it to be inherited.
 
-**This is not a reinterpretation of prior authority.** Every claim the Owner accepted means exactly what
-it meant; only its serialization under a wider closed contract changes, and step 5 proves the semantic
-subgraph mapped one-to-one. The alternative that would preserve byte-identity is §8's Owner Decision.
+The rule is **value-keyed, never version-keyed.** A fact's canonical form does not depend on which schema
+is declared; the declared version decides only **legality**. That is what keeps it from being a second
+canonicalization philosophy coexisting with Owner Decision 2026-08-20's version-keyed component rule —
+there is one rule for content and one for component keys, and they do not overlap.
+
+Fields introduced at or before schema 3 keep unconditional emission. That is load-bearing: the committed
+artifact contains `"applies_when": null` and `"fact_qualifiers": []`, so switching them to omit-when-empty
+would move exactly the identities this rule exists to hold still.
+
+`verify_lift` therefore **proves** rather than transforms: it canonicalizes the prior under both the
+source and the destination schema and compares bytes, collection by collection, before anything is
+re-declared. Nothing is normalized, reshaped, or defaulted on the way through. A transforming lift has to
+argue that its mapping preserved meaning; this one demonstrates that nothing moved.
 
 ### 4.5 Combined oracle payload and identity
 
@@ -238,7 +254,7 @@ nothing.
 
 | # | Proves | Shape |
 |--:|---|---|
-| T-1 | schema-3 conditions authority lifts into schema 4 without changing its semantic subgraph | load the committed artifact, lift it, assert every record/component/option/fact/qualifier/prose-binding/reference/relationship/provenance element maps 1:1, semantic keys unchanged, and the **only** payload differences are the declared-default fields — asserted as the exact set of 34 fact keys and 6 applicability payloads from §2, not as a loose count |
+| T-1 | schema-3 conditions authority lifts into schema 4 **with no payload difference at all** | load the committed artifact, canonicalize it under both schemas, and assert every one of the six collections is byte-identical — and byte-identical to the committed bytes themselves. Asserted as equality, not as an enumerated difference set: under the omission rule there is no difference to enumerate, and a test that listed one would re-encode the withdrawn design |
 | T-2 | conditions acceptance evidence remains exact | `batches`, `acceptances`, `rule`, `resolved_scope`, `diff`, `semantic_diff_hash`, `reviewer`, `accepted_at`, and `proposal_identity == "14587d5b…"` byte-identical before and after |
 | T-2b | the recorded proposal identity stays reproducible | re-derive `proposal_identity` from the retained schema-3 proposal artifact on a schema-4 build and assert `14587d5b…` (regression for **D-3**) |
 | T-3 | schema-4 hazards merges as a disjoint keyed union | after the lift, `accept_proposal(prior=…)` succeeds; span scopes disjoint; all 16 conditions records **and** all 6 hazards records present; no duplicate semantic key |
@@ -379,18 +395,22 @@ identical: no projection is persisted, published, or activated here.
 > When accepted authority is lifted across a schema succession, may the derived `fact_key`s of already
 > accepted facts move, or must schema 4 preserve them byte-for-byte?
 
-### ~~Options A and B~~ — WITHDRAWN
+### Settled — zero identity movement
 
-**Settled by Owner Decision 2026-08-24, against the recommendation this checkpoint made.** The Owner
-ruled **zero identity movement**:
+**Owner Decision 2026-08-24, against the recommendation this checkpoint originally made.**
+
+This section once presented two options and recommended the one that let derived keys move, arguing that
+the accepted-artifact case lacked the persisted-state consumers which motivated Owner Decision
+2026-08-20. The Owner answered that argument directly:
 
 > Do not permit previously accepted fact keys or provenance coordinates to move… The absence of published
 > consumers or overrides does not authorize identity churn.
 
-That is Option B, and the recommendation of Option A is withdrawn in full. The argument it rested on —
-that the artifact case lacks the persisted-state consumers which motivated 2026-08-20 — was answered
-directly: consumer absence is not the authorization. It is recorded here rather than deleted so the
-reasoning that was rejected stays legible.
+**Consumer absence is not the authorization.** The recommendation is withdrawn in full, and the option
+table that carried it is deleted rather than annotated — a superseded prescription left standing beside
+the live one gives the next reader two contradictory instructions, which is exactly the failure this
+document exists to prevent. What the reasoning was is recorded in the paragraph above; what it
+*prescribed* is gone.
 
 **What the Owner's ruling required, and what was built:**
 
@@ -400,11 +420,11 @@ reasoning that was rejected stays legible.
 | New hazards content uses schema-4 shapes | Ten additions across five new families, four widened fields, one component key | `representation.py`, `test_fact_families` |
 | Every inherited `conditions-1` element retains its canonical payload and target coordinates | All six collections byte-identical against the committed bytes; `oracle_identity` unmoved at `a0f0bd2f…`; 15 references and every coordinate re-derive | zero-movement probe, `test_record_owned_references`, `test_declared_schema_canonicalization` |
 | Schema-4 fields carrying no meaning are absent from an inherited element's canonical payload | `_PostSchema3Field` / `_POST_SCHEMA_3_FIELDS`, value-keyed rather than version-keyed | `test_declared_schema_canonicalization` |
-| A schema-3 declaration carrying schema-4 meaning fails closed | `post_schema_3_violations` + `LegacySchemaPayloadError` at both canonicalizing seams | `test_declared_schema_canonicalization`, `test_record_owned_references` |
+| A schema-3 declaration carrying schema-4 meaning fails closed | `post_schema_3_violations` over the identity-bound `introduction_manifest()` — every schema-4 family, every widened vocabulary member, every new field, and the record-owned reference form — plus `LegacySchemaPayloadError` at both canonicalizing seams | `test_schema_version_legality`, `test_declared_schema_canonicalization`, `test_record_owned_references` |
 
-The correction that made Option B cheap rather than philosophically awkward: this checkpoint framed it as
-a *second* canonicalization philosophy coexisting with 2026-08-20's. It is not. The omission rule is
-value-keyed, so a fact's canonical form does not depend on which schema is declared at all — **the
+The correction that made zero movement cheap rather than philosophically awkward: this checkpoint once
+framed it as a *second* canonicalization philosophy coexisting with 2026-08-20's. It is not. The omission
+rule is value-keyed, so a fact's canonical form does not depend on which schema is declared at all — **the
 declared version decides only legality**. One rule, stated once, with 2026-08-20's version-keyed component
 rule left exactly as it was.
 
@@ -425,11 +445,15 @@ implementation forced:
 | | Value | Status |
 |---|---|---|
 | `SCHEMA_3_HASH` (lift source) | `43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` | **unmoved**, asserted by the re-pin helper |
-| `SCHEMA_4_HASH` (lift destination) | `cddba5048a0f8e64dd289d3dd08b1c6f03e130120f89721288eb756b1f27011e` | **final**, verified unchanged across H-8 |
+| `SCHEMA_4_HASH` (lift destination) | `f67588ffe7315989cb5b2df1c3e63514396dea23552afba39f4d214c286c11a1` | **final**. Moved once after H-8, when the introduction manifest joined the schema payload — which is the point: the legality contract is now inside the identity it governs, so it cannot be loosened without invalidating this pin |
 | committed `oracle_identity` | `a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda` | **unmoved** |
 
 H-8 widened `from_component_key`'s *domain*, not the declared type surface, so the destination hash did
-not move when the last family landed. That is why it is reported as final rather than provisional.
+not move when the last family landed. It moved once afterwards, deliberately: `introduction_manifest()`
+is emitted by `representation_schema_payload()`, so removing a legality row to let something through
+changes this hash, the destination pin stops matching, and `lift_for` refuses the transition. The
+schema-3 **source** pin was asserted unchanged across that re-pin, and the zero-movement probe was rerun
+against it.
 
 **Not raised as decisions:** the architecture choice (1 over 2–4), the fifteen additions, the H-16
 rejection, the H-6 and H-16 shapes, the two-PR boundary, or the R-3 disposition. All ordinary

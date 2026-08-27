@@ -67,7 +67,53 @@ jobs:
         # (not silently preserved) per ADR-018's Phase 2 CVE-closure requirement.
         # Revisit if chromadb ships a patched release, or if a server-mode deployment
         # is ever proposed (which would require a new safe-deployment review).
-        run: pip-audit --ignore-vuln CVE-2026-4539 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-45829
+        #
+        # CVE-2026-45830, CVE-2026-45831, CVE-2026-45833: three further chromadb
+        # advisories, all against the same HTTP-server component CVE-2026-45829
+        # is. Each is verified individually against the enforced embedded-only
+        # client boundary rather than suppressed as a family; no patched release
+        # exists for any of them (OSV lists no fix version, last_affected 1.5.9).
+        #
+        #   CVE-2026-45830 — missing authorization validation lets an
+        #     *authenticated* user reach any tenant's collection. Requires the
+        #     HTTP server's authenticated multi-tenant surface. Afterworlds
+        #     constructs only PersistentClient/EphemeralClient at one choke point
+        #     (pipeline/retrieval/client.py) and runs no server, so there is no
+        #     authenticated user and no tenant boundary to cross.
+        #     Remove when chromadb ships a fix and the pin is raised.
+        #
+        #   CVE-2026-45831 — SimpleRBACAuthorizationProvider ignores which
+        #     tenant/database/collection a permission applies to. That provider is
+        #     instantiated only by the server's auth stack, which this repo never
+        #     configures: there is no CHROMA_SERVER_* setting, no auth provider,
+        #     and RetrievalMemoryConfig deliberately exposes no server-mode knob.
+        #     Remove when chromadb ships a fix and the pin is raised.
+        #
+        #   CVE-2026-45833 — code injection via a malicious model repository with
+        #     trust_remote_code=true on POST .../collections/{id}. Same shape as
+        #     CVE-2026-45829 and unreachable for the same two reasons: the
+        #     endpoint requires the server, and trust_remote_code is never set
+        #     anywhere in this repository (it appears only in prose saying so).
+        #     Remove when chromadb ships a fix and the pin is raised.
+        #
+        # Sibling audited in the same pass, deliberately NOT ignored:
+        #   CVE-2026-45832 — V1 collection-level endpoints pass None for tenant
+        #     and database to the authorization layer. OSV records it against
+        #     chromadb 0.5.0–1.5.9, so it *does* cover the pinned version, and it
+        #     is unreachable for the same boundary reason as the three above. No
+        #     --ignore-vuln is added because pip-audit does not report it: the OSV
+        #     record carries only a GIT/CPE range and no PyPI package entry, so a
+        #     flag for it would be dead configuration today. If that record gains
+        #     a PyPI entry this step will fail on it, and the fix is to add it
+        #     here with this same rationale — not to widen any flag above.
+        run: >-
+          pip-audit
+          --ignore-vuln CVE-2026-4539
+          --ignore-vuln CVE-2026-3219
+          --ignore-vuln CVE-2026-45829
+          --ignore-vuln CVE-2026-45830
+          --ignore-vuln CVE-2026-45831
+          --ignore-vuln CVE-2026-45833
 
   frontend:
     name: Frontend — Typecheck, Lint, Format, Test, Audit, Build
