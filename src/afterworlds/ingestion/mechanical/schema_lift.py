@@ -125,10 +125,21 @@ class SchemaLiftRecord:
     from_hash: str
     to_version: str
     to_hash: str
-    #: Inherited elements proved byte-identical across the succession, by
-    #: collection. Retained so an audit can see the proof's extent rather than
-    #: taking "it verified" on trust.
-    verified_counts: tuple[tuple[str, int], ...]
+    #: The collections proved byte-identical across the succession — every one
+    #: of them, or :func:`verify_lift` raised instead of returning, because a
+    #: partial proof is not a lift.
+    #:
+    #: Retained as *names*, and deliberately not as element counts. A count is a
+    #: claim about content that no longer exists in isolation: the artifact holds
+    #: the inherited elements merged with everything accepted after the crossing,
+    #: one committed file supersedes its predecessor, and no record here anchors
+    #: the crossing to a point in the batch sequence. A loader can therefore
+    #: neither re-derive the historical extent nor bound it to anything better
+    #: than "no larger than the collection it is now" — so a fabricated number
+    #: would validate exactly as well as a true one. Evidence a reader cannot
+    #: check is not evidence, and stating it as though it were made this audit
+    #: surface say more than the build could support (#137 round 3).
+    verified_collections: tuple[str, ...]
 
 
 #: Every authorized succession. Explicit rows, never a rule over version order.
@@ -202,25 +213,23 @@ def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecor
             f"{sorted(set(before) ^ set(after))}"
         )
 
-    counts: list[tuple[str, int]] = []
     for collection in sorted(before):
-        source_bytes = canonical_bytes(before[collection])
-        target_bytes = canonical_bytes(after[collection])
-        if source_bytes != target_bytes:
+        if canonical_bytes(before[collection]) != canonical_bytes(after[collection]):
             raise SchemaLiftError(
                 f"{collection}: inherited accepted authority does not survive "
                 f"{lift.lift_id} unchanged. A lift may authorize a wider schema; "
                 "it may never move a semantic identity the Owner already accepted"
             )
-        item = before[collection]
-        counts.append((collection, len(item) if isinstance(item, list) else 1))
     return SchemaLiftRecord(
         lift_id=lift.lift_id,
         from_version=lift.from_version,
         from_hash=lift.from_hash,
         to_version=lift.to_version,
         to_hash=lift.to_hash,
-        verified_counts=tuple(counts),
+        # Every collection, because the loop above returns only when all of
+        # them held. The extent is therefore a property of the contract rather
+        # than a number the record asks to be believed.
+        verified_collections=tuple(sorted(before)),
     )
 
 
@@ -253,9 +262,12 @@ def lift_chain_violations(
     4. **Non-repeating.** No transition appears twice. A succession is crossed
        once; a repeat is either a duplicated record or a cycle, and both are
        impossible histories rather than redundant ones.
-    5. **Exactly the representation's collections.** A proof extent is a claim
-       about what was verified, so it must range over the collections that
-       exist — no invented name, none missing.
+    5. **Exactly the representation's collections, each named once.** A proof
+       extent is a claim about what was verified, so it must range over the
+       collections that exist — no invented name, none missing, none repeated.
+       It is a claim about *names* only; :class:`SchemaLiftRecord` records why
+       the element counts a lift produces in process are not carried, and a set
+       comparison alone let a duplicated row through (#137 round 3).
     6. **Empty is legal.** An artifact that never crossed a succession has no
        evidence to carry, and property 3 does not apply to it. The committed
        ``conditions-1`` artifact is exactly this case.
@@ -303,10 +315,18 @@ def lift_chain_violations(
                     "evidence is an ordered chain, oldest first"
                 )
 
-        collections = {name for name, _ in record.verified_counts}
-        if collections != REPRESENTATION_COLLECTIONS:
+        names = record.verified_collections
+        # Checked before the set comparison, and separately from it: a set
+        # discards the duplicate, so comparing sets alone accepted an extent
+        # that names one collection twice.
+        if len(names) != len(set(names)):
             findings.append(
-                f"{at}: proof extent covers {sorted(collections)}, not the "
+                f"{at}: proof extent names a collection more than once "
+                f"({sorted(names)}); each collection is proved exactly once"
+            )
+        if set(names) != REPRESENTATION_COLLECTIONS:
+            findings.append(
+                f"{at}: proof extent covers {sorted(set(names))}, not the "
                 f"representation's collections {sorted(REPRESENTATION_COLLECTIONS)}"
             )
 

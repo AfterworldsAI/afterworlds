@@ -225,6 +225,19 @@ meet. They meet on exactly these terms, and on no others:
    process is not identity-bearing. The combined artifact declares the destination schema and takes the
    new oracle identity that follows from declaring it.
 
+   *Amended 2026-08-28 (#137 round 3) — the recorded evidence is exactly what a loader can check.* Loaded
+   evidence is read from a file, so it proves nothing about itself. Each record is therefore validated
+   against the registry and the artifact's own declaration: the transition is registered by its exact
+   source and destination pair under the registered lift ID, the records form a continuous oldest-first
+   chain, the last destination is the schema the artifact declares, no transition repeats, and the proof
+   extent names exactly the representation's collections, each of them once. What a record may **not**
+   carry is a per-collection element count. The count a lift produces is true when it is produced and
+   unverifiable ever after: one committed artifact supersedes its predecessor, later batches merge into
+   the same collections, and no record anchors the crossing to a point in the batch sequence — so the
+   pre-lift extent cannot be re-derived, and a fabricated number would validate exactly as well as a true
+   one. Evidence a reader cannot check is not evidence, and an audit surface may not state more than the
+   build can support.
+
 ### Decision 7 — Build-time reference resolution
 
 Mechanical references resolve at build time through committed source scope, aliases, and exact target

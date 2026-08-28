@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.projection import (
     validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_COLLECTIONS,
     REPRESENTATION_SCHEMA_VERSION,
     fact_qualifier_target_key,
     fact_target_key,
@@ -295,8 +296,13 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
     assert record.lift_id == "5d-lift-schema-3-to-4"
-    assert dict(record.verified_counts)["components"] == COMPONENTS
-    assert dict(record.verified_counts)["records"] == RECORDS
+    assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
+    # The extent the lift proved, asserted against the representation itself.
+    # The record no longer repeats it back as element counts: once later batches
+    # merge, nothing can re-derive the pre-lift extent to check them against
+    # (#137 round 3).
+    assert len(inputs.oracle.representation.components) == COMPONENTS
+    assert len(inputs.oracle.representation.records) == RECORDS
 
     # Carried by identity, never transformed.
     assert lifted.oracle.representation is inputs.oracle.representation

@@ -9,6 +9,14 @@ have happened. An artifact loaded clean while asserting an unregistered
 transition, a destination contradicting its own declaration, and a proof extent
 over collections the representation does not have.
 
+The proof *extent* is the same defect one level down (#137 round 3). It was
+compared as a set, so a duplicated row collapsed before the comparison saw it,
+and it carried per-collection element counts nothing could check: a committed
+file supersedes its predecessor and later batches grow the same collections, so
+the pre-lift extent is not re-derivable from the artifact that survives. The
+counts are gone rather than bounded — see :class:`SchemaLiftRecord` — and what
+remains is checked against the representation's own collection table.
+
 **Typed reconstruction.** ``run_publication_gate`` categorizes
 ``PersistedStateReconstructionError`` and nothing else, so a malformed JSON
 column that raised ``TypeError`` aborted the gate instead of returning the
@@ -20,6 +28,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+from dataclasses import replace
 
 import pytest
 from sqlalchemy import update
@@ -32,6 +41,7 @@ from afterworlds.ingestion.mechanical.gate import (
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
     OracleLoadError,
+    accepted_inputs_payload,
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.persistence import (
@@ -52,6 +62,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
     SchemaLiftRecord,
+    lift_accepted_inputs,
     lift_chain_violations,
 )
 from afterworlds.persistence.orm.mechanical import (
@@ -71,7 +82,7 @@ DECLARED_4 = (SCHEMA_4_VERSION, SCHEMA_4_HASH)
 DECLARED_3 = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 
 #: The proof extent a real lift records: every collection the representation has.
-FULL_EXTENT = tuple(sorted((name, 1) for name in REPRESENTATION_COLLECTIONS))
+FULL_EXTENT = tuple(sorted(REPRESENTATION_COLLECTIONS))
 
 
 def _record(**overrides: object) -> SchemaLiftRecord:
@@ -82,7 +93,7 @@ def _record(**overrides: object) -> SchemaLiftRecord:
         "from_hash": SCHEMA_3_HASH,
         "to_version": SCHEMA_4_VERSION,
         "to_hash": SCHEMA_4_HASH,
-        "verified_counts": FULL_EXTENT,
+        "verified_collections": FULL_EXTENT,
     }
     return SchemaLiftRecord(**{**base, **overrides})  # type: ignore[arg-type]
 
@@ -161,16 +172,28 @@ def test_one_registered_lift_ending_at_the_declaration_is_legal() -> None:
             (_record(),), DECLARED_3, "the chain ends at", id="terminal-disagrees"
         ),
         pytest.param(
-            (_record(verified_counts=(("widgets", 999),)),),
+            (_record(verified_collections=("widgets",)),),
             DECLARED_4,
             "proof extent covers",
             id="invented-proof-collection",
         ),
         pytest.param(
-            (_record(verified_counts=FULL_EXTENT[:-1]),),
+            (_record(verified_collections=FULL_EXTENT[:-1]),),
             DECLARED_4,
             "proof extent covers",
             id="proof-extent-missing-a-collection",
+        ),
+        pytest.param(
+            (_record(verified_collections=FULL_EXTENT + FULL_EXTENT[:1]),),
+            DECLARED_4,
+            "more than once",
+            id="duplicated-collection-row",
+        ),
+        pytest.param(
+            (_record(verified_collections=FULL_EXTENT[:-1] + FULL_EXTENT[:1]),),
+            DECLARED_4,
+            "more than once",
+            id="duplicate-standing-in-for-a-missing-collection",
         ),
     ],
 )
@@ -209,7 +232,7 @@ def test_the_loader_refuses_invented_evidence_end_to_end(tmp_path) -> None:  # t
             "from_hash": "0" * 64,
             "to_version": "5d-representation-schema-9",
             "to_hash": "f" * 64,
-            "verified_counts": [{"collection": "widgets", "elements": 999}],
+            "verified_collections": list(FULL_EXTENT),
         }
     ]
     path = pathlib.Path(tmp_path) / "invented.json"
@@ -217,6 +240,110 @@ def test_the_loader_refuses_invented_evidence_end_to_end(tmp_path) -> None:  # t
     with pytest.raises(OracleLoadError) as raised:
         load_accepted_inputs(path)
     assert "does not describe an authorized succession" in str(raised.value)
+
+
+def _lifted_artifact(tmp_path: pathlib.Path) -> tuple[pathlib.Path, SchemaLiftRecord]:
+    """The committed schema-3 artifact, really lifted and really written out."""
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lifted, record = lift_accepted_inputs(inputs, DECLARED_4)
+    path = tmp_path / "lifted.json"
+    path.write_text(
+        json.dumps(accepted_inputs_payload(replace(lifted, lifts=(record,)))),
+        encoding="utf-8",
+    )
+    return path, record
+
+
+def test_a_real_record_survives_writing_and_loading(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Writer, loader and validator agree about a record none of them invented.
+
+    The load-bearing case: every refusal below is worthless if the one shape a
+    genuine ``verify_lift`` produces cannot make the round trip.
+    """
+    path, record = _lifted_artifact(pathlib.Path(tmp_path))
+    loaded = load_accepted_inputs(path)
+
+    assert loaded.lifts == (record,)
+    assert loaded.oracle.schema_version == SCHEMA_4_VERSION
+    assert lift_chain_violations(loaded.lifts, DECLARED_4) == []
+    # Every collection, proved: an empty one is proved empty rather than skipped,
+    # which is why the extent is stated over the collection table and not over
+    # whichever collections happened to hold something.
+    assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
+    assert loaded.oracle.representation.relationships == ()
+
+
+def test_a_grown_artifact_is_not_mistaken_for_the_pre_lift_extent(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The determination behind removing the counts, pinned as behaviour.
+
+    A lifted artifact keeps accepting content, so the collections it holds when
+    it is next loaded are the inherited elements *plus* everything accepted
+    after. The loaded evidence describes the crossing and makes no claim about
+    how much was inherited — so growth loads clean, and nothing in the file
+    invites a reader to read a historical extent out of a present size.
+    """
+    path, record = _lifted_artifact(pathlib.Path(tmp_path))
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    grown = raw["representation"]["relationships"]
+    assert grown == []
+
+    loaded = load_accepted_inputs(path)
+    assert lift_chain_violations(loaded.lifts, DECLARED_4) == []
+    # Names, and nothing a size could be compared against.
+    assert record.verified_collections == tuple(sorted(REPRESENTATION_COLLECTIONS))
+    assert not [f for f in vars(record).values() if isinstance(f, int)]
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected"),
+    [
+        pytest.param(
+            lambda names: names + names[:1],
+            "more than once",
+            id="duplicate-row",
+        ),
+        pytest.param(
+            lambda names: [*names[:-1], "widgets"],
+            "proof extent covers",
+            id="invented-collection",
+        ),
+        pytest.param(lambda names: names[:-1], "proof extent covers", id="missing"),
+    ],
+)
+def test_the_loader_refuses_a_tampered_extent_end_to_end(  # type: ignore[no-untyped-def]
+    tmp_path, mutate, expected: str
+) -> None:
+    """Through ``load_accepted_inputs``, on evidence that was genuine first."""
+    path, _ = _lifted_artifact(pathlib.Path(tmp_path))
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    lift = raw["acceptance"]["lifts"][0]
+    lift["verified_collections"] = mutate(list(lift["verified_collections"]))
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(OracleLoadError) as raised:
+        load_accepted_inputs(path)
+    assert "does not describe an authorized succession" in str(raised.value)
+    assert expected in str(raised.value)
+
+
+def test_a_count_claim_cannot_re_enter_through_the_wire(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The removed claim stays removed.
+
+    A per-collection element count is a claim about content that no longer
+    exists in isolation, so no loaded artifact may carry one — including as a
+    leftover key beside the extent, which would read as evidence while being
+    checked by nothing.
+    """
+    path, _ = _lifted_artifact(pathlib.Path(tmp_path))
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["acceptance"]["lifts"][0]["verified_counts"] = [
+        {"collection": "records", "elements": 999999}
+    ]
+    path.write_text(json.dumps(raw), encoding="utf-8")
+
+    with pytest.raises(OracleLoadError) as raised:
+        load_accepted_inputs(path)
+    assert "unexpected ['verified_counts']" in str(raised.value)
 
 
 # ---------------------------------------------------------------------------

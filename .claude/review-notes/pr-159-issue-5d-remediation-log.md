@@ -322,3 +322,78 @@ SCHEMA_4_HASH pin   : e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12f
 SCHEMA_3_HASH       : 43ed330d…  (unchanged)
 ZERO MOVEMENT       : HOLDS
 ```
+
+---
+
+# Round 3
+
+One finding, `schema_lift.py:307` (P2): the loaded proof extent validated only the *set* of collection
+names, so a duplicated row collapsed before the comparison saw it and any per-collection element count
+passed — `999999` as readily as the truth. Same family as R2-3: evidence that is well-formed but
+unverified.
+
+## The determination that had to come first
+
+The finding's suggested remedy is to *"reconcile its count with retained or verifiable lift evidence."*
+That was checked against the repository before any implementation was chosen, and it is not available:
+
+| Question | Answer |
+|---|---|
+| Where does the count come from? | `verify_lift` measures the **prior** representation, at lift time |
+| What does the artifact hold afterwards? | the inherited elements **merged with** the batch that triggered the lift, and every batch after it (`acceptance.py` appends `batch` and `lift_record` in the same acceptance) |
+| Is the predecessor retained? | no — resolution is one artifact per `(package_uuid, release_version)`, and the successor supersedes the file |
+| Does anything anchor the crossing in the batch sequence? | no — `SchemaLiftRecord` carries no batch, ordinal, or timestamp |
+| Can elements be attributed to a batch? | only through provenance to spans to acceptance records, which is not total: "substantive but unclaimed" elements have no claim to attribute |
+
+So the loader can bound a count (`0 ≤ count ≤ len(loaded collection)`) and never confirm one. A bound is
+not a reconciliation, and a plausible number is exactly what the finding objects to. The two honest
+alternatives were: retain a sufficient proof anchor — the pre-lift artifact or per-element identities,
+which materially expands accepted-history retention beyond PR A and would need an Owner Decision — or
+remove the unverifiable claim. **The second is the smallest correct solution and needs no Owner Decision:
+it removes a claim rather than expanding retention.**
+
+## What changed
+
+`SchemaLiftRecord.verified_counts: tuple[tuple[str, int], ...]` → `verified_collections: tuple[str, ...]`.
+
+`verify_lift` still proves every collection byte-identical and still raises rather than returning a partial
+proof, so the extent it records is a property of the contract instead of a number asking to be believed.
+`lift_chain_violations` now checks **exactly-once explicitly, before the set comparison** — the set was the
+defect — and then equality against `REPRESENTATION_COLLECTIONS`. The wire form is a string list, so a
+leftover `verified_counts` key is refused by `_require` as unexpected rather than ignored.
+
+## Field audit — every `SchemaLiftRecord` field, bounded to this evidence model
+
+| Field | Disposition |
+|---|---|
+| `from_version`, `from_hash` | **independently validated** — must be a key in `SCHEMA_LIFTS` |
+| `lift_id`, `to_version`, `to_hash` | **independently validated** — must equal the registered destination, and the last record's destination must equal the artifact's own declaration |
+| `verified_collections` | **independently validated** — exactly `REPRESENTATION_COLLECTIONS`, each once, derived from `_DRAFT_ELEMENT_TYPES` rather than restated |
+| ~~`verified_counts`~~ | **removed** — was the only "structurally checked only" field, and unverifiable in principle |
+| `SchemaLift.rationale` (registry side, not loaded) | **intentionally documentary** — states why a transition was authorized; never loaded from an artifact, so nothing external can assert it |
+
+## The eight required tests
+
+| Required | Where |
+|---|---|
+| a real record survives serialization and loading | `test_a_real_record_survives_writing_and_loading` — real `lift_accepted_inputs` → `accepted_inputs_payload` → `load_accepted_inputs` |
+| one fabricated count fails | no referent: the count is gone. Nearest executable form: `test_a_count_claim_cannot_re_enter_through_the_wire` refuses `verified_counts` as an unexpected key |
+| duplicate rows for one genuine collection fail | `duplicated-collection-row`, `duplicate-standing-in-for-a-missing-collection`, and end-to-end `duplicate-row` |
+| missing and invented collections still fail | `proof-extent-missing-a-collection`, `invented-proof-collection`, both also end-to-end |
+| zero and nontrivial real counts accepted when proved | no referent as counts; the property that survives is that an **empty** collection is still proved and recorded — asserted on the real record (`relationships == ()`) |
+| no-lift schema-3 authority remains legal | `test_no_evidence_is_legal`, `test_the_committed_artifact_still_loads` |
+| tampering fails through `load_accepted_inputs` | `test_the_loader_refuses_a_tampered_extent_end_to_end` (3 cases), `test_the_loader_refuses_invented_evidence_end_to_end` |
+| post-lift additions not mistaken for the pre-lift extent | `test_growth_after_the_crossing_leaves_no_recoverable_pre_lift_extent` — a real acceptance grows `records`, `components` and `provenance` past what the lift saw, and the evidence still validates because it claims only what remains true |
+
+## No re-pin
+
+Evidence validation only; `SchemaLiftRecord` is not part of `representation_schema_payload()`.
+
+```
+SCHEMA_3_HASH  : 43ed330d…  (unchanged)
+SCHEMA_4_HASH  : e1fed378…  (unchanged, == representation_schema_hash())
+six collections byte-identical : yes
+oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda (unmoved)
+committed artifact round-trips to identical payload : yes
+ZERO MOVEMENT  : HOLDS
+```

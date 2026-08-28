@@ -143,13 +143,18 @@ Once, inside `accept_proposal`, before `_merge_representation`:
 4. **Rewrite `FactQualifier.fact_key` back-references whose target key moved**, and assert every
    qualifier still resolves. (For conditions-1 the single qualifier targets `MovementCostFact`, which
    is untouched, so its key `6e4c12d0fc868578` survives — but the lift must handle the general case.)
-5. **Verify**: every prior record, component, option, fact, qualifier, prose binding, reference,
-   relationship and provenance edge appears exactly once in the lifted output; counts match; every
-   semantic key is unchanged; the only permitted differences are the declared-default fields from
-   step 3 and the key rewrites from step 4. Any other difference raises `SchemaLiftError`.
-6. Record a `SchemaLiftRecord(lift_id, from_version, from_hash, to_version, to_hash, fact_key_remap)`
-   on the **evidence** half of `AcceptedInputs`, never on `AcceptedOracle` — review and migration
-   process is not identity-bearing, the same separation `batches`/`acceptances` already observe.
+5. **Verify**: the prior's canonical payload is byte-identical under both schemas, collection by
+   collection. *As built* this replaced steps 3 and 4 outright rather than supplementing them — the
+   omission rule (§4.4) means an element accepted under schema 3 already has its schema-4 canonical
+   form, so there is no default to apply and no key to rewrite. Any difference raises
+   `SchemaLiftError`.
+6. Record a `SchemaLiftRecord(lift_id, from_version, from_hash, to_version, to_hash,
+   verified_collections)` on the **evidence** half of `AcceptedInputs`, never on `AcceptedOracle` —
+   review and migration process is not identity-bearing, the same separation `batches`/`acceptances`
+   already observe. The last field is the collections proved, by name. It carried per-collection
+   element counts until #137 round 3, when they were removed as unverifiable: a committed artifact
+   supersedes its predecessor and later batches merge into the same collections, so no loader can
+   re-derive the pre-lift extent to check a count against (ADR-005d Decision 6, amended 2026-08-28).
 
 Then `_merge_representation` runs unchanged: both sides are now schema 4, and the keyed union is
 disjoint by batch as before.
@@ -445,7 +450,7 @@ implementation forced:
 | | Value | Status |
 |---|---|---|
 | `SCHEMA_3_HASH` (lift source) | `43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` | **unmoved**, asserted by the re-pin helper |
-| `SCHEMA_4_HASH` (lift destination) | `f67588ffe7315989cb5b2df1c3e63514396dea23552afba39f4d214c286c11a1` | **final**. Moved once after H-8, when the introduction manifest joined the schema payload — which is the point: the legality contract is now inside the identity it governs, so it cannot be loosened without invalidating this pin |
+| `SCHEMA_4_HASH` (lift destination) | `e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9` | **final**. Moved once during #137 round 1, when the introduction manifest joined the schema payload — which is the point: the legality contract is now inside the identity it governs, so it cannot be loosened without invalidating this pin. (This row read `f67588ff…`, the pre-manifest value, until round 3 caught it.) |
 | committed `oracle_identity` | `a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda` | **unmoved** |
 
 H-8 widened `from_component_key`'s *domain*, not the declared type surface, so the destination hash did

@@ -974,22 +974,10 @@ def _acceptance(payload: object, where: str) -> tuple[
                 "from_hash",
                 "to_version",
                 "to_hash",
-                "verified_counts",
+                "verified_collections",
             ),
             at,
         )
-        counts = []
-        for j, raw_count in enumerate(
-            _object_list(entry["verified_counts"], f"{at}.verified_counts")
-        ):
-            cat = f"{at}.verified_counts[{j}]"
-            c = _require(raw_count, ("collection", "elements"), cat)
-            counts.append(
-                (
-                    _string(c["collection"], f"{cat}.collection"),
-                    _offset(c["elements"], f"{cat}.elements"),
-                )
-            )
         lifts.append(
             SchemaLiftRecord(
                 lift_id=_string(entry["lift_id"], f"{at}.lift_id"),
@@ -997,7 +985,11 @@ def _acceptance(payload: object, where: str) -> tuple[
                 from_hash=_string(entry["from_hash"], f"{at}.from_hash"),
                 to_version=_string(entry["to_version"], f"{at}.to_version"),
                 to_hash=_string(entry["to_hash"], f"{at}.to_hash"),
-                verified_counts=tuple(counts),
+                verified_collections=tuple(
+                    _string_list(
+                        entry["verified_collections"], f"{at}.verified_collections"
+                    )
+                ),
             )
         )
 
@@ -1316,10 +1308,7 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
                 "from_hash": lift.from_hash,
                 "to_version": lift.to_version,
                 "to_hash": lift.to_hash,
-                "verified_counts": [
-                    {"collection": name, "elements": count}
-                    for name, count in lift.verified_counts
-                ],
+                "verified_collections": list(lift.verified_collections),
             }
             for lift in inputs.lifts
         ]

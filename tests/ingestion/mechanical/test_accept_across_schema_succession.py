@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.oracle import (
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_COLLECTIONS,
     REPRESENTATION_SCHEMA_VERSION,
     ComponentDraft,
     ConditionKind,
@@ -59,6 +60,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
     SCHEMA_3_VERSION,
     SCHEMA_4_VERSION,
+    lift_chain_violations,
 )
 
 ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
@@ -187,9 +189,11 @@ def test_the_prior_batch_and_its_proposal_identity_are_untouched() -> None:
 def test_the_lift_is_recorded_as_evidence_with_its_verified_extent() -> None:
     """ "It verified" is not evidence; what it verified is.
 
-    The record carries the exact source and destination pair and the element
-    counts proved byte-identical, so an audit can see the proof's extent instead
-    of taking the lift's word for it.
+    The record carries the exact source and destination pair and the collections
+    proved byte-identical, so an audit can see the proof's extent instead of
+    taking the lift's word for it. Names only: see :class:`SchemaLiftRecord` for
+    why the element counts a lift produces in process are not carried into
+    evidence a loader would have no way to check.
     """
     prior = _prior()
     result = _accept(
@@ -207,10 +211,48 @@ def test_the_lift_is_recorded_as_evidence_with_its_verified_extent() -> None:
         SCHEMA_4_VERSION,
         representation_schema_hash(),
     )
-    counts = dict(lift.verified_counts)
-    assert counts["components"] == 54
-    assert counts["records"] == 16
-    assert counts["provenance"] == 185
+    assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
+    # What the lift actually proved, asserted against the representation rather
+    # than against a number the record repeats back to the reader.
+    assert len(prior.oracle.representation.components) == 54
+    assert len(prior.oracle.representation.records) == 16
+    assert len(prior.oracle.representation.provenance) == 185
+
+
+def test_growth_after_the_crossing_leaves_no_recoverable_pre_lift_extent() -> None:
+    """Why the record states collections and not element counts (#137 round 3).
+
+    The lift proves the *prior* artifact, and the very acceptance that carries it
+    across then merges a new batch into the same collections. One committed file
+    supersedes its predecessor and no record anchors the crossing to a point in
+    the batch sequence, so the artifact that survives cannot tell an auditor how
+    much was inherited. A count in the evidence would have been a number nothing
+    could check — which is exactly how a fabricated one passed.
+    """
+    prior = _prior()
+    result = _accept(
+        prior,
+        _schema_4_proposal(
+            prior,
+            version=REPRESENTATION_SCHEMA_VERSION,
+            schema_hash=representation_schema_hash(),
+        ),
+    )
+    (lift,) = result.lifts
+
+    # Same collections, strictly more in them than the lift ever saw.
+    assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
+    for collection in ("records", "components", "provenance"):
+        proved = len(getattr(prior.oracle.representation, collection))
+        assert len(getattr(result.oracle.representation, collection)) > proved
+
+    # The evidence still validates, because it claims only what remains true.
+    assert (
+        lift_chain_violations(
+            result.lifts, (result.oracle.schema_version, result.oracle.schema_hash)
+        )
+        == []
+    )
 
 
 def test_an_identical_schema_still_needs_no_lift() -> None:
