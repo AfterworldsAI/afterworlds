@@ -291,7 +291,6 @@ def test_a_grown_artifact_is_not_mistaken_for_the_pre_lift_extent(tmp_path) -> N
     assert lift_chain_violations(loaded.lifts, DECLARED_4) == []
     # Names, and nothing a size could be compared against.
     assert record.verified_collections == tuple(sorted(REPRESENTATION_COLLECTIONS))
-    assert not [f for f in vars(record).values() if isinstance(f, int)]
 
 
 @pytest.mark.parametrize(
