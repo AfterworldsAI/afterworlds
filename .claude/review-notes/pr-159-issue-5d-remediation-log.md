@@ -501,3 +501,82 @@ oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b0
 committed artifact round-trips to identical payload : yes
 ZERO MOVEMENT  : HOLDS
 ```
+
+---
+
+# Round 5
+
+One finding, P1: `applicability_violations` checked that `Applicability.fraction` held the exact type
+`Rational` and stopped there, so `Rational(1, 0)`, `Rational(1, -2)` and `Rational(-1, 2)` satisfied it.
+Every other boundary delegates to that function, so the invalid value survived acceptance, committed
+loading, persistence, overrides and publication validation.
+
+## Reproduced first
+
+```
+case                       applicability_violations   nested-fact builder
+zero denominator           passes                     passes
+negative denominator       passes                     passes
+negative numerator         passes                     passes
+boolean numerator          passes                     passes
+non-integer member         passes                     passes
+valid one-half (control)   passes                     passes
+```
+
+`Rational("1", 2)` passing is the clearest statement of the gap: the field's *own* type was checked and
+its members were not.
+
+## The change
+
+```python
+typed.extend(_check_optional_rational(applicability.fraction, "fraction"))
+```
+
+One line, replacing the type check with the rule the other four Rational owners already use. Nothing is
+restated in the oracle, persistence, patch, acceptance or schema-binding layers — they each already
+validate the rebuilt value through `applicability_violations`, which is why correcting the shared
+validator corrected all of them.
+
+The shared contract is preserved exactly as written: non-negative numerator over a positive denominator.
+No normalization, no reduction to lowest terms, no consumption-specific bound. `Rational(2, 4)` and
+`Rational(3, 2)` are still admitted, and there are tests saying so, because delegating must not import a
+stricter rule by accident.
+
+## Bounded Rational-owner audit
+
+| Owner | Disposition |
+|---|---|
+| `SizeQuantity.amount` | **already delegating** — `_check_rational` in `_check_size_keyed_quantity` |
+| `CreatureChallengeFact.challenge_rating` | **already delegating** — `_check_rational` |
+| `EquipmentDescriptorFact.weight_pounds` | **already delegating** — `_check_optional_rational` |
+| `DamageModificationFact.factor` | **already delegating** — `_check_rational`, plus its own direction/factor agreement rule on top |
+| `Applicability.fraction` | **patched** — the one owner that checked the type and skipped the invariants |
+
+Pinned as one parametrized table, so a sixth owner has an obvious place to be and no place to restate the
+rule instead.
+
+## Every applicability construction path
+
+| Path | Disposition |
+|---|---|
+| direct `ComponentDraft` / `ComponentOption` / `FactQualifier` applicability | **corrected through the shared validator** — each validates through `applicability_violations` |
+| `ConditionRemovalRestrictionFact.until` | **corrected through the shared validator** — `_check_removal_restriction` delegates |
+| accepted-input loader (`oracle._applicability`) | **corrected through the shared validator** — post-construction call raises `OracleLoadError` |
+| persisted-state reconstruction (`persistence._applicability_from_row`) | **corrected through the shared validator** — raises `PersistedStateReconstructionError` |
+| rules-authority patch builder (`patches._build_applicability`) | **corrected through the shared validator** — raises `InvalidPatchError` |
+
+None of the five needed a numeric rule of its own. That is the property the new tests pin: each returns
+its *own* typed refusal for the same invalid fraction, from one definition of validity.
+
+## No re-pin
+
+Value-object validation only: no serialized field, vocabulary, optionality, or canonical payload changes.
+
+```
+SCHEMA_3_HASH  : 43ed330d…  (unchanged)
+SCHEMA_4_HASH  : e1fed378…  (unchanged, == representation_schema_hash())
+six collections byte-identical : yes
+oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda (unmoved)
+committed artifact round-trips to identical payload : yes
+ZERO MOVEMENT  : HOLDS
+```

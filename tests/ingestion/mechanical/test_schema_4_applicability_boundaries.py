@@ -16,34 +16,86 @@ with ``.get`` and the schema-3 control case below is what holds that distinction
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import update
+from sqlalchemy.orm import Session
 
-from afterworlds.ingestion.mechanical.oracle import OracleLoadError
+from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
+from afterworlds.ingestion.mechanical.accounting import derive_span_id
+from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
+    run_publication_gate,
+)
+from afterworlds.ingestion.mechanical.models import (
+    ComponentHandling,
+    ReviewState,
+    SemanticDisposition,
+    SemanticSpan,
+)
+from afterworlds.ingestion.mechanical.oracle import (
+    COMMITTED_ORACLE_DIR,
+    OracleLoadError,
+    load_accepted_inputs,
+)
 from afterworlds.ingestion.mechanical.oracle import _applicability as load_accepted
 from afterworlds.ingestion.mechanical.persistence import (
     PersistedStateReconstructionError,
+    persist_draft,
+    record_persisted_state_digest,
 )
 from afterworlds.ingestion.mechanical.persistence import (
     _applicability_from_row as load_persisted,
 )
-from afterworlds.ingestion.mechanical.projection import applicability_payload
+from afterworlds.ingestion.mechanical.projection import (
+    applicability_payload,
+    identify_projection,
+)
+from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
     Comparison,
+    ComponentDraft,
     ConditionKind,
+    ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    CreatureChallengeFact,
+    CreatureSize,
+    DamageModDirection,
+    DamageModificationFact,
     DamageOutcome,
+    EquipmentDescriptorFact,
+    LevelDirection,
+    MalformedFactPayloadError,
+    MeasureUnit,
     Phase,
     Rational,
+    RecordDraft,
+    RecordKind,
+    RepresentationDraft,
     RequiredQuantity,
+    SizeKeyedQuantityFact,
+    SizeQuantity,
+    TimePeriod,
     TimeUnit,
+    applicability_violations,
     fact_from_payload,
+    fact_invariant_violations,
     fact_payload,
+    representation_schema_hash,
 )
+from afterworlds.persistence.orm.mechanical import MechanicalComponentORM
 from afterworlds.services.rules_authority.patches import InvalidPatchError
 from afterworlds.services.rules_authority.patches import (
     _build_applicability as load_patch,
+)
+from tests.ingestion.mechanical.conftest import (
+    NOW,
+    RELEASE_BINDING,
+    build_ledger,
+    build_representation,
+    candidate_of,
 )
 
 # ---------------------------------------------------------------------------
@@ -239,3 +291,310 @@ def test_a_schema_3_payload_needs_none_of_the_new_keys() -> None:
     } & set(payload)
     for build, _ in (p.values for p in BOUNDARIES):  # type: ignore[misc]
         assert build(payload) == PHASE
+
+
+# ---------------------------------------------------------------------------
+# The acceptance probe: a directly constructed proposal carrying one threshold
+# ---------------------------------------------------------------------------
+
+_ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+_PROBE_LEAF = "leaf-fraction-probe"
+_PROBE_SPAN = derive_span_id(_PROBE_LEAF, 0, 28)
+_PROBE_RECORD = "hazard.fraction-probe"
+
+
+def _accept_with_applicability(applicability: Applicability):  # type: ignore[no-untyped-def]
+    """Accept a proposal whose one component applies under *applicability*.
+
+    Declared under the live contract, because a consumption threshold is
+    schema-4 meaning; no prior, because this asks what acceptance does with the
+    proposal's own nested value object rather than what a succession does.
+    """
+    span = SemanticSpan(
+        span_id=_PROBE_SPAN,
+        leaf_id=_PROBE_LEAF,
+        char_start=0,
+        char_end=28,
+        disposition=SemanticDisposition.SUBSTANTIVE,
+        review_state=ReviewState.PROPOSED,
+    )
+    prior = load_accepted_inputs(_ARTIFACT_PATH)
+    proposal = MechanicalProposal(
+        binding=prior.oracle.binding,
+        policy_version=prior.oracle.policy_version,
+        policy_hash=prior.oracle.policy_hash,
+        schema_version=REPRESENTATION_SCHEMA_VERSION,
+        schema_hash=representation_schema_hash(),
+        proposed_spans=(
+            ProposedSpan(span=span, origin="fraction-probe", rationale="probe"),
+        ),
+        proposed_representation=RepresentationDraft(
+            records=(
+                RecordDraft(semantic_key=_PROBE_RECORD, kind=RecordKind.GLOSSARY_RULE),
+            ),
+            components=(
+                ComponentDraft(
+                    record_key=_PROBE_RECORD,
+                    semantic_key="accrual",
+                    handling=ComponentHandling.STRUCTURED,
+                    facts=(
+                        ConditionLevelFact(
+                            condition=ConditionKind.EXHAUSTION,
+                            direction=LevelDirection.GAIN,
+                            amount=1,
+                        ),
+                    ),
+                    applies_when=applicability,
+                ),
+            ),
+            prose_bindings=(),
+            relationships=(),
+            references=(),
+            provenance=(),
+        ),
+        proposal_origin="test_schema_4_applicability_boundaries",
+    )
+    return accept_proposal(
+        proposal,
+        batch_id="fraction-probe-1",
+        rule="the probe span",
+        resolved_scope=(_PROBE_SPAN,),
+        reviewer="Test",
+        accepted_at="2026-08-28T00:00:00Z",
+        prior=None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Round 5 — the fraction is a Rational, and a Rational has invariants
+# ---------------------------------------------------------------------------
+#
+# ``applicability_violations`` checked that ``fraction`` held the exact type and
+# stopped there, so ``Rational(1, 0)``, ``Rational(1, -2)`` and ``Rational(-1, 2)``
+# satisfied it. Every boundary above delegates to that function, so the invalid
+# value survived acceptance, committed loading, persistence, overrides and
+# publication validation — a zero denominator is not a number, and a negative
+# numerator is not a *share* of a requirement.
+#
+# The fix delegates to ``_check_rational``, the rule the other four Rational
+# owners already use. These tests pin that there is one definition of validity
+# and that it did not silently get stronger.
+
+#: Every way a ``Rational`` can be malformed, at the value-object level.
+INVALID_FRACTIONS = [
+    pytest.param(Rational(1, 0), "denominator", id="zero-denominator"),
+    pytest.param(Rational(1, -2), "denominator", id="negative-denominator"),
+    pytest.param(Rational(-1, 2), "numerator", id="negative-numerator"),
+    pytest.param(Rational(True, 2), "numerator", id="boolean-numerator"),  # type: ignore[arg-type]
+    pytest.param(Rational(1, False), "denominator", id="boolean-denominator"),  # type: ignore[arg-type]
+    pytest.param(Rational("1", 2), "numerator", id="string-numerator"),  # type: ignore[arg-type]
+    pytest.param(Rational(1, 2.0), "denominator", id="float-denominator"),  # type: ignore[arg-type]
+]
+
+#: What ``_check_rational`` admits, stated so the shared contract cannot be
+#: quietly narrowed. Unreduced and improper fractions are legal: reduction is a
+#: normalization this build deliberately does not perform, and a consumption
+#: bound above one is a semantic question no numeric rule here answers.
+VALID_FRACTIONS = [
+    pytest.param(Rational(0, 1), id="zero"),
+    pytest.param(Rational(1, 1), id="whole"),
+    pytest.param(Rational(1, 2), id="one-half"),
+    pytest.param(Rational(2, 4), id="unreduced"),
+    pytest.param(Rational(3, 2), id="improper"),
+]
+
+
+def _consumption(fraction: Rational) -> Applicability:
+    return Applicability(
+        kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+        negated=False,
+        comparison=Comparison.REACHES,
+        required_quantity=RequiredQuantity.WATER,
+        fraction=fraction,
+    )
+
+
+@pytest.mark.parametrize(("fraction", "member"), INVALID_FRACTIONS)
+def test_direct_validation_refuses_an_invalid_fraction(
+    fraction: Rational, member: str
+) -> None:
+    """The seam every other boundary delegates to."""
+    findings = applicability_violations(_consumption(fraction))
+    assert findings, fraction
+    named = [
+        f for f in findings if f"fraction.{member}" in f or "fraction must be" in f
+    ]
+    assert named, findings
+
+
+@pytest.mark.parametrize("fraction", VALID_FRACTIONS)
+def test_a_valid_fraction_is_not_refused(fraction: Rational) -> None:
+    """The over-refusal control, and the guard on the shared contract.
+
+    ``_check_rational`` admits any non-negative numerator over a positive
+    denominator. Delegating to it must not import a stricter rule by accident —
+    an unreduced or improper fraction is still a fraction.
+    """
+    assert applicability_violations(_consumption(fraction)) == []
+
+
+@pytest.mark.parametrize(("fraction", "member"), INVALID_FRACTIONS)
+def test_the_nested_fact_builder_refuses_an_invalid_fraction(
+    fraction: Rational, member: str
+) -> None:
+    """``ConditionRemovalRestrictionFact.until``, through the fact validator."""
+    fact = ConditionRemovalRestrictionFact(
+        condition=ConditionKind.EXHAUSTION,
+        cause_scoped=True,
+        until=_consumption(fraction),
+    )
+    assert fact_invariant_violations(fact)
+
+
+#: The same values on the wire, where each builder rebuilds a ``Rational`` from
+#: its two stored members. ``True``/``"1"`` are what a hand-edited JSON column or
+#: a patch body actually holds; ``0``/``-2`` are what a correct-looking one does.
+INVALID_FRACTION_PAYLOADS = [
+    pytest.param({"numerator": 1, "denominator": 0}, id="zero-denominator"),
+    pytest.param({"numerator": 1, "denominator": -2}, id="negative-denominator"),
+    pytest.param({"numerator": -1, "denominator": 2}, id="negative-numerator"),
+    pytest.param({"numerator": True, "denominator": 2}, id="boolean-numerator"),
+    pytest.param({"numerator": "1", "denominator": 2}, id="string-numerator"),
+]
+
+
+@pytest.mark.parametrize(("build", "error"), BOUNDARIES)
+@pytest.mark.parametrize("fraction", INVALID_FRACTION_PAYLOADS)
+def test_every_builder_refuses_an_invalid_fraction_in_its_own_words(
+    build, error: type[Exception], fraction: dict[str, object]
+) -> None:  # type: ignore[no-untyped-def]
+    """Accepted-input loader, persisted-state loader, override patch builder.
+
+    None of them needed a numeric rule of its own — each already validates the
+    rebuilt value through ``applicability_violations``, so correcting the shared
+    validator corrected all three. That is the property being pinned.
+    """
+    with pytest.raises(error):
+        build({**applicability_payload(CONSUMPTION), "fraction": fraction})
+
+
+@pytest.mark.parametrize("fraction", INVALID_FRACTION_PAYLOADS)
+def test_the_nested_fact_builder_refuses_it_on_the_wire_too(
+    fraction: dict[str, object],
+) -> None:
+    """The fourth builder, for the same reason and through the same validator."""
+    payload = fact_payload(
+        ConditionRemovalRestrictionFact(
+            condition=ConditionKind.EXHAUSTION, cause_scoped=True, until=CONSUMPTION
+        )
+    )
+    payload["until"] = {**payload["until"], "fraction": fraction}  # type: ignore[dict-item,index]
+    with pytest.raises((MalformedFactPayloadError, ValueError)):
+        fact_from_payload(payload)
+
+
+@pytest.mark.parametrize(("fraction", "member"), INVALID_FRACTIONS)
+def test_acceptance_refuses_a_proposal_carrying_an_invalid_threshold(
+    fraction: Rational, member: str
+) -> None:
+    """A directly constructed proposal, through the real ``accept_proposal``.
+
+    Nothing between a proposal object and accepted authority re-validates a
+    nested value object except the draft validators — which is why the invariant
+    has to live in the one they all call.
+    """
+    with pytest.raises(AcceptanceError):
+        _accept_with_applicability(_consumption(fraction))
+
+
+def test_acceptance_still_admits_a_valid_threshold() -> None:
+    """The over-refusal control on the acceptance path."""
+    result = _accept_with_applicability(_consumption(Rational(1, 2)))
+    assert any(b.batch_id == "fraction-probe-1" for b in result.batches)
+
+
+def test_publication_over_a_malformed_persisted_fraction_is_categorized(
+    session: Session, committed_oracle
+) -> None:  # type: ignore[no-untyped-def]
+    """The gate returns a verdict rather than raising, as in round 2.
+
+    A stored applicability whose fraction cannot pass its invariants is exactly
+    the shape ``PersistedStateReconstructionError`` exists for, and
+    ``PERSISTED_STATE`` is the category the gate owes that failure.
+    """
+    identified = identify_projection(
+        candidate_of(RELEASE_BINDING, build_ledger(), build_representation())
+    )
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+    session.execute(
+        update(MechanicalComponentORM)
+        .where(MechanicalComponentORM.projection_uuid == identified.projection_uuid)
+        .values(
+            applies_when={
+                **applicability_payload(CONSUMPTION),
+                "fraction": {"numerator": 1, "denominator": 0},
+            }
+        )
+    )
+    session.flush()
+
+    result = run_publication_gate(
+        session, identified.projection_uuid, oracle=committed_oracle
+    )
+    assert not result.passed
+    assert GateFailureCategory.PERSISTED_STATE in {f.category for f in result.failures}
+
+
+# ---------------------------------------------------------------------------
+# The bounded Rational-owner audit, pinned
+# ---------------------------------------------------------------------------
+
+_BAD = Rational(1, 0)
+
+RATIONAL_OWNERS = [
+    pytest.param(
+        SizeKeyedQuantityFact(
+            quantity=RequiredQuantity.FOOD,
+            period=TimePeriod.DAY,
+            values=(
+                SizeQuantity(
+                    size=CreatureSize.MEDIUM, amount=_BAD, unit=MeasureUnit.POUND
+                ),
+            ),
+        ),
+        id="SizeQuantity.amount",
+    ),
+    pytest.param(
+        CreatureChallengeFact(challenge_rating=_BAD, proficiency_bonus=2),
+        id="CreatureChallengeFact.challenge_rating",
+    ),
+    pytest.param(
+        EquipmentDescriptorFact(cost=None, weight_pounds=_BAD),
+        id="EquipmentDescriptorFact.weight_pounds",
+    ),
+    pytest.param(
+        DamageModificationFact(direction=DamageModDirection.REDUCE, factor=_BAD),
+        id="DamageModificationFact.factor",
+    ),
+    pytest.param(
+        ConditionRemovalRestrictionFact(
+            condition=ConditionKind.EXHAUSTION,
+            cause_scoped=True,
+            until=_consumption(_BAD),
+        ),
+        id="Applicability.fraction",
+    ),
+]
+
+
+@pytest.mark.parametrize("fact", RATIONAL_OWNERS)
+def test_every_rational_owner_refuses_the_same_invalid_value(fact: object) -> None:
+    """One definition of validity, exercised through each owner in turn.
+
+    Four of these already delegated to ``_check_rational``; the fifth is what
+    this round corrected. Kept as one table so a sixth owner added later has an
+    obvious place to be, and no place to restate the rule instead.
+    """
+    assert fact_invariant_violations(fact), fact

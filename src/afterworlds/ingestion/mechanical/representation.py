@@ -6333,11 +6333,13 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         type(c) is not SizeComparison for c in applicability.any_of
     ):
         typed.append("any_of is not a tuple of size comparisons")
-    if (
-        applicability.fraction is not None
-        and type(applicability.fraction) is not Rational
-    ):
-        typed.append("fraction is not a Rational")
+    # Delegated, never restated. The exact-type refusal is only half of what a
+    # Rational has to satisfy: a zero or negative denominator is not a number,
+    # and a negative numerator is not a *share* of a requirement. Checking the
+    # type here and the invariants elsewhere is how ``Rational(1, 0)`` reached
+    # acceptance, committed loading, persistence, overrides and publication —
+    # every one of those delegates to this function (#137 round 5).
+    typed.extend(_check_optional_rational(applicability.fraction, "fraction"))
     if typed:
         return typed
     allowed = _APPLICABILITY_FIELDS[applicability.kind]
