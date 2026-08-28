@@ -206,6 +206,20 @@ meet. They meet on exactly these terms, and on no others:
    introduced at or before the last-accepted schema keep unconditional emission; switching one to
    omit-when-empty would move exactly the identities this rule exists to hold still.
 
+   *Amended 2026-08-28 (#137 round 4) — legality is checked wherever authority is created or admitted, not
+   only where the schema changes.* A representation and the schema identity it declares are admissible
+   together only when its meaning is legal under that version **and** its exact `(version, hash)` pair is a
+   contract this build accepts authority under — the live pair, or an endpoint of the registered succession
+   graph. Unknown versions, invented hashes, and known versions paired with another version's hash are one
+   refusal: the union that decides what these facts may mean cannot be established. An empty lift history
+   exempts neither half — an artifact that crossed no succession has said nothing about whether it was
+   built under the schema it names. The rule is enforced at committed-artifact loading, at acceptance for
+   both the proposed and the prior half, inside a verified lift, and at publication, which holds the strict
+   end of the same rule: a projection about to become *current* authority must declare the live pair
+   exactly. Being *serializable* under a version is deliberately not sufficient — schema 1 and schema 2
+   payloads remain reproducible for historical reconstruction, and reproducing an identity is not admitting
+   new accepted authority under it.
+
 4. **Compatibility is declared, never inferred.** Each authorized succession is registered by its exact
    `(version, hash)` source **and** destination pair, with its destination hash written literally rather
    than derived from whatever the type surface currently is. Version ordering is not evidence: "schema 4

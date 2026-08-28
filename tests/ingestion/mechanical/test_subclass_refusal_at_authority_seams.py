@@ -323,7 +323,8 @@ def test_a_verified_lift_refuses_a_nested_subclass() -> None:
     )
     with pytest.raises(SchemaLiftError) as raised:
         verify_lift(lift, _with_nested_subclass())
-    assert "outside its closed declaration" in str(raised.value)
+    assert "not admissible together" in str(raised.value)
+    assert "must be DiceExpression" in str(raised.value)
 
 
 def test_validation_refuses_a_nested_subclass_before_gating_or_publication() -> None:
@@ -457,4 +458,7 @@ def test_accept_proposal_refuses_rather_than_merging() -> None:
             accepted_at="2026-08-26T00:00:00Z",
             prior=prior,
         )
-    assert "outside its closed declaration" in str(raised.value)
+    # Refused by the binding invariant, which runs before the merge — the merge
+    # seam still carries its own check, and either would refuse this.
+    assert "not admissible under it" in str(raised.value)
+    assert "must be DiceExpression" in str(raised.value)

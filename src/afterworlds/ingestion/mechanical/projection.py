@@ -48,6 +48,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     RepresentationDraft,
     _dataclass_payload,
+    declared_meaning_violations,
     fact_key,
     fact_payload,
     representation_schema_hash,
@@ -508,6 +509,16 @@ def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
     built under a union it never agreed to. Unsupported and mismatched are the
     same refusal here — both mean the declaration and the code disagree about
     what a fact may say.
+
+    Publication is the strict end of one invariant, not a second one. Accepted
+    authority may declare any contract this build accepts authority under —
+    ``schema_lift.schema_binding_violations``, which admits a registered
+    succession's endpoints; a projection about to become *current* authority
+    must declare the live pair exactly, because that is the union whose meaning
+    this build can still validate. The meaning half is identical, and it is
+    checked here too: a candidate can be constructed directly or reconstructed
+    from persisted rows, so neither the loader nor ``accept_proposal`` stands
+    between it and publication (#137 round 4).
     """
     findings: list[str] = []
     if candidate.schema_version != REPRESENTATION_SCHEMA_VERSION:
@@ -521,6 +532,12 @@ def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
             f"candidate declares representation schema hash "
             f"{candidate.schema_hash!r}, committed union hashes to {expected!r}"
         )
+    # Reported rather than raised, so an illegal candidate reaches the
+    # publication gate as a SCHEMA_MISMATCH verdict instead of an exception out
+    # of the payload renderer.
+    findings.extend(
+        declared_meaning_violations(candidate.representation, candidate.schema_version)
+    )
     return tuple(findings)
 
 

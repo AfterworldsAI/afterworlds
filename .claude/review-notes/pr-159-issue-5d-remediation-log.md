@@ -397,3 +397,94 @@ oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b0
 committed artifact round-trips to identical payload : yes
 ZERO MOVEMENT  : HOLDS
 ```
+
+---
+
+# Round 4
+
+One finding, P1: `load_accepted_inputs` reconstructed accepted authority from committed bytes and never
+asked whether that content was legal under the schema the file declares. With no lift evidence
+`lift_chain_violations` returned clean, so a schema-3 artifact carrying an `EffectTerminationFact` became
+committed accepted authority.
+
+## Reproduced first, on the real committed artifact
+
+Seven one-field tampers, each loaded through the real `load_accepted_inputs`, at `d632971` and again
+after the fix:
+
+| tamper | before | after |
+|---|---|---|
+| clean control | LOADED | LOADED |
+| schema-4 fact family (obligations reconciled) | **LOADED** | refused |
+| schema-4 vocabulary member on a schema-3 field | **LOADED** | refused |
+| post-schema-3 field holding meaning | **LOADED** | refused |
+| record-owned reference (H-8 ownership) | **LOADED** | refused |
+| unknown declared version | **LOADED** | refused |
+| invented hash | **LOADED** | refused |
+| schema-3 version with schema-4's hash | **LOADED** | refused |
+
+The family case needed its record obligation updated to reconcile — obligations are *derived* from the
+accepted representation, so an artifact that adds a family and updates the obligation is internally
+consistent everywhere except in what its declaration is allowed to state. That is what makes this a
+declaration defect rather than a consistency one.
+
+## One invariant, stated once
+
+`schema_lift.schema_binding_violations(draft, declared)` — a representation and the schema identity it
+declares are admissible together only when both halves hold:
+
+1. **Its meaning is legal under the declared version** —
+   `representation.declared_meaning_violations`, which is `post_schema_3_violations` (field, family,
+   vocabulary member, ownership form) plus `held_structure_violations` (a structure outside the closed
+   declaration, illegal under *every* version).
+2. **Its exact pair is a contract this build accepts authority under** — `accepted_schema_contracts()`,
+   derived as the live pair plus every registered succession endpoint. Unknown version, invented hash, and
+   known-version-wrong-hash are one refusal rather than three: in each case the union that decides what
+   these facts may mean cannot be established.
+
+Neither half implies the other, and empty lift history exempts neither. Returned as findings rather than
+raised, so each seam wraps them in the error its callers already handle.
+
+Deliberately **not** derived from what the build can *serialize*: schema 1 and schema 2 payloads stay
+reproducible for historical reconstruction, and reproducing an identity is not admitting new accepted
+authority under it.
+
+## Bounded sibling audit — every seam that creates or admits authority
+
+| Seam | Disposition |
+|---|---|
+| committed JSON → `load_accepted_inputs` | **patched** — `OracleLoadError`, before the lift-chain check |
+| `load_oracle`, `committed_oracle_for`, `committed_inputs_for`, `_resolve_committed_*` | **intentionally downstream-protected** — every one resolves through `load_accepted_inputs`; a second check would be a second place to forget |
+| proposal → `accept_proposal` (no-prior, equal-schema, lift branches) | **patched** — one call replacing the two ad-hoc `post_schema_3_violations` calls, now covering the recognition half too |
+| prior → `verify_lift` | **patched** — routed through the same helper, so it is provably the same code path rather than a parallel implementation |
+| reconstructed candidate → `validate_schema_binding` | **patched** — the meaning half added; publication keeps its stricter live-pair rule, which is the same invariant at its strict end |
+| reconstructed candidate → identity/digest raise paths | **already safe** — `verify_persisted_state` catches `UnsupportedSchemaVersionError`/`LegacySchemaPayloadError` and reports; the gate catches the same pair on the oracle at entry and around the element comparison. Verified by running the gate on a downgraded projection: `SCHEMA_MISMATCH`, no exception |
+| `proposal` module | **out of scope, by the finding's own terms** — it has no loader, and constructing a proposal is not accepted authority |
+
+## Over-refusal controls
+
+The committed artifact still loads, and is still byte-identical when written back out. Schema-1 and
+schema-2 historical reconstruction is unchanged (`test_review_round_6_schema1_identity`,
+`test_representation_schema_identity`). One fixture was genuinely illegitimate and is corrected rather
+than exempted: the packaging sentinel oracle declared `"sentinel"/"f"*64`, which the resolver now refuses
+while scanning the packaged directory. It declares the live pair now — its *release binding* is what makes
+that test unambiguous, and that is untouched.
+
+Five message assertions moved with the unified wording. Each still asserts the cause rather than the fact
+of refusal: `"stealth" and schema-4` for the restamped prior, `"must be DiceExpression"` for the two
+subclass seams, and the recognition phrase for the three unauthorized-transition cases — whose
+authorization half is still covered by `test_the_reverse_transition_is_refused`, where both pairs are
+recognized and no lift exists between them.
+
+## No re-pin
+
+Enforcement of the already identity-bound contract; nothing touches `representation_schema_payload()`.
+
+```
+SCHEMA_3_HASH  : 43ed330d…  (unchanged)
+SCHEMA_4_HASH  : e1fed378…  (unchanged, == representation_schema_hash())
+six collections byte-identical : yes
+oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda (unmoved)
+committed artifact round-trips to identical payload : yes
+ZERO MOVEMENT  : HOLDS
+```

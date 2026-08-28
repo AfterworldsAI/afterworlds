@@ -204,6 +204,7 @@ __all__ = [
     "component_participant_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
+    "declared_meaning_violations",
     "held_structure_violations",
     "size_comparison_violations",
     "ComponentDraft",
@@ -4824,6 +4825,36 @@ def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
     findings: list[str] = []
     _collect_post_schema_3(obj, schema_version, "", findings)
     return findings
+
+
+def declared_meaning_violations(
+    draft: RepresentationDraft, schema_version: str
+) -> list[str]:
+    """Meaning *draft* carries that its declared schema cannot state.
+
+    The reusable half of one invariant: **a representation interpreted under a
+    declared schema must reject meaning that schema cannot state.** Two ways a
+    representation breaks it, and both have to be checked together or the pair
+    keeps being rediscovered one seam at a time:
+
+    * a field, family, vocabulary member or ownership form the declared version
+      never had (:func:`post_schema_3_violations`); and
+    * a structure outside the closed declaration — a subclass canonicalizes to
+      its declared base's payload, so its extra state is real and invisible
+      (:func:`held_structure_violations`).
+
+    Version-independent by design where the rule is version-independent: the
+    second check does not take *schema_version* because holding an undeclared
+    structure is illegal under every contract.
+
+    Callers add the *contract recognition* half — that the declared
+    ``(version, hash)`` pair is one this build accepts authority under — which
+    lives in :mod:`schema_lift` beside the registry that knows the answer. See
+    :func:`~afterworlds.ingestion.mechanical.schema_lift.schema_binding_violations`.
+    """
+    return post_schema_3_violations(draft, schema_version) + held_structure_violations(
+        draft
+    )
 
 
 def _collect_post_schema_3(

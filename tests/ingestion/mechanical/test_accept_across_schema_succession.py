@@ -282,13 +282,22 @@ def test_an_identical_schema_still_needs_no_lift() -> None:
 def test_an_unauthorized_transition_is_refused(
     version: str, schema_hash: str, why: str
 ) -> None:
-    """Only the exact registered pair is admitted; nothing is inferred from it."""
+    """Only the exact registered pair is admitted; nothing is inferred from it.
+
+    Refused by the recognition half of the binding invariant, which runs before
+    the lift lookup: none of these pairs names a contract this build accepts
+    authority under, so there is no transition to look up. The authorization
+    half — two recognized pairs with no lift between them — is
+    ``test_the_reverse_transition_is_refused``.
+    """
     prior = _prior()
     with pytest.raises(AcceptanceError) as caught:
         _accept(
             prior, _schema_4_proposal(prior, version=version, schema_hash=schema_hash)
         )
-    assert "no verified lift authorizes the difference" in str(caught.value), why
+    assert "is not a contract this build accepts authority under" in str(
+        caught.value
+    ), why
 
 
 def test_the_reverse_transition_is_refused() -> None:
@@ -358,4 +367,6 @@ def test_a_restamped_prior_is_refused_rather_than_lifted() -> None:
                 schema_hash=representation_schema_hash(),
             ),
         )
-    assert "content only a later schema can state" in str(caught.value)
+    message = str(caught.value)
+    assert "not admissible under it" in message
+    assert "stealth" in message and SCHEMA_4_VERSION in message

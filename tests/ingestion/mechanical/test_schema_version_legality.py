@@ -23,14 +23,22 @@ row fails these tests rather than passing them silently.
 
 from __future__ import annotations
 
+import copy
+import json
 import pathlib
 from dataclasses import replace
 
 import pytest
+from sqlalchemy import update
+from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
 from afterworlds.ingestion.mechanical.accounting import derive_span_id
+from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
+    run_publication_gate,
+)
 from afterworlds.ingestion.mechanical.models import (
     ComponentHandling,
     ReviewState,
@@ -39,17 +47,26 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
+    OracleLoadError,
+    accepted_inputs_payload,
     load_accepted_inputs,
     load_oracle,
+)
+from afterworlds.ingestion.mechanical.persistence import (
+    persist_draft,
+    record_persisted_state_digest,
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_3_VERSION,
     LegacySchemaPayloadError,
+    identify_projection,
     representation_payload,
+    validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
     RECORD_OWNED_REFERENCE,
+    REPRESENTATION_SCHEMA_VERSION,
     AbilityScore,
     Applicability,
     ApplicabilityKind,
@@ -102,8 +119,19 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
     SchemaLiftError,
+    accepted_schema_contracts,
+    lift_accepted_inputs,
     lift_for,
+    schema_binding_violations,
     verify_lift,
+)
+from afterworlds.persistence.orm.mechanical import MechanicalProjectionORM
+from tests.ingestion.mechanical.conftest import (
+    NOW,
+    RELEASE_BINDING,
+    build_ledger,
+    build_representation,
+    candidate_of,
 )
 
 COMMITTED_ORACLE = pathlib.Path(
@@ -550,3 +578,246 @@ def test_the_schema_3_source_pin_is_unmoved() -> None:
         SCHEMA_3_HASH
         == "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
+
+
+# ---------------------------------------------------------------------------
+# Round 4 — the invariant at every ingress, not only where the schema changes
+# ---------------------------------------------------------------------------
+#
+# ``load_accepted_inputs`` reconstructed accepted authority from committed bytes
+# and never asked whether that content was legal under the schema the file
+# declares. With no lift evidence ``lift_chain_violations`` had nothing to
+# object to, so a schema-3 artifact carrying an ``EffectTerminationFact`` — with
+# its obligations reconciled, because obligations are derived from the same
+# content — became committed accepted authority.
+#
+# Every case below runs through the real loader on the real committed artifact,
+# tampered one field at a time. Each of them loaded clean before this round.
+
+
+def _tampered(mutate) -> dict:  # type: ignore[no-untyped-def, type-arg]
+    """The committed artifact payload with exactly one thing changed."""
+    raw = copy.deepcopy(json.loads(ARTIFACT_PATH.read_text(encoding="utf-8")))
+    mutate(raw)
+    return raw
+
+
+def _smuggle_a_schema_4_family(raw: dict) -> None:  # type: ignore[type-arg]
+    """A family schema 3 never had, *and* the obligation that reconciles it.
+
+    The obligation edit is the point: obligations are derived from the accepted
+    representation, so an artifact that adds a family and updates its record
+    obligation to match is internally consistent everywhere except in what its
+    declared schema is allowed to state.
+    """
+    component = next(
+        c
+        for c in raw["representation"]["components"]
+        if c["semantic_key"] == "exhaustion_levels"
+    )
+    component["facts"].append(
+        {
+            "family": FactFamily.EFFECT_TERMINATION.value,
+            "scope": TerminationScope.OWNING_EFFECT.value,
+        }
+    )
+    obligation = next(
+        o for o in raw["obligations"] if o["record_key"] == "condition.exhaustion"
+    )
+    obligation["structured_fact_families"] = sorted(
+        set(obligation["structured_fact_families"])
+        | {FactFamily.EFFECT_TERMINATION.value}
+    )
+
+
+def _smuggle_a_schema_4_vocabulary_member(raw: dict) -> None:  # type: ignore[type-arg]
+    """A value schema 3 Comparison does not admit, on a field schema 3 had."""
+    component = next(
+        c for c in raw["representation"]["components"] if c["applies_when"]
+    )
+    component["applies_when"]["comparison"] = Comparison.LESS_THAN.value
+
+
+def _smuggle_a_schema_4_field(raw: dict) -> None:  # type: ignore[type-arg]
+    """A post-schema-3 field holding meaning on a family schema 3 did have."""
+    for component in raw["representation"]["components"]:
+        for fact in component["facts"]:
+            if fact["family"] == FactFamily.CONDITION_LEVEL.value:
+                fact["cause_scoped"] = True
+                return
+    raise AssertionError("no condition_level fact to carry the field")
+
+
+def _smuggle_a_record_owned_reference(raw: dict) -> None:  # type: ignore[type-arg]
+    """H-8 ownership, which the schema-3 reference contract cannot express."""
+    raw["representation"]["references"][0][
+        "from_component_key"
+    ] = RECORD_OWNED_REFERENCE
+
+
+def _declare_an_unknown_version(raw: dict) -> None:  # type: ignore[type-arg]
+    raw["representation_schema"]["version"] = "5d-representation-schema-99"
+
+
+def _declare_an_invented_hash(raw: dict) -> None:  # type: ignore[type-arg]
+    raw["representation_schema"]["hash"] = "f" * 64
+
+
+def _declare_a_mismatched_known_pair(raw: dict) -> None:  # type: ignore[type-arg]
+    """Schema 3 version with the schema 4 hash: two real halves, no contract."""
+    raw["representation_schema"]["hash"] = SCHEMA_4_HASH
+
+
+_ILLEGAL_ARTIFACTS = [
+    pytest.param(_smuggle_a_schema_4_family, "effect_termination", id="family"),
+    pytest.param(_smuggle_a_schema_4_vocabulary_member, "less_than", id="vocabulary"),
+    pytest.param(_smuggle_a_schema_4_field, "cause_scoped", id="meaning-bearing-field"),
+    pytest.param(
+        _smuggle_a_record_owned_reference, "owned", id="record-owned-reference"
+    ),
+    pytest.param(_declare_an_unknown_version, "not a contract", id="unknown-version"),
+    pytest.param(_declare_an_invented_hash, "not a contract", id="invented-hash"),
+    pytest.param(
+        _declare_a_mismatched_known_pair, "not a contract", id="mismatched-known-pair"
+    ),
+]
+
+
+@pytest.mark.parametrize(("mutate", "expected"), _ILLEGAL_ARTIFACTS)
+def test_committed_bytes_are_refused_when_they_are_not_admissible(  # type: ignore[no-untyped-def]
+    tmp_path, mutate, expected: str
+) -> None:
+    """Every axis of the delta, and every way the declaration can be wrong."""
+    path = pathlib.Path(tmp_path) / "tampered.json"
+    path.write_text(json.dumps(_tampered(mutate)), encoding="utf-8")
+
+    with pytest.raises(OracleLoadError) as raised:
+        load_accepted_inputs(path)
+    message = str(raised.value)
+    assert "is not admissible under it" in message
+    assert expected in message
+
+
+def test_the_committed_artifact_still_loads_and_is_byte_identical() -> None:
+    """The over-refusal control, and the one that cannot be allowed to move.
+
+    Written back out through the same writer and compared against the committed
+    bytes: this guard sits on the ingress path the committed file itself takes,
+    so "still loads" is not enough — it has to still be the same artifact.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    committed = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+
+    assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == (
+        SCHEMA_3_VERSION,
+        SCHEMA_3_HASH,
+    )
+    assert inputs.lifts == ()
+    assert accepted_inputs_payload(inputs) == committed
+
+
+def test_lifted_schema_4_authority_loads(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The other half of the recognition set: a destination pair, really reached."""
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lifted, record = lift_accepted_inputs(inputs, (SCHEMA_4_VERSION, SCHEMA_4_HASH))
+    path = pathlib.Path(tmp_path) / "lifted.json"
+    path.write_text(
+        json.dumps(accepted_inputs_payload(replace(lifted, lifts=(record,)))),
+        encoding="utf-8",
+    )
+
+    loaded = load_accepted_inputs(path)
+    assert (loaded.oracle.schema_version, loaded.oracle.schema_hash) == (
+        SCHEMA_4_VERSION,
+        SCHEMA_4_HASH,
+    )
+    assert (
+        schema_binding_violations(
+            loaded.oracle.representation, (SCHEMA_4_VERSION, SCHEMA_4_HASH)
+        )
+        == []
+    )
+
+
+def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -> None:
+    """Stated once, so the seams cannot disagree about what supported means.
+
+    Serializable is deliberately not the same as admissible: schema 1 and
+    schema 2 payloads are still reproducible for historical reconstruction, and
+    reproducing an identity is not admitting new accepted authority under it.
+    """
+    assert accepted_schema_contracts() == {
+        (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash()),
+        (SCHEMA_3_VERSION, SCHEMA_3_HASH),
+        (SCHEMA_4_VERSION, SCHEMA_4_HASH),
+    }
+
+
+_UNRECOGNIZED_PAIRS = [
+    pytest.param("5d-representation-schema-99", SCHEMA_3_HASH, id="unknown-version"),
+    pytest.param(SCHEMA_3_VERSION, "f" * 64, id="invented-hash"),
+    pytest.param(SCHEMA_3_VERSION, SCHEMA_4_HASH, id="mismatched-known-pair"),
+]
+
+
+@pytest.mark.parametrize(("version", "schema_hash"), _UNRECOGNIZED_PAIRS)
+@pytest.mark.parametrize("with_prior", [False, True], ids=["no-prior", "equal-schema"])
+def test_acceptance_refuses_a_pair_that_names_no_contract(
+    version: str, schema_hash: str, with_prior: bool
+) -> None:
+    """The sibling of the legality defect, on the paths that have no lift.
+
+    The content here is clean schema-3 content — only the declared pair is
+    wrong. Without the recognition half a proposal could be accepted, and its
+    artifact committed, under a union nothing in this build implements.
+    """
+    with pytest.raises(AcceptanceError) as raised:
+        _accept(_CLEAN, version, schema_hash, with_prior=with_prior)
+    assert "not admissible under it" in str(raised.value)
+
+
+def test_the_publication_gate_returns_a_typed_schema_refusal(  # type: ignore[no-untyped-def]
+    session: Session, committed_oracle
+) -> None:
+    """A reconstructed candidate whose rows outrun its declaration.
+
+    Persisted legally under the live contract, then downgraded in place — the
+    shape a hand-edited row or a rolled-back deployment produces. Canonicalizing
+    it raises, and the gate contract is that a caller receives a verdict, so the
+    assertion is on the *category* rather than on a validator called directly.
+    """
+    identified = identify_projection(
+        candidate_of(RELEASE_BINDING, build_ledger(), build_representation())
+    )
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+    session.execute(
+        update(MechanicalProjectionORM)
+        .where(MechanicalProjectionORM.projection_uuid == identified.projection_uuid)
+        .values(representation_schema_version="5d-representation-schema-99")
+    )
+    session.flush()
+
+    result = run_publication_gate(
+        session, identified.projection_uuid, oracle=committed_oracle
+    )
+    assert not result.passed
+    assert GateFailureCategory.SCHEMA_MISMATCH in {f.category for f in result.failures}
+
+
+def test_publication_reports_a_structure_outside_the_closed_declaration() -> None:
+    """The half of the invariant no version check can see.
+
+    A subclassed nested value object canonicalizes to its declared base payload,
+    so it is legal under *every* version and still misrepresents what the
+    candidate carries. A candidate can be constructed directly, so neither the
+    loader nor ``accept_proposal`` stands between it and publication.
+    """
+    from tests.ingestion.mechanical.test_subclass_refusal_at_authority_seams import (
+        _with_nested_subclass,
+    )
+
+    candidate = candidate_of(RELEASE_BINDING, build_ledger(), _with_nested_subclass())
+    findings = validate_schema_binding(candidate)
+    assert any("must be DiceExpression" in f for f in findings), findings

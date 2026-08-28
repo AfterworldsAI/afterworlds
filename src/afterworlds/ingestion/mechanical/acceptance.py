@@ -75,7 +75,6 @@ from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
     component_target_key,
     held_structure_violations,
-    post_schema_3_violations,
     prose_binding_target_key,
     record_target_key,
     reference_target_key,
@@ -86,6 +85,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SchemaLiftError,
     SchemaLiftRecord,
     lift_for,
+    schema_binding_violations,
     verify_lift,
 )
 
@@ -275,37 +275,46 @@ def accept_proposal(
         )
 
     # **The central invariant, and it runs before every branch below.** A
-    # representation interpreted under a declared schema may not carry meaning
-    # that schema cannot state. Legality was previously checked only where the
-    # schema *changed* — inside ``verify_lift``, on the *prior* — which left
-    # three acceptance paths open: no prior at all, a prior declaring the same
-    # (version, hash) as the proposal, and the proposed half of a lifted
-    # acceptance. On any of those a proposal carrying a schema-4-only family
-    # was accepted with ``lifts == ()``, producing accepted authority its own
-    # declaration cannot state and that a later lift would then refuse.
+    # representation and the schema identity it declares are admissible together
+    # only when its meaning is legal under that version *and* the exact
+    # (version, hash) pair is a contract this build accepts authority under —
+    # ``schema_binding_violations``, the same function the loader and
+    # ``verify_lift`` call.
+    #
+    # Legality was previously checked only where the schema *changed* — inside
+    # ``verify_lift``, on the *prior* — which left three acceptance paths open:
+    # no prior at all, a prior declaring the same (version, hash) as the
+    # proposal, and the proposed half of a lifted acceptance. On any of those a
+    # proposal carrying a schema-4-only family was accepted with ``lifts == ()``,
+    # producing accepted authority its own declaration cannot state and that a
+    # later lift would then refuse. The recognition half closes the sibling case:
+    # an invented hash, or a known version paired with another version's hash,
+    # names no contract at all.
     #
     # Checked here rather than inside ``representation_payload``: that function's
     # contract is to emit the declared key set, and putting a full recursive walk
     # on it would run on every identity computation and both sides of every
     # verified lift. Acceptance is the seam authority is *created* at, so nothing
     # reaches canonicalization as accepted authority without passing this first.
-    if illegal := post_schema_3_violations(
-        proposal.proposed_representation, proposal.schema_version
+    if illegal := schema_binding_violations(
+        proposal.proposed_representation,
+        (proposal.schema_version, proposal.schema_hash),
     ):
         raise AcceptanceError(
-            f"this proposal declares {proposal.schema_version!r} but its "
-            "representation carries content only a later schema can state, so it "
+            f"this proposal declares representation schema "
+            f"{proposal.schema_version!r} but is not admissible under it, so it "
             "was not built under the schema it names: " + "; ".join(illegal)
         )
     if prior is not None and (
-        illegal := post_schema_3_violations(
-            prior.oracle.representation, prior.oracle.schema_version
+        illegal := schema_binding_violations(
+            prior.oracle.representation,
+            (prior.oracle.schema_version, prior.oracle.schema_hash),
         )
     ):
         raise AcceptanceError(
-            f"the prior accepted authority declares {prior.oracle.schema_version!r} "
-            "but carries content only a later schema can state, so it was not "
-            "accepted under the schema it names: " + "; ".join(illegal)
+            f"the prior accepted authority declares representation schema "
+            f"{prior.oracle.schema_version!r} but is not admissible under it, so "
+            "it was not accepted under the schema it names: " + "; ".join(illegal)
         )
 
     # A schema difference is refused unless an authorized lift covers this exact

@@ -48,9 +48,10 @@ from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.projection import representation_payload
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_COLLECTIONS,
+    REPRESENTATION_SCHEMA_VERSION,
     RepresentationDraft,
-    held_structure_violations,
-    post_schema_3_violations,
+    declared_meaning_violations,
+    representation_schema_hash,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard
@@ -58,6 +59,8 @@ if TYPE_CHECKING:  # pragma: no cover - import cycle guard
 
 __all__ = [
     "SCHEMA_LIFTS",
+    "accepted_schema_contracts",
+    "schema_binding_violations",
     "lift_accepted_inputs",
     "SchemaLift",
     "SchemaLiftError",
@@ -175,6 +178,68 @@ def lift_for(source: tuple[str, str], target: tuple[str, str]) -> SchemaLift:
     return lift
 
 
+def accepted_schema_contracts() -> frozenset[tuple[str, str]]:
+    """Every ``(version, hash)`` pair this build accepts authority under.
+
+    Two sources, and no rule over either: the contract this build *implements*,
+    and the endpoints of the registered succession graph — an artifact may
+    legitimately still declare a source pair it has not been carried across yet,
+    and one carried across declares the destination.
+
+    Derived from :data:`SCHEMA_LIFTS` rather than restated, so registering a
+    succession admits its endpoints and nothing else has to be remembered. A
+    version this build can *serialize* is deliberately not enough: schema 1 and
+    schema 2 payloads are reproducible for historical reconstruction, and
+    reproducing an identity is not the same as admitting new accepted authority
+    under it.
+    """
+    return frozenset(
+        {(REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())}
+        | {source for source in SCHEMA_LIFTS}
+        | {(lift.to_version, lift.to_hash) for lift in SCHEMA_LIFTS.values()}
+    )
+
+
+def schema_binding_violations(
+    draft: RepresentationDraft, declared: tuple[str, str]
+) -> list[str]:
+    """Violations of the one invariant every seam that admits authority checks.
+
+    A representation and the schema identity it declares are admissible together
+    only when both halves hold:
+
+    1. **Its meaning is legal under the declared version** —
+       :func:`~afterworlds.ingestion.mechanical.representation.declared_meaning_violations`.
+       A schema-3 artifact holding a schema-4 fact family was not built under the
+       schema it names, whatever else is true of it.
+    2. **Its exact pair is a contract this build accepts authority under** —
+       :func:`accepted_schema_contracts`. Exact, so an unknown version, an
+       invented hash, and a known version paired with the wrong hash are one
+       refusal rather than three: in every case the union that decides what
+       these facts may mean cannot be established.
+
+    Neither half implies the other, and neither is exempted by the absence of
+    lift evidence. An artifact with no lifts has crossed no succession, which
+    says nothing about whether it was built under the schema it declares — that
+    gap is exactly how a schema-3 file carrying an ``EffectTerminationFact``
+    became loadable accepted authority (#137 round 4).
+
+    Returned as findings rather than raised, so each seam can wrap them in the
+    error type its own callers already handle: ``OracleLoadError`` when a
+    committed file is loaded, ``AcceptanceError`` when authority is created,
+    ``SchemaLiftError`` when a succession is proved.
+    """
+    version, digest = declared
+    findings = list(declared_meaning_violations(draft, version))
+    if declared not in accepted_schema_contracts():
+        findings.append(
+            f"representation schema {version!r} ({digest}) is not a contract this "
+            "build accepts authority under; recognized: "
+            + ", ".join(f"{v!r} ({h})" for v, h in sorted(accepted_schema_contracts()))
+        )
+    return findings
+
+
 def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecord:
     """Prove *prior* survives *lift* unchanged, or raise.
 
@@ -188,21 +253,17 @@ def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecor
     content disagree — a restamp — and it must be refused as such rather than
     reported as a payload difference.
     """
-    if illegal := post_schema_3_violations(prior, lift.from_version):
+    # The same invariant every other seam checks, through the same function.
+    # A prior carrying post-schema-3 meaning is a restamp; one holding a
+    # subclassed nested value object would survive the byte-identity proof below
+    # for exactly the reason it survives everywhere else — it canonicalizes to
+    # its declared base's payload — so proving it "unchanged" would be proving
+    # the wrong thing. Both are refused before any payload is rendered.
+    if illegal := schema_binding_violations(prior, (lift.from_version, lift.from_hash)):
         raise SchemaLiftError(
-            f"the prior representation declares {lift.from_version!r} but carries "
-            "content only a later schema can state, so it was not accepted under "
-            "the schema it names: " + "; ".join(illegal)
-        )
-    # A subclassed nested value object would survive the byte-identity proof
-    # below for exactly the reason it survives everywhere else: it canonicalizes
-    # to its declared base's payload. Proving that such a prior is "unchanged"
-    # would be proving the wrong thing.
-    if drift := held_structure_violations(prior):
-        raise SchemaLiftError(
-            "the prior representation holds a structure outside its closed "
-            "declaration, so its canonical payload does not represent what it "
-            "carries: " + "; ".join(drift)
+            f"the prior representation and its declared schema "
+            f"{lift.from_version!r} are not admissible together, so it was not "
+            "accepted under the schema it names: " + "; ".join(illegal)
         )
 
     before = representation_payload(prior, schema_version=lift.from_version)

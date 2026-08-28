@@ -117,6 +117,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.ingestion.mechanical.schema_lift import (
     SchemaLiftRecord,
     lift_chain_violations,
+    schema_binding_violations,
 )
 
 __all__ = [
@@ -1146,6 +1147,23 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         representation=representation,
         obligations=obligations,
     )
+    # Committed bytes are not self-proving either. The wire-shape checks above
+    # establish that this file parses into the declared types; they say nothing
+    # about whether its content is legal under the schema it names, or whether
+    # that schema is one this build accepts authority under. Without this, a
+    # schema-3 file carrying a schema-4 fact family loaded clean — its
+    # obligations reconciled, and with no lifts the chain check below had
+    # nothing to object to — and became committed accepted authority no
+    # schema-3 reviewer could have reviewed (#137 round 4).
+    if illegal := schema_binding_violations(
+        oracle.representation, (oracle.schema_version, oracle.schema_hash)
+    ):
+        raise OracleLoadError(
+            f"{path.name}: this artifact declares representation schema "
+            f"{oracle.schema_version!r} but is not admissible under it: "
+            + "; ".join(illegal)
+        )
+
     # Loaded evidence is read from a file, so the wire-shape checks above prove
     # only that it is well-formed — never that the succession it claims was
     # authorized, happened, or could have happened. Validated against the
