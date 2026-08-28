@@ -6054,6 +6054,14 @@ _DRAFT_ELEMENT_TYPES: Mapping[str, type] = {
 }
 
 
+#: The collections a representation payload is made of, derived from the same
+#: table the exact-type walker reads. A lift's proof extent is stated over
+#: exactly these, so deriving it here rather than restating six strings in
+#: ``schema_lift`` is what keeps the proof and the payload from drifting apart
+#: the first time a collection is added.
+REPRESENTATION_COLLECTIONS: frozenset[str] = frozenset(_DRAFT_ELEMENT_TYPES)
+
+
 def representation_draft_violations(draft: object) -> list[str]:
     """Exact runtime type of the draft and of every element it holds.
 

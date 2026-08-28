@@ -377,7 +377,18 @@ def _recurrence_from_row(
     """
     if payload is None:
         return None
-    raw = cast("dict[str, Any]", payload)
+    # The column is JSON, so it can hold anything a manual edit put there. The
+    # shape is checked before the value is *inspected*, not after: ``set(7)``
+    # raises ``TypeError``, and an untyped exception escaping here would abort
+    # ``run_publication_gate`` instead of returning the ``PERSISTED_STATE``
+    # refusal it exists to return. No cast, either — asserting a type the code
+    # is about to test would be a lie mypy then trusts.
+    if not isinstance(payload, dict):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: recurrence must be an object or null, "
+            f"got {type(payload).__name__}"
+        )
+    raw: dict[str, Any] = payload
     unknown = sorted(set(raw) - {"boundary", "whose"})
     if unknown or "boundary" not in raw:
         raise PersistedStateReconstructionError(
@@ -526,6 +537,15 @@ def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     columns disagree with its own content has been altered, and picking a
     winner would be repair, not reconstruction.
     """
+    # Same reason as the recurrence loader: the payload column is JSON and can
+    # hold a scalar, which ``fact_from_payload`` meets with an ``AttributeError``
+    # rather than with a typed refusal. Every malformed shape has to normalize to
+    # the one error the publication gate categorizes.
+    if not isinstance(row.payload, dict):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_facts {row.record_key}/{row.component_key}: fact payload "
+            f"must be an object, got {type(row.payload).__name__}"
+        )
     try:
         fact = fact_from_payload(row.payload, declared_family=row.family)
     except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:

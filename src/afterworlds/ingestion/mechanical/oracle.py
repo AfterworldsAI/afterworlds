@@ -114,7 +114,10 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_from_payload,
     recurrence_violations,
 )
-from afterworlds.ingestion.mechanical.schema_lift import SchemaLiftRecord
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SchemaLiftRecord,
+    lift_chain_violations,
+)
 
 __all__ = [
     "ACCEPTED_ARTIFACT_KIND",
@@ -1139,7 +1142,6 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     _check_obligations_closed(representation, obligations, path.name)
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
     batches, acceptances, lifts = _acceptance(p["acceptance"], "acceptance")
-
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1152,6 +1154,19 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         representation=representation,
         obligations=obligations,
     )
+    # Loaded evidence is read from a file, so the wire-shape checks above prove
+    # only that it is well-formed — never that the succession it claims was
+    # authorized, happened, or could have happened. Validated against the
+    # registry and against this artifact's own declaration before it becomes
+    # part of the loaded inputs.
+    if drift := lift_chain_violations(
+        lifts, (oracle.schema_version, oracle.schema_hash)
+    ):
+        raise OracleLoadError(
+            "acceptance.lifts does not describe an authorized succession of this "
+            "artifact: " + "; ".join(drift)
+        )
+
     inputs = AcceptedInputs(
         oracle=oracle, batches=batches, acceptances=acceptances, lifts=lifts
     )

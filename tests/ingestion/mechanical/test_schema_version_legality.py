@@ -29,13 +29,25 @@ from dataclasses import replace
 import pytest
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
-from afterworlds.ingestion.mechanical.acceptance import AcceptanceError
-from afterworlds.ingestion.mechanical.oracle import load_oracle
+from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
+from afterworlds.ingestion.mechanical.accounting import derive_span_id
+from afterworlds.ingestion.mechanical.models import (
+    ComponentHandling,
+    ReviewState,
+    SemanticDisposition,
+    SemanticSpan,
+)
+from afterworlds.ingestion.mechanical.oracle import (
+    COMMITTED_ORACLE_DIR,
+    load_accepted_inputs,
+    load_oracle,
+)
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_3_VERSION,
     LegacySchemaPayloadError,
     representation_payload,
 )
+from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
     RECORD_OWNED_REFERENCE,
     AbilityScore,
@@ -43,7 +55,9 @@ from afterworlds.ingestion.mechanical.representation import (
     ApplicabilityKind,
     AutomaticOutcome,
     Comparison,
+    ComponentDraft,
     ConditionKind,
+    ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     CreatureSize,
     DamageModDirection,
@@ -54,12 +68,16 @@ from afterworlds.ingestion.mechanical.representation import (
     DieSize,
     EffectTerminationFact,
     FactFamily,
+    LevelDirection,
     MeasureUnit,
     Phase,
     Rational,
+    RecordDraft,
+    RecordKind,
     Recurrence,
     RecurrenceBoundary,
     ReferenceDraft,
+    RepresentationDraft,
     RequiredQuantity,
     RollActor,
     RollContext,
@@ -91,6 +109,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
 COMMITTED_ORACLE = pathlib.Path(
     "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
 )
+ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 # ---------------------------------------------------------------------------
 # One live exemplar per axis of the delta
@@ -341,13 +360,131 @@ def test_verify_lift_refuses_a_restamped_prior(bounded_prior=None) -> None:  # t
     assert "not accepted under the schema it names" in str(raised.value)
 
 
-def test_acceptance_reports_the_restamp_as_an_acceptance_failure() -> None:
-    """``accept_proposal`` wraps the lift's refusal in its own words."""
-    assert issubclass(AcceptanceError, Exception)
-    # The wrapping is exercised end to end in
-    # ``test_accept_across_schema_succession``; what this pins is that the
-    # legality step is reached before any merge, which ``verify_lift`` above
-    # demonstrates and ``accept_proposal`` calls before ``_merged_representation``.
+#: A leaf the committed artifact never touched, so every probe scope is disjoint.
+_PROBE_LEAF = "leaf-acceptance-legality"
+_PROBE_SPAN = derive_span_id(_PROBE_LEAF, 0, 28)
+_PROBE_RECORD = "hazard.acceptance-legality"
+
+#: Content schema 3 states, and content only schema 4 can state.
+_CLEAN = ConditionLevelFact(
+    condition=ConditionKind.EXHAUSTION, direction=LevelDirection.GAIN, amount=1
+)
+_SCHEMA_4_ONLY = EffectTerminationFact()
+
+
+def _probe_proposal(fact: object, version: str, schema_hash: str, prior):  # type: ignore[no-untyped-def]
+    """A minimal well-formed proposal over a span the prior never saw."""
+    span = SemanticSpan(
+        span_id=_PROBE_SPAN,
+        leaf_id=_PROBE_LEAF,
+        char_start=0,
+        char_end=28,
+        disposition=SemanticDisposition.SUBSTANTIVE,
+        review_state=ReviewState.PROPOSED,
+    )
+    representation = RepresentationDraft(
+        records=(
+            RecordDraft(semantic_key=_PROBE_RECORD, kind=RecordKind.GLOSSARY_RULE),
+        ),
+        components=(
+            ComponentDraft(
+                record_key=_PROBE_RECORD,
+                semantic_key="accrual",
+                handling=ComponentHandling.STRUCTURED,
+                facts=(fact,),  # type: ignore[arg-type]
+            ),
+        ),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+    return MechanicalProposal(
+        binding=prior.oracle.binding,
+        policy_version=prior.oracle.policy_version,
+        policy_hash=prior.oracle.policy_hash,
+        schema_version=version,
+        schema_hash=schema_hash,
+        proposed_spans=(
+            ProposedSpan(span=span, origin="legality-probe", rationale="probe"),
+        ),
+        proposed_representation=representation,
+        proposal_origin="test_schema_version_legality",
+    )
+
+
+def _accept(fact: object, version: str, schema_hash: str, *, with_prior: bool):  # type: ignore[no-untyped-def]
+    prior = load_accepted_inputs(ARTIFACT_PATH)
+    return accept_proposal(
+        _probe_proposal(fact, version, schema_hash, prior),
+        batch_id="legality-probe-1",
+        rule="the probe span",
+        resolved_scope=(_PROBE_SPAN,),
+        reviewer="Test",
+        accepted_at="2026-08-28T00:00:00Z",
+        prior=prior if with_prior else None,
+    )
+
+
+#: The three acceptance branches, named by which path through ``accept_proposal``
+#: they take. Legality was previously checked only inside ``verify_lift`` — on
+#: the *prior* — so the first two had no check at all and the third checked the
+#: wrong half.
+_BRANCHES = [
+    pytest.param(SCHEMA_3_VERSION, SCHEMA_3_HASH, False, id="no-prior"),
+    pytest.param(SCHEMA_3_VERSION, SCHEMA_3_HASH, True, id="equal-schema-prior"),
+    pytest.param(SCHEMA_4_VERSION, SCHEMA_4_HASH, True, id="registered-lift-prior"),
+]
+
+
+@pytest.mark.parametrize(("version", "schema_hash", "with_prior"), _BRANCHES)
+def test_every_acceptance_branch_accepts_content_its_schema_can_state(
+    version: str, schema_hash: str, with_prior: bool
+) -> None:
+    """The over-refusal control, and the one the new guard could plausibly break.
+
+    A guard that refused here would block honest acceptance outright, which is a
+    worse failure than the one it was added to fix.
+    """
+    fact = _CLEAN if version == SCHEMA_3_VERSION else _SCHEMA_4_ONLY
+    result = _accept(fact, version, schema_hash, with_prior=with_prior)
+    assert any(b.batch_id == "legality-probe-1" for b in result.batches)
+
+
+@pytest.mark.parametrize(("version", "schema_hash", "with_prior"), _BRANCHES)
+def test_no_acceptance_branch_admits_meaning_its_schema_cannot_state(
+    version: str, schema_hash: str, with_prior: bool
+) -> None:
+    """The defect, closed on every branch rather than only where a lift runs.
+
+    A schema-3 proposal carrying a schema-4-only family was previously accepted
+    with ``lifts == ()`` on two of these three paths, producing accepted
+    authority its own declaration cannot state — and that a later lift would
+    then refuse, stranding it.
+
+    The schema-4 branch is included deliberately even though it cannot fail this
+    way today: it is the branch a future succession would extend, and a guard
+    that ran only on the older paths would rot the moment schema 5 exists.
+    """
+    if version == SCHEMA_4_VERSION:
+        # Nothing is schema-5-only yet, so this branch's negative case is that
+        # the *prior* half is checked too — the half ``verify_lift`` owns.
+        assert _accept(
+            _SCHEMA_4_ONLY, version, schema_hash, with_prior=with_prior
+        ).lifts
+        return
+    with pytest.raises(AcceptanceError) as raised:
+        _accept(_SCHEMA_4_ONLY, version, schema_hash, with_prior=with_prior)
+    assert "was not built under the schema it names" in str(raised.value)
+
+
+def test_the_refusal_names_the_family_rather_than_the_field() -> None:
+    """The message has to say what is wrong, not merely that something is."""
+    with pytest.raises(AcceptanceError) as raised:
+        _accept(_SCHEMA_4_ONLY, SCHEMA_3_VERSION, SCHEMA_3_HASH, with_prior=True)
+    message = str(raised.value)
+    assert FactFamily.EFFECT_TERMINATION.value in message
+    assert SCHEMA_4_VERSION in message
 
 
 def test_serialization_refuses_the_h8_ownership_under_schema_3() -> None:

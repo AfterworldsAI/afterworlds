@@ -40,12 +40,14 @@ restamping this module exists to refuse.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.projection import representation_payload
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_COLLECTIONS,
     RepresentationDraft,
     held_structure_violations,
     post_schema_3_violations,
@@ -62,6 +64,7 @@ __all__ = [
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
+    "lift_chain_violations",
     "verify_lift",
 ]
 
@@ -219,6 +222,102 @@ def verify_lift(lift: SchemaLift, prior: RepresentationDraft) -> SchemaLiftRecor
         to_hash=lift.to_hash,
         verified_counts=tuple(counts),
     )
+
+
+def lift_chain_violations(
+    lifts: Sequence[SchemaLiftRecord], declared: tuple[str, str]
+) -> list[str]:
+    """Violations of a loaded lift chain against the registry and *declared*.
+
+    Loaded evidence is *read from a file*, so nothing about it is self-proving.
+    The wire-shape checks in the loader establish that each record is
+    well-formed; they say nothing about whether the succession it claims was
+    ever authorized, ever happened, or could have happened. Without this, an
+    artifact loads clean while asserting a transition no registry contains and a
+    proof extent over collections the representation does not have — an audit
+    surface that states more than the build ever did.
+
+    Six properties, in the order a reader would check them:
+
+    1. **Registered.** Each record's source pair is a key in :data:`SCHEMA_LIFTS`,
+       and the registered lift's ``lift_id``, destination version and
+       destination hash all match the record. That single check subsumes
+       "invented", "reversed", and "hash-mismatched": none of those has a
+       registry row whose destination agrees.
+    2. **Continuous, oldest first.** Each record's destination pair is the next
+       record's source pair. Reordering or omitting a step breaks the join, so
+       neither needs a rule of its own.
+    3. **Terminal.** The last record's destination is the schema the artifact
+       *declares*. Evidence that ends somewhere else describes a different
+       artifact.
+    4. **Non-repeating.** No transition appears twice. A succession is crossed
+       once; a repeat is either a duplicated record or a cycle, and both are
+       impossible histories rather than redundant ones.
+    5. **Exactly the representation's collections.** A proof extent is a claim
+       about what was verified, so it must range over the collections that
+       exist — no invented name, none missing.
+    6. **Empty is legal.** An artifact that never crossed a succession has no
+       evidence to carry, and property 3 does not apply to it. The committed
+       ``conditions-1`` artifact is exactly this case.
+    """
+    findings: list[str] = []
+    if not lifts:
+        return findings
+
+    seen: set[tuple[str, str, str, str]] = set()
+    for index, record in enumerate(lifts):
+        at = f"lifts[{index}] ({record.lift_id})"
+        source = (record.from_version, record.from_hash)
+        registered = SCHEMA_LIFTS.get(source)
+        if registered is None:
+            findings.append(
+                f"{at}: no lift is registered from {record.from_version!r} "
+                f"({record.from_hash}); this succession was never authorized"
+            )
+        elif (registered.lift_id, registered.to_version, registered.to_hash) != (
+            record.lift_id,
+            record.to_version,
+            record.to_hash,
+        ):
+            findings.append(
+                f"{at}: the registered lift from {record.from_version!r} is "
+                f"{registered.lift_id!r} to {registered.to_version!r} "
+                f"({registered.to_hash}), not {record.lift_id!r} to "
+                f"{record.to_version!r} ({record.to_hash})"
+            )
+
+        transition = (*source, record.to_version, record.to_hash)
+        if transition in seen:
+            findings.append(
+                f"{at}: this transition is already recorded; a succession is "
+                "crossed once"
+            )
+        seen.add(transition)
+
+        if index:
+            previous = lifts[index - 1]
+            if (previous.to_version, previous.to_hash) != source:
+                findings.append(
+                    f"{at}: does not continue the previous record, which ended "
+                    f"at {previous.to_version!r} ({previous.to_hash}); lift "
+                    "evidence is an ordered chain, oldest first"
+                )
+
+        collections = {name for name, _ in record.verified_counts}
+        if collections != REPRESENTATION_COLLECTIONS:
+            findings.append(
+                f"{at}: proof extent covers {sorted(collections)}, not the "
+                f"representation's collections {sorted(REPRESENTATION_COLLECTIONS)}"
+            )
+
+    last = lifts[-1]
+    if (last.to_version, last.to_hash) != declared:
+        findings.append(
+            f"lifts[{len(lifts) - 1}] ({last.lift_id}): the chain ends at "
+            f"{last.to_version!r} ({last.to_hash}), but the artifact declares "
+            f"{declared[0]!r} ({declared[1]})"
+        )
+    return findings
 
 
 def lift_accepted_inputs(

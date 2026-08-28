@@ -207,3 +207,118 @@ rationales. The dependency was **not** changed to silence the gate.
 * **`urllib3`, `setuptools`, `pip`, `msgpack`, `pydantic-settings` advisories are pre-existing
   environment dependencies.** `git diff origin/main..HEAD -- pyproject.toml` is empty: this PR
   introduces zero dependencies and changes no pin.
+
+
+---
+
+# Round 2
+
+Codex review of `22231b7`. Three findings, remediated as **two** families.
+
+## Correction to my round-2 report
+
+I initially told Codex that all malformed `recurs` shapes escaped as `TypeError`. **That was wrong** — my probe called a two-argument function with three arguments, so the `TypeError` I measured was my own. Re-verified with the correct arity:
+
+```
+['start_of_turn']  -> typed refusal  OK
+'start_of_turn'    -> typed refusal  OK
+7 / 3.5 / True     -> TypeError  <-- the real leak
+```
+
+Only **non-iterable scalars** escape. Codex's conclusion stands; my reproduction of it did not, and the fix is a mapping guard rather than a rewrite of the shape checks.
+
+---
+
+## Family 1 — schema succession and acceptance legality (R2-1, R2-3)
+
+### The invariant, stated once
+
+> A representation interpreted under a declared schema may not carry meaning that schema cannot state.
+
+Legality was previously checked **only where the schema changed** — inside `verify_lift`, on the *prior*. That left three acceptance paths open, and the proposed half unchecked on all of them.
+
+### R2-1 — enforced before every branch
+
+The guard runs in `accept_proposal` on the **proposed** representation unconditionally, and on the prior when there is one, *before* the branch that decides whether a lift is involved.
+
+**Not** added to `representation_payload`. That function's contract is to emit the declared key set; a full recursive walk there would run on every identity computation, every gate comparison, and both sides of every verified lift — which already runs the check explicitly. Acceptance is the seam authority is *created* at, so nothing reaches canonicalization as accepted authority without passing it first.
+
+All six branches, executed:
+
+```
+OVER-REFUSAL CONTROLS (must be ACCEPTED)
+  clean schema-3, equal-schema prior           ACCEPTED  lifts=0
+  clean schema-3, no prior                     ACCEPTED  lifts=0
+  schema-4 content, lifted prior               ACCEPTED  lifts=1
+  schema-4 content, no prior                   ACCEPTED  lifts=0
+
+THE DEFECT (must be refused)
+  schema-4 family declared schema-3, prior     refused
+  schema-4 family declared schema-3, no prior  refused
+```
+
+The over-refusal controls are the ones the new guard could plausibly have broken, and they were run first.
+
+### The non-executing test, replaced
+
+`test_acceptance_reports_the_restamp_as_an_acceptance_failure` asserted `issubclass(AcceptanceError, Exception)` and described in a comment what it would have tested. Replaced with real `accept_proposal` calls parameterized over all three branches in both directions, plus a message-content assertion. Seven executable tests where there was one vacuous one.
+
+### R2-3 — loaded evidence validated against the registered chain
+
+`lift_chain_violations(lifts, declared)` in `schema_lift.py`, called from `load_accepted_inputs`. Six properties:
+
+1. **Registered** — the source pair is a key in `SCHEMA_LIFTS` and the registered `lift_id`, destination version and destination hash all match. This one check subsumes *invented*, *reversed*, and *hash-mismatched*: none has a registry row whose destination agrees.
+2. **Continuous, oldest first** — each destination is the next source. *Reordered* and *omitted* both break the join, so neither needs its own rule.
+3. **Terminal** — the last destination is what the artifact declares.
+4. **Non-repeating** — a succession is crossed once; a repeat is a duplicate or a cycle.
+5. **Exactly the representation's collections** — the proof extent is derived from `REPRESENTATION_COLLECTIONS`, itself derived from `_DRAFT_ELEMENT_TYPES`, so the validator and the payload cannot drift.
+6. **Empty is legal** — the committed artifact has `lifts == ()`, and property 3 must not fire on it.
+
+Rejection matrix, all executed end to end through `load_accepted_inputs`:
+
+```
+legal: no lifts at all (committed)       LOADED  OK
+legal: one registered lift               LOADED  OK
+invented transition                      refused
+registered source, wrong destination     refused
+registered source, wrong lift_id         refused
+reversed                                 refused
+duplicated                               refused
+terminal disagrees with declaration      refused
+invented proof collection                refused
+proof extent missing a collection        refused
+disconnected chain                       refused
+```
+
+---
+
+## Family 2 — typed persisted-state reconstruction (R2-2)
+
+### Sibling audit — every JSON reconstruction boundary in the PR
+
+| Boundary | Malformed shapes probed | Disposition |
+|---|---|---|
+| `_recurrence_from_row` | int, float, bool, str, list, tuple, dict | **patched** — mapping guard before inspection; the `cast("dict[str, Any]", payload)` above it was the actual lie and is removed |
+| `_applicability_from_row` | same | **already safe** — `applicability_payload_violations` checks the mapping shape first; now pinned by a test, since a later edit could reorder that |
+| `_fact_from_row` → `fact_from_payload` | same | **patched** — `fact_from_payload` meets a scalar with `AttributeError`, which the row loader's `except` did not catch |
+| `raw_state._valid_target_key` (provenance `target_key`) | — | **already safe** — `isinstance(value, list) and all(type(v) is str …)`, returns a bool rather than raising |
+| component `options` JSON | — | **already safe** — reconstructed through `parse_enum` and the applicability boundary above |
+
+Post-patch probe: `_recurrence_from_row` and `_applicability_from_row` both leak **nothing** across all seven shapes.
+
+### The gate verdict, asserted on the gate
+
+`run_publication_gate` now returns `PERSISTED_STATE` for a corrupted `recurs` column rather than aborting. That is the property the typed error exists for: the gate's contract is that a caller receives a refusal, not an exception. The previous behaviour was fail-closed in the wrong currency — and uncategorized, the same shape as the `fb23a04` residue item.
+
+---
+
+## No re-pin
+
+These are enforcement changes, not representation-surface changes, and the identity-bearing payload confirms it:
+
+```
+schema payload hash : e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9
+SCHEMA_4_HASH pin   : e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9  (unchanged)
+SCHEMA_3_HASH       : 43ed330d…  (unchanged)
+ZERO MOVEMENT       : HOLDS
+```

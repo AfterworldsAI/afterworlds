@@ -75,6 +75,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
     component_target_key,
     held_structure_violations,
+    post_schema_3_violations,
     prose_binding_target_key,
     record_target_key,
     reference_target_key,
@@ -271,6 +272,40 @@ def accept_proposal(
         raise AcceptanceError(
             "this proposal declares a different semantic policy than the prior "
             "accepted authority it would extend"
+        )
+
+    # **The central invariant, and it runs before every branch below.** A
+    # representation interpreted under a declared schema may not carry meaning
+    # that schema cannot state. Legality was previously checked only where the
+    # schema *changed* — inside ``verify_lift``, on the *prior* — which left
+    # three acceptance paths open: no prior at all, a prior declaring the same
+    # (version, hash) as the proposal, and the proposed half of a lifted
+    # acceptance. On any of those a proposal carrying a schema-4-only family
+    # was accepted with ``lifts == ()``, producing accepted authority its own
+    # declaration cannot state and that a later lift would then refuse.
+    #
+    # Checked here rather than inside ``representation_payload``: that function's
+    # contract is to emit the declared key set, and putting a full recursive walk
+    # on it would run on every identity computation and both sides of every
+    # verified lift. Acceptance is the seam authority is *created* at, so nothing
+    # reaches canonicalization as accepted authority without passing this first.
+    if illegal := post_schema_3_violations(
+        proposal.proposed_representation, proposal.schema_version
+    ):
+        raise AcceptanceError(
+            f"this proposal declares {proposal.schema_version!r} but its "
+            "representation carries content only a later schema can state, so it "
+            "was not built under the schema it names: " + "; ".join(illegal)
+        )
+    if prior is not None and (
+        illegal := post_schema_3_violations(
+            prior.oracle.representation, prior.oracle.schema_version
+        )
+    ):
+        raise AcceptanceError(
+            f"the prior accepted authority declares {prior.oracle.schema_version!r} "
+            "but carries content only a later schema can state, so it was not "
+            "accepted under the schema it names: " + "; ".join(illegal)
         )
 
     # A schema difference is refused unless an authorized lift covers this exact
