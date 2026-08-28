@@ -476,6 +476,19 @@ subclass seams, and the recognition phrase for the three unauthorized-transition
 authorization half is still covered by `test_the_reverse_transition_is_refused`, where both pairs are
 recognized and no lift exists between them.
 
+## One behavioural consequence, named rather than left implicit
+
+`_resolve_committed_inputs` loads **every** `*.json` in the oracle directory before filtering by release
+binding, so a file that cannot be loaded now blocks resolution for every release rather than being filtered
+out. That is not new in kind — the loader already refused a malformed shape, a missing key, an obligation
+that does not reconcile, and incomplete acceptance evidence, and the resolver has always propagated those.
+This round only widens the set of files that refuse.
+
+Kept fail-closed deliberately. The directory is packaged accepted authority, not a drop box: a file there
+that is not loadable accepted authority is either tampered or misplaced, and skipping it would mean
+publication resolving *around* a committed artifact nobody can read. The one file this actually caught was
+the packaging sentinel, which was a test fixture declaring a fake contract, not a legitimate artifact.
+
 ## No re-pin
 
 Enforcement of the already identity-bound contract; nothing touches `representation_schema_payload()`.
