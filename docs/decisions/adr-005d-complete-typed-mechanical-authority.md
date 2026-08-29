@@ -130,6 +130,38 @@ The projection cannot contain:
 
 The projection is declarative data consumed by hand-authored code.
 
+**Amended by Owner Decision 2026-08-29 (#137 round 6) — schema identity binds the intrinsic validation
+contract, not only the wire shape.** A serialized grammar is not only which fields exist and which values
+they admit; it is also which combinations of them mean anything. Two builds agreeing on every family,
+field, and vocabulary while disagreeing about whether a duration may be negative, whether a fraction may
+have a zero denominator, or whether a closed choice must contain the pair the fact declares are not
+implementing one contract — and before this they hashed identically.
+
+The representation schema payload therefore carries an **invariant manifest** beside its introduction
+manifest, on these terms:
+
+* **Serialized identifiers only.** Each row names a locus the wire can show — a fact family discriminator,
+  an applicability kind, or, for a nested value object that carries no type tag, its sorted field set — and
+  never a Python class, function, or module name. Identity may not depend on what a payload cannot show.
+* **Declarations, never implementations.** No source text, bytecode, comment, or docstring is hashed.
+  Reminting accepted authority for a refactor is the failure this rule exists to prevent, and it is
+  unchanged.
+* **Scope, so the declaration is stable.** Every intrinsic invariant a schema-4 addition settled and the
+  representation's validators enforce, plus the shared value-object rules those additions delegate to,
+  including a joined rule's full extent. Schema-3-era ranges this succession did not touch, and relational
+  rules checked against the corpus rather than intrinsic to a value, stay outside it.
+* **Executable, or it is not declared.** Every row is exercised by an exemplar the shared validator refuses
+  and one it admits, and the coverage is asserted as a set equality, so a row nothing demonstrates fails
+  the suite rather than standing as prose.
+* **Loosening it costs the succession.** Weakening or removing a row moves the schema hash, so the
+  registered lift's destination pin no longer describes this build and `lift_for` refuses the transition.
+
+Finalizing this contract moved the schema-4 destination hash once, before merge, to
+`3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5`. The schema-3 source pin
+`43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` is unchanged, and zero movement was
+re-run against the finalized destination: six collections byte-identical, every stored coordinate
+re-deriving, `oracle_identity` unmoved.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

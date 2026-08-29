@@ -569,7 +569,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = "e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9"  # noqa: E501  # pragma: allowlist secret
+EXPECTED_SCHEMA_HASH = "3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:
@@ -602,28 +602,41 @@ def test_audit_metadata_stays_outside_the_schema_identity(session: Session) -> N
     )
 
 
-def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
-    """Why the version carries a manual obligation the hash cannot.
+def test_the_schema_hash_covers_declared_invariants_and_not_checker_code() -> None:
+    """What the hash binds about invariants, and what it still cannot.
 
-    The hash is derived from declared structure, deliberately: hashing checker
-    implementations would remint authority for a refactor. The cost is that an
-    invariant change which narrows the admitted value set — rejecting a
-    ``THRESHOLD_LOWERED`` threshold of 20, say — leaves every family, field, and
-    vocabulary identical and therefore leaves the hash identical too.
+    Originally this test recorded the whole gap: the hash was derived from
+    declared structure alone, so an invariant change that narrowed the admitted
+    value set left every family, field, and vocabulary identical and left the
+    hash identical too. Two builds disagreeing about whether a duration may be
+    negative hashed the same.
 
-    This test states that gap as a fact rather than leaving it to be discovered:
-    two builds admitting different value sets can share a hash, so
-    ``REPRESENTATION_SCHEMA_VERSION`` must be bumped by hand when an invariant
-    changes meaning. Nothing here can enforce that; what it can do is stop the
-    gap from being invisible.
+    ``invariant_manifest()`` closes that for the schema-4 intrinsic contract —
+    the ranges, paired fields, and reconciliations the additions settled, plus
+    the shared value-object rules they delegate to — and the payload carries it,
+    so weakening one of those moves the hash and invalidates the destination
+    lift pin. See ``test_schema_4_invariant_closure``.
+
+    Two things are still deliberately outside it, and this test pins both.
+    Checker *implementations* are never hashed: reminting authority for a
+    refactor is the failure that rule exists to prevent. And schema-3-era value
+    ranges this succession did not touch stay undeclared, so a change to one of
+    them still requires a hand-written version bump — the residue is smaller
+    than it was, and it is not zero.
     """
     rendered = json.dumps(representation_schema_payload())
     # The declared contract names the family and its field...
     assert "critical_hit_rule" in rendered
     assert "threshold" in rendered
-    # ...and says nothing about which values that field may take.
+    # ...and still says nothing about which values that schema-3-era field takes.
     assert "19" not in rendered and "ordinary" not in rendered
-    # The vacuity fix that prompted this note left the hash untouched.
+    assert not [
+        row
+        for row in representation_schema_payload()["invariants"]  # type: ignore[union-attr]
+        if row["locus"] == "fact:critical_hit_rule"  # type: ignore[index]
+    ]
+    # And the declaration is prose about rules, never about the code holding them.
+    assert "def " not in rendered and "_check_" not in rendered
     assert representation_schema_hash() == EXPECTED_SCHEMA_HASH
 
 

@@ -273,6 +273,33 @@ def test_a_malformed_fraction_fails_rather_than_reconstructing_differently(
         build({**applicability_payload(CONSUMPTION), "fraction": fraction})
 
 
+@pytest.mark.parametrize(("build", "error"), BOUNDARIES)
+@pytest.mark.parametrize("value", [-1, -5], ids=["minus-one", "minus-five"])
+def test_every_builder_refuses_a_negative_elapsed_duration(
+    build, error: type[Exception], value: int
+) -> None:  # type: ignore[no-untyped-def]
+    """#137 round 6: the range rule was written on one kind, not on the field.
+
+    ``quantity_threshold`` refused a negative count from the beginning;
+    ``elapsed_duration`` arrived later and inherited nothing, so a stored,
+    committed, or patched applicability could state negative time. Each builder
+    reports it in its own words because each already validates the rebuilt value
+    through ``applicability_violations`` — no builder needed a range rule.
+    """
+    with pytest.raises(error):
+        build({**applicability_payload(ELAPSED), "value": value})
+
+
+@pytest.mark.parametrize(("build", "error"), BOUNDARIES)
+@pytest.mark.parametrize("value", [0, 6], ids=["zero", "six"])
+def test_every_builder_still_admits_zero_and_positive_durations(
+    build, error: type[Exception], value: int
+) -> None:  # type: ignore[no-untyped-def]
+    """The over-refusal control. Zero is a real duration, and stays legal."""
+    rebuilt = build({**applicability_payload(ELAPSED), "value": value})
+    assert rebuilt.value == value
+
+
 def test_a_schema_3_payload_needs_none_of_the_new_keys() -> None:
     """The control, stated directly.
 

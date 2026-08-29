@@ -580,3 +580,120 @@ oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b0
 committed artifact round-trips to identical payload : yes
 ZERO MOVEMENT  : HOLDS
 ```
+
+---
+
+# Round 6
+
+Two P1s, and one audit that treats them as instances rather than as the problem.
+
+## R6-1 — ELAPSED_DURATION admitted negative time
+
+The non-negative rule was written on `QUANTITY_THRESHOLD`'s branch rather than on the field, so
+`ELAPSED_DURATION` inherited nothing when it was added.
+
+```
+before                          after
+value=-5   passes               REFUSED
+value=0    passes               passes
+value=6    passes               passes
+```
+
+Zero is preserved deliberately. Nothing in the governing contract asks for a positive bound, and turning
+"not below zero" into "above zero" while fixing a range would refuse a real state. The rule now lives on a
+`_NONNEGATIVE_VALUE_KINDS` set, so a later kind that ranges over `value` joins it by joining the set —
+which is exactly what `elapsed_duration` failed to do.
+
+## R6-2 — alternatives were checked without ever being compared to the fact
+
+```
+                                          before   after
+real Falling shape (Str/Ath or Dex/Acro)  passes   passes
+empty alternatives                        passes   passes
+member rolled as a saving throw           passes   REFUSED
+closed set omitting the fact's own pair    passes   REFUSED
+declared pair named twice, distinct rolls  passes   REFUSED
+```
+
+The last case is the one payload uniqueness cannot see: two members differing in `actor` are distinct
+rolls that name the same ability and skill. Only comparing the set against the fact catches it.
+
+`_check_alternatives` now takes the fact's `ability` and `skill`, and the field documentation is corrected:
+`alternatives` is the **complete** closed choice including the pair the fact carries, not extras beside it.
+
+**Actor consistency — audited, deliberately not enforced.** The settled invariant (hazards-1 closure
+checkpoint, invariant 4) says: *"empty or ≥2 entries, each a distinct RollSpec; the DC stays on the
+fact"*. It states nothing about actors, and the H-11 authority text does not either. The three corpus
+rules (Falling, Grappling, Rope of Entanglement) are all subject-rolled, which is evidence but not a
+settled rule — a set offering one creature's check or another's would be refused by *no* existing
+authority. Surfaced rather than invented. Note that the declared-pair rule already refuses the specific
+shape most likely to be meant by it: the same ability and skill under two different actors.
+
+## The bounded schema-4 invariant-closure audit
+
+| Addition | Settled intrinsic invariants | Shared validator | Result |
+|---|---|---|---|
+| H-1 recurrence | `whose` stated exactly for a turn boundary | `recurrence_violations` | already safe |
+| H-2 effect/hazard termination | none beyond its vocabulary | `_check_effect_termination` | already safe |
+| H-3 size-keyed quantity | ≥1 row, each size once, size-declaration order | `_check_size_keyed_quantity` | already safe |
+| H-4 consumption threshold | `fraction` is a rational share | `applicability_violations` | **patched in round 5** |
+| H-5 cause-scoped condition levels | `cumulative` only for an accrual; amount/all_levels exclusive | `_check_condition_level` | already safe |
+| H-6 removal restriction | `cause_scoped` always true; `until` is a checked applicability | `_check_removal_restriction` | already safe |
+| H-7 distance-fallen scaling | `threshold` ≥ 0; exactly one increment | `_check_scaling` | already safe |
+| H-8 record-grain reference ownership | empty owner names a declared record | `validation` / `raw_state` (relational) | already safe |
+| H-9 maximum damage dice | caps a stated expression, never below its count | `_check_damage` | already safe |
+| H-10 damage-outcome applicability | closed field matrix | `applicability_violations` | already safe |
+| H-11 skill axis + check alternatives | closed choice reconciled with the fact | `_check_alternatives` | **patched (R6-2)** |
+| H-12 roll-outcome applicability | closed field matrix | `applicability_violations` | already safe |
+| H-13 damage modification | a **positive** rational other than one, agreeing with direction | `_check_damage_modification` | **patched** — `Rational(0, 1)` passed, and the direction rule actively endorsed it (`0 < 1` agrees with `reduce`). Settled invariant 7 says positive |
+| H-14 elapsed duration | `value` ≥ 0 | `applicability_violations` | **patched (R6-1)** |
+| H-15 derived quantity with a floor | floor states both an amount and a unit, or neither | `_check_derived_quantity` | already safe |
+
+**Surfaced, not patched.** `DerivedQuantityFact.base` admits a negative constant (`base=-3` passes). No
+governing authority settles a sign for it — *"1 + your Constitution modifier minutes"* fixes no minimum,
+and a rule phrased as a modifier minus a constant is expressible. Inventing a bound here would be policy,
+so it is recorded rather than decided.
+
+**Also excluded from the manifest, deliberately:** schema-3-era value ranges this succession did not
+touch — a flat damage amount's minimum, an armour class's floor, a multiplier's minimum. Declaring them
+would make the identity churn on edits that have nothing to do with schema 4.
+
+## Schema identity now binds the intrinsic contract
+
+`invariant_manifest()` — 16 rows — is emitted by `representation_schema_payload()`. Rows name a serialized
+locus and field: a family discriminator (`fact:ability_check`), an applicability kind
+(`applicability:elapsed_duration`), or, for a nested value object that carries no tag at all, its sorted
+wire field set (`shape:denominator+numerator`). No Python class or function name appears, and no source,
+bytecode, comment or docstring is read.
+
+Executable by construction: `test_every_declared_invariant_is_executable` asserts the declared row set
+equals the covered row set, and each row carries one exemplar the shared validator refuses and one it
+admits. A row nothing demonstrates fails the suite.
+
+`test_weakening_an_invariant_declaration_breaks_the_registered_lift` drops a row, shows the hash moves, and
+shows `lift_for` then refuses the transition — the contract cannot be loosened while the registered
+succession keeps working.
+
+## Re-pin — destination only
+
+```
+SCHEMA_3_HASH  : 43ed330d…  UNCHANGED (asserted by the re-pin helper)
+SCHEMA_4_HASH  : e1fed378…  →  3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5
+```
+
+Repinned by `repin-schema-4.py`: the lift's destination pin by name, `bounded_oracle.json`, and the three
+literal canaries. Zero movement re-run against the finalized hash:
+
+```
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda (unmoved)
+committed artifact round-trips to identical payload : yes
+registered lift verifies to the finalized destination : yes
+```
+
+**detect-secrets: exactly one field moved.** `results[bounded_oracle.json][line 191].hashed_secret`,
+`ac3f36eb…` → `7ff74fa7…`, edited surgically rather than by rescanning. `generated_at`, `filters_used`,
+`plugins_used` and the other five recorded results are untouched. (A full `detect-secrets scan --baseline`
+was tried first and rejected: it swept untracked working files in `.claude/review-notes/` into the
+baseline, which would have committed hundreds of rows nothing asked for.)

@@ -205,6 +205,7 @@ __all__ = [
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
     "declared_meaning_violations",
+    "invariant_manifest",
     "held_structure_violations",
     "size_comparison_violations",
     "ComponentDraft",
@@ -1302,10 +1303,16 @@ class AbilityCheckFact:
     #: fixes that pairing, so a mismatch is a build-time error rather than data
     #: a consumer has to second-guess.
     skill: Skill | None = None
-    #: Additional equally-valid rolls the source offers for this one DC:
+    #: The **complete** set of equally-valid rolls the source offers for this
+    #: one DC — including the pair this fact carries, not extras beside it:
     #: Falling's *"a DC 15 Strength (Athletics) **or** Dexterity (Acrobatics)
     #: check"*. Neither a bare Strength nor a bare Dexterity claim is true of
     #: that rule, so without this the clause cannot be typed at all.
+    #:
+    #: Empty means no choice was offered and ``ability``/``skill`` are the whole
+    #: claim. Non-empty means the choice is closed and this fact's own
+    #: ``ability``/``skill`` pair appears in it exactly once, every member is
+    #: rolled as an ability check, and they share the DC above.
     #:
     #: A **closed set of same-shaped rolls**, not an expression: no operators,
     #: no nesting, and nothing to negate. Three rules across two top-level
@@ -2231,11 +2238,27 @@ def _check_skill_pairing(skill: object, ability: object, where: str) -> list[str
     return []
 
 
-def _check_alternatives(alternatives: object) -> list[str]:
-    """A closed set of same-shaped rolls, in canonical order, or nothing.
+def _check_alternatives(
+    alternatives: object, ability: object, skill: object
+) -> list[str]:
+    """The complete closed choice this fact offers, or nothing.
 
-    One alternative is a single roll misdescribed, and authoring order must not
-    reach the fact key — two authorings of one set are one claim.
+    Empty means an ordinary ability check: the fact's own ``ability`` and
+    ``skill`` are the whole claim. Non-empty means the fact states a *choice*,
+    and the set is then **complete** — it includes the pair the fact carries
+    rather than listing extras beside it. Falling prints *"a DC 15 Strength
+    (Athletics) or Dexterity (Acrobatics) check"*: one DC, two equally-valid
+    rolls, and the fact's declared pair is one of them.
+
+    That completeness is what the reconciliation rules below enforce, and it is
+    why they have to read the fact rather than the tuple alone (#137 round 6).
+    A set that omitted the declared pair would describe a different choice than
+    the one the fact claims; a set that named it twice would offer the same roll
+    under two spellings; a member rolled in another context would not be an
+    alternative to a check at all.
+
+    Ordering and uniqueness stay as they were: authoring order must not reach
+    the fact key, because two authorings of one set are one claim.
     """
     if not isinstance(alternatives, tuple) or any(
         type(r) is not RollSpec for r in alternatives
@@ -2261,6 +2284,24 @@ def _check_alternatives(alternatives: object) -> list[str]:
         findings.append("alternatives is not in canonical order")
     if len(set(payloads)) != len(payloads):
         findings.append("alternatives repeats a roll")
+
+    for index, roll in enumerate(alternatives):
+        if roll.context is not RollContext.ABILITY_CHECK:
+            findings.append(
+                f"alternatives[{index}] is rolled as {roll.context.value}; a "
+                "check offers alternative checks, and one DC does not govern "
+                "two kinds of roll"
+            )
+    # The declared pair, exactly once. Matched on the ability and skill the
+    # fact itself carries — the fact states no actor, so nothing here reads one.
+    declared = sum(1 for r in alternatives if (r.ability, r.skill) == (ability, skill))
+    if declared != 1:
+        named = "no member" if declared == 0 else f"{declared} members"
+        findings.append(
+            f"alternatives is the complete choice, and {named} states the "
+            f"fact's own {getattr(ability, 'value', ability)!r}"
+            f"/{getattr(skill, 'value', skill)!r} pair"
+        )
     return findings
 
 
@@ -2330,6 +2371,12 @@ def _check_damage_modification(fact: DamageModificationFact) -> list[str]:
         findings.append(f"rounding {fact.rounding!r} is not a declared RoundingRule")
     if findings:
         return findings
+    if fact.factor.numerator == 0:
+        # Settled invariant: the factor is a *positive* Rational other than one.
+        # ``_check_rational`` admits zero because a zero share is a real state
+        # elsewhere; a zero *factor* is not a modification of an amount, it is
+        # the amount's deletion, which this family cannot state.
+        findings.append("a modification by zero states no factor")
     if fact.factor.numerator == fact.factor.denominator:
         findings.append("a modification by one changes nothing")
     reduces = fact.factor.numerator < fact.factor.denominator
@@ -2364,7 +2411,7 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
         *_optional_int_field(fact.dc_value, "dc_value"),
         *_check_skill_pairing(fact.skill, fact.ability, "skill"),
-        *_check_alternatives(fact.alternatives),
+        *_check_alternatives(fact.alternatives, fact.ability, fact.skill),
     ]
     if findings:
         # The DC relationship below reads dc_kind and dc_value; checking it
@@ -4567,6 +4614,11 @@ def representation_schema_payload() -> dict[str, object]:
         # refuses the transition. The contract cannot be loosened while the
         # registered lift keeps working.
         "introductions": introduction_manifest(),
+        # The intrinsic validation contract, carried inside the identity it
+        # governs, for the same reason and with the same consequence: two builds
+        # agreeing on every field and vocabulary while disagreeing about which
+        # combinations of them mean anything do not implement one contract.
+        "invariants": invariant_manifest(),
     }
 
 
@@ -5637,6 +5689,17 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     ApplicabilityKind.ELAPSED_DURATION: frozenset({"value", "unit"}),
 }
 
+#: Kinds whose ``value`` is a count rather than an arbitrary integer. Keyed by
+#: kind rather than written inside one kind's branch, so a later kind that
+#: ranges over ``value`` joins the rule by joining this set — which is exactly
+#: what ``elapsed_duration`` failed to do when it was added.
+_NONNEGATIVE_VALUE_KINDS: frozenset[ApplicabilityKind] = frozenset(
+    {
+        ApplicabilityKind.QUANTITY_THRESHOLD,
+        ApplicabilityKind.ELAPSED_DURATION,
+    }
+)
+
 _APPLICABILITY_ALL_FIELDS = frozenset(
     {
         "quantity",
@@ -6284,6 +6347,198 @@ def option_set_violations(
     return findings
 
 
+@dataclass(frozen=True)
+class _Invariant:
+    """One intrinsic validation rule, named the way the wire names things.
+
+    ``locus`` is a serialized identifier and never a Python name: a fact family
+    discriminator (``fact:ability_check``), an applicability kind
+    (``applicability:elapsed_duration``), or — for a nested value object, which
+    carries no tag at all — its sorted wire field set (``shape:...``). The same
+    reasoning ``introduction_manifest`` uses for vocabularies: a payload cannot
+    show a class name, so identity may not depend on one.
+    """
+
+    locus: str
+    field: str
+    rule: str
+
+
+def _shape_locus(cls: type) -> str:
+    """A tagless nested value object, identified by the keys it serializes.
+
+    Two structurally identical value objects render identically here, which is
+    the same answer ``representation_schema_payload`` already gives for two
+    vocabularies admitting the same values — and correct for the same reason:
+    nothing reading a payload could tell them apart either.
+    """
+    return "shape:" + "+".join(sorted(f.name for f in fields(cls)))
+
+
+#: The intrinsic validation contract, carried inside the schema identity.
+#:
+#: **Scope, stated once so the declaration stays stable.** Every intrinsic
+#: invariant a schema-4 addition settled and this module's validators enforce,
+#: plus the shared value-object rules those additions delegate to. Where an
+#: addition joined a rule that already existed, the rule's *full* extent is
+#: declared — a declaration naming half of a shared rule would be false about
+#: the other half.
+#:
+#: Deliberately excluded, and neither is an oversight:
+#:
+#: * **Schema-3-era rules this succession did not touch** — a flat damage
+#:   amount's minimum, an armour class's floor, a multiplier's minimum. Declaring
+#:   them would make this manifest churn on edits that have nothing to do with
+#:   schema 4, and a churning identity re-mints authority for no reason.
+#: * **Relational rules** — provenance closure, reference resolution, obligation
+#:   reconciliation. Those are not properties of a serialized value; they are
+#:   checked against the corpus and the rest of the draft, and this manifest
+#:   describes the grammar, not the world it is checked against.
+_INVARIANTS: tuple[_Invariant, ...] = (
+    # The shared numeric shape every rational-valued field delegates to.
+    _Invariant(
+        locus=_shape_locus(Rational),
+        field="numerator",
+        rule="an integer, never below zero",
+    ),
+    _Invariant(
+        locus=_shape_locus(Rational),
+        field="denominator",
+        rule="an integer of at least one",
+    ),
+    # The shared roll shape H-11's alternatives are made of.
+    _Invariant(
+        locus=_shape_locus(RollSpec),
+        field="skill",
+        rule="a skill whose printed governing ability equals this roll's ability",
+    ),
+    # H-1 recurrence.
+    _Invariant(
+        locus=_shape_locus(Recurrence),
+        field="whose",
+        rule="stated exactly for a turn boundary, and never for another boundary",
+    ),
+    # H-3 size-keyed quantity.
+    _Invariant(
+        locus="fact:size_keyed_quantity",
+        field="values",
+        rule=(
+            "at least one row, each creature size at most once, in creature-size "
+            "declaration order rather than authoring order"
+        ),
+    ),
+    # H-4 consumption threshold, and H-14 elapsed duration beside the kind whose
+    # rule it joined.
+    _Invariant(
+        locus="applicability:consumption_threshold",
+        field="fraction",
+        rule="a rational share, held to the shared rational rules",
+    ),
+    _Invariant(
+        locus="applicability:quantity_threshold",
+        field="value",
+        rule="an integer count, never below zero",
+    ),
+    _Invariant(
+        locus="applicability:elapsed_duration",
+        field="value",
+        rule="an integer count, never below zero",
+    ),
+    # H-10 and H-12 add kinds; the rule they join is the closed field matrix.
+    _Invariant(
+        locus="applicability",
+        field="kind",
+        rule=(
+            "the kind determines the populated field set exactly: every field it "
+            "ranges over is stated, and no other field is"
+        ),
+    ),
+    # H-5 cause-scoped condition levels.
+    _Invariant(
+        locus="fact:condition_level",
+        field="cumulative",
+        rule="stated only for an accrual",
+    ),
+    # H-6 removal restriction.
+    _Invariant(
+        locus="fact:condition_removal_restriction",
+        field="cause_scoped",
+        rule=(
+            "always true; unscoped, the restriction would reach levels this "
+            "record never caused"
+        ),
+    ),
+    # H-7 distance-fallen scaling.
+    _Invariant(
+        locus="fact:scaling",
+        field="threshold",
+        rule="an integer, never below zero",
+    ),
+    # H-9 maximum damage dice.
+    _Invariant(
+        locus="fact:damage",
+        field="maximum_dice",
+        rule=(
+            "caps a stated dice expression, and is never below the count that "
+            "expression already states"
+        ),
+    ),
+    # H-11 check alternatives.
+    _Invariant(
+        locus="fact:ability_check",
+        field="alternatives",
+        rule=(
+            "empty, or the complete closed choice: at least two unique members in "
+            "canonical order, every member rolled as an ability check, and this "
+            "fact's own ability and skill named exactly once"
+        ),
+    ),
+    # H-13 damage modification.
+    _Invariant(
+        locus="fact:damage_modification",
+        field="factor",
+        rule=(
+            "a positive rational other than one, whose side of one agrees with "
+            "the stated direction"
+        ),
+    ),
+    # H-15 ability-modifier-derived quantity.
+    _Invariant(
+        locus="fact:derived_quantity",
+        field="floor_amount",
+        rule="a floor states both an amount and a unit, or neither",
+    ),
+)
+
+
+def invariant_manifest() -> list[dict[str, str]]:
+    """The intrinsic validation contract, in the shape the schema payload carries.
+
+    **Identity-bound on purpose**, exactly as :func:`introduction_manifest` is.
+    The Owner requires schema identity to describe the complete serialized
+    grammar, and a grammar is not only which fields exist and which values they
+    admit — it is also which combinations of them mean anything. Two builds that
+    agree on every field and vocabulary and disagree about whether a duration may
+    be negative do not implement one contract, and before this they hashed
+    identically.
+
+    Removing or weakening a row moves the hash, so the destination pin in
+    :mod:`~afterworlds.ingestion.mechanical.schema_lift` stops matching and
+    ``lift_for`` refuses the transition. The invariant contract therefore cannot
+    be loosened while the registered lift keeps working.
+
+    Declarations, never source: no function name, no module path, no docstring
+    and no bytecode is read here. Each row names a serialized locus, a serialized
+    field, and the rule in prose that is checked by
+    ``test_every_declared_invariant_is_executable`` — which refuses a row nothing
+    demonstrates, so the manifest cannot decay into decorative text.
+    """
+    return [
+        {"locus": row.locus, "field": row.field, "rule": row.rule}
+        for row in sorted(_INVARIANTS, key=lambda r: (r.locus, r.field, r.rule))
+    ]
+
+
 def applicability_violations(applicability: Applicability) -> list[str]:
     """Violations of one applicability's own contract.
 
@@ -6357,9 +6612,18 @@ def applicability_violations(applicability: Applicability) -> list[str]:
             )
     if findings:
         return findings
-    if applicability.kind is ApplicabilityKind.QUANTITY_THRESHOLD:
+    if applicability.kind in _NONNEGATIVE_VALUE_KINDS:
+        # Both kinds range over a count: a quantity consumed and a duration
+        # elapsed. Neither can be below zero, and the rule was written on the
+        # first kind rather than on the field, so the second inherited nothing
+        # when it was added (#137 round 6). Zero stays legal — "no time has
+        # elapsed" and "the pool is empty" are both real states, and nothing in
+        # the governing contract asks for a positive bound.
         if applicability.value is not None and applicability.value < 0:
-            findings.append(f"threshold value {applicability.value} is not a quantity")
+            findings.append(
+                f"{applicability.kind.value} applicability states "
+                f"{applicability.value}, which is not a count"
+            )
     elif applicability.kind is ApplicabilityKind.SIZE_COMPARISON:
         seen: set[SizeComparison] = set()
         for comparison in applicability.any_of:

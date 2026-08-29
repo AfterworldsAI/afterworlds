@@ -458,7 +458,7 @@ def test_the_schema_version_and_hash_are_unchanged() -> None:
     """Checker code changed; the wire contract did not. No schema 3."""
     assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-4"
     assert representation_schema_hash() == (
-        "e1fed378a23e5984ddcc7f0fc08e03118fe05db1594e31b449facdf12fdadbc9"  # noqa: E501  # pragma: allowlist secret
+        "3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5"  # noqa: E501  # pragma: allowlist secret
     )
 
 
