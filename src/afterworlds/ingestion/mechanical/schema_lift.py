@@ -55,10 +55,13 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle guard
+    from afterworlds.ingestion.mechanical.models import AcceptanceBatch
     from afterworlds.ingestion.mechanical.oracle import AcceptedInputs
 
 __all__ = [
     "SCHEMA_LIFTS",
+    "BatchSchemaAnchor",
+    "succession_evidence_violations",
     "accepted_schema_contracts",
     "schema_binding_violations",
     "lift_accepted_inputs",
@@ -75,7 +78,7 @@ SCHEMA_3_VERSION = "5d-representation-schema-3"
 SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_4_VERSION = "5d-representation-schema-4"
 #: Pinned literally. See the module docstring for why this is not derived.
-SCHEMA_4_HASH = "3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_4_HASH = "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -162,6 +165,15 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
         ),
     ),
 }
+
+
+#: Declarations an artifact may not make while stating no anchor at all. Schema 4
+#: is the first contract that exists alongside a registered succession *into* it,
+#: so it is the first declaration whose unanchored form is ambiguous: before it,
+#: "no anchor" could only ever mean "reviewed under what this file declares".
+_POST_LEGACY_CONTRACTS: frozenset[tuple[str, str]] = frozenset(
+    {(SCHEMA_4_VERSION, SCHEMA_4_HASH)}
+)
 
 
 def lift_for(source: tuple[str, str], target: tuple[str, str]) -> SchemaLift:
@@ -401,6 +413,147 @@ def lift_chain_violations(
     return findings
 
 
+@dataclass(frozen=True)
+class BatchSchemaAnchor:
+    """The representation schema one acceptance batch was *reviewed* under.
+
+    Evidence, beside the batches rather than inside them. An ``AcceptanceBatch``
+    records what a human accepted — scope, semantic diff, diff hash, proposal
+    identity — and those are preserved exactly as they were written; a batch
+    accepted in 2026 does not acquire a field because a later succession needed
+    one. This says the one thing the batch never said and the artifact could not
+    otherwise reconstruct.
+
+    **Why it has to exist at all.** Without it an empty lift history has two
+    meanings that cannot be told apart: authority genuinely first accepted under
+    the declared schema, and authority reviewed under an earlier schema whose
+    declaration was simply overwritten. The second is a restamp — the exact
+    thing :mod:`schema_lift` exists to refuse — and it loaded clean, because
+    every other check the artifact carries is satisfied by it (#137 round 7).
+
+    Keyed by ``batch_id`` *and* ``proposal_identity`` so an anchor cannot be
+    moved onto a different batch, or left pointing at a batch whose proposal was
+    rewritten. Neither field is invented here: both are copied from the batch the
+    anchor describes, and a mismatch is refused rather than reconciled.
+    """
+
+    batch_id: str
+    proposal_identity: str
+    schema_version: str
+    schema_hash: str
+
+
+def succession_evidence_violations(
+    batches: Sequence[AcceptanceBatch],
+    anchors: Sequence[BatchSchemaAnchor],
+    lifts: Sequence[SchemaLiftRecord],
+    declared: tuple[str, str],
+) -> list[str]:
+    """Violations of an artifact's complete succession evidence.
+
+    One reader for the three halves that only mean something together: which
+    schema each retained batch was reviewed under, which successions the artifact
+    crossed, and what it declares now. Each half is satisfiable on its own by a
+    restamped artifact, which is why they are checked against each other here
+    rather than separately.
+
+    The rules, in the order a reader would ask them:
+
+    1. **Anchored, or legacy.** Every retained batch carries exactly one anchor.
+       Absence is admitted for one exact shape only — a pre-schema-4 declaration
+       with no lift evidence — where it has a single possible meaning: these
+       batches were reviewed under the schema this artifact declares. The same
+       absence under a schema-4 declaration is the restamp, and fails.
+    2. **Real, and unrewritten.** Each anchor names a retained batch and repeats
+       that batch's own ``proposal_identity``. A dangling anchor describes a
+       review that is not here; a mismatched one describes a different proposal.
+    3. **Recognized.** Each anchored pair is a contract this build accepts
+       authority under — the same set :func:`accepted_schema_contracts` gives
+       every other seam.
+    4. **Declared, or lifted.** A batch anchored at the artifact's own
+       declaration needs nothing further. A batch anchored earlier needs a
+       registered succession that starts where it was reviewed, which
+       :func:`lift_chain_violations` has already proved continuous and terminal
+       at the declaration.
+    5. **Required.** Every recorded lift is needed by some anchored authority. A
+       crossing nothing was carried across is decoration, and decoration in an
+       audit surface is a claim that something happened when it did not.
+    """
+    findings = list(lift_chain_violations(lifts, declared))
+    retained = {b.batch_id: b.proposal_identity for b in batches}
+
+    if not anchors and retained:
+        # No batches means no review to describe, so absence states nothing and
+        # cannot be ambiguous. An artifact with batches is the case this rule is
+        # about.
+        if lifts or declared in _POST_LEGACY_CONTRACTS:
+            findings.append(
+                "no batch states the representation schema it was reviewed "
+                f"under, but this artifact declares {declared[0]!r} "
+                f"({declared[1]}); an unanchored artifact can only mean its "
+                "batches were reviewed under the schema it declares, which a "
+                "later declaration is not entitled to assert about an earlier "
+                "review"
+            )
+            return findings
+        # The exact legacy form, and its one possible reading.
+        anchors = [
+            BatchSchemaAnchor(batch_id, identity, *declared)
+            for batch_id, identity in retained.items()
+        ]
+
+    seen: set[str] = set()
+    for index, anchor in enumerate(anchors):
+        at = f"schema_anchors[{index}] ({anchor.batch_id})"
+        if anchor.batch_id in seen:
+            findings.append(f"{at}: this batch is anchored more than once")
+        seen.add(anchor.batch_id)
+        identity = retained.get(anchor.batch_id)
+        if identity is None:
+            findings.append(
+                f"{at}: no retained batch has this id; an anchor describes a "
+                "review this artifact does not carry"
+            )
+            continue
+        if identity != anchor.proposal_identity:
+            findings.append(
+                f"{at}: anchored to proposal {anchor.proposal_identity}, but "
+                f"the retained batch was accepted from {identity}"
+            )
+        pair = (anchor.schema_version, anchor.schema_hash)
+        if pair not in accepted_schema_contracts():
+            findings.append(
+                f"{at}: reviewed under {anchor.schema_version!r} "
+                f"({anchor.schema_hash}), which is not a contract this build "
+                "accepts authority under"
+            )
+        elif pair != declared and pair not in {
+            (lift.from_version, lift.from_hash) for lift in lifts
+        }:
+            findings.append(
+                f"{at}: reviewed under {anchor.schema_version!r}, which this "
+                f"artifact declares as {declared[0]!r} without a registered "
+                "succession carrying it there"
+            )
+
+    for batch_id in sorted(retained.keys() - seen):
+        findings.append(
+            f"batch {batch_id!r}: retained with no schema anchor, so the schema "
+            "it was reviewed under is unstated"
+        )
+
+    if lifts:
+        anchored = {(a.schema_version, a.schema_hash) for a in anchors}
+        first = (lifts[0].from_version, lifts[0].from_hash)
+        if first not in anchored:
+            findings.append(
+                f"lifts[0] ({lifts[0].lift_id}): crosses from {first[0]!r}, "
+                "which no retained batch was reviewed under; a succession "
+                "nothing was carried across was not crossed"
+            )
+    return findings
+
+
 def lift_accepted_inputs(
     inputs: AcceptedInputs, target: tuple[str, str]
 ) -> tuple[AcceptedInputs, SchemaLiftRecord]:
@@ -410,8 +563,13 @@ def lift_accepted_inputs(
     ``accept_proposal`` uses when a proposal extends accepted authority across a
     schema succession.
 
-    What changes is exactly one thing: the oracle's declared
-    ``(schema_version, schema_hash)``. Every span, record, component, option,
+    Two things change, and the second only ever *records* the first: the
+    oracle's declared ``(schema_version, schema_hash)``, and — for an artifact
+    committed before anchors existed — a schema anchor per retained batch at the
+    schema it was reviewed under, which is the pair being lifted *from*. Without
+    that the lifted artifact would declare the destination while stating nothing
+    about where its review happened, which is the restamp shape the loader
+    refuses (#137 round 7). Every span, record, component, option,
     fact, qualifier, prose binding, reference, relationship and provenance claim
     is carried through **by identity, not by transformation** — they are the same
     objects, and :func:`verify_lift` has already proved their canonical payloads
@@ -423,7 +581,8 @@ def lift_accepted_inputs(
     a human reviewed and when. A schema succession is not a review, so it may not
     edit them.
     """
-    lift = lift_for((inputs.oracle.schema_version, inputs.oracle.schema_hash), target)
+    source = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
+    lift = lift_for(source, target)
     record = verify_lift(lift, inputs.oracle.representation)
     lifted = replace(
         inputs,
@@ -431,6 +590,11 @@ def lift_accepted_inputs(
             inputs.oracle,
             schema_version=lift.to_version,
             schema_hash=lift.to_hash,
+        ),
+        schema_anchors=inputs.schema_anchors
+        or tuple(
+            BatchSchemaAnchor(batch.batch_id, batch.proposal_identity, *source)
+            for batch in inputs.batches
         ),
     )
     return lifted, record

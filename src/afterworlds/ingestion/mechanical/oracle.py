@@ -115,9 +115,10 @@ from afterworlds.ingestion.mechanical.representation import (
     recurrence_violations,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
+    BatchSchemaAnchor,
     SchemaLiftRecord,
-    lift_chain_violations,
     schema_binding_violations,
+    succession_evidence_violations,
 )
 
 __all__ = [
@@ -227,6 +228,10 @@ class AcceptedInputs:
     oracle: AcceptedOracle
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: The representation schema each retained batch was *reviewed* under.
+    #: Empty only for the legacy pre-schema-4 form, where absence has one
+    #: possible meaning; see ``schema_lift.succession_evidence_violations``.
+    schema_anchors: tuple[BatchSchemaAnchor, ...] = ()
     #: Schema successions this artifact was carried across, oldest first.
     #: Evidence, never identity: which contract an artifact was lifted through is
     #: migration process, and process does not remint a projection (#137
@@ -960,9 +965,33 @@ def _acceptance(payload: object, where: str) -> tuple[
     tuple[AcceptanceBatch, ...],
     tuple[AcceptanceRecord, ...],
     tuple[SchemaLiftRecord, ...],
+    tuple[BatchSchemaAnchor, ...],
 ]:
     """Load the review evidence half of a committed accepted-inputs file."""
-    p = _require(payload, ("batches", "records"), where, optional=("lifts",))
+    p = _require(
+        payload, ("batches", "records"), where, optional=("lifts", "schema_anchors")
+    )
+
+    anchors = []
+    for i, raw_anchor in enumerate(
+        _object_list(p.get("schema_anchors", []), f"{where}.schema_anchors")
+    ):
+        at = f"{where}.schema_anchors[{i}]"
+        entry = _require(
+            raw_anchor,
+            ("batch_id", "proposal_identity", "schema_version", "schema_hash"),
+            at,
+        )
+        anchors.append(
+            BatchSchemaAnchor(
+                batch_id=_string(entry["batch_id"], f"{at}.batch_id"),
+                proposal_identity=_string(
+                    entry["proposal_identity"], f"{at}.proposal_identity"
+                ),
+                schema_version=_string(entry["schema_version"], f"{at}.schema_version"),
+                schema_hash=_string(entry["schema_hash"], f"{at}.schema_hash"),
+            )
+        )
 
     lifts = []
     for i, raw_lift in enumerate(_object_list(p.get("lifts", []), f"{where}.lifts")):
@@ -1072,7 +1101,7 @@ def _acceptance(payload: object, where: str) -> tuple[
                 accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
             )
         )
-    return tuple(batches), tuple(records), tuple(lifts)
+    return tuple(batches), tuple(records), tuple(lifts), tuple(anchors)
 
 
 def load_accepted_inputs(path: Path) -> AcceptedInputs:
@@ -1134,7 +1163,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     )
     _check_obligations_closed(representation, obligations, path.name)
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances, lifts = _acceptance(p["acceptance"], "acceptance")
+    batches, acceptances, lifts, anchors = _acceptance(p["acceptance"], "acceptance")
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1169,16 +1198,12 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     # authorized, happened, or could have happened. Validated against the
     # registry and against this artifact's own declaration before it becomes
     # part of the loaded inputs.
-    if drift := lift_chain_violations(
-        lifts, (oracle.schema_version, oracle.schema_hash)
-    ):
-        raise OracleLoadError(
-            "acceptance.lifts does not describe an authorized succession of this "
-            "artifact: " + "; ".join(drift)
-        )
-
     inputs = AcceptedInputs(
-        oracle=oracle, batches=batches, acceptances=acceptances, lifts=lifts
+        oracle=oracle,
+        batches=batches,
+        acceptances=acceptances,
+        schema_anchors=anchors,
+        lifts=lifts,
     )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
@@ -1189,6 +1214,17 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         raise OracleLoadError(
             f"{path.name}: acceptance evidence is not complete: "
             f"{'; '.join(violations)}"
+        )
+
+    # After completeness, because this reads the batches and their proposal
+    # identities: an artifact whose evidence does not reconcile with itself
+    # should say so in those terms rather than through a succession finding.
+    if drift := succession_evidence_violations(
+        batches, anchors, lifts, (oracle.schema_version, oracle.schema_hash)
+    ):
+        raise OracleLoadError(
+            "acceptance evidence does not describe an authorized succession of "
+            "this artifact: " + "; ".join(drift)
         )
     return inputs
 
@@ -1314,6 +1350,18 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
         "batches": evidence["batches"],
         "records": evidence["acceptances"],
     }
+    if inputs.schema_anchors:
+        # Emitted only when stated, so the committed legacy artifact keeps the
+        # exact bytes it was reviewed and committed with.
+        acceptance["schema_anchors"] = [
+            {
+                "batch_id": anchor.batch_id,
+                "proposal_identity": anchor.proposal_identity,
+                "schema_version": anchor.schema_version,
+                "schema_hash": anchor.schema_hash,
+            }
+            for anchor in inputs.schema_anchors
+        ]
     if inputs.lifts:
         # Emitted only when there is one, so an artifact that never crossed a
         # succession keeps the exact bytes it was committed with. Same

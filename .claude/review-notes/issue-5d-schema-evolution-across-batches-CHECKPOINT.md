@@ -450,7 +450,7 @@ implementation forced:
 | | Value | Status |
 |---|---|---|
 | `SCHEMA_3_HASH` (lift source) | `43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` | **unmoved**, asserted by the re-pin helper |
-| `SCHEMA_4_HASH` (lift destination) | `3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5` | **final**. Moved twice, both times to put a contract *inside* the identity it governs: in round 1 the introduction manifest (version legality), in round 6 the invariant manifest (the intrinsic validation contract). Neither can now be loosened without invalidating this pin. Earlier values `f67588ff…` and `e1fed378…` are superseded. |
+| `SCHEMA_4_HASH` (lift destination) | `241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9` | **provisional until review is clean**. Moved three times, each to put a contract *inside* the identity it governs: round 1 the introduction manifest (version legality), round 6 the invariant manifest (the intrinsic validation contract), round 7 the invariant that manifest had declared only half of. Earlier values `f67588ff…`, `e1fed378…` and `3ec08804…` are superseded. |
 | committed `oracle_identity` | `a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda` | **unmoved** |
 
 H-8 widened `from_component_key`'s *domain*, not the declared type surface, so the destination hash did

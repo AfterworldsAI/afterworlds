@@ -697,3 +697,115 @@ registered lift verifies to the finalized destination : yes
 `plugins_used` and the other five recorded results are untouched. (A full `detect-secrets scan --baseline`
 was tried first and rejected: it swept untracked working files in `.claude/review-notes/` into the
 baseline, which would have committed hundreds of rows nothing asked for.)
+
+---
+
+# Round 7
+
+## R7-1 — a destination restamp loaded clean
+
+Reproduced first, changing exactly one field of the committed artifact and nothing else:
+
+```
+committed declares 5d-representation-schema-3, lifts: none
+  -> rewrite representation_schema to the live schema-4 pair, keep everything else
+
+LOADED. declares 5d-representation-schema-4 | lifts = () | batches retained: ['conditions-1']
+>>> schema-3-reviewed authority is now committed schema-4 accepted authority
+```
+
+Nothing in the file disagreed with anything else in the file. The representation is legal under schema 4,
+the batch, its semantic diff, its diff hash and its proposal identity are the committed ones, the
+obligations reconcile, and an empty lift history had nothing to contradict — because acceptance evidence
+never recorded *which schema each batch was reviewed under*. An empty lift history therefore had two
+readings that could not be told apart: genuinely first accepted under schema 4, or reviewed under schema 3
+and re-declared.
+
+**`BatchSchemaAnchor(batch_id, proposal_identity, schema_version, schema_hash)`**, on the evidence half
+beside the batches and never inside them. An `AcceptanceBatch` records what a human accepted; a batch
+accepted before anchors existed does not acquire a field because a later succession needed one. Keyed by
+batch id *and* proposal identity so an anchor cannot be moved onto another batch or left pointing at a
+proposal that was rewritten. Nothing else is retained: no predecessor artifact, no per-element identity,
+no count, no timestamp, no signature.
+
+`succession_evidence_violations(batches, anchors, lifts, declared)` is one reader for the three halves
+that only mean something together:
+
+| Rule | Refusal |
+|---|---|
+| anchored, or the exact legacy form | absence is admitted only for a pre-schema-4 declaration with no lifts, where it has one possible meaning; the same absence under schema 4 is the restamp |
+| real and unrewritten | anchor names a retained batch and repeats that batch's own proposal identity |
+| recognized | anchored pair is in `accepted_schema_contracts()` |
+| declared, or lifted | a batch anchored at the declaration needs nothing; anchored earlier needs a registered chain starting there and terminating at the declaration |
+| required | `lifts[0]`'s source must be a pair some batch was reviewed under — a crossing nothing was carried across was not crossed |
+
+Also: no batches means no review to describe, so an artifact with no batches is unanchored legitimately —
+which is what the packaging sentinel is.
+
+`accept_proposal` now emits an anchor for the batch it appends, and materializes anchors for a prior
+loaded in the legacy form at that prior's own declaration. `lift_accepted_inputs` does the same at the
+pair being lifted *from*, so a lifted artifact records where its review happened rather than only where it
+ended up.
+
+**Ordering matters and was corrected once:** the succession check runs *after* `validate_acceptance`, so an
+artifact whose evidence does not reconcile with itself still says so in those terms rather than through a
+succession finding.
+
+## R7-2 — the manifest declared H-7 by its threshold alone
+
+`_check_scaling` enforces a second rule H-7's own content depends on — Falling's *"1d6 for every 10
+feet"* is an increment, and scaling other than `effective_spell_level` must state exactly one of a dice
+increment or a flat amount. Declared now as `scaling.increment.exactly-one`, with its own witness.
+
+**Reconciliation, one invariant at a time — every `_check_scaling` branch:**
+
+| Branch | Classification |
+|---|---|
+| `threshold < 0` | **identity-bound and exercised** — `scaling.threshold.not-below-zero` |
+| non-`effective_spell_level` states exactly one increment | **identity-bound and exercised** — `scaling.increment.exactly-one`, added this round |
+| `effective_spell_level` carries an increment | **inapplicable to H-7** — keyed by *effect*; H-7 added a *basis*, and distance-fallen scaling never states that effect |
+| `effective_spell_level` direction must increase | **inapplicable to H-7** — same branch, same reason |
+| `amount < 1` | **inapplicable to H-7** — distance-fallen content states a dice increment (Falling's `1d6`), so the flat-amount magnitude branch is never reached by it; the exactly-one rule above already forces that choice |
+| `DECREASE` only for `d20_test`/`speed` | **inapplicable to H-7** — keyed by effect and predates H-7; falling damage increases |
+| type and vocabulary checks | already bound by the wire contract the payload declares |
+
+**Rows are now keyed by a stable invariant id**, not by `(locus, field)`: two independent rules live on
+`fact:scaling`, and a field-keyed table would let one rule's witness stand in for the other's. The
+executable matrix is keyed the same way.
+
+**The completeness claim is corrected.** `test_every_declared_invariant_is_executable` proves every
+declared row executes in both directions and that no witness exists for an undeclared row. It cannot prove
+no declaration was *omitted* — both halves are written by the same hand, and R7-2 is the demonstration:
+the scaling increment rule was enforced, settled, and absent from both, and the test passed. Completeness
+comes from this bounded authority-to-manifest reconciliation, and the test holds the result honest rather
+than deriving it.
+
+**Not constrained, per instruction and prior audit:** `DerivedQuantityFact.base` and alternative-roll
+actors. Existing authority settles neither.
+
+## Re-pin — destination only, provisional until review is clean
+
+```
+SCHEMA_3_HASH  : 43ed330d…  UNCHANGED (asserted by the re-pin helper)
+SCHEMA_4_HASH  : 3ec08804…  →  241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+```
+
+Zero movement against the corrected destination:
+
+```
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+proposal identities            : unchanged (14587d5b5d51…)
+oracle_identity                : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda (unmoved)
+committed artifact round-trips to identical payload : yes
+registered lift reaches only the corrected destination : yes
+restamp of that same artifact : refused
+```
+
+**detect-secrets, exactly:** the bounded fixture gained an eight-line `schema_anchors` block, so its
+recorded rows moved with it. One row added — the schema-hash literal, now first seen at line 63 (the
+scanner records a repeated literal once, at its first occurrence, which is why the declaration's own
+line has no separate row). Three rows shifted by eight lines with identical `hashed_secret` (81→89,
+134→142, 194→202). Two rows unchanged. `generated_at`, `filters_used` and `plugins_used` untouched:
+the file was merged from a scan of that one fixture rather than regenerated, because a full rescan sweeps
+untracked working files in `.claude/review-notes/` into the baseline.

@@ -6359,6 +6359,11 @@ class _Invariant:
     show a class name, so identity may not depend on one.
     """
 
+    #: A stable semantic identity for the rule itself. Two independent rules can
+    #: constrain the same field — a scaling threshold's range and a scaling
+    #: increment's exclusivity both live on ``fact:scaling`` — so ``(locus,
+    #: field)`` is not an identity and cannot key a witness (#137 round 7).
+    id: str
     locus: str
     field: str
     rule: str
@@ -6398,28 +6403,33 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     # The shared numeric shape every rational-valued field delegates to.
     _Invariant(
         locus=_shape_locus(Rational),
+        id="rational.numerator.not-below-zero",
         field="numerator",
         rule="an integer, never below zero",
     ),
     _Invariant(
         locus=_shape_locus(Rational),
+        id="rational.denominator.at-least-one",
         field="denominator",
         rule="an integer of at least one",
     ),
     # The shared roll shape H-11's alternatives are made of.
     _Invariant(
         locus=_shape_locus(RollSpec),
+        id="roll.skill.governing-ability-agrees",
         field="skill",
         rule="a skill whose printed governing ability equals this roll's ability",
     ),
     # H-1 recurrence.
     _Invariant(
         locus=_shape_locus(Recurrence),
+        id="recurrence.whose.turn-boundary-only",
         field="whose",
         rule="stated exactly for a turn boundary, and never for another boundary",
     ),
     # H-3 size-keyed quantity.
     _Invariant(
+        id="size_keyed_quantity.values.one-row-per-size-in-order",
         locus="fact:size_keyed_quantity",
         field="values",
         rule=(
@@ -6430,22 +6440,26 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     # H-4 consumption threshold, and H-14 elapsed duration beside the kind whose
     # rule it joined.
     _Invariant(
+        id="consumption_threshold.fraction.shared-rational-rules",
         locus="applicability:consumption_threshold",
         field="fraction",
         rule="a rational share, held to the shared rational rules",
     ),
     _Invariant(
+        id="quantity_threshold.value.not-below-zero",
         locus="applicability:quantity_threshold",
         field="value",
         rule="an integer count, never below zero",
     ),
     _Invariant(
+        id="elapsed_duration.value.not-below-zero",
         locus="applicability:elapsed_duration",
         field="value",
         rule="an integer count, never below zero",
     ),
     # H-10 and H-12 add kinds; the rule they join is the closed field matrix.
     _Invariant(
+        id="applicability.kind.closed-field-matrix",
         locus="applicability",
         field="kind",
         rule=(
@@ -6455,12 +6469,14 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     ),
     # H-5 cause-scoped condition levels.
     _Invariant(
+        id="condition_level.cumulative.accrual-only",
         locus="fact:condition_level",
         field="cumulative",
         rule="stated only for an accrual",
     ),
     # H-6 removal restriction.
     _Invariant(
+        id="condition_removal_restriction.cause_scoped.always",
         locus="fact:condition_removal_restriction",
         field="cause_scoped",
         rule=(
@@ -6470,12 +6486,28 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     ),
     # H-7 distance-fallen scaling.
     _Invariant(
+        id="scaling.threshold.not-below-zero",
         locus="fact:scaling",
         field="threshold",
         rule="an integer, never below zero",
     ),
+    # H-7 again, one invariant at a time rather than one addition at a time:
+    # distance-fallen scaling states *"1d6 for every 10 feet"*, so the rule that
+    # makes that increment mandatory and exclusive is part of the contract H-7
+    # joined, and was omitted when the addition was declared by its threshold
+    # alone (#137 round 7).
+    _Invariant(
+        id="scaling.increment.exactly-one",
+        locus="fact:scaling",
+        field="amount+dice_amount",
+        rule=(
+            "scaling other than effective_spell_level states exactly one of a "
+            "dice increment or a flat amount"
+        ),
+    ),
     # H-9 maximum damage dice.
     _Invariant(
+        id="damage.maximum_dice.caps-a-stated-expression",
         locus="fact:damage",
         field="maximum_dice",
         rule=(
@@ -6485,6 +6517,7 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     ),
     # H-11 check alternatives.
     _Invariant(
+        id="ability_check.alternatives.complete-closed-choice",
         locus="fact:ability_check",
         field="alternatives",
         rule=(
@@ -6495,6 +6528,7 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     ),
     # H-13 damage modification.
     _Invariant(
+        id="damage_modification.factor.positive-and-not-one",
         locus="fact:damage_modification",
         field="factor",
         rule=(
@@ -6504,6 +6538,7 @@ _INVARIANTS: tuple[_Invariant, ...] = (
     ),
     # H-15 ability-modifier-derived quantity.
     _Invariant(
+        id="derived_quantity.floor.amount-and-unit-together",
         locus="fact:derived_quantity",
         field="floor_amount",
         rule="a floor states both an amount and a unit, or neither",
@@ -6534,8 +6569,8 @@ def invariant_manifest() -> list[dict[str, str]]:
     demonstrates, so the manifest cannot decay into decorative text.
     """
     return [
-        {"locus": row.locus, "field": row.field, "rule": row.rule}
-        for row in sorted(_INVARIANTS, key=lambda r: (r.locus, r.field, r.rule))
+        {"id": row.id, "locus": row.locus, "field": row.field, "rule": row.rule}
+        for row in sorted(_INVARIANTS, key=lambda r: r.id)
     ]
 
 

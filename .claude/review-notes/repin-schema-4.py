@@ -63,11 +63,25 @@ previous = sys.argv[1] if len(sys.argv) > 1 else None
 changed: list[str] = []
 
 # 1. The bounded test fixture. Schema-3 content that is also valid schema-4
-#    content, so only its declaration moves — the same property verify_lift
-#    proves element by element for the production artifact.
+#    content, so only its declaration and its own anchors move.
 fixture = REPO / "tests/ingestion/mechanical/data/bounded_oracle.json"
 payload = json.loads(fixture.read_text(encoding="utf-8"))
 payload["representation_schema"] = {"version": VERSION, "hash": HASH}
+# Its schema anchors move with its declaration, and that is honest for exactly
+# this file: it is a synthetic bounded fixture whose batches have no review
+# history outside the build that generates them, so "reviewed under what this
+# file declares" is true of it. A *committed* artifact may never be re-anchored
+# this way — that is the restamp ``succession_evidence_violations`` refuses, and
+# the reason this helper has never been allowed near the production oracle.
+payload["acceptance"]["schema_anchors"] = [
+    {
+        "batch_id": batch["batch_id"],
+        "proposal_identity": batch["proposal_identity"],
+        "schema_version": VERSION,
+        "schema_hash": HASH,
+    }
+    for batch in payload["acceptance"]["batches"]
+]
 fixture.write_text(
     json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False) + "\n",
     encoding="utf-8",

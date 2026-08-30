@@ -82,6 +82,7 @@ from afterworlds.ingestion.mechanical.representation import (
     representation_draft_violations,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
+    BatchSchemaAnchor,
     SchemaLiftError,
     SchemaLiftRecord,
     lift_for,
@@ -422,10 +423,48 @@ def accept_proposal(
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
+        # Every retained batch states the schema it was *reviewed* under, and
+        # this new one states the schema the proposal declares. A prior loaded
+        # in the legacy unanchored form is anchored here at its own declaration,
+        # which is the one reading that form can have — done at the seam that
+        # knows both halves, rather than left for a later reader to infer from
+        # an empty lift history it cannot interpret (#137 round 7).
+        schema_anchors=_carried_anchors(prior)
+        + (
+            BatchSchemaAnchor(
+                batch_id=batch.batch_id,
+                proposal_identity=batch.proposal_identity,
+                schema_version=proposal.schema_version,
+                schema_hash=proposal.schema_hash,
+            ),
+        ),
         # Oldest first, and append-only: an artifact records every succession it
         # was carried across, not merely the last one.
         lifts=tuple(prior.lifts if prior else ())
         + ((lift_record,) if lift_record is not None else ()),
+    )
+
+
+def _carried_anchors(prior: AcceptedInputs | None) -> tuple[BatchSchemaAnchor, ...]:
+    """The prior artifact's anchors, materialized if it predates them.
+
+    A schema-3 artifact committed before anchors existed states none, and that
+    absence has exactly one reading: its batches were reviewed under the schema
+    it declares. Reading it here rather than carrying the ambiguity forward is
+    what lets the loader refuse the same absence under a later declaration.
+    """
+    if prior is None:
+        return ()
+    if prior.schema_anchors:
+        return prior.schema_anchors
+    return tuple(
+        BatchSchemaAnchor(
+            batch_id=b.batch_id,
+            proposal_identity=b.proposal_identity,
+            schema_version=prior.oracle.schema_version,
+            schema_hash=prior.oracle.schema_hash,
+        )
+        for b in prior.batches
     )
 
 

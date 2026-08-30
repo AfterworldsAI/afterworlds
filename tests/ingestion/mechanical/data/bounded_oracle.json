@@ -55,6 +55,14 @@
     "reviewer": "owner",
     "span_id": "bd7c3ee9-737e-5a61-b75e-66d8c15f9f24"
    }
+  ],
+  "schema_anchors": [
+   {
+    "batch_id": "batch-wish",
+    "proposal_identity": "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9",
+    "schema_hash": "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9",
+    "schema_version": "5d-representation-schema-4"
+   }
   ]
  },
  "artifact_kind": "accepted_authority",
@@ -188,7 +196,7 @@
   ]
  },
  "representation_schema": {
-  "hash": "3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5",
+  "hash": "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9",
   "version": "5d-representation-schema-4"
  },
  "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",

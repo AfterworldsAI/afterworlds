@@ -156,8 +156,9 @@ manifest, on these terms:
 * **Loosening it costs the succession.** Weakening or removing a row moves the schema hash, so the
   registered lift's destination pin no longer describes this build and `lift_for` refuses the transition.
 
-Finalizing this contract moved the schema-4 destination hash once, before merge, to
-`3ec08804524213358422988980698689f3b135b242f1458a413134be56d523d5`. The schema-3 source pin
+Finalizing this contract moved the schema-4 destination hash before merge, most recently to
+`241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9` when the reconciliation in round 7
+found a declared addition whose joined rule was only half declared. The schema-3 source pin
 `43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` is unchanged, and zero movement was
 re-run against the finalized destination: six collections byte-identical, every stored coordinate
 re-deriving, `oracle_identity` unmoved.
@@ -265,7 +266,24 @@ meet. They meet on exactly these terms, and on no others:
    stronger guarantee than a transforming lift could give — a transforming lift has to *argue* that its
    mapping preserved meaning; this one demonstrates that nothing moved.
 
-6. **The crossing is evidence, never identity.** That an artifact was carried across a succession is
+6. **A batch states the schema it was reviewed under.** *Added by Owner Decision 2026-08-30 (#137 round
+   7).* Acceptance evidence records which representation schema each retained batch was reviewed under, as
+   a schema anchor beside the batch — never inside it, because a batch records what a human accepted and
+   may not be rewritten by a later succession. Without it an empty lift history has two readings that
+   cannot be told apart: authority genuinely first accepted under the declared schema, and authority
+   reviewed under an earlier schema whose declaration was simply overwritten. The second is a restamp, and
+   it loaded clean.
+
+   An anchor names a retained batch and repeats that batch's own proposal identity; its pair must be a
+   recognized contract; a batch anchored at the artifact's declaration needs no succession, and one
+   anchored earlier needs a registered chain that starts where it was reviewed and terminates at the
+   declaration; and every recorded crossing must be one some anchored authority actually needed. Absence
+   of anchors is admitted for exactly one shape — a pre-schema-4 declaration with no lift evidence, where
+   it has a single possible meaning — and the same absence under a later declaration fails. Nothing else
+   is retained: no predecessor artifact, no per-element identity, no historical count, no timestamp, no
+   signature.
+
+7. **The crossing is evidence, never identity.** That an artifact was carried across a succession is
    recorded beside its acceptance batches, on the evidence half of accepted inputs, and never on the
    accepted oracle. Which schema an artifact was carried across is review and migration process, and
    process is not identity-bearing. The combined artifact declares the destination schema and takes the
@@ -279,7 +297,9 @@ meet. They meet on exactly these terms, and on no others:
    extent names exactly the representation's collections, each of them once. What a record may **not**
    carry is a per-collection element count. The count a lift produces is true when it is produced and
    unverifiable ever after: one committed artifact supersedes its predecessor, later batches merge into
-   the same collections, and no record anchors the crossing to a point in the batch sequence — so the
+   the same collections, and no record fixes the crossing to a point in the batch sequence — the schema
+   anchors added in round 7 say which contract each batch was reviewed under, never how much content
+   existed when it was crossed, so they do not make a historical count checkable — and so the
    pre-lift extent cannot be re-derived, and a fabricated number would validate exactly as well as a true
    one. Evidence a reader cannot check is not evidence, and an audit surface may not state more than the
    build can support.

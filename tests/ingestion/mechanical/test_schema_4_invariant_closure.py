@@ -172,19 +172,23 @@ def _findings(obj: object) -> list[str]:
 # The executable matrix: one refused exemplar and one admitted control per row
 # ---------------------------------------------------------------------------
 
-CASES: dict[tuple[str, str], tuple[object, object]] = {
+#: Keyed by the manifest's own invariant **id**, not by ``(locus, field)``: two
+#: independent rules can constrain the same field — a scaling threshold's range
+#: and a scaling increment's exclusivity both live on ``fact:scaling`` — so a
+#: field-keyed table would let one rule's witness stand in for the other's.
+CASES: dict[str, tuple[object, object]] = {
     # Shared rational rules — exercised through a fact that does nothing but
     # delegate, so a finding here is the delegation and not a second rule.
-    ("shape:denominator+numerator", "numerator"): (
+    "rational.numerator.not-below-zero": (
         CreatureChallengeFact(challenge_rating=Rational(-1, 2)),
         CreatureChallengeFact(challenge_rating=Rational(1, 2)),
     ),
-    ("shape:denominator+numerator", "denominator"): (
+    "rational.denominator.at-least-one": (
         CreatureChallengeFact(challenge_rating=Rational(1, 0)),
         CreatureChallengeFact(challenge_rating=Rational(1, 4)),
     ),
     # The shared roll shape.
-    ("shape:ability+actor+context+skill", "skill"): (
+    "roll.skill.governing-ability-agrees": (
         _falling(
             alternatives=_canonical(
                 DEX_ACROBATICS, replace(STR_ATHLETICS, skill=Skill.ARCANA)
@@ -193,12 +197,12 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         _falling(),
     ),
     # H-1.
-    ("shape:boundary+whose", "whose"): (
+    "recurrence.whose.turn-boundary-only": (
         Recurrence(boundary=RecurrenceBoundary.START_OF_TURN, whose=None),
         Recurrence(boundary=RecurrenceBoundary.START_OF_TURN, whose=RollActor.SUBJECT),
     ),
     # H-3.
-    ("fact:size_keyed_quantity", "values"): (
+    "size_keyed_quantity.values.one-row-per-size-in-order": (
         SizeKeyedQuantityFact(
             quantity=RequiredQuantity.FOOD,
             period=TimePeriod.DAY,
@@ -228,13 +232,13 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-4, and the delegation round 5 corrected.
-    ("applicability:consumption_threshold", "fraction"): (
+    "consumption_threshold.fraction.shared-rational-rules": (
         _consumption(Rational(1, 0)),
         _consumption(Rational(1, 2)),
     ),
     # H-14, and the schema-3 kind whose rule it joined.
-    ("applicability:elapsed_duration", "value"): (_elapsed(-5), _elapsed(0)),
-    ("applicability:quantity_threshold", "value"): (
+    "elapsed_duration.value.not-below-zero": (_elapsed(-5), _elapsed(0)),
+    "quantity_threshold.value.not-below-zero": (
         Applicability(
             kind=ApplicabilityKind.QUANTITY_THRESHOLD,
             negated=False,
@@ -251,14 +255,14 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-10 and H-12 joined this one rather than adding rules of their own.
-    ("applicability", "kind"): (
+    "applicability.kind.closed-field-matrix": (
         Applicability(
             kind=ApplicabilityKind.PHASE, negated=False, phase=Phase.ON_END, value=3
         ),
         Applicability(kind=ApplicabilityKind.PHASE, negated=False, phase=Phase.ON_END),
     ),
     # H-5.
-    ("fact:condition_level", "cumulative"): (
+    "condition_level.cumulative.accrual-only": (
         ConditionLevelFact(
             condition=ConditionKind.EXHAUSTION,
             direction=LevelDirection.REMOVE,
@@ -273,7 +277,7 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-6.
-    ("fact:condition_removal_restriction", "cause_scoped"): (
+    "condition_removal_restriction.cause_scoped.always": (
         ConditionRemovalRestrictionFact(
             condition=ConditionKind.EXHAUSTION,
             cause_scoped=False,
@@ -286,7 +290,7 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-7.
-    ("fact:scaling", "threshold"): (
+    "scaling.threshold.not-below-zero": (
         ScalingFact(
             basis=ScalingBasis.DISTANCE_FALLEN,
             threshold=-10,
@@ -302,8 +306,28 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
             dice_amount=DiceExpression(count=1, die=DieSize.D6),
         ),
     ),
+    # H-7 again: the rule that makes Falling's "1d6 for every 10 feet" an
+    # increment at all. Its own witness rather than the threshold rule's,
+    # because two independent rules live on this family.
+    "scaling.increment.exactly-one": (
+        ScalingFact(
+            basis=ScalingBasis.DISTANCE_FALLEN,
+            threshold=10,
+            effect=ScalingEffect.DAMAGE,
+            direction=ScalingDirection.INCREASE,
+            dice_amount=DiceExpression(count=1, die=DieSize.D6),
+            amount=2,
+        ),
+        ScalingFact(
+            basis=ScalingBasis.DISTANCE_FALLEN,
+            threshold=10,
+            effect=ScalingEffect.DAMAGE,
+            direction=ScalingDirection.INCREASE,
+            dice_amount=DiceExpression(count=1, die=DieSize.D6),
+        ),
+    ),
     # H-9.
-    ("fact:damage", "maximum_dice"): (
+    "damage.maximum_dice.caps-a-stated-expression": (
         DamageFact(
             damage_type=DamageType.BLUDGEONING,
             dice=DiceExpression(count=20, die=DieSize.D6),
@@ -316,12 +340,12 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-11.
-    ("fact:ability_check", "alternatives"): (
+    "ability_check.alternatives.complete-closed-choice": (
         _falling(alternatives=_canonical(STR_ATHLETICS, DEX_ACROBATICS)[:1] * 2),
         _falling(),
     ),
     # H-13.
-    ("fact:damage_modification", "factor"): (
+    "damage_modification.factor.positive-and-not-one": (
         DamageModificationFact(
             direction=DamageModDirection.REDUCE, factor=Rational(0, 1)
         ),
@@ -330,7 +354,7 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
         ),
     ),
     # H-15.
-    ("fact:derived_quantity", "floor_amount"): (
+    "derived_quantity.floor.amount-and-unit-together": (
         DerivedQuantityFact(
             base=1,
             modifier=AbilityScore.CONSTITUTION,
@@ -349,26 +373,39 @@ CASES: dict[tuple[str, str], tuple[object, object]] = {
 
 
 def test_every_declared_invariant_is_executable() -> None:
-    """The link that stops the manifest from becoming prose.
+    """What this proves, and — precisely — what it does not.
 
-    A declaration nothing demonstrates is a claim about a rule that may not
-    exist. This is the same guard ``introduction_manifest`` carries, for the same
-    reason: a schema-5 addition that lands a row without coverage fails here
-    rather than being trusted.
+    It proves every declared row is exercised in both directions, and that no
+    witness exists for a row nobody declared. That is a real property: a
+    declaration nothing demonstrates fails here rather than standing as prose,
+    and it is the same guard ``introduction_manifest`` carries.
+
+    It **cannot** prove no declaration was omitted. Nothing inside a set equality
+    between a manifest and a table written against it could: both halves are
+    written by the same hand, and an invariant left out of both is invisible to
+    it. Round 7 is the demonstration — the scaling increment rule was enforced,
+    settled, and absent from both, and this test passed.
+
+    Completeness comes from the bounded authority-to-manifest reconciliation
+    recorded in ``.claude/review-notes/pr-159-issue-5d-remediation-log.md``:
+    every schema-4 addition's settled invariants read off the hazards-1 closure
+    authority, and for an addition that joined an existing validator, that
+    validator's branches enumerated one at a time and each classified. This test
+    holds the result honest; it does not derive it.
     """
-    declared = {(row["locus"], row["field"]) for row in invariant_manifest()}
+    declared = {row["id"] for row in invariant_manifest()}
     assert declared == set(CASES), {
         "declared without coverage": sorted(declared - set(CASES)),
         "covered without declaration": sorted(set(CASES) - declared),
     }
 
 
-@pytest.mark.parametrize("key", sorted(CASES), ids=lambda k: f"{k[0]}/{k[1]}")
-def test_each_declared_invariant_refuses_and_admits(key: tuple[str, str]) -> None:
+@pytest.mark.parametrize("invariant_id", sorted(CASES))
+def test_each_declared_invariant_refuses_and_admits(invariant_id: str) -> None:
     """Both directions, because a rule that refuses everything is not a rule."""
-    bad, good = CASES[key]
-    assert _findings(bad), f"{key}: the violating exemplar was admitted"
-    assert _findings(good) == [], f"{key}: the control was refused"
+    bad, good = CASES[invariant_id]
+    assert _findings(bad), f"{invariant_id}: the violating exemplar was admitted"
+    assert _findings(good) == [], f"{invariant_id}: the control was refused"
 
 
 def test_the_invariant_contract_is_carried_inside_the_schema_identity() -> None:
@@ -387,6 +424,7 @@ def test_no_python_name_reaches_the_invariant_declaration() -> None:
         locus = row["locus"]
         assert locus.startswith(("fact:", "applicability", "shape:")), locus
         assert locus == locus.lower(), locus
+        assert row["id"] == row["id"].lower(), row["id"]
 
 
 def test_weakening_an_invariant_declaration_breaks_the_registered_lift(
