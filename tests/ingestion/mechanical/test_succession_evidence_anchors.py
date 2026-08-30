@@ -171,7 +171,9 @@ def test_a_genuinely_lifted_history_loads(tmp_path) -> None:  # type: ignore[no-
 # ---------------------------------------------------------------------------
 
 
-def _schema_4_artifact(anchors: list[dict[str, str]], lifts: list[dict] | None = None) -> dict:  # type: ignore[type-arg]
+def _schema_4_artifact(  # type: ignore[type-arg]
+    anchors: list[dict[str, str]], lifts: list[dict] | None = None
+) -> dict:
     """A schema-4 declaration carrying whatever evidence a case wants to test."""
     raw = _committed()
     raw["representation_schema"] = {"version": SCHEMA_4_VERSION, "hash": SCHEMA_4_HASH}
@@ -284,7 +286,9 @@ CORRUPTIONS = [
 
 
 @pytest.mark.parametrize(("build", "expected"), CORRUPTIONS)
-def test_corrupted_succession_evidence_is_refused(tmp_path, build, expected: str) -> None:  # type: ignore[no-untyped-def]
+def test_corrupted_succession_evidence_is_refused(  # type: ignore[no-untyped-def]
+    tmp_path, build, expected: str
+) -> None:
     """Through ``load_accepted_inputs``, not only through the validator."""
     with pytest.raises(OracleLoadError) as raised:
         load_accepted_inputs(_write(build(), pathlib.Path(tmp_path)))
