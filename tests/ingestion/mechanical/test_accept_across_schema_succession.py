@@ -60,6 +60,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
     SCHEMA_3_VERSION,
     SCHEMA_4_VERSION,
+    BatchSchemaAnchor,
     lift_chain_violations,
 )
 
@@ -308,12 +309,25 @@ def test_the_reverse_transition_is_refused() -> None:
     succession as reversible.
     """
     prior = _prior()
+    # A schema-4 prior whose batches were *reviewed* under schema 4, not one
+    # whose declaration was overwritten. Re-declaring alone would be the restamp
+    # ``carried_anchors`` now refuses, and this test would then pass for the
+    # wrong reason — it is about the registry having no 4-to-3 row (#137 round 8).
     lifted = replace(
         prior,
         oracle=replace(
             prior.oracle,
             schema_version=SCHEMA_4_VERSION,
             schema_hash=representation_schema_hash(),
+        ),
+        schema_anchors=tuple(
+            BatchSchemaAnchor(
+                b.batch_id,
+                b.proposal_identity,
+                SCHEMA_4_VERSION,
+                representation_schema_hash(),
+            )
+            for b in prior.batches
         ),
     )
     with pytest.raises(AcceptanceError) as caught:

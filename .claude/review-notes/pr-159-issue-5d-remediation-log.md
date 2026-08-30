@@ -809,3 +809,76 @@ line has no separate row). Three rows shifted by eight lines with identical `has
 134→142, 194→202). Two rows unchanged. `generated_at`, `filters_used` and `plugins_used` untouched:
 the file was merged from a scan of that one fixture rather than regenerated, because a full rescan sweeps
 untracked working files in `.claude/review-notes/` into the baseline.
+
+---
+
+# Round 8
+
+## R8-1 — the loader's check was satisfied by evidence acceptance had just written
+
+Reproduced first, exactly as specified: the real committed schema-3 artifact, its declared pair
+overwritten in memory and nothing else touched, passed straight to `accept_proposal`.
+
+```
+3. accept_proposal(prior=restamped in-memory artifact):
+   ACCEPTED. anchors synthesized:
+     conditions-1           reviewed under 5d-representation-schema-4
+     laundering-probe-1     reviewed under 5d-representation-schema-4
+   lifts: ()
+4. does the produced artifact load? YES — 5d-representation-schema-4, 2 batches, no lifts
+   >>> the schema-3 review is now schema-4 authority, and the file proves it
+```
+
+Round 7 closed the *file* boundary and left the *transformation* boundary open. `_carried_anchors` read
+the prior's declaration to fill in what its evidence never said, so the acceptance seam manufactured
+precisely the evidence the loader would later check — and the check passed because the transformation had
+written it.
+
+## The fix: validate before carrying, through the loader's own rule
+
+`schema_lift.carried_anchors(inputs)` runs `succession_evidence_violations` over the prior's complete
+evidence and raises rather than repairing. Nothing deletes, rewrites, or works around malformed evidence.
+The one default survives in its exact shape: no anchors, no lifts, and the **recognized legacy schema-3
+pair** — narrowed this round from "any pre-schema-4 contract" to that exact pair, so an unknown version or
+an invented hash falls outside it rather than being compared against a boundary.
+
+In `accept_proposal` the call runs **before the lift is looked up, before the representations are merged,
+and before any anchor is carried or synthesized** — an artifact whose own evidence does not hold is not a
+base to extend, so nothing should be computed from it at all.
+
+```
+before:  ACCEPTED, anchors synthesized at schema 4, artifact loads
+after :  AcceptanceError — "this proposal would extend prior accepted authority whose own
+         succession evidence does not hold: … no batch states the representation schema it
+         was reviewed under"
+```
+
+## Bounded sibling audit — every seam taking `AcceptedInputs`
+
+| Seam | Transforms schema evidence? | Disposition |
+|---|---|---|
+| `accept_proposal` / `_carried_anchors` | synthesizes and carries | **patched** — validates through the shared rule before anything is computed from the prior |
+| `lift_accepted_inputs` | re-declares and synthesizes | **patched** — same function, not a second implementation; a dangling-anchor prior is refused rather than lifted |
+| `schema_lift.carried_anchors` | the rule itself | validating by construction |
+| `load_accepted_inputs` | reads and constructs | **already validating** — this is the contract the two above now share |
+| `committed_oracle_for`, `committed_inputs_for`, `_resolve_committed_*` | none | **protected by a validated caller** — every one resolves through `load_accepted_inputs` |
+| `candidate_from_accepted_inputs` | reads the oracle only | **no evidence transformation** |
+| `accepted_inputs_payload` | serializes what it is given | **no synthesis** — both producers validate, and the loader refuses anything else on the way back in |
+| `AcceptedInputs.classification()` | batches and acceptances only | out of scope — carries no schema evidence |
+
+One test fixture was itself the defect: `test_the_reverse_transition_is_refused` built its schema-4 prior
+by re-declaring the committed artifact with no anchors. It now anchors that prior at schema 4, so the test
+proves what it is named for — the registry has no 4-to-3 row — rather than passing on a restamp the guard
+should refuse.
+
+## Enforcement only — no re-pin
+
+```
+SCHEMA_3_HASH  : 43ed330d…  unchanged
+SCHEMA_4_HASH  : 241860418b…  unchanged, and still == representation_schema_hash()
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+oracle_identity                : a0f0bd2f… unmoved
+committed artifact round-trips to identical payload : yes
+alembic                        : 0030 (head), no migration
+```

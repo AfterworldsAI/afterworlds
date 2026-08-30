@@ -28,14 +28,30 @@ from dataclasses import replace
 
 import pytest
 
+from afterworlds.ingestion.mechanical.acceptance import AcceptanceError, accept_proposal
+from afterworlds.ingestion.mechanical.accounting import derive_span_id
+from afterworlds.ingestion.mechanical.models import (
+    ComponentHandling,
+    ReviewState,
+    SemanticDisposition,
+    SemanticSpan,
+)
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
 )
+from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
+    ComponentDraft,
+    ConditionKind,
+    ConditionLevelFact,
+    LevelDirection,
+    RecordDraft,
+    RecordKind,
+    RepresentationDraft,
     representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
@@ -44,6 +60,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
     BatchSchemaAnchor,
+    SchemaLiftError,
     lift_accepted_inputs,
     succession_evidence_violations,
 )
@@ -319,3 +336,300 @@ def test_an_unanchored_batch_beside_an_anchored_one_is_refused() -> None:
     anchors = [BatchSchemaAnchor(batches[0].batch_id, "0" * 64, *SCHEMA_4)]
     findings = succession_evidence_violations(batches, anchors, (), SCHEMA_4)
     assert any("retained with no schema anchor" in f for f in findings), findings
+
+
+# ---------------------------------------------------------------------------
+# Round 8 — evidence is validated before it is carried, not after it is written
+# ---------------------------------------------------------------------------
+#
+# The loader's check was satisfiable by an artifact ``accept_proposal`` had just
+# manufactured. Given an in-memory prior whose declared pair had been overwritten
+# and whose evidence said nothing, the acceptance seam read that declaration to
+# synthesize anchors — so the schema-3 review acquired schema-4 anchors, and the
+# resulting file loaded clean because the transformation wrote exactly the
+# evidence the loader would check.
+#
+# The fix validates the prior through the same contract the loader uses, before
+# anything is computed from it. Malformed evidence is refused, never repaired.
+
+PROBE_LEAF = "leaf-laundering-probe"
+PROBE_SPAN = derive_span_id(PROBE_LEAF, 0, 28)
+PROBE_RECORD = "hazard.laundering-probe"
+
+
+def _proposal(prior, *, version: str, schema_hash: str) -> MechanicalProposal:  # type: ignore[no-untyped-def]
+    span = SemanticSpan(
+        span_id=PROBE_SPAN,
+        leaf_id=PROBE_LEAF,
+        char_start=0,
+        char_end=28,
+        disposition=SemanticDisposition.SUBSTANTIVE,
+        review_state=ReviewState.PROPOSED,
+    )
+    return MechanicalProposal(
+        binding=prior.oracle.binding,
+        policy_version=prior.oracle.policy_version,
+        policy_hash=prior.oracle.policy_hash,
+        schema_version=version,
+        schema_hash=schema_hash,
+        proposed_spans=(
+            ProposedSpan(span=span, origin="laundering-probe", rationale="probe"),
+        ),
+        proposed_representation=RepresentationDraft(
+            records=(
+                RecordDraft(semantic_key=PROBE_RECORD, kind=RecordKind.GLOSSARY_RULE),
+            ),
+            components=(
+                ComponentDraft(
+                    record_key=PROBE_RECORD,
+                    semantic_key="accrual",
+                    handling=ComponentHandling.STRUCTURED,
+                    facts=(
+                        ConditionLevelFact(
+                            condition=ConditionKind.EXHAUSTION,
+                            direction=LevelDirection.GAIN,
+                            amount=1,
+                        ),
+                    ),
+                ),
+            ),
+            prose_bindings=(),
+            relationships=(),
+            references=(),
+            provenance=(),
+        ),
+        proposal_origin="test_succession_evidence_anchors",
+    )
+
+
+def _accept(prior, *, version: str, schema_hash: str):  # type: ignore[no-untyped-def]
+    return accept_proposal(
+        _proposal(prior, version=version, schema_hash=schema_hash),
+        batch_id="laundering-probe-1",
+        rule="the probe span",
+        resolved_scope=(PROBE_SPAN,),
+        reviewer="Test",
+        accepted_at="2026-08-30T00:00:00Z",
+        prior=prior,
+    )
+
+
+def _restamped_in_memory():  # type: ignore[no-untyped-def]
+    """The committed artifact with its declared pair overwritten, nothing else."""
+    real = load_accepted_inputs(ARTIFACT_PATH)
+    return replace(
+        real,
+        oracle=replace(
+            real.oracle, schema_version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH
+        ),
+    )
+
+
+def test_an_in_memory_restamped_prior_cannot_be_extended() -> None:
+    """The laundering, refused at the seam that used to perform it.
+
+    The prior is the committed artifact with one field changed. Its batches,
+    diffs and proposal identities are the real ones — which is exactly why
+    reading its *declaration* to fill in its missing anchors produced evidence
+    that looked genuine.
+    """
+    with pytest.raises(AcceptanceError) as raised:
+        _accept(
+            _restamped_in_memory(),
+            version=SCHEMA_4_VERSION,
+            schema_hash=SCHEMA_4_HASH,
+        )
+    message = str(raised.value)
+    assert "succession evidence does not hold" in message
+    assert "no batch states the representation schema it was reviewed under" in message
+
+
+def test_the_refused_prior_never_becomes_loadable_evidence(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Refusal means no artifact, and the prior itself is still unloadable.
+
+    Stated as two facts rather than one: acceptance produced nothing to write,
+    and writing the restamped prior directly is refused by the loader for the
+    same reason. There is no path from that in-memory value to a committed file.
+    """
+    restamped = _restamped_in_memory()
+    with pytest.raises(AcceptanceError):
+        _accept(restamped, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH)
+
+    path = _write(accepted_inputs_payload(restamped), pathlib.Path(tmp_path))
+    with pytest.raises(OracleLoadError):
+        load_accepted_inputs(path)
+
+
+def test_a_lift_cannot_launder_it_either() -> None:
+    """The sibling seam, through the same shared rule.
+
+    ``lift_accepted_inputs`` re-declares an artifact and synthesizes its anchors
+    from the pair being lifted *from*. Given incoherent evidence it would carry
+    that incoherence into the destination artifact, so it validates first — the
+    same function, not a second implementation of it.
+    """
+    real = load_accepted_inputs(ARTIFACT_PATH)
+    dangling = replace(
+        real,
+        schema_anchors=(
+            BatchSchemaAnchor("a-batch-that-is-not-here", "0" * 64, *SCHEMA_3),
+        ),
+    )
+    with pytest.raises(SchemaLiftError) as raised:
+        lift_accepted_inputs(dangling, SCHEMA_4)
+    assert "does not hold" in str(raised.value)
+
+
+MALFORMED_PRIORS = [
+    pytest.param(
+        lambda real: replace(
+            real,
+            schema_anchors=tuple(
+                BatchSchemaAnchor(b.batch_id, b.proposal_identity, *SCHEMA_3)
+                for b in real.batches
+            )
+            * 2,
+        ),
+        "anchored more than once",
+        id="duplicate",
+    ),
+    pytest.param(
+        lambda real: replace(
+            real,
+            schema_anchors=(BatchSchemaAnchor("not-a-batch", "0" * 64, *SCHEMA_3),),
+        ),
+        "no retained batch has this id",
+        id="dangling",
+    ),
+    pytest.param(
+        lambda real: replace(
+            real,
+            schema_anchors=tuple(
+                BatchSchemaAnchor(b.batch_id, "0" * 64, *SCHEMA_3) for b in real.batches
+            ),
+        ),
+        "anchored to proposal",
+        id="proposal-mismatched",
+    ),
+    pytest.param(
+        lambda real: replace(
+            real,
+            schema_anchors=tuple(
+                BatchSchemaAnchor(
+                    b.batch_id,
+                    b.proposal_identity,
+                    "5d-representation-schema-99",
+                    "f" * 64,
+                )
+                for b in real.batches
+            ),
+        ),
+        "not a contract this build accepts authority under",
+        id="unknown-pair",
+    ),
+    pytest.param(
+        lambda real: replace(real, schema_anchors=()),
+        "no batch states the representation schema",
+        id="incomplete-under-schema-4",
+    ),
+    pytest.param(
+        lambda real: replace(
+            real,
+            schema_anchors=tuple(
+                BatchSchemaAnchor(b.batch_id, b.proposal_identity, *SCHEMA_3)
+                for b in real.batches
+            ),
+            lifts=(),
+        ),
+        "without a registered succession carrying it there",
+        id="lift-inconsistent",
+    ),
+]
+
+
+@pytest.mark.parametrize(("corrupt", "expected"), MALFORMED_PRIORS)
+def test_malformed_prior_evidence_cannot_be_laundered_through_acceptance(
+    corrupt, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """Every corruption, on a prior that declares schema 4 and is extended.
+
+    None of these is repaired, deleted, or worked around: the shared rule reports
+    what is wrong with the prior and acceptance stops.
+    """
+    real = load_accepted_inputs(ARTIFACT_PATH)
+    schema_4_prior = replace(
+        real,
+        oracle=replace(
+            real.oracle, schema_version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH
+        ),
+    )
+    with pytest.raises(AcceptanceError) as raised:
+        _accept(
+            corrupt(schema_4_prior),
+            version=SCHEMA_4_VERSION,
+            schema_hash=SCHEMA_4_HASH,
+        )
+    assert expected in str(raised.value)
+
+
+# ---------------------------------------------------------------------------
+# Everything that must stay acceptable
+# ---------------------------------------------------------------------------
+
+
+def test_the_legacy_artifact_is_still_extendable_and_anchored_at_schema_3() -> None:
+    """The sole compatibility default, exercised through a real acceptance.
+
+    The committed artifact states no anchors and no lifts and declares the
+    recognized legacy pair, so its batches are anchored at *that* pair — schema 3,
+    where the review happened — while the new batch is anchored at the schema the
+    proposal declares.
+    """
+    prior = load_accepted_inputs(ARTIFACT_PATH)
+    result = _accept(prior, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH)
+
+    anchored = {a.batch_id: a.schema_version for a in result.schema_anchors}
+    assert anchored == {
+        "conditions-1": SCHEMA_3_VERSION,
+        "laundering-probe-1": SCHEMA_4_VERSION,
+    }
+    assert len(result.lifts) == 1, "the crossing the schema-3 anchor requires"
+    assert result.batches[0] == prior.batches[0], "the retained review is untouched"
+
+
+def test_a_validly_anchored_schema_4_prior_is_still_extendable() -> None:
+    """Authority genuinely accepted under schema 4, extended again under it."""
+    real = load_accepted_inputs(ARTIFACT_PATH)
+    prior = replace(
+        real,
+        oracle=replace(
+            real.oracle, schema_version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH
+        ),
+        schema_anchors=tuple(
+            BatchSchemaAnchor(b.batch_id, b.proposal_identity, *SCHEMA_4)
+            for b in real.batches
+        ),
+    )
+    result = _accept(prior, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH)
+    assert result.lifts == (), "same contract, so no succession was crossed"
+    assert {a.schema_version for a in result.schema_anchors} == {SCHEMA_4_VERSION}
+
+
+def test_acceptance_with_no_prior_is_unaffected() -> None:
+    """Nothing to validate, and nothing to carry."""
+    real = load_accepted_inputs(ARTIFACT_PATH)
+    result = accept_proposal(
+        _proposal(real, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH),
+        batch_id="laundering-probe-1",
+        rule="the probe span",
+        resolved_scope=(PROBE_SPAN,),
+        reviewer="Test",
+        accepted_at="2026-08-30T00:00:00Z",
+        prior=None,
+    )
+    (anchor,) = result.schema_anchors
+    assert (anchor.batch_id, anchor.schema_version) == (
+        "laundering-probe-1",
+        SCHEMA_4_VERSION,
+    )
+    assert result.lifts == ()

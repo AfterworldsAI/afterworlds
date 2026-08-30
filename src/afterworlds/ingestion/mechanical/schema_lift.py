@@ -61,6 +61,7 @@ if TYPE_CHECKING:  # pragma: no cover - import cycle guard
 __all__ = [
     "SCHEMA_LIFTS",
     "BatchSchemaAnchor",
+    "carried_anchors",
     "succession_evidence_violations",
     "accepted_schema_contracts",
     "schema_binding_violations",
@@ -167,13 +168,13 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
 }
 
 
-#: Declarations an artifact may not make while stating no anchor at all. Schema 4
-#: is the first contract that exists alongside a registered succession *into* it,
-#: so it is the first declaration whose unanchored form is ambiguous: before it,
-#: "no anchor" could only ever mean "reviewed under what this file declares".
-_POST_LEGACY_CONTRACTS: frozenset[tuple[str, str]] = frozenset(
-    {(SCHEMA_4_VERSION, SCHEMA_4_HASH)}
-)
+#: The one declaration whose unanchored form is unambiguous: the contract the
+#: committed artifact was accepted under, before anchors or any succession into
+#: it existed. Under it, "no anchor" can only ever have meant "reviewed under
+#: what this file declares". Stated as the exact pair, so an unknown version, an
+#: invented hash, or a later contract each fall outside it rather than being
+#: compared against a boundary (#137 round 8).
+_LEGACY_UNANCHORED_CONTRACT: tuple[str, str] = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 
 
 def lift_for(source: tuple[str, str], target: tuple[str, str]) -> SchemaLift:
@@ -460,10 +461,11 @@ def succession_evidence_violations(
     The rules, in the order a reader would ask them:
 
     1. **Anchored, or legacy.** Every retained batch carries exactly one anchor.
-       Absence is admitted for one exact shape only — a pre-schema-4 declaration
-       with no lift evidence — where it has a single possible meaning: these
-       batches were reviewed under the schema this artifact declares. The same
-       absence under a schema-4 declaration is the restamp, and fails.
+       Absence is admitted for one exact shape only — the recognized legacy
+       schema-3 pair with no lift evidence — where it has a single possible
+       meaning: these batches were reviewed under the schema this artifact
+       declares. The same absence under any later contract, an unknown pair, or
+       beside lift evidence is the restamp, and fails.
     2. **Real, and unrewritten.** Each anchor names a retained batch and repeats
        that batch's own ``proposal_identity``. A dangling anchor describes a
        review that is not here; a mismatched one describes a different proposal.
@@ -486,7 +488,7 @@ def succession_evidence_violations(
         # No batches means no review to describe, so absence states nothing and
         # cannot be ambiguous. An artifact with batches is the case this rule is
         # about.
-        if lifts or declared in _POST_LEGACY_CONTRACTS:
+        if lifts or declared != _LEGACY_UNANCHORED_CONTRACT:
             findings.append(
                 "no batch states the representation schema it was reviewed "
                 f"under, but this artifact declares {declared[0]!r} "
@@ -554,6 +556,45 @@ def succession_evidence_violations(
     return findings
 
 
+def carried_anchors(inputs: AcceptedInputs) -> tuple[BatchSchemaAnchor, ...]:
+    """The anchors an artifact may carry forward, or refuse to be transformed.
+
+    **Validate before mutating, and validate with the same rule the loader
+    uses.** A transformation that reads an artifact's declaration to fill in what
+    its evidence does not say is only sound if that evidence was coherent to
+    begin with; otherwise the transformation *manufactures* the evidence the
+    loader will later check, and the check passes because the transformation
+    wrote it. That is how an in-memory prior whose declared pair had simply been
+    overwritten became a loadable schema-4 artifact carrying schema-4 anchors for
+    a schema-3 review (#137 round 8).
+
+    So the incoherent prior is refused rather than repaired. Nothing here
+    deletes, rewrites, or works around malformed evidence: an artifact whose
+    anchors are duplicated, dangling, proposal-mismatched, unrecognized,
+    incomplete, or inconsistent with its own lift history is not carried
+    forward in any form.
+
+    The one default survives, and only in its exact shape: an artifact with no
+    anchors and no lifts declaring the recognized legacy pair has its retained
+    batches anchored at that pair, because that is the single thing its absence
+    can have meant.
+    """
+    declared = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
+    if findings := succession_evidence_violations(
+        inputs.batches, inputs.schema_anchors, inputs.lifts, declared
+    ):
+        raise SchemaLiftError(
+            "the prior accepted authority's own succession evidence does not "
+            "hold, so nothing may be carried forward from it: " + "; ".join(findings)
+        )
+    if inputs.schema_anchors:
+        return inputs.schema_anchors
+    return tuple(
+        BatchSchemaAnchor(batch.batch_id, batch.proposal_identity, *declared)
+        for batch in inputs.batches
+    )
+
+
 def lift_accepted_inputs(
     inputs: AcceptedInputs, target: tuple[str, str]
 ) -> tuple[AcceptedInputs, SchemaLiftRecord]:
@@ -591,10 +632,9 @@ def lift_accepted_inputs(
             schema_version=lift.to_version,
             schema_hash=lift.to_hash,
         ),
-        schema_anchors=inputs.schema_anchors
-        or tuple(
-            BatchSchemaAnchor(batch.batch_id, batch.proposal_identity, *source)
-            for batch in inputs.batches
-        ),
+        # Validated first, through the shared rule: a lift is a transformation
+        # like any other, and one that carried incoherent evidence forward would
+        # launder it into the destination artifact.
+        schema_anchors=carried_anchors(inputs),
     )
     return lifted, record

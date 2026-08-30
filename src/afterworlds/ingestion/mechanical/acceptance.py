@@ -85,6 +85,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     BatchSchemaAnchor,
     SchemaLiftError,
     SchemaLiftRecord,
+    carried_anchors,
     lift_for,
     schema_binding_violations,
     verify_lift,
@@ -318,6 +319,15 @@ def accept_proposal(
             "it was not accepted under the schema it names: " + "; ".join(illegal)
         )
 
+    # The prior's *evidence* is validated here, before anything is computed
+    # from it: before the lift is looked up, before the representations are
+    # merged, and before any anchor is carried or synthesized. An artifact whose
+    # own succession evidence does not hold is not a base to extend, and reading
+    # its declaration to fill in what its evidence never said is how a restamped
+    # in-memory prior turned a schema-3 review into schema-4 anchors that then
+    # loaded clean (#137 round 8).
+    prior_anchors = _carried_anchors(prior)
+
     # A schema difference is refused unless an authorized lift covers this exact
     # transition. The check is widened, never removed: identical schemas remain
     # directly acceptable, and everything else must be registered for its exact
@@ -429,7 +439,7 @@ def accept_proposal(
         # which is the one reading that form can have — done at the seam that
         # knows both halves, rather than left for a later reader to infer from
         # an empty lift history it cannot interpret (#137 round 7).
-        schema_anchors=_carried_anchors(prior)
+        schema_anchors=prior_anchors
         + (
             BatchSchemaAnchor(
                 batch_id=batch.batch_id,
@@ -446,26 +456,23 @@ def accept_proposal(
 
 
 def _carried_anchors(prior: AcceptedInputs | None) -> tuple[BatchSchemaAnchor, ...]:
-    """The prior artifact's anchors, materialized if it predates them.
+    """The prior artifact's anchors, validated before anything is carried.
 
-    A schema-3 artifact committed before anchors existed states none, and that
-    absence has exactly one reading: its batches were reviewed under the schema
-    it declares. Reading it here rather than carrying the ambiguity forward is
-    what lets the loader refuse the same absence under a later declaration.
+    Delegated to ``schema_lift.carried_anchors`` rather than restated: the rule
+    that decides whether an artifact's evidence may be carried forward is the
+    same rule the loader applies to it, and two implementations of it would
+    disagree exactly where it matters. This wrapper exists only to say the
+    refusal in the words ``accept_proposal``'s callers already handle.
     """
     if prior is None:
         return ()
-    if prior.schema_anchors:
-        return prior.schema_anchors
-    return tuple(
-        BatchSchemaAnchor(
-            batch_id=b.batch_id,
-            proposal_identity=b.proposal_identity,
-            schema_version=prior.oracle.schema_version,
-            schema_hash=prior.oracle.schema_hash,
-        )
-        for b in prior.batches
-    )
+    try:
+        return carried_anchors(prior)
+    except SchemaLiftError as exc:
+        raise AcceptanceError(
+            "this proposal would extend prior accepted authority whose own "
+            f"succession evidence does not hold: {exc}"
+        ) from exc
 
 
 def _ordered(spans: tuple[SemanticSpan, ...]) -> tuple[SemanticSpan, ...]:
