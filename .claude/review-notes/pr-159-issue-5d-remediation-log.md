@@ -882,3 +882,67 @@ oracle_identity                : a0f0bd2f… unmoved
 committed artifact round-trips to identical payload : yes
 alembic                        : 0030 (head), no migration
 ```
+
+---
+
+# Round 9
+
+## R9-1 — a key the serializer always writes was treated as optional
+
+Reproduced first, on `{"boundary": "end_of_day"}` through all three production builders:
+
+```
+oracle._recurrence                 Recurrence(boundary=END_OF_DAY, whose=None)
+persistence._recurrence_from_row   Recurrence(boundary=END_OF_DAY, whose=None)
+patches._build_recurrence          Recurrence(boundary=END_OF_DAY, whose=None)
+```
+
+`recurrence_payload` emits every field of this value object unconditionally — a day-boundary cadence
+serializes to `{"boundary": "end_of_day", "whose": null}` — and the schema grammar does not declare
+`whose` omitted-when-empty. So an object without it is a shape nothing ever wrote, and rebuilding it as an
+explicit null gives an incomplete row a meaning rather than refusing it.
+
+**The omission that *is* declared is one level up and untouched:** `recurs` itself is absent when a
+component states no cadence, which is what keeps an inherited schema-3 component byte-identical under
+schema 4. This round changed the shape *inside* a present recurrence, never whether one is present.
+
+## Single-sourced, three readers
+
+`representation.RECURRENCE_KEYS` is derived from the declared type — `frozenset(f.name for f in
+fields(Recurrence))` — rather than restated, so it cannot drift from what the serializer emits. Each
+builder reads it and keeps its own typed error, which is how every other shape in these modules is
+checked. No new parsing framework for a two-field value object.
+
+```
+case                       oracle            persistence       patches
+{boundary} only            OracleLoadError   PersistedState…   InvalidPatchError
+{boundary, whose: null}    rebuilds          rebuilds          rebuilds
+turn + whose               rebuilds          rebuilds          rebuilds
+turn, whose null           refused           refused           refused
+day + whose set            refused           refused           refused
+unknown key                refused           refused           refused
+whose only (no boundary)   refused           refused           refused
+```
+
+Every row runs against all three builders in one parametrized class, so a fourth builder joins the rule by
+joining the table and no builder can quietly diverge.
+
+## What the end-to-end tests had to account for
+
+A cadence *is* schema-4 meaning, so an artifact carrying one must declare schema 4 — otherwise round 4's
+legality guard refuses the file before the key shape is ever read, and the test would pass for the wrong
+reason. The loader tests therefore declare schema 4 and anchor their batches there (the fresh-schema-4
+shape round 7 admits), and the missing-`whose` case asserts the refusal names `missing ['whose']`.
+
+## Aligns reconstruction with the declared schema — nothing re-pinned
+
+```
+live payload hash : 241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+SCHEMA_4_HASH     : unmoved, and still equal to it
+SCHEMA_3_HASH     : 43ed330d…  unchanged
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+oracle_identity                : a0f0bd2f… unmoved
+committed artifact round-trips to identical payload : yes
+alembic                        : 0030 (head), no migration
+```

@@ -204,6 +204,7 @@ __all__ = [
     "component_participant_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
+    "RECURRENCE_KEYS",
     "declared_meaning_violations",
     "invariant_manifest",
     "held_structure_violations",
@@ -5304,6 +5305,20 @@ class Recurrence:
 
     boundary: RecurrenceBoundary
     whose: RollActor | None = None
+
+
+#: The exact key set a serialized recurrence carries, derived from the declared
+#: type rather than restated. ``recurrence_payload`` emits every field of this
+#: value object unconditionally — ``whose`` is *not* omitted when empty, and the
+#: schema grammar does not declare it so — therefore a present recurrence object
+#: holds both keys, with ``whose`` free to be JSON null.
+#:
+#: Read by the three JSON builders that rebuild a stored recurrence, each of
+#: which keeps its own typed error. One statement of the rule with three readers,
+#: which is how every other shape here is checked; treating the key as optional
+#: independently in all three is what let ``{"boundary": "end_of_day"}`` rebuild
+#: as an explicit null nobody wrote (#137 round 9).
+RECURRENCE_KEYS: frozenset[str] = frozenset(f.name for f in fields(Recurrence))
 
 
 def recurrence_violations(recurrence: Recurrence) -> list[str]:

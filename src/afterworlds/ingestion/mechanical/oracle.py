@@ -76,6 +76,7 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
@@ -464,12 +465,16 @@ def _recurrence(raw: object, where: str) -> Recurrence | None:
         return None
     if not isinstance(raw, dict):
         raise OracleLoadError(f"{where}: recurrence must be an object or null")
-    payload = _require(raw, ("boundary",), where, optional=("whose",))
+    # Both keys, exactly. The canonical payload emits ``whose`` unconditionally,
+    # so a stored object without it is not "a recurrence with no actor" — it is a
+    # shape the serializer never wrote, and reading it as an explicit null would
+    # invent a claim the file does not make (#137 round 9).
+    payload = _require(raw, tuple(sorted(RECURRENCE_KEYS)), where)
     built = Recurrence(
         boundary=_enum(RecurrenceBoundary, payload["boundary"], f"{where}.boundary"),
         whose=(
             None
-            if payload.get("whose") is None
+            if payload["whose"] is None
             else _enum(RollActor, payload["whose"], f"{where}.whose")
         ),
     )

@@ -75,6 +75,7 @@ from afterworlds.ingestion.mechanical.raw_state import (
     validate_raw_closure,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
@@ -389,16 +390,19 @@ def _recurrence_from_row(
             f"got {type(payload).__name__}"
         )
     raw: dict[str, Any] = payload
-    unknown = sorted(set(raw) - {"boundary", "whose"})
-    if unknown or "boundary" not in raw:
+    # Exactly the declared key set — no unknown key, and no missing one. A row
+    # holding only ``boundary`` is a shape the serializer never wrote, and
+    # rebuilding it as an explicit null would repair the row rather than refuse
+    # it (#137 round 9).
+    if set(raw) != RECURRENCE_KEYS:
         raise PersistedStateReconstructionError(
             f"rp_mech_components {where}: recurrence payload keys {sorted(raw)} "
-            "are not the declared shape"
+            f"are not the declared shape {sorted(RECURRENCE_KEYS)}"
         )
     try:
         built = Recurrence(
             boundary=RecurrenceBoundary(raw["boundary"]),
-            whose=None if raw.get("whose") is None else RollActor(raw["whose"]),
+            whose=None if raw["whose"] is None else RollActor(raw["whose"]),
         )
     except ValueError as exc:
         raise PersistedStateReconstructionError(

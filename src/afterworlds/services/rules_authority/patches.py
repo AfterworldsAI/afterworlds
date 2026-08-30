@@ -66,6 +66,7 @@ from afterworlds.ingestion.mechanical.projection import (
     recurrence_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
@@ -718,13 +719,14 @@ def _build_recurrence(value: object, what: str) -> Recurrence | None:
         return None
     if not isinstance(value, Mapping):
         raise InvalidPatchError(f"{what} recurs must be an object or null")
-    _require_keys(
-        dict(value), {"boundary"}, f"{what} recurs", optional=frozenset({"whose"})
-    )
+    # Both keys are required; ``whose`` may hold null. The serializer emits it
+    # unconditionally, so accepting a patch that omits it would admit a shape no
+    # projection ever wrote and silently give it a meaning (#137 round 9).
+    _require_keys(dict(value), set(RECURRENCE_KEYS), f"{what} recurs")
     try:
         built = Recurrence(
             boundary=RecurrenceBoundary(value["boundary"]),
-            whose=(None if value.get("whose") is None else RollActor(value["whose"])),
+            whose=(None if value["whose"] is None else RollActor(value["whose"])),
         )
     except (TypeError, ValueError) as exc:
         raise InvalidPatchError(f"{what} recurs: {exc}") from exc
