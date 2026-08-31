@@ -47,6 +47,7 @@ from afterworlds.ingestion.mechanical.persistence import (
 from afterworlds.ingestion.mechanical.projection import (
     identify_projection,
     validate_candidate,
+    validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
@@ -592,6 +593,27 @@ def test_lifting_accepted_inputs_refuses_every_top_level_subclass(
     with pytest.raises(SchemaLiftError) as raised:
         lift_accepted_inputs(hostile, target)
     assert expected in str(raised.value)
+
+
+@pytest.mark.parametrize(("tamper", "expected"), TOP_LEVEL_AXES)
+def test_direct_candidate_schema_validation_refuses_them_too(
+    tamper, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """The third seam reading the shared boundary, asserted rather than inferred.
+
+    ``validate_schema_binding`` reports rather than raises, so an illegal
+    candidate reaches the publication gate as a verdict instead of an exception
+    out of the payload renderer. That is the path a persisted-state
+    reconstruction takes, where neither the loader nor ``accept_proposal``
+    stands between the candidate and publication.
+    """
+    candidate = candidate_of(
+        RELEASE_BINDING,
+        build_ledger(),
+        tamper(build_representation()),  # type: ignore[arg-type]
+    )
+    findings = validate_schema_binding(candidate)
+    assert any(expected in f for f in findings), findings
 
 
 def test_the_exact_base_types_still_lift_and_validate() -> None:

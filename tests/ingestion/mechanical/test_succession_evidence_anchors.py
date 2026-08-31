@@ -42,6 +42,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
+    oracle_identity,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
@@ -73,6 +74,7 @@ ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 SCHEMA_3 = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 SCHEMA_4 = (SCHEMA_4_VERSION, SCHEMA_4_HASH)
 BATCH_ID = "conditions-1"
+COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"  # noqa: E501  # pragma: allowlist secret
 
 
 def _committed() -> dict:  # type: ignore[type-arg]
@@ -802,3 +804,8 @@ def test_the_committed_artifact_is_unmoved_by_any_of_this() -> None:
     lift_accepted_inputs(inputs, SCHEMA_4)
     assert accepted_inputs_payload(load_accepted_inputs(ARTIFACT_PATH)) == _committed()
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == SCHEMA_3
+    assert oracle_identity(inputs.oracle) == COMMITTED_ORACLE_IDENTITY
+    assert (
+        len(inputs.oracle.representation.provenance),
+        len(inputs.oracle.representation.references),
+    ) == (185, 15)
