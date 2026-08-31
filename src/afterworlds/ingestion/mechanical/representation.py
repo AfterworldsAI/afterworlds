@@ -2261,32 +2261,36 @@ def _check_alternatives(
     Ordering and uniqueness stay as they were: authoring order must not reach
     the fact key, because two authorings of one set are one claim.
     """
-    if not isinstance(alternatives, tuple) or any(
-        type(r) is not RollSpec for r in alternatives
-    ):
+    # The container first, and on its own: ``isinstance`` admitted a subclass,
+    # and the element scan behind the ``or`` iterated it to find that out
+    # (#137 round 11).
+    if drift := exact_tuple_violations(alternatives, "alternatives"):
+        return drift
+    rolls = cast("tuple[RollSpec, ...]", alternatives)
+    if any(type(r) is not RollSpec for r in rolls):
         return ["alternatives is not a tuple of roll specifications"]
-    if not alternatives:
+    if not rolls:
         return []
     findings: list[str] = []
-    if len(alternatives) < 2:
+    if len(rolls) < 2:
         findings.append(
             "alternatives states one option; a choice of one is a single roll "
             "misdescribed"
         )
-    for index, roll in enumerate(alternatives):
+    for index, roll in enumerate(rolls):
         findings.extend(_check_rollspec(roll, f"alternatives[{index}]"))
         findings.extend(
             _check_skill_pairing(roll.skill, roll.ability, f"alternatives[{index}]")
         )
     if findings:
         return findings
-    payloads = [canonical_bytes(_dataclass_payload(r)) for r in alternatives]
+    payloads = [canonical_bytes(_dataclass_payload(r)) for r in rolls]
     if payloads != sorted(payloads):
         findings.append("alternatives is not in canonical order")
     if len(set(payloads)) != len(payloads):
         findings.append("alternatives repeats a roll")
 
-    for index, roll in enumerate(alternatives):
+    for index, roll in enumerate(rolls):
         if roll.context is not RollContext.ABILITY_CHECK:
             findings.append(
                 f"alternatives[{index}] is rolled as {roll.context.value}; a "
@@ -2295,7 +2299,7 @@ def _check_alternatives(
             )
     # The declared pair, exactly once. Matched on the ability and skill the
     # fact itself carries — the fact states no actor, so nothing here reads one.
-    declared = sum(1 for r in alternatives if (r.ability, r.skill) == (ability, skill))
+    declared = sum(1 for r in rolls if (r.ability, r.skill) == (ability, skill))
     if declared != 1:
         named = "no member" if declared == 0 else f"{declared} members"
         findings.append(
@@ -2315,9 +2319,9 @@ def _check_size_keyed_quantity(fact: SizeKeyedQuantityFact) -> list[str]:
         *_enum_field(fact.quantity, RequiredQuantity, "quantity"),
         *_enum_field(fact.period, TimePeriod, "period"),
     ]
-    if not isinstance(fact.values, tuple) or any(
-        type(v) is not SizeQuantity for v in fact.values
-    ):
+    if drift := exact_tuple_violations(fact.values, "values"):
+        return [*findings, *drift]
+    if any(type(v) is not SizeQuantity for v in fact.values):
         findings.append("values is not a tuple of size quantities")
     if findings:
         return findings
@@ -2527,6 +2531,64 @@ def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
     if type(value) is not cls:
         return [f"{field} must be {cls.__name__}, got {type(value).__name__} {value!r}"]
     return []
+
+
+def exact_tuple_violations(value: object, field: str) -> list[str]:
+    """The field must hold an exact ``tuple``, checked before anything reads it.
+
+    The container half of the closed-structure rule. :func:`exact_type_violations`
+    states it for a declared *element*; this states it for the sequence that
+    holds them, and it is a separate helper for one reason: it must not touch
+    the value.
+
+    A ``tuple`` subclass is a ``tuple``, so ``isinstance`` admits it. It can
+    carry undeclared meaning-bearing state that no canonical payload emits — two
+    facts asserting different authority then hash identically — and it can
+    override ``__iter__``, so a validator and the serializer observe different
+    contents from the same object. It can also override ``__hash__`` and
+    ``__eq__``, which matters wherever a tuple is used as a key rather than as a
+    collection.
+
+    **Nothing about the value reaches the finding.** No iteration, no length, and
+    deliberately no ``repr`` — unlike :func:`exact_type_violations`, which
+    interpolates the value and is safe only because its callers have already
+    established the container. A subclass may override ``__repr__`` too, and a
+    refusal that renders the thing it is refusing has observed it. Only the type
+    name is reported.
+    """
+    if type(value) is not tuple:
+        return [f"{field} must be tuple, got {type(value).__name__}"]
+    return []
+
+
+def declared_tuple_fields(cls: type) -> tuple[str, ...]:
+    """The tuple-valued fields *cls* declares, read from the dataclass itself.
+
+    The inventory half of the container rule, derived rather than listed. A new
+    authority dataclass — or a new tuple field on an existing one — joins the
+    audited surface by being declared, which is the only way a hand-written list
+    of nine field names would not have drifted the first time a tenth appeared.
+    """
+    if not is_dataclass(cls):
+        return ()
+    return tuple(f.name for f in fields(cls) if str(f.type).lower().startswith("tuple"))
+
+
+def held_container_violations(value: object, tag: str) -> list[str]:
+    """Every declared tuple field of one authority value, checked exactly.
+
+    Runs **before** any reader of *value* — before its own invariants, before
+    ``fact_key``, before the option-signature comparison, before canonicalization.
+    That ordering is the whole point: several functions read a component's facts,
+    and a container refused by one of them but reached by another has still been
+    iterated. See :func:`exact_tuple_violations` for what a subclass can do.
+    """
+    declared = _declared_type(value)
+    return [
+        v
+        for name in declared_tuple_fields(declared)
+        for v in exact_tuple_violations(getattr(value, name), f"{tag}: {name}")
+    ]
 
 
 #: The name this rule has had since the fact-family validators; kept so the
@@ -2850,8 +2912,8 @@ def _check_damage_response(fact: DamageResponseFact) -> list[str]:
         *_enum_field(fact.scope, DamageScope, "scope"),
         *_optional_enum_field(fact.damage_type, DamageType, "damage_type"),
     ]
-    if not isinstance(fact.except_types, tuple):
-        findings.append("except_types is not a tuple")
+    if drift := exact_tuple_violations(fact.except_types, "except_types"):
+        findings.extend(drift)
     else:
         for i, t in enumerate(fact.except_types):
             findings.extend(_enum_field(t, DamageType, f"except_types[{i}]"))
@@ -6231,11 +6293,17 @@ def representation_draft_violations(draft: object) -> list[str]:
             violations.extend(drift)
             continue
         for index, element in enumerate(held):
-            violations.extend(
-                exact_type_violations(
-                    element, expected, f"representation.{field_name}[{index}]"
-                )
-            )
+            at = f"representation.{field_name}[{index}]"
+            if drift := exact_type_violations(element, expected, at):
+                violations.extend(drift)
+                continue
+            # ...and the containers that element itself declares, before any
+            # later pass reads one. ``ProvenanceClaim.target_key`` is the case
+            # that makes this belong here rather than only deeper down: it is a
+            # *key*, resolved by set membership in ``validate_representation``'s
+            # provenance pass, so a subclass overriding ``__hash__`` or
+            # ``__eq__`` could match a target it is not (#137 round 11).
+            violations.extend(held_container_violations(element, at))
     return violations
 
 
@@ -6269,6 +6337,75 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
     findings: list[str] = []
     for component in draft.components:
         tag = f"component {component.record_key}/{component.semantic_key}"
+        # **Containers before contents.** A component's three collections are
+        # iterated to build ``scopes`` below and are handed to
+        # ``option_set_violations`` and ``fact_qualifier_violations`` already
+        # unpacked, so neither of those can be the place this is checked — by
+        # then the caller has read them. A subclass here would smuggle state no
+        # payload emits, or answer ``__iter__`` with contents that disagree with
+        # what the serializer writes (#137 round 11).
+        if container := [
+            v
+            for field, held in (
+                ("facts", component.facts),
+                ("options", component.options),
+                ("fact_qualifiers", component.fact_qualifiers),
+            )
+            for v in exact_tuple_violations(held, f"{tag}: {field}")
+        ]:
+            findings.extend(container)
+            continue
+
+        # Every container this component holds, at every depth, before any
+        # reader touches one. Several functions read a component's facts — the
+        # fact invariants, ``option_set_violations``' arm signatures,
+        # ``fact_qualifier_violations``' scoped keys — and a container refused by
+        # one but reached by another has still been iterated. So the whole
+        # component is scanned first and skipped entirely if anything here is
+        # not an exact tuple. The per-field checks in the individual validators
+        # stay: they own the rule when called directly.
+        containers = [
+            v
+            for o in component.options
+            if type(o) is ComponentOption
+            for v in exact_tuple_violations(
+                o.facts, f"{tag} option {o.semantic_key}: facts"
+            )
+        ]
+        for scope_tag, held in [
+            (tag, component.facts),
+            *(
+                (f"{tag} option {o.semantic_key}", o.facts)
+                for o in component.options
+                if type(o) is ComponentOption
+                and type(o.facts) is tuple  # already reported above otherwise
+            ),
+        ]:
+            for index, fact in enumerate(held):
+                containers.extend(
+                    held_container_violations(fact, f"{scope_tag}: facts[{index}]")
+                )
+        for owner_tag, applies in (
+            (tag, component.applies_when),
+            *(
+                (f"{tag} option {o.semantic_key}", o.applies_when)
+                for o in component.options
+                if type(o) is ComponentOption
+            ),
+            *(
+                (f"{tag} qualifier {index}", q.applies_when)
+                for index, q in enumerate(component.fact_qualifiers)
+                if type(q) is FactQualifier
+            ),
+        ):
+            if applies is not None:
+                containers.extend(
+                    held_container_violations(applies, f"{owner_tag}: applies_when")
+                )
+        if containers:
+            findings.extend(containers)
+            continue
+
         scopes: list[tuple[str, Sequence[object], object]] = [
             (tag, component.facts, component.applies_when)
         ]
@@ -6280,10 +6417,12 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
             # first would report the subclass as its contents instead.
             if type(o) is ComponentOption
         )
+
         for scope_tag, facts, applies_when in scopes:
-            for fact in facts:
+            for held_fact in facts:
                 findings.extend(
-                    f"{scope_tag}: {v}" for v in fact_invariant_violations(fact)
+                    f"{scope_tag}: {v}"
+                    for v in fact_invariant_violations(cast(Any, held_fact))
                 )
             if applies_when is not None:
                 findings.extend(
@@ -6305,6 +6444,19 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
                 f"{tag}: {v}"
                 for v in recurrence_violations(cast(Any, component.recurs))
             )
+
+    # ``target_key`` is the one audited container that is a *key* rather than a
+    # collection. ``representation_draft_violations`` states the same rule at the
+    # top-level boundary, which is what protects ``validate_representation``'s
+    # provenance pass; this is the second reader of it, so that a caller reaching
+    # only this function — ``accept_proposal``'s merge seam does call both — is
+    # not left depending on the other having run.
+    for index, claim in enumerate(draft.provenance):
+        if type(claim) is not ProvenanceClaim:
+            continue
+        findings.extend(
+            exact_tuple_violations(claim.target_key, f"provenance[{index}]: target_key")
+        )
     return findings
 
 
@@ -6654,9 +6806,11 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         held = getattr(applicability, name)
         if held is not None and not isinstance(held, member):
             typed.append(f"{held!r} is not a declared {member.__name__}")
-    if not isinstance(applicability.any_of, tuple) or any(
-        type(c) is not SizeComparison for c in applicability.any_of
-    ):
+    if drift := exact_tuple_violations(applicability.any_of, "any_of"):
+        # Short-circuits the element scan below without disturbing the exact-type
+        # refusals above or the delegated ``fraction`` check that follows.
+        typed.extend(drift)
+    elif any(type(c) is not SizeComparison for c in applicability.any_of):
         typed.append("any_of is not a tuple of size comparisons")
     # Delegated, never restated. The exact-type refusal is only half of what a
     # Rational has to satisfy: a zero or negative denominator is not a number,

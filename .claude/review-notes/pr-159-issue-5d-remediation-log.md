@@ -1089,3 +1089,120 @@ oracle_identity                : a0f0bd2f… unmoved
 committed artifact round-trips to identical payload : yes
 alembic                        : 0030 (head), no migration
 ```
+
+---
+
+# Round 11 — `1b0d208` → this commit
+
+One accepted merge-blocking P1. Enforcement only; neither schema hash moved.
+
+## R11-1 — round 10 checked the elements, not the containers they sit in
+
+Round 10 closed the top-level boundary — the draft, the exact `tuple` type of each of the six collections,
+and the exact type of every element in them. It did not reach the tuples nested *inside* those elements,
+and every one of those was checked with `isinstance` (which admits a subclass) or was not checked at all.
+
+```
+before
+  AbilityCheckFact.alternatives = SmuggledTuple(...)   CLEAN — admitted
+  SizeKeyedQuantityFact.values  = SmuggledTuple(...)   CLEAN — admitted
+  subclass vs exact tuple: same fact_key? True   same payload? True
+
+  alternatives = HostileTuple(...)   AssertionError: __iter__ was invoked
+  values       = HostileTuple(...)   AssertionError: __iter__ was invoked
+
+  alternatives = TwoFacedTuple(...)  validation iterates and sees 0 members
+                                     indexing shows 2
+                                     finding: "no member states the fact's own pair"
+
+after
+  every case above    "<field> must be tuple, got <Type>"   nothing iterated, nothing rendered
+```
+
+Three distinct leaks, and the middle one is why `isinstance` was never enough on its own:
+
+* **hidden state** — a subclass carries meaning no canonical payload emits, so two facts asserting
+  different authority produce one `fact_key`;
+* **hostile `__iter__`** — the validator and the serializer observe different contents from one object, so
+  the finding produced describes content the artifact does not have. The two-faced case is the sharpest
+  form: the old code returned a complaint about an *empty* choice while the fact held two rolls;
+* **hostile `__hash__`/`__eq__`** — `ProvenanceClaim.target_key` is a *key*, resolved by set membership, so
+  a subclass can match a target it is not.
+
+## The rule, and why it is a separate helper
+
+`exact_tuple_violations(value, field)` reports `type(value).__name__` and nothing else. No iteration, no
+length, and deliberately no `repr` — unlike `exact_type_violations`, which interpolates the value and is
+safe only because its callers have already established the container. A subclass may override `__repr__`
+too, and a refusal that renders the thing it refuses has observed it. One test pins this with a container
+whose `__iter__` *and* `__repr__` raise.
+
+The inventory is derived, not listed: `declared_tuple_fields(cls)` reads the dataclass, and
+`held_container_violations(value, tag)` checks every tuple field the value's *declared* type declares. A
+new authority dataclass, or a new tuple field on an existing one, joins the audited surface by being
+declared. A test asserts the parametrized witness table equals the derived set, so a tenth field fails the
+suite rather than shipping unaudited.
+
+## Ordering — the part the field-by-field patch did not settle
+
+Patching each validator was not sufficient, and the hostile-iteration test is what proved it: several
+functions read a component's facts. `option_set_violations` builds `fact_key` signatures to compare arms
+and `fact_qualifier_violations` builds scoped keys, and both receive the tuples **already unpacked as
+parameters** — so neither can be where the container is checked, because by then its caller has iterated.
+
+So the containers a component holds are scanned *whole*, at every depth, before any reader touches one, and
+the component is skipped entirely if anything is not an exact tuple. An earlier attempt gated on "any
+content finding" instead and suppressed an unrelated option-subclass finding; the gate is specifically the
+container scan, so ordinary semantic findings still report as they did.
+
+Element containers are also checked at the top-level boundary in `representation_draft_violations`, right
+after each element's exact type is established. That is what protects `validate_representation`'s
+provenance pass, where `target_key` reaches set membership.
+
+## Bounded family audit — every tuple-valued field of a serialized authority dataclass
+
+**Enumeration method.** Derived from `_CLOSED_TYPES ∪ _DRAFT_ELEMENT_TYPES ∪ {RepresentationDraft}` via
+`fields()`, filtering on the declared annotation — not read off the review comment. **15 fields on 58
+dataclasses.** No sequence-shaped annotation spelled anything other than `tuple` exists on that surface.
+
+| Field | Before | Disposition |
+|---|---|---|
+| `AbilityCheckFact.alternatives` | `isinstance` + element scan behind `or`, iterated to decide | **patched** |
+| `SizeKeyedQuantityFact.values` | `isinstance` + element scan behind `or`, iterated to decide | **patched** |
+| `DamageResponseFact.except_types` | `isinstance`, correctly ordered before its loop | **patched** — exactness only; the ordering was already right |
+| `Applicability.any_of` | `isinstance` + element scan behind `or` | **patched** — short-circuits the element scan without disturbing the delegated `fraction` check |
+| `ComponentDraft.facts` | unchecked container; iterated to build scopes and keys | **patched** — in the pre-scan, not in the consumers |
+| `ComponentDraft.options` | unchecked container; iterated to build scopes | **patched** |
+| `ComponentDraft.fact_qualifiers` | unchecked container | **patched** |
+| `ComponentOption.facts` | unchecked container; keyed by `option_set_violations` | **patched** |
+| `ProvenanceClaim.target_key` | **never type-checked at all**; reached set membership directly | **patched (previously unchecked)** |
+| `RepresentationDraft.records` | exact-`tuple` checked before iteration | already safe — round 10 |
+| `RepresentationDraft.components` | exact-`tuple` checked before iteration | already safe — round 10 |
+| `RepresentationDraft.prose_bindings` | exact-`tuple` checked before iteration | already safe — round 10 |
+| `RepresentationDraft.relationships` | exact-`tuple` checked before iteration | already safe — round 10 |
+| `RepresentationDraft.references` | exact-`tuple` checked before iteration | already safe — round 10 |
+| `RepresentationDraft.provenance` | exact-`tuple` checked before iteration | already safe — round 10 |
+
+**Excluded, and named rather than omitted.** The evidence-side tuples —
+`AcceptedInputs.batches`/`acceptances`/`schema_anchors`/`lifts`, `AcceptedOracle.spans`/`obligations`, and
+`SchemaLiftRecord.verified_collections` — are `out of scope` for this round: they are acceptance and
+succession evidence, not representation authority, and they are loader-built from JSON rather than
+authored. Parser-local arrays, constants, function parameters and non-authority implementation tuples are
+excluded by the same scoping.
+
+## Enforcement only — no re-pin, and no manifest row
+
+JSON already declares each of these fields as an array. Exact Python container type adds no serialized
+grammar, so no `_Invariant` row was added and the schema payload is unchanged.
+
+```
+live payload hash : 241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+SCHEMA_4_HASH     : unmoved, and still equal to it
+SCHEMA_3_HASH     : 43ed330d…  unchanged
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+proposal identity              : 14587d5b… unchanged
+oracle_identity                : a0f0bd2f… unmoved
+committed artifact round-trips to identical payload : yes
+alembic                        : 0030 (head), no migration
+```
