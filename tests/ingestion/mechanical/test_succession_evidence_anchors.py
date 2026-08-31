@@ -38,6 +38,7 @@ from afterworlds.ingestion.mechanical.models import (
 )
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
+    AcceptedInputs,
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
@@ -48,6 +49,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     ConditionKind,
     ConditionLevelFact,
+    EffectTerminationFact,
     LevelDirection,
     RecordDraft,
     RecordKind,
@@ -61,7 +63,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_VERSION,
     BatchSchemaAnchor,
     SchemaLiftError,
+    UnknownSchemaLiftError,
     lift_accepted_inputs,
+    lift_for,
     succession_evidence_violations,
 )
 
@@ -633,3 +637,168 @@ def test_acceptance_with_no_prior_is_unaffected() -> None:
         SCHEMA_4_VERSION,
     )
     assert result.lifts == ()
+
+
+# ---------------------------------------------------------------------------
+# Round 10 — lifting to the schema an artifact already declares is a no-op
+# ---------------------------------------------------------------------------
+#
+# Checkpoint T-7 requires that carrying accepted authority to a schema it
+# already declares neither changes its bytes nor records a second
+# ``SchemaLiftRecord``. ``lift_accepted_inputs`` called ``lift_for``
+# unconditionally, so schema-4 to schema-4 raised ``UnknownSchemaLiftError``
+# instead — correct of ``lift_for``, which is keyed by real transitions, and
+# wrong of the caller, which was asking a different question.
+#
+# The no-op lives in the caller for that reason. ``lift_for`` stays exact: an
+# equal pair is not a registered succession, and teaching the registry to answer
+# for one would merge "is this authorized?" with "is there anything to do?".
+
+
+def _fully_evidenced_schema_4() -> AcceptedInputs:
+    """The committed artifact carried to schema 4, with the evidence to say so.
+
+    The record ``lift_accepted_inputs`` returns is deliberately *not* appended
+    to ``lifts`` by that function — ``accept_proposal`` assembles the evidence
+    half — so the artifact straight out of a lift declares schema 4 while
+    holding a schema-3 anchor and no crossing. That is incomplete evidence, and
+    the test below asserts it is refused rather than papering over it here.
+    """
+    lifted, record = lift_accepted_inputs(load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4)
+    return replace(lifted, lifts=(record,))
+
+
+def test_the_genuine_succession_still_happens_exactly_once() -> None:
+    """The crossing path, unchanged: one real record, anchored where reviewed."""
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lifted, record = lift_accepted_inputs(inputs, SCHEMA_4)
+
+    assert record is not None
+    assert record.lift_id == "5d-lift-schema-3-to-4"
+    assert (record.from_version, record.to_version) == (
+        SCHEMA_3_VERSION,
+        SCHEMA_4_VERSION,
+    )
+    assert (lifted.oracle.schema_version, lifted.oracle.schema_hash) == SCHEMA_4
+    assert [(a.batch_id, a.schema_version) for a in lifted.schema_anchors] == [
+        (BATCH_ID, SCHEMA_3_VERSION)
+    ]
+
+    # The other half of T-7: deterministic as well as idempotent. Lifting the
+    # same artifact again produces the same bytes, so "once" is a property of
+    # the evidence rather than of when the function happened to be called.
+    twice, record_again = lift_accepted_inputs(
+        load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4
+    )
+    assert accepted_inputs_payload(twice) == accepted_inputs_payload(lifted)
+    assert record_again == record
+
+
+def test_retrying_a_fully_evidenced_artifact_is_a_byte_identical_no_op() -> None:
+    """T-7, stated as the three things it actually requires.
+
+    No new record; the same bytes; and no second crossing in the evidence. The
+    returned object *is* the one passed in, so byte-identity holds by
+    construction rather than by a comparison that could be satisfied loosely.
+    """
+    full = _fully_evidenced_schema_4()
+    again, record = lift_accepted_inputs(full, SCHEMA_4)
+
+    assert record is None
+    assert again is full
+    assert accepted_inputs_payload(again) == accepted_inputs_payload(full)
+    assert len(again.lifts) == 1, "no duplicate lift evidence"
+    assert again.schema_anchors == full.schema_anchors, "nothing synthesized"
+
+
+def test_a_lift_is_still_needed_before_the_no_op_can_certify_anything() -> None:
+    """The incomplete middle state, refused.
+
+    An artifact declaring schema 4 while anchored at schema 3 with no recorded
+    crossing has not arrived anywhere. The no-op certifies "already at target",
+    which is a claim about the artifact, so it may not be made about this one.
+    """
+    lifted, _ = lift_accepted_inputs(load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4)
+    with pytest.raises(SchemaLiftError) as raised:
+        lift_accepted_inputs(lifted, SCHEMA_4)
+    assert "without a registered succession carrying it there" in str(raised.value)
+
+
+def test_lift_for_still_has_no_row_for_an_equal_pair() -> None:
+    """``lift_for`` is unchanged, and the no-op is not a registry entry.
+
+    If the equal pair were registered, "authorized succession" would include
+    transitions nobody authorized because nothing happens in them, and every
+    future schema would acquire one for free.
+    """
+    with pytest.raises(UnknownSchemaLiftError):
+        lift_for(SCHEMA_4, SCHEMA_4)
+    with pytest.raises(UnknownSchemaLiftError):
+        lift_for(SCHEMA_3, SCHEMA_3)
+
+
+def test_the_legacy_artifact_no_ops_at_the_schema_it_declares() -> None:
+    """The other valid equal pair: schema 3, unanchored, exactly as committed."""
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    same, record = lift_accepted_inputs(inputs, SCHEMA_3)
+    assert record is None
+    assert same is inputs
+    assert same.schema_anchors == (), "the committed artifact states no anchors"
+
+
+def test_an_unknown_equal_pair_does_not_escape_through_the_no_op() -> None:
+    """Idempotent is not unconditional. A pair nobody recognizes is still refused."""
+    full = _fully_evidenced_schema_4()
+    unknown = ("5d-representation-schema-99", "f" * 64)
+    restamped = replace(
+        full,
+        oracle=replace(full.oracle, schema_version=unknown[0], schema_hash=unknown[1]),
+    )
+    with pytest.raises(SchemaLiftError) as raised:
+        lift_accepted_inputs(restamped, unknown)
+    assert "not a contract this build accepts authority under" in str(raised.value)
+
+
+def test_malformed_succession_evidence_does_not_escape_through_the_no_op() -> None:
+    """A dangling anchor is refused on the equal-pair path as on the crossing one."""
+    full = _fully_evidenced_schema_4()
+    dangling = replace(
+        full,
+        schema_anchors=(BatchSchemaAnchor("not-a-batch", "0" * 64, *SCHEMA_4),),
+    )
+    with pytest.raises(SchemaLiftError) as raised:
+        lift_accepted_inputs(dangling, SCHEMA_4)
+    assert "no retained batch has this id" in str(raised.value)
+
+
+def test_an_illegal_representation_does_not_escape_through_the_no_op() -> None:
+    """The legality half, the one an equal pair looks least likely to need.
+
+    A schema-3 artifact holding a schema-4 fact family declares a contract that
+    cannot state what it carries. Source equals target, the pair is recognized,
+    and the evidence is the committed artifact's own — so nothing but
+    ``declared_meaning_violations`` refuses this, and it must.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    draft = inputs.oracle.representation
+    tampered = replace(
+        draft,
+        components=(
+            replace(draft.components[0], facts=(EffectTerminationFact(),), options=()),
+            *draft.components[1:],
+        ),
+    )
+    illegal = replace(inputs, oracle=replace(inputs.oracle, representation=tampered))
+    with pytest.raises(SchemaLiftError) as raised:
+        lift_accepted_inputs(illegal, SCHEMA_3)
+    assert "not admissible together" in str(raised.value)
+    assert "effect_termination" in str(raised.value)
+
+
+def test_the_committed_artifact_is_unmoved_by_any_of_this() -> None:
+    """Zero movement, asserted where a no-op path could have reached it."""
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    lift_accepted_inputs(inputs, SCHEMA_3)
+    lift_accepted_inputs(inputs, SCHEMA_4)
+    assert accepted_inputs_payload(load_accepted_inputs(ARTIFACT_PATH)) == _committed()
+    assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == SCHEMA_3

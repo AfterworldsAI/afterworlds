@@ -556,6 +556,27 @@ def succession_evidence_violations(
     return findings
 
 
+def _require_succession_evidence(inputs: AcceptedInputs) -> None:
+    """Raise unless *inputs*' own succession evidence holds as a whole.
+
+    One reader for the two places a transformation has to establish that before
+    it does anything: :func:`carried_anchors`, which is about to derive anchors
+    from it, and :func:`lift_accepted_inputs`' no-op, which is about to certify
+    the artifact as already at its target. Neither may accept incoherent
+    evidence, and a second spelling of the same check is how the two would come
+    to disagree.
+    """
+    declared = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
+    if findings := succession_evidence_violations(
+        inputs.batches, inputs.schema_anchors, inputs.lifts, declared
+    ):
+        raise SchemaLiftError(
+            "the accepted authority's own succession evidence does not hold, so "
+            "nothing may be carried forward from it or certified about it: "
+            + "; ".join(findings)
+        )
+
+
 def carried_anchors(inputs: AcceptedInputs) -> tuple[BatchSchemaAnchor, ...]:
     """The anchors an artifact may carry forward, or refuse to be transformed.
 
@@ -579,14 +600,8 @@ def carried_anchors(inputs: AcceptedInputs) -> tuple[BatchSchemaAnchor, ...]:
     batches anchored at that pair, because that is the single thing its absence
     can have meant.
     """
+    _require_succession_evidence(inputs)
     declared = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
-    if findings := succession_evidence_violations(
-        inputs.batches, inputs.schema_anchors, inputs.lifts, declared
-    ):
-        raise SchemaLiftError(
-            "the prior accepted authority's own succession evidence does not "
-            "hold, so nothing may be carried forward from it: " + "; ".join(findings)
-        )
     if inputs.schema_anchors:
         return inputs.schema_anchors
     return tuple(
@@ -597,14 +612,36 @@ def carried_anchors(inputs: AcceptedInputs) -> tuple[BatchSchemaAnchor, ...]:
 
 def lift_accepted_inputs(
     inputs: AcceptedInputs, target: tuple[str, str]
-) -> tuple[AcceptedInputs, SchemaLiftRecord]:
+) -> tuple[AcceptedInputs, SchemaLiftRecord | None]:
     """Re-declare *inputs* under *target*, having proved nothing moved.
 
     The whole-artifact form of :func:`verify_lift`, and the shape
     ``accept_proposal`` uses when a proposal extends accepted authority across a
     schema succession.
 
-    Two things change, and the second only ever *records* the first: the
+    **An artifact already at its target is returned unchanged, with no record.**
+    Carrying accepted authority to a schema it already declares crosses nothing,
+    so there is nothing to authorize, nothing to prove and — the part that
+    matters for the audit surface — nothing to record. Recording it would put a
+    ``SchemaLiftRecord`` for a crossing that never happened into the evidence,
+    which the same evidence rules refuse as decoration; and re-running the real
+    registry lookup would refuse the call outright, which is the reported defect
+    (#137 round 10, checkpoint T-7).
+
+    The no-op is decided *here* rather than in :func:`lift_for`, which stays
+    exact: an equal pair is not a registered transition, and teaching the
+    registry to answer for one would make "is this succession authorized?" and
+    "is there anything to do?" the same question. They are not.
+
+    Idempotent is not unconditional. The input's schema binding and its complete
+    succession evidence are checked on this path exactly as on the crossing one,
+    so an unknown pair, an artifact whose declared schema cannot state the
+    meaning it holds, and incoherent anchor or lift evidence are each refused
+    even when source and target are equal. Nothing is synthesized, re-declared
+    or rewritten: the object returned *is* the object passed in, so its
+    serialized bytes are identical by construction rather than by comparison.
+
+    Otherwise two things change, and the second only ever *records* the first: the
     oracle's declared ``(schema_version, schema_hash)``, and — for an artifact
     committed before anchors existed — a schema anchor per retained batch at the
     schema it was reviewed under, which is the pair being lifted *from*. Without
@@ -623,6 +660,20 @@ def lift_accepted_inputs(
     edit them.
     """
     source = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
+    if source == target:
+        # Validated before it is certified, and with the rules every other seam
+        # uses. "Already there" is a claim about the artifact, and an artifact
+        # whose representation is illegal under the schema it names, or whose
+        # evidence does not hold, is not validly anywhere.
+        if illegal := schema_binding_violations(inputs.oracle.representation, source):
+            raise SchemaLiftError(
+                f"this artifact and its declared schema {source[0]!r} are not "
+                "admissible together, so it is not already at the target: "
+                + "; ".join(illegal)
+            )
+        _require_succession_evidence(inputs)
+        return inputs, None
+
     lift = lift_for(source, target)
     record = verify_lift(lift, inputs.oracle.representation)
     lifted = replace(

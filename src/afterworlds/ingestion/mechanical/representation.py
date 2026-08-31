@@ -4897,14 +4897,34 @@ def declared_meaning_violations(
       (:func:`held_structure_violations`).
 
     Version-independent by design where the rule is version-independent: the
-    second check does not take *schema_version* because holding an undeclared
+    structural checks do not take *schema_version* because holding an undeclared
     structure is illegal under every contract.
+
+    **The closed structure is checked whole, and first.**
+    :func:`representation_draft_violations` covers the top-level boundary — the
+    draft itself, the exact ``tuple`` type of each of the six collections, and
+    the exact type of every element in them — and
+    :func:`held_structure_violations` covers everything nested below it. Only
+    together do they state "outside the closed declaration"; separately, each is
+    a rule with three uncovered axes, and ``verify_lift`` certified a subclassed
+    draft, a subclassed collection and a subclassed record as unchanged for
+    exactly that reason (#137 round 10).
+
+    The top-level check **returns immediately** rather than accumulating. It is
+    not tidiness: ``RepresentationDraft`` is not a closed value object, so
+    :func:`_declared_type` resolves a hostile draft subclass to *itself* and the
+    post-schema-3 walk below would iterate and read its smuggled fields, while
+    ``held_structure_violations`` would consult a hostile collection's
+    ``__iter__``. Observing the value is the thing being refused, so nothing may
+    look at it after the shape is known to be wrong.
 
     Callers add the *contract recognition* half — that the declared
     ``(version, hash)`` pair is one this build accepts authority under — which
     lives in :mod:`schema_lift` beside the registry that knows the answer. See
     :func:`~afterworlds.ingestion.mechanical.schema_lift.schema_binding_violations`.
     """
+    if structural := representation_draft_violations(draft):
+        return structural
     return post_schema_3_violations(draft, schema_version) + held_structure_violations(
         draft
     )

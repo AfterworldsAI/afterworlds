@@ -946,3 +946,110 @@ oracle_identity                : a0f0bd2f… unmoved
 committed artifact round-trips to identical payload : yes
 alembic                        : 0030 (head), no migration
 ```
+
+---
+
+# Round 10 — `431d199` → this commit
+
+Two accepted P1s, both merge-blocking, both enforcement/API corrections. No schema hash re-pinned.
+
+## R10-1 — an artifact already at its target could not be lifted to it
+
+Checkpoint T-7 requires that carrying accepted authority to the schema it already declares be a
+byte-identical no-op recording no second `SchemaLiftRecord`. `lift_accepted_inputs` called `lift_for`
+unconditionally, so the equal pair went to the registry and was refused:
+
+```
+before   lift_accepted_inputs(schema-4 artifact, schema 4)
+         UnknownSchemaLiftError: no authorized representation-schema lift from
+         '5d-representation-schema-4' (241860418b…) to '5d-representation-schema-4' (241860418b…)
+
+after    returns (inputs, None) — the same object, and no record
+```
+
+`lift_for` was right and is unchanged. An equal pair is not a registered succession, and teaching the
+registry to answer for one would merge two different questions — *is this transition authorized?* and *is
+there anything to do?* — into one row that every future schema would acquire for free. The no-op therefore
+lives in the caller, which is the layer that has both questions.
+
+**Idempotent is not unconditional.** "Already at the target" is a claim about the artifact, so the same two
+checks the crossing path runs must hold before it can be made: `schema_binding_violations` (the
+representation is legal under the pair, and the pair is a contract this build accepts authority under) and
+the complete succession evidence. An unknown pair, an illegal representation and malformed anchor or lift
+evidence are each refused on the equal-pair path.
+
+Nothing is synthesized on it. The object returned *is* the object passed in — byte-identity by
+construction, not by a comparison that could be satisfied loosely — so no anchor is derived, no
+declaration rewritten, and no record appended. `carried_anchors` is deliberately **not** called here: it
+synthesizes legacy anchors for the exact schema-3/no-lift shape, which is the one thing the no-op path may
+not do. Both it and the no-op instead call a new private `_require_succession_evidence`, so there is one
+statement of the rule and two readers of it rather than two spellings that could drift.
+
+The return type is now `SchemaLiftRecord | None`. No production caller exists — `accept_proposal` uses
+`lift_for`/`verify_lift` directly and assembles `lifts` itself — so the widening reaches tests only, and
+the existing schema-3→schema-4 behaviour and its one real record are untouched.
+
+**The middle state is refused, and that is deliberate.** `lift_accepted_inputs` returns its record
+*separately* rather than appending it, so the artifact straight out of a genuine lift declares schema 4
+while anchored at schema 3 with `lifts=()`. That is incomplete evidence — a succession claimed by the
+declaration and evidenced nowhere — and rule 4 of `succession_evidence_violations` refuses it. The
+idempotence test builds the fully evidenced artifact (`replace(lifted, lifts=(record,))`), and a separate
+test pins that the un-evidenced middle state is refused rather than papering over it.
+
+## R10-2 — the closed structure was enforced in two of its four places
+
+`verify_lift` certified all three top-level subclass axes as unchanged:
+
+```
+before   draft subclass      CERTIFIED — 5d-lift-schema-3-to-4, 6 collections
+         tuple subclass      CERTIFIED — 5d-lift-schema-3-to-4, 6 collections
+         element subclass    CERTIFIED — 5d-lift-schema-3-to-4, 6 collections
+
+after    draft subclass      SchemaLiftError … representation must be RepresentationDraft
+         tuple subclass      SchemaLiftError … representation.records must be tuple
+         element subclass    SchemaLiftError … representation.records[0] must be RecordDraft
+```
+
+Byte-identity is the wrong proof to run on any of them, for the reason it is wrong on a nested subclass: a
+subclass canonicalizes to its declared base's payload, so proving *that* unchanged proves the wrong thing.
+
+`representation_draft_violations` already existed and already stated the whole top-level rule — the draft,
+the exact `tuple` type of each of the six collections, and the exact type of every element. It was enforced
+at `accept_proposal` and at `validate_representation`, and the reusable invariant simply never called it:
+`declared_meaning_violations` ran `post_schema_3_violations` + `held_structure_violations`, which is the
+nested remainder. So the rule was complete and its shared boundary was not, and every seam reading that
+boundary — `verify_lift`, `lift_accepted_inputs` including the new no-op, and `validate_schema_binding` —
+inherited the gap. One call closes all of them, which is why the fix is a routing change rather than a new
+check.
+
+**The top-level check returns immediately rather than accumulating.** That is a correctness requirement,
+not tidiness. `RepresentationDraft` is not a closed value object, so `_declared_type` resolves a hostile
+draft subclass to *itself* and the post-schema-3 walk below would iterate `fields()` and read its smuggled
+field; `held_structure_violations` would consult a hostile collection's `__iter__`. Observing the value is
+what is being refused, so nothing may look at it once the shape is known to be wrong. The tests assert
+**exactly one** finding per axis, which is that ordering stated as an assertion rather than as a comment.
+
+**`acceptance.py`'s pre-merge check is untouched, and is not redundant.** Its ordering protects the keyed
+union: it runs before the merge that compares elements to decide what is already accepted, where a
+redefined `__eq__` only has to be consulted once. A later shared check cannot restore an element the merge
+has already collapsed.
+
+## Enforcement only — no re-pin
+
+Neither manifest changed. `representation_schema_payload()` is built from the type, vocabulary and
+invariant *declarations*; this round rerouted an existing rule and widened a return type, and touched
+neither. No `_Invariant` row was added for the top-level closed shape: it is not new enforcement, and
+declaring it would move a hash this round has no reason to move.
+
+```
+live payload hash : 241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+SCHEMA_4_HASH     : unmoved, and still equal to it
+SCHEMA_3_HASH     : 43ed330d…  unchanged
+lift_for(4,4), lift_for(3,3)   : still unregistered
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+proposal identities            : unchanged
+oracle_identity                : a0f0bd2f… unmoved
+committed artifact round-trips to identical payload : yes
+alembic                        : 0030 (head), no migration
+```
