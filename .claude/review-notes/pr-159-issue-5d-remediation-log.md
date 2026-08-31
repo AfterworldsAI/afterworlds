@@ -1034,6 +1034,42 @@ union: it runs before the merge that compares elements to decide what is already
 redefined `__eq__` only has to be consulted once. A later shared check cannot restore an element the merge
 has already collapsed.
 
+## Bounded sibling audit — every caller of the shared representation invariant
+
+**Family.** *A shared invariant exists and a seam does not route through it.* Rounds 4, 8 and 10-2 are
+one family: round 4 found `load_accepted_inputs` never checking declared-schema legality, round 8 found
+`accept_proposal` synthesizing the evidence the loader would check, and round 10-2 found the invariant
+itself calling only the nested half of the closed-structure rule. `schema_lift.py` has now taken rounds 3,
+4, 7, 8 and 10, so the standing boundary trigger has fired.
+
+**Trigger.** Repeated rounds on the same hotspot and the same defect family. Round 8's audit was bounded to
+*seams accepting `AcceptedInputs`*; it did not cover *callers of the invariant*, which is the axis this
+round's defect sat on. This audit closes that gap as a report.
+
+**Scope.** Every production call of the four functions that state the rule, enumerated exhaustively over
+`src/`: `declared_meaning_violations`, `schema_binding_violations`, `representation_draft_violations`,
+`held_structure_violations`.
+
+| Seam | Reads the rule through | Disposition |
+|---|---|---|
+| `oracle.load_accepted_inputs` | `schema_binding_violations` | already safe — closed in round 4 |
+| `acceptance.accept_proposal`, proposed half | `schema_binding_violations` | already safe — round 4 |
+| `acceptance.accept_proposal`, prior half | `schema_binding_violations` | already safe — round 4 |
+| `acceptance._merge`, pre-merge | `representation_draft_violations` + `held_structure_violations`, directly | already safe — deliberately direct and **unchanged**; its ordering protects the keyed union, and a later shared check cannot restore an element the merge has already collapsed |
+| `schema_lift.verify_lift` | `schema_binding_violations` | **patched** — inherited the gap; the reported defect |
+| `schema_lift.lift_accepted_inputs`, no-op | `schema_binding_violations` | new this round, on the shared rule from the start |
+| `projection.validate_schema_binding` | `declared_meaning_violations` | **patched** by the same routing change; now covered by its own three-axis test rather than inferred from the shared call |
+| `validation.validate_representation` | `representation_draft_violations`, then its own walkers over the same underlying rules | already safe |
+
+No caller was found outside this set, and none is left routing around the invariant. Nothing here is
+`out of scope`, `Known Unknown`, or `owner decision needed`.
+
+**One residue, reported rather than decided.** The invariant manifest has 17 rows and none for the
+top-level closed shape. The manifest declares intrinsic *value* invariants — what a value may hold —
+whereas exact runtime type is a property of the Python object graph rather than of the serialized
+contract, and declaring it would move the schema hash for a rule that is neither new nor serialized. Left
+as a manifest-completeness question for the Owner rather than resolved in an enforcement round.
+
 ## Enforcement only — no re-pin
 
 Neither manifest changed. `representation_schema_payload()` is built from the type, vocabulary and
