@@ -1360,3 +1360,148 @@ updated. No serialized grammar changed, so no schema identity moved.
 Parent-before-container ordering is enforced at the shared boundary; every production caller of the generic
 walker is classified above; the hostile-parent regressions pass; zero movement holds. The sibling search
 stops here.
+
+---
+
+# Round 13 — the child, admitted against the field that declares it
+
+## Boundary classification
+
+**Same defect family as round 12: closed-structure observation-order violation, now at the scalar-child
+boundary.** Round 12 stated the order and closed its first two steps; the third — *child exact type before
+observation* — was still open for scalar vocabulary leaves and sequence members inside
+`_collect_post_schema_3`.
+
+CRD Issue 5d / PR A implementation scope. No ADR amendment, no new mechanical semantic, no Known Unknown,
+no Owner Decision.
+
+**Round 12's stop condition was not actually met, and this records that.** Its caller audit was correct but
+incomplete *in dimension*: it classified entry into the generic walker, while this defect sits inside the
+walk, after an admitted parent yields an unadmitted child. Recorded rather than quietly superseded.
+
+## Reproduced first
+
+```
+before
+  post_schema_3_violations(ActionEconomyFact(cost=HostileCost.SNEAK))    HOSTILE .value WAS READ
+  declared_meaning_violations(same)                                      HOSTILE .value WAS READ
+  held_structure_violations(same)                                        HOSTILE .value WAS READ
+     ...the last via fact_qualifier_violations -> fact_key -> fact_payload -> _canonical_value
+
+  ActionEconomyFact(cost=DamageType.FIRE)   post_schema_3_violations: CLEAN
+     a legitimate closed vocabulary, in a field that does not declare it
+
+after
+  every case    "components[0].facts[0].cost must be ActionCost, got <Type>"
+                hostile property never invoked, legality traversal never entered
+```
+
+## Case A or Case B — determined, not assumed
+
+The question the boundary posed: do the existing owner validators already provide a complete structural
+admission phase for every value `_collect_post_schema_3` can reach, without corpus or ledger state?
+
+**Probed rather than reasoned about.** For each of the **82 `StrEnum`-typed declared fields across the 58
+admitted structures**, a member of a *different* legitimate vocabulary was planted and the corpus-free
+phase (`representation_draft_violations` + `held_structure_violations`) asked to refuse it.
+
+```
+covered   : 58
+UNCOVERED :  5   ComponentDraft.handling · RecordDraft.kind · RelationshipDraft.kind
+                 ProvenanceClaim.target_kind · ProvenanceClaim.role
+```
+
+**Case B.** Those five are structurally checked only by `validate_representation`, which needs a ledger and
+a bound corpus and therefore cannot run at the acceptance, lift, or publication seams. A reordering of
+existing calls could not have closed them.
+
+*(A first version of this probe had a dead `continue` in its fact arm and tested five fields rather than 82.
+Recorded because the conclusion "the missing surface is exactly these" is only worth as much as the
+enumeration behind it.)*
+
+## The gate
+
+`structural_admission_violations(draft)` — `representation_draft_violations` for the top-level boundary,
+then a field-relative walk derived from the resolved dataclass annotations.
+
+**Field-relative is the whole point.** `ActionCost` and `DamageType` are both legitimate closed
+vocabularies, so a gate keyed on "is this class admitted globally" still passes
+`ActionEconomyFact(cost=DamageType.FIRE)`. The question is never "is this a known type" but "is this the
+type *this field* declares". That case is a committed regression, precisely so a future enlargement of
+`_admitted_structures()` cannot be mistaken for a fix.
+
+Shape only. Whether an admitted value is *legal* under a declared schema stays
+`post_schema_3_violations`' question — now documented as a precondition rather than defended inside it, so
+it does not accumulate type cases until it becomes a second recursive validator with its own drifting copy
+of the field contracts.
+
+Reporting is type names and declared field paths only; nothing renders a rejected value.
+
+## Ordering, and the one place it had to reach besides the walker
+
+`declared_meaning_violations` runs admission to completion and returns on any finding, so a graph with a
+structural problem never enters legality traversal. `held_structure_violations` runs it too — not for
+symmetry, but because it *keys* facts: `fact_key` → `fact_payload` → `_canonical_value` reads a `StrEnum`
+child's `.value`, and it does that whether or not the fact's own invariants produced findings. That is the
+path the reproduction's third line took.
+
+## Bounded sibling audit — every observation branch inside `_collect_post_schema_3`
+
+Enumerated from the function as implemented, not from the review comment.
+
+| Branch | Operation that observes | Admission that now precedes it | Disposition |
+|---|---|---|---|
+| `isinstance(value, StrEnum)` | reads `value.value`, and `type(value).__name__` | the field's declared enum, exactly | **patched** — the reported defect |
+| `is_dataclass(value)` — parent | `type(value)` against the closed declaration | round 12 | structurally admitted before observation |
+| `is_dataclass(value)` — `FAMILY` | reads the attribute off the **class**, not the instance | class attribute; no instance observation | already safe |
+| `is_dataclass(value)` — `from_component_key == RECORD_OWNED_REFERENCE` | `getattr` **and `__eq__`** on a child | the field's declared `str`, exactly | **patched** |
+| `is_dataclass(value)` — `getattr(value, field.name)` per declared field | reads every child | every child admitted against its declared type | **patched** |
+| `is_dataclass(value)` — `rule.is_empty(child)` | inspects the child's emptiness | as above, the child is admitted first | **patched** |
+| `isinstance(value, (list, tuple))` | iterates | exact `tuple` container (round 11) **and** each member against the declared element type | **patched** |
+| fall-through (`int`, `str`, `bool`, `None`) | none — the branch returns without reading | exact primitive type at the gate | already safe |
+
+Nothing is left "safe because this runtime type usually behaves".
+
+## A fourth instance of round 12's rendering sub-issue
+
+`_enum_field` interpolated `{value!r}`, so refusing a hostile vocabulary member could run its `__repr__` —
+and it is on the hot path for every enum refusal. `_int_field`, `_bool_field` and `_str_field` had the same
+shape. All four now report the type name only. This is the same sub-issue fixed in `exact_type_violations`
+(round 12) and avoided in `exact_tuple_violations` (round 11); it is named here rather than left to be
+rediscovered.
+
+## Message changes, stated because they are the visible difference
+
+The admission gate is now the first refuser at every seam, so a hostile or wrong-typed value reports its
+uniform finding rather than the owning validator's wording. Round 10–12's hostile-parent, container,
+`__repr__`, hash and two-faced regressions all still pass and still assert the same properties; five
+expectations were updated to the shared gate's message. That is the cost of "one contract, one choke point"
+and is preferred to two spellings that can drift.
+
+## Runtime enforcement only
+
+```
+live payload hash : 241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+SCHEMA_4_HASH     : unmoved, and still equal to it
+SCHEMA_3_HASH     : 43ed330d…  unchanged
+invariant manifest: 17 rows, unchanged
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+proposal identity 14587d5b… / oracle_identity a0f0bd2f… : unmoved
+committed artifact round-trips to identical payload : yes
+alembic           : 0030 (head), no migration
+```
+
+## Stop condition
+
+1. structural admission completes before schema-version traversal — asserted by a draft that is both
+   inadmissible and schema-illegal reporting only the structural finding;
+2. every observation branch above has a stated admission prerequisite;
+3. hostile and wrong-but-known scalar children cannot be observed;
+4. hostile sequence members cannot be observed;
+5. valid schema-4 vocabulary detection still reaches the legality rule — both the family and the
+   member-added-to-an-existing-field halves, checked directly;
+6. all authority-bearing seams route through that ordering;
+7. gates green and zero movement holding.
+
+Met. The sibling search stops here.

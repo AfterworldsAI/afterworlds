@@ -24,7 +24,8 @@ from __future__ import annotations
 
 import json
 import pathlib
-from dataclasses import dataclass, fields, replace
+from dataclasses import dataclass, fields, is_dataclass, replace
+from enum import StrEnum
 from typing import Any, cast
 
 import pytest
@@ -59,6 +60,8 @@ from afterworlds.ingestion.mechanical.representation import (
     _DRAFT_ELEMENT_TYPES,
     AbilityCheckFact,
     AbilityScore,
+    ActionCost,
+    ActionEconomyFact,
     Applicability,
     ApplicabilityKind,
     ComponentDraft,
@@ -77,11 +80,15 @@ from afterworlds.ingestion.mechanical.representation import (
     MeasureUnit,
     ParticipantRole,
     Phase,
+    ProvenanceRole,
+    ProvenanceTargetKind,
     Rational,
     RecordDraft,
     RecordKind,
     Recurrence,
     RecurrenceBoundary,
+    ReferenceDraft,
+    RelationshipKind,
     RepresentationDraft,
     RequiredQuantity,
     RollActor,
@@ -94,6 +101,8 @@ from afterworlds.ingestion.mechanical.representation import (
     TimePeriod,
     UnknownFactFamilyError,
     _admitted_structures,
+    _declared_field_types,
+    _enum_field,
     declared_meaning_violations,
     exact_type_violations,
     fact_invariant_violations,
@@ -104,6 +113,7 @@ from afterworlds.ingestion.mechanical.representation import (
     post_schema_3_violations,
     representation_draft_violations,
     representation_schema_hash,
+    structural_admission_violations,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
@@ -316,7 +326,7 @@ def test_merging_refuses_a_nested_subclass_before_minting_an_identity() -> None:
                     ),
                 ),
             ),
-            "size quantities",
+            "values[0] must be SizeQuantity",
             id="size-quantity",
         ),
     ],
@@ -1168,22 +1178,24 @@ def _hostile_applicability() -> object:
 HOSTILE_PARENTS = [
     pytest.param(
         _hostile_ability_check,
-        "HostileAbilityCheckFact is not a member of the closed typed-fact union",
+        "components[0].facts[0] must be MechanicalFact, got HostileAbilityCheckFact",
         id="AbilityCheckFact.alternatives",
     ),
     pytest.param(
         _hostile_size_keyed,
-        "HostileSizeKeyedQuantityFact is not a member of the closed typed-fact union",
+        "components[0].facts[0] must be MechanicalFact, "
+        "got HostileSizeKeyedQuantityFact",
         id="SizeKeyedQuantityFact.values",
     ),
     pytest.param(
         _hostile_damage_response,
-        "HostileDamageResponseFact is not a member of the closed typed-fact union",
+        "components[0].facts[0] must be MechanicalFact, got HostileDamageResponseFact",
         id="DamageResponseFact.except_types",
     ),
     pytest.param(
         _hostile_applicability,
-        "applicability must be Applicability, got HostileApplicability",
+        "components[0].applies_when must be Applicability | None, "
+        "got HostileApplicability",
         id="Applicability.any_of",
     ),
 ]
@@ -1303,11 +1315,14 @@ def test_held_structure_violations_admits_its_own_components_first() -> None:
         semantic_key=base.components[0].semantic_key,
         handling=base.components[0].handling,
     )
-    assert held_structure_violations(replace(base, components=(hostile,))) == []
-    # ...and the gate that owns it does refuse it.
+    draft = replace(base, components=(hostile,))
+    # Refused, and by the shared admission gate rather than by whichever caller
+    # happened to run first — the hostile field is never read either way.
+    assert held_structure_violations(draft) == [
+        "representation.components[0] must be ComponentDraft, got HostileComponent"
+    ]
     assert any(
-        "must be ComponentDraft" in f
-        for f in representation_draft_violations(replace(base, components=(hostile,)))
+        "must be ComponentDraft" in f for f in representation_draft_violations(draft)
     )
 
 
@@ -1385,7 +1400,7 @@ def test_acceptance_refuses_a_hostile_parent_as_a_typed_error() -> None:
             accepted_at="2026-09-01T00:00:00Z",
             prior=prior,
         )
-    assert "closed typed-fact union" in str(raised.value)
+    assert "must be MechanicalFact" in str(raised.value)
     assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches
 
 
@@ -1449,3 +1464,389 @@ def test_the_admission_set_contains_the_root_every_walk_starts_from() -> None:
         for f in post_schema_3_violations(schema_4_only, SCHEMA_3_VERSION)
     ), "round 4's legality guard must still reach a nested fact"
     assert post_schema_3_violations(schema_4_only, SCHEMA_4_VERSION) == []
+
+
+# ---------------------------------------------------------------------------
+# Round 13 — the child, admitted against the field that declares it
+# ---------------------------------------------------------------------------
+#
+# Round 12 stated the order and closed its first two steps:
+#
+#     parent exact runtime type -> held-container exact runtime type ->
+#     child exact runtime type -> semantic observation
+#
+# The third step was still open. ``_collect_post_schema_3`` reached a
+# ``StrEnum`` leaf and read ``.value``, and reached a sequence and iterated it,
+# before any owner validator had admitted either — so an undeclared vocabulary
+# member executed instead of being refused.
+#
+# The fix is a field-relative admission gate that runs to completion first.
+# Field-relative is the whole point and the control below proves it:
+# ``ActionCost`` and ``DamageType`` are both legitimate closed vocabularies, so
+# a gate that merely asked "is this class known" would still admit
+# ``ActionEconomyFact(cost=DamageType.FIRE)``.
+
+
+class HostileCost(StrEnum):
+    """A vocabulary member that refuses to be read."""
+
+    SNEAK = "sneak"
+
+    @property
+    def value(self) -> str:  # type: ignore[override]
+        raise AssertionError("the hostile vocabulary member's .value was read")
+
+
+def _draft_with_fact(fact: object) -> RepresentationDraft:
+    base = build_representation()
+    return replace(
+        base,
+        components=(
+            replace(base.components[0], facts=(fact,), options=(), fact_qualifiers=()),
+            *base.components[1:],
+        ),
+    )
+
+
+def test_a_hostile_vocabulary_child_is_refused_without_being_read() -> None:
+    """The reported defect.
+
+    The fact is exact and admitted; the child is not. Before this round the
+    legality walker reached the ``StrEnum`` branch and read ``.value``, so the
+    hostile property ran instead of a refusal being produced.
+    """
+    draft = _draft_with_fact(ActionEconomyFact(cost=cast(Any, HostileCost.SNEAK)))
+    findings = structural_admission_violations(draft)
+    assert findings == [
+        "components[0].facts[0].cost must be ActionCost, got HostileCost"
+    ]
+
+
+def test_a_wrong_but_legitimate_vocabulary_is_refused_too() -> None:
+    """The control that distinguishes a field-contract fix from a bigger whitelist.
+
+    ``DamageType`` is a perfectly legitimate closed vocabulary — it is simply not
+    the one ``ActionEconomyFact.cost`` declares. A gate keyed on "is this class
+    admitted globally" passes this; a field-relative one does not.
+    """
+    draft = _draft_with_fact(ActionEconomyFact(cost=cast(Any, DamageType.FIRE)))
+    assert structural_admission_violations(draft) == [
+        "components[0].facts[0].cost must be ActionCost, got DamageType"
+    ]
+
+
+#: The surface the corpus/ledger-free validators did **not** cover before this
+#: round, established by probing every ``StrEnum``-typed declared field: these
+#: five are structurally checked only by ``validate_representation``, which needs
+#: a ledger and a bound corpus and so cannot run at the acceptance, lift or
+#: publication seams. That gap is why round 13 is a gate rather than a reorder.
+UNCOVERED_BEFORE_ROUND_13 = [
+    pytest.param("records", "kind", RecordKind, id="RecordDraft.kind"),
+    pytest.param(
+        "relationships", "kind", RelationshipKind, id="RelationshipDraft.kind"
+    ),
+    pytest.param(
+        "provenance",
+        "target_kind",
+        ProvenanceTargetKind,
+        id="ProvenanceClaim.target_kind",
+    ),
+    pytest.param("provenance", "role", ProvenanceRole, id="ProvenanceClaim.role"),
+]
+
+
+@pytest.mark.parametrize(("collection", "field", "expected"), UNCOVERED_BEFORE_ROUND_13)
+def test_every_previously_uncovered_element_field_is_now_admitted(
+    collection: str, field: str, expected: type
+) -> None:
+    """One witness per field the probe found uncovered."""
+    base = build_representation()
+    held = getattr(base, collection)
+    tampered = replace(held[0], **{field: cast(Any, DamageType.FIRE)})
+    draft = replace(base, **{collection: (tampered, *held[1:])})
+    assert structural_admission_violations(draft) == [
+        f"{collection}[0].{field} must be {expected.__name__}, got DamageType"
+    ]
+
+
+def test_component_handling_is_admitted_too() -> None:
+    """The fifth, on the component rather than a sibling collection."""
+    base = build_representation()
+    draft = replace(
+        base,
+        components=(
+            replace(base.components[0], handling=cast(Any, DamageType.FIRE)),
+            *base.components[1:],
+        ),
+    )
+    assert structural_admission_violations(draft) == [
+        "components[0].handling must be ComponentHandling, got DamageType"
+    ]
+
+
+def test_a_reference_draft_field_is_admitted_even_though_the_fixture_holds_none() -> (
+    None
+):
+    """``ReferenceDraft`` had no instance in the bounded fixture.
+
+    "Absent from the fixture" is not a disposition, so it gets a witness built
+    for the purpose rather than being left an untested branch. It declares no
+    vocabulary field — all five are ``str`` — so a ``StrEnum`` member is exactly
+    the interesting wrong value: it *is* a string, and passes any check looser
+    than exact type.
+    """
+    base = build_representation()
+    reference = ReferenceDraft(
+        from_record_key="condition.prone",
+        from_component_key="c",
+        source_text="text",
+        scope_key="s",
+        target_record_key=cast(Any, DamageType.FIRE),
+    )
+    findings = structural_admission_violations(replace(base, references=(reference,)))
+    assert findings == [
+        "references[0].target_record_key must be str, got DamageType"
+    ], findings
+
+
+def test_a_hostile_sequence_member_is_admitted_before_it_is_observed() -> None:
+    """The sibling branch: a member of an exact container.
+
+    The container may be iterated — it is an exact ``tuple`` — but its member is
+    admitted against the declared element type before anything reads it.
+    """
+
+    class HostileRoll(RollSpec):  # type: ignore[misc]
+        def __getattribute__(self, name: str) -> object:
+            if name == "skill":
+                raise AssertionError("the hostile sequence member was observed")
+            return object.__getattribute__(self, name)
+
+    hostile = dataclass(frozen=True)(HostileRoll)(
+        context=RollContext.ABILITY_CHECK,
+        actor=RollActor.SUBJECT,
+        ability=AbilityScore.STRENGTH,
+        skill=Skill.ATHLETICS,
+    )
+    draft = _draft_with_fact(
+        AbilityCheckFact(
+            ability=AbilityScore.STRENGTH,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            skill=Skill.ATHLETICS,
+            alternatives=cast(Any, (hostile, ALTERNATIVE_ROLLS[0])),
+        )
+    )
+    findings = structural_admission_violations(draft)
+    assert any("alternatives[0] must be RollSpec" in f for f in findings), findings
+
+
+def test_schema_version_legality_still_reaches_valid_vocabulary() -> None:
+    """Requirement 4, checked directly rather than trusted to the suite.
+
+    Round 12 nearly turned this walker into a no-op by admitting too little, so
+    both halves of the legality rule are pinned here: the family added in schema
+    4, and a vocabulary *member* added to a field schema 3 already had.
+    """
+    schema_4_only = RepresentationDraft(
+        records=(RecordDraft(semantic_key="hazard.x", kind=RecordKind.GLOSSARY_RULE),),
+        components=(
+            ComponentDraft(
+                record_key="hazard.x",
+                semantic_key="c",
+                handling=ComponentHandling.STRUCTURED,
+                facts=(EffectTerminationFact(),),
+            ),
+        ),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+    findings = declared_meaning_violations(schema_4_only, SCHEMA_3_VERSION)
+    assert any("no 'effect_termination' family" in f for f in findings), findings
+    assert any("TerminationScope does not admit" in f for f in findings), findings
+    assert declared_meaning_violations(schema_4_only, SCHEMA_4_VERSION) == []
+
+
+def test_admission_completes_before_legality_traversal_runs() -> None:
+    """The ownership rule, stated as an observable ordering.
+
+    A draft that is both structurally inadmissible *and* schema-illegal reports
+    only the structural finding: legality traversal never ran. That is what keeps
+    ``_collect_post_schema_3`` a question about admitted meaning instead of a
+    second recursive type validator.
+    """
+    both_wrong = RepresentationDraft(
+        records=(RecordDraft(semantic_key="hazard.x", kind=RecordKind.GLOSSARY_RULE),),
+        components=(
+            ComponentDraft(
+                record_key="hazard.x",
+                semantic_key="c",
+                handling=cast(Any, DamageType.FIRE),
+                facts=(EffectTerminationFact(),),
+            ),
+        ),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+    findings = declared_meaning_violations(both_wrong, SCHEMA_3_VERSION)
+    assert findings == [
+        "components[0].handling must be ComponentHandling, got DamageType"
+    ]
+    assert not any(
+        "effect_termination" in f for f in findings
+    ), "legality traversal must not have run on an unadmitted graph"
+
+
+def test_no_refusal_in_the_admission_gate_renders_the_rejected_value() -> None:
+    """The fourth instance of round 12's rendering sub-issue, closed here.
+
+    ``_enum_field`` interpolated ``{value!r}`` — as ``exact_type_violations`` did
+    before round 12 — so refusing a hostile vocabulary member could run its
+    ``__repr__``. The primitive field helpers had the same shape.
+    """
+
+    class ScreamingCost(StrEnum):
+        SNEAK = "sneak"
+
+        def __repr__(self) -> str:
+            raise AssertionError("the rejected member's __repr__ was rendered")
+
+    assert _enum_field(ScreamingCost.SNEAK, ActionCost, "cost") == [
+        "cost must be ActionCost, got ScreamingCost"
+    ]
+    draft = _draft_with_fact(ActionEconomyFact(cost=cast(Any, ScreamingCost.SNEAK)))
+    assert structural_admission_violations(draft) == [
+        "components[0].facts[0].cost must be ActionCost, got ScreamingCost"
+    ]
+
+
+def test_honest_authority_is_admitted_unchanged() -> None:
+    """The over-refusal control, on both the fixture and the committed artifact.
+
+    An admission gate that refused here would be accusing the authority it
+    exists to protect — and the committed artifact cannot be edited to suit it.
+    """
+    assert structural_admission_violations(build_representation()) == []
+    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    assert structural_admission_violations(committed) == []
+    assert declared_meaning_violations(committed, SCHEMA_3_VERSION) == []
+    assert held_structure_violations(committed) == []
+
+
+def test_the_admission_gate_reaches_every_declared_authority_field() -> None:
+    """The gate is derived from the declarations, not from a list of five names.
+
+    Walks the committed artifact and asserts the gate visited a field on every
+    admitted structure the artifact actually holds — so a new declared field
+    joins the admitted surface by being declared, and a future annotation the
+    gate cannot model shows up here rather than passing silently.
+    """
+    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    modelled = {
+        cls
+        for cls in _admitted_structures()
+        if is_dataclass(cls) and _declared_field_types(cls)
+    }
+    assert RepresentationDraft in modelled
+    assert set(_DRAFT_ELEMENT_TYPES.values()) <= modelled
+
+    # Every enum-typed declared field on every admitted dataclass resolves to a
+    # real annotation the gate can compare against.
+    unmodelled = [
+        f"{cls.__name__}.{name}"
+        for cls in modelled
+        for name, declared in _declared_field_types(cls).items()
+        if declared is None
+    ]
+    assert unmodelled == [], unmodelled
+    assert structural_admission_violations(committed) == []
+
+
+# ---------------------------------------------------------------------------
+# The seams, which route through the shared boundary unchanged
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "cost",
+    [
+        pytest.param(HostileCost.SNEAK, id="hostile"),
+        pytest.param(DamageType.FIRE, id="wrong-vocabulary"),
+    ],
+)
+def test_every_authority_seam_refuses_an_unadmitted_child(cost: object) -> None:
+    """One case per seam. Round 12 already proved the routing; this is the child.
+
+    Both the hostile member and the wrong-but-legitimate one, because a seam that
+    refused only the first would be catching exceptions rather than admitting
+    structure.
+    """
+    draft = _draft_with_fact(ActionEconomyFact(cost=cast(Any, cost)))
+    expected = f"cost must be ActionCost, got {type(cost).__name__}"
+
+    lift = lift_for(
+        (SCHEMA_3_VERSION, SCHEMA_3_HASH), (SCHEMA_4_VERSION, SCHEMA_4_HASH)
+    )
+    with pytest.raises(SchemaLiftError) as raised:
+        verify_lift(lift, draft)
+    assert expected in str(raised.value)
+
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    hostile_inputs = replace(
+        inputs, oracle=replace(inputs.oracle, representation=draft)
+    )
+    for target in (SCHEMA_4, SCHEMA_3):
+        with pytest.raises(SchemaLiftError) as raised:
+            lift_accepted_inputs(hostile_inputs, target)
+        assert expected in str(raised.value)
+
+    findings = validate_schema_binding(
+        candidate_of(RELEASE_BINDING, build_ledger(), draft)
+    )
+    assert any(expected in f for f in findings), findings
+
+
+def test_acceptance_refuses_an_unadmitted_child_as_a_typed_error() -> None:
+    """``AcceptanceError``, and nothing merged."""
+    prior = load_accepted_inputs(ARTIFACT_PATH)
+    proposal = MechanicalProposal(
+        binding=prior.oracle.binding,
+        policy_version=prior.oracle.policy_version,
+        policy_hash=prior.oracle.policy_hash,
+        schema_version=prior.oracle.schema_version,
+        schema_hash=prior.oracle.schema_hash,
+        proposed_spans=(
+            ProposedSpan(
+                span=SemanticSpan(
+                    span_id=PROBE_SPAN,
+                    leaf_id=PROBE_LEAF,
+                    char_start=0,
+                    char_end=28,
+                    disposition=SemanticDisposition.SUBSTANTIVE,
+                    review_state=ReviewState.PROPOSED,
+                ),
+                origin="unadmitted-child-probe",
+                rationale="probe",
+            ),
+        ),
+        proposed_representation=_draft_with_fact(
+            ActionEconomyFact(cost=cast(Any, HostileCost.SNEAK))
+        ),
+        proposal_origin="test_subclass_refusal_at_authority_seams",
+    )
+    with pytest.raises(AcceptanceError) as raised:
+        accept_proposal(
+            proposal,
+            batch_id="unadmitted-child-probe-1",
+            rule="the probe span",
+            resolved_scope=(PROBE_SPAN,),
+            reviewer="Test",
+            accepted_at="2026-09-01T00:00:00Z",
+            prior=prior,
+        )
+    assert "must be ActionCost" in str(raised.value)
+    assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches

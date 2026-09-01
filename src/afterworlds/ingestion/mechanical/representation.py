@@ -77,6 +77,7 @@ eligibility, choices, sequencing.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields, is_dataclass
 from enum import StrEnum
@@ -2188,7 +2189,7 @@ def _is_int(value: object) -> bool:
 
 def _int_field(value: object, field: str) -> list[str]:
     if not _is_int(value):
-        return [f"{field} must be an integer, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be an integer, got {type(value).__name__}"]
     return []
 
 
@@ -2200,13 +2201,13 @@ def _optional_int_field(value: object, field: str) -> list[str]:
 
 def _bool_field(value: object, field: str) -> list[str]:
     if not isinstance(value, bool):
-        return [f"{field} must be a boolean, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be a boolean, got {type(value).__name__}"]
     return []
 
 
 def _str_field(value: object, field: str) -> list[str]:
     if not isinstance(value, str) or isinstance(value, StrEnum):
-        return [f"{field} must be a string, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be a string, got {type(value).__name__}"]
     return []
 
 
@@ -2217,10 +2218,11 @@ def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]
     string check while carrying none of the enum's guarantees.
     """
     if not isinstance(value, enum_cls):
-        return [
-            f"{field} must be {enum_cls.__name__}, got "
-            f"{type(value).__name__} {value!r}"
-        ]
+        # Type name only. A rejected member's ``value`` may be an overridden
+        # property and its ``__repr__`` arbitrary, so rendering it here would
+        # observe what this line refuses — the same reason
+        # :func:`exact_type_violations` stopped doing it (#137 round 13).
+        return [f"{field} must be {enum_cls.__name__}, got {type(value).__name__}"]
     return []
 
 
@@ -4984,6 +4986,19 @@ def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
     The legality half of the omission rule. Recurses through nested value
     objects and collections so a ``RollSpec.skill`` buried in an
     ``AdvantageFact`` inside a ``ComponentOption`` is still caught.
+
+    **Precondition: the graph is already structurally admitted.** This asks
+    whether admitted meaning is *legal* under a declared schema; it does not ask
+    whether a value may be read at all. That is
+    :func:`structural_admission_violations`, and every production path reaches
+    this through :func:`declared_meaning_violations`, which runs it to completion
+    first and returns on any finding.
+
+    Stated as a contract rather than defended in here on purpose. Schema-version
+    legality does not own structural admission, and adding type cases to this
+    walker until it could survive arbitrary input would turn it into a second
+    recursive validator with its own drifting copy of the field contracts
+    (#137 round 13).
     """
     findings: list[str] = []
     _collect_post_schema_3(obj, schema_version, "", findings)
@@ -5033,7 +5048,7 @@ def declared_meaning_violations(
     lives in :mod:`schema_lift` beside the registry that knows the answer. See
     :func:`~afterworlds.ingestion.mechanical.schema_lift.schema_binding_violations`.
     """
-    if structural := representation_draft_violations(draft):
+    if structural := structural_admission_violations(draft):
         return structural
     return post_schema_3_violations(draft, schema_version) + held_structure_violations(
         draft
@@ -6391,6 +6406,16 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
     scope, a cadence's boundary — so there is one statement of each rule and
     this is another reader of it.
     """
+    # The same admission, because this function keys facts. ``fact_key`` runs
+    # ``fact_payload`` -> ``_canonical_value``, which reads a ``StrEnum`` child's
+    # ``.value`` — and it does that whether or not the fact's own invariants
+    # produced findings, so an unadmitted scalar child executed there (#137
+    # round 13). Structural admission is one rule with two readers, as elsewhere
+    # in this module: ``declared_meaning_violations`` runs it too, and this
+    # function is also called on its own at the merge seam.
+    if unadmitted := structural_admission_violations(draft):
+        return unadmitted
+
     findings: list[str] = []
     for component in draft.components:
         # Parent admission, before this function reads a single field. In
@@ -6523,6 +6548,169 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
             exact_tuple_violations(claim.target_key, f"provenance[{index}]: target_key")
         )
     return findings
+
+
+def _declared_field_types(cls: type) -> Mapping[str, object]:
+    """Resolved annotations for one declared authority dataclass, cached.
+
+    ``from __future__ import annotations`` makes ``field.type`` a string, so the
+    declared contract has to be resolved before it can be compared against a
+    runtime value. Resolved once per class: the annotation set is fixed at import
+    and the admission gate walks the whole graph on every validation.
+    """
+    if cls not in _DECLARED_FIELD_TYPES:
+        hints = get_type_hints(cls, vars(sys.modules[cls.__module__]))
+        _DECLARED_FIELD_TYPES[cls] = {
+            f.name: hints[f.name] for f in fields(cls) if f.name in hints
+        }
+    return _DECLARED_FIELD_TYPES[cls]
+
+
+_DECLARED_FIELD_TYPES: dict[type, Mapping[str, object]] = {}
+
+
+def _admit(value: object, declared: object, path: str) -> list[str]:
+    """Admit one value against the type its field declares. Shape only.
+
+    **Field-relative, and that is the whole point.** A global set of admitted
+    runtime classes is not enough for a scalar child: ``ActionCost`` and
+    ``DamageType`` are both legitimate closed vocabularies, and
+    ``ActionEconomyFact(cost=DamageType.FIRE)`` is still structurally wrong. The
+    question this answers is never "is this a known type" but "is this the type
+    *this field* declares" (#137 round 13).
+
+    ``type(x) is cls`` rather than ``isinstance``. For the enums the two coincide
+    — Python forbids subclassing an enum that has members — but for the closed
+    dataclasses they do not, and one rule reading the same way everywhere is
+    worth more than an exception that has to be re-derived. Do not "tighten" the
+    enum case into something else on the strength of that coincidence.
+
+    This gate owns **shape**, never meaning. Whether an admitted value is *legal*
+    under a declared schema is :func:`post_schema_3_violations`' question, and
+    whether it satisfies its family's contract is the owning validator's. Both
+    may assume admitted structure because this ran first.
+    """
+    origin = get_origin(declared)
+    if origin in (Union, UnionType):
+        options = [a for a in get_args(declared) if a is not type(None)]
+        if value is None:
+            return (
+                []
+                if len(options) < len(get_args(declared))
+                else _refuse(value, declared, path)
+            )
+        # A closed union of declared classes — the fact union is the one that
+        # matters. Exact membership, then the member's own fields if it has any.
+        for option in options:
+            if type(value) is option:
+                return (
+                    _admit_declared_object(value, path) if is_dataclass(option) else []
+                )
+        return _refuse(value, declared, path)
+    if origin is tuple:
+        # The container before its members, on the round-11 rule and through the
+        # same helper, so this cannot drift from it.
+        if drift := exact_tuple_violations(value, path):
+            return drift
+        element, *rest = get_args(declared) or (object,)
+        if rest[:1] != [Ellipsis]:
+            element = object
+        return [
+            v
+            for index, item in enumerate(cast("tuple[object, ...]", value))
+            for v in _admit(item, element, f"{path}[{index}]")
+        ]
+    if isinstance(declared, type):
+        if declared is object:
+            return []
+        if type(value) is not declared:
+            return _refuse(value, declared, path)
+        if is_dataclass(declared):
+            return _admit_declared_object(value, path)
+        return []
+    # An annotation this gate does not model. Nothing is claimed about it here;
+    # the owning validator still checks it. Recorded rather than silently passed
+    # by ``test_the_admission_gate_models_every_declared_annotation``.
+    return []
+
+
+def _admit_declared_object(value: object, path: str) -> list[str]:
+    """Every declared field of one already-exact authority object."""
+    return [
+        v
+        for name, declared in _declared_field_types(type(value)).items()
+        for v in _admit(
+            getattr(value, name), declared, f"{path}.{name}" if path else name
+        )
+    ]
+
+
+def _refuse(value: object, declared: object, path: str) -> list[str]:
+    """The refusal. Declared contract and runtime type name, never the value."""
+    return [f"{path} must be {_name_of(declared)}, got {type(value).__name__}"]
+
+
+def _name_of(declared: object) -> str:
+    if isinstance(declared, type):
+        return declared.__name__
+    if get_origin(declared) in (Union, UnionType):
+        args = get_args(declared)
+        # The closed fact union by its declared alias. Listing its members would
+        # make every refusal a wall of thirty-seven class names, and the alias is
+        # what the contract actually calls this.
+        if frozenset(a for a in args if a is not type(None)) == frozenset(
+            _FACT_TYPES.values()
+        ):
+            return "MechanicalFact" + (" | None" if type(None) in args else "")
+        return " | ".join(_name_of(a) if a is not type(None) else "None" for a in args)
+    if get_origin(declared) is tuple:
+        args = get_args(declared)
+        return f"tuple[{_name_of(args[0])}, ...]" if args else "tuple"
+    return str(declared)
+
+
+def structural_admission_violations(draft: object) -> list[str]:
+    """The whole authority graph's runtime shape, admitted before it is read.
+
+    The completion of the ordering rule round 12 stated:
+
+        parent exact runtime type -> held-container exact runtime type ->
+        child exact runtime type -> semantic observation
+
+    Round 12 closed the first two steps. The third was still open for scalar
+    children and sequence members: ``_collect_post_schema_3`` reached a
+    ``StrEnum`` leaf and read ``.value``, and reached a sequence and iterated it,
+    before any owner validator had admitted either. An undeclared hostile
+    vocabulary member therefore executed instead of being refused (#137 round 13).
+
+    **Schema-version legality does not own structural admission.** This runs to
+    completion first, and a graph with any finding here never enters
+    :func:`post_schema_3_violations` at all — so that function stays what it is,
+    a question about *already-admitted* meaning, rather than accumulating type
+    cases until it becomes a second recursive validator.
+
+    Two layers, one rule:
+
+    * :func:`representation_draft_violations` — the draft, the six collections'
+      exact ``tuple`` type, and each element's exact type (rounds 10-12);
+    * the field-relative walk below, which is what round 10-12's global
+      class-admission could not do. ``ActionCost`` and ``DamageType`` are both
+      legitimate closed vocabularies, so admitting a value because its class is
+      *known* would still have let ``ActionEconomyFact(cost=DamageType.FIRE)``
+      reach the legality walker.
+
+    The corpus/ledger-free validators already cover most of this surface, and
+    the overlap is deliberate — one rule with two readers, as elsewhere in this
+    module. They do not cover all of it: ``RecordDraft.kind``,
+    ``RelationshipDraft.kind``, ``ComponentDraft.handling``,
+    ``ProvenanceClaim.target_kind`` and ``ProvenanceClaim.role`` are structurally
+    checked only by ``validate_representation``, which needs a ledger and a bound
+    corpus and so cannot run at these seams. That gap is why this is a gate of
+    its own rather than a reordering of existing calls.
+    """
+    if findings := representation_draft_violations(draft):
+        return findings
+    return _admit_declared_object(draft, "")
 
 
 def option_set_violations(
