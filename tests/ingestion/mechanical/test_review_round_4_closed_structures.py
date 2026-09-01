@@ -136,9 +136,10 @@ def test_the_type_gate_precedes_every_field_read() -> None:
         kind: object = "not-an-applicability-kind"  # type: ignore[assignment]
 
     findings = applicability_violations(Shadowing())
-    assert findings == [
-        f"applicability must be Applicability, got Shadowing {Shadowing()!r}"
-    ]
+    # The type name, and no longer the value. Rendering a rejected object runs
+    # its ``__repr__``, which on a frozen dataclass reads every declared field —
+    # so the refusal itself was observing what it refuses (#137 round 12).
+    assert findings == ["applicability must be Applicability, got Shadowing"]
 
 
 def test_a_size_comparison_subclass_is_refused() -> None:

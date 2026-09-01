@@ -72,6 +72,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     DiceExpression,
     DieSize,
+    EffectTerminationFact,
     FactQualifier,
     MeasureUnit,
     ParticipantRole,
@@ -92,11 +93,15 @@ from afterworlds.ingestion.mechanical.representation import (
     Skill,
     TimePeriod,
     UnknownFactFamilyError,
+    _admitted_structures,
     declared_meaning_violations,
+    exact_type_violations,
     fact_invariant_violations,
     fact_key,
     fact_payload,
+    held_container_violations,
     held_structure_violations,
+    post_schema_3_violations,
     representation_draft_violations,
     representation_schema_hash,
 )
@@ -1078,3 +1083,369 @@ def test_the_committed_artifact_is_unmoved_by_this_round() -> None:
     # Every top-level collection is an exact tuple in the artifact as committed,
     # which is what makes the new rule a refusal rather than a restriction.
     assert all(type(getattr(draft, name)) is tuple for name in _DRAFT_ELEMENT_TYPES)
+
+
+# ---------------------------------------------------------------------------
+# Round 12 — the parent is admitted before anything reads its fields
+# ---------------------------------------------------------------------------
+#
+# Round 11's pre-scan resolved a value through ``_declared_type`` — which
+# narrows a subclass to the base it extends — and then read its tuple fields
+# with ``getattr``. That reversed the first two steps of the admission order: a
+# subclass overriding ``__getattribute__`` executed before
+# ``fact_invariant_violations`` or ``applicability_violations`` had refused it.
+#
+# The rule, stated once and owned by structural admission:
+#
+#     parent exact runtime type -> held-container exact runtime type ->
+#     child exact runtime type -> semantic observation
+#
+# Until the applicable gate succeeds, nothing reads declared fields, iterates,
+# hashes, equality-tests, ``repr``s, takes a length, or builds a key. Semantic
+# validators may then assume admitted structure.
+#
+# Narrowing is right for the *serializer*, whose job is to emit only declared
+# fields. It is wrong at a gate, where the question is whether the object may be
+# read at all.
+
+
+def _hostile_parent(base: type, field: str) -> type:
+    """A subclass of *base* that raises if *field* is ever read off it.
+
+    The probe is the assertion. Nothing has to check whether the gate "looked" —
+    if any reader touches the field, the test fails with this message instead of
+    the typed finding it expects.
+    """
+
+    class HostileParent(base):  # type: ignore[misc,valid-type]
+        def __getattribute__(self, name: str) -> object:
+            if name == field:
+                raise AssertionError(
+                    f"the hostile parent's __getattribute__ ran for {name!r}"
+                )
+            return object.__getattribute__(self, name)
+
+    HostileParent.__name__ = f"Hostile{base.__name__}"
+    HostileParent.__qualname__ = HostileParent.__name__
+    return dataclass(frozen=True)(HostileParent)
+
+
+def _hostile_ability_check() -> object:
+    return _hostile_parent(AbilityCheckFact, "alternatives")(
+        ability=AbilityScore.STRENGTH,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        skill=Skill.ATHLETICS,
+        alternatives=ALTERNATIVE_ROLLS,
+    )
+
+
+def _hostile_size_keyed() -> object:
+    return _hostile_parent(SizeKeyedQuantityFact, "values")(
+        quantity=RequiredQuantity.WATER, period=TimePeriod.DAY, values=SIZE_ROWS
+    )
+
+
+def _hostile_damage_response() -> object:
+    return _hostile_parent(DamageResponseFact, "except_types")(
+        response=DamageResponseKind.IMMUNITY,
+        scope=DamageScope.ALL,
+        except_types=(DamageType.FIRE,),
+    )
+
+
+def _hostile_applicability() -> object:
+    return _hostile_parent(Applicability, "any_of")(
+        kind=ApplicabilityKind.SIZE_COMPARISON, negated=False, any_of=SIZE_COMPARISONS
+    )
+
+
+#: One hostile parent per tuple-bearing nested owner, with the typed finding its
+#: owning gate is expected to produce. The point of naming the expected finding
+#: is that the refusal must stay *the normal one* — an arbitrary exception
+#: escaping is the failure this round is about, and so is a second spelling of a
+#: refusal that already exists.
+HOSTILE_PARENTS = [
+    pytest.param(
+        _hostile_ability_check,
+        "HostileAbilityCheckFact is not a member of the closed typed-fact union",
+        id="AbilityCheckFact.alternatives",
+    ),
+    pytest.param(
+        _hostile_size_keyed,
+        "HostileSizeKeyedQuantityFact is not a member of the closed typed-fact union",
+        id="SizeKeyedQuantityFact.values",
+    ),
+    pytest.param(
+        _hostile_damage_response,
+        "HostileDamageResponseFact is not a member of the closed typed-fact union",
+        id="DamageResponseFact.except_types",
+    ),
+    pytest.param(
+        _hostile_applicability,
+        "applicability must be Applicability, got HostileApplicability",
+        id="Applicability.any_of",
+    ),
+]
+
+
+def _draft_holding(hostile: object) -> RepresentationDraft:
+    """The bounded fixture carrying *hostile* where its own type belongs."""
+    if isinstance(hostile, Applicability):
+        return _first_component(applies_when=hostile)
+    return _first_component(facts=(hostile,), options=(), fact_qualifiers=())
+
+
+@pytest.mark.parametrize(("build", "expected"), HOSTILE_PARENTS)
+def test_the_generic_walker_does_not_read_an_unadmitted_parent(
+    build, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """The reported defect, at the helper itself.
+
+    ``held_container_violations`` reads declared tuple fields. Given a value
+    outside the closed declaration it now reads nothing and reports nothing:
+    the refusal belongs to the gate that owns the value, and stating it twice
+    would be two spellings that can drift.
+    """
+    assert held_container_violations(build(), "probe") == []
+
+
+@pytest.mark.parametrize(("build", "expected"), HOSTILE_PARENTS)
+def test_a_hostile_parent_is_refused_with_its_owning_gate_s_typed_finding(
+    build, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """Refused, in the normal words, without the hostile method running.
+
+    If the ordering regressed, this fails with the probe's ``AssertionError``
+    rather than a finding — which is the distinction the test exists to draw.
+    """
+    findings = held_structure_violations(_draft_holding(build()))
+    assert any(expected in f for f in findings), findings
+
+
+@pytest.mark.parametrize(("build", "expected"), HOSTILE_PARENTS)
+def test_the_refusal_never_leaks_the_arbitrary_exception(
+    build, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """Every structural entry point returns findings rather than raising.
+
+    A hostile object must not turn a validation call into an exception its
+    callers do not handle — a gate that crashes has not refused anything, and
+    the seams above translate *findings* into their own typed errors.
+    """
+    draft = _draft_holding(build())
+    assert isinstance(held_structure_violations(draft), list)
+    assert isinstance(declared_meaning_violations(draft, SCHEMA_3_VERSION), list)
+    assert isinstance(representation_draft_violations(draft), list)
+
+
+def test_a_refusal_no_longer_renders_the_value_it_refuses() -> None:
+    """The second instance of the same family, found while reproducing.
+
+    ``exact_type_violations`` interpolated ``{value!r}`` into its finding, so
+    refusing a hostile subclass ran its ``__repr__`` — and on a frozen dataclass
+    that reads every declared field. Round 11 had already avoided exactly this
+    in ``exact_tuple_violations`` without carrying the reasoning back here.
+    """
+
+    @dataclass(frozen=True)
+    class ScreamingRepr(RecordDraft):
+        def __repr__(self) -> str:
+            raise AssertionError("the rejected value's __repr__ was rendered")
+
+    findings = exact_type_violations(
+        ScreamingRepr(semantic_key="k", kind=RecordKind.CONDITION),
+        RecordDraft,
+        "probe",
+    )
+    assert findings == ["probe must be RecordDraft, got ScreamingRepr"]
+
+
+def test_the_six_collections_and_the_nested_ones_share_one_container_rule() -> None:
+    """One spelling, so the two cannot drift apart again.
+
+    ``representation_draft_violations`` used ``exact_type_violations(held, tuple,
+    ...)`` for the six top-level collections while the nested fields used
+    ``exact_tuple_violations``. Both now use the latter, which is the helper that
+    never renders what it refuses.
+    """
+
+    class ScreamingTuple(tuple):  # type: ignore[type-arg]
+        def __repr__(self) -> str:
+            raise AssertionError("the rejected container's __repr__ was rendered")
+
+    base = build_representation()
+    findings = representation_draft_violations(
+        replace(base, records=ScreamingTuple(base.records))
+    )
+    assert findings == ["representation.records must be tuple, got ScreamingTuple"]
+
+
+def test_held_structure_violations_admits_its_own_components_first() -> None:
+    """The walker does not depend on a caller having gated for it.
+
+    In production ``representation_draft_violations`` has already refused a
+    subclassed component and returned. This function is exported and called on
+    its own at the merge seam, and an ordering rule that holds only when some
+    other caller ran first is not the rule.
+    """
+
+    @dataclass(frozen=True)
+    class HostileComponent(ComponentDraft):
+        def __getattribute__(self, name: str) -> object:
+            if name == "facts":
+                raise AssertionError("the hostile component's facts were read")
+            return object.__getattribute__(self, name)
+
+    base = build_representation()
+    hostile = HostileComponent(
+        record_key=base.components[0].record_key,
+        semantic_key=base.components[0].semantic_key,
+        handling=base.components[0].handling,
+    )
+    assert held_structure_violations(replace(base, components=(hostile,))) == []
+    # ...and the gate that owns it does refuse it.
+    assert any(
+        "must be ComponentDraft" in f
+        for f in representation_draft_violations(replace(base, components=(hostile,)))
+    )
+
+
+# ---------------------------------------------------------------------------
+# The seams, proving the routing rather than repeating the field matrix
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("build", "expected"), HOSTILE_PARENTS)
+def test_every_authority_seam_refuses_a_hostile_parent(
+    build, expected: str
+) -> None:  # type: ignore[no-untyped-def]
+    """One shared gate, so one case per seam proves the routing.
+
+    Deliberately not another exhaustive field matrix at every seam: round 11
+    established that these seams all read the same invariant, and what this round
+    changes is the order *inside* it.
+    """
+    draft = _draft_holding(build())
+    lift = lift_for(
+        (SCHEMA_3_VERSION, SCHEMA_3_HASH), (SCHEMA_4_VERSION, SCHEMA_4_HASH)
+    )
+    with pytest.raises(SchemaLiftError) as raised:
+        verify_lift(lift, draft)
+    assert expected in str(raised.value)
+
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    hostile_inputs = replace(
+        inputs, oracle=replace(inputs.oracle, representation=draft)
+    )
+    for target in (SCHEMA_4, SCHEMA_3):
+        with pytest.raises(SchemaLiftError) as raised:
+            lift_accepted_inputs(hostile_inputs, target)
+        assert expected in str(raised.value)
+
+    findings = validate_schema_binding(
+        candidate_of(RELEASE_BINDING, build_ledger(), draft)
+    )
+    assert any(expected in f for f in findings), findings
+
+
+def test_acceptance_refuses_a_hostile_parent_as_a_typed_error() -> None:
+    """``AcceptanceError``, not the probe's ``AssertionError`` escaping."""
+    prior = load_accepted_inputs(ARTIFACT_PATH)
+    proposal = MechanicalProposal(
+        binding=prior.oracle.binding,
+        policy_version=prior.oracle.policy_version,
+        policy_hash=prior.oracle.policy_hash,
+        schema_version=prior.oracle.schema_version,
+        schema_hash=prior.oracle.schema_hash,
+        proposed_spans=(
+            ProposedSpan(
+                span=SemanticSpan(
+                    span_id=PROBE_SPAN,
+                    leaf_id=PROBE_LEAF,
+                    char_start=0,
+                    char_end=28,
+                    disposition=SemanticDisposition.SUBSTANTIVE,
+                    review_state=ReviewState.PROPOSED,
+                ),
+                origin="hostile-parent-probe",
+                rationale="probe",
+            ),
+        ),
+        proposed_representation=_draft_holding(_hostile_ability_check()),
+        proposal_origin="test_subclass_refusal_at_authority_seams",
+    )
+    with pytest.raises(AcceptanceError) as raised:
+        accept_proposal(
+            proposal,
+            batch_id="hostile-parent-probe-1",
+            rule="the probe span",
+            resolved_scope=(PROBE_SPAN,),
+            reviewer="Test",
+            accepted_at="2026-09-01T00:00:00Z",
+            prior=prior,
+        )
+    assert "closed typed-fact union" in str(raised.value)
+    assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches
+
+
+def test_ordinary_instances_keep_their_semantic_findings_and_controls() -> None:
+    """The over-refusal control: admitted structure is still fully observed.
+
+    An admission gate that returned early too eagerly would silence the semantic
+    validators, so this pins both directions — an exact fact with a real
+    invariant violation still reports it, and honest authority still reports
+    nothing.
+    """
+    short_choice = _ability_check((ALTERNATIVE_ROLLS[0],))
+    assert any(
+        "a choice of one is a single roll misdescribed" in v
+        for v in fact_invariant_violations(short_choice)
+    )
+    assert any(
+        "a choice of one is a single roll misdescribed" in f
+        for f in held_structure_violations(_with_fact(short_choice))
+    )
+
+    honest = build_representation()
+    assert held_structure_violations(honest) == []
+    assert declared_meaning_violations(honest, SCHEMA_3_VERSION) == []
+    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    assert held_structure_violations(committed) == []
+
+
+def test_the_admission_set_contains_the_root_every_walk_starts_from() -> None:
+    """An admission gate can fail open by admitting too little, not too much.
+
+    ``RepresentationDraft`` is the root of every generic walk. Omitting it does
+    not tighten anything — it stops the walk at its first step and turns every
+    rule below into a silent no-op. The first draft of this round's fix did
+    exactly that, and round 4's schema-legality guard is what noticed.
+
+    So both halves are pinned: the root is admitted, and the rule that depends
+    on the walk reaching past it still fires.
+    """
+    assert RepresentationDraft in _admitted_structures()
+    assert set(_DRAFT_ELEMENT_TYPES.values()) <= _admitted_structures()
+    assert set(_CLOSED_TYPES) <= _admitted_structures()
+
+    schema_4_only = RepresentationDraft(
+        records=(RecordDraft(semantic_key="hazard.x", kind=RecordKind.GLOSSARY_RULE),),
+        components=(
+            ComponentDraft(
+                record_key="hazard.x",
+                semantic_key="c",
+                handling=ComponentHandling.STRUCTURED,
+                facts=(EffectTerminationFact(),),
+            ),
+        ),
+        prose_bindings=(),
+        relationships=(),
+        references=(),
+        provenance=(),
+    )
+    assert any(
+        "no 'effect_termination' family" in f
+        for f in post_schema_3_violations(schema_4_only, SCHEMA_3_VERSION)
+    ), "round 4's legality guard must still reach a nested fact"
+    assert post_schema_3_violations(schema_4_only, SCHEMA_4_VERSION) == []

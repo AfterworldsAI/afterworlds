@@ -1269,3 +1269,94 @@ it.
 Parent-before-container ordering enforced at the shared boundary, every production caller of the generic
 walker classified, hostile-parent regressions passing, full gates green, zero movement holding. The sibling
 search stops there. PR #159 does not become generalized Python adversarial-object hardening.
+
+## R12-1 — the pre-scan read the parent before the parent was admitted
+
+```
+before
+  held_container_violations(HostileAbilityCheckFact(...), tag)   __getattribute__ RAN for 'alternatives'
+  held_container_violations(HostileSizeKeyedQuantityFact(...))   __getattribute__ RAN for 'values'
+  held_container_violations(HostileDamageResponseFact(...))      __getattribute__ RAN for 'except_types'
+  held_container_violations(HostileApplicability(...))           __getattribute__ RAN for 'any_of'
+  ...and the same through held_structure_violations, the production pre-scan
+
+after
+  every case above    refused with its owning gate's typed finding, hostile method never invoked
+    HostileAbilityCheckFact is not a member of the closed typed-fact union
+    applicability must be Applicability, got HostileApplicability
+```
+
+`held_container_violations` resolved the value through `_declared_type` — which narrows a subclass to the
+base it extends — and then read tuple fields with `getattr`. Narrowing is right for the *serializer*, whose
+job is to emit only declared fields; it is wrong at a gate, where the question is whether the object may be
+read at all.
+
+## Two more instances of the same family, found while reproducing
+
+Neither was in the review comment; both are the same reversed order and are fixed by the same rule.
+
+* **`exact_type_violations` rendered the value it was refusing.** Its finding interpolated `{value!r}`, and
+  `repr` on a frozen dataclass reads every declared field — so refusing a hostile `Applicability` subclass
+  ran the hostile method *inside the refusal*. Round 11 had already avoided exactly this in
+  `exact_tuple_violations` and did not carry the reasoning back. The finding is now the type name only.
+* **`post_schema_3_violations`' walker had the identical shape.** `_collect_post_schema_3` narrowed through
+  `_declared_type` and then `getattr`-ed every declared field to recurse, so a hostile fact subclass nested
+  inside an admitted component executed there instead. Found by the regression tests, not by inspection.
+
+The six top-level collections also moved from `exact_type_violations(held, tuple, …)` to
+`exact_tuple_violations`, so the container rule has one spelling rather than two that can drift.
+
+## A near-miss the tests caught, recorded because it is the failure mode of this fix
+
+The first draft of `_admitted_structures()` omitted `RepresentationDraft`. That does not tighten anything —
+it is the root every generic walk starts from, so the walk stopped at its first step and round 4's
+schema-legality guard silently became a no-op. **An admission gate fails open by admitting too little, not
+too much.** A regression test now pins both the root's membership and that the legality guard still reaches
+a nested fact.
+
+## Sibling audit — entry assumptions of every caller of the generic structural walker
+
+Caller axis, per the boundary instruction; not another field census. Enumerated over `src/`.
+
+| Caller | Parent admitted before the read? | Disposition |
+|---|---|---|
+| `held_container_violations` itself | — it *is* the gate now | **patched** — exact runtime type against the closed declaration, before any `getattr` |
+| `_collect_post_schema_3` (post-schema-3 walker) | no — narrowed and read | **patched** — same rule, same helper |
+| `exact_type_violations` (every closed-type gate) | rendered the rejected value | **patched** — reports the type name only |
+| `representation_draft_violations` → `held_container_violations` (top-level element) | yes — `exact_type_violations(element, expected)` with `continue` | already safe |
+| `held_structure_violations` → per-component collections | no — components were not gated first | **patched** — `type(component) is ComponentDraft` before any field read, so the walker does not depend on a caller having gated for it |
+| `held_structure_violations` → `held_container_violations(fact, …)` | no | **patched** via the shared gate |
+| `held_structure_violations` → `held_container_violations(applies_when, …)` | no | **patched** via the shared gate |
+| `ComponentOption` — `o.facts`, `o.applies_when` | yes — `type(o) is ComponentOption` guards every read | already safe |
+| `ProvenanceClaim` — `claim.target_key` | yes — `type(claim) is ProvenanceClaim`, and the top-level element gate precedes it | already safe |
+| the six `RepresentationDraft` collections | yes — the round 10/11 top-level gate is still first | already safe — now through the one container helper |
+| `FactQualifier` — `q.applies_when` | yes — `type(q) is FactQualifier` guards the read | already safe |
+| `_check_alternatives` / `_check_size_keyed_quantity` / `_check_damage_response` / `applicability_violations` | yes — each establishes the owning type before its container check | already safe — callers of the shared rule, not parallel spellings |
+
+**Out of scope, unchanged from round 11.** The evidence-side tuples (`AcceptedInputs`, `AcceptedOracle`,
+`SchemaLiftRecord`) — this production helper does not reach them, so the round-11 exclusion stands. Nothing
+here is a Known Unknown or needs an Owner Decision.
+
+## Runtime enforcement only
+
+```
+live payload hash : 241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9
+SCHEMA_4_HASH     : unmoved, and still equal to it
+SCHEMA_3_HASH     : 43ed330d…  unchanged
+manifest rows     : 17, unchanged — no row added
+six collections byte-identical : yes
+185 provenance coordinates, 15 references : re-derive identically
+proposal identity 14587d5b… / oracle_identity a0f0bd2f… : unmoved
+committed artifact round-trips to identical payload : yes
+alembic           : 0030 (head), no migration
+```
+
+Two refusal *messages* changed — the rendered value is gone from `exact_type_violations`, and the six
+collections now report through `exact_tuple_violations`. Three test assertions that pinned the old text were
+updated. No serialized grammar changed, so no schema identity moved.
+
+## Stop condition met
+
+Parent-before-container ordering is enforced at the shared boundary; every production caller of the generic
+walker is classified above; the hostile-parent regressions pass; zero movement holds. The sibling search
+stops here.

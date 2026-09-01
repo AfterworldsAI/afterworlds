@@ -2529,7 +2529,12 @@ def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
     duplicate checks that use set membership.
     """
     if type(value) is not cls:
-        return [f"{field} must be {cls.__name__}, got {type(value).__name__} {value!r}"]
+        # The type name, and deliberately not the value. ``repr`` on a rejected
+        # object runs its ``__repr__`` — and on a frozen dataclass that reads
+        # every declared field — so a refusal that rendered the value would be
+        # observing the very object it refuses. That is the ordering rule this
+        # helper exists to serve, applied to itself (#137 round 12).
+        return [f"{field} must be {cls.__name__}, got {type(value).__name__}"]
     return []
 
 
@@ -2575,20 +2580,63 @@ def declared_tuple_fields(cls: type) -> tuple[str, ...]:
 
 
 def held_container_violations(value: object, tag: str) -> list[str]:
-    """Every declared tuple field of one authority value, checked exactly.
+    """Every declared tuple field of one *admitted* authority value, checked exactly.
 
-    Runs **before** any reader of *value* — before its own invariants, before
+    Runs before any other reader of *value* — before its own invariants, before
     ``fact_key``, before the option-signature comparison, before canonicalization.
     That ordering is the whole point: several functions read a component's facts,
     and a container refused by one of them but reached by another has still been
     iterated. See :func:`exact_tuple_violations` for what a subclass can do.
+
+    **The parent is admitted before its fields are read.** One structural
+    admission order governs the whole closed surface:
+
+        parent exact runtime type -> held-container exact runtime type ->
+        child exact runtime type -> semantic observation
+
+    An earlier revision resolved *value* through :func:`_declared_type` — which
+    narrows a subclass to the base it extends — and then read its tuple fields
+    with ``getattr``. That reversed the first two steps: a subclass overriding
+    ``__getattribute__`` executed before ``fact_invariant_violations`` or
+    ``applicability_violations`` had refused it (#137 round 12). Narrowing is
+    right for the *serializer*, whose job is to emit only declared fields; it is
+    wrong here, where the question is whether this object may be read at all.
+
+    A value outside the closed declaration is therefore **not read and not
+    reported here**. It is refused by the gate that owns it, in that gate's own
+    words — ``fact_invariant_violations`` for a fact family,
+    ``applicability_violations`` for an applicability, ``exact_type_violations``
+    for a top-level element — each of which establishes the exact type before it
+    reads anything. Reporting it here as well would be a second spelling of a
+    refusal that already exists, and the two could drift.
     """
-    declared = _declared_type(value)
+    if type(value) not in _admitted_structures():
+        return []
     return [
         v
-        for name in declared_tuple_fields(declared)
+        for name in declared_tuple_fields(type(value))
         for v in exact_tuple_violations(getattr(value, name), f"{tag}: {name}")
     ]
+
+
+def _admitted_structures() -> frozenset[type]:
+    """Every closed structure the generic structural walker may read.
+
+    The closed value objects and fact families, the top-level element types, and
+    the draft itself — every surface whose exact runtime type some gate
+    establishes. Derived from the same tables the serializer and the top-level
+    walker read, so a new declared structure joins by being declared.
+
+    ``RepresentationDraft`` is a member and must stay one: it is the root every
+    generic walk starts from, so omitting it would not tighten anything — it
+    would silently stop the walk at the first step and turn every rule below
+    into a no-op.
+    """
+    return (
+        frozenset(_CLOSED_TYPES)
+        | frozenset(_DRAFT_ELEMENT_TYPES.values())
+        | {RepresentationDraft}
+    )
 
 
 #: The name this rule has had since the fact-family validators; kept so the
@@ -5010,7 +5058,16 @@ def _collect_post_schema_3(
             )
         return
     if is_dataclass(value) and not isinstance(value, type):
-        declared = _declared_type(value)
+        # Parent admission, on the same rule as the structural walker. This one
+        # reads every declared field with ``getattr`` to recurse, so narrowing a
+        # subclass to its base here would let the subclass execute before any
+        # gate had refused it — the ordering this round settles (#137 round 12).
+        # An unadmitted value is not walked and not reported: the refusal
+        # belongs to ``held_structure_violations``, which
+        # ``declared_meaning_violations`` runs beside this.
+        declared = type(value)
+        if declared not in _admitted_structures():
+            return
         # A family the declared union did not have. Keyed by discriminator
         # rather than class, because that is what a payload carries.
         family = getattr(declared, "FAMILY", None)
@@ -6289,7 +6346,7 @@ def representation_draft_violations(draft: object) -> list[str]:
         # override ``__iter__``, so validation and serialization would observe
         # different elements from the same object. Iterating first to find out
         # is exactly the observation being refused.
-        if drift := exact_type_violations(held, tuple, f"representation.{field_name}"):
+        if drift := exact_tuple_violations(held, f"representation.{field_name}"):
             violations.extend(drift)
             continue
         for index, element in enumerate(held):
@@ -6336,6 +6393,14 @@ def held_structure_violations(draft: RepresentationDraft) -> list[str]:
     """
     findings: list[str] = []
     for component in draft.components:
+        # Parent admission, before this function reads a single field. In
+        # production ``representation_draft_violations`` has already refused a
+        # subclassed component and returned — but this function is exported and
+        # called on its own, and an ordering rule that holds only when some
+        # other caller ran first is not the rule (#137 round 12). The refusal
+        # belongs to the top-level gate, so nothing is reported here.
+        if type(component) is not ComponentDraft:
+            continue
         tag = f"component {component.record_key}/{component.semantic_key}"
         # **Containers before contents.** A component's three collections are
         # iterated to build ``scopes`` below and are handed to
