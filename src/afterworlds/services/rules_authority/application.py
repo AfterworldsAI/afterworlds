@@ -46,6 +46,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceRole,
     ProvenanceTargetKind,
     RecordKind,
+    Recurrence,
     component_participant_violations,
     fact_key,
     fact_qualifier_target_key,
@@ -231,6 +232,12 @@ class EffectiveComponent:
     #: order overrides resolve in. Empty for a purely structured component
     #: that has never had authored prose attached to it.
     governing_prose: tuple[GoverningProseEntry, ...] = ()
+    #: How often the component's stated effect repeats, when the source states
+    #: a cadence. Carried through the effective view rather than dropped at the
+    #: projection boundary: a repeating effect read as a one-off is the wrong
+    #: rule, and an override that supplies a component is complete, so it
+    #: supplies this too.
+    recurs: Recurrence | None = None
     span_ids: tuple[str, ...] = ()
     supplied_by_override_id: str | None = None
     supplied_by_origin: OverrideOriginEnum | None = None
@@ -412,6 +419,7 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 facts=facts,
                 options=options,
                 applies_when=component.applies_when,
+                recurs=component.recurs,
                 governing_prose=tuple(
                     prose.get((component.record_key, component.semantic_key), ())
                 ),
@@ -522,6 +530,7 @@ def _component_from_body(
             )
             for option in body.options
         ),
+        recurs=body.recurs,
         governing_prose=(
             (
                 AuthoredProse(

@@ -63,22 +63,32 @@ from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.projection import (
     applicability_payload,
     applicability_payload_violations,
+    recurrence_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
+    AutomaticOutcome,
     Comparison,
     ComponentOption,
     CreatureSize,
+    DamageOutcome,
     FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
     ParticipantRole,
     Phase,
+    Rational,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
+    RequiredQuantity,
+    RollActor,
     SizeComparison,
     SizeRelation,
+    TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
@@ -88,6 +98,7 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_payload,
     fact_qualifier_violations,
     option_set_violations,
+    recurrence_violations,
 )
 from afterworlds.models.enums import OverrideOperationEnum
 from afterworlds.services.rules_authority.targets import (
@@ -183,6 +194,14 @@ class ComponentBody:
     #: like every other field here: a replacement that omits a qualifier the
     #: base component had drops it rather than inheriting it.
     fact_qualifiers: tuple[FactQualifier, ...] = ()
+    #: Schema 4's cadence. Overridable for the same reason ``applies_when`` and
+    #: ``fact_qualifiers`` are, and by the same existing contract rather than by
+    #: a new decision: ``recurs`` is a component-level meaning-bearing field on
+    #: :class:`ComponentDraft`, and a *complete* component patch that could not
+    #: carry it would silently republish a repeating effect as a one-off. Its
+    #: absence therefore means "states no cadence" — completely, like every
+    #: other field here — and never "inherit the base component's".
+    recurs: Recurrence | None = None
 
 
 @dataclass(frozen=True)
@@ -402,6 +421,29 @@ def _build_fact(value: object, what: str) -> MechanicalFact:
     return fact
 
 
+def _rational_operand(raw: object) -> Rational | None:
+    """Rebuild a stored ``Rational`` operand, or ``None``.
+
+    Nothing is coerced. A malformed shape raises out of the caller's ``try``
+    and becomes that module's own typed load failure, exactly as a bad
+    vocabulary member does — a fraction that reconstructs as a different
+    fraction is worse than one that refuses to reconstruct.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise TypeError(f"fraction must be an object, got {type(raw).__name__}")
+    # The exact key set, like every other closed structure here. An undeclared
+    # key entering unchecked is the same defect this builder exists to close:
+    # it is a field nothing validated, and it would be silently discarded.
+    if set(raw) != {"numerator", "denominator"}:
+        raise ValueError(
+            f"fraction must carry exactly numerator and denominator, got "
+            f"{sorted(raw)}"
+        )
+    return Rational(numerator=raw["numerator"], denominator=raw["denominator"])
+
+
 def _build_applicability(raw: object, what: str) -> Applicability | None:
     """Rebuild one applicability from patch JSON, or ``None``.
 
@@ -453,6 +495,29 @@ def _build_applicability(raw: object, what: str) -> Applicability | None:
                 None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
             ),
             phase=None if raw["phase"] is None else Phase(raw["phase"]),
+            # The schema-4 operands. Read with ``.get`` because they are
+            # post-schema-3 keys: the canonical payload omits one that carries
+            # no meaning, so a legal schema-3 payload has no such key at all and
+            # ``raw["outcome"]`` would fail on content that is entirely honest.
+            # Dropping them instead — which is what this builder did before —
+            # reconstructs an applicability whose required operand is absent, so
+            # ``applicability_violations`` rejects the rebuilt value and the
+            # artifact cannot load at all.
+            outcome=(
+                None if raw.get("outcome") is None else AutomaticOutcome(raw["outcome"])
+            ),
+            damage_outcome=(
+                None
+                if raw.get("damage_outcome") is None
+                else DamageOutcome(raw["damage_outcome"])
+            ),
+            required_quantity=(
+                None
+                if raw.get("required_quantity") is None
+                else RequiredQuantity(raw["required_quantity"])
+            ),
+            fraction=_rational_operand(raw.get("fraction")),
+            unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise InvalidPatchError(f"{what} applies_when: {exc}") from exc
@@ -521,7 +586,13 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         # mentions either, and _component_body_payload omits them again when
         # they hold their legacy defaults, so those bytes are unchanged.
         optional=frozenset(
-            {"authored_prose", "applies_when", "options", "fact_qualifiers"}
+            {
+                "authored_prose",
+                "applies_when",
+                "options",
+                "fact_qualifiers",
+                "recurs",
+            }
         ),
     )
 
@@ -632,7 +703,36 @@ def _build_component_body(value: object, what: str, *, keyed: bool) -> Component
         applies_when=applies_when,
         options=options,
         fact_qualifiers=fact_qualifiers,
+        recurs=_build_recurrence(value.get("recurs"), what),
     )
+
+
+def _build_recurrence(value: object, what: str) -> Recurrence | None:
+    """Rebuild one cadence from patch JSON, or ``None``.
+
+    The same two gates in the same order as every other structure here: the
+    closed key set first, then the typed contract that owns the invariants — a
+    turn boundary needs a ``whose`` and a day boundary may not carry one. This
+    is a third reader of those rules, never a third copy.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise InvalidPatchError(f"{what} recurs must be an object or null")
+    # Both keys are required; ``whose`` may hold null. The serializer emits it
+    # unconditionally, so accepting a patch that omits it would admit a shape no
+    # projection ever wrote and silently give it a meaning (#137 round 9).
+    _require_keys(dict(value), set(RECURRENCE_KEYS), f"{what} recurs")
+    try:
+        built = Recurrence(
+            boundary=RecurrenceBoundary(value["boundary"]),
+            whose=(None if value["whose"] is None else RollActor(value["whose"])),
+        )
+    except (TypeError, ValueError) as exc:
+        raise InvalidPatchError(f"{what} recurs: {exc}") from exc
+    if violations := recurrence_violations(built):
+        raise InvalidPatchError(f"{what} recurs: {'; '.join(violations)}")
+    return built
 
 
 def _build_fact_qualifier(value: object, what: str) -> FactQualifier:
@@ -837,6 +937,13 @@ def _component_body_payload(body: ComponentBody) -> dict[str, object]:
                 body.fact_qualifiers, key=lambda q: (q.option_key, q.fact_key)
             )
         ]
+    if body.recurs is not None:
+        # Omitted when absent, like every other post-legacy key here: a patch
+        # authored before schema 4 keeps its exact bytes and its override-set
+        # identity. Serialized through the representation's own walker, so the
+        # patch and the projection cannot disagree about a cadence's canonical
+        # form.
+        payload["recurs"] = recurrence_payload(body.recurs)
     return payload
 
 

@@ -33,6 +33,11 @@ from pathlib import Path
 
 import pytest
 
+from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
+    representation_schema_hash,
+)
+
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _ORACLES_REL = "afterworlds/ingestion/mechanical/oracles"
 _PRODUCTION_ORACLES = _REPO_ROOT / "src" / _ORACLES_REL
@@ -60,7 +65,17 @@ SENTINEL_ORACLE: dict[str, object] = {
     },
     "semantic_policy_version": "sentinel",
     "semantic_policy_hash": "e" * 64,
-    "representation_schema": {"version": "sentinel", "hash": "f" * 64},
+    # The one field that may not be a sentinel. A committed artifact is refused
+    # at load unless its exact (version, hash) pair names a contract this build
+    # accepts authority under (#137 round 4), and the resolver loads every file
+    # in the packaged directory before filtering by release — so a fake schema
+    # here would make the sentinel unloadable rather than merely unpublishable.
+    # Taken live rather than pinned: this test is about packaging, and a literal
+    # would rot at the next succession.
+    "representation_schema": {
+        "version": REPRESENTATION_SCHEMA_VERSION,
+        "hash": representation_schema_hash(),
+    },
     "spans": [],
     "representation": {
         "records": [],

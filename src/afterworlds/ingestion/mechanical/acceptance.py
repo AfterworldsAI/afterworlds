@@ -65,6 +65,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
     derive_obligations,
 )
+from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     proposal_identity,
@@ -73,11 +74,21 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     RepresentationDraft,
     component_target_key,
+    held_structure_violations,
     prose_binding_target_key,
     record_target_key,
     reference_target_key,
     relationship_target_key,
     representation_draft_violations,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    BatchSchemaAnchor,
+    SchemaLiftError,
+    SchemaLiftRecord,
+    carried_anchors,
+    lift_for,
+    schema_binding_violations,
+    verify_lift,
 )
 
 __all__ = ["AcceptanceError", "accept_proposal"]
@@ -186,6 +197,17 @@ def _merge_representation(
                 f"{label} representation is not the closed declared shape: "
                 + "; ".join(drift)
             )
+        # ...and the same rule below the top level. A subclassed nested value
+        # object canonicalizes to its declared base's payload, so two proposals
+        # asserting different authority would merge identically and share one
+        # oracle identity. Every other authority-bearing path runs a validator
+        # that refuses such a value first; this seam has neither a ledger nor a
+        # bound corpus, so it cannot, and the leak is closed here instead.
+        if drift := held_structure_violations(candidate):
+            raise AcceptanceError(
+                f"{label} representation holds a structure outside its closed "
+                "declaration: " + "; ".join(drift)
+            )
 
     if prior is None:
         return proposed
@@ -254,14 +276,90 @@ def accept_proposal(
             "accepted authority it would extend"
         )
 
+    # **The central invariant, and it runs before every branch below.** A
+    # representation and the schema identity it declares are admissible together
+    # only when its meaning is legal under that version *and* the exact
+    # (version, hash) pair is a contract this build accepts authority under —
+    # ``schema_binding_violations``, the same function the loader and
+    # ``verify_lift`` call.
+    #
+    # Legality was previously checked only where the schema *changed* — inside
+    # ``verify_lift``, on the *prior* — which left three acceptance paths open:
+    # no prior at all, a prior declaring the same (version, hash) as the
+    # proposal, and the proposed half of a lifted acceptance. On any of those a
+    # proposal carrying a schema-4-only family was accepted with ``lifts == ()``,
+    # producing accepted authority its own declaration cannot state and that a
+    # later lift would then refuse. The recognition half closes the sibling case:
+    # an invented hash, or a known version paired with another version's hash,
+    # names no contract at all.
+    #
+    # Checked here rather than inside ``representation_payload``: that function's
+    # contract is to emit the declared key set, and putting a full recursive walk
+    # on it would run on every identity computation and both sides of every
+    # verified lift. Acceptance is the seam authority is *created* at, so nothing
+    # reaches canonicalization as accepted authority without passing this first.
+    if illegal := schema_binding_violations(
+        proposal.proposed_representation,
+        (proposal.schema_version, proposal.schema_hash),
+    ):
+        raise AcceptanceError(
+            f"this proposal declares representation schema "
+            f"{proposal.schema_version!r} but is not admissible under it, so it "
+            "was not built under the schema it names: " + "; ".join(illegal)
+        )
+    if prior is not None and (
+        illegal := schema_binding_violations(
+            prior.oracle.representation,
+            (prior.oracle.schema_version, prior.oracle.schema_hash),
+        )
+    ):
+        raise AcceptanceError(
+            f"the prior accepted authority declares representation schema "
+            f"{prior.oracle.schema_version!r} but is not admissible under it, so "
+            "it was not accepted under the schema it names: " + "; ".join(illegal)
+        )
+
+    # The prior's *evidence* is validated here, before anything is computed
+    # from it: before the lift is looked up, before the representations are
+    # merged, and before any anchor is carried or synthesized. An artifact whose
+    # own succession evidence does not hold is not a base to extend, and reading
+    # its declaration to fill in what its evidence never said is how a restamped
+    # in-memory prior turned a schema-3 review into schema-4 anchors that then
+    # loaded clean (#137 round 8).
+    prior_anchors = _carried_anchors(prior)
+
+    # A schema difference is refused unless an authorized lift covers this exact
+    # transition. The check is widened, never removed: identical schemas remain
+    # directly acceptable, and everything else must be registered for its exact
+    # (version, hash) source and destination pair. An unknown, reversed, skipped,
+    # or hash-mismatched transition raises, and "a later version" is never
+    # evidence — SCHEMA_LIFTS is a table, not a comparison.
+    lift_record: SchemaLiftRecord | None = None
     if prior is not None and (
         prior.oracle.schema_version,
         prior.oracle.schema_hash,
     ) != (proposal.schema_version, proposal.schema_hash):
-        raise AcceptanceError(
-            "this proposal declares a different representation schema than the "
-            "prior accepted authority it would extend"
-        )
+        try:
+            lift = lift_for(
+                (prior.oracle.schema_version, prior.oracle.schema_hash),
+                (proposal.schema_version, proposal.schema_hash),
+            )
+            # Proves element by element that the prior accepted content is
+            # byte-identical under the destination schema *before* anything is
+            # re-declared. A lift may authorize a wider contract; it may never
+            # move a semantic identity the Owner already accepted.
+            lift_record = verify_lift(lift, prior.oracle.representation)
+        # ``LegacySchemaPayloadError`` joins it: a prior whose declared schema
+        # cannot serialize its own content is uncanonicalizable, which is the
+        # same acceptance failure by a different route. Letting it escape this
+        # seam uncategorized would fail closed in the right direction but say
+        # the wrong thing about why.
+        except (SchemaLiftError, LegacySchemaPayloadError) as exc:
+            raise AcceptanceError(
+                "this proposal declares a different representation schema than "
+                "the prior accepted authority it would extend, and no verified "
+                f"lift authorizes the difference: {exc}"
+            ) from exc
 
     if batch_id in {b.batch_id for b in (prior.batches if prior else ())}:
         raise AcceptanceError(f"batch {batch_id!r} is already recorded")
@@ -335,7 +433,46 @@ def accept_proposal(
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
+        # Every retained batch states the schema it was *reviewed* under, and
+        # this new one states the schema the proposal declares. A prior loaded
+        # in the legacy unanchored form is anchored here at its own declaration,
+        # which is the one reading that form can have — done at the seam that
+        # knows both halves, rather than left for a later reader to infer from
+        # an empty lift history it cannot interpret (#137 round 7).
+        schema_anchors=prior_anchors
+        + (
+            BatchSchemaAnchor(
+                batch_id=batch.batch_id,
+                proposal_identity=batch.proposal_identity,
+                schema_version=proposal.schema_version,
+                schema_hash=proposal.schema_hash,
+            ),
+        ),
+        # Oldest first, and append-only: an artifact records every succession it
+        # was carried across, not merely the last one.
+        lifts=tuple(prior.lifts if prior else ())
+        + ((lift_record,) if lift_record is not None else ()),
     )
+
+
+def _carried_anchors(prior: AcceptedInputs | None) -> tuple[BatchSchemaAnchor, ...]:
+    """The prior artifact's anchors, validated before anything is carried.
+
+    Delegated to ``schema_lift.carried_anchors`` rather than restated: the rule
+    that decides whether an artifact's evidence may be carried forward is the
+    same rule the loader applies to it, and two implementations of it would
+    disagree exactly where it matters. This wrapper exists only to say the
+    refusal in the words ``accept_proposal``'s callers already handle.
+    """
+    if prior is None:
+        return ()
+    try:
+        return carried_anchors(prior)
+    except SchemaLiftError as exc:
+        raise AcceptanceError(
+            "this proposal would extend prior accepted authority whose own "
+            f"succession evidence does not hold: {exc}"
+        ) from exc
 
 
 def _ordered(spans: tuple[SemanticSpan, ...]) -> tuple[SemanticSpan, ...]:

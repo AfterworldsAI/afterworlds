@@ -43,7 +43,11 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
-from afterworlds.ingestion.mechanical.representation import Applicability, RecordKind
+from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    RecordKind,
+    Recurrence,
+)
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.services.rules_authority.application import (
     AppliedOverride,
@@ -127,6 +131,10 @@ class GameMasterComponent:
     #: Narrower conditions the source puts on individual facts are on those
     #: facts, not here; the two compose conjunctively.
     applies_when: Applicability | None = None
+    #: How often the stated effect repeats. A GameMaster adjudicating Burning
+    #: needs to read that its damage recurs at the start of each of the
+    #: subject's turns; without this the view presents it as a single hit.
+    recurs: Recurrence | None = None
 
 
 @dataclass(frozen=True)
@@ -195,6 +203,7 @@ def _gamemaster_component(
         structured_context=component.facts,
         options=component.options,
         applies_when=component.applies_when,
+        recurs=component.recurs,
         span_ids=component.span_ids,
         supplied_by_override_id=component.supplied_by_override_id,
     )

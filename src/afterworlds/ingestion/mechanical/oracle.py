@@ -76,12 +76,15 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
+    AutomaticOutcome,
     Comparison,
     ComponentDraft,
     ComponentOption,
     CreatureSize,
+    DamageOutcome,
     FactFamily,
     FactQualifier,
     MalformedFactPayloadError,
@@ -91,19 +94,32 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
+    Rational,
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    RequiredQuantity,
+    RollActor,
     SizeComparison,
     SizeRelation,
+    TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
     fact_from_payload,
+    recurrence_violations,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    BatchSchemaAnchor,
+    SchemaLiftRecord,
+    schema_binding_violations,
+    succession_evidence_violations,
 )
 
 __all__ = [
@@ -213,6 +229,16 @@ class AcceptedInputs:
     oracle: AcceptedOracle
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: The representation schema each retained batch was *reviewed* under.
+    #: Empty only for the legacy pre-schema-4 form, where absence has one
+    #: possible meaning; see ``schema_lift.succession_evidence_violations``.
+    schema_anchors: tuple[BatchSchemaAnchor, ...] = ()
+    #: Schema successions this artifact was carried across, oldest first.
+    #: Evidence, never identity: which contract an artifact was lifted through is
+    #: migration process, and process does not remint a projection (#137
+    #: acceptance criterion 11), so this sits beside the acceptance batches
+    #: rather than inside :class:`AcceptedOracle`.
+    lifts: tuple[SchemaLiftRecord, ...] = ()
 
     def classification(self) -> ClassificationLedger:
         """The complete accepted ledger, result and evidence together."""
@@ -308,7 +334,15 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
             "hash": oracle.schema_hash,
         },
         "spans": span_payload(oracle.spans),
-        "representation": representation_payload(oracle.representation),
+        # Under the schema this ACCEPTED AUTHORITY declares, never the one the
+        # build happens to implement. The two coincided until schema 4 existed,
+        # which is why defaulting here was invisible: a schema-3 artifact loaded
+        # by a schema-4 build would have been canonicalized under schema-4 keys
+        # and silently re-identified — the same failure Owner Decision
+        # 2026-08-20 addressed for components, reappearing at this seam.
+        "representation": representation_payload(
+            oracle.representation, schema_version=oracle.schema_version
+        ),
         "obligations": canonical_order(
             obligation_payload(o) for o in oracle.obligations
         ),
@@ -419,6 +453,36 @@ def _string_list(value: object, where: str) -> list[str]:
     ]
 
 
+def _recurrence(raw: object, where: str) -> Recurrence | None:
+    """Load one stored recurrence, or ``None``.
+
+    Absent is the declared default: the canonical payload omits this key when
+    the component states no recurrence, which is what keeps a schema-3 component
+    byte-identical under schema 4. Present is held to the same typed invariants
+    the build side uses.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise OracleLoadError(f"{where}: recurrence must be an object or null")
+    # Both keys, exactly. The canonical payload emits ``whose`` unconditionally,
+    # so a stored object without it is not "a recurrence with no actor" — it is a
+    # shape the serializer never wrote, and reading it as an explicit null would
+    # invent a claim the file does not make (#137 round 9).
+    payload = _require(raw, tuple(sorted(RECURRENCE_KEYS)), where)
+    built = Recurrence(
+        boundary=_enum(RecurrenceBoundary, payload["boundary"], f"{where}.boundary"),
+        whose=(
+            None
+            if payload["whose"] is None
+            else _enum(RollActor, payload["whose"], f"{where}.whose")
+        ),
+    )
+    if findings := recurrence_violations(built):
+        raise OracleLoadError(f"{where}: {'; '.join(findings)}")
+    return built
+
+
 def _applicability(raw: object, where: str) -> Applicability | None:
     """Load one stored applicability, or ``None``.
 
@@ -473,6 +537,29 @@ def _applicability(raw: object, where: str) -> Applicability | None:
                 None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
             ),
             phase=None if raw["phase"] is None else Phase(raw["phase"]),
+            # The schema-4 operands. Read with ``.get`` because they are
+            # post-schema-3 keys: the canonical payload omits one that carries
+            # no meaning, so a legal schema-3 payload has no such key at all and
+            # ``raw["outcome"]`` would fail on content that is entirely honest.
+            # Dropping them instead — which is what this builder did before —
+            # reconstructs an applicability whose required operand is absent, so
+            # ``applicability_violations`` rejects the rebuilt value and the
+            # artifact cannot load at all.
+            outcome=(
+                None if raw.get("outcome") is None else AutomaticOutcome(raw["outcome"])
+            ),
+            damage_outcome=(
+                None
+                if raw.get("damage_outcome") is None
+                else DamageOutcome(raw["damage_outcome"])
+            ),
+            required_quantity=(
+                None
+                if raw.get("required_quantity") is None
+                else RequiredQuantity(raw["required_quantity"])
+            ),
+            fraction=_rational_operand(raw.get("fraction")),
+            unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise OracleLoadError(f"{where}: {exc}") from exc
@@ -480,6 +567,29 @@ def _applicability(raw: object, where: str) -> Applicability | None:
     if violations:
         raise OracleLoadError(f"{where}: {'; '.join(violations)}")
     return built
+
+
+def _rational_operand(raw: object) -> Rational | None:
+    """Rebuild a stored ``Rational`` operand, or ``None``.
+
+    Nothing is coerced. A malformed shape raises out of the caller's ``try``
+    and becomes that module's own typed load failure, exactly as a bad
+    vocabulary member does — a fraction that reconstructs as a different
+    fraction is worse than one that refuses to reconstruct.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise TypeError(f"fraction must be an object, got {type(raw).__name__}")
+    # The exact key set, like every other closed structure here. An undeclared
+    # key entering unchecked is the same defect this builder exists to close:
+    # it is a field nothing validated, and it would be silently discarded.
+    if set(raw) != {"numerator", "denominator"}:
+        raise ValueError(
+            f"fraction must carry exactly numerator and denominator, got "
+            f"{sorted(raw)}"
+        )
+    return Rational(numerator=raw["numerator"], denominator=raw["denominator"])
 
 
 def _component_option(raw: object, where: str) -> ComponentOption:
@@ -622,7 +732,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
-            optional=("applies_when", "options", "fact_qualifiers"),
+            optional=("applies_when", "options", "fact_qualifiers", "recurs"),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -655,6 +765,7 @@ def _representation(payload: object) -> RepresentationDraft:
                 # and the gate rebuilds and re-hashes the payload, so a key
                 # dropped or misspelled anywhere upstream fails there rather
                 # than loading as silently empty.
+                recurs=_recurrence(c.get("recurs"), f"{where}.recurs"),
                 applies_when=_applicability(
                     c.get("applies_when"), f"{where}.applies_when"
                 ),
@@ -855,11 +966,67 @@ def _check_obligations_closed(
 # out of it drops the evidence before identity is computed.
 
 
-def _acceptance(
-    payload: object, where: str
-) -> tuple[tuple[AcceptanceBatch, ...], tuple[AcceptanceRecord, ...]]:
+def _acceptance(payload: object, where: str) -> tuple[
+    tuple[AcceptanceBatch, ...],
+    tuple[AcceptanceRecord, ...],
+    tuple[SchemaLiftRecord, ...],
+    tuple[BatchSchemaAnchor, ...],
+]:
     """Load the review evidence half of a committed accepted-inputs file."""
-    p = _require(payload, ("batches", "records"), where)
+    p = _require(
+        payload, ("batches", "records"), where, optional=("lifts", "schema_anchors")
+    )
+
+    anchors = []
+    for i, raw_anchor in enumerate(
+        _object_list(p.get("schema_anchors", []), f"{where}.schema_anchors")
+    ):
+        at = f"{where}.schema_anchors[{i}]"
+        entry = _require(
+            raw_anchor,
+            ("batch_id", "proposal_identity", "schema_version", "schema_hash"),
+            at,
+        )
+        anchors.append(
+            BatchSchemaAnchor(
+                batch_id=_string(entry["batch_id"], f"{at}.batch_id"),
+                proposal_identity=_string(
+                    entry["proposal_identity"], f"{at}.proposal_identity"
+                ),
+                schema_version=_string(entry["schema_version"], f"{at}.schema_version"),
+                schema_hash=_string(entry["schema_hash"], f"{at}.schema_hash"),
+            )
+        )
+
+    lifts = []
+    for i, raw_lift in enumerate(_object_list(p.get("lifts", []), f"{where}.lifts")):
+        at = f"{where}.lifts[{i}]"
+        entry = _require(
+            raw_lift,
+            (
+                "lift_id",
+                "from_version",
+                "from_hash",
+                "to_version",
+                "to_hash",
+                "verified_collections",
+            ),
+            at,
+        )
+        lifts.append(
+            SchemaLiftRecord(
+                lift_id=_string(entry["lift_id"], f"{at}.lift_id"),
+                from_version=_string(entry["from_version"], f"{at}.from_version"),
+                from_hash=_string(entry["from_hash"], f"{at}.from_hash"),
+                to_version=_string(entry["to_version"], f"{at}.to_version"),
+                to_hash=_string(entry["to_hash"], f"{at}.to_hash"),
+                verified_collections=tuple(
+                    _string_list(
+                        entry["verified_collections"], f"{at}.verified_collections"
+                    )
+                ),
+            )
+        )
 
     batches = []
     for i, raw in enumerate(_object_list(p["batches"], f"{where}.batches")):
@@ -939,7 +1106,7 @@ def _acceptance(
                 accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
             )
         )
-    return tuple(batches), tuple(records)
+    return tuple(batches), tuple(records), tuple(lifts), tuple(anchors)
 
 
 def load_accepted_inputs(path: Path) -> AcceptedInputs:
@@ -1001,8 +1168,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     )
     _check_obligations_closed(representation, obligations, path.name)
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances = _acceptance(p["acceptance"], "acceptance")
-
+    batches, acceptances, lifts, anchors = _acceptance(p["acceptance"], "acceptance")
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1015,7 +1181,35 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         representation=representation,
         obligations=obligations,
     )
-    inputs = AcceptedInputs(oracle=oracle, batches=batches, acceptances=acceptances)
+    # Committed bytes are not self-proving either. The wire-shape checks above
+    # establish that this file parses into the declared types; they say nothing
+    # about whether its content is legal under the schema it names, or whether
+    # that schema is one this build accepts authority under. Without this, a
+    # schema-3 file carrying a schema-4 fact family loaded clean — its
+    # obligations reconciled, and with no lifts the chain check below had
+    # nothing to object to — and became committed accepted authority no
+    # schema-3 reviewer could have reviewed (#137 round 4).
+    if illegal := schema_binding_violations(
+        oracle.representation, (oracle.schema_version, oracle.schema_hash)
+    ):
+        raise OracleLoadError(
+            f"{path.name}: this artifact declares representation schema "
+            f"{oracle.schema_version!r} but is not admissible under it: "
+            + "; ".join(illegal)
+        )
+
+    # Loaded evidence is read from a file, so the wire-shape checks above prove
+    # only that it is well-formed — never that the succession it claims was
+    # authorized, happened, or could have happened. Validated against the
+    # registry and against this artifact's own declaration before it becomes
+    # part of the loaded inputs.
+    inputs = AcceptedInputs(
+        oracle=oracle,
+        batches=batches,
+        acceptances=acceptances,
+        schema_anchors=anchors,
+        lifts=lifts,
+    )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
     # batch retains a digest but not the diff it names, or that accepts a span
@@ -1025,6 +1219,17 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         raise OracleLoadError(
             f"{path.name}: acceptance evidence is not complete: "
             f"{'; '.join(violations)}"
+        )
+
+    # After completeness, because this reads the batches and their proposal
+    # identities: an artifact whose evidence does not reconcile with itself
+    # should say so in those terms rather than through a succession finding.
+    if drift := succession_evidence_violations(
+        batches, anchors, lifts, (oracle.schema_version, oracle.schema_hash)
+    ):
+        raise OracleLoadError(
+            "acceptance evidence does not describe an authorized succession of "
+            "this artifact: " + "; ".join(drift)
         )
     return inputs
 
@@ -1146,8 +1351,37 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
     payload: dict[str, object] = {"artifact_kind": ACCEPTED_ARTIFACT_KIND}
     payload.update(oracle_payload(inputs.oracle))
     evidence = acceptance_evidence_payload(inputs.classification())
-    payload["acceptance"] = {
+    acceptance: dict[str, object] = {
         "batches": evidence["batches"],
         "records": evidence["acceptances"],
     }
+    if inputs.schema_anchors:
+        # Emitted only when stated, so the committed legacy artifact keeps the
+        # exact bytes it was reviewed and committed with.
+        acceptance["schema_anchors"] = [
+            {
+                "batch_id": anchor.batch_id,
+                "proposal_identity": anchor.proposal_identity,
+                "schema_version": anchor.schema_version,
+                "schema_hash": anchor.schema_hash,
+            }
+            for anchor in inputs.schema_anchors
+        ]
+    if inputs.lifts:
+        # Emitted only when there is one, so an artifact that never crossed a
+        # succession keeps the exact bytes it was committed with. Same
+        # omit-when-empty discipline the post-schema-3 fields follow, and the
+        # reason the committed conditions-1 file still round-trips unchanged.
+        acceptance["lifts"] = [
+            {
+                "lift_id": lift.lift_id,
+                "from_version": lift.from_version,
+                "from_hash": lift.from_hash,
+                "to_version": lift.to_version,
+                "to_hash": lift.to_hash,
+                "verified_collections": list(lift.verified_collections),
+            }
+            for lift in inputs.lifts
+        ]
+    payload["acceptance"] = acceptance
     return payload

@@ -77,14 +77,14 @@ from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 # Literals captured from the pre-change code at f6d2813~1
 # ---------------------------------------------------------------------------
 
-SCHEMA_1_HASH = "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"
+SCHEMA_1_HASH = "44bf8519d57a28a193717219e276b329f0eaa30c56cf52284219f67916d09ff3"  # noqa: E501  # pragma: allowlist secret
 #: Retained as a historical literal after schema 3 succeeded it. It is no
 #: longer what the build computes, and it is kept so the succession itself can
 #: be asserted: three merged contracts, three distinct identities.
-SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"  # noqa: E501  # pragma: allowlist secret
 
 LEGACY_UUID = "5925934a-3692-551d-babe-2df5a6fa6752"
-LEGACY_PAYLOAD_HASH = "0df49dee85b9b6ef26e7c4d862942dcadf721489da7dd9a0fbde42bd80f81bfe"
+LEGACY_PAYLOAD_HASH = "0df49dee85b9b6ef26e7c4d862942dcadf721489da7dd9a0fbde42bd80f81bfe"  # noqa: E501  # pragma: allowlist secret
 LEGACY_RECORD_ID = "96de01e9-61b7-56b1-8229-f97273d475e3"
 LEGACY_COMPONENT_ID = "3377d6db-a35b-5f97-a75a-c39c5b2c4dd7"
 LEGACY_FACT_ID = "919810ef-6f3b-54e9-904e-00681376621a"
@@ -348,7 +348,7 @@ def test_each_merged_schema_version_has_its_own_structural_identity() -> None:
     successions.
     """
     current = representation_schema_hash()
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-3"
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-4"
     assert len({SCHEMA_1_HASH, SCHEMA_2_HASH, current}) == 3
 
 

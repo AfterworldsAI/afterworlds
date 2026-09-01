@@ -77,8 +77,9 @@ eligibility, choices, sequencing.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import asdict, dataclass, fields, is_dataclass
+from dataclasses import dataclass, fields, is_dataclass
 from enum import StrEnum
 from types import UnionType
 from typing import Any, ClassVar, Union, cast, get_args, get_origin, get_type_hints
@@ -183,14 +184,36 @@ __all__ = [
     "TransformedForm",
     "TransportKind",
     "applicability_violations",
+    "ConditionRemovalRestrictionFact",
+    "DamageModDirection",
+    "DamageModificationFact",
+    "DerivedQuantityFact",
+    "EffectTerminationFact",
+    "MeasureUnit",
+    "RequiredQuantity",
+    "DamageOutcome",
+    "SizeKeyedQuantityFact",
+    "SizeQuantity",
+    "Skill",
+    "SKILL_ABILITY",
+    "TerminationScope",
+    "TimePeriod",
     "FactQualifier",
+    "Recurrence",
+    "RecurrenceBoundary",
+    "recurrence_violations",
     "component_participant_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
+    "RECURRENCE_KEYS",
+    "declared_meaning_violations",
+    "invariant_manifest",
+    "held_structure_violations",
     "size_comparison_violations",
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
+    "RECORD_OWNED_REFERENCE",
     "RecordDraft",
     "ReferenceDraft",
     "RelationshipDraft",
@@ -292,6 +315,63 @@ class AbilityScore(StrEnum):
     INTELLIGENCE = "intelligence"
     WISDOM = "wisdom"
     CHARISMA = "charisma"
+
+
+class Skill(StrEnum):
+    """The eighteen printed skills (``Playing the Game > Proficiency``).
+
+    Derived from the source's own Skills table, not invented: the source prints
+    the skill in parentheses after the ability — *"a DC 15 Dexterity (Stealth)
+    check"* — and without this axis that check and *"Dexterity (Acrobatics)"*
+    reduce to the same typed fact. Measured corpus-wide: 128 leaves across 11
+    top-level sections state a skill-qualified check.
+
+    Each member's governing ability is fixed by the same printed table and is
+    enforced by :func:`roll_spec_violations`, so a mismatched pair is a
+    build-time error rather than data a consumer has to second-guess.
+    """
+
+    ATHLETICS = "athletics"
+    ACROBATICS = "acrobatics"
+    SLEIGHT_OF_HAND = "sleight_of_hand"
+    STEALTH = "stealth"
+    ARCANA = "arcana"
+    HISTORY = "history"
+    INVESTIGATION = "investigation"
+    NATURE = "nature"
+    RELIGION = "religion"
+    ANIMAL_HANDLING = "animal_handling"
+    INSIGHT = "insight"
+    MEDICINE = "medicine"
+    PERCEPTION = "perception"
+    SURVIVAL = "survival"
+    DECEPTION = "deception"
+    INTIMIDATION = "intimidation"
+    PERFORMANCE = "performance"
+    PERSUASION = "persuasion"
+
+
+#: Each skill's governing ability, exactly as the Skills table prints it.
+SKILL_ABILITY: Mapping[Skill, AbilityScore] = {
+    Skill.ATHLETICS: AbilityScore.STRENGTH,
+    Skill.ACROBATICS: AbilityScore.DEXTERITY,
+    Skill.SLEIGHT_OF_HAND: AbilityScore.DEXTERITY,
+    Skill.STEALTH: AbilityScore.DEXTERITY,
+    Skill.ARCANA: AbilityScore.INTELLIGENCE,
+    Skill.HISTORY: AbilityScore.INTELLIGENCE,
+    Skill.INVESTIGATION: AbilityScore.INTELLIGENCE,
+    Skill.NATURE: AbilityScore.INTELLIGENCE,
+    Skill.RELIGION: AbilityScore.INTELLIGENCE,
+    Skill.ANIMAL_HANDLING: AbilityScore.WISDOM,
+    Skill.INSIGHT: AbilityScore.WISDOM,
+    Skill.MEDICINE: AbilityScore.WISDOM,
+    Skill.PERCEPTION: AbilityScore.WISDOM,
+    Skill.SURVIVAL: AbilityScore.WISDOM,
+    Skill.DECEPTION: AbilityScore.CHARISMA,
+    Skill.INTIMIDATION: AbilityScore.CHARISMA,
+    Skill.PERFORMANCE: AbilityScore.CHARISMA,
+    Skill.PERSUASION: AbilityScore.CHARISMA,
+}
 
 
 class SpellSchool(StrEnum):
@@ -397,6 +477,11 @@ class ActionCost(StrEnum):
 class TimeUnit(StrEnum):
     """The closed time vocabulary for durations and casting times."""
 
+    #: Suffocation states its floor in seconds — "(minimum of 30 seconds)" —
+    #: while the derived value it floors is in minutes. Converting one into the
+    #: other would record a value the source never printed, so both units are
+    #: admitted and each stated amount keeps the unit it was written in.
+    SECOND = "second"
     ROUND = "round"
     TURN = "turn"
     MINUTE = "minute"
@@ -761,6 +846,92 @@ class Comparison(StrEnum):
     EQUALS = "equals"
     #: "When your Exhaustion level reaches 0".
     REACHES = "reaches"
+    #: "drinks less than half the required water for a day".
+    LESS_THAN = "less_than"
+
+
+class TerminationScope(StrEnum):
+    """What an effect-termination fact ends.
+
+    One member, and stated as a scope rather than as a named effect on purpose:
+    a vocabulary whose members each named one SRD clause would be exactly the
+    clause-shaped overfitting this union refuses. ``OWNING_EFFECT`` says "the
+    thing this component is about stops", which is what Burning's *"you can
+    extinguish fire on yourself"* and *"the fire also goes out"* both state.
+    """
+
+    OWNING_EFFECT = "owning_effect"
+
+
+class DamageModDirection(StrEnum):
+    """Whether a stated modification scales damage down or up.
+
+    Falling's *"any damage resulting from the fall is halved"* and the
+    Resistance/Vulnerability rules in *Playing the Game* are the two: a factor
+    alone would leave the direction implied by whether it is below or above one,
+    which is a meaning the schema never declared.
+    """
+
+    REDUCE = "reduce"
+    INCREASE = "increase"
+
+
+class MeasureUnit(StrEnum):
+    """The closed unit vocabulary for a size-keyed quantity requirement.
+
+    Printed by the tables themselves — gallons of water, pounds of food — rather
+    than invented. A quantity with no unit is a number whose meaning depends on
+    which table a reader happened to be looking at.
+    """
+
+    GALLON = "gallon"
+    POUND = "pound"
+
+
+class TimePeriod(StrEnum):
+    """The period a stated requirement is measured over."""
+
+    DAY = "day"
+
+
+class RequiredQuantity(StrEnum):
+    """A consumable the source keys to a printed per-size requirement table.
+
+    Shared with :class:`SizeKeyedQuantityFact`, so this is the vocabulary of
+    *what the table states*, not a vocabulary of the two clauses that test it.
+    """
+
+    WATER = "water"
+    FOOD = "food"
+
+
+class DamageOutcome(StrEnum):
+    """Whether a stated effect turns on damage having been taken.
+
+    *"unless it avoids taking any damage from the fall"* (Falling), *"ends early
+    ... if it takes any damage"* (Classes), *"It wakes up if it takes any
+    damage"* (Spells) — 25 rules across six top-level sections test a damage
+    result rather than a roll result, which is why this is not
+    ``AutomaticOutcome``.
+    """
+
+    ANY_DAMAGE = "any_damage"
+    NO_DAMAGE = "no_damage"
+
+
+class RecurrenceBoundary(StrEnum):
+    """The closed set of boundaries at which a stated effect repeats.
+
+    Measured corpus-wide, not taken from one batch: 88 rules across seven
+    top-level sections state a turn boundary — *"at the start of each of its
+    turns"* (Burning), *"at the end of each of your turns"* (Spells) — and the
+    day boundary is the same shape at the cadence the hazards state their
+    accrual at.
+    """
+
+    START_OF_TURN = "start_of_turn"
+    END_OF_TURN = "end_of_turn"
+    END_OF_DAY = "end_of_day"
 
 
 class Phase(StrEnum):
@@ -803,6 +974,15 @@ class ApplicabilityKind(StrEnum):
     SIZE_COMPARISON = "size_comparison"
     TRIGGER = "trigger"
     PHASE = "phase"
+    #: "On a successful check, any damage ... is halved" — 112 rules / 9 sections.
+    ROLL_OUTCOME = "roll_outcome"
+    #: "unless it avoids taking any damage from the fall" — 25 rules / 6 sections.
+    DAMAGE_OUTCOME = "damage_outcome"
+    #: "drinks less than half the required water for a day". The operand is the
+    #: record's own printed requirement table, not world-state judgement.
+    CONSUMPTION_THRESHOLD = "consumption_threshold"
+    #: "A creature that eats nothing for 5 days".
+    ELAPSED_DURATION = "elapsed_duration"
 
 
 class Currency(StrEnum):
@@ -843,6 +1023,11 @@ class ScalingBasis(StrEnum):
     #: A condition that accumulates levels — the Exhaustion level the source
     #: multiplies by: "the roll is reduced by 2 times your Exhaustion level".
     CONDITION_LEVEL = "condition_level"
+    #: Distance fallen: Falling's *"1d6 Bludgeoning damage ... for every 10 feet
+    #: it fell"*. Three rules across three top-level sections scale damage by a
+    #: distance, so this is a member on the existing family rather than a family
+    #: of its own — ``threshold`` already carries the per-unit interval.
+    DISTANCE_FALLEN = "distance_fallen"
 
 
 class ScalingEffect(StrEnum):
@@ -910,6 +1095,15 @@ class FactFamily(StrEnum):
     STATE_EFFECT = "state_effect"
     TRANSFORMATION = "transformation"
     WEAPON_PROPERTY = "weapon_property"
+    #: Schema 4. Each is admitted because the closed union cannot carry
+    #: substantive authority the corpus states and no honest affirmative
+    #: prose-bound classification preserves its meaning (#137 contract 3,
+    #: ADR-005d Decision 4).
+    CONDITION_REMOVAL_RESTRICTION = "condition_removal_restriction"
+    DAMAGE_MODIFICATION = "damage_modification"
+    DERIVED_QUANTITY = "derived_quantity"
+    EFFECT_TERMINATION = "effect_termination"
+    SIZE_KEYED_QUANTITY = "size_keyed_quantity"
 
 
 # ---------------------------------------------------------------------------
@@ -1046,6 +1240,15 @@ class SizeComparison:
 
 
 @dataclass(frozen=True)
+class SizeQuantity:
+    """One row of a printed per-size requirement table."""
+
+    size: CreatureSize
+    amount: Rational
+    unit: MeasureUnit
+
+
+@dataclass(frozen=True)
 class RollSpec:
     """Exactly which roll a fact is about: whose, what kind, and of what ability.
 
@@ -1074,6 +1277,11 @@ class RollSpec:
     #: Set exactly when the source names an ability, which it does only for
     #: ability checks and saving throws.
     ability: AbilityScore | None = None
+    #: Set exactly when the source prints a skill in parentheses after the
+    #: ability. Post-schema-3: omitted from the canonical payload when unset, so
+    #: a schema-3 roll keeps its exact key after being lifted. See
+    #: :class:`_PostSchema3Field`.
+    skill: Skill | None = None
 
 
 @dataclass(frozen=True)
@@ -1092,6 +1300,33 @@ class AbilityCheckFact:
     ability: AbilityScore
     dc_kind: DcKind
     dc_value: int | None = None
+    #: The skill the source prints in parentheses after the ability, when it
+    #: prints one. Its governing ability must be ``ability`` — the Skills table
+    #: fixes that pairing, so a mismatch is a build-time error rather than data
+    #: a consumer has to second-guess.
+    skill: Skill | None = None
+    #: The **complete** set of equally-valid rolls the source offers for this
+    #: one DC — including the pair this fact carries, not extras beside it:
+    #: Falling's *"a DC 15 Strength (Athletics) **or** Dexterity (Acrobatics)
+    #: check"*. Neither a bare Strength nor a bare Dexterity claim is true of
+    #: that rule, so without this the clause cannot be typed at all.
+    #:
+    #: Empty means no choice was offered and ``ability``/``skill`` are the whole
+    #: claim. Non-empty means the choice is closed and this fact's own
+    #: ``ability``/``skill`` pair appears in it exactly once, every member is
+    #: rolled as an ability check, and they share the DC above.
+    #:
+    #: A **closed set of same-shaped rolls**, not an expression: no operators,
+    #: no nesting, and nothing to negate. Three rules across two top-level
+    #: sections state this shape — Falling, Grappling, and the Rope of
+    #: Entanglement.
+    #:
+    #: The DC stays on the fact because the source states one DC for every
+    #: option. Held in canonical order rather than authoring order, so two
+    #: authorings of one set produce one ``fact_key``; the invariant enforces it
+    #: instead of the serializer, because :func:`fact_payload` is generic over
+    #: every family and must not acquire per-family ordering rules.
+    alternatives: tuple[RollSpec, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1230,6 +1465,18 @@ class DamageFact:
     dice: DiceExpression | None = None
     flat_amount: int | None = None
     stated_average: int | None = None
+    #: A stated ceiling on the number of dice, whatever the scaling would
+    #: otherwise reach: Falling's *"to a maximum of 20d6"*. The corpus states
+    #: this once, and it is admitted anyway — Issue #137 contract 3 and
+    #: ADR-005d Decision 4 require a specific typed family where the union
+    #: cannot carry substantive authority, unless an honest affirmative
+    #: prose-bound classification preserves the meaning. A dice ceiling is
+    #: mechanically crisp and not irreducible, so prose would be a backlog
+    #: state. This is the smallest faithful form: a nullable integer on the
+    #: family that already states the amount, with no vocabulary to overfit.
+    #: Post-schema-3, so it is omitted when unset and no accepted damage fact
+    #: moves.
+    maximum_dice: int | None = None
 
 
 @dataclass(frozen=True)
@@ -1502,6 +1749,13 @@ class ConditionLevelFact:
     all_levels: bool = False
     #: "This condition is cumulative." Stated only where the source states it.
     cumulative: bool = False
+    #: "Exhaustion caused by dehydration", "levels it gained from suffocating" —
+    #: this change reaches only the levels the **owning record** caused, not
+    #: every level of the condition. Scoped at record grain because that is the
+    #: grain the source states it at; a record with several gain paths scopes
+    #: all of them alike, which is exactly what "caused by malnutrition" means.
+    #: Post-schema-3: omitted when False, so a schema-3 level fact keeps its key.
+    cause_scoped: bool = False
 
 
 @dataclass(frozen=True)
@@ -1703,6 +1957,117 @@ class WeaponPropertyFact:
     thrown_range_long_feet: int | None = None
 
 
+@dataclass(frozen=True)
+class EffectTerminationFact:
+    """The effect this component is about stops.
+
+    ``ConditionEffectKind.REMOVES`` removes a *condition*, and a hazard is not
+    one — using it for Burning would assert the removal of a condition named
+    "burning" that ``ConditionKind`` does not have. This states termination of
+    the owning effect instead, and carries no trigger: what ends it rides the
+    component's ``applies_when`` or its governing prose, exactly as every other
+    condition on a component does.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EFFECT_TERMINATION
+
+    scope: TerminationScope = TerminationScope.OWNING_EFFECT
+
+
+@dataclass(frozen=True)
+class SizeKeyedQuantityFact:
+    """A requirement the source keys to the subject's own size.
+
+    *"A creature requires an amount of water per day based on its size, as shown
+    in the Water Needs per Day table."* The table is the rule's operand, so the
+    rows are the fact rather than supporting decoration.
+
+    **Not a size comparison.** :class:`SizeComparison` relates two creatures;
+    this maps one creature's own size to a quantity, and has no second operand
+    at all. Encoding six rows as six applicability-qualified components would
+    multiply one rule into six and lose that the set is exhaustive.
+
+    ``values`` is canonically ordered by the declaration order of
+    :class:`CreatureSize` — the order the table prints — so two authorings of one
+    table produce one fact key.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SIZE_KEYED_QUANTITY
+
+    quantity: RequiredQuantity
+    period: TimePeriod
+    values: tuple[SizeQuantity, ...] = ()
+
+
+@dataclass(frozen=True)
+class ConditionRemovalRestrictionFact:
+    """This record's own condition levels cannot be removed until *until*.
+
+    *"Exhaustion caused by dehydration can't be removed until the creature
+    drinks the full amount of water required for a day."*
+
+    **Locally scoped, never a cross-record edit.** ``cause_scoped`` is required
+    to be ``True``: the restriction is a property of the levels *this record
+    causes*, not an amendment to ``condition.exhaustion``'s own removal rule. A
+    consumer composes the two at adjudication time, which is where cross-record
+    composition belongs (ADR-005d Decision 11). Without that invariant this
+    family would assert something about every level of the condition, which is
+    exactly the cross-record modification the schema refuses to represent.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CONDITION_REMOVAL_RESTRICTION
+
+    condition: ConditionKind
+    until: Applicability
+    cause_scoped: bool = True
+
+
+@dataclass(frozen=True)
+class DamageModificationFact:
+    """A stated change to a damage amount some other rule already stated.
+
+    *"On a successful check, any damage resulting from the fall is halved."*
+    :class:`DamageFact` states an amount; nothing modified one, and rewriting
+    the dice to express the halving would change what the source printed.
+
+    ``rounding`` is deliberately optional and is left unset where the source
+    states none. Falling says only "halved"; the *Round Down* glossary entry
+    states the rounding, and that entry is corpus content of its own. A fact
+    must not claim provenance over a span its batch never accounted, so the
+    projection records what *this* record says and a consumer composes the two.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_MODIFICATION
+
+    direction: DamageModDirection
+    factor: Rational
+    rounding: RoundingRule | None = None
+
+
+@dataclass(frozen=True)
+class DerivedQuantityFact:
+    """A quantity the source derives from an ability modifier, with a floor.
+
+    *"A creature can hold its breath for a number of minutes equal to 1 plus its
+    Constitution modifier (minimum of 30 seconds)."* Nothing else in the union
+    derives a value from a character statistic, so this clause had no home at
+    all — ``DiceExpression`` and ``Rational`` are literals.
+
+    The floor carries its own unit because the source states it in one:
+    *minutes* for the derived value, *seconds* for the minimum. Collapsing them
+    would require converting a stated value, which is a claim the source does
+    not make.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DERIVED_QUANTITY
+
+    base: int
+    modifier: AbilityScore
+    unit: TimeUnit
+    floor_amount: int | None = None
+    floor_unit: TimeUnit | None = None
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -1736,6 +2101,11 @@ MechanicalFact = (
     | SpellListQualifierFact
     | SpellSlotProgressionFact
     | WeaponPropertyFact
+    | ConditionRemovalRestrictionFact
+    | DamageModificationFact
+    | DerivedQuantityFact
+    | EffectTerminationFact
+    | SizeKeyedQuantityFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -1771,6 +2141,11 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.SPELL_SLOT_PROGRESSION: SpellSlotProgressionFact,
     FactFamily.STATE_EFFECT: StateEffectFact,
     FactFamily.WEAPON_PROPERTY: WeaponPropertyFact,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: ConditionRemovalRestrictionFact,
+    FactFamily.DAMAGE_MODIFICATION: DamageModificationFact,
+    FactFamily.DERIVED_QUANTITY: DerivedQuantityFact,
+    FactFamily.EFFECT_TERMINATION: EffectTerminationFact,
+    FactFamily.SIZE_KEYED_QUANTITY: SizeKeyedQuantityFact,
 }
 
 
@@ -1814,7 +2189,7 @@ def _is_int(value: object) -> bool:
 
 def _int_field(value: object, field: str) -> list[str]:
     if not _is_int(value):
-        return [f"{field} must be an integer, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be an integer, got {type(value).__name__}"]
     return []
 
 
@@ -1826,13 +2201,13 @@ def _optional_int_field(value: object, field: str) -> list[str]:
 
 def _bool_field(value: object, field: str) -> list[str]:
     if not isinstance(value, bool):
-        return [f"{field} must be a boolean, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be a boolean, got {type(value).__name__}"]
     return []
 
 
 def _str_field(value: object, field: str) -> list[str]:
     if not isinstance(value, str) or isinstance(value, StrEnum):
-        return [f"{field} must be a string, got {type(value).__name__} {value!r}"]
+        return [f"{field} must be a string, got {type(value).__name__}"]
     return []
 
 
@@ -1843,11 +2218,198 @@ def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]
     string check while carrying none of the enum's guarantees.
     """
     if not isinstance(value, enum_cls):
+        # Type name only. A rejected member's ``value`` may be an overridden
+        # property and its ``__repr__`` arbitrary, so rendering it here would
+        # observe what this line refuses — the same reason
+        # :func:`exact_type_violations` stopped doing it (#137 round 13).
+        return [f"{field} must be {enum_cls.__name__}, got {type(value).__name__}"]
+    return []
+
+
+def _check_skill_pairing(skill: object, ability: object, where: str) -> list[str]:
+    """A printed skill must sit under the ability the Skills table gives it."""
+    if skill is None:
+        return []
+    if not isinstance(skill, Skill):
+        return [f"{skill!r} is not a declared Skill"]
+    governing = SKILL_ABILITY[skill]
+    if ability is not governing:
         return [
-            f"{field} must be {enum_cls.__name__}, got "
-            f"{type(value).__name__} {value!r}"
+            f"{where} {skill.value} is governed by {governing.value}, "
+            f"not {getattr(ability, 'value', ability)!r}"
         ]
     return []
+
+
+def _check_alternatives(
+    alternatives: object, ability: object, skill: object
+) -> list[str]:
+    """The complete closed choice this fact offers, or nothing.
+
+    Empty means an ordinary ability check: the fact's own ``ability`` and
+    ``skill`` are the whole claim. Non-empty means the fact states a *choice*,
+    and the set is then **complete** — it includes the pair the fact carries
+    rather than listing extras beside it. Falling prints *"a DC 15 Strength
+    (Athletics) or Dexterity (Acrobatics) check"*: one DC, two equally-valid
+    rolls, and the fact's declared pair is one of them.
+
+    That completeness is what the reconciliation rules below enforce, and it is
+    why they have to read the fact rather than the tuple alone (#137 round 6).
+    A set that omitted the declared pair would describe a different choice than
+    the one the fact claims; a set that named it twice would offer the same roll
+    under two spellings; a member rolled in another context would not be an
+    alternative to a check at all.
+
+    Ordering and uniqueness stay as they were: authoring order must not reach
+    the fact key, because two authorings of one set are one claim.
+    """
+    # The container first, and on its own: ``isinstance`` admitted a subclass,
+    # and the element scan behind the ``or`` iterated it to find that out
+    # (#137 round 11).
+    if drift := exact_tuple_violations(alternatives, "alternatives"):
+        return drift
+    rolls = cast("tuple[RollSpec, ...]", alternatives)
+    if any(type(r) is not RollSpec for r in rolls):
+        return ["alternatives is not a tuple of roll specifications"]
+    if not rolls:
+        return []
+    findings: list[str] = []
+    if len(rolls) < 2:
+        findings.append(
+            "alternatives states one option; a choice of one is a single roll "
+            "misdescribed"
+        )
+    for index, roll in enumerate(rolls):
+        findings.extend(_check_rollspec(roll, f"alternatives[{index}]"))
+        findings.extend(
+            _check_skill_pairing(roll.skill, roll.ability, f"alternatives[{index}]")
+        )
+    if findings:
+        return findings
+    payloads = [canonical_bytes(_dataclass_payload(r)) for r in rolls]
+    if payloads != sorted(payloads):
+        findings.append("alternatives is not in canonical order")
+    if len(set(payloads)) != len(payloads):
+        findings.append("alternatives repeats a roll")
+
+    for index, roll in enumerate(rolls):
+        if roll.context is not RollContext.ABILITY_CHECK:
+            findings.append(
+                f"alternatives[{index}] is rolled as {roll.context.value}; a "
+                "check offers alternative checks, and one DC does not govern "
+                "two kinds of roll"
+            )
+    # The declared pair, exactly once. Matched on the ability and skill the
+    # fact itself carries — the fact states no actor, so nothing here reads one.
+    declared = sum(1 for r in rolls if (r.ability, r.skill) == (ability, skill))
+    if declared != 1:
+        named = "no member" if declared == 0 else f"{declared} members"
+        findings.append(
+            f"alternatives is the complete choice, and {named} states the "
+            f"fact's own {getattr(ability, 'value', ability)!r}"
+            f"/{getattr(skill, 'value', skill)!r} pair"
+        )
+    return findings
+
+
+def _check_effect_termination(fact: EffectTerminationFact) -> list[str]:
+    return _enum_field(fact.scope, TerminationScope, "scope")
+
+
+def _check_size_keyed_quantity(fact: SizeKeyedQuantityFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.quantity, RequiredQuantity, "quantity"),
+        *_enum_field(fact.period, TimePeriod, "period"),
+    ]
+    if drift := exact_tuple_violations(fact.values, "values"):
+        return [*findings, *drift]
+    if any(type(v) is not SizeQuantity for v in fact.values):
+        findings.append("values is not a tuple of size quantities")
+    if findings:
+        return findings
+    if not fact.values:
+        findings.append("a size-keyed requirement states no rows")
+        return findings
+    order = list(CreatureSize)
+    seen: list[CreatureSize] = []
+    for index, row in enumerate(fact.values):
+        where = f"values[{index}]"
+        findings.extend(_enum_field(row.size, CreatureSize, f"{where}.size"))
+        findings.extend(_enum_field(row.unit, MeasureUnit, f"{where}.unit"))
+        findings.extend(_check_rational(row.amount, f"{where}.amount"))
+        seen.append(row.size)
+    if findings:
+        return findings
+    if len(set(seen)) != len(seen):
+        findings.append("values states one size twice")
+    elif seen != sorted(seen, key=order.index):
+        # Authoring order must not reach the fact key: two authorings of one
+        # printed table are one claim.
+        findings.append("values is not in CreatureSize declaration order")
+    return findings
+
+
+def _check_removal_restriction(fact: ConditionRemovalRestrictionFact) -> list[str]:
+    findings = _enum_field(fact.condition, ConditionKind, "condition")
+    if type(fact.cause_scoped) is not bool:
+        findings.append("cause_scoped is not a boolean")
+    if type(fact.until) is not Applicability:
+        findings.append("until must be Applicability")
+    if findings:
+        return findings
+    findings.extend(applicability_violations(fact.until))
+    if not fact.cause_scoped:
+        # The guard that keeps this family local. Unscoped, it would assert
+        # something about every level of the condition — an edit to another
+        # record's authority rather than a statement about this record's own.
+        findings.append(
+            "a removal restriction must be cause_scoped; unscoped it would "
+            "restrict levels this record never caused"
+        )
+    return findings
+
+
+def _check_damage_modification(fact: DamageModificationFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.direction, DamageModDirection, "direction"),
+        *_check_rational(fact.factor, "factor"),
+    ]
+    if fact.rounding is not None and not isinstance(fact.rounding, RoundingRule):
+        findings.append(f"rounding {fact.rounding!r} is not a declared RoundingRule")
+    if findings:
+        return findings
+    if fact.factor.numerator == 0:
+        # Settled invariant: the factor is a *positive* Rational other than one.
+        # ``_check_rational`` admits zero because a zero share is a real state
+        # elsewhere; a zero *factor* is not a modification of an amount, it is
+        # the amount's deletion, which this family cannot state.
+        findings.append("a modification by zero states no factor")
+    if fact.factor.numerator == fact.factor.denominator:
+        findings.append("a modification by one changes nothing")
+    reduces = fact.factor.numerator < fact.factor.denominator
+    if reduces != (fact.direction is DamageModDirection.REDUCE):
+        findings.append(
+            f"direction {fact.direction.value} disagrees with factor "
+            f"{fact.factor.numerator}/{fact.factor.denominator}"
+        )
+    return findings
+
+
+def _check_derived_quantity(fact: DerivedQuantityFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.modifier, AbilityScore, "modifier"),
+        *_enum_field(fact.unit, TimeUnit, "unit"),
+        *_optional_int_field(fact.floor_amount, "floor_amount"),
+    ]
+    if type(fact.base) is not int:
+        findings.append("base is not an integer")
+    if fact.floor_unit is not None and not isinstance(fact.floor_unit, TimeUnit):
+        findings.append(f"floor_unit {fact.floor_unit!r} is not a declared TimeUnit")
+    if findings:
+        return findings
+    if (fact.floor_amount is None) != (fact.floor_unit is None):
+        findings.append("a floor states both an amount and a unit, or neither")
+    return findings
 
 
 def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
@@ -1855,6 +2417,8 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
         *_enum_field(fact.ability, AbilityScore, "ability"),
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
         *_optional_int_field(fact.dc_value, "dc_value"),
+        *_check_skill_pairing(fact.skill, fact.ability, "skill"),
+        *_check_alternatives(fact.alternatives, fact.ability, fact.skill),
     ]
     if findings:
         # The DC relationship below reads dc_kind and dc_value; checking it
@@ -1967,8 +2531,114 @@ def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
     duplicate checks that use set membership.
     """
     if type(value) is not cls:
-        return [f"{field} must be {cls.__name__}, got {type(value).__name__} {value!r}"]
+        # The type name, and deliberately not the value. ``repr`` on a rejected
+        # object runs its ``__repr__`` — and on a frozen dataclass that reads
+        # every declared field — so a refusal that rendered the value would be
+        # observing the very object it refuses. That is the ordering rule this
+        # helper exists to serve, applied to itself (#137 round 12).
+        return [f"{field} must be {cls.__name__}, got {type(value).__name__}"]
     return []
+
+
+def exact_tuple_violations(value: object, field: str) -> list[str]:
+    """The field must hold an exact ``tuple``, checked before anything reads it.
+
+    The container half of the closed-structure rule. :func:`exact_type_violations`
+    states it for a declared *element*; this states it for the sequence that
+    holds them, and it is a separate helper for one reason: it must not touch
+    the value.
+
+    A ``tuple`` subclass is a ``tuple``, so ``isinstance`` admits it. It can
+    carry undeclared meaning-bearing state that no canonical payload emits — two
+    facts asserting different authority then hash identically — and it can
+    override ``__iter__``, so a validator and the serializer observe different
+    contents from the same object. It can also override ``__hash__`` and
+    ``__eq__``, which matters wherever a tuple is used as a key rather than as a
+    collection.
+
+    **Nothing about the value reaches the finding.** No iteration, no length, and
+    deliberately no ``repr`` — unlike :func:`exact_type_violations`, which
+    interpolates the value and is safe only because its callers have already
+    established the container. A subclass may override ``__repr__`` too, and a
+    refusal that renders the thing it is refusing has observed it. Only the type
+    name is reported.
+    """
+    if type(value) is not tuple:
+        return [f"{field} must be tuple, got {type(value).__name__}"]
+    return []
+
+
+def declared_tuple_fields(cls: type) -> tuple[str, ...]:
+    """The tuple-valued fields *cls* declares, read from the dataclass itself.
+
+    The inventory half of the container rule, derived rather than listed. A new
+    authority dataclass — or a new tuple field on an existing one — joins the
+    audited surface by being declared, which is the only way a hand-written list
+    of nine field names would not have drifted the first time a tenth appeared.
+    """
+    if not is_dataclass(cls):
+        return ()
+    return tuple(f.name for f in fields(cls) if str(f.type).lower().startswith("tuple"))
+
+
+def held_container_violations(value: object, tag: str) -> list[str]:
+    """Every declared tuple field of one *admitted* authority value, checked exactly.
+
+    Runs before any other reader of *value* — before its own invariants, before
+    ``fact_key``, before the option-signature comparison, before canonicalization.
+    That ordering is the whole point: several functions read a component's facts,
+    and a container refused by one of them but reached by another has still been
+    iterated. See :func:`exact_tuple_violations` for what a subclass can do.
+
+    **The parent is admitted before its fields are read.** One structural
+    admission order governs the whole closed surface:
+
+        parent exact runtime type -> held-container exact runtime type ->
+        child exact runtime type -> semantic observation
+
+    An earlier revision resolved *value* through :func:`_declared_type` — which
+    narrows a subclass to the base it extends — and then read its tuple fields
+    with ``getattr``. That reversed the first two steps: a subclass overriding
+    ``__getattribute__`` executed before ``fact_invariant_violations`` or
+    ``applicability_violations`` had refused it (#137 round 12). Narrowing is
+    right for the *serializer*, whose job is to emit only declared fields; it is
+    wrong here, where the question is whether this object may be read at all.
+
+    A value outside the closed declaration is therefore **not read and not
+    reported here**. It is refused by the gate that owns it, in that gate's own
+    words — ``fact_invariant_violations`` for a fact family,
+    ``applicability_violations`` for an applicability, ``exact_type_violations``
+    for a top-level element — each of which establishes the exact type before it
+    reads anything. Reporting it here as well would be a second spelling of a
+    refusal that already exists, and the two could drift.
+    """
+    if type(value) not in _admitted_structures():
+        return []
+    return [
+        v
+        for name in declared_tuple_fields(type(value))
+        for v in exact_tuple_violations(getattr(value, name), f"{tag}: {name}")
+    ]
+
+
+def _admitted_structures() -> frozenset[type]:
+    """Every closed structure the generic structural walker may read.
+
+    The closed value objects and fact families, the top-level element types, and
+    the draft itself — every surface whose exact runtime type some gate
+    establishes. Derived from the same tables the serializer and the top-level
+    walker read, so a new declared structure joins by being declared.
+
+    ``RepresentationDraft`` is a member and must stay one: it is the root every
+    generic walk starts from, so omitting it would not tighten anything — it
+    would silently stop the walk at the first step and turn every rule below
+    into a no-op.
+    """
+    return (
+        frozenset(_CLOSED_TYPES)
+        | frozenset(_DRAFT_ELEMENT_TYPES.values())
+        | {RepresentationDraft}
+    )
 
 
 #: The name this rule has had since the fact-family validators; kept so the
@@ -2196,9 +2866,20 @@ def _check_damage(fact: DamageFact) -> list[str]:
         *_check_optional_dice(fact.dice, "dice"),
         *_optional_int_field(fact.flat_amount, "flat_amount"),
         *_optional_int_field(fact.stated_average, "stated_average"),
+        *_optional_int_field(fact.maximum_dice, "maximum_dice"),
     ]
     if findings:
         return findings
+    if fact.maximum_dice is not None:
+        if fact.dice is None:
+            findings.append(
+                "maximum_dice caps a dice expression this damage does not state"
+            )
+        elif fact.maximum_dice < fact.dice.count:
+            findings.append(
+                f"maximum_dice {fact.maximum_dice} is below the stated "
+                f"{fact.dice.count} dice, so the cap is never reachable"
+            )
     if (fact.dice is None) == (fact.flat_amount is None):
         findings.append(
             "damage states exactly one of a dice expression or a flat amount"
@@ -2281,8 +2962,8 @@ def _check_damage_response(fact: DamageResponseFact) -> list[str]:
         *_enum_field(fact.scope, DamageScope, "scope"),
         *_optional_enum_field(fact.damage_type, DamageType, "damage_type"),
     ]
-    if not isinstance(fact.except_types, tuple):
-        findings.append("except_types is not a tuple")
+    if drift := exact_tuple_violations(fact.except_types, "except_types"):
+        findings.extend(drift)
     else:
         for i, t in enumerate(fact.except_types):
             findings.extend(_enum_field(t, DamageType, f"except_types[{i}]"))
@@ -2417,6 +3098,7 @@ def _check_condition_level(fact: ConditionLevelFact) -> list[str]:
         *_optional_int_field(fact.amount, "amount"),
         *_bool_field(fact.all_levels, "all_levels"),
         *_bool_field(fact.cumulative, "cumulative"),
+        *_bool_field(fact.cause_scoped, "cause_scoped"),
     ]
     if findings:
         return findings
@@ -2766,6 +3448,11 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.SPELL_SLOT_PROGRESSION: _check_spell_slot_progression,
     FactFamily.STATE_EFFECT: _check_state_effect,
     FactFamily.WEAPON_PROPERTY: _check_weapon_property,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: _check_removal_restriction,
+    FactFamily.DAMAGE_MODIFICATION: _check_damage_modification,
+    FactFamily.DERIVED_QUANTITY: _check_derived_quantity,
+    FactFamily.EFFECT_TERMINATION: _check_effect_termination,
+    FactFamily.SIZE_KEYED_QUANTITY: _check_size_keyed_quantity,
 }
 
 
@@ -2820,6 +3507,227 @@ def _reject(family: FactFamily, findings: list[str]) -> None:
         )
 
 
+def _build_effect_termination(p: Mapping[str, Any]) -> EffectTerminationFact:
+    _reject(
+        FactFamily.EFFECT_TERMINATION,
+        _json_enum(p["scope"], TerminationScope, "scope"),
+    )
+    return EffectTerminationFact(scope=TerminationScope(p["scope"]))
+
+
+def _build_size_keyed_quantity(p: Mapping[str, Any]) -> SizeKeyedQuantityFact:
+    _reject(
+        FactFamily.SIZE_KEYED_QUANTITY,
+        [
+            *_json_enum(p["quantity"], RequiredQuantity, "quantity"),
+            *_json_enum(p["period"], TimePeriod, "period"),
+        ],
+    )
+    raw_values = p["values"]
+    if not isinstance(raw_values, (list, tuple)):
+        _reject(FactFamily.SIZE_KEYED_QUANTITY, ["values is not an array"])
+    rows = []
+    for index, raw in enumerate(raw_values):
+        where = f"values[{index}]"
+        entry = _json_object(raw, ("size", "amount", "unit"), where)
+        _reject_at(
+            where,
+            [
+                *_json_enum(entry["size"], CreatureSize, f"{where}.size"),
+                *_json_enum(entry["unit"], MeasureUnit, f"{where}.unit"),
+            ],
+        )
+        rows.append(
+            SizeQuantity(
+                size=CreatureSize(entry["size"]),
+                amount=_build_rational(entry["amount"], f"{where}.amount"),
+                unit=MeasureUnit(entry["unit"]),
+            )
+        )
+    return SizeKeyedQuantityFact(
+        quantity=RequiredQuantity(p["quantity"]),
+        period=TimePeriod(p["period"]),
+        values=tuple(rows),
+    )
+
+
+def _build_applicability(value: object, where: str) -> Applicability:
+    """Rebuild one applicability held *inside a fact*.
+
+    A sibling of the accepted-input and persisted-state builders rather than a
+    third contract: each rebuilds the same closed shape and raises its own
+    layer's error, and all three finish by asking
+    :func:`applicability_violations` the same question. The key set is checked
+    first, because a misspelled key never reaches the typed invariants as the
+    field it was meant to be.
+
+    The five post-schema-3 keys are optional here for the reason they are
+    omitted from the payload: absent and default say the same thing.
+    """
+    p = _json_object(
+        value,
+        (
+            "kind",
+            "negated",
+            "quantity",
+            "comparison",
+            "value",
+            "any_of",
+            "trigger",
+            "phase",
+        ),
+        where,
+        optional=("outcome", "damage_outcome", "required_quantity", "fraction", "unit"),
+    )
+    _reject_at(
+        where,
+        [
+            *_json_enum(p["kind"], ApplicabilityKind, f"{where}.kind"),
+            *_optional_json_enum(p["quantity"], TrackedQuantity, f"{where}.quantity"),
+            *_optional_json_enum(p["comparison"], Comparison, f"{where}.comparison"),
+            *_optional_json_enum(p["trigger"], RecoveryTrigger, f"{where}.trigger"),
+            *_optional_json_enum(p["phase"], Phase, f"{where}.phase"),
+            *_optional_json_enum(
+                p.get("outcome"), AutomaticOutcome, f"{where}.outcome"
+            ),
+            *_optional_json_enum(
+                p.get("damage_outcome"), DamageOutcome, f"{where}.damage_outcome"
+            ),
+            *_optional_json_enum(
+                p.get("required_quantity"),
+                RequiredQuantity,
+                f"{where}.required_quantity",
+            ),
+            *_optional_json_enum(p.get("unit"), TimeUnit, f"{where}.unit"),
+        ],
+    )
+    raw_any_of = p["any_of"]
+    if not isinstance(raw_any_of, (list, tuple)):
+        _reject_at(where, [f"{where}.any_of is not an array"])
+    comparisons = []
+    for index, raw in enumerate(raw_any_of):
+        at = f"{where}.any_of[{index}]"
+        entry = _json_object(
+            raw,
+            ("category", "relation", "at_least", "at_most", "measured", "reference"),
+            at,
+        )
+        _reject_at(
+            at,
+            [
+                *_optional_json_enum(entry["category"], CreatureSize, f"{at}.category"),
+                *_optional_json_enum(entry["relation"], SizeRelation, f"{at}.relation"),
+                *_json_enum(entry["measured"], ParticipantRole, f"{at}.measured"),
+                *_optional_json_enum(
+                    entry["reference"], ParticipantRole, f"{at}.reference"
+                ),
+            ],
+        )
+        comparisons.append(
+            SizeComparison(
+                category=(
+                    None
+                    if entry["category"] is None
+                    else CreatureSize(entry["category"])
+                ),
+                relation=(
+                    None
+                    if entry["relation"] is None
+                    else SizeRelation(entry["relation"])
+                ),
+                at_least=entry["at_least"],
+                at_most=entry["at_most"],
+                measured=ParticipantRole(entry["measured"]),
+                reference=(
+                    None
+                    if entry["reference"] is None
+                    else ParticipantRole(entry["reference"])
+                ),
+            )
+        )
+    raw_fraction = p.get("fraction")
+    built = Applicability(
+        kind=ApplicabilityKind(p["kind"]),
+        negated=p["negated"],
+        quantity=None if p["quantity"] is None else TrackedQuantity(p["quantity"]),
+        comparison=None if p["comparison"] is None else Comparison(p["comparison"]),
+        value=p["value"],
+        any_of=tuple(comparisons),
+        trigger=None if p["trigger"] is None else RecoveryTrigger(p["trigger"]),
+        phase=None if p["phase"] is None else Phase(p["phase"]),
+        outcome=(None if p.get("outcome") is None else AutomaticOutcome(p["outcome"])),
+        damage_outcome=(
+            None
+            if p.get("damage_outcome") is None
+            else DamageOutcome(p["damage_outcome"])
+        ),
+        required_quantity=(
+            None
+            if p.get("required_quantity") is None
+            else RequiredQuantity(p["required_quantity"])
+        ),
+        fraction=(
+            None
+            if raw_fraction is None
+            else _build_rational(raw_fraction, f"{where}.fraction")
+        ),
+        unit=None if p.get("unit") is None else TimeUnit(p["unit"]),
+    )
+    _reject_at(where, applicability_violations(built))
+    return built
+
+
+def _build_removal_restriction(
+    p: Mapping[str, Any],
+) -> ConditionRemovalRestrictionFact:
+    _reject(
+        FactFamily.CONDITION_REMOVAL_RESTRICTION,
+        [
+            *_json_enum(p["condition"], ConditionKind, "condition"),
+            *_bool_field(p["cause_scoped"], "cause_scoped"),
+        ],
+    )
+    return ConditionRemovalRestrictionFact(
+        condition=ConditionKind(p["condition"]),
+        until=_build_applicability(p["until"], "until"),
+        cause_scoped=p["cause_scoped"],
+    )
+
+
+def _build_damage_modification(p: Mapping[str, Any]) -> DamageModificationFact:
+    _reject(
+        FactFamily.DAMAGE_MODIFICATION,
+        [
+            *_json_enum(p["direction"], DamageModDirection, "direction"),
+            *_optional_json_enum(p["rounding"], RoundingRule, "rounding"),
+        ],
+    )
+    return DamageModificationFact(
+        direction=DamageModDirection(p["direction"]),
+        factor=_build_rational(p["factor"], "factor"),
+        rounding=None if p["rounding"] is None else RoundingRule(p["rounding"]),
+    )
+
+
+def _build_derived_quantity(p: Mapping[str, Any]) -> DerivedQuantityFact:
+    _reject(
+        FactFamily.DERIVED_QUANTITY,
+        [
+            *_json_enum(p["modifier"], AbilityScore, "modifier"),
+            *_json_enum(p["unit"], TimeUnit, "unit"),
+            *_optional_int_field(p["floor_amount"], "floor_amount"),
+            *_optional_json_enum(p["floor_unit"], TimeUnit, "floor_unit"),
+        ],
+    )
+    return DerivedQuantityFact(
+        base=p["base"],
+        modifier=AbilityScore(p["modifier"]),
+        unit=TimeUnit(p["unit"]),
+        floor_amount=p["floor_amount"],
+        floor_unit=None if p["floor_unit"] is None else TimeUnit(p["floor_unit"]),
+    )
+
+
 def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
     _reject(
         FactFamily.ABILITY_CHECK,
@@ -2827,12 +3735,21 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
             *_json_enum(p["ability"], AbilityScore, "ability"),
             *_json_enum(p["dc_kind"], DcKind, "dc_kind"),
             *_optional_int_field(p["dc_value"], "dc_value"),
+            *_optional_json_enum(p.get("skill"), Skill, "skill"),
         ],
     )
+    raw_alternatives = p.get("alternatives", ())
+    if not isinstance(raw_alternatives, (list, tuple)):
+        _reject(FactFamily.ABILITY_CHECK, ["alternatives is not an array"])
     return AbilityCheckFact(
         ability=AbilityScore(p["ability"]),
         dc_kind=DcKind(p["dc_kind"]),
         dc_value=p["dc_value"],
+        skill=None if p.get("skill") is None else Skill(p["skill"]),
+        alternatives=tuple(
+            _build_rollspec(entry, f"alternatives[{i}]")
+            for i, entry in enumerate(raw_alternatives)
+        ),
     )
 
 
@@ -2861,7 +3778,19 @@ def _build_creature_ability_score(p: Mapping[str, Any]) -> CreatureAbilityScoreF
 # inside a typed fact.
 
 
-def _json_object(value: object, keys: tuple[str, ...], where: str) -> Mapping[str, Any]:
+def _json_object(
+    value: object,
+    keys: tuple[str, ...],
+    where: str,
+    optional: tuple[str, ...] = (),
+) -> Mapping[str, Any]:
+    """Check a nested value object's key set exactly.
+
+    ``optional`` names post-schema-3 keys, which the canonical payload omits
+    when they carry no meaning — so their absence is admissible and reads as the
+    declared default. Every other key stays required, and an unknown key is
+    still refused rather than ignored.
+    """
     if type(value) is not dict:
         raise MalformedFactPayloadError(
             f"{where} must be an object, got {type(value).__name__} {value!r}"
@@ -2869,7 +3798,7 @@ def _json_object(value: object, keys: tuple[str, ...], where: str) -> Mapping[st
     supplied = set(value)
     if missing := sorted(set(keys) - supplied):
         raise MalformedFactPayloadError(f"{where} is missing {missing}")
-    if extra := sorted(supplied - set(keys)):
+    if extra := sorted(supplied - set(keys) - set(optional)):
         raise MalformedFactPayloadError(f"{where} carries extra {extra}")
     return value
 
@@ -3084,6 +4013,7 @@ def _build_damage(p: Mapping[str, Any]) -> DamageFact:
             *_json_enum(p["damage_type"], DamageType, "damage_type"),
             *_optional_int_field(p["flat_amount"], "flat_amount"),
             *_optional_int_field(p["stated_average"], "stated_average"),
+            *_optional_int_field(p.get("maximum_dice"), "maximum_dice"),
         ],
     )
     return DamageFact(
@@ -3091,6 +4021,7 @@ def _build_damage(p: Mapping[str, Any]) -> DamageFact:
         dice=None if p["dice"] is None else _build_dice(p["dice"], "dice"),
         flat_amount=p["flat_amount"],
         stated_average=p["stated_average"],
+        maximum_dice=p.get("maximum_dice"),
     )
 
 
@@ -3111,19 +4042,22 @@ def _build_healing(p: Mapping[str, Any]) -> HealingFact:
 
 def _build_rollspec(value: object, where: str) -> RollSpec:
     """Rebuild the shared roll specification from its persisted payload."""
-    p = _json_object(value, ("actor", "context", "ability"), where)
+    p = _json_object(value, ("actor", "context", "ability"), where, optional=("skill",))
+    raw_skill = p.get("skill")
     _reject_at(
         where,
         [
             *_json_enum(p["actor"], RollActor, f"{where}.actor"),
             *_json_enum(p["context"], RollContext, f"{where}.context"),
             *_optional_json_enum(p["ability"], AbilityScore, f"{where}.ability"),
+            *_optional_json_enum(raw_skill, Skill, f"{where}.skill"),
         ],
     )
     return RollSpec(
         actor=RollActor(p["actor"]),
         context=RollContext(p["context"]),
         ability=None if p["ability"] is None else AbilityScore(p["ability"]),
+        skill=None if raw_skill is None else Skill(raw_skill),
     )
 
 
@@ -3224,6 +4158,7 @@ def _build_condition_level(p: Mapping[str, Any]) -> ConditionLevelFact:
             *_optional_int_field(p["amount"], "amount"),
             *_bool_field(p["all_levels"], "all_levels"),
             *_bool_field(p["cumulative"], "cumulative"),
+            *_bool_field(p.get("cause_scoped", False), "cause_scoped"),
         ],
     )
     return ConditionLevelFact(
@@ -3232,6 +4167,7 @@ def _build_condition_level(p: Mapping[str, Any]) -> ConditionLevelFact:
         amount=p["amount"],
         all_levels=p["all_levels"],
         cumulative=p["cumulative"],
+        cause_scoped=bool(p.get("cause_scoped", False)),
     )
 
 
@@ -3505,6 +4441,11 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.SPELL_SLOT_PROGRESSION: _build_spell_slot_progression,
     FactFamily.STATE_EFFECT: _build_state_effect,
     FactFamily.WEAPON_PROPERTY: _build_weapon_property,
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: _build_removal_restriction,
+    FactFamily.DAMAGE_MODIFICATION: _build_damage_modification,
+    FactFamily.DERIVED_QUANTITY: _build_derived_quantity,
+    FactFamily.EFFECT_TERMINATION: _build_effect_termination,
+    FactFamily.SIZE_KEYED_QUANTITY: _build_size_keyed_quantity,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -3587,7 +4528,7 @@ assert (
 #: as their closed vocabularies. Version 2 is merged and therefore reachable,
 #: so it is succeeded rather than corrected in place, exactly as the rule above
 #: requires.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-3"
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-4"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -3721,10 +4662,19 @@ def _wire_fields(cls: type) -> list[dict[str, object]]:
     field of every one.
     """
     hints = get_type_hints(cls)
-    return sorted(
-        ({"name": f.name, "shape": _shape(hints[f.name])} for f in fields(cls)),
-        key=lambda entry: cast(str, entry["name"]),
-    )
+    omitted = _POST_SCHEMA_3_FIELDS.get(cls.__name__, {})
+    entries: list[dict[str, object]] = []
+    for f in fields(cls):
+        entry: dict[str, object] = {"name": f.name, "shape": _shape(hints[f.name])}
+        if f.name in omitted:
+            # Part of the serialized grammar, not an implementation detail: a
+            # reader of a payload needs to know that this key's absence is a
+            # declared state rather than lost content, and the identity has to
+            # move if that rule is ever changed for a field.
+            entry["omitted_when_empty"] = True
+            entry["introduced_in"] = omitted[f.name].introduced_in
+        entries.append(entry)
+    return sorted(entries, key=lambda entry: cast(str, entry["name"]))
 
 
 def representation_schema_payload() -> dict[str, object]:
@@ -3771,6 +4721,17 @@ def representation_schema_payload() -> dict[str, object]:
             {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
             for path in sorted(_DRAFT_VOCABULARIES)
         ],
+        # The version-legality contract, carried inside the identity it governs.
+        # Removing a row to let something through moves this hash, so the
+        # destination pin in ``schema_lift`` no longer matches and ``lift_for``
+        # refuses the transition. The contract cannot be loosened while the
+        # registered lift keeps working.
+        "introductions": introduction_manifest(),
+        # The intrinsic validation contract, carried inside the identity it
+        # governs, for the same reason and with the same consequence: two builds
+        # agreeing on every field and vocabulary while disagreeing about which
+        # combinations of them mean anything do not implement one contract.
+        "invariants": invariant_manifest(),
     }
 
 
@@ -3815,9 +4776,16 @@ def fact_from_payload(
             f"{family.value!r}"
         )
 
-    expected = {f.name for f in fields(_FACT_TYPES[family])} | {"family"}
+    fact_type = _FACT_TYPES[family]
+    expected = {f.name for f in fields(fact_type)} | {"family"}
+    # A post-schema-3 field is omitted from the canonical payload when it
+    # carries no meaning, so its *absence* is admissible and has exactly one
+    # reading — the declared default. Nothing else is defaulted: a field whose
+    # absence could mean two things stays required, so a truncated payload is
+    # still refused rather than silently completed.
+    optional = set(_POST_SCHEMA_3_FIELDS.get(fact_type.__name__, {}))
     supplied = set(payload)
-    if missing := sorted(expected - supplied):
+    if missing := sorted(expected - optional - supplied):
         raise MalformedFactPayloadError(f"{family.value} payload is missing {missing}")
     if extra := sorted(supplied - expected):
         raise MalformedFactPayloadError(f"{family.value} payload carries extra {extra}")
@@ -3830,11 +4798,486 @@ def fact_from_payload(
         ) from exc
 
 
+@dataclass(frozen=True)
+class _PostSchema3Field:
+    """One field introduced after representation schema 3.
+
+    **Why these fields serialize differently from every earlier one.**
+
+    Owner Decision 2026-08-20 settled that historical state must keep its
+    identity across a schema succession, and :mod:`projection` implements that
+    for *component* keys by emitting exactly the key set the declared version
+    had. That mechanism cannot reach a fact: ``fact_key`` is derived from the
+    fact's own canonical payload, and a fact nested in an accepted component has
+    no version of its own to key on.
+
+    Owner Decision 2026-08-24 extends the same guarantee to facts and their
+    nested value objects, and settles the rule that makes it possible: a field
+    introduced after schema 3 is **omitted when it carries no meaning**. An
+    absent field and a field at its declared default say the same thing, so one
+    canonical form serves both — which is what lets a schema-3 fact lifted into
+    schema 4 hash to the byte-identical key it already had.
+
+    The rule is deliberately *value*-keyed rather than *version*-keyed, so the
+    canonical form of a fact does not depend on which schema is declared. The
+    declared version decides only **legality**: a post-schema-3 field holding
+    meaning under an older declaration is refused by
+    :func:`post_schema_3_violations`, never silently dropped.
+
+    Fields introduced at or before schema 3 are deliberately **not** listed
+    here. Their unconditional emission is load-bearing — the committed
+    conditions-1 artifact contains ``"applies_when": null`` and
+    ``"fact_qualifiers": []`` — so switching them to omit-when-empty would move
+    exactly the identities this rule exists to hold still.
+    """
+
+    owner: str
+    key: str
+    introduced_in: str
+    is_empty: Callable[[object], bool]
+
+
+def _empty_none(value: object) -> bool:
+    return value is None
+
+
+def _empty_false(value: object) -> bool:
+    return value is False
+
+
+def _empty_seq(value: object) -> bool:
+    return not value
+
+
+#: Post-schema-3 fields, by owning dataclass name then field name. Keyed by
+#: ``__name__`` rather than by the class so this table can be declared before
+#: the classes it names, which keeps it next to the rule it implements.
+_POST_SCHEMA_3_FIELDS: dict[str, dict[str, _PostSchema3Field]] = {}
+
+
+def _register_post_schema_3(*specs: _PostSchema3Field) -> None:
+    for spec in specs:
+        _POST_SCHEMA_3_FIELDS.setdefault(spec.owner, {})[spec.key] = spec
+
+
+@dataclass(frozen=True)
+class _Introduction:
+    """One thing a schema admitted that its predecessor could not state.
+
+    The *type and vocabulary* half of version legality, beside
+    :class:`_PostSchema3Field`'s *field* half. Both answer one question — may
+    this content exist under the declared schema — and both are read by
+    :func:`post_schema_3_violations`.
+
+    **Why a field registry alone was not enough.** A field registry gates a
+    field's *presence*. It says nothing about a fact family that did not exist,
+    or about an enum member added to a field that did. An
+    ``EffectTerminationFact`` in a schema-3 prior declared no post-schema-3
+    field, so it produced no legality violation, serialized identically under
+    both requested versions, and would let ``verify_lift`` authorize restamped
+    authority no schema-3 reviewer could have reviewed.
+
+    ``kind`` is one of:
+
+    ``fact_family``
+        A family the union did not have. ``name`` is the discriminator
+        ``fact_payload`` writes — never a class name, because no payload
+        carries one.
+    ``vocabulary_member``
+        One admitted value of one closed vocabulary. ``owner`` is the
+        vocabulary, ``name`` the value. Registered for **every** member schema 4
+        added, including members of vocabularies that are themselves entirely
+        new. Those are reachable only through a family or field already
+        registered, so the rows are redundant — deliberately. Redundancy here
+        costs a duplicate finding; the alternative costs an argument about
+        reachability that has to be re-derived correctly at every future
+        succession, and getting a member into the wrong group is silent in both
+        directions.
+    ``reference_ownership``
+        The H-8 record-owned reference form. Its serialization seam refuses it
+        already; this row is what makes the *legality* contract see it too, so
+        ``verify_lift`` and ``accept_proposal`` refuse a restamped prior rather
+        than relying on a payload raise from somewhere else.
+    """
+
+    kind: str
+    owner: str
+    name: str
+    introduced_in: str
+
+
+def _introductions() -> tuple[_Introduction, ...]:
+    """Every schema-4 admission, derived from the declarations themselves.
+
+    Built from the live types rather than transcribed beside them. A literal
+    list would be a second statement of the same contract, and the two would
+    drift the first time a family or a vocabulary changed — with the schema hash
+    then certifying whichever one it happened to read.
+
+    The three vocabularies below name the members schema 4 added to
+    vocabularies schema 3 already had; the rest of each such vocabulary stays
+    legal under schema 3, which is the case the committed artifact exercises.
+    """
+    four = SCHEMA_4
+    rows: list[_Introduction] = [
+        _Introduction("fact_family", "FactFamily", family.value, four)
+        for family in _SCHEMA_4_FAMILIES
+    ]
+    for vocabulary, members in _SCHEMA_4_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, four)
+            for member in members
+        )
+    rows.append(
+        _Introduction("reference_ownership", "ReferenceDraft", "record_owned", four)
+    )
+    return tuple(sorted(rows, key=lambda r: (r.kind, r.owner, r.name)))
+
+
+def introduction_manifest() -> list[dict[str, object]]:
+    """The manifest, in the shape the schema payload carries it.
+
+    **Identity-bound on purpose.** This is emitted by
+    :func:`representation_schema_payload`, so the schema hash covers it.
+    Removing a row to let something through changes the hash, which no longer
+    matches the destination pin in
+    :mod:`~afterworlds.ingestion.mechanical.schema_lift`, so ``lift_for``
+    refuses the transition. The legality contract therefore cannot be quietly
+    loosened while the registered lift keeps working — loosening it invalidates
+    the lift, which is the failure this whole module is built around.
+    """
+    return [
+        {
+            "kind": row.kind,
+            # **No class name, here or anywhere in this payload.** A vocabulary
+            # is identified the way ``draft_vocabularies`` identifies one and the
+            # way the wire actually constrains it — by its complete admitted
+            # value set — because no payload carries a type tag and identity may
+            # not depend on what a payload cannot show. Two structurally
+            # identical vocabularies render identically, which this module
+            # already holds to be correct.
+            #
+            # The *lookup* keeps its class key internally and is deliberately not
+            # emitted: two vocabularies genuinely share the values ``day`` and
+            # ``increase`` across the schema-3/4 boundary, so a value-only
+            # decision would refuse content schema 3 states.
+            "vocabulary": _vocabulary_shape(row.owner),
+            "name": row.name,
+            "introduced_in": row.introduced_in,
+        }
+        for row in _introductions()
+    ]
+
+
+def _vocabulary_shape(owner: str) -> list[str] | None:
+    """The admitted values of *owner*, or ``None`` where it is not a vocabulary.
+
+    ``fact_family`` and ``reference_ownership`` rows name a discriminator and an
+    ownership form respectively; neither is a vocabulary, and inventing a value
+    set for them would assert a shape the wire does not have.
+    """
+    members = _SCHEMA_4_VOCABULARY_ALL.get(owner)
+    return None if members is None else sorted(members)
+
+
+def post_schema_3_violations(obj: object, schema_version: str) -> list[str]:
+    """Post-schema-3 fields holding meaning that *schema_version* cannot state.
+
+    The legality half of the omission rule. Recurses through nested value
+    objects and collections so a ``RollSpec.skill`` buried in an
+    ``AdvantageFact`` inside a ``ComponentOption`` is still caught.
+
+    **Precondition: the graph is already structurally admitted.** This asks
+    whether admitted meaning is *legal* under a declared schema; it does not ask
+    whether a value may be read at all. That is
+    :func:`structural_admission_violations`, and every production path reaches
+    this through :func:`declared_meaning_violations`, which runs it to completion
+    first and returns on any finding.
+
+    Stated as a contract rather than defended in here on purpose. Schema-version
+    legality does not own structural admission, and adding type cases to this
+    walker until it could survive arbitrary input would turn it into a second
+    recursive validator with its own drifting copy of the field contracts
+    (#137 round 13).
+    """
+    findings: list[str] = []
+    _collect_post_schema_3(obj, schema_version, "", findings)
+    return findings
+
+
+def declared_meaning_violations(
+    draft: RepresentationDraft, schema_version: str
+) -> list[str]:
+    """Meaning *draft* carries that its declared schema cannot state.
+
+    The reusable half of one invariant: **a representation interpreted under a
+    declared schema must reject meaning that schema cannot state.** Two ways a
+    representation breaks it, and both have to be checked together or the pair
+    keeps being rediscovered one seam at a time:
+
+    * a field, family, vocabulary member or ownership form the declared version
+      never had (:func:`post_schema_3_violations`); and
+    * a structure outside the closed declaration — a subclass canonicalizes to
+      its declared base's payload, so its extra state is real and invisible
+      (:func:`held_structure_violations`).
+
+    Version-independent by design where the rule is version-independent: the
+    structural checks do not take *schema_version* because holding an undeclared
+    structure is illegal under every contract.
+
+    **The closed structure is checked whole, and first.**
+    :func:`representation_draft_violations` covers the top-level boundary — the
+    draft itself, the exact ``tuple`` type of each of the six collections, and
+    the exact type of every element in them — and
+    :func:`held_structure_violations` covers everything nested below it. Only
+    together do they state "outside the closed declaration"; separately, each is
+    a rule with three uncovered axes, and ``verify_lift`` certified a subclassed
+    draft, a subclassed collection and a subclassed record as unchanged for
+    exactly that reason (#137 round 10).
+
+    The top-level check **returns immediately** rather than accumulating. It is
+    not tidiness: ``RepresentationDraft`` is not a closed value object, so
+    :func:`_declared_type` resolves a hostile draft subclass to *itself* and the
+    post-schema-3 walk below would iterate and read its smuggled fields, while
+    ``held_structure_violations`` would consult a hostile collection's
+    ``__iter__``. Observing the value is the thing being refused, so nothing may
+    look at it after the shape is known to be wrong.
+
+    Callers add the *contract recognition* half — that the declared
+    ``(version, hash)`` pair is one this build accepts authority under — which
+    lives in :mod:`schema_lift` beside the registry that knows the answer. See
+    :func:`~afterworlds.ingestion.mechanical.schema_lift.schema_binding_violations`.
+    """
+    if structural := structural_admission_violations(draft):
+        return structural
+    return post_schema_3_violations(draft, schema_version) + held_structure_violations(
+        draft
+    )
+
+
+def _collect_post_schema_3(
+    value: object, schema_version: str, path: str, findings: list[str]
+) -> None:
+    if isinstance(value, StrEnum):
+        # A vocabulary member added to a field the declared schema already had.
+        # The field registry cannot see this case at all: the field is old, and
+        # only the *value* is new.
+        if (type(value).__name__, value.value) in _SCHEMA_4_MEMBER_INDEX and (
+            not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'value'}: declares schema {schema_version!r}, whose "
+                f"{type(value).__name__} does not admit {value.value!r} — that "
+                f"arrived with {SCHEMA_4}; refusing to read a value the "
+                "declared contract cannot state"
+            )
+        return
+    if is_dataclass(value) and not isinstance(value, type):
+        # Parent admission, on the same rule as the structural walker. This one
+        # reads every declared field with ``getattr`` to recurse, so narrowing a
+        # subclass to its base here would let the subclass execute before any
+        # gate had refused it — the ordering this round settles (#137 round 12).
+        # An unadmitted value is not walked and not reported: the refusal
+        # belongs to ``held_structure_violations``, which
+        # ``declared_meaning_violations`` runs beside this.
+        declared = type(value)
+        if declared not in _admitted_structures():
+            return
+        # A family the declared union did not have. Keyed by discriminator
+        # rather than class, because that is what a payload carries.
+        family = getattr(declared, "FAMILY", None)
+        if (
+            isinstance(family, FactFamily)
+            and family in _SCHEMA_4_FAMILIES
+            and not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'fact'}: declares schema {schema_version!r}, whose "
+                f"closed union has no {family.value!r} family — that arrived "
+                f"with {SCHEMA_4}; refusing to read authority the declared "
+                "contract cannot state"
+            )
+        if (
+            declared is ReferenceDraft
+            and getattr(value, "from_component_key", None) == RECORD_OWNED_REFERENCE
+            and not _version_states(schema_version, SCHEMA_4)
+        ):
+            findings.append(
+                f"{path or 'reference'}: declares schema {schema_version!r}, "
+                "which has no 'record_owned' reference form — that arrived "
+                f"with {SCHEMA_4}; refusing to read an ownership the declared "
+                "contract cannot state"
+            )
+        omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
+        for field in fields(declared):
+            child = getattr(value, field.name)
+            where = f"{path}.{field.name}" if path else field.name
+            rule = omitted.get(field.name)
+            if (
+                rule is not None
+                and not rule.is_empty(child)
+                and not _version_states(schema_version, rule.introduced_in)
+            ):
+                findings.append(
+                    f"{where}: declares schema {schema_version!r}, which has "
+                    f"no {rule.key!r} key — that arrived with "
+                    f"{rule.introduced_in}; refusing to omit meaning-bearing "
+                    "data to reproduce a legacy identity"
+                )
+            _collect_post_schema_3(child, schema_version, where, findings)
+        return
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            _collect_post_schema_3(item, schema_version, f"{path}[{index}]", findings)
+
+
+def _version_states(declared: str, introduced_in: str) -> bool:
+    """Whether *declared* is a version whose contract includes *introduced_in*.
+
+    Membership, never ordering: a lexical or numeric ">=" on version strings is
+    exactly the "newer version is compatible" inference this module refuses. The
+    table is explicit, so an unrecognised declaration states nothing.
+    """
+    return introduced_in in _VERSION_STATES.get(declared, frozenset())
+
+
+#: Which post-schema-3 introductions each merged version is allowed to state.
+#: Explicit rows for the same reason ``_MERGED_COMPONENT_FIELDS`` uses them: a
+#: later succession must not silently inherit an earlier row.
+SCHEMA_4 = "5d-representation-schema-4"
+
+#: The families schema 4 admitted. Named by member so the set is auditable at a
+#: glance, and resolved to live enum members so a rename cannot leave a stale
+#: string behind.
+_SCHEMA_4_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.CONDITION_REMOVAL_RESTRICTION,
+    FactFamily.DAMAGE_MODIFICATION,
+    FactFamily.DERIVED_QUANTITY,
+    FactFamily.EFFECT_TERMINATION,
+    FactFamily.SIZE_KEYED_QUANTITY,
+)
+
+#: Every vocabulary value schema 4 admitted, by vocabulary.
+#:
+#: Two groups, deliberately in one table. The first four vocabularies existed at
+#: schema 3 and *gained* members, so only the named members are new and the rest
+#: stay legal — this is the group a field-keyed registry can never catch, since
+#: the field itself is old. The remainder are vocabularies schema 4 introduced
+#: whole; every member is new, and listing them is redundant with the family or
+#: field that reaches them. See :class:`_Introduction` for why the redundancy is
+#: kept.
+_SCHEMA_4_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    # Added to vocabularies schema 3 already had.
+    "ApplicabilityKind": (
+        ApplicabilityKind.CONSUMPTION_THRESHOLD.value,
+        ApplicabilityKind.DAMAGE_OUTCOME.value,
+        ApplicabilityKind.ELAPSED_DURATION.value,
+        ApplicabilityKind.ROLL_OUTCOME.value,
+    ),
+    "Comparison": (Comparison.LESS_THAN.value,),
+    "ScalingBasis": (ScalingBasis.DISTANCE_FALLEN.value,),
+    "TimeUnit": (TimeUnit.SECOND.value,),
+    # Vocabularies schema 4 introduced whole.
+    "DamageModDirection": tuple(m.value for m in DamageModDirection),
+    "DamageOutcome": tuple(m.value for m in DamageOutcome),
+    "MeasureUnit": tuple(m.value for m in MeasureUnit),
+    "RecurrenceBoundary": tuple(m.value for m in RecurrenceBoundary),
+    "RequiredQuantity": tuple(m.value for m in RequiredQuantity),
+    "Skill": tuple(m.value for m in Skill),
+    "TerminationScope": tuple(m.value for m in TerminationScope),
+    "TimePeriod": tuple(m.value for m in TimePeriod),
+}
+
+#: Every admitted value of each vocabulary the manifest names, for rendering it
+#: in the schema payload without naming its class. Derived from the live enums,
+#: so a member added later cannot leave a stale rendering behind.
+_SCHEMA_4_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+    "Comparison": tuple(m.value for m in Comparison),
+    "ScalingBasis": tuple(m.value for m in ScalingBasis),
+    "TimeUnit": tuple(m.value for m in TimeUnit),
+    "DamageModDirection": tuple(m.value for m in DamageModDirection),
+    "DamageOutcome": tuple(m.value for m in DamageOutcome),
+    "MeasureUnit": tuple(m.value for m in MeasureUnit),
+    "RecurrenceBoundary": tuple(m.value for m in RecurrenceBoundary),
+    "RequiredQuantity": tuple(m.value for m in RequiredQuantity),
+    "Skill": tuple(m.value for m in Skill),
+    "TerminationScope": tuple(m.value for m in TerminationScope),
+    "TimePeriod": tuple(m.value for m in TimePeriod),
+}
+
+#: Fast lookup for the recursion: ``(vocabulary, value) -> introduced_in``.
+_SCHEMA_4_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_4_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+_VERSION_STATES: dict[str, frozenset[str]] = {
+    "5d-representation-schema-1": frozenset(),
+    "5d-representation-schema-2": frozenset(),
+    "5d-representation-schema-3": frozenset(),
+    "5d-representation-schema-4": frozenset({"5d-representation-schema-4"}),
+}
+
+_register_post_schema_3(
+    _PostSchema3Field(
+        owner="RollSpec",
+        key="skill",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="skill",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="alternatives",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_seq,
+    ),
+    _PostSchema3Field(
+        owner="DamageFact",
+        key="maximum_dice",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="ConditionLevelFact",
+        key="cause_scoped",
+        introduced_in="5d-representation-schema-4",
+        is_empty=_empty_false,
+    ),
+    *(
+        _PostSchema3Field(
+            owner="Applicability",
+            key=key,
+            introduced_in="5d-representation-schema-4",
+            is_empty=_empty_none,
+        )
+        for key in (
+            "outcome",
+            "damage_outcome",
+            "required_quantity",
+            "fraction",
+            "unit",
+        )
+    ),
+)
+
+
 def fact_key(fact: object) -> str:
     """Stable content-derived key for one fact within its component.
 
     Derived from the canonical payload, never from a position in the component's
     fact tuple, so reordering or inserting a sibling fact cannot churn it.
+
+    Version-independent by construction: the payload omits post-schema-3 fields
+    that carry no meaning (see :class:`_PostSchema3Field`), so a fact accepted
+    under schema 3 keeps this exact key after being lifted into schema 4.
     """
     return sha256_hex(canonical_bytes(fact_payload(fact)))[:16]
 
@@ -3852,26 +5295,67 @@ def fact_payload(fact: object) -> dict[str, object]:
             f"{type(fact).__name__} is not a member of the closed typed-fact union"
         )
     # Safe now: the family check above proved *fact* is one of the declared
-    # frozen dataclasses, which is what asdict needs.
-    payload: dict[str, object] = {"family": family.value}
-    for key, value in sorted(asdict(cast(Any, fact)).items()):
-        payload[key] = _canonical_value(value)
+    # frozen dataclasses, which is what the walker needs.
+    return {"family": family.value, **_dataclass_payload(cast(Any, fact))}
+
+
+def _declared_type(obj: object) -> type:
+    """The closed declared class *obj* is an instance of.
+
+    A subclass is resolved to the declared class it extends, so the payload
+    stays a **whitelist of declared fields**. Undeclared subclass state must
+    never reach a canonical payload: it would let a class nobody declared inject
+    keys into an identity. The exact-type gates refuse such a value before it can
+    be persisted, and this keeps the serializer from depending on that.
+    """
+    if type(obj) in _CLOSED_TYPES:
+        return type(obj)
+    for base in type(obj).__mro__:
+        if base in _CLOSED_TYPES:
+            return base
+    return type(obj)
+
+
+def _dataclass_payload(obj: Any) -> dict[str, object]:
+    """Canonical payload of one declared dataclass, field by field.
+
+    Walks declared fields rather than calling ``asdict`` because ``asdict``
+    flattens a nested value object into a plain dict and loses the type — and
+    the type is exactly what says whether a field is subject to the
+    post-schema-3 omission rule below. ``RollSpec`` nested inside an
+    ``AdvantageFact`` has to be recognised as a ``RollSpec``.
+    """
+    declared = _declared_type(obj)
+    omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
+    payload: dict[str, object] = {}
+    for field in fields(declared):
+        value = getattr(obj, field.name)
+        rule = omitted.get(field.name)
+        if rule is not None and rule.is_empty(value):
+            # Absent and default mean the same thing for a post-schema-3 field,
+            # so the empty case is not written. See _PostSchema3Field.
+            continue
+        payload[field.name] = _canonical_value(value)
     return payload
 
 
 def _canonical_value(value: object) -> object:
     """Canonical JSON form of one field value, however deeply nested.
 
-    ``asdict`` already turns a nested value object into a dict, but it leaves
-    ``StrEnum`` members as enum instances. They *are* strings, so a serializer
-    would accept them — and then a payload rebuilt from storage would hold a
-    plain ``str`` where the freshly built one holds an enum, and the two would
-    be the same bytes but different objects. Normalizing here means the
-    canonical form is the *stored* form, so a round trip is a fixed point
-    rather than something that merely happens to hash the same.
+    ``StrEnum`` members are normalized to their value: they *are* strings, so a
+    serializer would accept them — and then a payload rebuilt from storage would
+    hold a plain ``str`` where the freshly built one holds an enum, and the two
+    would be the same bytes but different objects. Normalizing here means the
+    canonical form is the *stored* form, so a round trip is a fixed point rather
+    than something that merely happens to hash the same.
+
+    Nested dataclasses recurse through :func:`_dataclass_payload` so the
+    omission rule reaches them with their type intact.
     """
     if isinstance(value, StrEnum):
         return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return _dataclass_payload(cast(Any, value))
     if isinstance(value, dict):
         return {k: _canonical_value(v) for k, v in sorted(value.items())}
     if isinstance(value, (list, tuple)):
@@ -3926,6 +5410,17 @@ class Applicability:
     trigger: RecoveryTrigger | None = None
     #: PHASE
     phase: Phase | None = None
+    #: ROLL_OUTCOME — reuses the existing automatic-outcome vocabulary rather
+    #: than a second spelling of "on a success".
+    outcome: AutomaticOutcome | None = None
+    #: DAMAGE_OUTCOME
+    damage_outcome: DamageOutcome | None = None
+    #: CONSUMPTION_THRESHOLD — the requirement tested, and the fraction of it.
+    #: ``comparison`` carries the direction, so no second comparison spelling.
+    required_quantity: RequiredQuantity | None = None
+    fraction: Rational | None = None
+    #: ELAPSED_DURATION — ``value`` carries the count, this its unit.
+    unit: TimeUnit | None = None
 
 
 @dataclass(frozen=True)
@@ -3945,6 +5440,63 @@ class ComponentOption:
     semantic_key: str
     facts: tuple[MechanicalFact, ...] = ()
     applies_when: Applicability | None = None
+
+
+@dataclass(frozen=True)
+class Recurrence:
+    """How often a component's stated effect repeats, and on whose clock.
+
+    A distinct axis from :class:`DurationKind`, which says how long something
+    lasts. Burning's damage repeats without ending and Suffocation's accrual
+    repeats while a state holds, so a duration field would assert an end the
+    source never states. Kept as its own optional field on the component rather
+    than folded into ``applies_when`` because Dodge states an applicability and
+    a duration at once, and collapsing the axes would lose one.
+
+    ``whose`` is required for a turn boundary and forbidden for the day
+    boundary: a turn belongs to a creature, a day does not.
+    """
+
+    boundary: RecurrenceBoundary
+    whose: RollActor | None = None
+
+
+#: The exact key set a serialized recurrence carries, derived from the declared
+#: type rather than restated. ``recurrence_payload`` emits every field of this
+#: value object unconditionally — ``whose`` is *not* omitted when empty, and the
+#: schema grammar does not declare it so — therefore a present recurrence object
+#: holds both keys, with ``whose`` free to be JSON null.
+#:
+#: Read by the three JSON builders that rebuild a stored recurrence, each of
+#: which keeps its own typed error. One statement of the rule with three readers,
+#: which is how every other shape here is checked; treating the key as optional
+#: independently in all three is what let ``{"boundary": "end_of_day"}`` rebuild
+#: as an explicit null nobody wrote (#137 round 9).
+RECURRENCE_KEYS: frozenset[str] = frozenset(f.name for f in fields(Recurrence))
+
+
+def recurrence_violations(recurrence: Recurrence) -> list[str]:
+    """Violations of one recurrence's own contract."""
+    if drift := _vo_field(recurrence, Recurrence, "recurrence"):
+        return drift
+    if not isinstance(recurrence.boundary, RecurrenceBoundary):
+        return [f"{recurrence.boundary!r} is not a declared RecurrenceBoundary"]
+    if recurrence.whose is not None and not isinstance(recurrence.whose, RollActor):
+        return [f"{recurrence.whose!r} is not a declared RollActor"]
+    turn = recurrence.boundary in (
+        RecurrenceBoundary.START_OF_TURN,
+        RecurrenceBoundary.END_OF_TURN,
+    )
+    if turn and recurrence.whose is None:
+        return [
+            "a turn-boundary recurrence states no whose; a turn belongs to a creature"
+        ]
+    if not turn and recurrence.whose is not None:
+        return [
+            f"a {recurrence.boundary.value} recurrence carries whose, "
+            "which it does not range over"
+        ]
+    return []
 
 
 @dataclass(frozen=True)
@@ -4018,6 +5570,10 @@ class ComponentDraft:
     #: names one fact in this component by ``(option_key, fact_key)``; a fact
     #: with no entry here is conditioned only by its enclosing scopes.
     fact_qualifiers: tuple[FactQualifier, ...] = ()
+    #: How often this component's effect repeats. Post-schema-3, so it is
+    #: omitted from the canonical payload when unset — which is what keeps an
+    #: inherited schema-3 component byte-identical under schema 4.
+    recurs: Recurrence | None = None
 
     def qualifier_for(self, fact: object, option_key: str = "") -> Applicability | None:
         """This component's own condition for *fact* in the given scope.
@@ -4095,6 +5651,15 @@ class RelationshipDraft:
     kind: RelationshipKind
 
 
+#: ``ReferenceDraft.from_component_key`` when the *record itself* authored the
+#: reference. Schema 4, and the same spelling ``fact_target_key`` already uses
+#: for an absent option: the sentinel is the absence of a component, never a
+#: component whose key happens to be empty. It stays collision-free because
+#: :func:`~afterworlds.ingestion.mechanical.validation.validate_representation`
+#: refuses a component with a blank semantic key.
+RECORD_OWNED_REFERENCE = ""
+
+
 @dataclass(frozen=True)
 class ReferenceDraft:
     """A source-authored mechanical reference resolved at build time.
@@ -4102,9 +5667,29 @@ class ReferenceDraft:
     ``scope_key`` is the committed source scope the reference was resolved
     within, which is what makes a repeated name resolvable: the same wording in
     two scopes is two references, not one ambiguity.
+
+    **Ownership, schema 4.** Some records cite other records in their own right:
+    a hazard umbrella names the five hazards it collects, and no component of
+    that umbrella states the naming — the record does. Before schema 4 the only
+    way to project such a reference was to invent a component to hang it on,
+    which publishes a component the source never states. ``from_component_key``
+    is therefore widened rather than joined by a second field: it holds a real
+    component key for a component-owned reference, and
+    :data:`RECORD_OWNED_REFERENCE` for one the record owns directly.
+
+    Widened, not added, on purpose. A new ownership field would change every
+    reference's canonical payload and every reference provenance coordinate,
+    which Owner Decision 2026-08-24 forbids; a widened domain leaves all fifteen
+    accepted conditions-1 references byte-identical, because none of them is
+    empty. The two forms are mutually exclusive by construction — a reference
+    has exactly one ``from_component_key`` — so "exactly one ownership form"
+    needs no invariant to hold it, only the cross-form check in
+    ``validate_representation`` that stops one record from publishing the same
+    citation both ways.
     """
 
     from_record_key: str
+    #: A component key, or :data:`RECORD_OWNED_REFERENCE`.
     from_component_key: str
     source_text: str
     scope_key: str
@@ -4225,7 +5810,14 @@ def relationship_target_key(relationship: RelationshipDraft) -> tuple[str, ...]:
 
 
 def reference_target_key(reference: ReferenceDraft) -> tuple[str, ...]:
-    """Provenance key of one resolved reference, including its source ownership."""
+    """Provenance key of one resolved reference, including its source ownership.
+
+    A record-owned reference carries :data:`RECORD_OWNED_REFERENCE` in the
+    ownership position rather than a shorter key. The tuple keeps its shape so
+    stored coordinates, claim matching, and the accepted conditions-1 keys are
+    all unchanged, and so nothing downstream has to read a key's *length* to
+    learn what it addresses.
+    """
     return (
         reference.from_record_key,
         reference.from_component_key,
@@ -4258,10 +5850,65 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     ApplicabilityKind.SIZE_COMPARISON: frozenset({"any_of"}),
     ApplicabilityKind.TRIGGER: frozenset({"trigger"}),
     ApplicabilityKind.PHASE: frozenset({"phase"}),
+    ApplicabilityKind.ROLL_OUTCOME: frozenset({"outcome"}),
+    ApplicabilityKind.DAMAGE_OUTCOME: frozenset({"damage_outcome"}),
+    ApplicabilityKind.CONSUMPTION_THRESHOLD: frozenset(
+        {"required_quantity", "fraction", "comparison"}
+    ),
+    ApplicabilityKind.ELAPSED_DURATION: frozenset({"value", "unit"}),
 }
 
+#: Kinds whose ``value`` is a count rather than an arbitrary integer. Keyed by
+#: kind rather than written inside one kind's branch, so a later kind that
+#: ranges over ``value`` joins the rule by joining this set — which is exactly
+#: what ``elapsed_duration`` failed to do when it was added.
+_NONNEGATIVE_VALUE_KINDS: frozenset[ApplicabilityKind] = frozenset(
+    {
+        ApplicabilityKind.QUANTITY_THRESHOLD,
+        ApplicabilityKind.ELAPSED_DURATION,
+    }
+)
+
 _APPLICABILITY_ALL_FIELDS = frozenset(
-    {"quantity", "comparison", "value", "any_of", "trigger", "phase"}
+    {
+        "quantity",
+        "comparison",
+        "value",
+        "any_of",
+        "trigger",
+        "phase",
+        "outcome",
+        "damage_outcome",
+        "required_quantity",
+        "fraction",
+        "unit",
+    }
+)
+
+
+#: Every closed declared structure the canonical serializer may emit fields of.
+#:
+#: :func:`_declared_type` resolves an instance to its member here, so a subclass
+#: is serialized as the class it extends and undeclared state can never enter a
+#: canonical payload. Built from the fact union plus the shared value objects,
+#: rather than listed by hand twice, so a new family joins it automatically.
+_CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
+    {
+        Applicability,
+        ComponentOption,
+        DiceExpression,
+        FactQualifier,
+        Money,
+        Rational,
+        Recurrence,
+        RollSpec,
+        SizeComparison,
+        SizeQuantity,
+        SpellCastingTime,
+        SpellComponents,
+        SpellDuration,
+        SpellRange,
+    }
 )
 
 
@@ -4670,6 +6317,14 @@ _DRAFT_ELEMENT_TYPES: Mapping[str, type] = {
 }
 
 
+#: The collections a representation payload is made of, derived from the same
+#: table the exact-type walker reads. A lift's proof extent is stated over
+#: exactly these, so deriving it here rather than restating six strings in
+#: ``schema_lift`` is what keeps the proof and the payload from drifting apart
+#: the first time a collection is added.
+REPRESENTATION_COLLECTIONS: frozenset[str] = frozenset(_DRAFT_ELEMENT_TYPES)
+
+
 def representation_draft_violations(draft: object) -> list[str]:
     """Exact runtime type of the draft and of every element it holds.
 
@@ -4706,16 +6361,356 @@ def representation_draft_violations(draft: object) -> list[str]:
         # override ``__iter__``, so validation and serialization would observe
         # different elements from the same object. Iterating first to find out
         # is exactly the observation being refused.
-        if drift := exact_type_violations(held, tuple, f"representation.{field_name}"):
+        if drift := exact_tuple_violations(held, f"representation.{field_name}"):
             violations.extend(drift)
             continue
         for index, element in enumerate(held):
-            violations.extend(
-                exact_type_violations(
-                    element, expected, f"representation.{field_name}[{index}]"
-                )
-            )
+            at = f"representation.{field_name}[{index}]"
+            if drift := exact_type_violations(element, expected, at):
+                violations.extend(drift)
+                continue
+            # ...and the containers that element itself declares, before any
+            # later pass reads one. ``ProvenanceClaim.target_key`` is the case
+            # that makes this belong here rather than only deeper down: it is a
+            # *key*, resolved by set membership in ``validate_representation``'s
+            # provenance pass, so a subclass overriding ``__hash__`` or
+            # ``__eq__`` could match a target it is not (#137 round 11).
+            violations.extend(held_container_violations(element, at))
     return violations
+
+
+def held_structure_violations(draft: RepresentationDraft) -> list[str]:
+    """The closed-structure identity leak, closed at every depth below the top.
+
+    The other half of :func:`representation_draft_violations`, which closes the
+    leak at the *top-level boundary* — the draft and the six collections it
+    holds. Everything nested inside a component is out of that function's reach
+    by design, and this one covers exactly that remainder: the facts, the
+    options, the qualifiers, the applicabilities, and the cadence.
+
+    **Why the depth split matters here rather than everywhere.** A subclass of a
+    closed value object canonicalizes to its declared base's payload — see
+    :func:`_declared_type`, and the merged decision behind it: the serializer
+    narrows rather than raises, and the exact-type gates refuse the value before
+    it can be persisted. That is sound wherever a validator runs first.
+    ``accept_proposal`` is the one authority-bearing seam where none does. It
+    merges two representations and mints an oracle identity from the result, and
+    it has neither a ledger nor a bound corpus, so it cannot call
+    :func:`~afterworlds.ingestion.mechanical.validation.validate_representation`.
+    Without this, two proposals asserting *different* nested authority would
+    merge identically and share one accepted identity.
+
+    Deliberately not a second validator. Every finding here comes from the
+    validator that already owns the rule — a fact's own family contract, an
+    applicability's closed shape, an option set's exhaustiveness, a qualifier's
+    scope, a cadence's boundary — so there is one statement of each rule and
+    this is another reader of it.
+    """
+    # The same admission, because this function keys facts. ``fact_key`` runs
+    # ``fact_payload`` -> ``_canonical_value``, which reads a ``StrEnum`` child's
+    # ``.value`` — and it does that whether or not the fact's own invariants
+    # produced findings, so an unadmitted scalar child executed there (#137
+    # round 13). Structural admission is one rule with two readers, as elsewhere
+    # in this module: ``declared_meaning_violations`` runs it too, and this
+    # function is also called on its own at the merge seam.
+    if unadmitted := structural_admission_violations(draft):
+        return unadmitted
+
+    findings: list[str] = []
+    for component in draft.components:
+        # Parent admission, before this function reads a single field. In
+        # production ``representation_draft_violations`` has already refused a
+        # subclassed component and returned — but this function is exported and
+        # called on its own, and an ordering rule that holds only when some
+        # other caller ran first is not the rule (#137 round 12). The refusal
+        # belongs to the top-level gate, so nothing is reported here.
+        if type(component) is not ComponentDraft:
+            continue
+        tag = f"component {component.record_key}/{component.semantic_key}"
+        # **Containers before contents.** A component's three collections are
+        # iterated to build ``scopes`` below and are handed to
+        # ``option_set_violations`` and ``fact_qualifier_violations`` already
+        # unpacked, so neither of those can be the place this is checked — by
+        # then the caller has read them. A subclass here would smuggle state no
+        # payload emits, or answer ``__iter__`` with contents that disagree with
+        # what the serializer writes (#137 round 11).
+        if container := [
+            v
+            for field, held in (
+                ("facts", component.facts),
+                ("options", component.options),
+                ("fact_qualifiers", component.fact_qualifiers),
+            )
+            for v in exact_tuple_violations(held, f"{tag}: {field}")
+        ]:
+            findings.extend(container)
+            continue
+
+        # Every container this component holds, at every depth, before any
+        # reader touches one. Several functions read a component's facts — the
+        # fact invariants, ``option_set_violations``' arm signatures,
+        # ``fact_qualifier_violations``' scoped keys — and a container refused by
+        # one but reached by another has still been iterated. So the whole
+        # component is scanned first and skipped entirely if anything here is
+        # not an exact tuple. The per-field checks in the individual validators
+        # stay: they own the rule when called directly.
+        containers = [
+            v
+            for o in component.options
+            if type(o) is ComponentOption
+            for v in exact_tuple_violations(
+                o.facts, f"{tag} option {o.semantic_key}: facts"
+            )
+        ]
+        for scope_tag, held in [
+            (tag, component.facts),
+            *(
+                (f"{tag} option {o.semantic_key}", o.facts)
+                for o in component.options
+                if type(o) is ComponentOption
+                and type(o.facts) is tuple  # already reported above otherwise
+            ),
+        ]:
+            for index, fact in enumerate(held):
+                containers.extend(
+                    held_container_violations(fact, f"{scope_tag}: facts[{index}]")
+                )
+        for owner_tag, applies in (
+            (tag, component.applies_when),
+            *(
+                (f"{tag} option {o.semantic_key}", o.applies_when)
+                for o in component.options
+                if type(o) is ComponentOption
+            ),
+            *(
+                (f"{tag} qualifier {index}", q.applies_when)
+                for index, q in enumerate(component.fact_qualifiers)
+                if type(q) is FactQualifier
+            ),
+        ):
+            if applies is not None:
+                containers.extend(
+                    held_container_violations(applies, f"{owner_tag}: applies_when")
+                )
+        if containers:
+            findings.extend(containers)
+            continue
+
+        scopes: list[tuple[str, Sequence[object], object]] = [
+            (tag, component.facts, component.applies_when)
+        ]
+        scopes.extend(
+            (f"{tag} option {o.semantic_key}", o.facts, o.applies_when)
+            for o in component.options
+            # An option that is not exactly ``ComponentOption`` is
+            # ``option_set_violations``' finding below; reading its fields here
+            # first would report the subclass as its contents instead.
+            if type(o) is ComponentOption
+        )
+
+        for scope_tag, facts, applies_when in scopes:
+            for held_fact in facts:
+                findings.extend(
+                    f"{scope_tag}: {v}"
+                    for v in fact_invariant_violations(cast(Any, held_fact))
+                )
+            if applies_when is not None:
+                findings.extend(
+                    f"{scope_tag}: {v}"
+                    for v in applicability_violations(cast(Any, applies_when))
+                )
+        findings.extend(
+            f"{v}"
+            for v in option_set_violations(component.facts, component.options, tag)
+        )
+        findings.extend(
+            f"{v}"
+            for v in fact_qualifier_violations(
+                component.facts, component.options, component.fact_qualifiers, tag
+            )
+        )
+        if component.recurs is not None:
+            findings.extend(
+                f"{tag}: {v}"
+                for v in recurrence_violations(cast(Any, component.recurs))
+            )
+
+    # ``target_key`` is the one audited container that is a *key* rather than a
+    # collection. ``representation_draft_violations`` states the same rule at the
+    # top-level boundary, which is what protects ``validate_representation``'s
+    # provenance pass; this is the second reader of it, so that a caller reaching
+    # only this function — ``accept_proposal``'s merge seam does call both — is
+    # not left depending on the other having run.
+    for index, claim in enumerate(draft.provenance):
+        if type(claim) is not ProvenanceClaim:
+            continue
+        findings.extend(
+            exact_tuple_violations(claim.target_key, f"provenance[{index}]: target_key")
+        )
+    return findings
+
+
+def _declared_field_types(cls: type) -> Mapping[str, object]:
+    """Resolved annotations for one declared authority dataclass, cached.
+
+    ``from __future__ import annotations`` makes ``field.type`` a string, so the
+    declared contract has to be resolved before it can be compared against a
+    runtime value. Resolved once per class: the annotation set is fixed at import
+    and the admission gate walks the whole graph on every validation.
+    """
+    if cls not in _DECLARED_FIELD_TYPES:
+        hints = get_type_hints(cls, vars(sys.modules[cls.__module__]))
+        _DECLARED_FIELD_TYPES[cls] = {
+            f.name: hints[f.name] for f in fields(cls) if f.name in hints
+        }
+    return _DECLARED_FIELD_TYPES[cls]
+
+
+_DECLARED_FIELD_TYPES: dict[type, Mapping[str, object]] = {}
+
+
+def _admit(value: object, declared: object, path: str) -> list[str]:
+    """Admit one value against the type its field declares. Shape only.
+
+    **Field-relative, and that is the whole point.** A global set of admitted
+    runtime classes is not enough for a scalar child: ``ActionCost`` and
+    ``DamageType`` are both legitimate closed vocabularies, and
+    ``ActionEconomyFact(cost=DamageType.FIRE)`` is still structurally wrong. The
+    question this answers is never "is this a known type" but "is this the type
+    *this field* declares" (#137 round 13).
+
+    ``type(x) is cls`` rather than ``isinstance``. For the enums the two coincide
+    — Python forbids subclassing an enum that has members — but for the closed
+    dataclasses they do not, and one rule reading the same way everywhere is
+    worth more than an exception that has to be re-derived. Do not "tighten" the
+    enum case into something else on the strength of that coincidence.
+
+    This gate owns **shape**, never meaning. Whether an admitted value is *legal*
+    under a declared schema is :func:`post_schema_3_violations`' question, and
+    whether it satisfies its family's contract is the owning validator's. Both
+    may assume admitted structure because this ran first.
+    """
+    origin = get_origin(declared)
+    if origin in (Union, UnionType):
+        options = [a for a in get_args(declared) if a is not type(None)]
+        if value is None:
+            return (
+                []
+                if len(options) < len(get_args(declared))
+                else _refuse(value, declared, path)
+            )
+        # A closed union of declared classes — the fact union is the one that
+        # matters. Exact membership, then the member's own fields if it has any.
+        for option in options:
+            if type(value) is option:
+                return (
+                    _admit_declared_object(value, path) if is_dataclass(option) else []
+                )
+        return _refuse(value, declared, path)
+    if origin is tuple:
+        # The container before its members, on the round-11 rule and through the
+        # same helper, so this cannot drift from it.
+        if drift := exact_tuple_violations(value, path):
+            return drift
+        element, *rest = get_args(declared) or (object,)
+        if rest[:1] != [Ellipsis]:
+            element = object
+        return [
+            v
+            for index, item in enumerate(cast("tuple[object, ...]", value))
+            for v in _admit(item, element, f"{path}[{index}]")
+        ]
+    if isinstance(declared, type):
+        if declared is object:
+            return []
+        if type(value) is not declared:
+            return _refuse(value, declared, path)
+        if is_dataclass(declared):
+            return _admit_declared_object(value, path)
+        return []
+    # An annotation this gate does not model. Nothing is claimed about it here;
+    # the owning validator still checks it. Recorded rather than silently passed
+    # by ``test_the_admission_gate_models_every_declared_annotation``.
+    return []
+
+
+def _admit_declared_object(value: object, path: str) -> list[str]:
+    """Every declared field of one already-exact authority object."""
+    return [
+        v
+        for name, declared in _declared_field_types(type(value)).items()
+        for v in _admit(
+            getattr(value, name), declared, f"{path}.{name}" if path else name
+        )
+    ]
+
+
+def _refuse(value: object, declared: object, path: str) -> list[str]:
+    """The refusal. Declared contract and runtime type name, never the value."""
+    return [f"{path} must be {_name_of(declared)}, got {type(value).__name__}"]
+
+
+def _name_of(declared: object) -> str:
+    if isinstance(declared, type):
+        return declared.__name__
+    if get_origin(declared) in (Union, UnionType):
+        args = get_args(declared)
+        # The closed fact union by its declared alias. Listing its members would
+        # make every refusal a wall of thirty-seven class names, and the alias is
+        # what the contract actually calls this.
+        if frozenset(a for a in args if a is not type(None)) == frozenset(
+            _FACT_TYPES.values()
+        ):
+            return "MechanicalFact" + (" | None" if type(None) in args else "")
+        return " | ".join(_name_of(a) if a is not type(None) else "None" for a in args)
+    if get_origin(declared) is tuple:
+        args = get_args(declared)
+        return f"tuple[{_name_of(args[0])}, ...]" if args else "tuple"
+    return str(declared)
+
+
+def structural_admission_violations(draft: object) -> list[str]:
+    """The whole authority graph's runtime shape, admitted before it is read.
+
+    The completion of the ordering rule round 12 stated:
+
+        parent exact runtime type -> held-container exact runtime type ->
+        child exact runtime type -> semantic observation
+
+    Round 12 closed the first two steps. The third was still open for scalar
+    children and sequence members: ``_collect_post_schema_3`` reached a
+    ``StrEnum`` leaf and read ``.value``, and reached a sequence and iterated it,
+    before any owner validator had admitted either. An undeclared hostile
+    vocabulary member therefore executed instead of being refused (#137 round 13).
+
+    **Schema-version legality does not own structural admission.** This runs to
+    completion first, and a graph with any finding here never enters
+    :func:`post_schema_3_violations` at all — so that function stays what it is,
+    a question about *already-admitted* meaning, rather than accumulating type
+    cases until it becomes a second recursive validator.
+
+    Two layers, one rule:
+
+    * :func:`representation_draft_violations` — the draft, the six collections'
+      exact ``tuple`` type, and each element's exact type (rounds 10-12);
+    * the field-relative walk below, which is what round 10-12's global
+      class-admission could not do. ``ActionCost`` and ``DamageType`` are both
+      legitimate closed vocabularies, so admitting a value because its class is
+      *known* would still have let ``ActionEconomyFact(cost=DamageType.FIRE)``
+      reach the legality walker.
+
+    The corpus/ledger-free validators already cover most of this surface, and
+    the overlap is deliberate — one rule with two readers, as elsewhere in this
+    module. They do not cover all of it: ``RecordDraft.kind``,
+    ``RelationshipDraft.kind``, ``ComponentDraft.handling``,
+    ``ProvenanceClaim.target_kind`` and ``ProvenanceClaim.role`` are structurally
+    checked only by ``validate_representation``, which needs a ledger and a bound
+    corpus and so cannot run at these seams. That gap is why this is a gate of
+    its own rather than a reordering of existing calls.
+    """
+    if findings := representation_draft_violations(draft):
+        return findings
+    return _admit_declared_object(draft, "")
 
 
 def option_set_violations(
@@ -4792,6 +6787,233 @@ def option_set_violations(
     return findings
 
 
+@dataclass(frozen=True)
+class _Invariant:
+    """One intrinsic validation rule, named the way the wire names things.
+
+    ``locus`` is a serialized identifier and never a Python name: a fact family
+    discriminator (``fact:ability_check``), an applicability kind
+    (``applicability:elapsed_duration``), or — for a nested value object, which
+    carries no tag at all — its sorted wire field set (``shape:...``). The same
+    reasoning ``introduction_manifest`` uses for vocabularies: a payload cannot
+    show a class name, so identity may not depend on one.
+    """
+
+    #: A stable semantic identity for the rule itself. Two independent rules can
+    #: constrain the same field — a scaling threshold's range and a scaling
+    #: increment's exclusivity both live on ``fact:scaling`` — so ``(locus,
+    #: field)`` is not an identity and cannot key a witness (#137 round 7).
+    id: str
+    locus: str
+    field: str
+    rule: str
+
+
+def _shape_locus(cls: type) -> str:
+    """A tagless nested value object, identified by the keys it serializes.
+
+    Two structurally identical value objects render identically here, which is
+    the same answer ``representation_schema_payload`` already gives for two
+    vocabularies admitting the same values — and correct for the same reason:
+    nothing reading a payload could tell them apart either.
+    """
+    return "shape:" + "+".join(sorted(f.name for f in fields(cls)))
+
+
+#: The intrinsic validation contract, carried inside the schema identity.
+#:
+#: **Scope, stated once so the declaration stays stable.** Every intrinsic
+#: invariant a schema-4 addition settled and this module's validators enforce,
+#: plus the shared value-object rules those additions delegate to. Where an
+#: addition joined a rule that already existed, the rule's *full* extent is
+#: declared — a declaration naming half of a shared rule would be false about
+#: the other half.
+#:
+#: Deliberately excluded, and neither is an oversight:
+#:
+#: * **Schema-3-era rules this succession did not touch** — a flat damage
+#:   amount's minimum, an armour class's floor, a multiplier's minimum. Declaring
+#:   them would make this manifest churn on edits that have nothing to do with
+#:   schema 4, and a churning identity re-mints authority for no reason.
+#: * **Relational rules** — provenance closure, reference resolution, obligation
+#:   reconciliation. Those are not properties of a serialized value; they are
+#:   checked against the corpus and the rest of the draft, and this manifest
+#:   describes the grammar, not the world it is checked against.
+_INVARIANTS: tuple[_Invariant, ...] = (
+    # The shared numeric shape every rational-valued field delegates to.
+    _Invariant(
+        locus=_shape_locus(Rational),
+        id="rational.numerator.not-below-zero",
+        field="numerator",
+        rule="an integer, never below zero",
+    ),
+    _Invariant(
+        locus=_shape_locus(Rational),
+        id="rational.denominator.at-least-one",
+        field="denominator",
+        rule="an integer of at least one",
+    ),
+    # The shared roll shape H-11's alternatives are made of.
+    _Invariant(
+        locus=_shape_locus(RollSpec),
+        id="roll.skill.governing-ability-agrees",
+        field="skill",
+        rule="a skill whose printed governing ability equals this roll's ability",
+    ),
+    # H-1 recurrence.
+    _Invariant(
+        locus=_shape_locus(Recurrence),
+        id="recurrence.whose.turn-boundary-only",
+        field="whose",
+        rule="stated exactly for a turn boundary, and never for another boundary",
+    ),
+    # H-3 size-keyed quantity.
+    _Invariant(
+        id="size_keyed_quantity.values.one-row-per-size-in-order",
+        locus="fact:size_keyed_quantity",
+        field="values",
+        rule=(
+            "at least one row, each creature size at most once, in creature-size "
+            "declaration order rather than authoring order"
+        ),
+    ),
+    # H-4 consumption threshold, and H-14 elapsed duration beside the kind whose
+    # rule it joined.
+    _Invariant(
+        id="consumption_threshold.fraction.shared-rational-rules",
+        locus="applicability:consumption_threshold",
+        field="fraction",
+        rule="a rational share, held to the shared rational rules",
+    ),
+    _Invariant(
+        id="quantity_threshold.value.not-below-zero",
+        locus="applicability:quantity_threshold",
+        field="value",
+        rule="an integer count, never below zero",
+    ),
+    _Invariant(
+        id="elapsed_duration.value.not-below-zero",
+        locus="applicability:elapsed_duration",
+        field="value",
+        rule="an integer count, never below zero",
+    ),
+    # H-10 and H-12 add kinds; the rule they join is the closed field matrix.
+    _Invariant(
+        id="applicability.kind.closed-field-matrix",
+        locus="applicability",
+        field="kind",
+        rule=(
+            "the kind determines the populated field set exactly: every field it "
+            "ranges over is stated, and no other field is"
+        ),
+    ),
+    # H-5 cause-scoped condition levels.
+    _Invariant(
+        id="condition_level.cumulative.accrual-only",
+        locus="fact:condition_level",
+        field="cumulative",
+        rule="stated only for an accrual",
+    ),
+    # H-6 removal restriction.
+    _Invariant(
+        id="condition_removal_restriction.cause_scoped.always",
+        locus="fact:condition_removal_restriction",
+        field="cause_scoped",
+        rule=(
+            "always true; unscoped, the restriction would reach levels this "
+            "record never caused"
+        ),
+    ),
+    # H-7 distance-fallen scaling.
+    _Invariant(
+        id="scaling.threshold.not-below-zero",
+        locus="fact:scaling",
+        field="threshold",
+        rule="an integer, never below zero",
+    ),
+    # H-7 again, one invariant at a time rather than one addition at a time:
+    # distance-fallen scaling states *"1d6 for every 10 feet"*, so the rule that
+    # makes that increment mandatory and exclusive is part of the contract H-7
+    # joined, and was omitted when the addition was declared by its threshold
+    # alone (#137 round 7).
+    _Invariant(
+        id="scaling.increment.exactly-one",
+        locus="fact:scaling",
+        field="amount+dice_amount",
+        rule=(
+            "scaling other than effective_spell_level states exactly one of a "
+            "dice increment or a flat amount"
+        ),
+    ),
+    # H-9 maximum damage dice.
+    _Invariant(
+        id="damage.maximum_dice.caps-a-stated-expression",
+        locus="fact:damage",
+        field="maximum_dice",
+        rule=(
+            "caps a stated dice expression, and is never below the count that "
+            "expression already states"
+        ),
+    ),
+    # H-11 check alternatives.
+    _Invariant(
+        id="ability_check.alternatives.complete-closed-choice",
+        locus="fact:ability_check",
+        field="alternatives",
+        rule=(
+            "empty, or the complete closed choice: at least two unique members in "
+            "canonical order, every member rolled as an ability check, and this "
+            "fact's own ability and skill named exactly once"
+        ),
+    ),
+    # H-13 damage modification.
+    _Invariant(
+        id="damage_modification.factor.positive-and-not-one",
+        locus="fact:damage_modification",
+        field="factor",
+        rule=(
+            "a positive rational other than one, whose side of one agrees with "
+            "the stated direction"
+        ),
+    ),
+    # H-15 ability-modifier-derived quantity.
+    _Invariant(
+        id="derived_quantity.floor.amount-and-unit-together",
+        locus="fact:derived_quantity",
+        field="floor_amount",
+        rule="a floor states both an amount and a unit, or neither",
+    ),
+)
+
+
+def invariant_manifest() -> list[dict[str, str]]:
+    """The intrinsic validation contract, in the shape the schema payload carries.
+
+    **Identity-bound on purpose**, exactly as :func:`introduction_manifest` is.
+    The Owner requires schema identity to describe the complete serialized
+    grammar, and a grammar is not only which fields exist and which values they
+    admit — it is also which combinations of them mean anything. Two builds that
+    agree on every field and vocabulary and disagree about whether a duration may
+    be negative do not implement one contract, and before this they hashed
+    identically.
+
+    Removing or weakening a row moves the hash, so the destination pin in
+    :mod:`~afterworlds.ingestion.mechanical.schema_lift` stops matching and
+    ``lift_for`` refuses the transition. The invariant contract therefore cannot
+    be loosened while the registered lift keeps working.
+
+    Declarations, never source: no function name, no module path, no docstring
+    and no bytecode is read here. Each row names a serialized locus, a serialized
+    field, and the rule in prose that is checked by
+    ``test_every_declared_invariant_is_executable`` — which refuses a row nothing
+    demonstrates, so the manifest cannot decay into decorative text.
+    """
+    return [
+        {"id": row.id, "locus": row.locus, "field": row.field, "rule": row.rule}
+        for row in sorted(_INVARIANTS, key=lambda r: r.id)
+    ]
+
+
 def applicability_violations(applicability: Applicability) -> list[str]:
     """Violations of one applicability's own contract.
 
@@ -4829,14 +7051,27 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         ("comparison", Comparison),
         ("trigger", RecoveryTrigger),
         ("phase", Phase),
+        ("outcome", AutomaticOutcome),
+        ("damage_outcome", DamageOutcome),
+        ("required_quantity", RequiredQuantity),
+        ("unit", TimeUnit),
     ):
         held = getattr(applicability, name)
         if held is not None and not isinstance(held, member):
             typed.append(f"{held!r} is not a declared {member.__name__}")
-    if not isinstance(applicability.any_of, tuple) or any(
-        type(c) is not SizeComparison for c in applicability.any_of
-    ):
+    if drift := exact_tuple_violations(applicability.any_of, "any_of"):
+        # Short-circuits the element scan below without disturbing the exact-type
+        # refusals above or the delegated ``fraction`` check that follows.
+        typed.extend(drift)
+    elif any(type(c) is not SizeComparison for c in applicability.any_of):
         typed.append("any_of is not a tuple of size comparisons")
+    # Delegated, never restated. The exact-type refusal is only half of what a
+    # Rational has to satisfy: a zero or negative denominator is not a number,
+    # and a negative numerator is not a *share* of a requirement. Checking the
+    # type here and the invariants elsewhere is how ``Rational(1, 0)`` reached
+    # acceptance, committed loading, persistence, overrides and publication —
+    # every one of those delegates to this function (#137 round 5).
+    typed.extend(_check_optional_rational(applicability.fraction, "fraction"))
     if typed:
         return typed
     allowed = _APPLICABILITY_FIELDS[applicability.kind]
@@ -4854,9 +7089,18 @@ def applicability_violations(applicability: Applicability) -> list[str]:
             )
     if findings:
         return findings
-    if applicability.kind is ApplicabilityKind.QUANTITY_THRESHOLD:
+    if applicability.kind in _NONNEGATIVE_VALUE_KINDS:
+        # Both kinds range over a count: a quantity consumed and a duration
+        # elapsed. Neither can be below zero, and the rule was written on the
+        # first kind rather than on the field, so the second inherited nothing
+        # when it was added (#137 round 6). Zero stays legal — "no time has
+        # elapsed" and "the pool is empty" are both real states, and nothing in
+        # the governing contract asks for a positive bound.
         if applicability.value is not None and applicability.value < 0:
-            findings.append(f"threshold value {applicability.value} is not a quantity")
+            findings.append(
+                f"{applicability.kind.value} applicability states "
+                f"{applicability.value}, which is not a count"
+            )
     elif applicability.kind is ApplicabilityKind.SIZE_COMPARISON:
         seen: set[SizeComparison] = set()
         for comparison in applicability.any_of:

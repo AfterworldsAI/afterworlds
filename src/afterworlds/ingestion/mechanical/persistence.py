@@ -66,6 +66,7 @@ from afterworlds.ingestion.mechanical.projection import (
     applicability_payload_violations,
     identify_projection,
     projection_payload,
+    recurrence_payload,
 )
 from afterworlds.ingestion.mechanical.raw_state import (
     PersistedStateReconstructionError,
@@ -74,12 +75,15 @@ from afterworlds.ingestion.mechanical.raw_state import (
     validate_raw_closure,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
+    AutomaticOutcome,
     Comparison,
     ComponentDraft,
     ComponentOption,
     CreatureSize,
+    DamageOutcome,
     FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
@@ -89,21 +93,28 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
+    Rational,
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
+    Recurrence,
+    RecurrenceBoundary,
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    RequiredQuantity,
+    RollActor,
     SizeComparison,
     SizeRelation,
+    TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
     fact_from_payload,
     fact_key,
     fact_payload,
+    recurrence_violations,
 )
 from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceBatchORM,
@@ -262,6 +273,7 @@ def persist_draft(
                 handling=component.handling.value,
                 irreducibility_reason_code=component.irreducibility_reason_code,
                 applies_when=applicability_payload(component.applies_when),
+                recurs=recurrence_payload(component.recurs),
             )
         )
         for option in component.options:
@@ -353,6 +365,56 @@ def persist_draft(
     session.flush()
 
 
+def _recurrence_from_row(
+    payload: dict[str, object] | None, where: str
+) -> Recurrence | None:
+    """Rebuild one stored recurrence, refusing anything it cannot rebuild.
+
+    NULL is a real state — a component the source states no cadence for — so it
+    reconstructs as ``None`` rather than as a defect. Everything else is checked
+    against the same typed invariants the build side uses before it becomes a
+    vocabulary member, so a stored value outside a declared vocabulary fails
+    reconstruction instead of silently becoming a different cadence.
+    """
+    if payload is None:
+        return None
+    # The column is JSON, so it can hold anything a manual edit put there. The
+    # shape is checked before the value is *inspected*, not after: ``set(7)``
+    # raises ``TypeError``, and an untyped exception escaping here would abort
+    # ``run_publication_gate`` instead of returning the ``PERSISTED_STATE``
+    # refusal it exists to return. No cast, either — asserting a type the code
+    # is about to test would be a lie mypy then trusts.
+    if not isinstance(payload, dict):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: recurrence must be an object or null, "
+            f"got {type(payload).__name__}"
+        )
+    raw: dict[str, Any] = payload
+    # Exactly the declared key set — no unknown key, and no missing one. A row
+    # holding only ``boundary`` is a shape the serializer never wrote, and
+    # rebuilding it as an explicit null would repair the row rather than refuse
+    # it (#137 round 9).
+    if set(raw) != RECURRENCE_KEYS:
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: recurrence payload keys {sorted(raw)} "
+            f"are not the declared shape {sorted(RECURRENCE_KEYS)}"
+        )
+    try:
+        built = Recurrence(
+            boundary=RecurrenceBoundary(raw["boundary"]),
+            whose=None if raw["whose"] is None else RollActor(raw["whose"]),
+        )
+    except ValueError as exc:
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: {exc}"
+        ) from exc
+    if findings := recurrence_violations(built):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_components {where}: {'; '.join(findings)}"
+        )
+    return built
+
+
 def _applicability_from_row(
     payload: dict[str, object] | None, table: str, where: str
 ) -> Applicability | None:
@@ -411,6 +473,29 @@ def _applicability_from_row(
                 None if raw["trigger"] is None else RecoveryTrigger(raw["trigger"])
             ),
             phase=None if raw["phase"] is None else Phase(raw["phase"]),
+            # The schema-4 operands. Read with ``.get`` because they are
+            # post-schema-3 keys: the canonical payload omits one that carries
+            # no meaning, so a legal schema-3 payload has no such key at all and
+            # ``raw["outcome"]`` would fail on content that is entirely honest.
+            # Dropping them instead — which is what this builder did before —
+            # reconstructs an applicability whose required operand is absent, so
+            # ``applicability_violations`` rejects the rebuilt value and the
+            # artifact cannot load at all.
+            outcome=(
+                None if raw.get("outcome") is None else AutomaticOutcome(raw["outcome"])
+            ),
+            damage_outcome=(
+                None
+                if raw.get("damage_outcome") is None
+                else DamageOutcome(raw["damage_outcome"])
+            ),
+            required_quantity=(
+                None
+                if raw.get("required_quantity") is None
+                else RequiredQuantity(raw["required_quantity"])
+            ),
+            fraction=_rational_operand(raw.get("fraction")),
+            unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise PersistedStateReconstructionError(
@@ -424,6 +509,29 @@ def _applicability_from_row(
     return built
 
 
+def _rational_operand(raw: object) -> Rational | None:
+    """Rebuild a stored ``Rational`` operand, or ``None``.
+
+    Nothing is coerced. A malformed shape raises out of the caller's ``try``
+    and becomes that module's own typed load failure, exactly as a bad
+    vocabulary member does — a fraction that reconstructs as a different
+    fraction is worse than one that refuses to reconstruct.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise TypeError(f"fraction must be an object, got {type(raw).__name__}")
+    # The exact key set, like every other closed structure here. An undeclared
+    # key entering unchecked is the same defect this builder exists to close:
+    # it is a field nothing validated, and it would be silently discarded.
+    if set(raw) != {"numerator", "denominator"}:
+        raise ValueError(
+            f"fraction must carry exactly numerator and denominator, got "
+            f"{sorted(raw)}"
+        )
+    return Rational(numerator=raw["numerator"], denominator=raw["denominator"])
+
+
 def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     """Rebuild one typed fact from its row, checking the duplicated columns.
 
@@ -433,6 +541,15 @@ def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     columns disagree with its own content has been altered, and picking a
     winner would be repair, not reconstruction.
     """
+    # Same reason as the recurrence loader: the payload column is JSON and can
+    # hold a scalar, which ``fact_from_payload`` meets with an ``AttributeError``
+    # rather than with a typed refusal. Every malformed shape has to normalize to
+    # the one error the publication gate categorizes.
+    if not isinstance(row.payload, dict):
+        raise PersistedStateReconstructionError(
+            f"rp_mech_facts {row.record_key}/{row.component_key}: fact payload "
+            f"must be an object, got {type(row.payload).__name__}"
+        )
     try:
         fact = fact_from_payload(row.payload, declared_family=row.family)
     except (MalformedFactPayloadError, UnknownFactFamilyError) as exc:
@@ -608,6 +725,7 @@ def reconstruct_candidate(
             applies_when=_applicability_from_row(
                 c.applies_when, "rp_mech_components", f"{c.record_key}/{c.semantic_key}"
             ),
+            recurs=_recurrence_from_row(c.recurs, f"{c.record_key}/{c.semantic_key}"),
             fact_qualifiers=_qualifiers_for(c),
             # Options are rebuilt in canonical key order, matching the payload,
             # so a reconstruction never depends on row order.

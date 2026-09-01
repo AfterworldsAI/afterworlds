@@ -48,6 +48,7 @@ from afterworlds.ingestion.mechanical.persistence import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_2_VERSION,
+    UnsupportedSchemaVersionError,
     identify_projection,
     projection_payload,
     representation_payload,
@@ -63,7 +64,6 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     DieSize,
     FactFamily,
-    MalformedFactPayloadError,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
@@ -72,7 +72,6 @@ from afterworlds.ingestion.mechanical.representation import (
     RollSpec,
     UnsupportedRepresentationShapeError,
     _wire_fields,
-    fact_from_payload,
     fact_invariant_violations,
     fact_payload,
     representation_schema_hash,
@@ -93,9 +92,15 @@ from tests.ingestion.mechanical.conftest import (
 )
 
 #: A declaration this build does not implement. Used only where nothing is
-#: serialized *under* it — an arbitrary version must still move an identity and
-#: an oracle payload, and neither of those asks this build to produce a
-#: component payload shaped for a union it has never seen.
+#: serialized *under* it — an arbitrary version must still move a projection
+#: identity, which does not ask this build to produce a component payload shaped
+#: for a union it has never seen.
+#:
+#: It is NOT usable against ``oracle_payload`` any more. Since D-2 that
+#: canonicalizes under the artifact's own declaration, so an unimplemented
+#: version fails closed there rather than quietly borrowing the current shape —
+#: asserted by
+#: ``test_an_oracle_declaring_a_union_this_build_cannot_serialize_fails_closed``.
 OTHER_VERSION = "5d-representation-schema-99"
 OTHER_HASH = "9" * 64
 
@@ -106,7 +111,7 @@ OTHER_HASH = "9" * 64
 #: Schema 2 is the truer stand-in anyway: an actual superseded union, not a
 #: hypothetical one.
 PRIOR_VERSION = SCHEMA_2_VERSION
-PRIOR_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+PRIOR_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"  # noqa: E501  # pragma: allowlist secret
 
 
 # ---------------------------------------------------------------------------
@@ -411,14 +416,42 @@ def test_tampering_the_declaration_to_an_unknown_union_is_reported_not_raised(
 
 
 def test_the_declaration_is_identity_bearing_in_the_oracle() -> None:
+    """Two declarations over one accepted content are two oracle payloads.
+
+    The perturbed declaration is a **real superseded union**, not a fabricated
+    one. It used to be ``OTHER_VERSION`` — an arbitrary string — on the reasoning
+    that "nothing is serialized under it". That reasoning ended when
+    ``oracle_payload`` began canonicalizing under the artifact's own declaration
+    (D-2): the version is no longer inert here, so a version this build cannot
+    serialize now fails closed instead of quietly borrowing the current shape.
+
+    That refusal is asserted too, immediately below, because it is the property
+    D-2 exists to give.
+    """
     oracle = load_accepted_inputs(BOUNDED_ORACLE_PATH).oracle
     assert oracle_payload(oracle)["representation_schema"] == {
         "version": SCHEMA_VERSION,
         "hash": SCHEMA_HASH,
     }
-    assert oracle_payload(replace(oracle, schema_version=OTHER_VERSION)) != (
-        oracle_payload(oracle)
-    )
+    superseded = replace(oracle, schema_version=PRIOR_VERSION, schema_hash=PRIOR_HASH)
+    assert oracle_payload(superseded) != oracle_payload(oracle)
+    assert oracle_payload(superseded)["representation_schema"] == {
+        "version": PRIOR_VERSION,
+        "hash": PRIOR_HASH,
+    }
+
+
+def test_an_oracle_declaring_a_union_this_build_cannot_serialize_fails_closed() -> None:
+    """D-2's fail-closed half.
+
+    An accepted artifact naming a contract this build has never seen cannot be
+    canonicalized honestly, and the alternative — serializing it under whatever
+    the build currently implements — is exactly the silent re-identification
+    Owner Decision 2026-08-20 refused for components.
+    """
+    oracle = load_accepted_inputs(BOUNDED_ORACLE_PATH).oracle
+    with pytest.raises(UnsupportedSchemaVersionError):
+        oracle_payload(replace(oracle, schema_version=OTHER_VERSION))
 
 
 def test_the_gate_refuses_a_projection_whose_union_differs_from_the_oracle(
@@ -481,7 +514,18 @@ def test_the_schema_payload_describes_the_serialized_contract() -> None:
         "actor",
         "context",
         "ability",
+        "skill",
     }
+    # A post-schema-3 field states its omission rule in the contract itself.
+    # The rule is part of the serialized grammar — a reader has to know that
+    # this key's absence is a declared state rather than lost content — so
+    # changing it has to move the identity rather than pass unnoticed.
+    skill = _field(roll["shape"], "skill")
+    assert skill["omitted_when_empty"] is True
+    assert skill["introduced_in"] == "5d-representation-schema-4"
+    # Fields that predate schema 4 carry no such flag: their unconditional
+    # emission is what holds the committed conditions-1 identities still.
+    assert "omitted_when_empty" not in _field(roll["shape"], "ability")
     # The enum inside is its admitted value set, and its optionality is a flag
     # rather than the Python spelling ``| None``.
     ability = _field(roll["shape"], "ability")
@@ -525,9 +569,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = (
-    "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
-)
+EXPECTED_SCHEMA_HASH = "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:
@@ -560,28 +602,41 @@ def test_audit_metadata_stays_outside_the_schema_identity(session: Session) -> N
     )
 
 
-def test_the_schema_hash_does_not_cover_invariant_behaviour() -> None:
-    """Why the version carries a manual obligation the hash cannot.
+def test_the_schema_hash_covers_declared_invariants_and_not_checker_code() -> None:
+    """What the hash binds about invariants, and what it still cannot.
 
-    The hash is derived from declared structure, deliberately: hashing checker
-    implementations would remint authority for a refactor. The cost is that an
-    invariant change which narrows the admitted value set — rejecting a
-    ``THRESHOLD_LOWERED`` threshold of 20, say — leaves every family, field, and
-    vocabulary identical and therefore leaves the hash identical too.
+    Originally this test recorded the whole gap: the hash was derived from
+    declared structure alone, so an invariant change that narrowed the admitted
+    value set left every family, field, and vocabulary identical and left the
+    hash identical too. Two builds disagreeing about whether a duration may be
+    negative hashed the same.
 
-    This test states that gap as a fact rather than leaving it to be discovered:
-    two builds admitting different value sets can share a hash, so
-    ``REPRESENTATION_SCHEMA_VERSION`` must be bumped by hand when an invariant
-    changes meaning. Nothing here can enforce that; what it can do is stop the
-    gap from being invisible.
+    ``invariant_manifest()`` closes that for the schema-4 intrinsic contract —
+    the ranges, paired fields, and reconciliations the additions settled, plus
+    the shared value-object rules they delegate to — and the payload carries it,
+    so weakening one of those moves the hash and invalidates the destination
+    lift pin. See ``test_schema_4_invariant_closure``.
+
+    Two things are still deliberately outside it, and this test pins both.
+    Checker *implementations* are never hashed: reminting authority for a
+    refactor is the failure that rule exists to prevent. And schema-3-era value
+    ranges this succession did not touch stay undeclared, so a change to one of
+    them still requires a hand-written version bump — the residue is smaller
+    than it was, and it is not zero.
     """
     rendered = json.dumps(representation_schema_payload())
     # The declared contract names the family and its field...
     assert "critical_hit_rule" in rendered
     assert "threshold" in rendered
-    # ...and says nothing about which values that field may take.
+    # ...and still says nothing about which values that schema-3-era field takes.
     assert "19" not in rendered and "ordinary" not in rendered
-    # The vacuity fix that prompted this note left the hash untouched.
+    assert not [
+        row
+        for row in representation_schema_payload()["invariants"]  # type: ignore[union-attr]
+        if row["locus"] == "fact:critical_hit_rule"  # type: ignore[index]
+    ]
+    # And the declaration is prose about rules, never about the code holding them.
+    assert "def " not in rendered and "_check_" not in rendered
     assert representation_schema_hash() == EXPECTED_SCHEMA_HASH
 
 
@@ -1095,19 +1150,28 @@ def test_a_subclass_is_rejected_during_representation_validation() -> None:
 
 
 def test_validation_cannot_approve_what_reconstruction_cannot_rebuild() -> None:
-    """The property the fix exists to restore.
+    """The property the fix exists to restore, under the schema-4 serializer.
 
-    The subclass serializes its extra field, so before the fix validation
-    reported nothing while ``fact_from_payload`` refused the same fact — a
-    candidate that could persist and then fail to reconstruct.
+    This test used to assert the opposite serialization: ``asdict`` walked the
+    *instance's* fields, so the subclass's extra key entered the canonical
+    payload, and validation reported nothing while ``fact_from_payload`` refused
+    the same fact.
+
+    Schema 4's walker resolves an instance to the closed class it extends and
+    emits only that class's declared fields, so undeclared state no longer
+    reaches a payload at all. That is strictly narrower: an undeclared class can
+    no longer inject a key into an identity. The property under test is
+    unchanged and now holds from both directions — the payload carries only
+    declared keys, and the gate still refuses the value rather than letting it
+    persist as something reconstruction would reject.
     """
     fact = AdvantageFact(
         AdvantageState.DISADVANTAGE,
         _RollSpecSubclass(RollActor.SUBJECT, RollContext.ATTACK_ROLL),
     )
     payload = fact_payload(fact)
-    assert "smuggled" in payload["roll"]  # type: ignore[operator]
-    with pytest.raises(MalformedFactPayloadError):
-        fact_from_payload(payload)
-    # Validation now refuses it too, so the two halves agree.
+    # Undeclared state is invisible to identity rather than smuggled into it.
+    assert "smuggled" not in payload["roll"]  # type: ignore[operator]
+    assert set(payload["roll"]) == {"actor", "context", "ability"}  # type: ignore[arg-type]
+    # ...and the gate is what stops the value reaching persistence at all.
     assert fact_invariant_violations(fact)

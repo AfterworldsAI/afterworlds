@@ -69,6 +69,7 @@ from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_1_VERSION,
     SCHEMA_2_VERSION,
     SCHEMA_3_VERSION,
+    SCHEMA_4_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -113,11 +114,9 @@ from tests.ingestion.mechanical.conftest import (
 # Literals captured at 7395c52 with pre-change code
 # ---------------------------------------------------------------------------
 
-SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"
+SCHEMA_2_HASH = "ca27a7468abb84db43781e96ac48fbc55e166c3e410fe33d80f03a263a8d002c"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_2_UUID = "389df0d1-54e9-5f7b-864b-7f522e47a766"
-SCHEMA_2_PAYLOAD_HASH = (
-    "c2990446b1931c411e9bcbb33c5bb8ed40209cb9849f8720963f1536919b0b65"
-)
+SCHEMA_2_PAYLOAD_HASH = "c2990446b1931c411e9bcbb33c5bb8ed40209cb9849f8720963f1536919b0b65"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_2_RECORD_ID = "8b8458fe-2b4b-5471-be65-d8b55144aa7f"
 SCHEMA_2_COMPONENT_ID = "818624c3-9ad3-55ed-a514-318b8c142fae"
 SCHEMA_2_FACT_IDS = [
@@ -248,7 +247,7 @@ def test_the_captured_structural_hash_is_the_one_already_pinned() -> None:
     contract must agree, and neither may be the current one.
     """
     assert representation_schema_hash() != SCHEMA_2_HASH
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_3_VERSION
+    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_4_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -370,7 +369,11 @@ def test_the_current_schema_is_the_default_and_is_schema_3() -> None:
 # ---------------------------------------------------------------------------
 
 UNKNOWN_VERSIONS = [
-    "5d-representation-schema-4",
+    # "5d-representation-schema-4" used to sit here as the next unminted
+    # version. It is declared now, so the probe moves to the one after it —
+    # the property is that an *unrecognised* version is refused, not that a
+    # particular string is.
+    "5d-representation-schema-5",
     "5d-representation-schema-0",
     "representation-schema-3",
     "",
@@ -404,7 +407,7 @@ def test_an_unknown_version_is_refused_even_with_no_components() -> None:
         provenance=(),
     )
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(empty, schema_version="5d-representation-schema-4")
+        representation_payload(empty, schema_version="5d-representation-schema-5")
 
 
 def test_the_refusal_names_the_versions_this_build_knows() -> None:
@@ -435,7 +438,12 @@ def test_each_merged_version_extends_the_one_before_it() -> None:
     key was *removed*, which no merged contract has done — and if one ever
     does, that is a decision to make explicitly rather than to discover here.
     """
-    succession = [SCHEMA_1_VERSION, SCHEMA_2_VERSION, SCHEMA_3_VERSION]
+    succession = [
+        SCHEMA_1_VERSION,
+        SCHEMA_2_VERSION,
+        SCHEMA_3_VERSION,
+        SCHEMA_4_VERSION,
+    ]
     assert sorted(_MERGED_COMPONENT_FIELDS) == sorted(succession)
     for earlier, later in pairwise(succession):
         assert _MERGED_COMPONENT_FIELDS[earlier] < _MERGED_COMPONENT_FIELDS[later]

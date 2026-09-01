@@ -39,36 +39,46 @@ from afterworlds.ingestion.mechanical.representation import (
     ActionRestrictionFact,
     AdvantageFact,
     AdvantageState,
+    Applicability,
+    ApplicabilityKind,
     AttackKind,
     AttackRollFact,
     AutomaticOutcome,
     AutomaticOutcomeFact,
+    Comparison,
     ComponentDraft,
     ConditionEffectFact,
     ConditionEffectKind,
     ConditionKind,
     ConditionLevelFact,
+    ConditionRemovalRestrictionFact,
     CreatureAbilityScoreFact,
     CreatureChallengeFact,
     CreatureDefenseFact,
+    CreatureSize,
     CreatureSpeedFact,
     CriticalHitChange,
     CriticalHitRuleFact,
     Currency,
     DamageFact,
+    DamageModDirection,
+    DamageModificationFact,
     DamageResponseFact,
     DamageResponseKind,
     DamageScope,
     DamageType,
     DcKind,
+    DerivedQuantityFact,
     DiceExpression,
     DieSize,
     DurationKind,
+    EffectTerminationFact,
     EquipmentDescriptorFact,
     FactFamily,
     HealingFact,
     LevelDirection,
     MalformedFactPayloadError,
+    MeasureUnit,
     Money,
     MovementAmount,
     MovementCostFact,
@@ -87,6 +97,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    RequiredQuantity,
     ResourceRecoveryFact,
     RollActor,
     RollContext,
@@ -96,6 +107,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ScalingFact,
     Sense,
     SensoryCapabilityFact,
+    SizeKeyedQuantityFact,
+    SizeQuantity,
     SpeedChange,
     SpeedModificationFact,
     SpellCastingTime,
@@ -108,6 +121,7 @@ from afterworlds.ingestion.mechanical.representation import (
     SpellSlotProgressionFact,
     StateEffectFact,
     StateEffectKind,
+    TimePeriod,
     TimeUnit,
     TrackedQuantity,
     TransformationFact,
@@ -283,6 +297,49 @@ EXEMPLARS: dict[FactFamily, Any] = {
     # "Versatile (1d10)"
     FactFamily.WEAPON_PROPERTY: WeaponPropertyFact(
         WeaponProperty.VERSATILE, versatile_damage=DiceExpression(1, DieSize.D10)
+    ),
+    # Schema 4. Each quotes the hazards clause that forced it.
+    # Burning: "The fire also goes out if it is doused, submerged, or suffocated."
+    FactFamily.EFFECT_TERMINATION: EffectTerminationFact(),
+    # Dehydration: "A creature requires an amount of water per day based on its
+    # size, as shown in the Water Needs per Day table."
+    FactFamily.SIZE_KEYED_QUANTITY: SizeKeyedQuantityFact(
+        quantity=RequiredQuantity.WATER,
+        period=TimePeriod.DAY,
+        values=(
+            SizeQuantity(CreatureSize.TINY, Rational(1, 4), MeasureUnit.GALLON),
+            SizeQuantity(CreatureSize.SMALL, Rational(1, 1), MeasureUnit.GALLON),
+            SizeQuantity(CreatureSize.MEDIUM, Rational(1, 1), MeasureUnit.GALLON),
+            SizeQuantity(CreatureSize.LARGE, Rational(4, 1), MeasureUnit.GALLON),
+            SizeQuantity(CreatureSize.HUGE, Rational(16, 1), MeasureUnit.GALLON),
+            SizeQuantity(CreatureSize.GARGANTUAN, Rational(64, 1), MeasureUnit.GALLON),
+        ),
+    ),
+    # Dehydration: "Exhaustion caused by dehydration can't be removed until the
+    # creature drinks the full amount of water required for a day."
+    FactFamily.CONDITION_REMOVAL_RESTRICTION: ConditionRemovalRestrictionFact(
+        condition=ConditionKind.EXHAUSTION,
+        until=Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            required_quantity=RequiredQuantity.WATER,
+            fraction=Rational(1, 1),
+            comparison=Comparison.REACHES,
+        ),
+    ),
+    # Falling: "On a successful check, any damage resulting from the fall is
+    # halved." Rounding is left unset: this record states none, and the Round
+    # Down glossary entry is corpus content of its own.
+    FactFamily.DAMAGE_MODIFICATION: DamageModificationFact(
+        direction=DamageModDirection.REDUCE, factor=Rational(1, 2)
+    ),
+    # Suffocation: "a number of minutes equal to 1 plus its Constitution
+    # modifier (minimum of 30 seconds)".
+    FactFamily.DERIVED_QUANTITY: DerivedQuantityFact(
+        base=1,
+        modifier=AbilityScore.CONSTITUTION,
+        unit=TimeUnit.MINUTE,
+        floor_amount=30,
+        floor_unit=TimeUnit.SECOND,
     ),
 }
 

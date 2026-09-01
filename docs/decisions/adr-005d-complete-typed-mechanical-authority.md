@@ -130,6 +130,39 @@ The projection cannot contain:
 
 The projection is declarative data consumed by hand-authored code.
 
+**Amended by Owner Decision 2026-08-29 (#137 round 6) — schema identity binds the intrinsic validation
+contract, not only the wire shape.** A serialized grammar is not only which fields exist and which values
+they admit; it is also which combinations of them mean anything. Two builds agreeing on every family,
+field, and vocabulary while disagreeing about whether a duration may be negative, whether a fraction may
+have a zero denominator, or whether a closed choice must contain the pair the fact declares are not
+implementing one contract — and before this they hashed identically.
+
+The representation schema payload therefore carries an **invariant manifest** beside its introduction
+manifest, on these terms:
+
+* **Serialized identifiers only.** Each row names a locus the wire can show — a fact family discriminator,
+  an applicability kind, or, for a nested value object that carries no type tag, its sorted field set — and
+  never a Python class, function, or module name. Identity may not depend on what a payload cannot show.
+* **Declarations, never implementations.** No source text, bytecode, comment, or docstring is hashed.
+  Reminting accepted authority for a refactor is the failure this rule exists to prevent, and it is
+  unchanged.
+* **Scope, so the declaration is stable.** Every intrinsic invariant a schema-4 addition settled and the
+  representation's validators enforce, plus the shared value-object rules those additions delegate to,
+  including a joined rule's full extent. Schema-3-era ranges this succession did not touch, and relational
+  rules checked against the corpus rather than intrinsic to a value, stay outside it.
+* **Executable, or it is not declared.** Every row is exercised by an exemplar the shared validator refuses
+  and one it admits, and the coverage is asserted as a set equality, so a row nothing demonstrates fails
+  the suite rather than standing as prose.
+* **Loosening it costs the succession.** Weakening or removing a row moves the schema hash, so the
+  registered lift's destination pin no longer describes this build and `lift_for` refuses the transition.
+
+Finalizing this contract moved the schema-4 destination hash before merge, most recently to
+`241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9` when the reconciliation in round 7
+found a declared addition whose joined rule was only half declared. The schema-3 source pin
+`43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` is unchanged, and zero movement was
+re-run against the finalized destination: six collections byte-identical, every stored coordinate
+re-deriving, `oracle_identity` unmoved.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.
@@ -138,6 +171,21 @@ present exactly as required.
 
 Counts, extraction floors, prose percentages, and category ceilings may detect regressions but cannot
 prove completeness. An all-prose projection and a duplicated-fact projection must both fail.
+
+**Amended by Owner Decision 2026-08-24 — duplication is a shape, not only a fact.** "A duplicated-fact
+projection must fail" is the general rule that one source statement may not be published twice, and it
+binds every element kind the representation carries, not only typed facts. Two forms of it are now stated
+explicitly because both were reachable and neither was caught:
+
+- **Sibling components.** Two different components of one record may not hold facts with the same
+  `fact_key` when both draw it from the *same* substantive span. Facts equal by content alone are not
+  duplication — a rule genuinely restated in two places is two claims — so the rule is fact equivalence
+  **plus shared source provenance**, never fact equality alone, and never inferred from parsed target-key
+  positions. This is deliberately not global cross-component fact uniqueness.
+- **Reference ownership.** Where a record owns a citation directly (Decision 7 as amended), no component
+  of that same record may state the same citation. Record ownership *means* no component states it, so the
+  pair contradicts its own justification. Two different **components** citing the same wording stay legal:
+  each is its own claim and each carries its own provenance edge.
 
 ### Decision 6 — Complete meaning-bearing identity
 
@@ -169,6 +217,93 @@ applied at runtime, the projection they are applied over has exactly one `mechan
 authored overlay's own complete canonical form participates instead in the override-set identity governed
 by Decision 9.
 
+**Amended by Owner Decision 2026-08-24 — explicit verified schema succession, and zero identity movement
+across it.** Accepted authority is committed under the representation schema it was reviewed under, and
+identity binds that schema (above). A later content batch may need a wider schema, so the two have to
+meet. They meet on exactly these terms, and on no others:
+
+1. **Zero movement.** A previously accepted fact key or provenance coordinate may not move. The absence of
+   published consumers or overrides does not authorize identity churn. A succession that would move one is
+   refused; it is never reconciled, renumbered, or re-derived.
+
+2. **A field added after a schema is omitted from the canonical payload when it carries no meaning.** An
+   absent field and a field at its declared default state the same thing, so one canonical form serves
+   both. This is what makes zero movement achievable rather than merely required: an element accepted
+   under the earlier schema *already has* its later-schema canonical form, so nothing has to be rewritten
+   for it to be inherited. The rule is value-keyed, never version-keyed — a fact's canonical form does not
+   depend on which schema is declared.
+
+3. **The declared version decides legality, never canonical form.** A post-succession field holding
+   meaning under an earlier declaration is refused, and refused *as a restamp* — an artifact whose declared
+   schema and content disagree — rather than silently emptied to reproduce a legacy identity. Fields
+   introduced at or before the last-accepted schema keep unconditional emission; switching one to
+   omit-when-empty would move exactly the identities this rule exists to hold still.
+
+   *Amended 2026-08-28 (#137 round 4) — legality is checked wherever authority is created or admitted, not
+   only where the schema changes.* A representation and the schema identity it declares are admissible
+   together only when its meaning is legal under that version **and** its exact `(version, hash)` pair is a
+   contract this build accepts authority under — the live pair, or an endpoint of the registered succession
+   graph. Unknown versions, invented hashes, and known versions paired with another version's hash are one
+   refusal: the union that decides what these facts may mean cannot be established. An empty lift history
+   exempts neither half — an artifact that crossed no succession has said nothing about whether it was
+   built under the schema it names. The rule is enforced at committed-artifact loading, at acceptance for
+   both the proposed and the prior half, inside a verified lift, and at publication, which holds the strict
+   end of the same rule: a projection about to become *current* authority must declare the live pair
+   exactly. Being *serializable* under a version is deliberately not sufficient — schema 1 and schema 2
+   payloads remain reproducible for historical reconstruction, and reproducing an identity is not admitting
+   new accepted authority under it.
+
+4. **Compatibility is declared, never inferred.** Each authorized succession is registered by its exact
+   `(version, hash)` source **and** destination pair, with its destination hash written literally rather
+   than derived from whatever the type surface currently is. Version ordering is not evidence: "schema 4
+   is newer than schema 3" says nothing about whether schema 4 can carry schema 3's accepted content, and
+   a rule that reasoned that way would authorize every future succession in advance. An unregistered,
+   reversed, skipped, or hash-mismatched transition fails closed.
+
+5. **A succession proves, it does not transform.** Before any re-declaration, every inherited element is
+   proved byte-identical under both schemas, collection by collection. Nothing is normalized, reshaped, or
+   defaulted on the way through: a difference is a semantic change the reviewer never saw. This is a
+   stronger guarantee than a transforming lift could give — a transforming lift has to *argue* that its
+   mapping preserved meaning; this one demonstrates that nothing moved.
+
+6. **A batch states the schema it was reviewed under.** *Added by Owner Decision 2026-08-30 (#137 round
+   7).* Acceptance evidence records which representation schema each retained batch was reviewed under, as
+   a schema anchor beside the batch — never inside it, because a batch records what a human accepted and
+   may not be rewritten by a later succession. Without it an empty lift history has two readings that
+   cannot be told apart: authority genuinely first accepted under the declared schema, and authority
+   reviewed under an earlier schema whose declaration was simply overwritten. The second is a restamp, and
+   it loaded clean.
+
+   An anchor names a retained batch and repeats that batch's own proposal identity; its pair must be a
+   recognized contract; a batch anchored at the artifact's declaration needs no succession, and one
+   anchored earlier needs a registered chain that starts where it was reviewed and terminates at the
+   declaration; and every recorded crossing must be one some anchored authority actually needed. Absence
+   of anchors is admitted for exactly one shape — a pre-schema-4 declaration with no lift evidence, where
+   it has a single possible meaning — and the same absence under a later declaration fails. Nothing else
+   is retained: no predecessor artifact, no per-element identity, no historical count, no timestamp, no
+   signature.
+
+7. **The crossing is evidence, never identity.** That an artifact was carried across a succession is
+   recorded beside its acceptance batches, on the evidence half of accepted inputs, and never on the
+   accepted oracle. Which schema an artifact was carried across is review and migration process, and
+   process is not identity-bearing. The combined artifact declares the destination schema and takes the
+   new oracle identity that follows from declaring it.
+
+   *Amended 2026-08-28 (#137 round 3) — the recorded evidence is exactly what a loader can check.* Loaded
+   evidence is read from a file, so it proves nothing about itself. Each record is therefore validated
+   against the registry and the artifact's own declaration: the transition is registered by its exact
+   source and destination pair under the registered lift ID, the records form a continuous oldest-first
+   chain, the last destination is the schema the artifact declares, no transition repeats, and the proof
+   extent names exactly the representation's collections, each of them once. What a record may **not**
+   carry is a per-collection element count. The count a lift produces is true when it is produced and
+   unverifiable ever after: one committed artifact supersedes its predecessor, later batches merge into
+   the same collections, and no record fixes the crossing to a point in the batch sequence — the schema
+   anchors added in round 7 say which contract each batch was reviewed under, never how much content
+   existed when it was crossed, so they do not make a historical count checkable — and so the
+   pre-lift extent cannot be re-derived, and a fabricated number would validate exactly as well as a true
+   one. Evidence a reader cannot check is not evidence, and an audit surface may not state more than the
+   build can support.
+
 ### Decision 7 — Build-time reference resolution
 
 Mechanical references resolve at build time through committed source scope, aliases, and exact target
@@ -176,6 +311,27 @@ semantic keys. Unique destination names alone do not establish source intent. Ba
 similarity, and model selection are never authoritative references.
 
 Ambiguous, unresolved, invalid, or cross-release references block publication.
+
+**Amended by Owner Decision 2026-08-24 — a record may own the references it authors.** Some records cite
+other records in their own right: a hazard umbrella names the five hazards it collects, and no component
+of that umbrella states the naming. A reference therefore has exactly one owner, and it is either the
+source **record** or one named **component** of that record.
+
+- A component-owned reference must name a component that really exists within its source record —
+  unchanged, and every previously accepted reference is one.
+- A record-owned reference must name a real source record and must not carry a fabricated or dangling
+  component. It does not license inventing a component to hang a citation on, and a component invented for
+  that purpose publishes a component the source never states.
+- Everything else about a reference is unchanged and remains fail-closed: ambiguity, scope resolution,
+  target existence, per-element provenance, canonical ordering, persistence reconstruction, and digest
+  coverage.
+- An earlier schema continues to reject record-owned reference meaning. Serializing it under a schema that
+  has no such form would produce bytes an earlier reviewer would read as a component-owned reference to a
+  component with an empty key, which is the restamp Decision 6 as amended refuses.
+
+This ownership widening is a *domain* widening of the existing owner field rather than a new ownership
+field beside it, precisely so that no accepted reference's canonical payload or provenance coordinate
+moves.
 
 ### Decision 8 — Persist, reconstruct, prove, then publish
 

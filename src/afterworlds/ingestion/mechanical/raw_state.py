@@ -34,6 +34,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.mechanical.representation import RECORD_OWNED_REFERENCE
 from afterworlds.persistence.orm.mechanical import (
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
@@ -307,7 +308,19 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
     # validator; what persistence owns is that the row attaches to real
     # persisted structure rather than dangling.
     for reference in raw.references:
-        if (
+        # Whichever owner the row names has to be really persisted. A schema-4
+        # record-owned row names no component, so what it must attach to is the
+        # record itself — checked positively rather than by skipping the
+        # component check, or a dangling record-owned row would pass closure
+        # precisely because it carried less.
+        if reference.from_component_key == RECORD_OWNED_REFERENCE:
+            if reference.from_record_key not in record_keys:
+                problems.append(
+                    f"rp_mech_references row {reference.row_id}: names source "
+                    f"record {reference.from_record_key!r} with no row in this "
+                    "projection"
+                )
+        elif (
             reference.from_record_key,
             reference.from_component_key,
         ) not in component_keys:

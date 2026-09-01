@@ -40,10 +40,15 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
+    RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
+    Recurrence,
+    ReferenceDraft,
     RepresentationDraft,
+    _dataclass_payload,
+    declared_meaning_violations,
     fact_key,
     fact_payload,
     representation_schema_hash,
@@ -52,6 +57,7 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 
 __all__ = [
     "applicability_payload",
+    "recurrence_payload",
     "IdentifiedProjection",
     "ProjectionCandidate",
     "ReleaseBinding",
@@ -68,6 +74,7 @@ __all__ = [
     "SCHEMA_1_VERSION",
     "SCHEMA_2_VERSION",
     "SCHEMA_3_VERSION",
+    "SCHEMA_4_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -133,6 +140,7 @@ SCHEMA_1_VERSION = "5d-representation-schema-1"
 #: each one is a contract something may already be persisted under.
 SCHEMA_2_VERSION = "5d-representation-schema-2"
 SCHEMA_3_VERSION = "5d-representation-schema-3"
+SCHEMA_4_VERSION = "5d-representation-schema-4"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -184,6 +192,12 @@ class _VersionedComponentField:
     introduced_in: str
     payload: Callable[[ComponentDraft], object]
     holds_meaning: Callable[[ComponentDraft], bool]
+    #: Post-schema-3 keys are omitted when they carry no meaning, so an
+    #: inherited schema-3 component is byte-identical under a later schema —
+    #: Owner Decision 2026-08-24. Schema 1-3 keys keep unconditional emission:
+    #: the committed conditions-1 artifact contains "applies_when": null, so
+    #: omitting it would move the identity this rule exists to hold still.
+    omit_when_empty: bool = False
 
 
 _COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
@@ -225,6 +239,13 @@ _COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
         ),
         holds_meaning=lambda c: bool(c.fact_qualifiers),
     ),
+    _VersionedComponentField(
+        key="recurs",
+        introduced_in="schema-4",
+        payload=lambda c: recurrence_payload(c.recurs),
+        holds_meaning=lambda c: c.recurs is not None,
+        omit_when_empty=True,
+    ),
 )
 
 #: Every merged representation schema version, and the component payload keys
@@ -241,6 +262,13 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_1_VERSION: frozenset(),
     SCHEMA_2_VERSION: frozenset({"applies_when", "options"}),
     SCHEMA_3_VERSION: frozenset({"applies_when", "options", "fact_qualifiers"}),
+    # Its own row, written out rather than inherited. Schema 4's post-schema-3
+    # additions are all *fact and value-object* fields, which the representation
+    # walker omits when empty; no component key joins the set here. A component
+    # key that does join it later must be added to this row explicitly.
+    SCHEMA_4_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -263,6 +291,56 @@ def _emitted_component_fields(schema_version: str) -> frozenset[str]:
         return _MERGED_COMPONENT_FIELDS[schema_version]
     except KeyError:
         raise UnsupportedSchemaVersionError(schema_version) from None
+
+
+#: Merged versions whose reference contract admits a record-owned reference
+#: (:data:`RECORD_OWNED_REFERENCE`). Its own registry rather than a row in
+#: ``_MERGED_COMPONENT_FIELDS``: that table answers "which component keys does
+#: this version emit", and record ownership adds no key — it widens an existing
+#: field's domain. Folding the two would make one table answer two questions,
+#: and the next reader would have to know which.
+#:
+#: Explicit membership, never ordering, for the same reason ``_VERSION_STATES``
+#: is: an unrecognised declaration states nothing and fails closed.
+_RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset({SCHEMA_4_VERSION})
+
+
+def _reference_payload(
+    reference: ReferenceDraft, schema_version: str
+) -> dict[str, object]:
+    """One reference's canonical payload under *schema_version*.
+
+    The payload itself is version-independent — schema 4 widened
+    ``from_component_key``'s domain rather than adding a key — so an inherited
+    component-owned reference is byte-identical under both contracts and the
+    fifteen accepted conditions-1 references do not move.
+
+    What *is* version-dependent is legality. A record-owned reference states
+    something a schema-3 contract cannot: that a record cites another record in
+    its own right. Serializing it under schema 3 would produce a payload whose
+    bytes an earlier reviewer would read as a component-owned reference to a
+    component named ``""``, which is a restamp. It is refused in the same words
+    and the same direction ``_component_versioned_payload`` refuses a too-new
+    component key.
+    """
+    if (
+        reference.from_component_key == RECORD_OWNED_REFERENCE
+        and schema_version not in _RECORD_OWNED_REFERENCE_VERSIONS
+    ):
+        raise LegacySchemaPayloadError(
+            f"reference {reference.scope_key}:{reference.source_text!r} is owned "
+            f"by record {reference.from_record_key} directly, but declares schema "
+            f"{schema_version!r}, which has no record-owned reference form — that "
+            f"arrived with {SCHEMA_4_VERSION}; refusing to omit meaning-bearing "
+            "data to reproduce a legacy identity"
+        )
+    return {
+        "from_record_key": reference.from_record_key,
+        "from_component_key": reference.from_component_key,
+        "source_text": reference.source_text,
+        "scope_key": reference.scope_key,
+        "target_record_key": reference.target_record_key,
+    }
 
 
 def _component_versioned_payload(
@@ -296,6 +374,11 @@ def _component_versioned_payload(
     """
     payload: dict[str, object] = {}
     for field in _COMPONENT_FIELDS:
+        if field.omit_when_empty and not field.holds_meaning(component):
+            # Absent and default say the same thing for a post-schema-3 key, so
+            # one canonical form serves both and an inherited component keeps
+            # the exact payload it was accepted with.
+            continue
         if field.key in emitted:
             payload[field.key] = field.payload(component)
         elif field.holds_meaning(component):
@@ -372,14 +455,7 @@ def representation_payload(
             for r in draft.relationships
         ),
         "references": canonical_order(
-            {
-                "from_record_key": r.from_record_key,
-                "from_component_key": r.from_component_key,
-                "source_text": r.source_text,
-                "scope_key": r.scope_key,
-                "target_record_key": r.target_record_key,
-            }
-            for r in draft.references
+            _reference_payload(r, schema_version) for r in draft.references
         ),
         "provenance": canonical_order(
             {
@@ -433,6 +509,16 @@ def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
     built under a union it never agreed to. Unsupported and mismatched are the
     same refusal here — both mean the declaration and the code disagree about
     what a fact may say.
+
+    Publication is the strict end of one invariant, not a second one. Accepted
+    authority may declare any contract this build accepts authority under —
+    ``schema_lift.schema_binding_violations``, which admits a registered
+    succession's endpoints; a projection about to become *current* authority
+    must declare the live pair exactly, because that is the union whose meaning
+    this build can still validate. The meaning half is identical, and it is
+    checked here too: a candidate can be constructed directly or reconstructed
+    from persisted rows, so neither the loader nor ``accept_proposal`` stands
+    between it and publication (#137 round 4).
     """
     findings: list[str] = []
     if candidate.schema_version != REPRESENTATION_SCHEMA_VERSION:
@@ -446,6 +532,12 @@ def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
             f"candidate declares representation schema hash "
             f"{candidate.schema_hash!r}, committed union hashes to {expected!r}"
         )
+    # Reported rather than raised, so an illegal candidate reaches the
+    # publication gate as a SCHEMA_MISMATCH verdict instead of an exception out
+    # of the payload renderer.
+    findings.extend(
+        declared_meaning_violations(candidate.representation, candidate.schema_version)
+    )
     return tuple(findings)
 
 
@@ -473,43 +565,35 @@ def derive_component_id(
     )
 
 
+def recurrence_payload(recurrence: Recurrence | None) -> dict[str, object] | None:
+    """Canonical payload of one recurrence, or ``None``.
+
+    Delegates to the representation walker for the same reason
+    :func:`applicability_payload` does: one serialization of one structure.
+    """
+    if recurrence is None:
+        return None
+    return _dataclass_payload(recurrence)
+
+
 def applicability_payload(
     applicability: Applicability | None,
 ) -> dict[str, object] | None:
     """Canonical payload of one applicability, or ``None``.
 
-    Every field is emitted, including the unset ones, so a payload's key set is
-    the shape rather than a function of which kind wrote it — the same rule
-    ``fact_payload`` follows, and what lets the loader reject on the key set.
+    Delegates to the representation walker rather than restating the field list
+    here. Two hand-written serializations of one structure is exactly the drift
+    this module refuses elsewhere, and the walker already owns the rule that
+    matters: a post-schema-3 field is omitted when it carries no meaning, which
+    is what keeps a schema-3 applicability byte-identical after schema 4 exists.
+
+    Every schema-1..3 field is still emitted unconditionally, including the
+    unset ones, so a payload's key set remains the shape for those and the
+    loader can still reject on it.
     """
     if applicability is None:
         return None
-    return {
-        "kind": applicability.kind.value,
-        "negated": applicability.negated,
-        "quantity": (
-            None if applicability.quantity is None else applicability.quantity.value
-        ),
-        "comparison": (
-            None if applicability.comparison is None else applicability.comparison.value
-        ),
-        "value": applicability.value,
-        "any_of": [
-            {
-                "category": None if c.category is None else c.category.value,
-                "relation": None if c.relation is None else c.relation.value,
-                "at_least": c.at_least,
-                "at_most": c.at_most,
-                "measured": c.measured.value,
-                "reference": None if c.reference is None else c.reference.value,
-            }
-            for c in applicability.any_of
-        ],
-        "trigger": (
-            None if applicability.trigger is None else applicability.trigger.value
-        ),
-        "phase": None if applicability.phase is None else applicability.phase.value,
-    }
+    return _dataclass_payload(applicability)
 
 
 #: The exact key set :func:`applicability_payload` emits, and therefore the
@@ -528,6 +612,14 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
         "trigger",
         "phase",
     }
+)
+
+#: Post-schema-3 applicability keys. Admissible when present and admissible when
+#: absent — the canonical payload omits them when they carry no meaning, so
+#: absence reads as the declared default and nothing is lost. They are kept out
+#: of the required set above so a schema-3 payload still validates unchanged.
+_APPLICABILITY_OPTIONAL_KEYS = frozenset(
+    {"outcome", "damage_outcome", "required_quantity", "fraction", "unit"}
 )
 _SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
     {"category", "relation", "at_least", "at_most", "measured", "reference"}
@@ -553,7 +645,9 @@ def applicability_payload_violations(raw: object) -> list[str]:
     supplied = set(raw)
     if missing := sorted(_APPLICABILITY_PAYLOAD_KEYS - supplied):
         findings.append(f"applicability payload is missing {missing}")
-    if extra := sorted(supplied - _APPLICABILITY_PAYLOAD_KEYS):
+    if extra := sorted(
+        supplied - _APPLICABILITY_PAYLOAD_KEYS - _APPLICABILITY_OPTIONAL_KEYS
+    ):
         findings.append(f"applicability payload carries unexpected {extra}")
     any_of = raw.get("any_of")
     if "any_of" in supplied:

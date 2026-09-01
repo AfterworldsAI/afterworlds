@@ -69,7 +69,9 @@ from afterworlds.ingestion.mechanical.persistence import (
     verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.projection import (
+    LegacySchemaPayloadError,
     ProjectionCandidate,
+    UnsupportedSchemaVersionError,
     identify_projection,
     representation_payload,
     validate_candidate,
@@ -276,7 +278,7 @@ def _compare_elements(
 
 
 def _comparable_collections(
-    draft: RepresentationDraft,
+    draft: RepresentationDraft, schema_version: str
 ) -> dict[str, list[dict[str, object]]]:
     """Flatten the representation into the collections the gate compares.
 
@@ -291,7 +293,10 @@ def _comparable_collections(
     * **components carry no facts**, so the same difference is not reported
       twice under two categories.
     """
-    payload = representation_payload(draft)
+    # Each side under its own declaration. The schema-mismatch check reports a
+    # disagreement in its own words; this must not turn one into a flood of
+    # spurious element differences by canonicalizing both under one contract.
+    payload = representation_payload(draft, schema_version=schema_version)
     collections: dict[str, list[dict[str, object]]] = {}
     for key in (
         "records",
@@ -424,12 +429,22 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
 
 
 def _failed(
-    projection_uuid: str, oracle: AcceptedOracle, *failures: GateFailure
+    projection_uuid: str,
+    oracle: AcceptedOracle,
+    *failures: GateFailure,
+    identity: str | None = None,
 ) -> GateResult:
+    """One refused verdict.
+
+    ``identity`` is supplied only by the caller that has already discovered the
+    oracle cannot be canonicalized at all. Deriving it here would raise the very
+    exception that refusal is reporting, turning a fail-closed verdict back into
+    an exception escaping the publication path.
+    """
     return GateResult(
         passed=False,
         projection_uuid=projection_uuid,
-        oracle_identity=oracle_identity(oracle),
+        oracle_identity=identity if identity is not None else oracle_identity(oracle),
         failures=failures,
         obligations=(),
         expected_projection_uuid=None,
@@ -451,7 +466,29 @@ def run_publication_gate(
     cannot hand the gate a different release than the projection actually
     claims.
     """
-    identity = oracle_identity(oracle)
+    # The oracle's identity is derived under the schema it declares, so an
+    # artifact whose declaration and content disagree — a restamp, or a version
+    # this build cannot serialize — now raises where it used to serialize
+    # silently under whatever the build implemented. That refusal is right, but
+    # it must arrive as a *verdict*: this gate exists to fail closed, and an
+    # exception escaping the publication path is the one way it can fail open.
+    # ``SCHEMA_MISMATCH`` is already the category for "the union that governs
+    # what these facts may mean cannot be established".
+    try:
+        identity = oracle_identity(oracle)
+    except (UnsupportedSchemaVersionError, LegacySchemaPayloadError) as exc:
+        return _failed(
+            projection_uuid,
+            oracle,
+            GateFailure(
+                GateFailureCategory.SCHEMA_MISMATCH,
+                f"accepted oracle declares representation schema "
+                f"{oracle.schema_version!r} and cannot be canonicalized under "
+                f"it: {exc}",
+            ),
+            # Unavailable by construction — that is what was just refused.
+            identity="",
+        )
     header = session.execute(
         select(MechanicalProjectionORM).where(
             MechanicalProjectionORM.projection_uuid == projection_uuid
@@ -655,12 +692,32 @@ def run_publication_gate(
         findings,
         _CLASSIFICATION_CATEGORIES,
     )
-    persisted_collections = _comparable_collections(candidate.representation)
-    accepted_collections = _comparable_collections(oracle.representation)
-    for key in sorted(persisted_collections):
-        _compare_elements(
-            persisted_collections[key], accepted_collections[key], key, findings
+    # Each side canonicalizes under its own declaration, so a side whose
+    # declaration and content disagree cannot be rendered at all. That is a
+    # verdict, not a crash: the earlier steps have already reported what is
+    # wrong with it in their own words, and this gate's contract is that a
+    # caller receives a refusal rather than an exception out of the publication
+    # path. The element comparison is then skipped because there is nothing
+    # honest to compare — reporting every element as missing would invent
+    # findings the schemas, not the content, caused.
+    try:
+        persisted_collections = _comparable_collections(
+            candidate.representation, candidate.schema_version
         )
+        accepted_collections = _comparable_collections(
+            oracle.representation, oracle.schema_version
+        )
+    except (UnsupportedSchemaVersionError, LegacySchemaPayloadError) as exc:
+        _fail(
+            findings,
+            GateFailureCategory.SCHEMA_MISMATCH,
+            f"element comparison skipped: {exc}",
+        )
+    else:
+        for key in sorted(persisted_collections):
+            _compare_elements(
+                persisted_collections[key], accepted_collections[key], key, findings
+            )
 
     # 7. Accepted per-record obligations.
     obligations = _check_obligations(candidate, oracle)
