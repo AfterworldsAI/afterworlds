@@ -1206,3 +1206,66 @@ oracle_identity                : a0f0bd2f… unmoved
 committed artifact round-trips to identical payload : yes
 alembic                        : 0030 (head), no migration
 ```
+
+---
+
+# Round 12 — boundary classification, recorded before any code changed
+
+## Defect family
+
+**Closed-structure observation-order violation.** Not "one more tuple subclass".
+
+Round 11 established that a nested container must be an exact `tuple` before any reader iterates it, and
+added `held_container_violations` as the pre-scan that enforces it. That pre-scan calls
+`_declared_type(value)` and then reads the value's tuple fields with `getattr` — *before* the owning object
+has passed its own exact-runtime-type gate. A hostile subclass therefore executes `__getattribute__` before
+`fact_invariant_violations` or `applicability_violations` refuses it.
+
+This is the same invariant every subclass round since round 4 has been protecting, stated one level up:
+**a rejected authority object must not be observed before it is rejected.** Rounds 10 and 11 each closed one
+face of it — the element, then the container — while the *order* between the two remained implicit.
+
+Reproduction found a second instance of the same family that the review comment did not name:
+`exact_type_violations` interpolates `{value!r}` into its refusal, so refusing a hostile subclass renders it
+and runs the hostile method. Round 11 avoided exactly this in `exact_tuple_violations` and did not carry the
+reasoning back to the older helper. Same family, same round.
+
+## Boundary decision
+
+**CRD Issue 5d / PR A implementation scope.** Recorded per the standing boundary rule, which fired on the
+repeated-hotspot trigger: `representation.py`'s closed-structure surface has now taken rounds 4, 10, 11 and
+12.
+
+| Classification | Verdict |
+|---|---|
+| new mechanical semantic | no |
+| schema-content decision | no |
+| Known Unknown | no |
+| Owner Decision | no |
+| general hostile-Python-object hardening project | **no — explicitly out of scope** |
+| merge-blocking implementation defect | **yes** |
+
+No ADR amendment. The accepted serialized contract is unchanged: this is runtime structural enforcement
+only, so no representation-schema payload change, no manifest row, no schema-4 re-pin, and no movement of
+inherited identities. Implementation did not discover any need to change serialized grammar; had it, the
+instruction was to stop and report rather than proceed.
+
+## The ownership rule this round establishes
+
+> For every closed serialized authority object:
+>
+> **parent exact runtime type → held-container exact runtime type → child exact runtime type → semantic
+> observation.**
+>
+> Until the applicable gate succeeds, do not read declared fields, iterate, hash or equality-test, `repr`,
+> take length, construct keys, or otherwise observe the rejected value.
+
+Structural admission owns this ordering. Semantic validators may assume admitted structure. One contract,
+one choke point; the per-field checks that remain are callers of the shared rule, not parallel spellings of
+it.
+
+## Stop condition
+
+Parent-before-container ordering enforced at the shared boundary, every production caller of the generic
+walker classified, hostile-parent regressions passing, full gates green, zero movement holding. The sibling
+search stops there. PR #159 does not become generalized Python adversarial-object hardening.
