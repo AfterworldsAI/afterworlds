@@ -70,6 +70,7 @@ from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_2_VERSION,
     SCHEMA_3_VERSION,
     SCHEMA_4_VERSION,
+    SCHEMA_5_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -247,7 +248,7 @@ def test_the_captured_structural_hash_is_the_one_already_pinned() -> None:
     contract must agree, and neither may be the current one.
     """
     assert representation_schema_hash() != SCHEMA_2_HASH
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_4_VERSION
+    assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_2_VERSION
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +374,7 @@ UNKNOWN_VERSIONS = [
     # version. It is declared now, so the probe moves to the one after it —
     # the property is that an *unrecognised* version is refused, not that a
     # particular string is.
-    "5d-representation-schema-5",
+    "5d-representation-schema-6",
     "5d-representation-schema-0",
     "representation-schema-3",
     "",
@@ -407,7 +408,7 @@ def test_an_unknown_version_is_refused_even_with_no_components() -> None:
         provenance=(),
     )
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(empty, schema_version="5d-representation-schema-5")
+        representation_payload(empty, schema_version="5d-representation-schema-6")
 
 
 def test_the_refusal_names_the_versions_this_build_knows() -> None:
@@ -432,27 +433,51 @@ def test_the_registry_covers_the_current_schema() -> None:
 
 
 def test_each_merged_version_extends_the_one_before_it() -> None:
-    """The table is a succession, not three unrelated shapes.
+    """The table is a succession, not a set of unrelated shapes.
 
     A version whose key set is not a superset of its predecessor's would mean a
     key was *removed*, which no merged contract has done — and if one ever
     does, that is a decision to make explicitly rather than to discover here.
+
+    **Superset, not strict superset.** Until schema 5 every succession happened
+    to add a component key, so a strict subset held incidentally and was
+    asserted. Schema 5 disproves it: its additions are a required fact field, a
+    fact field, an applicability field and two value objects, none of which is a
+    component key. Growth every succession was never the property — *no key is
+    ever dropped* is.
     """
     succession = [
         SCHEMA_1_VERSION,
         SCHEMA_2_VERSION,
         SCHEMA_3_VERSION,
         SCHEMA_4_VERSION,
+        SCHEMA_5_VERSION,
     ]
     assert sorted(_MERGED_COMPONENT_FIELDS) == sorted(succession)
     for earlier, later in pairwise(succession):
-        assert _MERGED_COMPONENT_FIELDS[earlier] < _MERGED_COMPONENT_FIELDS[later]
+        assert _MERGED_COMPONENT_FIELDS[earlier] <= _MERGED_COMPONENT_FIELDS[later]
 
 
-def test_no_two_merged_versions_share_a_key_set() -> None:
-    """Distinct contracts, distinct payload shapes — otherwise the version is noise."""
-    shapes = list(_MERGED_COMPONENT_FIELDS.values())
-    assert len(set(shapes)) == len(shapes)
+def test_every_merged_version_states_its_own_key_set() -> None:
+    """Each version's row is written out, never inherited from a neighbour.
+
+    This previously asserted that no two versions *share* a key set, on the
+    premise that a version emitting an earlier shape would be noise. Schema 5
+    disproves the premise: it widens the contract without adding a component
+    key, so it legitimately emits schema 4's set — and it still needs its own
+    row, because the table failing closed on an unrecognised version is what the
+    rule actually protects.
+
+    Asserted as explicit membership plus a failing-closed lookup, which is what
+    ``_emitted_component_fields`` relies on.
+    """
+    for version in _MERGED_COMPONENT_FIELDS:
+        assert isinstance(_MERGED_COMPONENT_FIELDS[version], frozenset)
+    assert REPRESENTATION_SCHEMA_VERSION in _MERGED_COMPONENT_FIELDS
+    with pytest.raises(UnsupportedSchemaVersionError):
+        representation_payload(
+            schema_2_draft(), schema_version="5d-representation-schema-6"
+        )
 
 
 # ---------------------------------------------------------------------------

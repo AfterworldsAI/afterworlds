@@ -59,10 +59,15 @@ COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5
 
 
 def test_the_build_implements_a_later_schema_than_the_artifact_declares() -> None:
-    """The premise. Without it none of the tests below prove anything."""
+    """The premise. Without it none of the tests below prove anything.
+
+    Stated as *later than the artifact's*, not as one named successor: the gap
+    widens with every succession, and pinning it to a particular one would make
+    this premise expire the next time the union grows.
+    """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     assert inputs.oracle.schema_version == SCHEMA_3_VERSION
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_4_VERSION
+    assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_3_VERSION
     assert inputs.oracle.schema_hash != representation_schema_hash()
 
 
@@ -94,7 +99,7 @@ def test_d2_the_oracle_does_not_borrow_the_builds_contract() -> None:
         inputs.oracle.representation, schema_version=SCHEMA_3_VERSION
     )
     current = representation_payload(
-        inputs.oracle.representation, schema_version=SCHEMA_4_VERSION
+        inputs.oracle.representation, schema_version=REPRESENTATION_SCHEMA_VERSION
     )
     # Zero movement means the *content* is identical under both contracts, so a
     # byte difference here would mean the omission rule had broken. The property

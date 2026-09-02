@@ -163,6 +163,53 @@ found a declared addition whose joined rule was only half declared. The schema-3
 re-run against the finalized destination: six collections byte-identical, every stored coordinate
 re-deriving, `oracle_identity` unmoved.
 
+**Amended by Owner Decision 2026-09-02 — representation schema 5, and a correction to what schema 4
+declared about distance-scaled damage.** The `hazards-1` semantic review rejected proposal
+`6277ff735e0e47b3337f2c3736ca7922864b1cde9a3c286b3aee48ee461ba259` on one defect family: *mechanically
+distinct source meanings collapse or disappear because their qualifiers or composition are not present
+in canonical typed authority.* Schema 4 admitted three instances, and schema 5 closes each with a
+closed structure rather than a predicate language:
+
+* **A DC source states which roll it is stated for.** `AbilityCheckFact.context: RollContext` is
+  required and admits exactly `ability_check` and `saving_throw`. Until now Malnutrition's *"must
+  succeed on a DC 10 Constitution saving throw"* and a DC 10 Constitution ability check produced one
+  payload and one fact key. It is required rather than defaulted because a default would omit one of
+  the two spellings under the post-schema-3 omission rule, and the omitted form would hash exactly as
+  the stated one — re-creating the collapse inside the mechanism that exists to preserve identity. The
+  family is **not** migrated onto `RollSpec`: actor polarity stays outside a DC source, for the reason
+  the family already gave.
+* **A consumption rule states a band, not a threshold.** `ConsumptionBand` carries the requirement, the
+  period, an optional lower and upper bound each with its own inclusivity, and an optional *sustained*
+  duration of the band itself. `ApplicabilityKind.CONSUMPTION_THRESHOLD` now ranges over exactly that
+  one field. A single comparison could state only one side, so *"eats **but** consumes less than half"*
+  and *"eats nothing"* both reduced to `< 1/2` — and the source gives them different consequences.
+  "Each subsequent day without food" needs no further structure: `applies_when` already says *when a
+  component applies at all*, so a component whose applicability is the band and whose `recurs` is a
+  daily boundary repeats only while the band holds.
+* **A distance-scaled damage is stated once, on the damage.** `DamageFact.per: DamageInterval` says the
+  stated amount is dealt *per* interval, `ScalingBasis.DISTANCE_FALLEN` is refused on `ScalingFact`, and
+  a component may not hold a per-interval damage beside a damage-effect scaling. **This corrects
+  schema 4's own declaration**, which said `ScalingFact.threshold` carried the per-unit interval for
+  this basis. That reading was not enforceable — under every other basis the same field is *the level
+  above which the change begins* — so Falling was 3d6 or 4d6 on a 30-foot fall depending on which
+  reading a consumer applied. The schema-4 text is withdrawn rather than left standing beside its
+  replacement.
+
+A fourth rule joins them, on the same family: a `ROLL_OUTCOME` applicability answers to **exactly one**
+roll established in its own scope. *"On a successful check"* in a component that calls for no roll names
+the outcome of nothing, and the authority it gates becomes unreachable.
+
+The schema-5 destination pin is
+`2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40`. The schema-4 pin is unchanged and
+stays a recognized contract. Succession is registered one step at a time and resolved as a **path**:
+the committed `conditions-1` artifact declares schema 3 and reaches schema 5 across two recorded
+crossings, because a direct 3 → 5 row would reach the same declaration while asserting the artifact
+never crossed schema 4. Zero movement was re-run against the finalized destination: all six collections
+byte-identical across both steps, 185 spans, 185 acceptances and 16 obligations carried by object
+identity, the batch anchor still at schema 3, and the committed file never written. Nothing accepted
+moves at the new required axis because the accepted artifact holds no ability-check fact at all, which
+is asserted against the artifact rather than assumed.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

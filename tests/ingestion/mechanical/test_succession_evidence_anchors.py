@@ -170,14 +170,14 @@ def test_a_genuinely_lifted_history_loads(tmp_path) -> None:  # type: ignore[no-
     declaration and the lift evidence agree on where it ended up.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    lifted, record = lift_accepted_inputs(inputs, SCHEMA_4)
+    lifted, records = lift_accepted_inputs(inputs, SCHEMA_4)
     anchored = replace(
         lifted,
         schema_anchors=tuple(
             BatchSchemaAnchor(b.batch_id, b.proposal_identity, *SCHEMA_3)
             for b in lifted.batches
         ),
-        lifts=(record,),
+        lifts=records,
     )
     path = _write(
         accepted_inputs_payload(anchored), pathlib.Path(tmp_path), "lifted.json"
@@ -302,7 +302,9 @@ CORRUPTIONS = [
                 }
             ],
         ),
-        "no lift is registered",
+        # Schema 4 has a registered outgoing row since schema 5, so the refusal
+        # names what *is* registered from there rather than reporting nothing.
+        "the registered lift from",
         id="reversed-transition",
     ),
 ]
@@ -666,18 +668,20 @@ def _fully_evidenced_schema_4() -> AcceptedInputs:
     holding a schema-3 anchor and no crossing. That is incomplete evidence, and
     the test below asserts it is refused rather than papering over it here.
     """
-    lifted, record = lift_accepted_inputs(load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4)
-    return replace(lifted, lifts=(record,))
+    lifted, records = lift_accepted_inputs(
+        load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4
+    )
+    return replace(lifted, lifts=records)
 
 
 def test_the_genuine_succession_still_happens_exactly_once() -> None:
     """The crossing path, unchanged: one real record, anchored where reviewed."""
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    lifted, record = lift_accepted_inputs(inputs, SCHEMA_4)
+    lifted, records = lift_accepted_inputs(inputs, SCHEMA_4)
 
-    assert record is not None
-    assert record.lift_id == "5d-lift-schema-3-to-4"
-    assert (record.from_version, record.to_version) == (
+    assert records
+    assert records[-1].lift_id == "5d-lift-schema-3-to-4"
+    assert (records[-1].from_version, records[-1].to_version) == (
         SCHEMA_3_VERSION,
         SCHEMA_4_VERSION,
     )
@@ -689,11 +693,11 @@ def test_the_genuine_succession_still_happens_exactly_once() -> None:
     # The other half of T-7: deterministic as well as idempotent. Lifting the
     # same artifact again produces the same bytes, so "once" is a property of
     # the evidence rather than of when the function happened to be called.
-    twice, record_again = lift_accepted_inputs(
+    twice, records_again = lift_accepted_inputs(
         load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4
     )
     assert accepted_inputs_payload(twice) == accepted_inputs_payload(lifted)
-    assert record_again == record
+    assert records_again == records
 
 
 def test_retrying_a_fully_evidenced_artifact_is_a_byte_identical_no_op() -> None:
@@ -704,9 +708,9 @@ def test_retrying_a_fully_evidenced_artifact_is_a_byte_identical_no_op() -> None
     construction rather than by a comparison that could be satisfied loosely.
     """
     full = _fully_evidenced_schema_4()
-    again, record = lift_accepted_inputs(full, SCHEMA_4)
+    again, records = lift_accepted_inputs(full, SCHEMA_4)
 
-    assert record is None
+    assert records == ()
     assert again is full
     assert accepted_inputs_payload(again) == accepted_inputs_payload(full)
     assert len(again.lifts) == 1, "no duplicate lift evidence"
@@ -742,8 +746,8 @@ def test_lift_for_still_has_no_row_for_an_equal_pair() -> None:
 def test_the_legacy_artifact_no_ops_at_the_schema_it_declares() -> None:
     """The other valid equal pair: schema 3, unanchored, exactly as committed."""
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    same, record = lift_accepted_inputs(inputs, SCHEMA_3)
-    assert record is None
+    same, records = lift_accepted_inputs(inputs, SCHEMA_3)
+    assert records == ()
     assert same is inputs
     assert same.schema_anchors == (), "the committed artifact states no anchors"
 

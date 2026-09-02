@@ -93,7 +93,6 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
-    Rational,
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
@@ -103,7 +102,6 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
-    RequiredQuantity,
     RollActor,
     SizeComparison,
     SizeRelation,
@@ -111,6 +109,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
+    build_consumption_band,
     fact_from_payload,
     fact_key,
     fact_payload,
@@ -489,13 +488,12 @@ def _applicability_from_row(
                 if raw.get("damage_outcome") is None
                 else DamageOutcome(raw["damage_outcome"])
             ),
-            required_quantity=(
-                None
-                if raw.get("required_quantity") is None
-                else RequiredQuantity(raw["required_quantity"])
-            ),
-            fraction=_rational_operand(raw.get("fraction")),
             unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
+            band=(
+                None
+                if raw.get("band") is None
+                else build_consumption_band(raw["band"], f"{where}.band")
+            ),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise PersistedStateReconstructionError(
@@ -507,29 +505,6 @@ def _applicability_from_row(
             f"{table} {where}: {'; '.join(violations)}"
         )
     return built
-
-
-def _rational_operand(raw: object) -> Rational | None:
-    """Rebuild a stored ``Rational`` operand, or ``None``.
-
-    Nothing is coerced. A malformed shape raises out of the caller's ``try``
-    and becomes that module's own typed load failure, exactly as a bad
-    vocabulary member does — a fraction that reconstructs as a different
-    fraction is worse than one that refuses to reconstruct.
-    """
-    if raw is None:
-        return None
-    if not isinstance(raw, dict):
-        raise TypeError(f"fraction must be an object, got {type(raw).__name__}")
-    # The exact key set, like every other closed structure here. An undeclared
-    # key entering unchecked is the same defect this builder exists to close:
-    # it is a field nothing validated, and it would be silently discarded.
-    if set(raw) != {"numerator", "denominator"}:
-        raise ValueError(
-            f"fraction must carry exactly numerator and denominator, got "
-            f"{sorted(raw)}"
-        )
-    return Rational(numerator=raw["numerator"], denominator=raw["denominator"])
 
 
 def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:

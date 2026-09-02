@@ -26,6 +26,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
+    RollContext,
     SpellDescriptorFact,
     SpellSchool,
     fact_from_payload,
@@ -78,14 +79,20 @@ def _with_facts(*facts: object) -> tuple[str, ...]:
 def test_fixed_dc_without_a_value_is_rejected() -> None:
     assert any(
         "fixed DC without a dc_value" in f
-        for f in _with_facts(AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED))
+        for f in _with_facts(
+            AbilityCheckFact(
+                AbilityScore.WISDOM, DcKind.FIXED, context=RollContext.ABILITY_CHECK
+            )
+        )
     )
 
 
 def test_fixed_dc_with_a_value_passes() -> None:
     assert (
         fact_invariant_violations(
-            AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, 15)
+            AbilityCheckFact(
+                AbilityScore.WISDOM, DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
+            )
         )
         == ()
     )
@@ -95,13 +102,24 @@ def test_fixed_dc_with_a_value_passes() -> None:
 def test_non_fixed_dc_carrying_a_value_is_rejected(kind: DcKind) -> None:
     assert any(
         "carries dc_value 15" in f
-        for f in _with_facts(AbilityCheckFact(AbilityScore.WISDOM, kind, 15))
+        for f in _with_facts(
+            AbilityCheckFact(
+                AbilityScore.WISDOM, kind, 15, context=RollContext.ABILITY_CHECK
+            )
+        )
     )
 
 
 @pytest.mark.parametrize("kind", NON_FIXED)
 def test_non_fixed_dc_without_a_value_passes(kind: DcKind) -> None:
-    assert fact_invariant_violations(AbilityCheckFact(AbilityScore.WISDOM, kind)) == ()
+    assert (
+        fact_invariant_violations(
+            AbilityCheckFact(
+                AbilityScore.WISDOM, kind, context=RollContext.ABILITY_CHECK
+            )
+        )
+        == ()
+    )
 
 
 def test_negative_ability_score_is_rejected() -> None:
@@ -353,8 +371,14 @@ def test_negative_progression_level_is_rejected() -> None:
 @pytest.mark.parametrize(
     "fact",
     [
-        AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, 15),
-        AbilityCheckFact(AbilityScore.DEXTERITY, DcKind.SPELL_SAVE_DC),
+        AbilityCheckFact(
+            AbilityScore.WISDOM, DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
+        ),
+        AbilityCheckFact(
+            AbilityScore.DEXTERITY,
+            DcKind.SPELL_SAVE_DC,
+            context=RollContext.ABILITY_CHECK,
+        ),
         CreatureAbilityScoreFact(AbilityScore.CONSTITUTION, 14),
         SpellDescriptorFact(
             level=3, school=SpellSchool.ILLUSION, ritual=True, concentration=True

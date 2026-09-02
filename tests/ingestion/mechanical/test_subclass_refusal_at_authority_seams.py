@@ -120,6 +120,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
+    SCHEMA_5_HASH,
     SchemaLiftError,
     lift_accepted_inputs,
     lift_for,
@@ -766,6 +767,7 @@ def _ability_check(alternatives: object) -> AbilityCheckFact:
         dc_value=15,
         skill=Skill.ATHLETICS,
         alternatives=cast(Any, alternatives),
+        context=RollContext.ABILITY_CHECK,
     )
 
 
@@ -1089,7 +1091,7 @@ def test_the_committed_artifact_is_unmoved_by_this_round() -> None:
         inputs.batches[0].proposal_identity
     ]
     assert oracle_identity(inputs.oracle) == COMMITTED_ORACLE_IDENTITY
-    assert representation_schema_hash() == SCHEMA_4_HASH
+    assert representation_schema_hash() == SCHEMA_5_HASH
     # Every top-level collection is an exact tuple in the artifact as committed,
     # which is what makes the new rule a refusal rather than a restriction.
     assert all(type(getattr(draft, name)) is tuple for name in _DRAFT_ELEMENT_TYPES)
@@ -1144,6 +1146,7 @@ def _hostile_ability_check() -> object:
     return _hostile_parent(AbilityCheckFact, "alternatives")(
         ability=AbilityScore.STRENGTH,
         dc_kind=DcKind.FIXED,
+        context=RollContext.ABILITY_CHECK,
         dc_value=15,
         skill=Skill.ATHLETICS,
         alternatives=ALTERNATIVE_ROLLS,
@@ -1635,6 +1638,7 @@ def test_a_hostile_sequence_member_is_admitted_before_it_is_observed() -> None:
             dc_value=15,
             skill=Skill.ATHLETICS,
             alternatives=cast(Any, (hostile, ALTERNATIVE_ROLLS[0])),
+            context=RollContext.ABILITY_CHECK,
         )
     )
     findings = structural_admission_violations(draft)

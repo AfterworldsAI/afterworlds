@@ -59,6 +59,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
     SCHEMA_3_VERSION,
+    SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
     BatchSchemaAnchor,
     lift_chain_violations,
@@ -145,7 +146,14 @@ def _accept(prior, proposal):
 
 
 def test_a_schema_4_proposal_extends_schema_3_accepted_authority() -> None:
-    """The seam this whole mechanism exists for, on the real committed artifact."""
+    """The seam this whole mechanism exists for, on the real committed artifact.
+
+    Schema 5 made the crossing a *path*: the artifact was reviewed under schema 3
+    and the build now implements schema 5, so it crosses two registered
+    successions rather than one. The seam is unchanged — what it proves is that
+    the destination this build declares is reached only through rows the registry
+    holds.
+    """
     prior = _prior()
     assert prior.oracle.schema_version == SCHEMA_3_VERSION
     assert prior.lifts == ()
@@ -160,7 +168,7 @@ def test_a_schema_4_proposal_extends_schema_3_accepted_authority() -> None:
     )
 
     # The merged artifact declares the destination contract.
-    assert result.oracle.schema_version == SCHEMA_4_VERSION
+    assert result.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
     assert result.oracle.schema_hash == representation_schema_hash()
     # Both batches, and the union of both scopes.
     assert [b.batch_id for b in result.batches] == [
@@ -205,14 +213,25 @@ def test_the_lift_is_recorded_as_evidence_with_its_verified_extent() -> None:
             schema_hash=representation_schema_hash(),
         ),
     )
-    (lift,) = result.lifts
-    assert lift.lift_id == "5d-lift-schema-3-to-4"
-    assert (lift.from_version, lift.from_hash) == (SCHEMA_3_VERSION, SCHEMA_3_HASH)
-    assert (lift.to_version, lift.to_hash) == (
-        SCHEMA_4_VERSION,
+    # Every crossing, oldest first, each with its own proved extent. A single
+    # collapsed record would assert a transition the registry does not contain.
+    first, last = result.lifts[0], result.lifts[-1]
+    assert [x.lift_id for x in result.lifts] == [
+        "5d-lift-schema-3-to-4",
+        "5d-lift-schema-4-to-5",
+    ]
+    assert (first.from_version, first.from_hash) == (SCHEMA_3_VERSION, SCHEMA_3_HASH)
+    assert (last.to_version, last.to_hash) == (
+        REPRESENTATION_SCHEMA_VERSION,
         representation_schema_hash(),
     )
-    assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
+    # Continuous: each record's destination is the next record's source.
+    assert (first.to_version, first.to_hash) == (
+        result.lifts[1].from_version,
+        result.lifts[1].from_hash,
+    )
+    for lift in result.lifts:
+        assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
     # What the lift actually proved, asserted against the representation rather
     # than against a number the record repeats back to the reader.
     assert len(prior.oracle.representation.components) == 54
@@ -239,10 +258,9 @@ def test_growth_after_the_crossing_leaves_no_recoverable_pre_lift_extent() -> No
             schema_hash=representation_schema_hash(),
         ),
     )
-    (lift,) = result.lifts
-
-    # Same collections, strictly more in them than the lift ever saw.
-    assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
+    # Same collections, strictly more in them than any lift ever saw.
+    for lift in result.lifts:
+        assert set(lift.verified_collections) == REPRESENTATION_COLLECTIONS
     for collection in ("records", "components", "provenance"):
         proved = len(getattr(prior.oracle.representation, collection))
         assert len(getattr(result.oracle.representation, collection)) > proved
@@ -313,19 +331,20 @@ def test_the_reverse_transition_is_refused() -> None:
     # whose declaration was overwritten. Re-declaring alone would be the restamp
     # ``carried_anchors`` now refuses, and this test would then pass for the
     # wrong reason — it is about the registry having no 4-to-3 row (#137 round 8).
+    # The schema-4 pair is named literally rather than read from the live build:
+    # this build implements schema 5, so ``representation_schema_hash()`` would
+    # pair schema 4's version with schema 5's hash and be refused for the
+    # unrelated reason that it names no contract at all.
     lifted = replace(
         prior,
         oracle=replace(
             prior.oracle,
             schema_version=SCHEMA_4_VERSION,
-            schema_hash=representation_schema_hash(),
+            schema_hash=SCHEMA_4_HASH,
         ),
         schema_anchors=tuple(
             BatchSchemaAnchor(
-                b.batch_id,
-                b.proposal_identity,
-                SCHEMA_4_VERSION,
-                representation_schema_hash(),
+                b.batch_id, b.proposal_identity, SCHEMA_4_VERSION, SCHEMA_4_HASH
             )
             for b in prior.batches
         ),

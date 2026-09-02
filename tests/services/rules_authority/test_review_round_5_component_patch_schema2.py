@@ -220,9 +220,21 @@ def test_replace_record_carries_them_on_every_component() -> None:
 #: Captured on `22872cd` before any round-5 edit, by running the pre-change
 #: emitter. Recomputing them with post-change code would make the claim
 #: unfalsifiable.
+#: Captured identities for three legacy patch shapes. Two are unmoved since the
+#: schema-2 component-patch work, which is what this table is for.
+#:
+#: **``APPEND_COMPONENT`` moved once, at representation schema 5, and it is the
+#: only one that did.** Its payload carries an ``AbilityCheckFact``, and schema 5
+#: gives that family a required ``context`` axis — so a DC 10 Constitution *check*
+#: and a DC 10 Constitution *saving throw* stopped sharing a payload. An override
+#: patch carrying one therefore states something it could not state before, and a
+#: different meaning is a different identity: that is ADR-005d Decision 6
+#: behaving correctly, not a refactor leaking into stored state. The two rows
+#: whose payloads carry no ability check are byte-for-byte unmoved, which is what
+#: bounds the change to the meaning that actually widened.
 LEGACY = {
     "REPLACE_COMPONENT": "e71ba996-4bc3-5ed3-8f2f-10ac83009a8f",
-    "APPEND_COMPONENT": "95b4f149-8ce4-5a4b-98be-209c924907e2",
+    "APPEND_COMPONENT": "3f6443f6-5d47-5178-9f44-ce1f6fd92c87",
     "REPLACE_RECORD": "eaf62f89-5582-5fdf-ba74-8e94918f5bb3",
 }
 
@@ -753,5 +765,5 @@ def test_the_representation_schema_hash_is_untouched() -> None:
     canary may only move when the representation itself does.
     """
     assert representation_schema_hash() == (
-        "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
+        "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
     )

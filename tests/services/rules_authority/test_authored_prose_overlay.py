@@ -34,6 +34,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
     DcKind,
+    RollContext,
     fact_key,
     fact_payload,
 )
@@ -651,7 +652,10 @@ def test_a_mixed_component_becomes_effectively_structured_when_prose_is_suppress
     never a handling that remembers the MIXED it used to be.
     """
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -749,7 +753,10 @@ def test_a_whole_component_replace_after_prose_suppression_promotes_again(
     assert suppressed.handling is ComponentHandling.STRUCTURED
 
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -795,7 +802,10 @@ def test_replace_component_clears_prose_suppression_so_a_later_append_applies(
         precedence=10,
     )
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -904,7 +914,10 @@ def test_component_replace_declaring_mixed_then_fact_disable_finishes_prose_boun
     ``DISABLE`` strips its only fact, with its authored prose intact.
     """
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -978,7 +991,10 @@ def test_record_replace_declaring_mixed_then_fact_disable_finishes_prose_bound(
     both the prose path and the whole-component-``REPLACE`` path above.
     """
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -1029,7 +1045,10 @@ def test_component_append_declaring_mixed_then_fact_disable_finishes_prose_bound
     same final derivation.
     """
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     new_component_key = "house-rider"
     author_override(
@@ -1093,7 +1112,10 @@ def test_reusing_a_semantic_key_after_a_prose_operation_does_not_inherit_stale_s
     assert promoted.handling is ComponentHandling.MIXED
 
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -1132,7 +1154,10 @@ def test_all_empty_fallback_does_not_depend_on_fact_vs_prose_disable_order(
     identical either way.
     """
     check_fact_a = AbilityCheckFact(
-        ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.WISDOM,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,
@@ -1176,7 +1201,10 @@ def test_all_empty_fallback_does_not_depend_on_fact_vs_prose_disable_order(
     )
 
     check_fact_b = AbilityCheckFact(
-        ability=AbilityScore.STRENGTH, dc_kind=DcKind.FIXED, dc_value=15
+        ability=AbilityScore.STRENGTH,
+        dc_kind=DcKind.FIXED,
+        dc_value=15,
+        context=RollContext.ABILITY_CHECK,
     )
     second_key = "house-rider"
     author_override(
@@ -1720,7 +1748,10 @@ def test_append_component_may_declare_mixed_with_facts_and_authored_prose(
     runtime: RuntimeFixture,
 ) -> None:
     check_fact = AbilityCheckFact(
-        ability=AbilityScore.STRENGTH, dc_kind=DcKind.FIXED, dc_value=12
+        ability=AbilityScore.STRENGTH,
+        dc_kind=DcKind.FIXED,
+        dc_value=12,
+        context=RollContext.ABILITY_CHECK,
     )
     author_override(
         runtime.session,

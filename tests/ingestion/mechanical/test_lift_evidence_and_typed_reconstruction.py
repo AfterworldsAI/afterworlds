@@ -159,7 +159,12 @@ def test_one_registered_lift_ending_at_the_declaration_is_legal() -> None:
                 ),
             ),
             DECLARED_3,
-            "no lift is registered",
+            # Schema 4 now *has* a registered outgoing row (4 to 5), so the
+            # refusal sharpens from "nothing is registered from here" to "what
+            # is registered from here goes somewhere else". Both refuse a
+            # reversed transition; "no lift is registered" is still exercised by
+            # ``invented-transition``, whose source has no row at all.
+            "the registered lift from",
             id="reversed",
         ),
         pytest.param(
@@ -245,13 +250,13 @@ def test_the_loader_refuses_invented_evidence_end_to_end(tmp_path) -> None:  # t
 def _lifted_artifact(tmp_path: pathlib.Path) -> tuple[pathlib.Path, SchemaLiftRecord]:
     """The committed schema-3 artifact, really lifted and really written out."""
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    lifted, record = lift_accepted_inputs(inputs, DECLARED_4)
+    lifted, records = lift_accepted_inputs(inputs, DECLARED_4)
     path = tmp_path / "lifted.json"
     path.write_text(
-        json.dumps(accepted_inputs_payload(replace(lifted, lifts=(record,)))),
+        json.dumps(accepted_inputs_payload(replace(lifted, lifts=records))),
         encoding="utf-8",
     )
-    return path, record
+    return path, records[-1]
 
 
 def test_a_real_record_survives_writing_and_loading(tmp_path) -> None:  # type: ignore[no-untyped-def]

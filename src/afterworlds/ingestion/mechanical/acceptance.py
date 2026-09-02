@@ -86,9 +86,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SchemaLiftError,
     SchemaLiftRecord,
     carried_anchors,
-    lift_for,
+    lift_path,
     schema_binding_violations,
-    verify_lift,
+    verify_lift_path,
 )
 
 __all__ = ["AcceptanceError", "accept_proposal"]
@@ -334,21 +334,26 @@ def accept_proposal(
     # (version, hash) source and destination pair. An unknown, reversed, skipped,
     # or hash-mismatched transition raises, and "a later version" is never
     # evidence — SCHEMA_LIFTS is a table, not a comparison.
-    lift_record: SchemaLiftRecord | None = None
+    lift_records: tuple[SchemaLiftRecord, ...] = ()
     if prior is not None and (
         prior.oracle.schema_version,
         prior.oracle.schema_hash,
     ) != (proposal.schema_version, proposal.schema_hash):
         try:
-            lift = lift_for(
+            # Every authorized step, oldest first. A prior reviewed under an
+            # older schema may have to cross more than one succession to reach
+            # the schema this proposal declares — the committed conditions-1
+            # artifact crosses 3 to 4 to 5 — and each crossing is recorded, so
+            # the artifact keeps saying which successions actually happened.
+            steps = lift_path(
                 (prior.oracle.schema_version, prior.oracle.schema_hash),
                 (proposal.schema_version, proposal.schema_hash),
             )
             # Proves element by element that the prior accepted content is
-            # byte-identical under the destination schema *before* anything is
+            # byte-identical under every schema on the way *before* anything is
             # re-declared. A lift may authorize a wider contract; it may never
             # move a semantic identity the Owner already accepted.
-            lift_record = verify_lift(lift, prior.oracle.representation)
+            lift_records = verify_lift_path(steps, prior.oracle.representation)
         # ``LegacySchemaPayloadError`` joins it: a prior whose declared schema
         # cannot serialize its own content is uncanonicalizable, which is the
         # same acceptance failure by a different route. Letting it escape this
@@ -450,8 +455,7 @@ def accept_proposal(
         ),
         # Oldest first, and append-only: an artifact records every succession it
         # was carried across, not merely the last one.
-        lifts=tuple(prior.lifts if prior else ())
-        + ((lift_record,) if lift_record is not None else ()),
+        lifts=tuple(prior.lifts if prior else ()) + lift_records,
     )
 
 

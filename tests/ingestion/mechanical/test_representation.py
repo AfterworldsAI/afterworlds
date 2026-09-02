@@ -21,6 +21,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
+    RollContext,
     UnknownFactFamilyError,
     fact_key,
     fact_payload,
@@ -58,7 +59,11 @@ def test_honest_representation_passes() -> None:
 
 
 def test_declared_family_serializes_with_its_discriminator() -> None:
-    payload = fact_payload(AbilityCheckFact(AbilityScore.WISDOM, DcKind.SPELL_SAVE_DC))
+    payload = fact_payload(
+        AbilityCheckFact(
+            AbilityScore.WISDOM, DcKind.SPELL_SAVE_DC, context=RollContext.ABILITY_CHECK
+        )
+    )
     assert payload["family"] == "ability_check"
     assert payload["ability"] == "wisdom"
     assert payload["dc_value"] is None

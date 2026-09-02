@@ -80,6 +80,7 @@ from __future__ import annotations
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import field as declared_field
 from enum import StrEnum
 from types import UnionType
 from typing import Any, ClassVar, Union, cast, get_args, get_origin, get_type_hints
@@ -202,7 +203,10 @@ __all__ = [
     "Recurrence",
     "RecurrenceBoundary",
     "recurrence_violations",
+    "build_consumption_band",
+    "component_damage_composition_violations",
     "component_participant_violations",
+    "component_roll_outcome_violations",
     "fact_qualifier_target_key",
     "fact_qualifier_violations",
     "RECURRENCE_KEYS",
@@ -888,6 +892,18 @@ class MeasureUnit(StrEnum):
     POUND = "pound"
 
 
+class DistanceUnit(StrEnum):
+    """The closed unit vocabulary for a stated distance.
+
+    Schema 5, and separate from :class:`MeasureUnit` on purpose: that vocabulary
+    is volumes and masses drawn from the requirement tables, and folding a
+    distance into it would let a size-keyed water requirement state itself in
+    feet. One member, because the SRD prints every distance in feet.
+    """
+
+    FOOT = "foot"
+
+
 class TimePeriod(StrEnum):
     """The period a stated requirement is measured over."""
 
@@ -1024,9 +1040,22 @@ class ScalingBasis(StrEnum):
     #: multiplies by: "the roll is reduced by 2 times your Exhaustion level".
     CONDITION_LEVEL = "condition_level"
     #: Distance fallen: Falling's *"1d6 Bludgeoning damage ... for every 10 feet
-    #: it fell"*. Three rules across three top-level sections scale damage by a
-    #: distance, so this is a member on the existing family rather than a family
-    #: of its own — ``threshold`` already carries the per-unit interval.
+    #: it fell"*.
+    #:
+    #: **Corrected at schema 5, and the schema-4 reading is withdrawn.** Schema 4
+    #: admitted this member on :class:`ScalingFact` and declared that
+    #: ``threshold`` carried the per-unit interval. That reading was not
+    #: enforceable: under every other basis ``threshold`` is *the level above
+    #: which the change begins*, and nothing on the fact said which of the two a
+    #: reader should apply — so a damage beside it could be a base the increment
+    #: adds to, or the per-interval amount itself. Falling is 3d6 on a 30-foot
+    #: fall under one reading and 4d6 under the other.
+    #:
+    #: Schema 5 states the interval on the damage instead
+    #: (:class:`DamageInterval`, :attr:`DamageFact.per`), and ``ScalingFact``
+    #: refuses this basis outright. The member survives here because a damage
+    #: interval names its basis from this same vocabulary rather than minting a
+    #: second spelling of "distance fallen".
     DISTANCE_FALLEN = "distance_fallen"
 
 
@@ -1249,6 +1278,93 @@ class SizeQuantity:
 
 
 @dataclass(frozen=True)
+class ConsumptionBand:
+    """The share of a printed daily requirement a rule tests, as a bounded band.
+
+    Schema 5, replacing what ``CONSUMPTION_THRESHOLD`` ranged over. A single
+    comparison could only ever state one side, so *"eats **but** consumes less
+    than half"* and *"eats nothing"* both reduced to ``< 1/2`` — two
+    mechanically different rules with one typed form, which is the collapse this
+    succession exists to close. Malnutrition states them as two rules with two
+    different consequences, so they must not share a payload.
+
+    **One predicate over one operand, and deliberately not a conjunction.** The
+    operand is the subject's consumption of ``quantity`` over ``period``,
+    measured as a share of the printed requirement for its own size. The band
+    has no operators, no nesting, and no way to combine two bands into a third;
+    two bands cannot be conjoined any more than two ``Applicability`` values can.
+    It is the same closed two-sided shape :class:`SizeComparison` already uses
+    for its bounds, admitted here because the corpus states a two-sided form —
+    *"eats but consumes less than half"* is ``0 < x < 1/2`` — which the size
+    vocabulary never does.
+
+    The four forms the corpus states, and nothing else:
+
+    * *"drinks less than half the required water"* — upper ``1/2`` exclusive,
+      no lower bound;
+    * *"eats but consumes less than half"* — lower ``0`` exclusive, upper
+      ``1/2`` exclusive;
+    * *"eats nothing"* — lower and upper ``0``, both inclusive;
+    * *"drinks the full amount required for a day"* — lower ``1`` inclusive, no
+      upper bound.
+
+    ``sustained_at_least`` is **how long the subject has continuously been inside
+    this band**, and it is part of the same single predicate rather than a second
+    one: *"a creature that eats nothing **for 5 days**"* is one state with a
+    duration, not a zero-food test conjoined with an unrelated elapsed clock.
+    Stating it as ``ELAPSED_DURATION(5, DAY)`` beside the band would say "five
+    days have passed", which is true of every creature alive on day five.
+    **At least**, never exactly: the fifth day and every later day are alike
+    while no food is eaten, which is what the source's *"as well as an additional
+    level at the end of each subsequent day without food"* states.
+
+    That "each subsequent day" needs no further structure. A component's
+    ``applies_when`` says *when this component applies at all*, so a component
+    whose applicability is this band and whose ``recurs`` is a daily boundary
+    repeats only while the band holds, and stops the day eating resumes.
+    """
+
+    quantity: RequiredQuantity
+    period: TimePeriod
+    #: Unbounded below when ``None``. A share, so never negative.
+    lower: Rational | None = None
+    lower_inclusive: bool = False
+    #: Unbounded above when ``None``.
+    upper: Rational | None = None
+    upper_inclusive: bool = False
+    #: How long the subject has continuously been inside this band, at least.
+    sustained_at_least: int | None = None
+    sustained_unit: TimeUnit | None = None
+
+
+@dataclass(frozen=True)
+class DamageInterval:
+    """The interval a damage amount is dealt *per*, never beside.
+
+    Schema 5. Falling states *"1d6 Bludgeoning damage at the end of the fall for
+    every 10 feet it fell, to a maximum of 20d6"*: one amount, repeated per
+    interval, with a ceiling. Schema 4 spelled that as a :class:`DamageFact`
+    beside a :class:`ScalingFact`, and the pair has two readings — 1d6 *plus*
+    1d6 per 10 feet, or 1d6 *per* 10 feet — because nothing on either fact says
+    which. A 30-foot fall is 3d6 under one reading and 4d6 under the other, so
+    the ambiguity is a wrong answer, not a stylistic one.
+
+    Stating the interval on the damage itself removes the choice: the amount the
+    fact carries **is** the per-interval amount, and there is no base beside it.
+    ``ScalingFact`` is refused for :attr:`ScalingBasis.DISTANCE_FALLEN`
+    accordingly, and a component may not hold this beside a damage-effect
+    scaling — one way to say it, checked rather than documented.
+    """
+
+    #: What is measured. Restricted to the distance bases, so a level-scaled
+    #: increase cannot arrive here wearing a distance unit.
+    basis: ScalingBasis
+    #: The size of one interval — 10, for *"every 10 feet"*.
+    amount: int
+    unit: DistanceUnit
+
+
+@dataclass(frozen=True)
 class RollSpec:
     """Exactly which roll a fact is about: whose, what kind, and of what ability.
 
@@ -1299,6 +1415,34 @@ class AbilityCheckFact:
 
     ability: AbilityScore
     dc_kind: DcKind
+    #: Which of the D20 Tests the source calls for. **Required, and schema 5.**
+    #:
+    #: Until schema 5 this family carried no roll-context axis, so *"must
+    #: succeed on a DC 10 Constitution saving throw"* (Malnutrition) and a DC 10
+    #: Constitution ability check produced byte-identical typed authority. Those
+    #: are different rolls — one adds save proficiency, the other skill
+    #: proficiency — and a consumer reading the typed surface could not tell
+    #: them apart. The family's own docstring had declared its scope as "a check
+    #: or save" since schema 1, which made the collapse legal rather than
+    #: absent; Owner Decision 2026-09-02 settles it as a required axis.
+    #:
+    #: Required rather than defaulted, and therefore never omitted from the
+    #: canonical payload: a default would make one of the two spellings free and
+    #: re-create exactly the collapse, because the omitted form and the stated
+    #: form would hash alike. Nothing accepted moves — the committed
+    #: ``conditions-1`` artifact holds no ability-check fact at all.
+    #:
+    #: Exactly two members are admitted. An attack roll has no DC source, and
+    #: ``INITIATIVE`` and the ``D20_TEST`` umbrella name no single roll this
+    #: family could state a difficulty for.
+    #:
+    #: **Keyword-only**, so it is required without displacing a positional
+    #: argument. A required field must precede every defaulted one, which would
+    #: have made ``AbilityCheckFact(WISDOM, FIXED, 15)`` bind ``15`` to this
+    #: axis instead of to ``dc_value`` — silently, at every existing call site.
+    #: Keyword-only keeps the declared order and forces the distinction to be
+    #: named wherever it is stated, which is the whole point of admitting it.
+    context: RollContext = declared_field(kw_only=True)
     dc_value: int | None = None
     #: The skill the source prints in parentheses after the ability, when it
     #: prints one. Its governing ability must be ``ability`` — the Skills table
@@ -1477,6 +1621,13 @@ class DamageFact:
     #: Post-schema-3, so it is omitted when unset and no accepted damage fact
     #: moves.
     maximum_dice: int | None = None
+    #: The interval this amount is dealt **per**, when the source states one:
+    #: Falling's *"for every 10 feet it fell"*. When set, ``dice`` is the
+    #: per-interval amount and there is no base beside it — see
+    #: :class:`DamageInterval` for why the schema-4 damage-plus-scaling pair
+    #: could not say that. Post-schema-4, so it is omitted when unset and no
+    #: accepted or schema-4 damage fact moves.
+    per: DamageInterval | None = None
 
 
 @dataclass(frozen=True)
@@ -2226,6 +2377,37 @@ def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]
     return []
 
 
+def _check_skill_context(skill: object, context: object, where: str) -> list[str]:
+    """A printed skill qualifies an ability check, and nothing else — schema 5.
+
+    The SRD prints a skill in parentheses after the ability of a *check* —
+    *"a DC 15 Dexterity (Acrobatics) check"* — and never after a saving throw,
+    an attack roll, Initiative, or the ``D20_TEST`` umbrella. Proficiency in a
+    skill applies to the check it names; a save adds save proficiency instead,
+    which is a different bonus from a different column of the sheet.
+
+    **Shared, because two structures carry a skill.** :class:`AbilityCheckFact`
+    states the roll a DC is set for and :class:`RollSpec` states the roll a
+    modification applies to, and both gained a context axis at schema 5. One
+    function is what stops them disagreeing about a combination — the asymmetry
+    that kept this rule out of schema 5's first cut, since refusing it on one
+    structure alone would have left the other admitting it.
+
+    Deliberately silent about a non-:class:`Skill` value: that refusal belongs
+    to :func:`_check_skill_pairing`, which owns the skill's own type and its
+    governing ability, and reporting it twice would say one defect as two.
+    """
+    if skill is None or not isinstance(skill, Skill):
+        return []
+    if context is RollContext.ABILITY_CHECK:
+        return []
+    return [
+        f"{where} states {skill.value} on a "
+        f"{getattr(context, 'value', context)!r}; a skill qualifies an ability "
+        "check, and a saving throw adds save proficiency rather than a skill"
+    ]
+
+
 def _check_skill_pairing(skill: object, ability: object, where: str) -> list[str]:
     """A printed skill must sit under the ability the Skills table gives it."""
     if skill is None:
@@ -2412,11 +2594,62 @@ def _check_derived_quantity(fact: DerivedQuantityFact) -> list[str]:
     return findings
 
 
+#: The D20 Tests a DC-source fact may state. An attack roll has no DC source,
+#: and neither ``INITIATIVE`` nor the ``D20_TEST`` umbrella names a single roll
+#: a difficulty could be stated for.
+_DC_ROLL_CONTEXTS: frozenset[RollContext] = frozenset(
+    {RollContext.ABILITY_CHECK, RollContext.SAVING_THROW}
+)
+
+
 def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
-    findings = [
+    """The DC-source contract, in the order its clauses depend on each other.
+
+    Three passes, because each reads values the one before it admitted. Vocabulary
+    first, so nothing downstream reads a value that is not a member; then the
+    **context** rules, because at schema 5 the roll a DC is stated for decides
+    what else the fact may carry; then the DC relationship, which is about
+    ``dc_kind`` and ``dc_value`` alone.
+
+    Putting the context rules ahead of the skill, alternatives and DC clauses is
+    not cosmetic. A saving throw offering a choice of checks fails the
+    alternatives *completeness* rule too, and reporting that first would name the
+    symptom — "no member states the fact's own pair" — instead of the defect,
+    which is that a saving throw offers no choice of checks at all.
+    """
+    vocabulary = [
         *_enum_field(fact.ability, AbilityScore, "ability"),
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
+        *_enum_field(fact.context, RollContext, "context"),
+    ]
+    if vocabulary:
+        return vocabulary
+
+    findings: list[str] = []
+    if fact.context not in _DC_ROLL_CONTEXTS:
+        findings.append(
+            "a DC source states an ability check or a saving throw, not a "
+            f"{fact.context.value}"
+        )
+    elif fact.context is not RollContext.ABILITY_CHECK:
+        # A saving throw carries neither of the two things a *check* may state.
+        # ``_check_alternatives`` already refuses a member rolled as anything but
+        # a check; this is the same rule for the fact that offers them, with the
+        # halves swapped, and one DC does not govern two kinds of roll.
+        findings.extend(_check_skill_context(fact.skill, fact.context, "skill"))
+        if fact.alternatives:
+            findings.append(
+                f"a {fact.context.value} offers alternatives; a choice of "
+                "ability checks belongs to an ability check, and one DC does "
+                "not govern two kinds of roll"
+            )
+    if findings:
+        return findings
+
+    findings = [
         *_optional_int_field(fact.dc_value, "dc_value"),
+        # Context admitted, so the pairing rule it never replaced runs here: a
+        # skill under the wrong ability stays refused on its own terms.
         *_check_skill_pairing(fact.skill, fact.ability, "skill"),
         *_check_alternatives(fact.alternatives, fact.ability, fact.skill),
     ]
@@ -2687,6 +2920,104 @@ def _check_optional_rational(value: object, field: str) -> list[str]:
     return [] if value is None else _check_rational(value, field)
 
 
+#: The bases a damage interval may measure. Restricted rather than open to the
+#: whole vocabulary: a spell-slot level is not a distance, and pairing one with
+#: a distance unit would state an interval nothing can measure.
+_INTERVAL_BASES: frozenset[ScalingBasis] = frozenset({ScalingBasis.DISTANCE_FALLEN})
+
+
+def _check_damage_interval(value: object, field: str) -> list[str]:
+    """Invariants of the shared damage-interval shape."""
+    if findings := _vo_field(value, DamageInterval, field):
+        return findings
+    interval = cast(DamageInterval, value)
+    findings = [
+        *_enum_field(interval.basis, ScalingBasis, f"{field}.basis"),
+        *_enum_field(interval.unit, DistanceUnit, f"{field}.unit"),
+        *_int_field(interval.amount, f"{field}.amount"),
+    ]
+    if findings:
+        return findings
+    if interval.basis not in _INTERVAL_BASES:
+        findings.append(
+            f"{field}.basis {interval.basis.value} is not a distance a damage "
+            "interval can be measured over"
+        )
+    if interval.amount < 1:
+        # A zero-length interval repeats without advancing, which is not a
+        # quantity of damage but an unbounded one.
+        findings.append(f"{field}.amount {interval.amount} is not an interval")
+    return findings
+
+
+def _check_optional_damage_interval(value: object, field: str) -> list[str]:
+    return [] if value is None else _check_damage_interval(value, field)
+
+
+def _check_consumption_band(value: object, field: str) -> list[str]:
+    """Invariants of the shared consumption-band shape.
+
+    A band that states no bound states nothing, and a band whose bounds cross
+    states an impossible state. Both are refused rather than interpreted, on the
+    same standard every other closed shape here is held to.
+    """
+    if findings := _vo_field(value, ConsumptionBand, field):
+        return findings
+    band = cast(ConsumptionBand, value)
+    findings = [
+        *_enum_field(band.quantity, RequiredQuantity, f"{field}.quantity"),
+        *_enum_field(band.period, TimePeriod, f"{field}.period"),
+        *_check_optional_rational(band.lower, f"{field}.lower"),
+        *_check_optional_rational(band.upper, f"{field}.upper"),
+        *_optional_int_field(band.sustained_at_least, f"{field}.sustained_at_least"),
+    ]
+    for name in ("lower_inclusive", "upper_inclusive"):
+        if type(getattr(band, name)) is not bool:
+            findings.append(f"{field}.{name} is not a boolean")
+    if band.sustained_unit is not None and not isinstance(
+        band.sustained_unit, TimeUnit
+    ):
+        findings.append(
+            f"{field}.sustained_unit {band.sustained_unit!r} is not a declared TimeUnit"
+        )
+    if findings:
+        return findings
+
+    if band.lower is None and band.upper is None:
+        findings.append(f"{field} states no bound, so it tests nothing")
+    for bound, inclusive in (
+        ("lower", band.lower_inclusive),
+        ("upper", band.upper_inclusive),
+    ):
+        # An inclusivity for a bound that is not there is a claim about an edge
+        # the band does not have.
+        if getattr(band, bound) is None and inclusive:
+            findings.append(f"{field}.{bound}_inclusive states an absent {bound} bound")
+    if band.lower is not None and band.upper is not None:
+        low = band.lower.numerator * band.upper.denominator
+        high = band.upper.numerator * band.lower.denominator
+        if low > high:
+            findings.append(
+                f"{field}.lower is above its upper bound, so no share is inside"
+            )
+        elif low == high and not (band.lower_inclusive and band.upper_inclusive):
+            # "eats nothing" is the point band 0..0; an exclusive edge on a
+            # point excludes the only share it names.
+            findings.append(
+                f"{field} names one share but excludes it, so no share is inside"
+            )
+    if (band.sustained_at_least is None) != (band.sustained_unit is None):
+        findings.append(
+            f"{field} states a sustained duration with both an amount and a "
+            "unit, or neither"
+        )
+    elif band.sustained_at_least is not None and band.sustained_at_least < 1:
+        findings.append(
+            f"{field}.sustained_at_least {band.sustained_at_least} is not a duration"
+        )
+    return findings
+
+
 def _check_money(value: object, field: str) -> list[str]:
     if findings := _vo_field(value, Money, field):
         return findings
@@ -2867,9 +3198,18 @@ def _check_damage(fact: DamageFact) -> list[str]:
         *_optional_int_field(fact.flat_amount, "flat_amount"),
         *_optional_int_field(fact.stated_average, "stated_average"),
         *_optional_int_field(fact.maximum_dice, "maximum_dice"),
+        *_check_optional_damage_interval(fact.per, "per"),
     ]
     if findings:
         return findings
+    if fact.per is not None and fact.dice is None:
+        # An interval says the *dice* repeat. A flat amount per interval is a
+        # form the corpus does not state, and admitting it would leave the cap
+        # above with nothing to cap.
+        findings.append(
+            "per states an interval for a damage this fact expresses as a flat "
+            "amount; an interval repeats a dice expression"
+        )
     if fact.maximum_dice is not None:
         if fact.dice is None:
             findings.append(
@@ -2949,6 +3289,8 @@ def _check_rollspec(value: object, field: str) -> list[str]:
             f"{field} qualifies a {value.context.value} by ability; the source "
             "names an ability only for ability checks and saving throws"
         )
+    # The same rule ``AbilityCheckFact`` is held to, through the same function.
+    findings.extend(_check_skill_context(value.skill, value.context, field))
     # Initiative is always rolled by the creature whose turn order it sets;
     # "Initiative against you" is not a thing the source can say.
     if value.context is RollContext.INITIATIVE and value.actor is not RollActor.SUBJECT:
@@ -3332,6 +3674,17 @@ def _check_scaling(fact: ScalingFact) -> list[str]:
     ]
     if findings:
         return findings
+    if fact.basis is ScalingBasis.DISTANCE_FALLEN:
+        # Schema 5. A distance-scaled damage stated here is the ambiguous form:
+        # nothing on this fact or on the DamageFact beside it says whether the
+        # damage is the increment or a base the increment adds to, and a 30-foot
+        # fall is 3d6 under one reading and 4d6 under the other.
+        # ``DamageFact.per`` says it once, so this says it never.
+        return [
+            "distance-fallen damage is stated as DamageFact.per, which says the "
+            "amount is dealt per interval rather than added to a base; a scaling "
+            "beside a damage cannot say which of the two it is"
+        ]
     if fact.threshold < 0:
         findings.append(f"negative scaling threshold {fact.threshold}")
     stated = (fact.dice_amount is not None) + (fact.amount is not None)
@@ -3577,7 +3930,7 @@ def _build_applicability(value: object, where: str) -> Applicability:
             "phase",
         ),
         where,
-        optional=("outcome", "damage_outcome", "required_quantity", "fraction", "unit"),
+        optional=("outcome", "damage_outcome", "unit", "band"),
     )
     _reject_at(
         where,
@@ -3592,11 +3945,6 @@ def _build_applicability(value: object, where: str) -> Applicability:
             ),
             *_optional_json_enum(
                 p.get("damage_outcome"), DamageOutcome, f"{where}.damage_outcome"
-            ),
-            *_optional_json_enum(
-                p.get("required_quantity"),
-                RequiredQuantity,
-                f"{where}.required_quantity",
             ),
             *_optional_json_enum(p.get("unit"), TimeUnit, f"{where}.unit"),
         ],
@@ -3645,7 +3993,7 @@ def _build_applicability(value: object, where: str) -> Applicability:
                 ),
             )
         )
-    raw_fraction = p.get("fraction")
+    raw_band = p.get("band")
     built = Applicability(
         kind=ApplicabilityKind(p["kind"]),
         negated=p["negated"],
@@ -3661,17 +4009,12 @@ def _build_applicability(value: object, where: str) -> Applicability:
             if p.get("damage_outcome") is None
             else DamageOutcome(p["damage_outcome"])
         ),
-        required_quantity=(
-            None
-            if p.get("required_quantity") is None
-            else RequiredQuantity(p["required_quantity"])
-        ),
-        fraction=(
-            None
-            if raw_fraction is None
-            else _build_rational(raw_fraction, f"{where}.fraction")
-        ),
         unit=None if p.get("unit") is None else TimeUnit(p["unit"]),
+        band=(
+            None
+            if raw_band is None
+            else build_consumption_band(raw_band, f"{where}.band")
+        ),
     )
     _reject_at(where, applicability_violations(built))
     return built
@@ -3734,6 +4077,7 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
         [
             *_json_enum(p["ability"], AbilityScore, "ability"),
             *_json_enum(p["dc_kind"], DcKind, "dc_kind"),
+            *_json_enum(p["context"], RollContext, "context"),
             *_optional_int_field(p["dc_value"], "dc_value"),
             *_optional_json_enum(p.get("skill"), Skill, "skill"),
         ],
@@ -3744,6 +4088,7 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
     return AbilityCheckFact(
         ability=AbilityScore(p["ability"]),
         dc_kind=DcKind(p["dc_kind"]),
+        context=RollContext(p["context"]),
         dc_value=p["dc_value"],
         skill=None if p.get("skill") is None else Skill(p["skill"]),
         alternatives=tuple(
@@ -3833,6 +4178,82 @@ def _build_rational(value: object, where: str) -> Rational:
         ],
     )
     return Rational(numerator=p["numerator"], denominator=p["denominator"])
+
+
+def build_consumption_band(value: object, where: str) -> ConsumptionBand:
+    """Rebuild a consumption band, or refuse.
+
+    Every key is required on the wire: the band is not a post-schema-3 field of
+    its own, and an omitted bound would rebuild as "unbounded" — a wider band
+    than the one that was written, which is the silent widening this whole
+    succession exists to stop.
+    """
+    p = _json_object(
+        value,
+        (
+            "quantity",
+            "period",
+            "lower",
+            "lower_inclusive",
+            "upper",
+            "upper_inclusive",
+            "sustained_at_least",
+            "sustained_unit",
+        ),
+        where,
+    )
+    _reject_at(
+        where,
+        [
+            *_json_enum(p["quantity"], RequiredQuantity, f"{where}.quantity"),
+            *_json_enum(p["period"], TimePeriod, f"{where}.period"),
+            *_optional_json_enum(
+                p["sustained_unit"], TimeUnit, f"{where}.sustained_unit"
+            ),
+        ],
+    )
+    built = ConsumptionBand(
+        quantity=RequiredQuantity(p["quantity"]),
+        period=TimePeriod(p["period"]),
+        lower=(
+            None
+            if p["lower"] is None
+            else _build_rational(p["lower"], f"{where}.lower")
+        ),
+        lower_inclusive=p["lower_inclusive"],
+        upper=(
+            None
+            if p["upper"] is None
+            else _build_rational(p["upper"], f"{where}.upper")
+        ),
+        upper_inclusive=p["upper_inclusive"],
+        sustained_at_least=p["sustained_at_least"],
+        sustained_unit=(
+            None if p["sustained_unit"] is None else TimeUnit(p["sustained_unit"])
+        ),
+    )
+    _reject_at(where, _check_consumption_band(built, where))
+    return built
+
+
+def _build_damage_interval(value: object, where: str) -> DamageInterval:
+    """Rebuild a damage interval, or refuse."""
+    p = _json_object(value, ("basis", "amount", "unit"), where)
+    _reject_at(
+        where,
+        [
+            *_json_enum(p["basis"], ScalingBasis, f"{where}.basis"),
+            *_json_enum(p["unit"], DistanceUnit, f"{where}.unit"),
+            *_int_field(p["amount"], f"{where}.amount"),
+        ],
+    )
+    built = DamageInterval(
+        basis=ScalingBasis(p["basis"]),
+        amount=p["amount"],
+        unit=DistanceUnit(p["unit"]),
+    )
+    _reject_at(where, _check_damage_interval(built, where))
+    return built
 
 
 def _build_money(value: object, where: str) -> Money:
@@ -4016,12 +4437,14 @@ def _build_damage(p: Mapping[str, Any]) -> DamageFact:
             *_optional_int_field(p.get("maximum_dice"), "maximum_dice"),
         ],
     )
+    raw_per = p.get("per")
     return DamageFact(
         damage_type=DamageType(p["damage_type"]),
         dice=None if p["dice"] is None else _build_dice(p["dice"], "dice"),
         flat_amount=p["flat_amount"],
         stated_average=p["stated_average"],
         maximum_dice=p.get("maximum_dice"),
+        per=None if raw_per is None else _build_damage_interval(raw_per, "per"),
     )
 
 
@@ -4528,7 +4951,14 @@ assert (
 #: as their closed vocabularies. Version 2 is merged and therefore reachable,
 #: so it is succeeded rather than corrected in place, exactly as the rule above
 #: requires.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-4"
+#: Version ``5`` closes the hazards-1 semantic-review rejection: the roll
+#: context a DC source states (:class:`RollContext` on
+#: :class:`AbilityCheckFact`), the two-sided consumption band a requirement rule
+#: tests (:class:`ConsumptionBand`), and the interval a damage amount is dealt
+#: per rather than beside (:class:`DamageInterval`), with :class:`DistanceUnit`
+#: as its closed vocabulary. Each closes a case where two mechanically distinct
+#: source meanings shared one canonical payload.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-5"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -4663,9 +5093,16 @@ def _wire_fields(cls: type) -> list[dict[str, object]]:
     """
     hints = get_type_hints(cls)
     omitted = _POST_SCHEMA_3_FIELDS.get(cls.__name__, {})
+    required_since = _REQUIRED_SINCE.get(cls.__name__, {})
     entries: list[dict[str, object]] = []
     for f in fields(cls):
         entry: dict[str, object] = {"name": f.name, "shape": _shape(hints[f.name])}
+        if f.name in required_since:
+            # The other half of the same grammar statement: this key is never
+            # absent, and an earlier contract could not have carried it. Declared
+            # here so the identity moves if the rule is ever relaxed into a
+            # default.
+            entry["required_since"] = required_since[f.name]
         if f.name in omitted:
             # Part of the serialized grammar, not an implementation detail: a
             # reader of a payload needs to know that this key's absence is a
@@ -4931,6 +5368,14 @@ def _introductions() -> tuple[_Introduction, ...]:
     rows.append(
         _Introduction("reference_ownership", "ReferenceDraft", "record_owned", four)
     )
+    # Schema 5 adds no family and no ownership form: its whole surface is a
+    # required axis, a new closed vocabulary, and two value objects the ``facts``
+    # and ``components`` halves of this payload already describe by shape.
+    for vocabulary, members in _SCHEMA_5_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_5)
+            for member in members
+        )
     return tuple(sorted(rows, key=lambda r: (r.kind, r.owner, r.name)))
 
 
@@ -4976,7 +5421,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
     ownership form respectively; neither is a vocabulary, and inventing a value
     set for them would assert a shape the wire does not have.
     """
-    members = _SCHEMA_4_VOCABULARY_ALL.get(owner)
+    members = _SCHEMA_4_VOCABULARY_ALL.get(owner) or _SCHEMA_5_VOCABULARY_ALL.get(owner)
     return None if members is None else sorted(members)
 
 
@@ -5062,15 +5507,20 @@ def _collect_post_schema_3(
         # A vocabulary member added to a field the declared schema already had.
         # The field registry cannot see this case at all: the field is old, and
         # only the *value* is new.
-        if (type(value).__name__, value.value) in _SCHEMA_4_MEMBER_INDEX and (
-            not _version_states(schema_version, SCHEMA_4)
+        for member_index, arrived in (
+            (_SCHEMA_4_MEMBER_INDEX, SCHEMA_4),
+            (_SCHEMA_5_MEMBER_INDEX, SCHEMA_5),
         ):
-            findings.append(
-                f"{path or 'value'}: declares schema {schema_version!r}, whose "
-                f"{type(value).__name__} does not admit {value.value!r} — that "
-                f"arrived with {SCHEMA_4}; refusing to read a value the "
-                "declared contract cannot state"
-            )
+            if (
+                type(value).__name__,
+                value.value,
+            ) in member_index and not _version_states(schema_version, arrived):
+                findings.append(
+                    f"{path or 'value'}: declares schema {schema_version!r}, "
+                    f"whose {type(value).__name__} does not admit "
+                    f"{value.value!r} — that arrived with {arrived}; refusing to "
+                    "read a value the declared contract cannot state"
+                )
         return
     if is_dataclass(value) and not isinstance(value, type):
         # Parent admission, on the same rule as the structural walker. This one
@@ -5108,6 +5558,19 @@ def _collect_post_schema_3(
                 f"with {SCHEMA_4}; refusing to read an ownership the declared "
                 "contract cannot state"
             )
+        # A field a later schema made *required* on a family an earlier schema
+        # already had. The omission registry below cannot see this case: the key
+        # is never absent, so there is no empty state to gate on, and its mere
+        # presence is meaning the earlier contract could not state.
+        for key, arrived in _REQUIRED_SINCE.get(declared.__name__, {}).items():
+            if not _version_states(schema_version, arrived):
+                where = f"{path}.{key}" if path else key
+                findings.append(
+                    f"{where}: declares schema {schema_version!r}, which has no "
+                    f"{key!r} key — that arrived with {arrived} and is required "
+                    "there; refusing to read a distinction the declared contract "
+                    "cannot state"
+                )
         omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
         for field in fields(declared):
             child = getattr(value, field.name)
@@ -5213,11 +5676,51 @@ _SCHEMA_4_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_5 = "5d-representation-schema-5"
+
+#: Every vocabulary value schema 5 admitted, by vocabulary. One entry: schema 5
+#: adds no member to a vocabulary schema 4 already had, and introduces
+#: :class:`DistanceUnit` whole.
+_SCHEMA_5_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "DistanceUnit": tuple(m.value for m in DistanceUnit),
+}
+
+_SCHEMA_5_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "DistanceUnit": tuple(m.value for m in DistanceUnit),
+}
+
+_SCHEMA_5_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_5_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+#: Fields a later schema made **required** on a family an earlier schema already
+#: had, by owning dataclass name then field name.
+#:
+#: Deliberately a second registry rather than a flag on
+#: :class:`_PostSchema3Field`. That one says *this key may be absent, and its
+#: absence reads as the declared default*; this one says *this key must be
+#: present, and no earlier contract could have carried it*. One table answering
+#: both questions would have to make a required field wire-optional to be
+#: registered at all — which is exactly the free default
+#: :attr:`AbilityCheckFact.context` must not have, because an omitted context
+#: and a stated one would then hash alike and re-create the collapse schema 5
+#: exists to close.
+_REQUIRED_SINCE: dict[str, dict[str, str]] = {
+    "AbilityCheckFact": {"context": SCHEMA_5},
+}
+
 _VERSION_STATES: dict[str, frozenset[str]] = {
     "5d-representation-schema-1": frozenset(),
     "5d-representation-schema-2": frozenset(),
     "5d-representation-schema-3": frozenset(),
     "5d-representation-schema-4": frozenset({"5d-representation-schema-4"}),
+    # A later contract states every earlier introduction as well as its own.
+    # Written out rather than accumulated, for the same reason
+    # ``_MERGED_COMPONENT_FIELDS`` writes its rows out: a succession must not
+    # silently inherit a row nobody reviewed.
+    SCHEMA_5: frozenset({"5d-representation-schema-4", SCHEMA_5}),
 }
 
 _register_post_schema_3(
@@ -5245,6 +5748,20 @@ _register_post_schema_3(
         introduced_in="5d-representation-schema-4",
         is_empty=_empty_none,
     ),
+    # Schema 5. Omitted when unset, so every schema-3 and schema-4 damage fact
+    # and applicability keeps the exact canonical form it already had.
+    _PostSchema3Field(
+        owner="DamageFact",
+        key="per",
+        introduced_in=SCHEMA_5,
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="Applicability",
+        key="band",
+        introduced_in=SCHEMA_5,
+        is_empty=_empty_none,
+    ),
     _PostSchema3Field(
         owner="ConditionLevelFact",
         key="cause_scoped",
@@ -5261,8 +5778,6 @@ _register_post_schema_3(
         for key in (
             "outcome",
             "damage_outcome",
-            "required_quantity",
-            "fraction",
             "unit",
         )
     ),
@@ -5415,12 +5930,14 @@ class Applicability:
     outcome: AutomaticOutcome | None = None
     #: DAMAGE_OUTCOME
     damage_outcome: DamageOutcome | None = None
-    #: CONSUMPTION_THRESHOLD — the requirement tested, and the fraction of it.
-    #: ``comparison`` carries the direction, so no second comparison spelling.
-    required_quantity: RequiredQuantity | None = None
-    fraction: Rational | None = None
     #: ELAPSED_DURATION — ``value`` carries the count, this its unit.
     unit: TimeUnit | None = None
+    #: CONSUMPTION_THRESHOLD, schema 5. One closed band over one operand,
+    #: replacing the ``required_quantity``/``fraction``/``comparison`` triple
+    #: schema 4 ranged this kind over. That triple could state only one side of
+    #: the requirement, so *"eats but consumes less than half"* and *"eats
+    #: nothing"* shared a payload. See :class:`ConsumptionBand`.
+    band: ConsumptionBand | None = None
 
 
 @dataclass(frozen=True)
@@ -5852,9 +6369,8 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     ApplicabilityKind.PHASE: frozenset({"phase"}),
     ApplicabilityKind.ROLL_OUTCOME: frozenset({"outcome"}),
     ApplicabilityKind.DAMAGE_OUTCOME: frozenset({"damage_outcome"}),
-    ApplicabilityKind.CONSUMPTION_THRESHOLD: frozenset(
-        {"required_quantity", "fraction", "comparison"}
-    ),
+    # Schema 5: one closed band, not a triple that could state one side.
+    ApplicabilityKind.CONSUMPTION_THRESHOLD: frozenset({"band"}),
     ApplicabilityKind.ELAPSED_DURATION: frozenset({"value", "unit"}),
 }
 
@@ -5879,9 +6395,8 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
         "phase",
         "outcome",
         "damage_outcome",
-        "required_quantity",
-        "fraction",
         "unit",
+        "band",
     }
 )
 
@@ -5896,6 +6411,8 @@ _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
     {
         Applicability,
         ComponentOption,
+        ConsumptionBand,
+        DamageInterval,
         DiceExpression,
         FactQualifier,
         Money,
@@ -6124,6 +6641,155 @@ def _counterpart_scope_violations(
                     "size comparison names the counterpart, but nothing in "
                     f"{where} establishes one"
                 )
+    return findings
+
+
+def component_damage_composition_violations(
+    facts: Sequence[object],
+    options: Sequence[object],
+    tag: str,
+) -> list[str]:
+    """One component states one damage composition — schema 5.
+
+    :attr:`DamageFact.per` says an amount is dealt *per* interval, and
+    :class:`ScalingFact` says an amount *increases by* an increment. A component
+    holding both over damage states the amount twice under two readings, and a
+    consumer has no way to know whether to add them: for Falling that is the
+    difference between 3d6 and 4d6 on a 30-foot fall.
+
+    Component-scoped for the same reason
+    :func:`component_participant_violations` is: no single fact can see whether
+    its neighbour already stated the composition it belongs to. Stated over
+    ``(facts, options)`` rather than a whole :class:`ComponentDraft` so the same
+    rule governs the build-time representation and the effective view an
+    override set produces, rather than a looser second copy of it.
+
+    ``ScalingFact`` already refuses ``DISTANCE_FALLEN`` outright, so this is not
+    that rule restated: it catches the composition where the scaling names a
+    *different* basis — a level-scaled damage increase beside a distance-dealt
+    damage — which is legal fact by fact and unreadable together.
+    """
+    scopes: list[tuple[str, Sequence[object]]] = [("", facts)]
+    scopes.extend(
+        (getattr(o, "semantic_key", ""), getattr(o, "facts", ()))
+        for o in options
+        if type(o) is ComponentOption
+    )
+    findings: list[str] = []
+    for option_key, scoped in scopes:
+        where = tag if not option_key else f"{tag} option {option_key}"
+        intervals = [f for f in scoped if type(f) is DamageFact and f.per is not None]
+        scalings = [
+            f
+            for f in scoped
+            if type(f) is ScalingFact and f.effect is ScalingEffect.DAMAGE
+        ]
+        if intervals and scalings:
+            findings.append(
+                f"{where}: states damage both per interval and as a scaling "
+                "increase; one component states one damage composition, and "
+                "nothing says whether the two add"
+            )
+    return findings
+
+
+#: The families that establish a roll an outcome condition can be about. A DC
+#: source states the roll and where its difficulty comes from; an attack roll
+#: states one directly. Nothing else in the union calls for a roll, so nothing
+#: else can own an outcome.
+_ROLL_ESTABLISHING_FAMILIES: frozenset[FactFamily] = frozenset(
+    {FactFamily.ABILITY_CHECK, FactFamily.ATTACK_ROLL}
+)
+
+
+def _rolls_established(facts: Sequence[object]) -> int:
+    return sum(
+        1
+        for f in facts
+        if getattr(f, "FAMILY", None) in _ROLL_ESTABLISHING_FAMILIES
+        and _declared_type(f) is _FACT_TYPES.get(cast(Any, getattr(f, "FAMILY", None)))
+    )
+
+
+def _roll_outcome_scope_violations(
+    conditions: Sequence[object], established: int, whose: str
+) -> list[str]:
+    findings: list[str] = []
+    for condition in conditions:
+        if (
+            type(condition) is not Applicability
+            or condition.kind is not ApplicabilityKind.ROLL_OUTCOME
+        ):
+            continue
+        if established == 0:
+            findings.append(
+                "states a roll outcome, but no fact in scope calls for a roll; "
+                f"{whose} names an outcome of nothing"
+            )
+        elif established > 1:
+            findings.append(
+                f"states a roll outcome, but {whose} calls for {established} "
+                "rolls, so which one the outcome is about is unstated"
+            )
+    return findings
+
+
+def component_roll_outcome_violations(
+    facts: Sequence[object],
+    options: Sequence[object],
+    applies_when: object,
+    tag: str,
+    fact_qualifiers: Sequence[object] = (),
+) -> list[str]:
+    """A roll outcome answers to exactly one roll in its own scope — schema 5.
+
+    *"On a successful check, any damage resulting from the fall is halved"* is a
+    condition **on the check the same rule already called for**. Stated in a
+    component that calls for no roll, it names the outcome of nothing: a
+    consumer has no way to know which D20 Test to read, and the halving becomes
+    unreachable authority. Stated where two rolls are called for, it is
+    ambiguous rather than absent, which is worse — a consumer picks one.
+
+    Component-scoped for the same reason
+    :func:`component_participant_violations` is, and scoped by the same rule: a
+    component's own facts hold whichever option is taken, so they establish the
+    roll for every scope, while an *option's* facts establish it only within
+    that option, because the arms of an exhaustive choice are mutually
+    exclusive.
+
+    The honest authoring this forces is the one the source states: put the
+    modifier in the component that holds the check, and qualify only that fact
+    with the outcome. That is a :class:`FactQualifier`, and it is checked here
+    exactly as a component's own ``applies_when`` is.
+    """
+    established = _rolls_established(facts)
+    scoped_qualifiers: dict[str, list[object]] = {}
+    for qualifier in fact_qualifiers:
+        if not _usable_qualifier_coordinates(qualifier):
+            continue
+        assert isinstance(qualifier, FactQualifier)
+        scoped_qualifiers.setdefault(qualifier.option_key, []).append(
+            qualifier.applies_when
+        )
+    findings = [
+        f"{tag}: {v}"
+        for v in _roll_outcome_scope_violations(
+            [applies_when, *scoped_qualifiers.get("", [])],
+            established,
+            "the component",
+        )
+    ]
+    for option in options:
+        if type(option) is not ComponentOption:
+            continue
+        findings.extend(
+            f"{tag} option {option.semantic_key}: {v}"
+            for v in _roll_outcome_scope_violations(
+                [option.applies_when, *scoped_qualifiers.get(option.semantic_key, [])],
+                established + _rolls_established(option.facts),
+                "the component or this option",
+            )
+        )
     return findings
 
 
@@ -6860,6 +7526,17 @@ _INVARIANTS: tuple[_Invariant, ...] = (
         field="skill",
         rule="a skill whose printed governing ability equals this roll's ability",
     ),
+    # Schema 5: the context half of the same axis, on both structures that
+    # carry a skill, so neither can admit a combination the other refuses.
+    _Invariant(
+        locus=_shape_locus(RollSpec),
+        id="roll.skill.ability-check-only",
+        field="skill+context",
+        rule=(
+            "stated only for an ability check; a saving throw, an attack roll, "
+            "Initiative and the D20 Test umbrella carry no skill"
+        ),
+    ),
     # H-1 recurrence.
     _Invariant(
         locus=_shape_locus(Recurrence),
@@ -6877,13 +7554,34 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "declaration order rather than authoring order"
         ),
     ),
-    # H-4 consumption threshold, and H-14 elapsed duration beside the kind whose
-    # rule it joined.
+    # Schema 5 consumption band, replacing schema 4's single-sided fraction:
+    # the kind ranges over one closed band, and the rules that make a band name
+    # a real set of shares are part of the contract that replaced it.
     _Invariant(
-        id="consumption_threshold.fraction.shared-rational-rules",
-        locus="applicability:consumption_threshold",
-        field="fraction",
-        rule="a rational share, held to the shared rational rules",
+        id="consumption_band.bounds.names-a-real-share-set",
+        locus=_shape_locus(ConsumptionBand),
+        field="lower+upper",
+        rule=(
+            "at least one bound is stated; an inclusivity is stated only for a "
+            "bound that exists; a lower bound never exceeds its upper; and two "
+            "equal bounds are both inclusive, so a band always names at least "
+            "one share"
+        ),
+    ),
+    _Invariant(
+        id="consumption_band.bounds.shared-rational-rules",
+        locus=_shape_locus(ConsumptionBand),
+        field="lower+upper",
+        rule="rational shares, held to the shared rational rules",
+    ),
+    _Invariant(
+        id="consumption_band.sustained.amount-and-unit-together",
+        locus=_shape_locus(ConsumptionBand),
+        field="sustained_at_least",
+        rule=(
+            "a sustained duration states both an amount and a unit, or neither, "
+            "and the amount is at least one"
+        ),
     ),
     _Invariant(
         id="quantity_threshold.value.not-below-zero",
@@ -6983,6 +7681,86 @@ _INVARIANTS: tuple[_Invariant, ...] = (
         field="floor_amount",
         rule="a floor states both an amount and a unit, or neither",
     ),
+    # Schema 5, requirement 1: the roll a DC source states.
+    _Invariant(
+        id="ability_check.context.dc-bearing-roll-only",
+        locus="fact:ability_check",
+        field="context",
+        rule=(
+            "an ability check or a saving throw, never an attack roll, "
+            "Initiative, or the D20 Test umbrella, none of which names one roll "
+            "a difficulty could be stated for"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.skill.ability-check-only",
+        locus="fact:ability_check",
+        field="skill+context",
+        rule=(
+            "stated only for an ability check; a saving throw adds save "
+            "proficiency rather than a skill"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.context.alternatives-are-checks",
+        locus="fact:ability_check",
+        field="context+alternatives",
+        rule=(
+            "a fact offering alternatives is itself rolled as an ability check, "
+            "as every alternative already must be; one DC does not govern two "
+            "kinds of roll"
+        ),
+    ),
+    # Schema 5, requirement 3: one reading for a distance-scaled damage.
+    _Invariant(
+        id="damage.per.repeats-a-dice-expression",
+        locus="fact:damage",
+        field="per",
+        rule=(
+            "an interval repeats a stated dice expression, so a damage stating "
+            "one states dice rather than a flat amount"
+        ),
+    ),
+    _Invariant(
+        id="damage_interval.basis.distance-only",
+        locus=_shape_locus(DamageInterval),
+        field="basis",
+        rule=(
+            "a distance the interval can be measured over, and an interval of "
+            "at least one unit"
+        ),
+    ),
+    _Invariant(
+        id="scaling.basis.no-distance-fallen",
+        locus="fact:scaling",
+        field="basis",
+        rule=(
+            "never distance_fallen: a distance-scaled damage is stated as the "
+            "damage's own interval, because a scaling beside a damage cannot say "
+            "whether the damage is the increment or a base it adds to"
+        ),
+    ),
+    # Schema 5, requirement 2: a component's damage composition is stated once.
+    _Invariant(
+        id="component.roll_outcome.one-established-roll-in-scope",
+        locus="component",
+        field="applies_when+fact_qualifiers",
+        rule=(
+            "a roll-outcome condition answers to exactly one roll called for in "
+            "its own scope; none makes it an outcome of nothing, and more than "
+            "one leaves which roll unstated"
+        ),
+    ),
+    _Invariant(
+        id="component.damage.interval-excludes-damage-scaling",
+        locus="component",
+        field="facts",
+        rule=(
+            "a component holding a damage with a stated interval holds no "
+            "damage-effect scaling, so the damage is never both dealt per "
+            "interval and increased beside itself"
+        ),
+    ),
 )
 
 
@@ -7053,7 +7831,6 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         ("phase", Phase),
         ("outcome", AutomaticOutcome),
         ("damage_outcome", DamageOutcome),
-        ("required_quantity", RequiredQuantity),
         ("unit", TimeUnit),
     ):
         held = getattr(applicability, name)
@@ -7071,7 +7848,11 @@ def applicability_violations(applicability: Applicability) -> list[str]:
     # type here and the invariants elsewhere is how ``Rational(1, 0)`` reached
     # acceptance, committed loading, persistence, overrides and publication —
     # every one of those delegates to this function (#137 round 5).
-    typed.extend(_check_optional_rational(applicability.fraction, "fraction"))
+    typed.extend(
+        []
+        if applicability.band is None
+        else _check_consumption_band(applicability.band, "band")
+    )
     if typed:
         return typed
     allowed = _APPLICABILITY_FIELDS[applicability.kind]

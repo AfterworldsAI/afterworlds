@@ -25,6 +25,17 @@ That is a stronger guarantee than a transforming lift could give. A transforming
 lift has to argue that its mapping preserved meaning; this one demonstrates that
 nothing moved.
 
+**The omission rule is not the whole story, and schema 5 is where that shows.**
+A succession may also make a field *required* on a family an earlier contract
+already had — :attr:`AbilityCheckFact.context` does exactly that — and a
+required field is never omitted, so every payload of that family moves. Such a
+succession is registrable only where the accepted artifact holds no element of
+that family, and :func:`verify_lift` is what establishes it: the proof is byte
+identity of what is actually there, element by element, not an argument from the
+omission rule. Schema 5's registered row is legal because the committed
+``conditions-1`` artifact contains no ability-check fact at all, which its own
+tests assert against the artifact rather than assume.
+
 **Compatibility is declared, never inferred.** The registry is keyed by the exact
 source pair and names its destination pair literally. Version ordering is not
 evidence: "schema 4 is newer than schema 3" says nothing about whether schema 4
@@ -61,6 +72,8 @@ if TYPE_CHECKING:  # pragma: no cover - import cycle guard
 __all__ = [
     "SCHEMA_LIFTS",
     "BatchSchemaAnchor",
+    "lift_path",
+    "verify_lift_path",
     "carried_anchors",
     "succession_evidence_violations",
     "accepted_schema_contracts",
@@ -80,6 +93,9 @@ SCHEMA_3_HASH = "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e0
 SCHEMA_4_VERSION = "5d-representation-schema-4"
 #: Pinned literally. See the module docstring for why this is not derived.
 SCHEMA_4_HASH = "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_5_VERSION = "5d-representation-schema-5"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_5_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -165,6 +181,27 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "asserting."
         ),
     ),
+    (SCHEMA_4_VERSION, SCHEMA_4_HASH): SchemaLift(
+        lift_id="5d-lift-schema-4-to-5",
+        from_version=SCHEMA_4_VERSION,
+        from_hash=SCHEMA_4_HASH,
+        to_version=SCHEMA_5_VERSION,
+        to_hash=SCHEMA_5_HASH,
+        rationale=(
+            "Schema 5 adds a required roll-context axis to the DC-source family, "
+            "an interval to a damage amount, a consumption band to one "
+            "applicability kind, and one closed distance vocabulary. The two "
+            "optional additions are omitted from the canonical payload when they "
+            "carry no meaning, and the required axis exists on no schema-4 fact "
+            "because no accepted authority holds an ability check at all — so "
+            "every inherited element has the same canonical form under both, "
+            "which verify_lift proves element by element rather than asserting. "
+            "A schema-4 consumption threshold is the one shape this succession "
+            "cannot carry, because schema 5 redefines what that kind ranges "
+            "over; it fails closed rather than being reshaped, and no accepted "
+            "authority contains one."
+        ),
+    ),
 }
 
 
@@ -189,6 +226,64 @@ def lift_for(source: tuple[str, str], target: tuple[str, str]) -> SchemaLift:
     if lift is None or (lift.to_version, lift.to_hash) != target:
         raise UnknownSchemaLiftError(source, target)
     return lift
+
+
+def lift_path(
+    source: tuple[str, str], target: tuple[str, str]
+) -> tuple[SchemaLift, ...]:
+    """Every authorized step from *source* to *target*, oldest first, or fail closed.
+
+    A succession is registered one step at a time, and accepted authority may
+    have to cross more than one to reach the schema a proposal declares: the
+    committed ``conditions-1`` artifact was reviewed under schema 3, and a
+    schema-5 proposal extending it crosses 3 → 4 → 5. Each step is proved and
+    recorded separately, so the artifact's evidence keeps saying which
+    successions actually happened rather than collapsing them into a transition
+    nobody registered.
+
+    **Walks registered rows only, and never infers one.** There is no ordering
+    on versions here any more than there is in :func:`lift_for`: the walk
+    follows :data:`SCHEMA_LIFTS` from the exact source pair and stops at the
+    exact target pair. An unregistered source, a reversed direction, a skipped
+    step, and a hash that does not match all have no path at all, and each
+    raises the same refusal rather than being reported differently.
+
+    Bounded by the registry's own size, so a registry that ever contained a
+    cycle would exhaust the walk rather than loop in it.
+    """
+    if source == target:
+        # Not a path. "Is this succession authorized?" and "is there anything to
+        # do?" are different questions, and the no-op belongs to the caller that
+        # knows it is one — the same separation ``lift_for`` keeps.
+        raise UnknownSchemaLiftError(source, target)
+    steps: list[SchemaLift] = []
+    cursor = source
+    seen = {source}
+    for _ in range(len(SCHEMA_LIFTS)):
+        step = SCHEMA_LIFTS.get(cursor)
+        if step is None:
+            break
+        steps.append(step)
+        cursor = (step.to_version, step.to_hash)
+        if cursor == target:
+            return tuple(steps)
+        if cursor in seen:
+            break
+        seen.add(cursor)
+    raise UnknownSchemaLiftError(source, target)
+
+
+def verify_lift_path(
+    steps: Sequence[SchemaLift], prior: RepresentationDraft
+) -> tuple[SchemaLiftRecord, ...]:
+    """Prove *prior* survives every step of a path unchanged, or raise.
+
+    Each step is proved against the *same* representation, because a lift never
+    transforms one: proving 3 ≡ 4 and then 4 ≡ 5 over the identical content is
+    what establishes 3 ≡ 5, and doing it step by step is what lets the artifact
+    record each crossing it actually made.
+    """
+    return tuple(verify_lift(step, prior) for step in steps)
 
 
 def accepted_schema_contracts() -> frozenset[tuple[str, str]]:
@@ -612,12 +707,18 @@ def carried_anchors(inputs: AcceptedInputs) -> tuple[BatchSchemaAnchor, ...]:
 
 def lift_accepted_inputs(
     inputs: AcceptedInputs, target: tuple[str, str]
-) -> tuple[AcceptedInputs, SchemaLiftRecord | None]:
+) -> tuple[AcceptedInputs, tuple[SchemaLiftRecord, ...]]:
     """Re-declare *inputs* under *target*, having proved nothing moved.
 
     The whole-artifact form of :func:`verify_lift`, and the shape
     ``accept_proposal`` uses when a proposal extends accepted authority across a
     schema succession.
+
+    **Records, plural.** A succession is registered one step at a time, so
+    reaching the target may cross more than one — schema 3 to schema 5 is two —
+    and each crossing is proved and recorded separately. Collapsing them into
+    one record would assert a transition the registry does not contain, and
+    ``lift_chain_violations`` refuses exactly that.
 
     **An artifact already at its target is returned unchanged, with no record.**
     Carrying accepted authority to a schema it already declares crosses nothing,
@@ -672,20 +773,20 @@ def lift_accepted_inputs(
                 + "; ".join(illegal)
             )
         _require_succession_evidence(inputs)
-        return inputs, None
+        return inputs, ()
 
-    lift = lift_for(source, target)
-    record = verify_lift(lift, inputs.oracle.representation)
+    steps = lift_path(source, target)
+    records = verify_lift_path(steps, inputs.oracle.representation)
     lifted = replace(
         inputs,
         oracle=replace(
             inputs.oracle,
-            schema_version=lift.to_version,
-            schema_hash=lift.to_hash,
+            schema_version=steps[-1].to_version,
+            schema_hash=steps[-1].to_hash,
         ),
         # Validated first, through the shared rule: a lift is a transformation
         # like any other, and one that carried incoherent evidence forward would
         # launder it into the destination artifact.
         schema_anchors=carried_anchors(inputs),
     )
-    return lifted, record
+    return lifted, records

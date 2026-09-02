@@ -130,7 +130,13 @@ UNAFFECTED_ONLY = RepresentationDraft(
             record_key="rule:untouched",
             semantic_key="check",
             handling=ComponentHandling.STRUCTURED,
-            facts=(AbilityCheckFact(AbilityScore.WISDOM, DcKind.SPELL_SAVE_DC),),
+            facts=(
+                AbilityCheckFact(
+                    AbilityScore.WISDOM,
+                    DcKind.SPELL_SAVE_DC,
+                    context=RollContext.ABILITY_CHECK,
+                ),
+            ),
         ),
     ),
     prose_bindings=(),
@@ -569,7 +575,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
+EXPECTED_SCHEMA_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

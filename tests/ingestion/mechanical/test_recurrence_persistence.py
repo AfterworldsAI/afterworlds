@@ -56,12 +56,12 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     RECURRENCE_KEYS,
+    REPRESENTATION_SCHEMA_VERSION,
     Recurrence,
     RecurrenceBoundary,
     RollActor,
     representation_schema_hash,
 )
-from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_4_VERSION
 from afterworlds.persistence.orm.mechanical import MechanicalComponentORM
 from afterworlds.services.rules_authority.patches import InvalidPatchError
 from afterworlds.services.rules_authority.patches import (
@@ -318,14 +318,14 @@ def _artifact_with_cadence(recurs: dict[str, object], tmp_path, name: str):  # t
     raw = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
     raw["representation"]["components"][0]["recurs"] = recurs
     raw["representation_schema"] = {
-        "version": SCHEMA_4_VERSION,
+        "version": REPRESENTATION_SCHEMA_VERSION,
         "hash": representation_schema_hash(),
     }
     raw["acceptance"]["schema_anchors"] = [
         {
             "batch_id": batch["batch_id"],
             "proposal_identity": batch["proposal_identity"],
-            "schema_version": SCHEMA_4_VERSION,
+            "schema_version": REPRESENTATION_SCHEMA_VERSION,
             "schema_hash": representation_schema_hash(),
         }
         for batch in raw["acceptance"]["batches"]
@@ -429,7 +429,9 @@ def test_a_component_stating_no_cadence_still_omits_the_key_entirely() -> None:
     """
     draft = build_representation()
     assert draft.components[0].recurs is None
-    payload = representation_payload(draft, schema_version=SCHEMA_4_VERSION)
+    payload = representation_payload(
+        draft, schema_version=REPRESENTATION_SCHEMA_VERSION
+    )
     assert all("recurs" not in c for c in payload["components"])  # type: ignore[union-attr]
 
 

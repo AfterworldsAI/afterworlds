@@ -24,6 +24,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DcKind,
     MalformedFactPayloadError,
     ProgressionEntryFact,
+    RollContext,
     SpellDescriptorFact,
     SpellSchool,
     fact_from_payload,
@@ -33,8 +34,12 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 
 HONEST = (
-    AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, 15),
-    AbilityCheckFact(AbilityScore.DEXTERITY, DcKind.SPELL_SAVE_DC),
+    AbilityCheckFact(
+        AbilityScore.WISDOM, DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
+    ),
+    AbilityCheckFact(
+        AbilityScore.DEXTERITY, DcKind.SPELL_SAVE_DC, context=RollContext.ABILITY_CHECK
+    ),
     CreatureAbilityScoreFact(AbilityScore.CONSTITUTION, 14),
     SpellDescriptorFact(
         level=0, school=SpellSchool.EVOCATION, ritual=False, concentration=False
@@ -57,6 +62,8 @@ def _check_payload(family: str, **fields: Any) -> dict[str, Any]:
         "ability_check": {
             "ability": "wisdom",
             "dc_kind": "fixed",
+            # Schema 5: required, so an honest payload always carries it.
+            "context": "ability_check",
             "dc_value": 15,
         },
         "creature_ability_score": {
@@ -107,19 +114,33 @@ def test_honest_facts_round_trip_with_identical_payload_and_key(fact: object) ->
     ("fact", "expected"),
     [
         (
-            AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, "15"),  # type: ignore[arg-type]
+            AbilityCheckFact(  # type: ignore[arg-type]
+                AbilityScore.WISDOM,
+                DcKind.FIXED,
+                "15",
+                context=RollContext.ABILITY_CHECK,
+            ),
             "dc_value must be an integer",
         ),
         (
-            AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, True),  # type: ignore[arg-type]
+            AbilityCheckFact(  # type: ignore[arg-type]
+                AbilityScore.WISDOM,
+                DcKind.FIXED,
+                True,
+                context=RollContext.ABILITY_CHECK,
+            ),
             "dc_value must be an integer",
         ),
         (
-            AbilityCheckFact("wisdom", DcKind.FIXED, 15),  # type: ignore[arg-type]
+            AbilityCheckFact(  # type: ignore[arg-type]
+                "wisdom", DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
+            ),
             "ability must be AbilityScore",
         ),
         (
-            AbilityCheckFact(AbilityScore.WISDOM, "fixed", 15),  # type: ignore[arg-type]
+            AbilityCheckFact(  # type: ignore[arg-type]
+                AbilityScore.WISDOM, "fixed", 15, context=RollContext.ABILITY_CHECK
+            ),
             "dc_kind must be DcKind",
         ),
         (
@@ -189,7 +210,12 @@ def test_mistyped_field_suppresses_the_misleading_semantic_finding() -> None:
     # dc_value is a string, so the fixed/non-fixed relationship cannot be
     # judged; reporting "fixed DC without a dc_value" would be noise.
     violations = fact_invariant_violations(
-        AbilityCheckFact(AbilityScore.WISDOM, DcKind.SPELL_SAVE_DC, "15")  # type: ignore[arg-type]
+        AbilityCheckFact(  # type: ignore[arg-type]
+            AbilityScore.WISDOM,
+            DcKind.SPELL_SAVE_DC,
+            "15",
+            context=RollContext.ABILITY_CHECK,
+        )
     )
     assert any("dc_value must be an integer" in v for v in violations)
     assert not any("carries dc_value" in v for v in violations)
