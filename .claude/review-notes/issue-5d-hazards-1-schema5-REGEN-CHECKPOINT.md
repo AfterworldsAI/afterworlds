@@ -124,7 +124,7 @@ The H-16 trigger boundary was **derived** from the bound leaf at run time and th
 | no detached or ambiguous roll outcome | none; each roll-outcome scope establishes exactly one roll |
 | ownership | 65 substantive spans, each with exactly one primary claimant; 0 supporting spans carrying a primary claim; 0 spans unclaimed |
 | obligations | 36 closed, 0 open — each executed against the draft |
-| determinism | a clean rerun in a separate process reproduces identical artifact bytes and the same identity |
+| determinism | a clean rerun in a separate process reproduces identical artifact bytes and the same identity, and both artifacts are byte-stable across processes with different string-hash seeds |
 
 **Unresolved references, enumerated exactly.** Standalone, this batch cites one record it does not
 define, twice: `hazard.dehydration → condition.exhaustion` and

@@ -134,6 +134,11 @@ RETAINED = (
 )
 PROPOSAL_FILE = "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json"
 AUDIT_FILE = "issue-5d-hazards-1-schema5-REGEN-audit.json"
+#: A set, for the overwrite guard below. Every *iteration* of it is sorted:
+#: Python randomizes string hashing per process, so a dict built by walking this
+#: set carries a different key order in every run, and a dict written into the
+#: audit that way would make the audit non-deterministic across processes for a
+#: reason that has nothing to do with the content.
 WRITES = {PROPOSAL_FILE, AUDIT_FILE}
 assert not (WRITES & set(RETAINED)), "would overwrite retained evidence"
 _RETAINED_BEFORE = {
@@ -2580,7 +2585,7 @@ RERUN = os.environ.get("HAZARDS5_RERUN") == "1"
 DETERMINISTIC: bool | None = None
 if not RERUN:
     _before_bytes = {
-        n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in WRITES
+        n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in sorted(WRITES)
     }
     _child = subprocess.run(
         [sys.executable, str(Path(__file__).resolve())],
@@ -2590,7 +2595,7 @@ if not RERUN:
     )
     assert _child.returncode == 0, _child.stderr[-4000:]
     _after_bytes = {
-        n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in WRITES
+        n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in sorted(WRITES)
     }
     DETERMINISTIC = _before_bytes == _after_bytes
     assert DETERMINISTIC, (_before_bytes, _after_bytes)

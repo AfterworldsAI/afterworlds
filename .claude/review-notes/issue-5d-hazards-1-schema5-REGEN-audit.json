@@ -3369,8 +3369,8 @@
   "artifact_bytes_identical": true,
   "proposal_identity_identical": true,
   "sha256": {
-   "issue-5d-hazards-1-schema5-REGEN-audit.json": "b8eadbee506adc33e83c538eae9b3ba7c9a630d28831c450cb02031e48ec684f",
-   "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883"
+   "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883",
+   "issue-5d-hazards-1-schema5-REGEN-audit.json": "b8eadbee506adc33e83c538eae9b3ba7c9a630d28831c450cb02031e48ec684f"
   }
  }
 }
