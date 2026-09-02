@@ -51,21 +51,33 @@ typed payload, or one statement producing two readings.
      `fall_damage` can hold the damage and the landing together without the
      exception gating the damage.
 
-DISCLOSED REPRESENTATION LIMITS. Neither is an unresolved span, an Owner
-Decision, or a schema request; both are stated so a semantic reviewer can rule
-on them. They are carried in the audit under the same ids.
+D-3 IS RESOLVED - Owner Decision 2026-09-02, Falling's timing. Recorded here as
+closed rather than deleted, so the question and its answer both stay legible.
 
-  D-3 (Falling, moment of effect). *"at the end of the fall"* and *"When the
-      creature lands"* state **when** a one-shot effect occurs. `Recurrence`
-      states repetition, and `Phase` states only WHILE_ACTIVE / ON_END relative
-      to an effect's own life, so neither carries a moment. Both clauses are
-      SUBSTANTIVE and both are claimed PRIMARY inside the span of the fact whose
-      timing they state - neither is omitted, and neither is demoted to
-      supporting authority. They are not split into their own spans, because no
-      declared element states a moment of effect, and inventing a claimant to
-      make the split look accounted is exactly the role-chosen-to-satisfy-the-
-      validator move the H-16 finding condemned. Recorded, with exact ranges and
-      text, in the audit's `falling_timing_spans`.
+      *A normal fall finishes during the turn in which it begins. Resolve its
+      damage and landing immediately. Only delay completion when a specific rule
+      provides a falling rate or duration.*
+
+      The SRD's general Falling rule gives no speed, no distance per round and
+      no duration; where the SRD intends a slower descent it says so outright -
+      Ring of Feather Falling prints 60 feet per round. So no general
+      fall-duration calculation and no real-world physics apply, and *"at the
+      end of the fall"* and *"When the creature lands"* describe the **immediate
+      completion of the fall**, not a delayed event awaiting a timing structure.
+
+      This changes the reading, not the representation. Both phrases stay
+      SUBSTANTIVE and keep their exact source accounting: each is claimed
+      PRIMARY inside the span of the fact it belongs to, recorded with exact
+      range and text in the audit's `falling_timing_spans`. `fall_damage` stays
+      one component holding the falling damage and the landing consequence, with
+      the Prone result still dependent on whether falling damage occurred. No
+      schema field, prose binding, recurrence, duration, falling-speed rule or
+      physics calculation is added for an ordinary fall - the ruling is that
+      none is needed, and adding one would state a delay the source does not.
+
+DISCLOSED REPRESENTATION LIMIT. One remains. It is not an unresolved span, an
+Owner Decision, or a schema request; it is stated so a semantic reviewer can
+rule on it, and is carried in the audit under the same id.
 
   D-4 (Burning, required physical performance). *"and rolling on the ground"* is
       half of a compound required performance whose other half - the Prone
@@ -834,8 +846,10 @@ SPEC["Dehydration [Hazard]"] = [
 # --- Falling ---------------------------------------------------------------
 # The damage sentence is cut where the source's own clauses fall, and each cut
 # is claimed by the element that states it. "at the end of the fall" and "When
-# the creature lands" ride inside the PRIMARY span of the fact whose timing they
-# state - claimed and substantive, never omitted and never demoted. See D-3.
+# the creature lands" ride inside the PRIMARY span of the fact they belong to -
+# claimed and substantive, never omitted and never demoted. Per Owner Decision
+# 2026-09-02 they mark the immediate completion of a fall that finishes in the
+# turn it begins, so nothing is deferred for a timing structure to carry.
 SPEC["Falling [Hazard]"] = [
     W,
     [
@@ -1564,7 +1578,7 @@ for _row in SHAPE_CLAIMS["roll_outcome_scopes"]:
     assert _row["rolls_established_in_scope"] == 1, _row
 assert SHAPE_CLAIMS["roll_outcome_scopes"], "no roll-outcome scope was exercised"
 
-# --- Falling's timing spans, claimed and accounted (D-3) --------------------
+# --- Falling's timing spans, claimed and accounted (D-3, resolved) ----------
 _fall_rows = [a for a in audit if a["record"] == FAL]
 FALLING_TIMING = []
 for _phrase in ("at the end of the fall", "When the creature lands"):
@@ -1578,13 +1592,92 @@ for _phrase in ("at the end of the fall", "When the creature lands"):
             "claimant_kind": _row["claimant_kind"],
             "claimant": _row["claimant"],
             "accounted_as": (
-                "claimed PRIMARY inside the span of the fact whose timing it "
-                "states; neither omitted nor demoted to supporting authority"
+                "claimed PRIMARY inside the span of the fact it belongs to; "
+                "neither omitted nor demoted to supporting authority"
             ),
+            "means": (
+                "the immediate completion of the fall, not a delayed event: a "
+                "normal fall finishes during the turn in which it begins, so "
+                "damage and landing resolve at once"
+            ),
+            "structure_added": "none",
         }
     )
     assert _row["disposition"] == "substantive", _row
     assert _row["role"] == "primary", _row
+
+# Owner Decision 2026-09-02 closed D-3 by ruling that an ordinary fall needs no
+# timing structure at all. Checked rather than described: `fall_damage` holds
+# the damage and the landing in one component, states no recurrence and no
+# duration, binds no prose, and the Prone result is still gated on whether
+# falling damage occurred.
+_fall = next(
+    c for c in components if (c.record_key, c.semantic_key) == (FAL, "fall_damage")
+)
+_prone_qualifier = next(
+    (
+        q.applies_when
+        for q in _fall.fact_qualifiers
+        if q.fact_key == fact_key(PRONE_APPLIES)
+    ),
+    None,
+)
+D3_RESOLUTION = {
+    "id": "D-3",
+    "status": "resolved - Owner Decision 2026-09-02",
+    "where": "hazard.falling/fall_damage",
+    "question_as_disclosed": (
+        "'at the end of the fall' and 'When the creature lands' state when a "
+        "one-shot effect occurs, and no declared element carried a moment. The "
+        "open question was whether that needed a new timing structure."
+    ),
+    "ruling": (
+        "A normal fall finishes during the turn in which it begins. Resolve its "
+        "damage and landing immediately. Only delay completion when a specific "
+        "rule provides a falling rate or duration."
+    ),
+    "grounds": (
+        "The SRD's general Falling rule gives no speed, no distance per round "
+        "and no duration. Where the SRD intends a slower descent it says so "
+        "explicitly - Ring of Feather Falling prints 60 feet per round - so no "
+        "general fall-duration calculation and no real-world physics apply."
+    ),
+    "what_the_phrases_mean": (
+        "the immediate completion of the fall, not a delayed event requiring a "
+        "new timing structure"
+    ),
+    "consequence_for_this_batch": (
+        "None to the proposed mechanical authority: this ruling changes review "
+        "documentation, not the proposal. Both phrases stay SUBSTANTIVE with "
+        "their exact source accounting; fall_damage stays one component holding "
+        "the falling damage and the landing consequence, with the Prone result "
+        "dependent on whether falling damage occurred."
+    ),
+    "checked": {
+        "fall_damage_holds_damage_and_landing": (
+            any(type(f) is DamageFact for f in _fall.facts)
+            and any(type(f) is ConditionEffectFact for f in _fall.facts)
+        ),
+        "components_for_the_fall": 1,
+        "recurs": _fall.recurs,
+        "applies_when": _fall.applies_when,
+        "prose_bindings": sum(
+            1
+            for b in prose_bindings
+            if (b.record_key, b.component_key) == (FAL, "fall_damage")
+        ),
+        "prone_gated_on_falling_damage": (
+            _prone_qualifier is not None
+            and _prone_qualifier.kind is ApplicabilityKind.DAMAGE_OUTCOME
+        ),
+        "structure_added_for_ordinary_falls": "none",
+    },
+    "evidence": FALLING_TIMING,
+}
+assert D3_RESOLUTION["checked"]["fall_damage_holds_damage_and_landing"], D3_RESOLUTION
+assert _fall.recurs is None and _fall.applies_when is None, D3_RESOLUTION
+assert D3_RESOLUTION["checked"]["prose_bindings"] == 0, D3_RESOLUTION
+assert D3_RESOLUTION["checked"]["prone_gated_on_falling_damage"], D3_RESOLUTION
 
 # ---------------------------------------------------------------------------
 # Obligation closure, checked against the emitted draft
@@ -2403,31 +2496,8 @@ AUDIT_DOC = {
             "schema 5 across two registered crossings, each proved separately"
         ),
     },
+    "resolved_representation_questions": [D3_RESOLUTION],
     "disclosed_representation_limits": [
-        {
-            "id": "D-3",
-            "status": "disclosed; for semantic review",
-            "where": "hazard.falling/fall_damage",
-            "limit": (
-                "'at the end of the fall' and 'When the creature lands' state the "
-                "moment a one-shot effect occurs. Recurrence states repetition and "
-                "Phase states only WHILE_ACTIVE / ON_END relative to an effect's "
-                "own life, so no declared element carries a moment."
-            ),
-            "how_it_is_accounted": (
-                "Both clauses are SUBSTANTIVE and both are claimed PRIMARY inside "
-                "the span of the fact whose timing they state. Neither is omitted "
-                "and neither is demoted. They are not split into their own spans, "
-                "because a split would need a claimant that states a moment, and "
-                "assigning one that does not is the role-chosen-to-satisfy-the-"
-                "validator move the H-16 finding condemned."
-            ),
-            "evidence": FALLING_TIMING,
-            "candidate_shape": (
-                "a moment-of-effect axis, if the corpus states enough of them to "
-                "close a vocabulary. Not requested here."
-            ),
-        },
         {
             "id": "D-4",
             "status": "disclosed; for semantic review",
@@ -2457,6 +2527,7 @@ AUDIT_DOC = {
         },
     ],
     "schema_5_structures_demonstrated": DEMO_EVIDENCE,
+    "d3_resolution": D3_RESOLUTION,
     "obligation_closure": OBLIGATION_CLOSURE,
     "sibling_fact_pairs": SIBLING_PAIRS,
     "ownership_integrity": OWNERSHIP,
@@ -2465,6 +2536,16 @@ AUDIT_DOC = {
     "falling_timing_spans": FALLING_TIMING,
     "spans": audit,
 }
+
+# D-4 is the only disclosed limit left of the former pair, and D-3 appears only
+# as a resolution. Asserted, because "the audit says so" is what this run is for.
+_disclosed = [d["id"] for d in AUDIT_DOC["disclosed_representation_limits"]]
+_resolved = [d["id"] for d in AUDIT_DOC["resolved_representation_questions"]]
+assert _disclosed == ["D-4"], _disclosed
+assert _resolved == ["D-3"], _resolved
+assert AUDIT_DOC["d3_resolution"]["status"].startswith("resolved"), AUDIT_DOC[
+    "d3_resolution"
+]["status"]
 
 (OUT / PROPOSAL_FILE).write_text(
     json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False), encoding="utf-8"
@@ -2598,5 +2679,7 @@ print(
     )
 )
 print(f"h16 trigger    {H16_TRIGGER['range']} {H16_TRIGGER['text']!r}")
+print(f"D-3            {D3_RESOLUTION['status']}")
+print(f"disclosed      {_disclosed}   resolved {_resolved}")
 if DETERMINISTIC is not None:
     print(f"deterministic  {DETERMINISTIC}")

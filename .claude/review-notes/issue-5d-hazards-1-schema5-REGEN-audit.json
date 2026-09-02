@@ -1344,13 +1344,25 @@
   "accepted_artifact_unchanged": true,
   "note": "the committed conditions-1 artifact declares schema 3 and reaches schema 5 across two registered crossings, each proved separately"
  },
- "disclosed_representation_limits": [
+ "resolved_representation_questions": [
   {
    "id": "D-3",
-   "status": "disclosed; for semantic review",
+   "status": "resolved - Owner Decision 2026-09-02",
    "where": "hazard.falling/fall_damage",
-   "limit": "'at the end of the fall' and 'When the creature lands' state the moment a one-shot effect occurs. Recurrence states repetition and Phase states only WHILE_ACTIVE / ON_END relative to an effect's own life, so no declared element carries a moment.",
-   "how_it_is_accounted": "Both clauses are SUBSTANTIVE and both are claimed PRIMARY inside the span of the fact whose timing they state. Neither is omitted and neither is demoted. They are not split into their own spans, because a split would need a claimant that states a moment, and assigning one that does not is the role-chosen-to-satisfy-the-validator move the H-16 finding condemned.",
+   "question_as_disclosed": "'at the end of the fall' and 'When the creature lands' state when a one-shot effect occurs, and no declared element carried a moment. The open question was whether that needed a new timing structure.",
+   "ruling": "A normal fall finishes during the turn in which it begins. Resolve its damage and landing immediately. Only delay completion when a specific rule provides a falling rate or duration.",
+   "grounds": "The SRD's general Falling rule gives no speed, no distance per round and no duration. Where the SRD intends a slower descent it says so explicitly - Ring of Feather Falling prints 60 feet per round - so no general fall-duration calculation and no real-world physics apply.",
+   "what_the_phrases_mean": "the immediate completion of the fall, not a delayed event requiring a new timing structure",
+   "consequence_for_this_batch": "None to the proposed mechanical authority: this ruling changes review documentation, not the proposal. Both phrases stay SUBSTANTIVE with their exact source accounting; fall_damage stays one component holding the falling damage and the landing consequence, with the Prone result dependent on whether falling damage occurred.",
+   "checked": {
+    "fall_damage_holds_damage_and_landing": true,
+    "components_for_the_fall": 1,
+    "recurs": null,
+    "applies_when": null,
+    "prose_bindings": 0,
+    "prone_gated_on_falling_damage": true,
+    "structure_added_for_ordinary_falls": "none"
+   },
    "evidence": [
     {
      "phrase": "at the end of the fall",
@@ -1362,7 +1374,9 @@
      "disposition": "substantive",
      "claimant_kind": "fact",
      "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
-     "accounted_as": "claimed PRIMARY inside the span of the fact whose timing it states; neither omitted nor demoted to supporting authority"
+     "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+     "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+     "structure_added": "none"
     },
     {
      "phrase": "When the creature lands",
@@ -1374,11 +1388,14 @@
      "disposition": "substantive",
      "claimant_kind": "fact",
      "claimant": "hazard.falling/fall_damage/e756f5850569798d",
-     "accounted_as": "claimed PRIMARY inside the span of the fact whose timing it states; neither omitted nor demoted to supporting authority"
+     "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+     "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+     "structure_added": "none"
     }
-   ],
-   "candidate_shape": "a moment-of-effect axis, if the corpus states enough of them to close a vocabulary. Not requested here."
-  },
+   ]
+  }
+ ],
+ "disclosed_representation_limits": [
   {
    "id": "D-4",
    "status": "disclosed; for semantic review",
@@ -1501,6 +1518,55 @@
     "hazard.malnutrition -> condition.exhaustion"
    ]
   }
+ },
+ "d3_resolution": {
+  "id": "D-3",
+  "status": "resolved - Owner Decision 2026-09-02",
+  "where": "hazard.falling/fall_damage",
+  "question_as_disclosed": "'at the end of the fall' and 'When the creature lands' state when a one-shot effect occurs, and no declared element carried a moment. The open question was whether that needed a new timing structure.",
+  "ruling": "A normal fall finishes during the turn in which it begins. Resolve its damage and landing immediately. Only delay completion when a specific rule provides a falling rate or duration.",
+  "grounds": "The SRD's general Falling rule gives no speed, no distance per round and no duration. Where the SRD intends a slower descent it says so explicitly - Ring of Feather Falling prints 60 feet per round - so no general fall-duration calculation and no real-world physics apply.",
+  "what_the_phrases_mean": "the immediate completion of the fall, not a delayed event requiring a new timing structure",
+  "consequence_for_this_batch": "None to the proposed mechanical authority: this ruling changes review documentation, not the proposal. Both phrases stay SUBSTANTIVE with their exact source accounting; fall_damage stays one component holding the falling damage and the landing consequence, with the Prone result dependent on whether falling damage occurred.",
+  "checked": {
+   "fall_damage_holds_damage_and_landing": true,
+   "components_for_the_fall": 1,
+   "recurs": null,
+   "applies_when": null,
+   "prose_bindings": 0,
+   "prone_gated_on_falling_damage": true,
+   "structure_added_for_ordinary_falls": "none"
+  },
+  "evidence": [
+   {
+    "phrase": "at the end of the fall",
+    "span_range": [
+     21,
+     73
+    ],
+    "span_text": " takes 1d6 Bludgeoning damage at the end of the fall",
+    "disposition": "substantive",
+    "claimant_kind": "fact",
+    "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+    "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+    "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+    "structure_added": "none"
+   },
+   {
+    "phrase": "When the creature lands",
+    "span_range": [
+     122,
+     174
+    ],
+    "span_text": " When the creature lands, it has the Prone condition",
+    "disposition": "substantive",
+    "claimant_kind": "fact",
+    "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+    "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+    "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+    "structure_added": "none"
+   }
+  ]
  },
  "obligation_closure": {
   "O-1": {
@@ -1741,7 +1807,9 @@
    "disposition": "substantive",
    "claimant_kind": "fact",
    "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
-   "accounted_as": "claimed PRIMARY inside the span of the fact whose timing it states; neither omitted nor demoted to supporting authority"
+   "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+   "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+   "structure_added": "none"
   },
   {
    "phrase": "When the creature lands",
@@ -1753,7 +1821,9 @@
    "disposition": "substantive",
    "claimant_kind": "fact",
    "claimant": "hazard.falling/fall_damage/e756f5850569798d",
-   "accounted_as": "claimed PRIMARY inside the span of the fact whose timing it states; neither omitted nor demoted to supporting authority"
+   "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+   "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+   "structure_added": "none"
   }
  ],
  "spans": [
@@ -3299,8 +3369,8 @@
   "artifact_bytes_identical": true,
   "proposal_identity_identical": true,
   "sha256": {
-   "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883",
-   "issue-5d-hazards-1-schema5-REGEN-audit.json": "db2756c8ca76e0102c9bfdb0d46a6a93993082047cde295b03718ef52ae1f2c2"
+   "issue-5d-hazards-1-schema5-REGEN-audit.json": "b8eadbee506adc33e83c538eae9b3ba7c9a630d28831c450cb02031e48ec684f",
+   "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883"
   }
  }
 }

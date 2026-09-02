@@ -8,8 +8,9 @@ proposal `6277ff73…a259` was not imported, edited, translated, restamped, clon
 generator input; it is compared against only after the fact, as a diagnostic.
 
 **Zero validator findings is necessary and explicitly insufficient.** The gate proves the artifact is
-*admissible*. It cannot prove the representation is *true of the source*, and the four questions in
-§6 are exactly the ones no validator can answer. Two disclosed limits (§5) need a ruling.
+*admissible*. It cannot prove the representation is *true of the source*, and the three questions in
+§6 are exactly the ones no validator can answer. **D-3, Falling's timing, is resolved** by Owner
+Decision 2026-09-02 (§5a). One disclosed limit remains, D-4 (§5b).
 
 | | |
 |---|---|
@@ -131,17 +132,33 @@ define, twice: `hazard.dehydration → condition.exhaustion` and
 not "only Exhaustion appears". Both resolve into accepted `conditions-1` authority, and the merged
 gate reports nothing at all.
 
-## 5. Disclosed limits — these need a ruling
+## 5a. D-3, Falling's timing — **RESOLVED**, Owner Decision 2026-09-02
 
-**D-3 — Falling's moment of effect.** *"at the end of the fall"* and *"When the creature lands"* state
-**when** a one-shot effect occurs. `Recurrence` states repetition; `Phase` states only `WHILE_ACTIVE`
-and `ON_END` relative to an effect's own life. No declared element carries a moment. Both clauses are
-SUBSTANTIVE and both are claimed PRIMARY *inside the span of the fact whose timing they state* — so
-neither is omitted and neither is demoted to supporting authority, and both are recorded in the audit
-with exact ranges and text under `falling_timing_spans`. They were deliberately **not** split into
-their own spans: a split needs a claimant that states a moment, and assigning one that does not is
-the role-chosen-to-satisfy-the-validator move the H-16 finding condemned. *If the reviewer wants the
-timing typed, that is a schema question, not a re-cut of this batch.*
+> A normal fall finishes during the turn in which it begins. Resolve its damage and landing
+> immediately. Only delay completion when a specific rule provides a falling rate or duration.
+
+**Grounds.** The SRD's general Falling rule gives no speed, no distance per round and no duration.
+Where the SRD intends a slower descent it says so explicitly — Ring of Feather Falling prints 60 feet
+per round. No general fall-duration calculation and no real-world physics apply.
+
+**What the phrases mean.** *"at the end of the fall"* and *"When the creature lands"* describe the
+**immediate completion of the fall**, not a delayed event requiring a new timing structure. The
+question that was open — whether a moment-of-effect axis was needed — is answered: it is not.
+
+**What this changes in the batch: nothing.** The ruling changes review documentation, not the
+proposed mechanical authority, and the proposal is byte-identical with its identity unmoved.
+
+| held after the ruling | state |
+|---|---|
+| both phrases | SUBSTANTIVE, exact source accounting preserved — `[21,73)` and `[122,174)`, each claimed PRIMARY inside the span of the fact it belongs to, recorded in `falling_timing_spans` |
+| `fall_damage` | one component holding the falling damage **and** the landing consequence |
+| the Prone result | still dependent on whether falling damage occurred, via the `DAMAGE_OUTCOME` qualifier on the landing fact alone |
+| structure added for an ordinary fall | **none** — no schema field, prose binding, recurrence, duration, falling-speed rule, or physics calculation |
+
+Each row is executed as an assertion in the generator and recorded in the audit under
+`d3_resolution.checked`, so the ruling is checked rather than described.
+
+## 5b. Disclosed limit — this one still needs a ruling
 
 **D-4 — Burning's required physical performance.** *"and rolling on the ground"* is half of a compound
 required performance whose other half — the Prone condition — is typed. Rolling on the ground has no
@@ -154,19 +171,18 @@ typed consequence is stated once, beside the binding, and is not restated inside
 
 ## 6. What a semantic reviewer should decide
 
-The validators cannot answer any of these.
+The validators cannot answer any of these. Falling's grain is no longer among them: Owner Decision
+2026-09-02 settles `fall_damage` as one component holding the damage and the landing, with the Prone
+result gated on whether falling damage occurred.
 
-1. **Is `fall_damage` the right grain?** Damage and landing are one rule about one fall here, with the
-   exception scoped to the landing fact. The alternative — two components — puts the exception on a
-   component whose only fact it governs anyway, and separates two halves of one sentence.
-2. **Is the sustained zero band a faithful reading of *"eats nothing for 5 days … as well as an
+1. **Is the sustained zero band a faithful reading of *"eats nothing for 5 days … as well as an
    additional level at the end of each subsequent day without food"*?** The design leans on
    `applies_when`'s declared meaning (*when this component applies at all*) composed with `recurs`.
    That inference is stated so it can be checked rather than trusted.
-3. **Is *" and rolling on the ground."* substantive?** It is classified as governing prose here. If it
+2. **Is *" and rolling on the ground."* substantive?** It is classified as governing prose here. If it
    is commentary, one span moves back and the prose binding goes.
-4. **Are D-3 and D-4 acceptable as disclosed limits, or does either need schema work?** Neither was
-   solved by an unreviewed schema patch, and neither should be.
+3. **Is D-4 acceptable as a disclosed limit, or does it need schema work?** It was not solved by an
+   unreviewed schema patch, and it should not be.
 
 ## 7. Stop conditions honoured
 
