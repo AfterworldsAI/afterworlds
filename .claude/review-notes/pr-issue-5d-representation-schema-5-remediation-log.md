@@ -27,7 +27,7 @@ against schema 4 would state the same thing and hash the same way.
 
 ---
 
-## 2. What schema 5 adds — four rules, each closed
+## 2. What schema 5 adds — five rules, each closed
 
 ### 2.1 `AbilityCheckFact.context: RollContext` — required (Owner Decision 2026-09-02, Option A)
 
@@ -129,6 +129,46 @@ option's facts establish only within that option, because the arms are mutually 
 The honest authoring it forces is the one the source states, and it is the third proposal correction:
 the halving sits in the component that holds the check, qualifying that one fact.
 
+### 2.5 A skill qualifies an ability check, and nothing else
+
+Carried as an owner decision in the first cut and resolved 2026-09-02 as implementation work. The SRD
+prints a skill in parentheses after the ability of a *check* — *"a DC 15 Dexterity (Acrobatics)
+check"* — and never after a saving throw. Proficiency in a skill applies to the check it names; a save
+adds save proficiency, a different bonus from a different column of the sheet.
+
+Schema 5 is what makes this statable: before the context axis existed there was no check/save
+distinction to apply. Having introduced it, admitting a skilled save would let the new distinction
+express a combination the source never uses.
+
+**One function, read by both carriers.** `_check_skill_context` is called by `_check_ability_check`
+and by `_check_rollspec`. That is the whole point: the asymmetry that deferred this rule was that
+refusing it on `AbilityCheckFact` alone would leave `RollSpec` admitting it, and two validators that
+happen to agree are not one rule. The invariant manifest declares both loci
+(`fact:ability_check` and the `RollSpec` shape) so the identity covers the pair.
+
+**`_check_ability_check` was restructured into three passes** — vocabulary, then context, then the DC
+relationship — because each reads values the pass before admitted. Putting the context rules ahead of
+the skill, alternatives and DC clauses is not cosmetic: a saving throw offering a choice of checks
+*also* fails the alternatives completeness rule, and reporting that first names the symptom ("no
+member states the fact's own pair") instead of the defect.
+
+**It adds no field.** The rule is an invariant over two fields that already existed, so it moves the
+schema hash and moves no payload: every accepted `conditions-1` element stays byte-identical across
+it, and the disclosed `APPEND_COMPONENT` override identity does **not** move again — rechecked
+against the final hash and still `3f6443f6-5d47-5178-9f44-ce1f6fd92c87`.
+
+**Where it is enforced, and where deliberately not.** `fact_from_payload` rebuilds the declared
+*shape* and runs no family invariant — that is the pre-existing design for every fact rule, and the
+fixed-DC rule behaves identically — so a tampered payload rebuilds and the authority it would become
+is refused. Enforcement is `fact_invariant_violations`, reached by `_validate_components` and by
+`held_structure_violations`, which together cover the publication gate, acceptance, the committed
+loader, `verify_lift`, persistence reconstruction and the override effective view.
+
+**`AttackRollFact` needs no counterpart change.** `FactFamily.ATTACK_ROLL` is the discriminator a
+consumer reads and `attack_kind` supplies the closed subtype, so the family already states its own
+context; adding a `RollContext` field would restate one axis in two places, which is the collapse
+risk inverted.
+
 ---
 
 ## 3. Succession — 3 → 4 → 5, resolved as a path
@@ -136,7 +176,7 @@ the halving sits in the component that holds the check, qualifying that one fact
 | | |
 |---|---|
 | schema 5 version | `5d-representation-schema-5` |
-| schema 5 hash (pinned literally) | `f412ff47d84b0450b8d45eb7a64fc693aa169ff4f2b21f39eab90d90c40a4539` |
+| schema 5 hash (pinned literally) | `2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40` |
 | lift id | `5d-lift-schema-4-to-5` |
 | schema 4 pin | `241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9` — **unchanged**, still a recognized contract |
 | schema 3 pin | `43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05` — **unchanged** |
@@ -154,7 +194,7 @@ Unregistered, reversed, skipped, and hash-mismatched transitions each have no pa
 ### Zero-movement proof, re-run against the **final** declarations
 
 ```
-build declares       : 5d-representation-schema-5 f412ff47…a4539   (pin matches)
+build declares       : 5d-representation-schema-5 28038408…f4c40   (pin matches)
 prior declares       : 5d-representation-schema-3
 prior oracle id      : a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda
 lift chain           : ['5d-lift-schema-3-to-4', '5d-lift-schema-4-to-5']
@@ -198,6 +238,7 @@ lifted oracle id     : 03623492…  — moves only because the declared schema d
 | `test_schema_5_representation_corrections.py` | 57 | the three corrections, the roll-outcome rule, and the whole succession |
 | `test_schema_5_persistence_and_overrides.py` | 16 | round trip, absence, identity-bearing in storage *and* in the persisted digest, refusal on the way back, and the patch loader |
 | `test_schema_5_hazards_regeneration_fixtures.py` | 13 | the five proposal corrections, as authorable components |
+| `test_schema_5_skill_context.py` | 27 | a skill only on an ability check, at both carriers and every seam |
 
 Every item the brief lists is covered:
 
@@ -210,7 +251,11 @@ Every item the brief lists is covered:
   inside an option arm;
 * ambiguous and detached roll-outcome applicability both fail;
 * the 3 → 4 → 5 lift preserves every inherited accepted element byte-for-byte, in two recorded steps;
-* persistence, override and wire round-trips retain every new field.
+* persistence, override and wire round-trips retain every new field;
+* a Constitution save with no skill is valid, Athletics and Acrobatics are each refused on a save,
+  a `RollSpec` save carrying a skill is refused, a skilled check stays valid, alternative checks stay
+  valid and canonically ordered, and malformed skill/context combinations fail at every seam that
+  admits authority.
 
 ---
 

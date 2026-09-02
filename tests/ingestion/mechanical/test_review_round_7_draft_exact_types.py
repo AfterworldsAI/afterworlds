@@ -462,7 +462,7 @@ def test_the_schema_version_and_hash_are_unchanged() -> None:
     """
     assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-5"
     assert representation_schema_hash() == (
-        "f412ff47d84b0450b8d45eb7a64fc693aa169ff4f2b21f39eab90d90c40a4539"  # noqa: E501  # pragma: allowlist secret
+        "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
     )
 
 

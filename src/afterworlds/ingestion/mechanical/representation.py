@@ -2377,6 +2377,37 @@ def _enum_field(value: object, enum_cls: type[StrEnum], field: str) -> list[str]
     return []
 
 
+def _check_skill_context(skill: object, context: object, where: str) -> list[str]:
+    """A printed skill qualifies an ability check, and nothing else — schema 5.
+
+    The SRD prints a skill in parentheses after the ability of a *check* —
+    *"a DC 15 Dexterity (Acrobatics) check"* — and never after a saving throw,
+    an attack roll, Initiative, or the ``D20_TEST`` umbrella. Proficiency in a
+    skill applies to the check it names; a save adds save proficiency instead,
+    which is a different bonus from a different column of the sheet.
+
+    **Shared, because two structures carry a skill.** :class:`AbilityCheckFact`
+    states the roll a DC is set for and :class:`RollSpec` states the roll a
+    modification applies to, and both gained a context axis at schema 5. One
+    function is what stops them disagreeing about a combination — the asymmetry
+    that kept this rule out of schema 5's first cut, since refusing it on one
+    structure alone would have left the other admitting it.
+
+    Deliberately silent about a non-:class:`Skill` value: that refusal belongs
+    to :func:`_check_skill_pairing`, which owns the skill's own type and its
+    governing ability, and reporting it twice would say one defect as two.
+    """
+    if skill is None or not isinstance(skill, Skill):
+        return []
+    if context is RollContext.ABILITY_CHECK:
+        return []
+    return [
+        f"{where} states {skill.value} on a "
+        f"{getattr(context, 'value', context)!r}; a skill qualifies an ability "
+        "check, and a saving throw adds save proficiency rather than a skill"
+    ]
+
+
 def _check_skill_pairing(skill: object, ability: object, where: str) -> list[str]:
     """A printed skill must sit under the ability the Skills table gives it."""
     if skill is None:
@@ -2572,33 +2603,56 @@ _DC_ROLL_CONTEXTS: frozenset[RollContext] = frozenset(
 
 
 def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
-    findings = [
+    """The DC-source contract, in the order its clauses depend on each other.
+
+    Three passes, because each reads values the one before it admitted. Vocabulary
+    first, so nothing downstream reads a value that is not a member; then the
+    **context** rules, because at schema 5 the roll a DC is stated for decides
+    what else the fact may carry; then the DC relationship, which is about
+    ``dc_kind`` and ``dc_value`` alone.
+
+    Putting the context rules ahead of the skill, alternatives and DC clauses is
+    not cosmetic. A saving throw offering a choice of checks fails the
+    alternatives *completeness* rule too, and reporting that first would name the
+    symptom — "no member states the fact's own pair" — instead of the defect,
+    which is that a saving throw offers no choice of checks at all.
+    """
+    vocabulary = [
         *_enum_field(fact.ability, AbilityScore, "ability"),
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
         *_enum_field(fact.context, RollContext, "context"),
+    ]
+    if vocabulary:
+        return vocabulary
+
+    findings: list[str] = []
+    if fact.context not in _DC_ROLL_CONTEXTS:
+        findings.append(
+            "a DC source states an ability check or a saving throw, not a "
+            f"{fact.context.value}"
+        )
+    elif fact.context is not RollContext.ABILITY_CHECK:
+        # A saving throw carries neither of the two things a *check* may state.
+        # ``_check_alternatives`` already refuses a member rolled as anything but
+        # a check; this is the same rule for the fact that offers them, with the
+        # halves swapped, and one DC does not govern two kinds of roll.
+        findings.extend(_check_skill_context(fact.skill, fact.context, "skill"))
+        if fact.alternatives:
+            findings.append(
+                f"a {fact.context.value} offers alternatives; a choice of "
+                "ability checks belongs to an ability check, and one DC does "
+                "not govern two kinds of roll"
+            )
+    if findings:
+        return findings
+
+    findings = [
         *_optional_int_field(fact.dc_value, "dc_value"),
+        # Context admitted, so the pairing rule it never replaced runs here: a
+        # skill under the wrong ability stays refused on its own terms.
         *_check_skill_pairing(fact.skill, fact.ability, "skill"),
         *_check_alternatives(fact.alternatives, fact.ability, fact.skill),
     ]
-    if not findings and fact.context not in _DC_ROLL_CONTEXTS:
-        findings.append(
-            f"a DC source states an ability check or a saving throw, not a "
-            f"{fact.context.value}"
-        )
-    if (
-        not findings
-        and fact.alternatives
-        and fact.context is not RollContext.ABILITY_CHECK
-    ):
-        # ``_check_alternatives`` already refuses a member rolled as anything
-        # but a check. This is the same rule for the fact that offers them: one
-        # DC does not govern two kinds of roll, and a saving throw offering a
-        # choice of checks is that shape with the halves swapped.
-        findings.append(
-            f"a {fact.context.value} offers alternatives; a choice of ability "
-            "checks belongs to an ability check, and one DC does not govern two "
-            "kinds of roll"
-        )
     if findings:
         # The DC relationship below reads dc_kind and dc_value; checking it
         # against mistyped values would report a second, misleading violation.
@@ -3235,6 +3289,8 @@ def _check_rollspec(value: object, field: str) -> list[str]:
             f"{field} qualifies a {value.context.value} by ability; the source "
             "names an ability only for ability checks and saving throws"
         )
+    # The same rule ``AbilityCheckFact`` is held to, through the same function.
+    findings.extend(_check_skill_context(value.skill, value.context, field))
     # Initiative is always rolled by the creature whose turn order it sets;
     # "Initiative against you" is not a thing the source can say.
     if value.context is RollContext.INITIATIVE and value.actor is not RollActor.SUBJECT:
@@ -7470,6 +7526,17 @@ _INVARIANTS: tuple[_Invariant, ...] = (
         field="skill",
         rule="a skill whose printed governing ability equals this roll's ability",
     ),
+    # Schema 5: the context half of the same axis, on both structures that
+    # carry a skill, so neither can admit a combination the other refuses.
+    _Invariant(
+        locus=_shape_locus(RollSpec),
+        id="roll.skill.ability-check-only",
+        field="skill+context",
+        rule=(
+            "stated only for an ability check; a saving throw, an attack roll, "
+            "Initiative and the D20 Test umbrella carry no skill"
+        ),
+    ),
     # H-1 recurrence.
     _Invariant(
         locus=_shape_locus(Recurrence),
@@ -7623,6 +7690,15 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "an ability check or a saving throw, never an attack roll, "
             "Initiative, or the D20 Test umbrella, none of which names one roll "
             "a difficulty could be stated for"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.skill.ability-check-only",
+        locus="fact:ability_check",
+        field="skill+context",
+        rule=(
+            "stated only for an ability check; a saving throw adds save "
+            "proficiency rather than a skill"
         ),
     ),
     _Invariant(

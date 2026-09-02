@@ -39,10 +39,24 @@ instance. Every closed structure in the representation was put to that question.
 | 16 | `DamageModificationFact` | No. `direction` and `factor` must agree, and `rounding` is optional because the corpus states it separately | already safe |
 | 17 | `ScalingFact` other bases | **Out of scope.** `threshold` means "the level above which the change begins" for the level-based bases, which is unambiguous *there*. The ambiguity was the distance basis reading it as an interval, and that basis is now refused | out of scope |
 | 18 | `MovementCostFact`, `MovementTransportFact` | No. Payer and participants explicit since schema 3 | already safe |
-| 19 | `AttackRollFact` | **Owner decision needed, not taken.** It states no `RollContext` either, but an attack roll *is* its context — the question is whether a DC-bearing family and a roll-stating family should share one axis. No corpus clause forced it here | owner decision needed |
-| 20 | `AbilityCheckFact.skill` under a saving throw | **Owner decision needed, not taken.** The SRD prints a skill only after an ability *check*, so a skill-qualified save is a form the source never uses — but nothing in this brief requires refusing it, and `_check_rollspec` permits the same combination on `RollSpec`, so refusing it in one place only would leave the two structures disagreeing | owner decision needed |
+| 19 | `AttackRollFact` | **No.** Resolved 2026-09-02: the family *is* its own context — `FactFamily.ATTACK_ROLL` is the discriminator a consumer reads, and `attack_kind` supplies the closed subtype (melee/ranged, weapon/spell). A `RollContext` field would restate the discriminator in a second place, which is the collapse risk inverted: two spellings of one axis that can drift apart | already safe |
+| 20 | A skill under a saving throw — **both** `AbilityCheckFact` and `RollSpec` | **Yes.** The SRD prints a skill only after an ability *check*; a save adds save proficiency, a different bonus from a different column. Schema 5 introduced the check/save axis, so admitting a skilled save let the new distinction state a combination the source never uses | **patched** — `_check_skill_context`, one function read by both carriers. The asymmetry that deferred it is what the shared statement removes: refusing it on one structure alone would have left the other admitting it |
 
-**Dispositions: 4 patched · 13 already safe · 1 out of scope · 2 owner decision needed.**
+**Dispositions: 5 patched · 14 already safe · 1 out of scope · 0 owner decisions remaining.**
+
+Rows 19 and 20 were carried as owner decisions in the first cut and are both resolved 2026-09-02:
+row 19 to `already safe` on the grounds above, row 20 to **`patched`**.
+
+**The arithmetic, stated because it does not land where it was expected to.** The resolution was
+framed as *"15 already safe, if the prior 13 plus both reclassified cases support that count"*. They
+do not, and the reason is that only **one** of the two reclassified rows became `already safe`: row 20
+was implemented, so it joins `patched` rather than `already safe`. The prior thirteen plus row 19 is
+**fourteen**, and 5 + 14 + 1 = 20, which is every row inspected. Row 14 is *not* a second addition —
+the first cut already counted it among the thirteen, as `already safe (carried by row 2)`, and the
+band it inherits being built confirms that disposition rather than creating a new one.
+
+Recorded rather than rounded to the expected total: a count that does not reconcile to the rows is
+the same defect as a manifest that does not reconcile to its declarations.
 
 No check was loosened. Every existing refusal — primary-by-span uniqueness, duplicated fact
 authority, the closed applicability field matrix, the alternatives contract, provenance-required
@@ -58,6 +72,7 @@ kinds — is unchanged and still exercised.
 | 2 | same module — six stated forms admitted and mutually distinct, eight malformed bands refused, the old triple unconstructible, the kind's field matrix |
 | 3 | same module — one fact with one reading, the schema-4 scaling refused, the component rule, an option arm, a malformed interval, a flat amount |
 | 4 | same module — no roll, two rolls, the honest qualifier shape, option-arm scoping, a component-wide outcome not established by one arm |
+| 20 | `test_schema_5_skill_context.py` — a Constitution save with no skill; Athletics and Acrobatics each refused on a save, correctly paired so the refusal is about context rather than pairing; a save offering alternatives refused *for its context* rather than for completeness; a skilled check and a skilled `RollSpec` check still valid; every skill-free context refused on `RollSpec`; the unskilled control in all four; the pairing rule surviving context admission; both carriers refusing in the same words; and the wire, representation-validator, schema-binding, persistence-reconstruction, override-patch and committed-loader seams |
 | all | `test_schema_5_persistence_and_overrides.py` — round trip, absence, identity-bearing in storage *and* in the persisted digest, refused on the way back, and the override patch loader reading the same contract |
 | all | `test_schema_5_hazards_regeneration_fixtures.py` — the five corrections the rejection called for, as authorable components |
 
@@ -72,3 +87,7 @@ kinds — is unchanged and still exercised.
 * It did not add a Boolean predicate, an executable expression, a dictionary, or a key/value
   escape hatch. Every addition is a closed value object or a required member of a closed
   vocabulary, and `Applicability` still refuses to combine two of itself.
+* Row 20 added **no field**. It is an invariant over two fields that already existed, so it moves the
+  schema hash and moves no payload — which is why every accepted `conditions-1` element stays
+  byte-identical across it and the disclosed `APPEND_COMPONENT` override identity does not move
+  again.

@@ -22,6 +22,12 @@ Four rules, each a closed structure rather than a predicate language:
    Falling has one reading: 1d6 per 10 feet fallen, capped at 20d6.
 4. **A roll outcome answers to exactly one roll in its own scope.** *"On a successful check"* in a
    component that calls for no roll names the outcome of nothing.
+5. **A skill qualifies an ability check, and nothing else.** The check/save axis applied consistently
+   at both structures that carry a skill — `AbilityCheckFact` and `RollSpec` — through one shared
+   `_check_skill_context`. A saving throw carries no skill and offers no alternatives; a skilled
+   check keeps its correctly paired skill and its closed alternative set; a skill on `SAVING_THROW`,
+   `ATTACK_ROLL`, `INITIATIVE` or `D20_TEST` fails closed. Refusing it on one structure alone was the
+   asymmetry that deferred this rule, and one function is what removes it.
 
 Succession `5d-lift-schema-4-to-5` is registered and resolved as a **path**: the committed
 `conditions-1` artifact declares schema 3 and reaches schema 5 across two recorded crossings.
@@ -36,16 +42,25 @@ Succession `5d-lift-schema-4-to-5` is registered and resolved as a **path**: the
 | 4 — registered succession, byte identity, no accepted `AbilityCheckFact`, 3→4→5 chain preserved, fail-closed | same module + `test_accept_across_schema_succession.py` |
 | proposal-correction fixtures (5) | `test_schema_5_hazards_regeneration_fixtures.py` |
 | every authority-bearing seam | `test_schema_5_persistence_and_overrides.py` |
+| 5 — skill only on an ability check, both carriers, all seams | `test_schema_5_skill_context.py` |
 
 ## Test evidence
 
-Three new modules, **91 tests** — 57 + 21 + 13, collected. Every item the issue names is covered, including: identical ability/DC
+Four new modules, **118 tests** — 57 + 21 + 13 + 27, collected. Every item the issue names is covered, including: identical ability/DC
 under check versus save yield distinct payloads **and** fact keys; invalid contexts and
 mixed-context alternatives fail closed both directions; schema 4 rejects schema-5-only meaning for
 all four carriers; the four consumption boundaries plus eight malformed bands; Falling refused as
 base-plus-scaling at the fact, at the component, and inside an option arm; detached and ambiguous
 roll outcomes; the 3→4→5 lift byte-for-byte over all six collections; and persistence, override and
 wire round-trips for every new field through all three applicability loaders.
+
+The skill/context correction adds: a Constitution save with no skill; Athletics and Acrobatics each
+refused on a save, *correctly paired* so the refusal is about context rather than pairing; a save
+offering alternatives refused for its context rather than for set-completeness; a skilled check and a
+skilled `RollSpec` check still valid; every skill-free context refused on `RollSpec` with the
+unskilled control in all four; the pairing rule surviving context admission; both carriers refusing
+in the same words; and the wire, representation-validator, schema-binding, persistence-reconstruction,
+override-patch and committed-loader seams.
 
 **Zero-movement proof** (re-run against the final declarations):
 
@@ -92,11 +107,13 @@ quoted in the log so a reviewer can check the inference rather than trust it.
 
 **Boundary check fired and is recorded.** `.claude/review-notes/issue-5d-representation-schema-5-sibling-AUDIT.md`
 puts all twenty qualifier- and composition-bearing structures to the defect family's own test:
-**4 patched · 13 already safe · 1 out of scope · 2 owner decision needed**. The two left untaken —
-`AttackRollFact`'s missing roll context, and a skill on a saving throw — are named with their
-reasoning and deliberately not implemented; neither is required by any of the five distinctions this
-issue asks for, and the second would leave `AbilityCheckFact` and `RollSpec` disagreeing about one
-combination unless both were changed.
+**5 patched · 14 already safe · 1 out of scope · 0 owner decisions remaining** across 20 inspected
+structures. Both owner decisions from the first cut are resolved: `AttackRollFact` is `already safe`
+(the family discriminator *is* its roll context, and `attack_kind` carries the closed subtype, so a
+`RollContext` field would restate one axis in two places), and a skill under a saving throw is
+**patched** on both structures that carry a skill. The count is 14 rather than the 15 anticipated
+because only one of the two reclassified rows became `already safe` — the other was implemented; the
+audit reconciles the arithmetic to the rows rather than to the expectation.
 
 **No migration.** Schema 5 adds no component key: `context` and `per` ride the family-keyed fact
 payload, `band` rides the existing `rp_mech_components.applies_when` JSON column. Proved by round

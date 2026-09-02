@@ -32,6 +32,8 @@ from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
+    AdvantageFact,
+    AdvantageState,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
@@ -444,6 +446,46 @@ CASES: dict[str, tuple[object, object]] = {
                 upper=Rational(1, 2),
                 sustained_at_least=5,
                 sustained_unit=TimeUnit.DAY,
+            ),
+        ),
+    ),
+    # Schema 5: a skill qualifies an ability check, on both structures that
+    # carry one. Each refusing exemplar is *correctly paired* with its ability,
+    # so what it demonstrates is the context rule rather than the older pairing
+    # rule standing in for it.
+    "ability_check.skill.ability-check-only": (
+        AbilityCheckFact(
+            ability=AbilityScore.STRENGTH,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            context=RollContext.SAVING_THROW,
+            skill=Skill.ATHLETICS,
+        ),
+        AbilityCheckFact(
+            ability=AbilityScore.STRENGTH,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            context=RollContext.ABILITY_CHECK,
+            skill=Skill.ATHLETICS,
+        ),
+    ),
+    "roll.skill.ability-check-only": (
+        AdvantageFact(
+            state=AdvantageState.ADVANTAGE,
+            roll=RollSpec(
+                actor=RollActor.SUBJECT,
+                context=RollContext.SAVING_THROW,
+                ability=AbilityScore.STRENGTH,
+                skill=Skill.ATHLETICS,
+            ),
+        ),
+        AdvantageFact(
+            state=AdvantageState.ADVANTAGE,
+            roll=RollSpec(
+                actor=RollActor.SUBJECT,
+                context=RollContext.ABILITY_CHECK,
+                ability=AbilityScore.STRENGTH,
+                skill=Skill.ATHLETICS,
             ),
         ),
     ),
