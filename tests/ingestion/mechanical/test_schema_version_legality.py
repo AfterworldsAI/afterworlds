@@ -67,6 +67,7 @@ from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, Propos
 from afterworlds.ingestion.mechanical.representation import (
     RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
+    AbilityCheckFact,
     AbilityScore,
     Applicability,
     ApplicabilityKind,
@@ -76,13 +77,19 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    ConsumptionBand,
     CreatureSize,
+    DamageFact,
+    DamageInterval,
     DamageModDirection,
     DamageModificationFact,
     DamageOutcome,
+    DamageType,
+    DcKind,
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
+    DistanceUnit,
     EffectTerminationFact,
     FactFamily,
     LevelDirection,
@@ -118,6 +125,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
+    SCHEMA_5_HASH,
+    SCHEMA_5_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -204,6 +213,11 @@ SCHEMA_4_ONLY = [
         ),
         id="member-DamageOutcome",
     ),
+    # Schema 5 refuses this basis on ``ScalingFact`` through the *invariant*
+    # contract, which is a different question from *version legality* and is
+    # asked by a different function. The exemplar stays as it is because what it
+    # has to exercise is the schema-4 vocabulary member, and this is the shape
+    # schema 4 admitted it in.
     pytest.param(
         ScalingFact(
             basis=ScalingBasis.DISTANCE_FALLEN,
@@ -246,6 +260,44 @@ SCHEMA_4_ONLY = [
 
 #: Content schema 3 states perfectly well. The over-refusal control: a manifest
 #: that classified a pre-existing member as schema-4-only would fail here.
+#: Everything schema 5 introduced, one exemplar per axis of the delta. Two of
+#: the three are *fields* rather than vocabulary members, so they are seen by the
+#: field registries rather than by the manifest; ``DistanceUnit`` is the one new
+#: closed vocabulary and is the manifest row this list has to cover.
+SCHEMA_5_ONLY = [
+    pytest.param(
+        AbilityCheckFact(
+            ability=AbilityScore.CONSTITUTION,
+            dc_kind=DcKind.FIXED,
+            dc_value=10,
+            context=RollContext.SAVING_THROW,
+        ),
+        id="required-AbilityCheckFact.context",
+    ),
+    pytest.param(
+        DamageFact(
+            damage_type=DamageType.BLUDGEONING,
+            dice=DiceExpression(1, DieSize.D6, 0),
+            per=DamageInterval(
+                basis=ScalingBasis.DISTANCE_FALLEN, amount=10, unit=DistanceUnit.FOOT
+            ),
+        ),
+        id="field-DamageFact.per+member-DistanceUnit",
+    ),
+    pytest.param(
+        Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            negated=False,
+            band=ConsumptionBand(
+                quantity=RequiredQuantity.FOOD,
+                period=TimePeriod.DAY,
+                upper=Rational(1, 2),
+            ),
+        ),
+        id="field-Applicability.band",
+    ),
+]
+
 SCHEMA_3_LEGAL = [
     pytest.param(
         Applicability(kind=ApplicabilityKind.PHASE, negated=False, phase=Phase.ON_END),
@@ -286,7 +338,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
     here instead of being trusted.
     """
     exercised: set[str] = set()
-    for param in SCHEMA_4_ONLY:
+    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
     assert _MANIFEST_GROUPS - exercised == set(), sorted(_MANIFEST_GROUPS - exercised)
@@ -322,6 +374,24 @@ def _groups_exercised_by(obj: object) -> set[str]:
         for row in introduction_manifest()
         if any(repr(row["name"]) in f for f in findings)
     }
+
+
+@pytest.mark.parametrize("obj", SCHEMA_5_ONLY)
+def test_schema_4_refuses_every_schema_5_only_type_or_value(obj: object) -> None:
+    """The same delta one succession later: schema 4 cannot state schema 5."""
+    assert post_schema_3_violations(obj, SCHEMA_4_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_5_ONLY)
+def test_schema_5_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_5_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_4_ONLY)
+def test_schema_5_still_admits_every_schema_4_introduction(obj: object) -> None:
+    """A later contract states its predecessor's admissions as well as its own."""
+    assert post_schema_3_violations(obj, SCHEMA_5_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_4_ONLY)
@@ -541,7 +611,7 @@ def test_the_manifest_is_carried_inside_the_schema_identity() -> None:
     """What makes the contract unloosenable without invalidating the lift."""
     payload = representation_schema_payload()
     assert payload["introductions"] == introduction_manifest()
-    assert representation_schema_hash() == SCHEMA_4_HASH
+    assert representation_schema_hash() == SCHEMA_5_HASH
 
 
 def test_dropping_a_manifest_row_moves_the_hash_and_breaks_the_pin() -> None:
@@ -719,10 +789,13 @@ def test_the_committed_artifact_still_loads_and_is_byte_identical() -> None:
 def test_lifted_schema_4_authority_loads(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """The other half of the recognition set: a destination pair, really reached."""
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    lifted, record = lift_accepted_inputs(inputs, (SCHEMA_4_VERSION, SCHEMA_4_HASH))
+    # Stopping at schema 4 deliberately: this is about a *destination* pair
+    # being recognized on the ingress path, and schema 4 is one this build no
+    # longer implements — which is exactly the case worth proving.
+    lifted, records = lift_accepted_inputs(inputs, (SCHEMA_4_VERSION, SCHEMA_4_HASH))
     path = pathlib.Path(tmp_path) / "lifted.json"
     path.write_text(
-        json.dumps(accepted_inputs_payload(replace(lifted, lifts=(record,)))),
+        json.dumps(accepted_inputs_payload(replace(lifted, lifts=records))),
         encoding="utf-8",
     )
 

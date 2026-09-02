@@ -292,11 +292,19 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
     ``test_every_accepted_semantic_coordinate_survives_the_lift``.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    lifted, record = lift_accepted_inputs(
+    lifted, records = lift_accepted_inputs(
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert record.lift_id == "5d-lift-schema-3-to-4"
-    assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
+    # Every registered crossing between the schema this artifact was reviewed
+    # under and the one this build implements, oldest first. The chain is not
+    # collapsed: a single record would name a transition the registry has no row
+    # for, and would assert the artifact never crossed the schemas in between.
+    assert [r.lift_id for r in records] == [
+        "5d-lift-schema-3-to-4",
+        "5d-lift-schema-4-to-5",
+    ]
+    for record in records:
+        assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
     # The extent the lift proved, asserted against the representation itself.
     # The record no longer repeats it back as element counts: once later batches
     # merge, nothing can re-derive the pre-lift extent to check them against

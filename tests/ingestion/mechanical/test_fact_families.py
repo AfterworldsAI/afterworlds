@@ -45,13 +45,13 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackRollFact,
     AutomaticOutcome,
     AutomaticOutcomeFact,
-    Comparison,
     ComponentDraft,
     ConditionEffectFact,
     ConditionEffectKind,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    ConsumptionBand,
     CreatureAbilityScoreFact,
     CreatureChallengeFact,
     CreatureDefenseFact,
@@ -154,7 +154,9 @@ from tests.ingestion.mechanical.conftest import (
 EXEMPLARS: dict[FactFamily, Any] = {
     # "an Intelligence (Investigation) check against your spell save DC"
     FactFamily.ABILITY_CHECK: AbilityCheckFact(
-        AbilityScore.INTELLIGENCE, DcKind.SPELL_SAVE_DC
+        AbilityScore.INTELLIGENCE,
+        DcKind.SPELL_SAVE_DC,
+        context=RollContext.ABILITY_CHECK,
     ),
     # Mummy's ability grid: "W IS 12" / "+1" / "+3"
     FactFamily.CREATURE_ABILITY_SCORE: CreatureAbilityScoreFact(
@@ -321,9 +323,12 @@ EXEMPLARS: dict[FactFamily, Any] = {
         condition=ConditionKind.EXHAUSTION,
         until=Applicability(
             kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
-            required_quantity=RequiredQuantity.WATER,
-            fraction=Rational(1, 1),
-            comparison=Comparison.REACHES,
+            band=ConsumptionBand(
+                quantity=RequiredQuantity.WATER,
+                period=TimePeriod.DAY,
+                lower=Rational(1, 1),
+                lower_inclusive=True,
+            ),
         ),
     ),
     # Falling: "On a successful check, any damage resulting from the fall is

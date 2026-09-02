@@ -75,6 +75,7 @@ __all__ = [
     "SCHEMA_2_VERSION",
     "SCHEMA_3_VERSION",
     "SCHEMA_4_VERSION",
+    "SCHEMA_5_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -141,6 +142,7 @@ SCHEMA_1_VERSION = "5d-representation-schema-1"
 SCHEMA_2_VERSION = "5d-representation-schema-2"
 SCHEMA_3_VERSION = "5d-representation-schema-3"
 SCHEMA_4_VERSION = "5d-representation-schema-4"
+SCHEMA_5_VERSION = "5d-representation-schema-5"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -269,6 +271,13 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_4_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # Its own row, written out rather than inherited. Schema 5's additions are
+    # a required fact field, a fact field, an applicability field and two value
+    # objects; none of them is a *component* key, so the set is schema 4's
+    # repeated deliberately rather than derived from it.
+    SCHEMA_5_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -302,7 +311,9 @@ def _emitted_component_fields(schema_version: str) -> frozenset[str]:
 #:
 #: Explicit membership, never ordering, for the same reason ``_VERSION_STATES``
 #: is: an unrecognised declaration states nothing and fails closed.
-_RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset({SCHEMA_4_VERSION})
+_RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
+    {SCHEMA_4_VERSION, SCHEMA_5_VERSION}
+)
 
 
 def _reference_payload(
@@ -618,9 +629,7 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
 #: absent — the canonical payload omits them when they carry no meaning, so
 #: absence reads as the declared default and nothing is lost. They are kept out
 #: of the required set above so a schema-3 payload still validates unchanged.
-_APPLICABILITY_OPTIONAL_KEYS = frozenset(
-    {"outcome", "damage_outcome", "required_quantity", "fraction", "unit"}
-)
+_APPLICABILITY_OPTIONAL_KEYS = frozenset({"outcome", "damage_outcome", "unit", "band"})
 _SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
     {"category", "relation", "at_least", "at_most", "measured", "reference"}
 )

@@ -33,6 +33,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     RelationshipDraft,
     RelationshipKind,
+    RollContext,
 )
 from tests.ingestion.mechanical.conftest import (
     CREATURE_KEY,
@@ -89,7 +90,9 @@ def test_reordering_an_unordered_collection_changes_nothing(field: str) -> None:
 def test_reordering_facts_within_a_component_changes_nothing() -> None:
     facts = (
         DESCRIPTOR_FACT,
-        AbilityCheckFact(AbilityScore.WISDOM, DcKind.FIXED, 15),
+        AbilityCheckFact(
+            AbilityScore.WISDOM, DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
+        ),
     )
     forward, reverse = (
         _candidate(

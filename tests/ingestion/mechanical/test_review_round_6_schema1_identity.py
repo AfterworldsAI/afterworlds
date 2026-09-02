@@ -348,7 +348,10 @@ def test_each_merged_schema_version_has_its_own_structural_identity() -> None:
     successions.
     """
     current = representation_schema_hash()
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-4"
+    # Stated against the schema-1 and schema-2 literals rather than against one
+    # named current version: the property that outlives any succession is that
+    # no merged contract reuses an earlier structural identity.
+    assert REPRESENTATION_SCHEMA_VERSION not in (SCHEMA_1_VERSION, SCHEMA_2_VERSION)
     assert len({SCHEMA_1_HASH, SCHEMA_2_HASH, current}) == 3
 
 

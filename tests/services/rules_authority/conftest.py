@@ -107,6 +107,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RecordDraft,
     RecordKind,
     RepresentationDraft,
+    RollContext,
     SpellDescriptorFact,
     SpellSchool,
     fact_key,
@@ -194,7 +195,10 @@ DESCRIPTOR_FACT = SpellDescriptorFact(
 DESCRIPTOR_FACT_KEY = fact_key(DESCRIPTOR_FACT)
 
 CHECK_FACT = AbilityCheckFact(
-    ability=AbilityScore.WISDOM, dc_kind=DcKind.FIXED, dc_value=15
+    ability=AbilityScore.WISDOM,
+    dc_kind=DcKind.FIXED,
+    dc_value=15,
+    context=RollContext.ABILITY_CHECK,
 )
 CHECK_FACT_KEY = fact_key(CHECK_FACT)
 
@@ -830,7 +834,9 @@ REPLACEMENT_DESCRIPTOR = SpellDescriptorFact(
     level=7, school=SpellSchool.ILLUSION, ritual=True, concentration=True
 )
 ADDED_CHECK = AbilityCheckFact(
-    ability=AbilityScore.CHARISMA, dc_kind=DcKind.SPELL_SAVE_DC
+    ability=AbilityScore.CHARISMA,
+    dc_kind=DcKind.SPELL_SAVE_DC,
+    context=RollContext.ABILITY_CHECK,
 )
 
 DISABLE_PAYLOAD: dict[str, object] = {"patch": "disable"}

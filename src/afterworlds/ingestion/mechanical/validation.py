@@ -47,7 +47,9 @@ from afterworlds.ingestion.mechanical.representation import (
     RepresentationDraft,
     UnknownFactFamilyError,
     applicability_violations,
+    component_damage_composition_violations,
     component_participant_violations,
+    component_roll_outcome_violations,
     declared_provenance_targets,
     fact_invariant_violations,
     fact_key,
@@ -168,6 +170,22 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
         # depends on. Establishment flows from the component into its options
         # but never across two mutually exclusive arms. The same function is
         # asked again of the final effective view after overrides resolve.
+        findings.extend(
+            component_damage_composition_violations(
+                component.facts, component.options, tag
+            )
+        )
+
+        findings.extend(
+            component_roll_outcome_violations(
+                component.facts,
+                component.options,
+                component.applies_when,
+                tag,
+                component.fact_qualifiers,
+            )
+        )
+
         findings.extend(
             component_participant_violations(
                 component.facts,

@@ -55,11 +55,11 @@ from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
-    Comparison,
     ComponentDraft,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    ConsumptionBand,
     CreatureChallengeFact,
     CreatureSize,
     DamageModDirection,
@@ -115,9 +115,12 @@ DAMAGE_OUTCOME = Applicability(
 CONSUMPTION = Applicability(
     kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
     negated=False,
-    comparison=Comparison.REACHES,
-    required_quantity=RequiredQuantity.WATER,
-    fraction=Rational(1, 1),
+    band=ConsumptionBand(
+        quantity=RequiredQuantity.WATER,
+        period=TimePeriod.DAY,
+        lower=Rational(1, 1),
+        lower_inclusive=True,
+    ),
 )
 ELAPSED = Applicability(
     kind=ApplicabilityKind.ELAPSED_DURATION,
@@ -201,9 +204,11 @@ def test_the_operand_is_what_survives_not_merely_the_kind(
     operands = {
         k: v
         for k, v in payload.items()
-        if k in {"outcome", "damage_outcome", "required_quantity", "fraction", "unit"}
+        # Schema 5 replaced the consumption triple with one closed ``band``,
+        # which is the operand key that kind now carries.
+        if k in {"outcome", "damage_outcome", "unit", "band"}
     }
-    assert operands, "exemplar carries no schema-4 operand"
+    assert operands, "exemplar carries no post-schema-3 operand"
     for build, _ in (p.values for p in BOUNDARIES):  # type: ignore[misc]
         rebuilt = build(payload)
         assert applicability_payload(rebuilt) == payload
@@ -435,9 +440,12 @@ def _consumption(fraction: Rational) -> Applicability:
     return Applicability(
         kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
         negated=False,
-        comparison=Comparison.REACHES,
-        required_quantity=RequiredQuantity.WATER,
-        fraction=fraction,
+        band=ConsumptionBand(
+            quantity=RequiredQuantity.WATER,
+            period=TimePeriod.DAY,
+            lower=fraction,
+            lower_inclusive=True,
+        ),
     )
 
 
@@ -448,9 +456,11 @@ def test_direct_validation_refuses_an_invalid_fraction(
     """The seam every other boundary delegates to."""
     findings = applicability_violations(_consumption(fraction))
     assert findings, fraction
-    named = [
-        f for f in findings if f"fraction.{member}" in f or "fraction must be" in f
-    ]
+    # Schema 5 moved the share onto the band's own bound, so the shared
+    # rational rules are reported at ``band.lower.<member>``. The contract being
+    # exercised is the same one — ``_check_rational`` — reached through the
+    # structure that now carries it.
+    named = [f for f in findings if f"band.lower.{member}" in f or "lower must be" in f]
     assert named, findings
 
 

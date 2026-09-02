@@ -31,12 +31,13 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     Applicability,
     ApplicabilityKind,
-    Comparison,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    ConsumptionBand,
     CreatureSize,
     DamageFact,
+    DamageInterval,
     DamageModDirection,
     DamageModificationFact,
     DamageType,
@@ -44,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
+    DistanceUnit,
     EffectTerminationFact,
     LevelDirection,
     MeasureUnit,
@@ -53,6 +55,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     RollContext,
     RollSpec,
+    ScalingBasis,
     SizeKeyedQuantityFact,
     SizeQuantity,
     Skill,
@@ -112,9 +115,12 @@ REMOVAL_RESTRICTION = ConditionRemovalRestrictionFact(
     until=Applicability(
         kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
         negated=False,
-        comparison=Comparison.REACHES,
-        required_quantity=RequiredQuantity.WATER,
-        fraction=Rational(1, 1),
+        band=ConsumptionBand(
+            quantity=RequiredQuantity.WATER,
+            period=TimePeriod.DAY,
+            lower=Rational(1, 1),
+            lower_inclusive=True,
+        ),
     ),
     cause_scoped=True,
 )
@@ -142,6 +148,7 @@ BREATH = DerivedQuantityFact(
 ACROBATICS = AbilityCheckFact(
     ability=AbilityScore.DEXTERITY,
     dc_kind=DcKind.FIXED,
+    context=RollContext.ABILITY_CHECK,
     dc_value=15,
     skill=Skill.ACROBATICS,
     alternatives=(
@@ -162,11 +169,16 @@ ACROBATICS = AbilityCheckFact(
     ),
 )
 
-#: Falling — *"20d6"*, the printed maximum on an otherwise per-distance amount.
+#: Falling — *"1d6 ... for every 10 feet it fell, to a maximum of 20d6"*. Schema
+#: 5 states the interval on the damage itself, so the amount is per interval and
+#: there is no base beside it.
 CAPPED = DamageFact(
     damage_type=DamageType.BLUDGEONING,
     dice=DiceExpression(1, DieSize.D6, 0),
     maximum_dice=20,
+    per=DamageInterval(
+        basis=ScalingBasis.DISTANCE_FALLEN, amount=10, unit=DistanceUnit.FOOT
+    ),
 )
 
 #: Malnutrition — a level this record itself causes, not an edit to Exhaustion.

@@ -454,10 +454,15 @@ def test_a_non_tuple_collection_is_refused() -> None:
 
 
 def test_the_schema_version_and_hash_are_unchanged() -> None:
-    """Checker code changed; the wire contract did not. No schema 3."""
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-4"
+    """Checker code changed; the wire contract did not.
+
+    Both halves are pinned literally, and both move together at a succession:
+    the pair is the contract, and asserting one against the live value would
+    make this test agree with whatever the build currently is.
+    """
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-5"
     assert representation_schema_hash() == (
-        "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"  # noqa: E501  # pragma: allowlist secret
+        "f412ff47d84b0450b8d45eb7a64fc693aa169ff4f2b21f39eab90d90c40a4539"  # noqa: E501  # pragma: allowlist secret
     )
 
 

@@ -47,7 +47,9 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     RecordKind,
     Recurrence,
+    component_damage_composition_violations,
     component_participant_violations,
+    component_roll_outcome_violations,
     fact_key,
     fact_qualifier_target_key,
     fact_target_key,
@@ -846,19 +848,49 @@ def _verify_final_option_sets(
     """
     for record in records:
         for component in record.components:
+            options = tuple(
+                ComponentOption(
+                    semantic_key=option.semantic_key,
+                    facts=tuple(f.fact for f in option.facts),
+                    applies_when=option.applies_when,
+                )
+                for option in component.options
+            )
+            tag = f"component {record.semantic_key}/{component.semantic_key}"
+            # Schema 5. A component's damage composition is a property of the
+            # *final* state exactly as its option set is, so an override set
+            # that leaves a per-interval damage beside a damage scaling is
+            # refused here through the same established path. Asked of every
+            # component, not only one with options.
+            direct = tuple(f.fact for f in component.facts)
+            if outcome := component_roll_outcome_violations(
+                direct,
+                options,
+                component.applies_when,
+                tag,
+                _effective_qualifiers(component),
+            ):
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves a roll-outcome condition "
+                    "with no uniquely established roll (reported against the "
+                    f"last override to touch it): {'; '.join(outcome)}",
+                )
+            if composition := component_damage_composition_violations(
+                direct, options, tag
+            ):
+                raise OverrideApplicationError(
+                    _blame_for(record.semantic_key, component.semantic_key, provenance),
+                    "the applied override set leaves an ambiguous damage "
+                    "composition (reported against the last override to touch "
+                    f"it): {'; '.join(composition)}",
+                )
             if not component.options:
                 continue
             violations = option_set_violations(
                 tuple(f.fact for f in component.facts),
-                tuple(
-                    ComponentOption(
-                        semantic_key=option.semantic_key,
-                        facts=tuple(f.fact for f in option.facts),
-                        applies_when=option.applies_when,
-                    )
-                    for option in component.options
-                ),
-                f"component {record.semantic_key}/{component.semantic_key}",
+                options,
+                tag,
             )
             if violations:
                 raise OverrideApplicationError(

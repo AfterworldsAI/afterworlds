@@ -28,18 +28,23 @@ from dataclasses import replace
 
 import pytest
 
+from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
     Applicability,
     ApplicabilityKind,
+    AutomaticOutcome,
     Comparison,
+    ComponentDraft,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
+    ConsumptionBand,
     CreatureChallengeFact,
     CreatureSize,
     DamageFact,
+    DamageInterval,
     DamageModDirection,
     DamageModificationFact,
     DamageType,
@@ -47,6 +52,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
+    DistanceUnit,
     LevelDirection,
     MeasureUnit,
     Phase,
@@ -67,8 +73,11 @@ from afterworlds.ingestion.mechanical.representation import (
     TimePeriod,
     TimeUnit,
     TrackedQuantity,
+    _dataclass_payload,
     applicability_violations,
     canonical_bytes,
+    component_damage_composition_violations,
+    component_roll_outcome_violations,
     fact_invariant_violations,
     fact_payload,
     held_structure_violations,
@@ -82,6 +91,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
+    SCHEMA_5_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -131,16 +141,55 @@ def _falling(**overrides: object) -> AbilityCheckFact:
         "skill": Skill.ACROBATICS,
         "alternatives": _canonical(DEX_ACROBATICS, STR_ATHLETICS),
     }
-    return AbilityCheckFact(**{**base, **overrides})  # type: ignore[arg-type]
+    return AbilityCheckFact(**{**base, **overrides}, context=RollContext.ABILITY_CHECK)  # type: ignore[arg-type]
+
+
+_FALL_INTERVAL = DamageInterval(
+    basis=ScalingBasis.DISTANCE_FALLEN, amount=10, unit=DistanceUnit.FOOT
+)
+#: Falling's closed choice, in canonical order — the alternatives contract
+#: refuses an unordered one, which is a different rule's witness.
+_FALLING_ALTERNATIVES = tuple(
+    sorted(
+        (
+            RollSpec(
+                actor=RollActor.SUBJECT,
+                context=RollContext.ABILITY_CHECK,
+                ability=AbilityScore.STRENGTH,
+                skill=Skill.ATHLETICS,
+            ),
+            RollSpec(
+                actor=RollActor.SUBJECT,
+                context=RollContext.ABILITY_CHECK,
+                ability=AbilityScore.DEXTERITY,
+                skill=Skill.ACROBATICS,
+            ),
+        ),
+        key=lambda r: canonical_bytes(_dataclass_payload(r)),
+    )
+)
+
+
+def _component(**kw: object) -> ComponentDraft:
+    """A minimal component carrying whatever the row under test is about."""
+    return ComponentDraft(
+        record_key="hazard.falling",
+        semantic_key="probe",
+        handling=ComponentHandling.STRUCTURED,
+        **kw,  # type: ignore[arg-type]
+    )
 
 
 def _consumption(fraction: Rational) -> Applicability:
     return Applicability(
         kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
         negated=False,
-        comparison=Comparison.REACHES,
-        required_quantity=RequiredQuantity.WATER,
-        fraction=fraction,
+        band=ConsumptionBand(
+            quantity=RequiredQuantity.WATER,
+            period=TimePeriod.DAY,
+            lower=fraction,
+            lower_inclusive=True,
+        ),
     )
 
 
@@ -161,6 +210,15 @@ def _findings(obj: object) -> list[str]:
     paths already call, and routing through anything else would prove a rule
     nothing else runs.
     """
+    if isinstance(obj, ComponentDraft):
+        # Two component-scoped rules, asked exactly as ``_validate_components``
+        # asks them.
+        return [
+            *component_damage_composition_violations(obj.facts, obj.options, "probe"),
+            *component_roll_outcome_violations(
+                obj.facts, obj.options, obj.applies_when, "probe", obj.fact_qualifiers
+            ),
+        ]
     if isinstance(obj, Applicability):
         return applicability_violations(obj)
     if isinstance(obj, Recurrence):
@@ -232,9 +290,63 @@ CASES: dict[str, tuple[object, object]] = {
         ),
     ),
     # H-4, and the delegation round 5 corrected.
-    "consumption_threshold.fraction.shared-rational-rules": (
-        _consumption(Rational(1, 0)),
-        _consumption(Rational(1, 2)),
+    # Schema 5, the two component-scoped rules. A component is the smallest
+    # thing that can state either, because neither is a property of one fact.
+    "component.damage.interval-excludes-damage-scaling": (
+        _component(
+            facts=(
+                DamageFact(
+                    damage_type=DamageType.BLUDGEONING,
+                    dice=DiceExpression(count=1, die=DieSize.D6),
+                    per=_FALL_INTERVAL,
+                ),
+                ScalingFact(
+                    basis=ScalingBasis.CHARACTER_LEVEL,
+                    threshold=5,
+                    effect=ScalingEffect.DAMAGE,
+                    dice_amount=DiceExpression(count=1, die=DieSize.D6),
+                ),
+            )
+        ),
+        _component(
+            facts=(
+                DamageFact(
+                    damage_type=DamageType.BLUDGEONING,
+                    dice=DiceExpression(count=1, die=DieSize.D6),
+                    per=_FALL_INTERVAL,
+                ),
+            )
+        ),
+    ),
+    "component.roll_outcome.one-established-roll-in-scope": (
+        _component(
+            facts=(
+                DamageModificationFact(
+                    direction=DamageModDirection.REDUCE, factor=Rational(1, 2)
+                ),
+            ),
+            applies_when=Applicability(
+                kind=ApplicabilityKind.ROLL_OUTCOME,
+                outcome=AutomaticOutcome.SUCCESS,
+            ),
+        ),
+        _component(
+            facts=(
+                AbilityCheckFact(
+                    ability=AbilityScore.STRENGTH,
+                    dc_kind=DcKind.FIXED,
+                    dc_value=15,
+                    context=RollContext.ABILITY_CHECK,
+                ),
+                DamageModificationFact(
+                    direction=DamageModDirection.REDUCE, factor=Rational(1, 2)
+                ),
+            ),
+            applies_when=Applicability(
+                kind=ApplicabilityKind.ROLL_OUTCOME,
+                outcome=AutomaticOutcome.SUCCESS,
+            ),
+        ),
     ),
     # H-14, and the schema-3 kind whose rule it joined.
     "elapsed_duration.value.not-below-zero": (_elapsed(-5), _elapsed(0)),
@@ -289,17 +401,137 @@ CASES: dict[str, tuple[object, object]] = {
             until=_consumption(Rational(1, 2)),
         ),
     ),
+    # Schema 5. The band's own contract, replacing schema 4's single-sided
+    # fraction row: each witness names one share set the band must refuse and
+    # one it must admit.
+    "consumption_band.bounds.names-a-real-share-set": (
+        Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            negated=False,
+            band=ConsumptionBand(quantity=RequiredQuantity.FOOD, period=TimePeriod.DAY),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            negated=False,
+            band=ConsumptionBand(
+                quantity=RequiredQuantity.FOOD,
+                period=TimePeriod.DAY,
+                upper=Rational(1, 2),
+            ),
+        ),
+    ),
+    "consumption_band.bounds.shared-rational-rules": (
+        _consumption(Rational(1, 0)),
+        _consumption(Rational(1, 2)),
+    ),
+    "consumption_band.sustained.amount-and-unit-together": (
+        Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            negated=False,
+            band=ConsumptionBand(
+                quantity=RequiredQuantity.FOOD,
+                period=TimePeriod.DAY,
+                upper=Rational(1, 2),
+                sustained_at_least=5,
+            ),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.CONSUMPTION_THRESHOLD,
+            negated=False,
+            band=ConsumptionBand(
+                quantity=RequiredQuantity.FOOD,
+                period=TimePeriod.DAY,
+                upper=Rational(1, 2),
+                sustained_at_least=5,
+                sustained_unit=TimeUnit.DAY,
+            ),
+        ),
+    ),
+    # Schema 5, requirement 1.
+    "ability_check.context.dc-bearing-roll-only": (
+        AbilityCheckFact(
+            ability=AbilityScore.CONSTITUTION,
+            dc_kind=DcKind.FIXED,
+            dc_value=10,
+            context=RollContext.INITIATIVE,
+        ),
+        AbilityCheckFact(
+            ability=AbilityScore.CONSTITUTION,
+            dc_kind=DcKind.FIXED,
+            dc_value=10,
+            context=RollContext.SAVING_THROW,
+        ),
+    ),
+    "ability_check.context.alternatives-are-checks": (
+        AbilityCheckFact(
+            ability=AbilityScore.STRENGTH,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            skill=Skill.ATHLETICS,
+            context=RollContext.SAVING_THROW,
+            alternatives=_FALLING_ALTERNATIVES,
+        ),
+        AbilityCheckFact(
+            ability=AbilityScore.STRENGTH,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            skill=Skill.ATHLETICS,
+            context=RollContext.ABILITY_CHECK,
+            alternatives=_FALLING_ALTERNATIVES,
+        ),
+    ),
+    # Schema 5, requirement 3.
+    "damage.per.repeats-a-dice-expression": (
+        DamageFact(
+            damage_type=DamageType.BLUDGEONING, flat_amount=3, per=_FALL_INTERVAL
+        ),
+        DamageFact(
+            damage_type=DamageType.BLUDGEONING,
+            dice=DiceExpression(count=1, die=DieSize.D6),
+            per=_FALL_INTERVAL,
+        ),
+    ),
+    "damage_interval.basis.distance-only": (
+        DamageFact(
+            damage_type=DamageType.BLUDGEONING,
+            dice=DiceExpression(count=1, die=DieSize.D6),
+            per=DamageInterval(
+                basis=ScalingBasis.CHARACTER_LEVEL, amount=10, unit=DistanceUnit.FOOT
+            ),
+        ),
+        DamageFact(
+            damage_type=DamageType.BLUDGEONING,
+            dice=DiceExpression(count=1, die=DieSize.D6),
+            per=_FALL_INTERVAL,
+        ),
+    ),
+    "scaling.basis.no-distance-fallen": (
+        ScalingFact(
+            basis=ScalingBasis.DISTANCE_FALLEN,
+            threshold=10,
+            effect=ScalingEffect.DAMAGE,
+            direction=ScalingDirection.INCREASE,
+            dice_amount=DiceExpression(count=1, die=DieSize.D6),
+        ),
+        ScalingFact(
+            basis=ScalingBasis.CHARACTER_LEVEL,
+            threshold=10,
+            effect=ScalingEffect.DAMAGE,
+            direction=ScalingDirection.INCREASE,
+            dice_amount=DiceExpression(count=1, die=DieSize.D6),
+        ),
+    ),
     # H-7.
     "scaling.threshold.not-below-zero": (
         ScalingFact(
-            basis=ScalingBasis.DISTANCE_FALLEN,
+            basis=ScalingBasis.CHARACTER_LEVEL,
             threshold=-10,
             effect=ScalingEffect.DAMAGE,
             direction=ScalingDirection.INCREASE,
             dice_amount=DiceExpression(count=1, die=DieSize.D6),
         ),
         ScalingFact(
-            basis=ScalingBasis.DISTANCE_FALLEN,
+            basis=ScalingBasis.CHARACTER_LEVEL,
             threshold=10,
             effect=ScalingEffect.DAMAGE,
             direction=ScalingDirection.INCREASE,
@@ -311,7 +543,7 @@ CASES: dict[str, tuple[object, object]] = {
     # because two independent rules live on this family.
     "scaling.increment.exactly-one": (
         ScalingFact(
-            basis=ScalingBasis.DISTANCE_FALLEN,
+            basis=ScalingBasis.CHARACTER_LEVEL,
             threshold=10,
             effect=ScalingEffect.DAMAGE,
             direction=ScalingDirection.INCREASE,
@@ -319,7 +551,7 @@ CASES: dict[str, tuple[object, object]] = {
             amount=2,
         ),
         ScalingFact(
-            basis=ScalingBasis.DISTANCE_FALLEN,
+            basis=ScalingBasis.CHARACTER_LEVEL,
             threshold=10,
             effect=ScalingEffect.DAMAGE,
             direction=ScalingDirection.INCREASE,
@@ -419,10 +651,17 @@ def test_no_python_name_reaches_the_invariant_declaration() -> None:
     A nested value object carries no type tag on the wire, so it is identified
     by its own sorted field set — the same answer this module already gives for
     a vocabulary, which it identifies by its admitted values.
+
+    ``component`` joins the prefixes at schema 5. It is a serialized identifier
+    like the others: ``components`` is a collection the payload carries, and the
+    two rules declared against it are properties of a whole component rather
+    than of any one fact in it. No Python name appears in it either.
     """
     for row in invariant_manifest():
         locus = row["locus"]
-        assert locus.startswith(("fact:", "applicability", "shape:")), locus
+        assert locus.startswith(
+            ("fact:", "applicability", "shape:", "component")
+        ), locus
         assert locus == locus.lower(), locus
         assert row["id"] == row["id"].lower(), row["id"]
 
@@ -457,7 +696,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_4_HASH
+    assert representation_schema_hash() == SCHEMA_5_HASH
 
 
 # ---------------------------------------------------------------------------
@@ -495,6 +734,7 @@ def test_empty_alternatives_stay_an_ordinary_ability_check() -> None:
         dc_kind=DcKind.FIXED,
         dc_value=15,
         skill=Skill.ACROBATICS,
+        context=RollContext.ABILITY_CHECK,
     )
     assert plain.alternatives == ()
     assert fact_invariant_violations(plain) == ()
