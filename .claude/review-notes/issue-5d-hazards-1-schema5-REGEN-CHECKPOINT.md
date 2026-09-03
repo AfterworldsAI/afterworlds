@@ -1,16 +1,19 @@
 # CRD Issue 5d — `hazards-1` regenerated under representation schema 5
 
-**Status: SEMANTIC-REVIEW HANDOFF. Not an acceptance recommendation.**
+**Status: SEMANTIC REVIEW COMPLETE. Ready for a separate Owner-acceptance step, which this
+work does not perform.**
 
-Nothing here is accepted, published, activated, or retired. `accept_proposal` is never called,
-`oracles/` is read and asserted byte-unchanged, and `actions-1` is not begun. The rejected schema-4
-proposal `6277ff73…a259` was not imported, edited, translated, restamped, cloned, or read as
+`hazards-1` has passed semantic review. Every question this batch raised is resolved — D-3 by Owner
+Decision 2026-09-02, D-4 and Z-1 as correctly represented (§5) — and **no semantic question and no
+disclosed representation limit remains**. Acceptance is a distinct decision and a distinct action:
+nothing here is accepted, published, activated, retired, or merged, `accept_proposal` is never
+called, `oracles/` is read and asserted byte-unchanged, and `actions-1` is not begun. The rejected
+schema-4 proposal `6277ff73…a259` was not imported, edited, translated, restamped, cloned, or read as
 generator input; it is compared against only after the fact, as a diagnostic.
 
-**Zero validator findings is necessary and explicitly insufficient.** The gate proves the artifact is
-*admissible*. It cannot prove the representation is *true of the source*, and the three questions in
-§6 are exactly the ones no validator can answer. **D-3, Falling's timing, is resolved** by Owner
-Decision 2026-09-02 (§5a). One disclosed limit remains, D-4 (§5b).
+**Zero validator findings was never the argument.** The gate proves the artifact is *admissible*; it
+cannot prove the representation is *true of the source*. What closes §6 is a reading of the bound
+source per record, recorded and executed, not a green run.
 
 | | |
 |---|---|
@@ -19,7 +22,9 @@ Decision 2026-09-02 (§5a). One disclosed limit remains, D-4 (§5b).
 | Schema | `5d-representation-schema-5` / `2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40` |
 | Policy | `5d-semantic-policy-1` / `e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454` |
 | Release | `4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` / `5.2.1-corpus.36b786d8-fa2` |
-| Accepted artifact | `aa59c69d…6e8a1a` before **and** after the run, both recorded in the audit |
+| Accepted artifact | `aa59c69d…6e8a1a` before **and** after the run, pinned as a literal the run asserts |
+| Open questions / disclosed limits | **none** — asserted empty by the generator |
+| Repository root | derived from the generator's own location, `Path(__file__).resolve().parents[2]` — no hard-coded path |
 
 ---
 
@@ -158,31 +163,58 @@ proposed mechanical authority, and the proposal is byte-identical with its ident
 Each row is executed as an assertion in the generator and recorded in the audit under
 `d3_resolution.checked`, so the ruling is checked rather than described.
 
-## 5b. Disclosed limit — this one still needs a ruling
+## 5b. D-4, Burning's required physical performance — **RESOLVED**, correctly represented
 
-**D-4 — Burning's required physical performance.** *"and rolling on the ground"* is half of a compound
-required performance whose other half — the Prone condition — is typed. Rolling on the ground has no
-typed family. It is bound as affirmative governing prose under `contextual_applicability`: the clause
-conditions whether the extinguishing takes effect, which is applicability, and its operand is fiction
-the projection cannot enumerate. The reason code was chosen against the catalog's literal wording,
-not for whichever code validated: `subjective_judgment` would claim a judgement call the source does
-not ask for, and `fiction_dependent_consequence` would misdescribe a consequence that *is* typed. The
-typed consequence is stated once, beside the binding, and is not restated inside the binding's span.
+Never actually an open question: the governing review instructions had already decided all three
+parts of it, and the proposal is exactly that shape.
 
-## 6. What a semantic reviewer should decide
+| required | as built |
+|---|---|
+| `self_extinguish` is one MIXED component | one component, `MIXED`, reason `contextual_applicability` |
+| *" and rolling on the ground."* is substantive governing rule text | SUBSTANTIVE, `[174,201)`, claimed PRIMARY by the component's single prose binding |
+| the consequence is stated once | exactly one `EffectTerminationFact`, and the bound span restates no consequence |
+| the rest is typed | `ActionEconomyFact`, `ConditionEffectFact`, `EffectTerminationFact` |
 
-The validators cannot answer any of these. Falling's grain is no longer among them: Owner Decision
-2026-09-02 settles `fall_damage` as one component holding the damage and the landing, with the Prone
-result gated on whether falling damage occurred.
+The reason code was chosen against the catalog's literal wording rather than for whichever code
+validated: the clause conditions whether the extinguishing takes effect, which is applicability, over
+an act the projection cannot enumerate. `subjective_judgment` would claim a judgement call the source
+does not ask for, and `fiction_dependent_consequence` would misdescribe a consequence that *is*
+typed. Every row above is executed as an assertion and recorded under `d4_resolution.checked`. **No
+schema change and no Owner decision is outstanding.**
 
-1. **Is the sustained zero band a faithful reading of *"eats nothing for 5 days … as well as an
-   additional level at the end of each subsequent day without food"*?** The design leans on
-   `applies_when`'s declared meaning (*when this component applies at all*) composed with `recurs`.
-   That inference is stated so it can be checked rather than trusted.
-2. **Is *" and rolling on the ground."* substantive?** It is classified as governing prose here. If it
-   is commentary, one span moves back and the prose binding goes.
-3. **Is D-4 acceptable as a disclosed limit, or does it need schema work?** It was not solved by an
-   unreviewed schema patch, and it should not be.
+## 5c. Z-1, the sustained zero-food rule — **RESOLVED**, correctly represented
+
+The required reading, and where each part lives:
+
+| required reading | as built |
+|---|---|
+| *"eats nothing for 5 days"* is continuous zero consumption for **at least** five days | `ConsumptionBand(FOOD, 0 ≤ x ≤ 0, sustained_at_least=5 DAY)` as `starvation_automatic.applies_when` |
+| Exhaustion is gained at the end of the fifth foodless day | that band composed with `Recurrence(END_OF_DAY)` |
+| additional Exhaustion at the end of each following foodless day | the same recurrence — one `ConditionLevelFact`, not a second rule |
+| the recurrence stays conditional on continued zero consumption | `applies_when` says *when this component applies at all*, so the cadence runs only while the band holds |
+| eating any food ends that applicability | leaving the band makes the component inapplicable; no stop condition is stated, and none is needed |
+
+No elapsed clock survives anywhere in the batch — asserted — so *"five days have passed"*, which is
+true of every creature alive on day five, is not what this rule says. Recorded under
+`z1_resolution.checked`.
+
+## 6. Review disposition
+
+**No semantic questions remain, and no disclosed representation limits remain.** The three the batch
+raised are closed:
+
+| id | where | disposition |
+|---|---|---|
+| D-3 | `hazard.falling/fall_damage` | resolved — Owner Decision 2026-09-02, immediate-fall ruling |
+| D-4 | `hazard.burning/self_extinguish` | resolved — correctly represented |
+| Z-1 | `hazard.malnutrition/starvation_automatic` | resolved — correctly represented |
+
+The generator asserts that the audit's disclosed-limit list and open-question list are both empty,
+that all three carry a resolved status, that the proposal identity is
+`f7ce4491…c40417`, and that the accepted artifact's digest is `aa59c69d…6e8a1a` before and after.
+
+`hazards-1` has passed semantic review and is ready for a **separate Owner-acceptance step**. This
+work does not take it: acceptance remains a distinct decision and a distinct action.
 
 ## 7. Stop conditions honoured
 

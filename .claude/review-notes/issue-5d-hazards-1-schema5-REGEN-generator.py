@@ -75,18 +75,34 @@ closed rather than deleted, so the question and its answer both stay legible.
       physics calculation is added for an ordinary fall - the ruling is that
       none is needed, and adding one would state a delay the source does not.
 
-DISCLOSED REPRESENTATION LIMIT. One remains. It is not an unresolved span, an
-Owner Decision, or a schema request; it is stated so a semantic reviewer can
-rule on it, and is carried in the audit under the same id.
+D-4 IS RESOLVED - Burning's required physical performance is correctly
+represented, and was never an open question. The governing review instructions
+already decided all three parts of it: `self_extinguish` is one MIXED component,
+*"and rolling on the ground"* is substantive governing rule text, and the
+consequence is stated once. The proposal does exactly that - the Action cost,
+the Prone application and the `EffectTerminationFact` are typed, the rolling
+clause is bound as affirmative governing prose under `contextual_applicability`
+because whether the extinguishing applies depends on an act the projection
+cannot enumerate, and the consequence is not repeated inside the binding's span.
+No schema change and no Owner decision is outstanding.
 
-  D-4 (Burning, required physical performance). *"and rolling on the ground"* is
-      half of a compound required performance whose other half - the Prone
-      condition - is typed. Rolling on the ground has no typed family and is not
-      a consequence, so it is bound as affirmative governing prose under
-      `contextual_applicability`: whether the extinguishing applies depends on
-      whether the creature performed an act the projection cannot enumerate. The
-      typed consequence (`EffectTerminationFact`) is stated once, beside it, and
-      is not repeated in the prose binding's span.
+Z-1 IS RESOLVED - the sustained zero-consumption reading is correct as
+represented. *"Eats nothing for 5 days"* is continuous zero consumption for **at
+least** five days; Exhaustion is gained at the end of the fifth foodless day and
+again at the end of each following foodless day; the recurrence stays
+conditional on continued zero consumption; and eating any food ends that
+applicability. That is exactly `starvation_automatic`: the point band 0..0
+inclusive with `sustained_at_least=5 DAY` as `applies_when`, composed with
+`Recurrence(END_OF_DAY)`. A component's `applies_when` says when the component
+applies at all, so the daily gain repeats only while the band holds and stops
+the day eating resumes - no stop condition, elapsed clock or second predicate
+is needed, and none is added.
+
+NO DISCLOSED REPRESENTATION LIMITS REMAIN for `hazards-1`, and no semantic
+question is left open. The three questions this batch raised - D-3, D-4 and Z-1
+- are all recorded as resolved in the audit under
+`resolved_representation_questions`, and the run asserts that the disclosed-limit
+list is empty.
 
 R-3 IS SEPARATE AUTHORITY. `DamageModificationFact.rounding` stays None: Falling
 states a halving and nothing about rounding, and the `Round Down` glossary entry
@@ -103,13 +119,52 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-REPO = Path(r"D:\AI\Claude\afterworlds")
+#: The repository this run reads everything from, derived from where this file
+#: actually lives: `<repo>/.claude/review-notes/<this file>`. A hard-coded
+#: absolute path would let a generator launched from a second checkout read the
+#: source code, the SRD and the accepted authority out of the first one, which
+#: would make a "clean checkout reproduces it" claim prove nothing at all. No
+#: environment fallback: if the layout is not this, the run stops.
+OUT = Path(__file__).resolve().parent
+REPO = OUT.parents[1]
+assert OUT.name == "review-notes" and OUT.parent.name == ".claude", OUT
 sys.path.insert(0, str(REPO / "src"))
-OUT = Path(__file__).parent
+
+#: The three inputs, named once and required to exist beneath the derived root
+#: before anything is imported or read.
+SOURCE_PDF = REPO / "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
+ACCEPTED_PATH = (
+    REPO
+    / "src/afterworlds/ingestion/mechanical/oracles"
+    / "srd-5-2-1-corpus-36b786d8-fa2.json"
+)
+PACKAGE_ROOT = REPO / "src/afterworlds"
+for _required in (SOURCE_PDF, ACCEPTED_PATH, PACKAGE_ROOT):
+    assert (
+        _required.exists()
+    ), f"missing beneath the derived repository root: {_required}"
+for _module in (
+    "ingestion/mechanical/representation.py",
+    "ingestion/mechanical/schema_lift.py",
+    "ingestion/mechanical/validation.py",
+    "ingestion/mechanical/oracle.py",
+    "ingestion/mechanical/acceptance.py",
+    "ingestion/mechanical/projection.py",
+    "ingestion/mechanical/policy.py",
+    "ingestion/corpus/pipeline.py",
+):
+    assert (PACKAGE_ROOT / _module).exists(), f"missing module: {_module}"
 
 #: The rejected schema-4 proposal. Named so the run can prove it differs, never
 #: read as input.
 REJECTED_IDENTITY = "6277ff735e0e47b3337f2c3736ca7922864b1cde9a3c286b3aee48ee461ba259"  # noqa: E501  # pragma: allowlist secret
+
+#: The reviewed proposal's identity and the accepted artifact's digest, pinned
+#: as literals. This run reproduces the first and must not disturb the second;
+#: both are asserted rather than reported, so a change stops the run instead of
+#: appearing quietly in an artifact.
+EXPECTED_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
+ACCEPTED_SHA256 = "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a"  # noqa: E501  # pragma: allowlist secret
 
 # --- Retained-evidence guard ------------------------------------------------
 # Every previous hazards artifact is the record of a superseded conclusion or of
@@ -264,6 +319,27 @@ from afterworlds.ingestion.mechanical.validation import (  # noqa: E402
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa: E402
 
+import afterworlds  # noqa: E402  # isort: skip
+
+#: Where the imported package actually came from. An editable install in the
+#: virtualenv points at whichever checkout was installed, so `sys.path` order is
+#: what makes this run read its own tree - and an assertion is what proves it.
+IMPORTED_FROM = Path(afterworlds.__file__).resolve().parent
+assert PACKAGE_ROOT.resolve() == IMPORTED_FROM, (IMPORTED_FROM, PACKAGE_ROOT)
+INPUT_PATHS = {
+    "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+    "source_pdf": SOURCE_PDF.relative_to(REPO).as_posix(),
+    "accepted_artifact": ACCEPTED_PATH.relative_to(REPO).as_posix(),
+    "afterworlds_package": IMPORTED_FROM.relative_to(REPO).as_posix(),
+    "output_directory": OUT.relative_to(REPO).as_posix(),
+    "note": (
+        "Recorded relative to the derived root on purpose: an absolute path "
+        "would make this artifact differ between two checkouts that produced "
+        "identical content. Every one of these is asserted to exist, and the "
+        "imported package is asserted to be the one beneath this root."
+    ),
+}
+
 SCHEMA = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
 assert SCHEMA[0] == "5d-representation-schema-5", SCHEMA
 assert SCHEMA[1] == (
@@ -287,10 +363,7 @@ BUNDLE_ROOT_HASH = "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a248427
 #: the committed PDF and asserted below.
 PERSISTED_CORPUS_DIGEST = "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b"  # pragma: allowlist secret
 
-CAND = build_candidate(
-    REPO / "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
-    retrieval_config=RetrievalMemoryConfig(),
-)
+CAND = build_candidate(SOURCE_PDF, retrieval_config=RetrievalMemoryConfig())
 assert CAND.package_uuid == PACKAGE_UUID, CAND.package_uuid
 assert CAND.release_version == RELEASE_VERSION, CAND.release_version
 assert CAND.authoritative_source_hash == SOURCE_SHA256, CAND.authoritative_source_hash
@@ -1340,13 +1413,10 @@ assert any(
 # are cross-batch resolutions rather than residue.
 #
 # The accepted artifact is READ ONLY. Nothing here writes it, and the lift is
-# verified rather than applied.
-ACCEPTED_PATH = (
-    REPO
-    / "src/afterworlds/ingestion/mechanical/oracles"
-    / "srd-5-2-1-corpus-36b786d8-fa2.json"
-)
+# verified rather than applied. Its path is resolved at the top of this file,
+# beneath the derived repository root.
 _accepted_before = hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest()
+assert _accepted_before == ACCEPTED_SHA256, _accepted_before
 PRIOR = load_accepted_inputs(ACCEPTED_PATH)
 STEPS = lift_path((PRIOR.oracle.schema_version, PRIOR.oracle.schema_hash), SCHEMA)
 LIFT_RECORDS = verify_lift_path(STEPS, PRIOR.oracle.representation)
@@ -1683,6 +1753,136 @@ assert D3_RESOLUTION["checked"]["fall_damage_holds_damage_and_landing"], D3_RESO
 assert _fall.recurs is None and _fall.applies_when is None, D3_RESOLUTION
 assert D3_RESOLUTION["checked"]["prose_bindings"] == 0, D3_RESOLUTION
 assert D3_RESOLUTION["checked"]["prone_gated_on_falling_damage"], D3_RESOLUTION
+
+# --- D-4, Burning's required physical performance: resolved ----------------
+# Not an open question and never was: the governing review instructions decided
+# the shape, and this checks the proposal is that shape rather than asserting it.
+_ext = next(
+    c for c in components if (c.record_key, c.semantic_key) == (BUR, "self_extinguish")
+)
+_ext_bindings = [
+    b
+    for b in prose_bindings
+    if (b.record_key, b.component_key) == (BUR, "self_extinguish")
+]
+_rolling_row = next(
+    a
+    for a in audit
+    if a["record"] == BUR and a["text"] == " and rolling on the ground."
+)
+D4_RESOLUTION = {
+    "id": "D-4",
+    "status": "resolved - correctly represented",
+    "where": "hazard.burning/self_extinguish",
+    "question_as_disclosed": (
+        "whether 'and rolling on the ground' - half of a compound required "
+        "performance whose other half is typed - was honestly bound as "
+        "governing prose, or needed a typed family."
+    ),
+    "resolution": (
+        "Correctly represented, and settled by the governing review "
+        "instructions rather than left open: self_extinguish is one MIXED "
+        "component, 'and rolling on the ground' is substantive governing rule "
+        "text, and the extinguishing consequence is stated once. No schema "
+        "change and no Owner decision is outstanding."
+    ),
+    "checked": {
+        "one_mixed_component": _ext.handling is ComponentHandling.MIXED,
+        "typed_facts": sorted(type(f).__name__ for f in _ext.facts),
+        "prose_bindings": len(_ext_bindings),
+        "bound_span": {
+            "range": _rolling_row["range"],
+            "text": _rolling_row["text"],
+            "disposition": _rolling_row["disposition"],
+            "claimant": _rolling_row["claimant"],
+        },
+        "consequence_stated_once": sum(
+            1 for f in _ext.facts if type(f) is EffectTerminationFact
+        ),
+        "consequence_restated_in_the_bound_span": (
+            "extinguish" in _rolling_row["text"] or "goes out" in _rolling_row["text"]
+        ),
+        "reason_code": _ext.irreducibility_reason_code,
+    },
+}
+assert D4_RESOLUTION["checked"]["one_mixed_component"], D4_RESOLUTION
+assert D4_RESOLUTION["checked"]["prose_bindings"] == 1, D4_RESOLUTION
+assert _ext_bindings[0].span_id == _rolling_row["span_id"], D4_RESOLUTION
+assert _rolling_row["disposition"] == "substantive", D4_RESOLUTION
+assert D4_RESOLUTION["checked"]["consequence_stated_once"] == 1, D4_RESOLUTION
+assert not D4_RESOLUTION["checked"][
+    "consequence_restated_in_the_bound_span"
+], D4_RESOLUTION
+assert D4_RESOLUTION["checked"]["typed_facts"] == [
+    "ActionEconomyFact",
+    "ConditionEffectFact",
+    "EffectTerminationFact",
+], D4_RESOLUTION
+
+# --- Z-1, the sustained zero-food rule: resolved ----------------------------
+_auto = next(
+    c
+    for c in components
+    if (c.record_key, c.semantic_key) == (MAL, "starvation_automatic")
+)
+_auto_band = _auto.applies_when.band
+Z1_RESOLUTION = {
+    "id": "Z-1",
+    "status": "resolved - correctly represented",
+    "where": "hazard.malnutrition/starvation_automatic",
+    "question_as_disclosed": (
+        "whether the point band sustained for five days, composed with a daily "
+        "recurrence, is a faithful reading of 'eats nothing for 5 days ... as "
+        "well as an additional level at the end of each subsequent day without "
+        "food'."
+    ),
+    "required_reading": [
+        "'eats nothing for 5 days' means continuous zero consumption for at "
+        "least five days",
+        "Exhaustion is gained at the end of the fifth foodless day",
+        "additional Exhaustion is gained at the end of each following foodless day",
+        "the recurrence stays conditional on continued zero consumption",
+        "eating any food ends that zero-consumption applicability",
+    ],
+    "resolution": (
+        "Correctly represented. The band is the state and the recurrence is the "
+        "cadence: a component's applies_when says when the component applies at "
+        "all, so the daily gain repeats only while zero consumption holds and "
+        "stops the day eating resumes. No stop condition, elapsed clock, or "
+        "second predicate is needed, and none is added."
+    ),
+    "checked": {
+        "band_is_the_zero_point": (
+            _auto_band.lower == ZERO
+            and _auto_band.upper == ZERO
+            and _auto_band.lower_inclusive
+            and _auto_band.upper_inclusive
+        ),
+        "sustained_at_least": _auto_band.sustained_at_least,
+        "sustained_unit": _auto_band.sustained_unit.value,
+        "quantity": _auto_band.quantity.value,
+        "recurrence": _auto.recurs.boundary.value,
+        "facts": sorted(type(f).__name__ for f in _auto.facts),
+        "elapsed_duration_applicability_anywhere": len(
+            _sites_elapsed := [
+                f"{c.record_key}/{c.semantic_key}"
+                for c in components
+                if c.applies_when is not None
+                and c.applies_when.kind is ApplicabilityKind.ELAPSED_DURATION
+            ]
+        ),
+        "distinct_from_the_partial_band": (
+            STARVATION_ZERO_BAND != STARVATION_PARTIAL_BAND
+        ),
+    },
+}
+assert Z1_RESOLUTION["checked"]["band_is_the_zero_point"], Z1_RESOLUTION
+assert Z1_RESOLUTION["checked"]["sustained_at_least"] == 5, Z1_RESOLUTION
+assert Z1_RESOLUTION["checked"]["sustained_unit"] == "day", Z1_RESOLUTION
+assert Z1_RESOLUTION["checked"]["recurrence"] == "end_of_day", Z1_RESOLUTION
+assert Z1_RESOLUTION["checked"]["facts"] == ["ConditionLevelFact"], Z1_RESOLUTION
+assert not _sites_elapsed, _sites_elapsed
+assert Z1_RESOLUTION["checked"]["distinct_from_the_partial_band"], Z1_RESOLUTION
 
 # ---------------------------------------------------------------------------
 # Obligation closure, checked against the emitted draft
@@ -2281,6 +2481,11 @@ PROPOSAL = MechanicalProposal(
 payload = proposal_payload(PROPOSAL)
 ident = proposal_identity(PROPOSAL)
 assert ident != REJECTED_IDENTITY, "the new proposal is the rejected one"
+assert ident == EXPECTED_IDENTITY, (
+    "the reviewed proposal was not reproduced: this run mints "
+    f"{ident}, not {EXPECTED_IDENTITY}. Stop and explain rather than blessing "
+    "a changed proposal."
+)
 
 counts: dict[str, int] = defaultdict(int)
 for s in spans:
@@ -2501,11 +2706,12 @@ AUDIT_DOC = {
             "schema 5 across two registered crossings, each proved separately"
         ),
     },
-    "resolved_representation_questions": [D3_RESOLUTION],
-    "disclosed_representation_limits": [
+    "resolved_representation_questions": [D3_RESOLUTION, D4_RESOLUTION, Z1_RESOLUTION],
+    "disclosed_representation_limits": [],
+    "_superseded_disclosure_wording": [
         {
             "id": "D-4",
-            "status": "disclosed; for semantic review",
+            "status": "resolved; retained wording from when it was disclosed",
             "where": "hazard.burning/self_extinguish",
             "limit": (
                 "'and rolling on the ground' is half of a compound required "
@@ -2533,6 +2739,20 @@ AUDIT_DOC = {
     ],
     "schema_5_structures_demonstrated": DEMO_EVIDENCE,
     "d3_resolution": D3_RESOLUTION,
+    "d4_resolution": D4_RESOLUTION,
+    "z1_resolution": Z1_RESOLUTION,
+    "review_disposition": {
+        "open_semantic_questions": [],
+        "disclosed_representation_limits": [],
+        "resolved": ["D-3", "D-4", "Z-1"],
+        "statement": (
+            "hazards-1 has passed semantic review. Every question this batch "
+            "raised is resolved: D-3 by Owner Decision 2026-09-02, D-4 and Z-1 "
+            "as correctly represented. Acceptance is a separate Owner step and "
+            "is not performed here."
+        ),
+    },
+    "repository_inputs": INPUT_PATHS,
     "obligation_closure": OBLIGATION_CLOSURE,
     "sibling_fact_pairs": SIBLING_PAIRS,
     "ownership_integrity": OWNERSHIP,
@@ -2542,15 +2762,28 @@ AUDIT_DOC = {
     "spans": audit,
 }
 
-# D-4 is the only disclosed limit left of the former pair, and D-3 appears only
-# as a resolution. Asserted, because "the audit says so" is what this run is for.
+# Nothing is left open. Asserted, because "the audit says so" is exactly what
+# this run exists to prove: the disclosed-limit and open-question lists are
+# empty, all three questions carry a resolved status, and the two identities the
+# review was conducted against are reproduced rather than restated.
 _disclosed = [d["id"] for d in AUDIT_DOC["disclosed_representation_limits"]]
 _resolved = [d["id"] for d in AUDIT_DOC["resolved_representation_questions"]]
-assert _disclosed == ["D-4"], _disclosed
-assert _resolved == ["D-3"], _resolved
-assert AUDIT_DOC["d3_resolution"]["status"].startswith("resolved"), AUDIT_DOC[
-    "d3_resolution"
-]["status"]
+assert _disclosed == [], _disclosed
+assert _resolved == ["D-3", "D-4", "Z-1"], _resolved
+assert AUDIT_DOC["review_disposition"]["open_semantic_questions"] == [], AUDIT_DOC[
+    "review_disposition"
+]
+assert (
+    AUDIT_DOC["review_disposition"]["disclosed_representation_limits"] == []
+), AUDIT_DOC["review_disposition"]
+for _res in AUDIT_DOC["resolved_representation_questions"]:
+    assert _res["status"].startswith("resolved"), _res["status"]
+assert AUDIT_DOC["proposal_identity"] == EXPECTED_IDENTITY, AUDIT_DOC[
+    "proposal_identity"
+]
+assert (
+    AUDIT_DOC["schema_succession"]["accepted_artifact_sha256_before"] == ACCEPTED_SHA256
+), AUDIT_DOC["schema_succession"]
 
 (OUT / PROPOSAL_FILE).write_text(
     json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False), encoding="utf-8"
@@ -2574,9 +2807,11 @@ AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"] = (
 for _n, _before in _RETAINED_BEFORE.items():
     _after = hashlib.sha256((OUT / _n).read_bytes()).hexdigest()
     assert _after == _before, f"retained evidence {_n} changed"
+_accepted_end = hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest()
+assert _accepted_end == _accepted_before == ACCEPTED_SHA256, _accepted_end
 assert (
-    hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest() == _accepted_before
-), "the committed accepted artifact changed while the audit was written"
+    AUDIT_DOC["schema_succession"]["accepted_artifact_sha256_after"] == ACCEPTED_SHA256
+), AUDIT_DOC["schema_succession"]
 
 # ---------------------------------------------------------------------------
 # Determinism: a clean rerun must reproduce identical bytes and identity
@@ -2615,6 +2850,14 @@ if not RERUN:
 # Report
 # ---------------------------------------------------------------------------
 
+# Absolute paths go to stdout, never into an artifact: a reader needs to see
+# WHICH checkout this run read, and the artifact must not differ between two
+# checkouts that produced identical content.
+print(f"repo root      {REPO}")
+print(f"imported from  {IMPORTED_FROM}")
+print(f"source pdf     {SOURCE_PDF}")
+print(f"accepted       {ACCEPTED_PATH}")
+print(f"output dir     {OUT}")
 print(f"schema         {SCHEMA[0]} / {SCHEMA[1]}")
 print(f"policy         {SEMANTIC_POLICY_VERSION} / {semantic_policy_hash()}")
 print(f"identity       {ident}")
@@ -2685,6 +2928,10 @@ print(
 )
 print(f"h16 trigger    {H16_TRIGGER['range']} {H16_TRIGGER['text']!r}")
 print(f"D-3            {D3_RESOLUTION['status']}")
+print(f"D-4            {D4_RESOLUTION['status']}")
+print(f"Z-1            {Z1_RESOLUTION['status']}")
 print(f"disclosed      {_disclosed}   resolved {_resolved}")
+_inputs_line = json.dumps({k: v for k, v in INPUT_PATHS.items() if k != "note"})
+print(f"inputs         {_inputs_line}")
 if DETERMINISTIC is not None:
     print(f"deterministic  {DETERMINISTIC}")

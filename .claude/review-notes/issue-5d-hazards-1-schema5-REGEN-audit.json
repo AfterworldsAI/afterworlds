@@ -1393,12 +1393,67 @@
      "structure_added": "none"
     }
    ]
-  }
- ],
- "disclosed_representation_limits": [
+  },
   {
    "id": "D-4",
-   "status": "disclosed; for semantic review",
+   "status": "resolved - correctly represented",
+   "where": "hazard.burning/self_extinguish",
+   "question_as_disclosed": "whether 'and rolling on the ground' - half of a compound required performance whose other half is typed - was honestly bound as governing prose, or needed a typed family.",
+   "resolution": "Correctly represented, and settled by the governing review instructions rather than left open: self_extinguish is one MIXED component, 'and rolling on the ground' is substantive governing rule text, and the extinguishing consequence is stated once. No schema change and no Owner decision is outstanding.",
+   "checked": {
+    "one_mixed_component": true,
+    "typed_facts": [
+     "ActionEconomyFact",
+     "ConditionEffectFact",
+     "EffectTerminationFact"
+    ],
+    "prose_bindings": 1,
+    "bound_span": {
+     "range": [
+      174,
+      201
+     ],
+     "text": " and rolling on the ground.",
+     "disposition": "substantive",
+     "claimant": "hazard.burning/self_extinguish (contextual_applicability)"
+    },
+    "consequence_stated_once": 1,
+    "consequence_restated_in_the_bound_span": false,
+    "reason_code": "contextual_applicability"
+   }
+  },
+  {
+   "id": "Z-1",
+   "status": "resolved - correctly represented",
+   "where": "hazard.malnutrition/starvation_automatic",
+   "question_as_disclosed": "whether the point band sustained for five days, composed with a daily recurrence, is a faithful reading of 'eats nothing for 5 days ... as well as an additional level at the end of each subsequent day without food'.",
+   "required_reading": [
+    "'eats nothing for 5 days' means continuous zero consumption for at least five days",
+    "Exhaustion is gained at the end of the fifth foodless day",
+    "additional Exhaustion is gained at the end of each following foodless day",
+    "the recurrence stays conditional on continued zero consumption",
+    "eating any food ends that zero-consumption applicability"
+   ],
+   "resolution": "Correctly represented. The band is the state and the recurrence is the cadence: a component's applies_when says when the component applies at all, so the daily gain repeats only while zero consumption holds and stops the day eating resumes. No stop condition, elapsed clock, or second predicate is needed, and none is added.",
+   "checked": {
+    "band_is_the_zero_point": true,
+    "sustained_at_least": 5,
+    "sustained_unit": "day",
+    "quantity": "food",
+    "recurrence": "end_of_day",
+    "facts": [
+     "ConditionLevelFact"
+    ],
+    "elapsed_duration_applicability_anywhere": 0,
+    "distinct_from_the_partial_band": true
+   }
+  }
+ ],
+ "disclosed_representation_limits": [],
+ "_superseded_disclosure_wording": [
+  {
+   "id": "D-4",
+   "status": "resolved; retained wording from when it was disclosed",
    "where": "hazard.burning/self_extinguish",
    "limit": "'and rolling on the ground' is half of a compound required performance whose other half - the Prone condition - is typed. Rolling on the ground has no typed family.",
    "how_it_is_accounted": "Bound as affirmative governing prose under contextual_applicability: whether the extinguishing applies depends on whether the creature performed an act the projection cannot enumerate. It is substantive, not supporting commentary. The typed consequence (EffectTerminationFact) is stated once beside it and is not restated inside the binding's span, so the consequence is not published twice.",
@@ -1567,6 +1622,78 @@
     "structure_added": "none"
    }
   ]
+ },
+ "d4_resolution": {
+  "id": "D-4",
+  "status": "resolved - correctly represented",
+  "where": "hazard.burning/self_extinguish",
+  "question_as_disclosed": "whether 'and rolling on the ground' - half of a compound required performance whose other half is typed - was honestly bound as governing prose, or needed a typed family.",
+  "resolution": "Correctly represented, and settled by the governing review instructions rather than left open: self_extinguish is one MIXED component, 'and rolling on the ground' is substantive governing rule text, and the extinguishing consequence is stated once. No schema change and no Owner decision is outstanding.",
+  "checked": {
+   "one_mixed_component": true,
+   "typed_facts": [
+    "ActionEconomyFact",
+    "ConditionEffectFact",
+    "EffectTerminationFact"
+   ],
+   "prose_bindings": 1,
+   "bound_span": {
+    "range": [
+     174,
+     201
+    ],
+    "text": " and rolling on the ground.",
+    "disposition": "substantive",
+    "claimant": "hazard.burning/self_extinguish (contextual_applicability)"
+   },
+   "consequence_stated_once": 1,
+   "consequence_restated_in_the_bound_span": false,
+   "reason_code": "contextual_applicability"
+  }
+ },
+ "z1_resolution": {
+  "id": "Z-1",
+  "status": "resolved - correctly represented",
+  "where": "hazard.malnutrition/starvation_automatic",
+  "question_as_disclosed": "whether the point band sustained for five days, composed with a daily recurrence, is a faithful reading of 'eats nothing for 5 days ... as well as an additional level at the end of each subsequent day without food'.",
+  "required_reading": [
+   "'eats nothing for 5 days' means continuous zero consumption for at least five days",
+   "Exhaustion is gained at the end of the fifth foodless day",
+   "additional Exhaustion is gained at the end of each following foodless day",
+   "the recurrence stays conditional on continued zero consumption",
+   "eating any food ends that zero-consumption applicability"
+  ],
+  "resolution": "Correctly represented. The band is the state and the recurrence is the cadence: a component's applies_when says when the component applies at all, so the daily gain repeats only while zero consumption holds and stops the day eating resumes. No stop condition, elapsed clock, or second predicate is needed, and none is added.",
+  "checked": {
+   "band_is_the_zero_point": true,
+   "sustained_at_least": 5,
+   "sustained_unit": "day",
+   "quantity": "food",
+   "recurrence": "end_of_day",
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "elapsed_duration_applicability_anywhere": 0,
+   "distinct_from_the_partial_band": true
+  }
+ },
+ "review_disposition": {
+  "open_semantic_questions": [],
+  "disclosed_representation_limits": [],
+  "resolved": [
+   "D-3",
+   "D-4",
+   "Z-1"
+  ],
+  "statement": "hazards-1 has passed semantic review. Every question this batch raised is resolved: D-3 by Owner Decision 2026-09-02, D-4 and Z-1 as correctly represented. Acceptance is a separate Owner step and is not performed here."
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "accepted_artifact": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every one of these is asserted to exist, and the imported package is asserted to be the one beneath this root."
  },
  "obligation_closure": {
   "O-1": {
@@ -3370,7 +3497,7 @@
   "proposal_identity_identical": true,
   "sha256": {
    "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883",
-   "issue-5d-hazards-1-schema5-REGEN-audit.json": "b8eadbee506adc33e83c538eae9b3ba7c9a630d28831c450cb02031e48ec684f"
+   "issue-5d-hazards-1-schema5-REGEN-audit.json": "0c6cf765a3d19c6f5308c433bfea3a8c49d9ee61e7a579b4f05eecdcb6373535"
   }
  }
 }
