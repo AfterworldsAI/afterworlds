@@ -37,7 +37,6 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     AcceptedInputs,
     OracleLoadError,
     accepted_inputs_payload,
@@ -70,7 +69,24 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     succession_evidence_violations,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 SCHEMA_3 = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 SCHEMA_4 = (SCHEMA_4_VERSION, SCHEMA_4_HASH)
 BATCH_ID = "conditions-1"
@@ -78,11 +94,11 @@ COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5
 
 
 def _committed() -> dict:  # type: ignore[type-arg]
-    return json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    return json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
 
 
 def _proposal_identity() -> str:
-    (batch,) = load_accepted_inputs(ARTIFACT_PATH).batches
+    (batch,) = load_accepted_inputs(LEGACY_PATH).batches
     return batch.proposal_identity
 
 
@@ -135,7 +151,7 @@ def test_the_committed_artifact_still_loads_and_is_byte_identical() -> None:
     file loadable without editing it, and it is exactly the default the test
     above proves is unavailable to a schema-4 declaration.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     assert inputs.schema_anchors == ()
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == SCHEMA_3
     assert accepted_inputs_payload(inputs) == _committed()
@@ -169,7 +185,7 @@ def test_a_genuinely_lifted_history_loads(tmp_path) -> None:  # type: ignore[no-
     which is the whole point, since that is where the review happened — and the
     declaration and the lift evidence agree on where it ended up.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     lifted, records = lift_accepted_inputs(inputs, SCHEMA_4)
     anchored = replace(
         lifted,
@@ -424,7 +440,7 @@ def _accept(prior, *, version: str, schema_hash: str):  # type: ignore[no-untype
 
 def _restamped_in_memory():  # type: ignore[no-untyped-def]
     """The committed artifact with its declared pair overwritten, nothing else."""
-    real = load_accepted_inputs(ARTIFACT_PATH)
+    real = load_accepted_inputs(LEGACY_PATH)
     return replace(
         real,
         oracle=replace(
@@ -476,7 +492,7 @@ def test_a_lift_cannot_launder_it_either() -> None:
     that incoherence into the destination artifact, so it validates first — the
     same function, not a second implementation of it.
     """
-    real = load_accepted_inputs(ARTIFACT_PATH)
+    real = load_accepted_inputs(LEGACY_PATH)
     dangling = replace(
         real,
         schema_anchors=(
@@ -564,7 +580,7 @@ def test_malformed_prior_evidence_cannot_be_laundered_through_acceptance(
     None of these is repaired, deleted, or worked around: the shared rule reports
     what is wrong with the prior and acceptance stops.
     """
-    real = load_accepted_inputs(ARTIFACT_PATH)
+    real = load_accepted_inputs(LEGACY_PATH)
     schema_4_prior = replace(
         real,
         oracle=replace(
@@ -593,7 +609,7 @@ def test_the_legacy_artifact_is_still_extendable_and_anchored_at_schema_3() -> N
     where the review happened — while the new batch is anchored at the schema the
     proposal declares.
     """
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     result = _accept(prior, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH)
 
     anchored = {a.batch_id: a.schema_version for a in result.schema_anchors}
@@ -607,7 +623,7 @@ def test_the_legacy_artifact_is_still_extendable_and_anchored_at_schema_3() -> N
 
 def test_a_validly_anchored_schema_4_prior_is_still_extendable() -> None:
     """Authority genuinely accepted under schema 4, extended again under it."""
-    real = load_accepted_inputs(ARTIFACT_PATH)
+    real = load_accepted_inputs(LEGACY_PATH)
     prior = replace(
         real,
         oracle=replace(
@@ -625,7 +641,7 @@ def test_a_validly_anchored_schema_4_prior_is_still_extendable() -> None:
 
 def test_acceptance_with_no_prior_is_unaffected() -> None:
     """Nothing to validate, and nothing to carry."""
-    real = load_accepted_inputs(ARTIFACT_PATH)
+    real = load_accepted_inputs(LEGACY_PATH)
     result = accept_proposal(
         _proposal(real, version=SCHEMA_4_VERSION, schema_hash=SCHEMA_4_HASH),
         batch_id="laundering-probe-1",
@@ -668,15 +684,13 @@ def _fully_evidenced_schema_4() -> AcceptedInputs:
     holding a schema-3 anchor and no crossing. That is incomplete evidence, and
     the test below asserts it is refused rather than papering over it here.
     """
-    lifted, records = lift_accepted_inputs(
-        load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4
-    )
+    lifted, records = lift_accepted_inputs(load_accepted_inputs(LEGACY_PATH), SCHEMA_4)
     return replace(lifted, lifts=records)
 
 
 def test_the_genuine_succession_still_happens_exactly_once() -> None:
     """The crossing path, unchanged: one real record, anchored where reviewed."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     lifted, records = lift_accepted_inputs(inputs, SCHEMA_4)
 
     assert records
@@ -694,7 +708,7 @@ def test_the_genuine_succession_still_happens_exactly_once() -> None:
     # same artifact again produces the same bytes, so "once" is a property of
     # the evidence rather than of when the function happened to be called.
     twice, records_again = lift_accepted_inputs(
-        load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4
+        load_accepted_inputs(LEGACY_PATH), SCHEMA_4
     )
     assert accepted_inputs_payload(twice) == accepted_inputs_payload(lifted)
     assert records_again == records
@@ -724,7 +738,7 @@ def test_a_lift_is_still_needed_before_the_no_op_can_certify_anything() -> None:
     crossing has not arrived anywhere. The no-op certifies "already at target",
     which is a claim about the artifact, so it may not be made about this one.
     """
-    lifted, _ = lift_accepted_inputs(load_accepted_inputs(ARTIFACT_PATH), SCHEMA_4)
+    lifted, _ = lift_accepted_inputs(load_accepted_inputs(LEGACY_PATH), SCHEMA_4)
     with pytest.raises(SchemaLiftError) as raised:
         lift_accepted_inputs(lifted, SCHEMA_4)
     assert "without a registered succession carrying it there" in str(raised.value)
@@ -745,7 +759,7 @@ def test_lift_for_still_has_no_row_for_an_equal_pair() -> None:
 
 def test_the_legacy_artifact_no_ops_at_the_schema_it_declares() -> None:
     """The other valid equal pair: schema 3, unanchored, exactly as committed."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     same, records = lift_accepted_inputs(inputs, SCHEMA_3)
     assert records == ()
     assert same is inputs
@@ -785,7 +799,7 @@ def test_an_illegal_representation_does_not_escape_through_the_no_op() -> None:
     and the evidence is the committed artifact's own — so nothing but
     ``declared_meaning_violations`` refuses this, and it must.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     draft = inputs.oracle.representation
     tampered = replace(
         draft,
@@ -803,10 +817,10 @@ def test_an_illegal_representation_does_not_escape_through_the_no_op() -> None:
 
 def test_the_committed_artifact_is_unmoved_by_any_of_this() -> None:
     """Zero movement, asserted where a no-op path could have reached it."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     lift_accepted_inputs(inputs, SCHEMA_3)
     lift_accepted_inputs(inputs, SCHEMA_4)
-    assert accepted_inputs_payload(load_accepted_inputs(ARTIFACT_PATH)) == _committed()
+    assert accepted_inputs_payload(load_accepted_inputs(LEGACY_PATH)) == _committed()
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == SCHEMA_3
     assert oracle_identity(inputs.oracle) == COMMITTED_ORACLE_IDENTITY
     assert (

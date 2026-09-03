@@ -30,6 +30,7 @@ what the Owner signed off, exercised against a real file through
 from __future__ import annotations
 
 import json
+import pathlib
 from dataclasses import replace
 from pathlib import Path
 
@@ -38,7 +39,6 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     OracleLoadError,
     load_accepted_inputs,
 )
@@ -88,7 +88,17 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it - the conditions-1 batch alone,
+#: reviewed under schema 3. What this module asserts is true of that accepted
+#: content, so it reads the frozen copy rather than whatever the release
+#: currently accepts. Byte-identical to the file this repository committed
+#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 D6 = DiceExpression(count=1, die=DieSize.D6)
 FALL_INTERVAL = DamageInterval(
     basis=ScalingBasis.DISTANCE_FALLEN, amount=10, unit=DistanceUnit.FOOT
@@ -448,7 +458,7 @@ def _artifact_with_band(band: object, tmp_path: object, name: str) -> Path:
     test would then pass for the wrong reason. Moving the declaration means
     anchoring the batches, which is the shape the evidence rules admit.
     """
-    raw = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    raw = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
     raw["representation"]["components"][0]["applies_when"] = {
         "kind": "consumption_threshold",
         "negated": False,

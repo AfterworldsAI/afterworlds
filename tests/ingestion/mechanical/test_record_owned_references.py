@@ -84,10 +84,16 @@ from tests.ingestion.mechanical.conftest import (
     reference_claim,
 )
 
-#: The committed conditions-1 artifact. Read rather than reconstructed: the
-#: point of the inheritance test is that the *bytes on disk* still round-trip.
-COMMITTED_ORACLE = pathlib.Path(
-    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it - the conditions-1 batch alone,
+#: reviewed under schema 3. What this module asserts is true of that accepted
+#: content, so it reads the frozen copy rather than whatever the release
+#: currently accepts. Byte-identical to the file this repository committed
+#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
 )
 
 RECORD_OWNED = ReferenceDraft(
@@ -333,8 +339,8 @@ def test_every_accepted_reference_keeps_its_exact_payload_and_coordinate() -> No
     what Owner Decision 2026-08-24 requires and what makes the widening, rather
     than a new field, the only admissible shape.
     """
-    committed = json.loads(COMMITTED_ORACLE.read_text(encoding="utf-8"))
-    oracle = load_oracle(COMMITTED_ORACLE)
+    committed = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
+    oracle = load_oracle(LEGACY_PATH)
     references = oracle.representation.references
     assert len(references) == 15
     assert all(r.from_component_key != RECORD_OWNED_REFERENCE for r in references)

@@ -32,7 +32,6 @@ from afterworlds.ingestion.mechanical.gate import (
     run_publication_gate,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
@@ -207,7 +206,17 @@ def test_a_stored_cadence_violating_its_own_invariant_fails_reconstruction(
     assert "does not range over" in str(caught.value)
 
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it - the conditions-1 batch alone,
+#: reviewed under schema 3. What this module asserts is true of that accepted
+#: content, so it reads the frozen copy rather than whatever the release
+#: currently accepts. Byte-identical to the file this repository committed
+#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +324,7 @@ def _artifact_with_cadence(recurs: dict[str, object], tmp_path, name: str):  # t
     then this test would pass for the wrong reason. Moving the declaration means
     anchoring the batches, which is the fresh-schema-4 shape round 7 admits.
     """
-    raw = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    raw = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
     raw["representation"]["components"][0]["recurs"] = recurs
     raw["representation_schema"] = {
         "version": REPRESENTATION_SCHEMA_VERSION,
@@ -437,7 +446,7 @@ def test_a_component_stating_no_cadence_still_omits_the_key_entirely() -> None:
 
 def test_the_committed_artifact_is_untouched() -> None:
     """Zero movement, asserted where the change could have reached it."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
-    committed = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    inputs = load_accepted_inputs(LEGACY_PATH)
+    committed = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
     assert accepted_inputs_payload(inputs) == committed
     assert all(c.recurs is None for c in inputs.oracle.representation.components)

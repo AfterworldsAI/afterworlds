@@ -23,6 +23,7 @@ accepted cannot.
 
 from __future__ import annotations
 
+import pathlib
 from dataclasses import replace
 
 import pytest
@@ -36,7 +37,6 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
@@ -65,7 +65,24 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     lift_chain_violations,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 PRIOR_PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"  # noqa: E501  # pragma: allowlist secret
 PRIOR_SPANS = 185
 
@@ -80,7 +97,7 @@ GAIN = ConditionLevelFact(
 
 
 def _prior():
-    return load_accepted_inputs(ARTIFACT_PATH)
+    return load_accepted_inputs(LEGACY_PATH)
 
 
 def _schema_4_proposal(prior, *, version: str, schema_hash: str) -> MechanicalProposal:

@@ -242,18 +242,19 @@ def test_the_bound_release_supplies_the_accounting_population(
 def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Accepted authority exists for the real SRD release — batch conditions-1.
+    """Accepted authority exists for the real SRD release — two accepted batches.
 
-    It judges the 16 condition records and nothing else, which is exactly why
-    the publication test below still refuses.
+    It judges 22 records — 15 conditions and 5 hazards, plus the glossary entry
+    that defines each list — and nothing else, which is exactly why the
+    publication test below still refuses: the SRD has far more than 22 records.
     """
     resolved = committed_oracle_for(
         production.binding.package_uuid, production.binding.release_version
     )
     assert resolved is not None
     assert resolved.binding == production.binding
-    assert len(resolved.representation.records) == 16
-    assert len(resolved.spans) == 185
+    assert len(resolved.representation.records) == 22
+    assert len(resolved.spans) == 281
 
 
 def test_the_production_path_refuses_the_real_release(
