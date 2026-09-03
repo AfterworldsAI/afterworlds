@@ -22,7 +22,7 @@ source per record, recorded and executed, not a green run.
 | Schema | `5d-representation-schema-5` / `2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40` |
 | Policy | `5d-semantic-policy-1` / `e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454` |
 | Release | `4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` / `5.2.1-corpus.36b786d8-fa2` |
-| Accepted artifact | `aa59c69d…6e8a1a` before **and** after the run, pinned as a literal the run asserts |
+| Accepted artifact | content `ead1458e…8d81ce`, Git blob `42faeca2…de87` — before **and** after the run, both pinned as literals the run asserts (§4a) |
 | Open questions / disclosed limits | **none** — asserted empty by the generator |
 | Repository root | derived from the generator's own location, `Path(__file__).resolve().parents[2]` — no hard-coded path |
 
@@ -136,6 +136,33 @@ define, twice: `hazard.dehydration → condition.exhaustion` and
 `hazard.malnutrition → condition.exhaustion`. The claim asserted is *set equality* against that pair,
 not "only Exhaustion appears". Both resolve into accepted `conditions-1` authority, and the merged
 gate reports nothing at all.
+
+## 4a. How the accepted artifact is identified — and a figure that had to be corrected
+
+Deriving the repository root from the generator's own location, instead of a hard-coded absolute
+path, immediately surfaced something the hard-coded path had been hiding: **the accepted artifact's
+raw on-disk SHA-256 is a property of a checkout, not of the authority.**
+
+`.gitattributes` declares `* text=auto eol=lf`, so a fresh checkout writes
+`oracles/srd-5-2-1-corpus-36b786d8-fa2.json` with LF. The long-lived working copy this batch was
+developed in predates that attribute and holds CRLF. Same committed content, same loaded authority —
+line endings between JSON tokens are structural whitespace — but different raw digests.
+
+| identity | value | stable across checkouts? |
+|---|---|---|
+| content SHA-256 (CRLF normalized to LF) | `ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce` | **yes** — asserted, and written into the audit |
+| Git blob id | `42faeca2486117cd1ea518f8b679d036d6fcde87` | **yes** — asserted; this is what *"accepted authority was not modified"* means |
+| raw on-disk SHA-256, CRLF working copy | `aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a` | **no** — printed to stdout, never asserted, never in an artifact |
+
+**Nothing about the accepted authority changed.** The blob id is `42faeca2…de87` at this branch head,
+at `origin/main`, and at the commit that first committed it — it has never moved. `aa59c69d…6e8a1a`,
+the figure this batch reported in earlier rounds, was accurate for the checkout it was measured in
+and is simply not reproducible where the repository's own line-ending rule is honoured. It is
+recorded here rather than quietly replaced.
+
+The audit records the two stable identities and deliberately omits the raw one, because a raw digest
+would make the audit differ between two checkouts of a single commit — the same reason the resolved
+input paths are recorded relative to the derived root.
 
 ## 5a. D-3, Falling's timing — **RESOLVED**, Owner Decision 2026-09-02
 

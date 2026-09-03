@@ -1339,9 +1339,11 @@
     ]
    }
   ],
-  "accepted_artifact_sha256_before": "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a",
-  "accepted_artifact_sha256_after": "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a",
+  "accepted_artifact_content_sha256_before": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "accepted_artifact_content_sha256_after": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "accepted_artifact_blob_id": "42faeca2486117cd1ea518f8b679d036d6fcde87",
   "accepted_artifact_unchanged": true,
+  "accepted_artifact_identity_note": "Identified by content, not by the bytes one working copy holds. .gitattributes declares 'text=auto eol=lf', so a fresh checkout writes this file with LF while a working copy predating the attribute can hold CRLF. Both are the same committed content and load to the same authority. The content digest normalizes CRLF to LF; the blob id is Git's own content identity, derived from those same normalized bytes. The raw on-disk digest is deliberately not recorded here - it would make this artifact differ between two checkouts of one commit - and is printed to stdout instead.",
   "note": "the committed conditions-1 artifact declares schema 3 and reaches schema 5 across two registered crossings, each proved separately"
  },
  "resolved_representation_questions": [
@@ -3497,7 +3499,7 @@
   "proposal_identity_identical": true,
   "sha256": {
    "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883",
-   "issue-5d-hazards-1-schema5-REGEN-audit.json": "0c6cf765a3d19c6f5308c433bfea3a8c49d9ee61e7a579b4f05eecdcb6373535"
+   "issue-5d-hazards-1-schema5-REGEN-audit.json": "364b4c6086695d010cd8e2bd2663403d848eaab31b85c69d4de65fc5e2033f84"
   }
  }
 }

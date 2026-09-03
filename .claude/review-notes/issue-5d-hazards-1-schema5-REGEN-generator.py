@@ -164,7 +164,32 @@ REJECTED_IDENTITY = "6277ff735e0e47b3337f2c3736ca7922864b1cde9a3c286b3aee48ee461
 #: both are asserted rather than reported, so a change stops the run instead of
 #: appearing quietly in an artifact.
 EXPECTED_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
-ACCEPTED_SHA256 = "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a"  # noqa: E501  # pragma: allowlist secret
+
+#: The accepted artifact, identified by its **content** rather than by whatever
+#: bytes a particular working copy happens to hold.
+#:
+#: Removing the hard-coded repository path surfaced why the distinction matters.
+#: `.gitattributes` declares `* text=auto eol=lf`, so a fresh checkout writes
+#: this file with LF; a working copy that predates the attribute can still hold
+#: CRLF. Both are the same committed content and both load to the same authority
+#: - line endings between JSON tokens are structural whitespace - but their raw
+#: SHA-256 digests differ, so a raw digest is a property of a checkout, not of
+#: the authority. The figure this batch reported earlier, `aa59c69d...6e8a1a`,
+#: is the raw digest of a CRLF working copy and is not reproducible anywhere the
+#: repository's own line-ending rule is honoured.
+#:
+#: Pinned here, and written into the audit, are the two identifiers that do not
+#: depend on a checkout: the SHA-256 of the canonical LF content, and the Git
+#: blob id of the committed file. The blob id is the stronger of the two - it is
+#: what "accepted authority was not modified" actually means - and it is derived
+#: from the same normalized bytes rather than read out of `.git`.
+ACCEPTED_CONTENT_SHA256 = "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce"  # noqa: E501  # pragma: allowlist secret
+ACCEPTED_BLOB_ID = (
+    "42faeca2486117cd1ea518f8b679d036d6fcde87"  # pragma: allowlist secret
+)
+#: The raw digest of a CRLF working copy, recorded so the earlier reports remain
+#: legible. Never asserted, and never written into an artifact.
+ACCEPTED_CRLF_WORKING_COPY_SHA256 = "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a"  # noqa: E501  # pragma: allowlist secret
 
 # --- Retained-evidence guard ------------------------------------------------
 # Every previous hazards artifact is the record of a superseded conclusion or of
@@ -1402,6 +1427,7 @@ assert any(
     for b in prose_bindings
 ), "the whole trigger is not the accrual component's prose binding"
 
+
 # --- Merged verification, exactly the shape acceptance would validate -------
 #
 # `validate_representation` is only ever called on the post-merge candidate
@@ -1415,8 +1441,30 @@ assert any(
 # The accepted artifact is READ ONLY. Nothing here writes it, and the lift is
 # verified rather than applied. Its path is resolved at the top of this file,
 # beneath the derived repository root.
-_accepted_before = hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest()
-assert _accepted_before == ACCEPTED_SHA256, _accepted_before
+def _accepted_identifiers() -> tuple[str, str, str]:
+    """The accepted artifact's raw, canonical, and Git identities.
+
+    The canonical digest normalizes CRLF to LF, which is what
+    ``.gitattributes`` declares this file is stored as; the blob id is Git's own
+    content identity, computed from those same normalized bytes rather than
+    read out of ``.git``, so this holds in an exported tree with no repository
+    at all.
+    """
+    raw = ACCEPTED_PATH.read_bytes()
+    canonical = raw.replace(b"\r\n", b"\n")
+    blob = hashlib.sha1(  # noqa: S324 - Git's object id, not a security digest
+        b"blob " + str(len(canonical)).encode() + b"\x00" + canonical
+    ).hexdigest()
+    return (
+        hashlib.sha256(raw).hexdigest(),
+        hashlib.sha256(canonical).hexdigest(),
+        blob,
+    )
+
+
+_accepted_raw_before, _accepted_before, _accepted_blob_before = _accepted_identifiers()
+assert _accepted_before == ACCEPTED_CONTENT_SHA256, _accepted_before
+assert _accepted_blob_before == ACCEPTED_BLOB_ID, _accepted_blob_before
 PRIOR = load_accepted_inputs(ACCEPTED_PATH)
 STEPS = lift_path((PRIOR.oracle.schema_version, PRIOR.oracle.schema_hash), SCHEMA)
 LIFT_RECORDS = verify_lift_path(STEPS, PRIOR.oracle.representation)
@@ -2698,9 +2746,21 @@ AUDIT_DOC = {
             }
             for r in LIFT_RECORDS
         ],
-        "accepted_artifact_sha256_before": _accepted_before,
-        "accepted_artifact_sha256_after": None,  # filled in below, after the write
+        "accepted_artifact_content_sha256_before": _accepted_before,
+        "accepted_artifact_content_sha256_after": None,  # filled in after the write
+        "accepted_artifact_blob_id": _accepted_blob_before,
         "accepted_artifact_unchanged": None,
+        "accepted_artifact_identity_note": (
+            "Identified by content, not by the bytes one working copy holds. "
+            ".gitattributes declares 'text=auto eol=lf', so a fresh checkout "
+            "writes this file with LF while a working copy predating the "
+            "attribute can hold CRLF. Both are the same committed content and "
+            "load to the same authority. The content digest normalizes CRLF to "
+            "LF; the blob id is Git's own content identity, derived from those "
+            "same normalized bytes. The raw on-disk digest is deliberately not "
+            "recorded here - it would make this artifact differ between two "
+            "checkouts of one commit - and is printed to stdout instead."
+        ),
         "note": (
             "the committed conditions-1 artifact declares schema 3 and reaches "
             "schema 5 across two registered crossings, each proved separately"
@@ -2782,7 +2842,11 @@ assert AUDIT_DOC["proposal_identity"] == EXPECTED_IDENTITY, AUDIT_DOC[
     "proposal_identity"
 ]
 assert (
-    AUDIT_DOC["schema_succession"]["accepted_artifact_sha256_before"] == ACCEPTED_SHA256
+    AUDIT_DOC["schema_succession"]["accepted_artifact_content_sha256_before"]
+    == ACCEPTED_CONTENT_SHA256
+), AUDIT_DOC["schema_succession"]
+assert (
+    AUDIT_DOC["schema_succession"]["accepted_artifact_blob_id"] == ACCEPTED_BLOB_ID
 ), AUDIT_DOC["schema_succession"]
 
 (OUT / PROPOSAL_FILE).write_text(
@@ -2792,11 +2856,15 @@ assert (
 # The accepted artifact, read again after this run has written its own output,
 # so the audit carries the after value rather than only the before value. It is
 # re-read once more below, after the audit itself is written.
-_accepted_after = hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest()
+_, _accepted_after, _accepted_blob_after = _accepted_identifiers()
 assert _accepted_after == _accepted_before, "the committed accepted artifact changed"
-AUDIT_DOC["schema_succession"]["accepted_artifact_sha256_after"] = _accepted_after
+assert _accepted_blob_after == _accepted_blob_before, "the accepted blob id moved"
+AUDIT_DOC["schema_succession"][
+    "accepted_artifact_content_sha256_after"
+] = _accepted_after
 AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"] = (
-    _accepted_after == _accepted_before
+    _accepted_after == _accepted_before == ACCEPTED_CONTENT_SHA256
+    and _accepted_blob_after == ACCEPTED_BLOB_ID
 )
 
 (OUT / AUDIT_FILE).write_text(
@@ -2807,11 +2875,17 @@ AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"] = (
 for _n, _before in _RETAINED_BEFORE.items():
     _after = hashlib.sha256((OUT / _n).read_bytes()).hexdigest()
     assert _after == _before, f"retained evidence {_n} changed"
-_accepted_end = hashlib.sha256(ACCEPTED_PATH.read_bytes()).hexdigest()
-assert _accepted_end == _accepted_before == ACCEPTED_SHA256, _accepted_end
+_raw_end, _accepted_end, _blob_end = _accepted_identifiers()
+assert _accepted_end == _accepted_before == ACCEPTED_CONTENT_SHA256, _accepted_end
+assert _blob_end == _accepted_blob_before == ACCEPTED_BLOB_ID, _blob_end
+assert _raw_end == _accepted_raw_before, "the accepted artifact's bytes changed"
 assert (
-    AUDIT_DOC["schema_succession"]["accepted_artifact_sha256_after"] == ACCEPTED_SHA256
+    AUDIT_DOC["schema_succession"]["accepted_artifact_content_sha256_after"]
+    == ACCEPTED_CONTENT_SHA256
 ), AUDIT_DOC["schema_succession"]
+assert AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"], AUDIT_DOC[
+    "schema_succession"
+]
 
 # ---------------------------------------------------------------------------
 # Determinism: a clean rerun must reproduce identical bytes and identity
@@ -2915,7 +2989,17 @@ for _rec in LIFT_RECORDS:
         f"lift           {_rec.lift_id}: "
         f"{len(_rec.verified_collections)} collections verified"
     )
-print(f"accepted sha   {_accepted_before} -> {_accepted_after}")
+print(f"accepted content sha {_accepted_before} -> {_accepted_after}")
+print(f"accepted blob id     {_accepted_blob_before} -> {_accepted_blob_after}")
+print(
+    f"accepted raw sha     {_accepted_raw_before}"
+    + (
+        "  (CRLF working copy; matches the figure reported before the repository "
+        "root was derived)"
+        if _accepted_raw_before == ACCEPTED_CRLF_WORKING_COPY_SHA256
+        else "  (equals the content digest: this checkout honours eol=lf)"
+    )
+)
 print(
     "disjointness   "
     + json.dumps(
