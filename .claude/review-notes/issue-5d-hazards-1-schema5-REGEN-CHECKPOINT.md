@@ -129,7 +129,7 @@ The H-16 trigger boundary was **derived** from the bound leaf at run time and th
 | no detached or ambiguous roll outcome | none; each roll-outcome scope establishes exactly one roll |
 | ownership | 65 substantive spans, each with exactly one primary claimant; 0 supporting spans carrying a primary claim; 0 spans unclaimed |
 | obligations | 36 closed, 0 open — each executed against the draft |
-| determinism | a clean rerun in a separate process reproduces identical artifact bytes and the same identity, and both artifacts are byte-stable across processes with different string-hash seeds |
+| determinism | both artifacts are written with **explicit LF newlines** on every platform, asserted to contain no CR byte; a rerun in a separate process reproduces the **final** bytes of both — the same documents that ship, not an intermediate shape — and they are byte-stable across processes with different string-hash seeds and across checkouts |
 
 **Unresolved references, enumerated exactly.** Standalone, this batch cites one record it does not
 define, twice: `hazard.dehydration → condition.exhaustion` and
@@ -237,15 +237,20 @@ raised are closed:
 | Z-1 | `hazard.malnutrition/starvation_automatic` | resolved — correctly represented |
 
 The generator asserts that the audit's disclosed-limit list and open-question list are both empty,
-that all three carry a resolved status, that the proposal identity is
-`f7ce4491…c40417`, and that the accepted artifact's digest is `aa59c69d…6e8a1a` before and after.
+that all three carry a resolved status, that the proposal identity is `f7ce4491…c40417`, and that the
+accepted artifact's **content SHA-256** is `ead1458e…8d81ce` and its **Git blob** is
+`42faeca2…de87`, both before and after the run. Those two are checkout-independent; the raw on-disk
+digest of that file is not, is never asserted, and is never written into an artifact (§4a).
 
 `hazards-1` has passed semantic review and is ready for a **separate Owner-acceptance step**. This
 work does not take it: acceptance remains a distinct decision and a distinct action.
 
 ## 7. Stop conditions honoured
 
-`accept_proposal` not called · accepted authority not modified, and its SHA-256 asserted identical
-before and after · nothing published, activated, or retired · branch not merged · `actions-1` not
-begun · the rejected proposal's payload not used as input · no schema, validator, or reason code
-changed by this work — `src/` is untouched on this branch.
+`accept_proposal` not called · **accepted authority not modified**, proved by the two identities that
+do not depend on a checkout — content SHA-256 `ead1458e…8d81ce` and Git blob `42faeca2…de87`, both
+asserted identical before and after the run; the file's raw on-disk digest is checkout-specific, is
+deliberately left unpinned, and proves nothing about the authority (§4a) · nothing published,
+activated, or retired · branch not merged · `actions-1` not begun · the rejected proposal's payload
+not used as input · no schema, validator, or reason code changed by this work — `src/` is untouched
+on this branch.

@@ -2849,9 +2849,54 @@ assert (
     AUDIT_DOC["schema_succession"]["accepted_artifact_blob_id"] == ACCEPTED_BLOB_ID
 ), AUDIT_DOC["schema_succession"]
 
-(OUT / PROPOSAL_FILE).write_text(
-    json.dumps(payload, indent=1, sort_keys=True, ensure_ascii=False), encoding="utf-8"
-)
+
+def _write_artifact(name: str, document: object, *, sort_keys: bool = False) -> bytes:
+    """Write one artifact as UTF-8 with **LF** newlines, and return its bytes.
+
+    ``newline="\n"`` is the whole point. Left to the default, Python translates
+    ``\n`` to ``os.linesep`` on write, so the same generator emitted CRLF on
+    Windows and LF on Linux - two different files, two different digests, from
+    one deterministic computation. Every artifact this run produces goes through
+    here, so the platform cannot get a vote.
+    """
+    text = json.dumps(document, indent=1, sort_keys=sort_keys, ensure_ascii=False)
+    path = OUT / name
+    path.write_text(text, encoding="utf-8", newline="\n")
+    written = path.read_bytes()
+    assert b"\r\n" not in written, f"{name} was written with CRLF"
+    assert b"\r" not in written, f"{name} contains a carriage return"
+    return written
+
+
+_proposal_bytes = _write_artifact(PROPOSAL_FILE, payload, sort_keys=True)
+
+#: The determinism section, built **before** the audit is written so that both
+#: the parent and the rerun child produce the same final audit - which is what
+#: makes a byte comparison of the two a statement about the artifact that
+#: actually ships, rather than about an intermediate one nobody keeps.
+#:
+#: It carries no digest of the audit itself. An audit cannot state its own final
+#: SHA-256 without the value changing the bytes it describes, and labelling an
+#: intermediate digest "sha256" would imply it identifies the committed file. So
+#: the audit's identity is established by the comparison the run performs and
+#: asserts, and reported to stdout; only the proposal - written first, and
+#: independent of this section - carries a digest here.
+DETERMINISM_SECTION = {
+    "procedure": (
+        "The parent writes both artifacts in their final form, then re-executes "
+        "this generator in a separate process, then compares the final bytes of "
+        "both files. Parent and child produce identical final documents, so the "
+        "comparison is about what ships."
+    ),
+    "newlines": "LF, written explicitly, on every platform",
+    "proposal_sha256": hashlib.sha256(_proposal_bytes).hexdigest(),
+    "audit_self_hash": (
+        "omitted: an audit cannot state its own final digest without changing "
+        "the bytes that digest describes. The run asserts instead that the "
+        "parent's and the child's final audits are byte-identical, and reports "
+        "the resulting digest to stdout."
+    ),
+}
 
 # The accepted artifact, read again after this run has written its own output,
 # so the audit carries the after value rather than only the before value. It is
@@ -2867,9 +2912,8 @@ AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"] = (
     and _accepted_blob_after == ACCEPTED_BLOB_ID
 )
 
-(OUT / AUDIT_FILE).write_text(
-    json.dumps(AUDIT_DOC, indent=1, ensure_ascii=False), encoding="utf-8"
-)
+AUDIT_DOC["determinism"] = DETERMINISM_SECTION
+_audit_bytes = _write_artifact(AUDIT_FILE, AUDIT_DOC)
 
 # Retained evidence and the accepted artifact must be untouched by this run.
 for _n, _before in _RETAINED_BEFORE.items():
@@ -2890,12 +2934,15 @@ assert AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"], AUDIT_DOC[
 # ---------------------------------------------------------------------------
 # Determinism: a clean rerun must reproduce identical bytes and identity
 # ---------------------------------------------------------------------------
+# Both files are already in their final form here, so nothing is rewritten
+# after the comparison and the digests below identify the files that ship.
 RERUN = os.environ.get("HAZARDS5_RERUN") == "1"
+FINAL_SHA256 = {
+    PROPOSAL_FILE: hashlib.sha256(_proposal_bytes).hexdigest(),
+    AUDIT_FILE: hashlib.sha256(_audit_bytes).hexdigest(),
+}
 DETERMINISTIC: bool | None = None
 if not RERUN:
-    _before_bytes = {
-        n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in sorted(WRITES)
-    }
     _child = subprocess.run(
         [sys.executable, str(Path(__file__).resolve())],
         env={**os.environ, "HAZARDS5_RERUN": "1"},
@@ -2906,19 +2953,11 @@ if not RERUN:
     _after_bytes = {
         n: hashlib.sha256((OUT / n).read_bytes()).hexdigest() for n in sorted(WRITES)
     }
-    DETERMINISTIC = _before_bytes == _after_bytes
-    assert DETERMINISTIC, (_before_bytes, _after_bytes)
+    DETERMINISTIC = _after_bytes == FINAL_SHA256
+    assert DETERMINISTIC, (FINAL_SHA256, _after_bytes)
     assert ident in _child.stdout, "the rerun minted a different proposal identity"
-    # Record the result inside the artifact it describes.
-    AUDIT_DOC["determinism"] = {
-        "reran_from_a_clean_process": True,
-        "artifact_bytes_identical": True,
-        "proposal_identity_identical": True,
-        "sha256": _before_bytes,
-    }
-    (OUT / AUDIT_FILE).write_text(
-        json.dumps(AUDIT_DOC, indent=1, ensure_ascii=False), encoding="utf-8"
-    )
+    for _name in sorted(WRITES):
+        assert b"\r" not in (OUT / _name).read_bytes(), f"{_name} came back with CR"
 
 # ---------------------------------------------------------------------------
 # Report
@@ -3017,5 +3056,8 @@ print(f"Z-1            {Z1_RESOLUTION['status']}")
 print(f"disclosed      {_disclosed}   resolved {_resolved}")
 _inputs_line = json.dumps({k: v for k, v in INPUT_PATHS.items() if k != "note"})
 print(f"inputs         {_inputs_line}")
+print(f"final proposal sha256  {FINAL_SHA256[PROPOSAL_FILE]}")
+print(f"final audit    sha256  {FINAL_SHA256[AUDIT_FILE]}")
+print("newlines       LF (asserted: no CR byte in either artifact)")
 if DETERMINISTIC is not None:
-    print(f"deterministic  {DETERMINISTIC}")
+    print(f"deterministic  {DETERMINISTIC}  (final bytes, parent vs separate process)")

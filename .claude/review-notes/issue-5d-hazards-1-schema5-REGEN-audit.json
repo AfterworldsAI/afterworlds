@@ -3494,12 +3494,9 @@
   }
  ],
  "determinism": {
-  "reran_from_a_clean_process": true,
-  "artifact_bytes_identical": true,
-  "proposal_identity_identical": true,
-  "sha256": {
-   "issue-5d-hazards-1-schema5-REGEN-PROPOSAL.json": "e61fd8336af423da5877f546d796f71c0db205902aa3172c506bdc072036b883",
-   "issue-5d-hazards-1-schema5-REGEN-audit.json": "364b4c6086695d010cd8e2bd2663403d848eaab31b85c69d4de65fc5e2033f84"
-  }
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files. Parent and child produce identical final documents, so the comparison is about what ships.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "6d0e0566eaa7241f0d7bb519040b874815fe5a9df79ba278427a926b7d25753f",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout."
  }
 }
