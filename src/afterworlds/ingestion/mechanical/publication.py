@@ -610,12 +610,13 @@ def publish_from_committed_oracle(
     proof. There is no cheaper door.
 
     Accepted authority *is* committed for the production SRD 5.2.1 release, but
-    it covers CRD Issue 5d batch ``conditions-1`` only, so this path currently
-    returns ``INCOMPLETE`` for the production projection: the oracle resolves,
-    and the gate then finds persisted records it does not accept. That is the
-    honest state — the refusal is about coverage, not about absence — and until
-    the remaining batches are reviewed and accepted, nothing over that release
-    can be published. ``ABSENT`` still answers the different question of a
+    it covers CRD Issue 5d batches ``conditions-1`` and ``hazards-1`` only — 22
+    records over 281 spans — so this path currently returns ``INCOMPLETE`` for
+    the production projection: the oracle resolves, and the gate then finds
+    persisted records it does not accept. That is the honest state — the refusal
+    is about coverage, not about absence — and until the remaining batches are
+    reviewed and accepted (``actions-1`` has not begun), nothing over that
+    release can be published. ``ABSENT`` still answers the different question of a
     release no committed artifact judges at all.
     """
     header = _header(session, projection_uuid)

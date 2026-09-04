@@ -263,7 +263,7 @@ def test_an_accepted_artifact_round_trips_through_its_committed_form(
 
 
 def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
-    """CRD Issue 5d batch ``conditions-1`` is accepted; nothing else is.
+    """CRD Issue 5d batches ``conditions-1`` and ``hazards-1``, and nothing else.
 
     Stated as a test rather than a claim in a PR description, so the day
     somebody commits production authority without review, this fails. It used
@@ -289,7 +289,8 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     parameter that would let a caller supply authority of its own. The uuid here
     names no persisted header, so this is the "nothing to publish" refusal —
     distinct from the real release's, which now refuses as ``INCOMPLETE``
-    because ``conditions-1`` is accepted but the corpus is not finished.
+    because ``conditions-1`` and ``hazards-1`` are accepted — 22 records over 281
+    spans — but the corpus is not finished.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT

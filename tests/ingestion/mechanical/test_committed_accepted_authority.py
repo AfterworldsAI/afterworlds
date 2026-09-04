@@ -699,3 +699,44 @@ def test_the_oracle_identity_alone_would_not_have_caught_an_evidence_edit() -> N
         ARTIFACT_CONTENT_SHA256,
         ARTIFACT_BLOB,
     )
+
+
+def test_the_pinned_identities_survive_a_crlf_checkout_and_the_raw_digest_does_not(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The two pins are content identities; the raw on-disk digest is not.
+
+    ``.gitattributes`` declares ``eol=lf``, but a working copy predating that
+    attribute — or a checkout made with ``core.autocrlf=true`` — holds the same
+    committed JSON with CRLF line endings. Verification must fail on an edited
+    *artifact*, never on a checkout's line endings, so every pinned comparison
+    canonicalizes first. This is the regression for that: it asserts the raw
+    digest genuinely moves, so the test would still fail if canonicalization
+    were dropped and the two digests happened to coincide.
+
+    The committed file is never touched. The CRLF form is built in ``tmp_path``
+    and is not committed anywhere — a CRLF copy in the tree would be a second
+    artifact claiming one release, which the resolver refuses outright.
+    """
+    committed = ARTIFACT_PATH.read_bytes()
+    assert b"\r\n" not in committed, "the committed artifact must be LF"
+
+    crlf_copy = tmp_path / ARTIFACT_NAME
+    crlf_copy.write_bytes(committed.replace(b"\n", b"\r\n"))
+
+    # The raw digests differ, which is exactly why a raw digest cannot decide.
+    assert (
+        hashlib.sha256(crlf_copy.read_bytes()).hexdigest()
+        != hashlib.sha256(committed).hexdigest()
+    )
+
+    # The identities that are pinned do not move.
+    assert _content_identities(crlf_copy) == (ARTIFACT_CONTENT_SHA256, ARTIFACT_BLOB)
+
+    # And the JSON content is the same content, not merely the same hash.
+    reloaded = load_accepted_inputs(crlf_copy)
+    committed_inputs = load_accepted_inputs(ARTIFACT_PATH)
+    assert accepted_inputs_payload(reloaded) == accepted_inputs_payload(
+        committed_inputs
+    )
+    assert oracle_identity(reloaded.oracle) == ORACLE_IDENTITY

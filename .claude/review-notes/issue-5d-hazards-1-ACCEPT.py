@@ -22,8 +22,12 @@ Three things it deliberately does not do:
 
 Re-running it is refused once the acceptance exists: `accept_proposal` rejects a
 batch id the prior already records, which is the correct behaviour for a
-one-time action. Pass `--verify` to re-check every post-acceptance assertion
-against the committed artifact without attempting the acceptance again.
+one-time action. Pass `--verify` to re-check the post-acceptance assertions
+against the committed artifact without attempting the acceptance again. Every
+comparison it reports is real in that mode, against the frozen prior; the one
+claim it cannot make is the in-memory prior-first prefix, because verification
+performs no new merge, and it says so in place rather than emitting a value that
+reads as success.
 
 `--verify` does **not** re-run the reviewed generator, and that is deliberate.
 The generator pins the accepted artifact as it stood *before* this acceptance -
@@ -64,7 +68,7 @@ for _p in (GENERATOR, PROPOSAL_FILE, ACCEPTED_PATH):
 BATCH_ID = "hazards-1"
 REVIEWER = "Ravenlok (Owner)"
 PROPOSAL_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
-PROPOSAL_SHA256 = "6d0e0566eaa7241f0d7bb519040b874815fe5a9df79ba278427a926b7d25753f"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_CONTENT_SHA256 = "6d0e0566eaa7241f0d7bb519040b874815fe5a9df79ba278427a926b7d25753f"  # noqa: E501  # pragma: allowlist secret
 PROPOSAL_BLOB = "3018bce5f774e40f78ab0f1ab373fe8b5543ee3b"  # pragma: allowlist secret
 SCHEMA_VERSION = "5d-representation-schema-5"
 SCHEMA_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
@@ -91,7 +95,7 @@ LEGACY_PRIOR_PATH = (
 #: happened. Pinned so that an unreviewed edit to *any* part of it fails here -
 #: acceptance evidence included, which the oracle identity deliberately does not
 #: cover, because reviewer and timestamp are evidence rather than identity.
-MERGED_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
+MERGED_CONTENT_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
 MERGED_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
 MERGED_ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245"  # noqa: E501  # pragma: allowlist secret
 
@@ -306,8 +310,16 @@ assert (
 # artifacts are deterministic, and their digests are asserted unchanged across
 # the run so this script cannot be a covert regeneration.
 
-_proposal_raw_before, _, _proposal_blob_before = _identifiers(PROPOSAL_FILE)
-assert _proposal_raw_before == PROPOSAL_SHA256, _proposal_raw_before
+#: Canonical content digest and Git blob decide; the raw on-disk digest is
+#: diagnostic only. A checkout holding CRLF has a different raw digest for
+#: byte-identical JSON, so asserting the raw one against a canonical pin
+#: would fail verification for the checkout rather than for the content.
+(
+    _proposal_raw_before,
+    _proposal_content_before,
+    _proposal_blob_before,
+) = _identifiers(PROPOSAL_FILE)
+assert _proposal_content_before == PROPOSAL_CONTENT_SHA256, _proposal_content_before
 assert _proposal_blob_before == PROPOSAL_BLOB, _proposal_blob_before
 
 if not VERIFY_ONLY:
@@ -315,8 +327,12 @@ if not VERIFY_ONLY:
     _generated = runpy.run_path(str(GENERATOR), run_name="__hazards5_accept__")
     PROPOSAL = _generated["PROPOSAL"]
 
-    _proposal_raw_after, _, _proposal_blob_after = _identifiers(PROPOSAL_FILE)
-    assert _proposal_raw_after == PROPOSAL_SHA256, _proposal_raw_after
+    (
+        _proposal_raw_after,
+        _proposal_content_after,
+        _proposal_blob_after,
+    ) = _identifiers(PROPOSAL_FILE)
+    assert _proposal_content_after == PROPOSAL_CONTENT_SHA256, _proposal_content_after
     assert _proposal_blob_after == PROPOSAL_BLOB, _proposal_blob_after
 
     assert proposal_identity(PROPOSAL) == PROPOSAL_IDENTITY, proposal_identity(PROPOSAL)
@@ -343,8 +359,9 @@ else:
     _committed_proposal = json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
     PROPOSAL_PAYLOAD_HASH = hash_obj(_committed_proposal)
     assert PROPOSAL_PAYLOAD_HASH == PROPOSAL_IDENTITY, PROPOSAL_PAYLOAD_HASH
-    _proposal_raw_after, _proposal_blob_after = (
+    _proposal_raw_after, _proposal_content_after, _proposal_blob_after = (
         _proposal_raw_before,
+        _proposal_content_before,
         _proposal_blob_before,
     )
     _spans_reviewed = [
@@ -411,18 +428,23 @@ if not VERIFY_ONLY:
 # was actually written, not the in-memory result that produced it.
 RESULT = load_accepted_inputs(ACCEPTED_PATH)
 RESULT_PAYLOAD = accepted_inputs_payload(RESULT)
-_raw_sha, _content_sha, _blob = _identifiers(ACCEPTED_PATH)
+_accepted_raw_sha, _accepted_content_sha, _accepted_blob = _identifiers(ACCEPTED_PATH)
 ORACLE_IDENTITY = oracle_identity(RESULT.oracle)
 
 #: The merged artifact of record, pinned by three identities that fail for three
 #: different reasons. The oracle identity covers the accepted *content*; the
-#: file digest and the Git blob additionally cover the acceptance **evidence** -
+#: canonical content digest and the Git blob additionally cover the acceptance
+#: **evidence** -
 #: reviewer, timestamp, batch rule, resolved scope, anchors and lifts - which
 #: the oracle identity deliberately excludes, because re-reviewing an unchanged
 #: classification must not remint a projection. Without the file-level pins an
 #: unreviewed edit to the evidence would pass every other check here.
-assert _raw_sha == MERGED_SHA256, _raw_sha
-assert _blob == MERGED_BLOB, _blob
+#: Both pins are checkout-independent, and that is deliberate: the raw digest
+#: below is reported as diagnostic evidence and decides nothing, because
+#: `.gitattributes` declares `eol=lf` and a working copy predating that
+#: attribute holds the same JSON with different bytes.
+assert _accepted_content_sha == MERGED_CONTENT_SHA256, _accepted_content_sha
+assert _accepted_blob == MERGED_BLOB, _accepted_blob
 assert ORACLE_IDENTITY == MERGED_ORACLE_IDENTITY, ORACLE_IDENTITY
 
 # ---------------------------------------------------------------------------
@@ -637,8 +659,9 @@ REPORT = {
     "accepted_at": ACCEPTED_AT_VALUE,
     "proposal_identity": PROPOSAL_IDENTITY,
     "proposal_payload_hash": PROPOSAL_PAYLOAD_HASH,
-    "proposal_sha256": _proposal_raw_after,
+    "proposal_content_sha256": _proposal_content_after,
     "proposal_blob": _proposal_blob_after,
+    "proposal_raw_sha256_diagnostic": _proposal_raw_after,
     "schema": [SCHEMA_VERSION, SCHEMA_HASH],
     "scope": {
         "spans": len(RESOLVED_SCOPE),
@@ -659,17 +682,21 @@ REPORT = {
     "validate_representation": REPRESENTATION_FINDINGS,
     "resolved_exhaustion_references": RESOLVED_REFERENCES,
     "accepted_oracle_identity": ORACLE_IDENTITY,
-    "accepted_artifact_sha256": _raw_sha,
-    "accepted_artifact_content_sha256": _content_sha,
-    "accepted_artifact_blob": _blob,
+    "accepted_artifact_content_sha256": _accepted_content_sha,
+    "accepted_artifact_blob": _accepted_blob,
+    "accepted_artifact_raw_sha256_diagnostic": _accepted_raw_sha,
+    # Canonical content, Git blob and oracle identity. The raw digest is not
+    # a term here: it varies with the checkout, so letting it decide would
+    # report a CRLF working copy as an unreviewed edit.
     "accepted_artifact_matches_pinned_merged_identity": (
-        _raw_sha == MERGED_SHA256
-        and _blob == MERGED_BLOB
+        _accepted_content_sha == MERGED_CONTENT_SHA256
+        and _accepted_blob == MERGED_BLOB
         and ORACLE_IDENTITY == MERGED_ORACLE_IDENTITY
     ),
     "prior_artifact_source": str(PRIOR_PATH.relative_to(REPO).as_posix()),
     "prior_artifact_content_sha256": _prior_content_sha,
     "prior_artifact_blob": _prior_blob,
+    "prior_artifact_raw_sha256_diagnostic": _prior_raw_sha,
     "missing_prior_elements": {
         coll: len(missing) for coll, missing in MISSING_PRIOR_ELEMENTS.items()
     },

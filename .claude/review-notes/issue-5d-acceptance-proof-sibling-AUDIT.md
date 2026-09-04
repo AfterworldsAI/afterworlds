@@ -9,10 +9,17 @@ because the value it measured is not the value it names.*
 |---|---|---|
 | 1 | `determinism.sha256` built by walking a `set` | The audit was not byte-stable across processes, while the run asserted it was — the comparison was real, the *thing compared* varied |
 | 2 | The determinism child wrote an audit without the determinism section | The parent compared an intermediate artifact and then wrote a different one, so the proof did not cover the file that ships |
-| 3 | `--verify` preservation (this round) | `conditions_1_payload_elements_present` was a dict holding one explanatory string; `all()` over it is `True` for no reason. And the "prior" it measured was the merged file |
+| 3 | `--verify` preservation (round 3) | `conditions_1_payload_elements_present` was a dict holding one explanatory string; `all()` over it is `True` for no reason. And the "prior" it measured was the merged file |
+| 4 | The proposal and merged-artifact pins (#161 Codex P2) | `PROPOSAL_SHA256` and `MERGED_SHA256` hold **canonical-LF** digests, and the assertions compared the **raw on-disk** digest against them. On a CRLF checkout, byte-identical JSON fails — verification exits before its acceptance checks and reports the checkout as an unreviewed edit |
 
 The family is not "a wrong hash". It is **a label that outruns its evidence** — a name asserting a
 comparison that the code beneath it did not perform.
+
+**Instance 4 is why this audit is being corrected rather than merely extended.** Round 3 asked of
+every hash label *which file did this value come from* and never asked *which digest class is it*.
+Provenance was checked; class was not. That is how a correct value came to sit under a name that
+decided verification wrongly — and it is why the two rows below moved from "already safe" to
+"patched" on re-examination.
 
 **Scope discipline.** This audit controls scope; it does not expand it. Nothing outside the five
 named surfaces was changed, and the accepted artifact, the proposal and the audit were not touched.
@@ -29,8 +36,9 @@ happened?**
 | label | measured | disposition |
 |---|---|---|
 | `prior_artifact_sha256_before` / `_blob_before` | **the merged artifact** — the label said "prior", the value was the result | **patched** — renamed `prior_artifact_content_sha256` / `prior_artifact_blob`, sourced from `PRIOR_PATH`, and a `prior_artifact_source` field now names the file so the label cannot drift from the value again |
-| `accepted_artifact_sha256` / `_content_sha256` / `_blob` | the merged artifact, correctly | already safe |
-| `proposal_sha256` / `proposal_blob` | the proposal file, asserted unchanged across the run | already safe |
+| `accepted_artifact_sha256` / `_content_sha256` / `_blob` | the merged artifact — right file, **wrong digest class**: the reported and asserted `..._sha256` was the raw on-disk digest, compared against a canonical-LF pin | **patched (round 3 marked this "already safe"; that disposition was wrong)** — the pin is renamed `MERGED_CONTENT_SHA256`, the assertion reads `_accepted_content_sha`, and the raw digest is reported as `accepted_artifact_raw_sha256_diagnostic` and decides nothing |
+| `proposal_sha256` / `proposal_blob` | the proposal file, asserted unchanged across the run — same class error | **patched (round 3 marked this "already safe"; that disposition was wrong)** — `PROPOSAL_CONTENT_SHA256`, asserted against `_proposal_content_before` / `_after`, with `proposal_raw_sha256_diagnostic` beside it |
+| `accepted_artifact_matches_pinned_merged_identity` | the raw digest was one of its three terms | **patched** — the Boolean is now canonical content SHA-256 **and** Git blob **and** oracle identity; no raw digest is a term |
 | `accepted_oracle_identity` | `oracle_identity(RESULT.oracle)` | already safe |
 | `proposal_payload_hash` | `hash_obj(proposal_payload(...))`, asserted equal to the identity | already safe |
 
@@ -83,7 +91,11 @@ mutating the committed artifact.
 
 ## Dispositions
 
-**14 patched · 9 already safe · 0 out of scope · 0 owner decisions.**
+**Round 3:** 14 patched · 9 already safe · 0 out of scope · 0 owner decisions.
+
+**Round 4 (#161 Codex P2, digest class):** 3 further patched — the two rows above that round 3 marked
+"already safe" in error, plus the composite Boolean built on one of them. No new surface was opened;
+the same five surfaces were re-examined against the sharpened question.
 
 No check was loosened, no assertion deleted, and no pinned identity moved. The accepted artifact, the
 proposal, the audit and the frozen fixture are byte-identical throughout.
@@ -100,5 +112,20 @@ proposal, the audit and the frozen fixture are byte-identical throughout.
 ## The rule this family leaves behind
 
 **A reported Boolean must be the result of the comparison its name describes, and a reported digest
-must come from the file its name describes.** Where a proof cannot make a comparison in some mode,
-it says so in that mode's own words rather than emitting a value that reads as success.
+must come from the file its name describes — and be the digest class its name describes.** Where a
+proof cannot make a comparison in some mode, it says so in that mode's own words rather than emitting
+a value that reads as success.
+
+The second clause is what round 3 missed. A digest has a *provenance* (which file) and a *class*
+(raw bytes, canonicalized content, or Git blob), and checking only the first leaves a correct number
+under a name that makes the wrong comparison. Every digest label in the acceptance record now states
+its class, and only checkout-independent classes decide anything: raw digests are labelled
+`..._raw_sha256_diagnostic` and appear in the report as evidence, never in an assertion.
+
+**Executed, not argued.** `test_the_pinned_identities_survive_a_crlf_checkout_and_the_raw_digest_does_not`
+in `tests/ingestion/mechanical/test_committed_accepted_authority.py` builds a CRLF copy of the
+committed artifact in `tmp_path`, asserts the raw digest genuinely moves, and asserts the canonical
+digest, the Git blob, the loaded payload and the oracle identity do not. The real case was run too:
+`ACCEPT.py --verify` in a disposable worktree whose proposal and accepted JSON had been converted to
+CRLF. Neither the CRLF copy nor the worktree is committed — a second artifact claiming one release is
+what the resolver refuses outright.

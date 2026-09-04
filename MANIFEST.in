@@ -3,7 +3,8 @@ recursive-include src/afterworlds/modes/personas/profiles *.json
 # table_inventory.py (candidate construction/finalization fail without it).
 include src/afterworlds/ingestion/corpus/srd_table_inventory.json
 # CRD Issue 5d committed accepted oracles, resolved at runtime by
-# oracle.committed_oracle_for. Empty of production content today; the rule has to
-# exist before the accepted-content PR adds a file, or an sdist install would
-# publish nothing because it can see no accepted authority.
+# oracle.committed_oracle_for. One production artifact today: the SRD 5.2.1
+# release carrying accepted batches conditions-1 and hazards-1. The rule has to
+# ship it, or an sdist install would resolve no accepted authority and refuse as
+# ABSENT rather than as the honest INCOMPLETE.
 recursive-include src/afterworlds/ingestion/mechanical/oracles *.json

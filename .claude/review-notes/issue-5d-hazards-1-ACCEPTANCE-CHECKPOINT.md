@@ -15,9 +15,25 @@ preservation comparison compare the artifact to itself. The comparisons are elem
 both modes: the conditions-1 batch record, all 185 acceptance records, all 185 spans, every prior
 element of each of the six representation collections, and every prior obligation, each reported as
 its own Boolean with a count of missing elements beside it. It also asserts the merged artifact
-against three pinned identities — SHA-256 `0925d796…73f7`, blob `6e65533f…b59a`, oracle identity
-`c794bde4…356245` — so an unreviewed edit to the acceptance **evidence**, which the oracle identity
-deliberately does not cover, fails there too.
+against three pinned identities — **canonical-LF content** SHA-256 `0925d796…73f7`, Git blob
+`6e65533f…b59a`, oracle identity `c794bde4…356245` — so an unreviewed edit to the acceptance
+**evidence**, which the oracle identity deliberately does not cover, fails there too. All three are
+properties of the content, so verification fails on an edited artifact and never on a checkout's line
+endings.
+
+**Every SHA-256 in this checkpoint is a canonical-LF content digest**, and every one that decides
+anything is checkout-independent. A second corrected claim, recorded rather than replaced: until
+2026-09-04 the proposal and merged-artifact assertions in `ACCEPT.py` compared the **raw on-disk**
+digest against those canonical pins (`PROPOSAL_SHA256`, `MERGED_SHA256`), and the final
+`accepted_artifact_matches_pinned_merged_identity` Boolean carried the raw digest as one of its
+terms. On a CRLF checkout that fails for byte-identical JSON — verification would exit before its
+acceptance checks and report the checkout as an unreviewed edit. The pins are now named
+`PROPOSAL_CONTENT_SHA256` / `MERGED_CONTENT_SHA256`, the assertions read the canonical digest, and
+raw digests survive only as `..._raw_sha256_diagnostic` fields in the report, which decide nothing.
+The compatibility case was executed, not argued: `--verify` was run in a disposable worktree whose
+proposal and accepted JSON had been converted to CRLF, and it passed with the raw digests moved and
+the canonical digests and Git blobs unchanged. `test_the_pinned_identities_survive_a_crlf_checkout_and_the_raw_digest_does_not`
+keeps that property from regressing. Neither the CRLF worktree nor its files are committed.
 
 A corrected earlier claim, recorded rather than replaced: until 2026-09-03 this section said
 `--verify` re-checked *every* post-acceptance assertion. It did not. Its preservation entry was a
@@ -32,18 +48,20 @@ check reported success while comparing nothing, and it read the merged file as t
 | Accepted at | `2026-09-03T10:58:59Z` — one timestamp across all 96 records |
 | Proposal identity | `f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417` |
 | Proposal payload hash | identical to the identity, asserted |
-| Proposal SHA-256 / blob | `6d0e0566…753f` / `3018bce5…ee3b` — unchanged by the acceptance |
+| Proposal content SHA-256 / Git blob | `6d0e0566…753f` / `3018bce5…ee3b` — unchanged by the acceptance |
 | Schema | `5d-representation-schema-5` / `2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40` |
 | Scope | 96 spans · 43 leaves · 6 records · 65 substantive / 31 supporting / **0** unresolved / **0** non-mechanical |
 | Accepted oracle identity | `c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245` |
-| Accepted artifact SHA-256 | `0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7` |
+| Accepted artifact content SHA-256 | `0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7` |
+| Accepted artifact Git blob | `6e65533f4a3523aba3d60cfc3c274ab22e66b59a` |
 
 ## How the proposal was supplied
 
 Not hand-converted, not renamed, not reproduced. The reviewed `MechanicalProposal` is rebuilt by
 **executing the reviewed generator**, and the run asserts its identity, its payload hash, that its
-payload equals the committed proposal JSON byte for byte, and that the proposal file's own SHA-256
-and Git blob are unchanged across the run — so the acceptance cannot be a covert regeneration.
+payload equals the committed proposal JSON byte for byte, and that the proposal file's own canonical
+content SHA-256 and Git blob are unchanged across the run — so the acceptance cannot be a covert
+regeneration.
 
 The prior is the committed `conditions-1` artifact, asserted **first** by the two identities that do
 not depend on a checkout — Git blob `42faeca2486117cd1ea518f8b679d036d6fcde87` and content SHA-256
@@ -79,6 +97,20 @@ points outside it.
 round-trips exactly; it is written through `accepted_inputs_payload` in the same
 indent-2 / sort-keys / LF form the file was already committed in. **One oracle file, extended** —
 never a second.
+
+## The accepted-scope status the repository now states
+
+Accepting `hazards-1` made every standing "batch `conditions-1` only" description false. Nine such
+sites — `known_unknowns.md`, `oracle.py`, `oracles/README.md`, `publication.py`, `pyproject.toml`,
+`MANIFEST.in`, and three test docstrings — now say: accepted batches `conditions-1` **and**
+`hazards-1`, 22 records over 281 spans, the corpus still incomplete, `actions-1` not begun, nothing
+published or activated, and the production release refusing as `INCOMPLETE` rather than `ABSENT`.
+Two further sentences claiming the committed artifact holds no ability-check fact were corrected to
+the content the schema-5 lift was proved against, because the artifact now carries two such facts
+from `hazards-1` and a reader checking the file would otherwise read the succession as illegally
+registered. Recorded in `issue-5d-accepted-status-sibling-AUDIT.md`, with the one site deliberately
+left alone and why. **No Owner Decision was needed** — the acceptance itself was the authorization,
+and this is documentation catching up to it.
 
 ## Publication is still refused, and that is unchanged
 
