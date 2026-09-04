@@ -29,13 +29,23 @@ claim it cannot make is the in-memory prior-first prefix, because verification
 performs no new merge, and it says so in place rather than emitting a value that
 reads as success.
 
-`--verify` does **not** re-run the reviewed generator, and that is deliberate.
-The generator pins the accepted artifact as it stood *before* this acceptance -
-its disjointness and zero-movement proofs are statements about that prior - so
-it stops rather than runs once the artifact it was proved against has legitimately
-grown. Freezing it there is what keeps it an honest record of what was reviewed.
-The bound corpus this script needs for the representation gate is therefore built
-here, from the same committed PDF, rather than borrowed from it.
+`--verify` does **not** re-run the reviewed generator, and that is a separation
+of concerns rather than an inability. The two proofs answer different questions
+and neither substitutes for the other:
+
+* **this script's `--verify`** checks the *committed acceptance* - that the
+  artifact on disk is the one the Owner accepted, that every `conditions-1`
+  element survived the merge, and that the pinned identities still hold;
+* **the regeneration generator** reproduces the *proposal and audit* from the
+  immutable reviewed prior, `tests/ingestion/mechanical/data/
+  legacy_conditions_1_unanchored_schema3.json`. It reads that frozen prior and
+  never the live oracle, so it executes from the final committed tree and keeps
+  executing after later batches are accepted; it reads the live oracle only as a
+  mutation sentinel.
+
+Running the generator from here would therefore prove nothing this script needs
+and would conflate the two. The bound corpus required for the representation
+gate is built here, from the same committed PDF, rather than borrowed from it.
 """
 
 from __future__ import annotations

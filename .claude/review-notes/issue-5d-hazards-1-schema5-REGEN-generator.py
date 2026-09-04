@@ -133,13 +133,38 @@ sys.path.insert(0, str(REPO / "src"))
 #: The three inputs, named once and required to exist beneath the derived root
 #: before anything is imported or read.
 SOURCE_PDF = REPO / "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
-ACCEPTED_PATH = (
+
+#: **The immutable review prior.** This batch was reviewed against accepted
+#: authority as it stood before `hazards-1` was accepted: `conditions-1` alone,
+#: representation schema 3, unanchored. That state is frozen here, byte for
+#: byte, and this is the only prior this run reads.
+#:
+#: It is deliberately *not* the live oracle. The live oracle accumulates - it
+#: already carries `hazards-1`, and it will carry `actions-1` next - so reading
+#: it would make a retained proof of a completed review depend on authority
+#: accepted *after* that review. Pinning its present merged identity would only
+#: move the breakage to the next acceptance. What this generator reproduces is a
+#: past review, and a past review has a fixed prior.
+REVIEW_PRIOR_PATH = (
+    REPO
+    / "tests/ingestion/mechanical/data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
+
+#: **A mutation sentinel, never an input.** The live accepted-authority artifact
+#: is read only to prove this run does not touch it: its bytes are captured
+#: before generation and asserted identical afterwards. It is never loaded as
+#: `PRIOR`, never lifted, never merged, and its digest is never written into an
+#: artifact - recording it would re-create exactly the coupling this correction
+#: removes, because the value would go stale the moment a later batch is
+#: accepted.
+LIVE_ORACLE_PATH = (
     REPO
     / "src/afterworlds/ingestion/mechanical/oracles"
     / "srd-5-2-1-corpus-36b786d8-fa2.json"
 )
 PACKAGE_ROOT = REPO / "src/afterworlds"
-for _required in (SOURCE_PDF, ACCEPTED_PATH, PACKAGE_ROOT):
+for _required in (SOURCE_PDF, REVIEW_PRIOR_PATH, LIVE_ORACLE_PATH, PACKAGE_ROOT):
     assert (
         _required.exists()
     ), f"missing beneath the derived repository root: {_required}"
@@ -159,16 +184,22 @@ for _module in (
 #: read as input.
 REJECTED_IDENTITY = "6277ff735e0e47b3337f2c3736ca7922864b1cde9a3c286b3aee48ee461ba259"  # noqa: E501  # pragma: allowlist secret
 
-#: The reviewed proposal's identity and the accepted artifact's digest, pinned
-#: as literals. This run reproduces the first and must not disturb the second;
-#: both are asserted rather than reported, so a change stops the run instead of
-#: appearing quietly in an artifact.
+#: The reviewed proposal's identity and the review prior's digest, pinned as
+#: literals. This run reproduces the first from the second; both are asserted
+#: rather than reported, so a change stops the run instead of appearing quietly
+#: in an artifact.
 EXPECTED_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
 
-#: The accepted artifact, identified by its **content** rather than by whatever
-#: bytes a particular working copy happens to hold.
+#: The frozen review prior, identified by its **content** rather than by
+#: whatever bytes a particular working copy happens to hold.
 #:
-#: Removing the hard-coded repository path surfaced why the distinction matters.
+#: Read-only because it is *frozen*: it is the reviewed prior of a completed
+#: review, and a completed review's prior cannot move. That is a different
+#: reason from the live oracle's, which is read-only because this run only uses
+#: it as a mutation sentinel.
+#:
+#: Removing the hard-coded repository path surfaced why the distinction between
+#: raw bytes and content matters.
 #: `.gitattributes` declares `* text=auto eol=lf`, so a fresh checkout writes
 #: this file with LF; a working copy that predates the attribute can still hold
 #: CRLF. Both are the same committed content and both load to the same authority
@@ -181,15 +212,24 @@ EXPECTED_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c
 #: Pinned here, and written into the audit, are the two identifiers that do not
 #: depend on a checkout: the SHA-256 of the canonical LF content, and the Git
 #: blob id of the committed file. The blob id is the stronger of the two - it is
-#: what "accepted authority was not modified" actually means - and it is derived
-#: from the same normalized bytes rather than read out of `.git`.
-ACCEPTED_CONTENT_SHA256 = "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce"  # noqa: E501  # pragma: allowlist secret
-ACCEPTED_BLOB_ID = (
+#: what "the reviewed prior is the one that was reviewed" actually means - and
+#: it is derived from the same normalized bytes rather than read out of `.git`.
+#:
+#: These are the same two values the pre-acceptance accepted artifact carried,
+#: because the frozen file is byte-identical to it. The prior did not change;
+#: only where an unchanged prior is read from did.
+REVIEW_PRIOR_CONTENT_SHA256 = "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce"  # noqa: E501  # pragma: allowlist secret
+REVIEW_PRIOR_BLOB = (
     "42faeca2486117cd1ea518f8b679d036d6fcde87"  # pragma: allowlist secret
 )
-#: The raw digest of a CRLF working copy, recorded so the earlier reports remain
-#: legible. Never asserted, and never written into an artifact.
-ACCEPTED_CRLF_WORKING_COPY_SHA256 = "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a"  # noqa: E501  # pragma: allowlist secret
+#: What the review prior holds, asserted rather than assumed: one batch, and the
+#: representation schema its review happened under.
+REVIEW_PRIOR_BATCH_ID = "conditions-1"
+REVIEW_PRIOR_SCHEMA_VERSION = "5d-representation-schema-3"
+#: The raw digest of a CRLF working copy of this same content, recorded so the
+#: earlier reports remain legible. Never asserted, never written into an
+#: artifact.
+REVIEW_PRIOR_CRLF_WORKING_COPY_SHA256 = "aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a"  # noqa: E501  # pragma: allowlist secret
 
 # --- Retained-evidence guard ------------------------------------------------
 # Every previous hazards artifact is the record of a superseded conclusion or of
@@ -354,14 +394,20 @@ assert PACKAGE_ROOT.resolve() == IMPORTED_FROM, (IMPORTED_FROM, PACKAGE_ROOT)
 INPUT_PATHS = {
     "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
     "source_pdf": SOURCE_PDF.relative_to(REPO).as_posix(),
-    "accepted_artifact": ACCEPTED_PATH.relative_to(REPO).as_posix(),
+    "review_prior": REVIEW_PRIOR_PATH.relative_to(REPO).as_posix(),
     "afterworlds_package": IMPORTED_FROM.relative_to(REPO).as_posix(),
     "output_directory": OUT.relative_to(REPO).as_posix(),
     "note": (
         "Recorded relative to the derived root on purpose: an absolute path "
         "would make this artifact differ between two checkouts that produced "
         "identical content. Every one of these is asserted to exist, and the "
-        "imported package is asserted to be the one beneath this root."
+        "imported package is asserted to be the one beneath this root. The "
+        "live accepted-authority oracle is deliberately absent from this list: "
+        "it is not an input. This run reads it only as a mutation sentinel - "
+        "bytes captured before generation and asserted identical afterwards - "
+        "and neither its path nor its digest is recorded here, because an "
+        "accumulating artifact's identity would go stale the moment a later "
+        "batch is accepted."
     ),
 }
 
@@ -1438,11 +1484,14 @@ assert any(
 # merge here (without accepting anything) is what proves those two obligations
 # are cross-batch resolutions rather than residue.
 #
-# The accepted artifact is READ ONLY. Nothing here writes it, and the lift is
-# verified rather than applied. Its path is resolved at the top of this file,
-# beneath the derived repository root.
-def _accepted_identifiers() -> tuple[str, str, str]:
-    """The accepted artifact's raw, canonical, and Git identities.
+# The review prior is READ ONLY, and so is the live oracle - for two different
+# reasons. The prior is frozen: it is the reviewed prior of a completed review.
+# The live oracle is a sentinel: this run proves it did not move and otherwise
+# ignores it. Nothing here writes either, and the lift is verified rather than
+# applied. Both paths are resolved at the top of this file, beneath the derived
+# repository root.
+def _review_prior_identifiers() -> tuple[str, str, str]:
+    """The review prior's raw, canonical, and Git identities.
 
     The canonical digest normalizes CRLF to LF, which is what
     ``.gitattributes`` declares this file is stored as; the blob id is Git's own
@@ -1450,7 +1499,7 @@ def _accepted_identifiers() -> tuple[str, str, str]:
     read out of ``.git``, so this holds in an exported tree with no repository
     at all.
     """
-    raw = ACCEPTED_PATH.read_bytes()
+    raw = REVIEW_PRIOR_PATH.read_bytes()
     canonical = raw.replace(b"\r\n", b"\n")
     blob = hashlib.sha1(  # noqa: S324 - Git's object id, not a security digest
         b"blob " + str(len(canonical)).encode() + b"\x00" + canonical
@@ -1462,10 +1511,27 @@ def _accepted_identifiers() -> tuple[str, str, str]:
     )
 
 
-_accepted_raw_before, _accepted_before, _accepted_blob_before = _accepted_identifiers()
-assert _accepted_before == ACCEPTED_CONTENT_SHA256, _accepted_before
-assert _accepted_blob_before == ACCEPTED_BLOB_ID, _accepted_blob_before
-PRIOR = load_accepted_inputs(ACCEPTED_PATH)
+(
+    _prior_raw_before,
+    _prior_content_before,
+    _prior_blob_before,
+) = _review_prior_identifiers()
+assert _prior_content_before == REVIEW_PRIOR_CONTENT_SHA256, _prior_content_before
+assert _prior_blob_before == REVIEW_PRIOR_BLOB, _prior_blob_before
+
+#: The live oracle's bytes, captured before generation. Compared after, never
+#: loaded, never lifted, never merged, never written into an artifact.
+_LIVE_ORACLE_BYTES_BEFORE = LIVE_ORACLE_PATH.read_bytes()
+
+PRIOR = load_accepted_inputs(REVIEW_PRIOR_PATH)
+# The prior is what the review said it was: one batch, at the schema that batch
+# was reviewed under. Asserted before anything is derived from it, so a swapped
+# file fails here rather than producing a plausible-looking proposal.
+assert [b.batch_id for b in PRIOR.batches] == [REVIEW_PRIOR_BATCH_ID], PRIOR.batches
+assert {a.batch_id for a in PRIOR.acceptances} == {REVIEW_PRIOR_BATCH_ID}
+assert (
+    PRIOR.oracle.schema_version == REVIEW_PRIOR_SCHEMA_VERSION
+), PRIOR.oracle.schema_version
 STEPS = lift_path((PRIOR.oracle.schema_version, PRIOR.oracle.schema_hash), SCHEMA)
 LIFT_RECORDS = verify_lift_path(STEPS, PRIOR.oracle.representation)
 
@@ -2746,11 +2812,25 @@ AUDIT_DOC = {
             }
             for r in LIFT_RECORDS
         ],
-        "accepted_artifact_content_sha256_before": _accepted_before,
-        "accepted_artifact_content_sha256_after": None,  # filled in after the write
-        "accepted_artifact_blob_id": _accepted_blob_before,
-        "accepted_artifact_unchanged": None,
-        "accepted_artifact_identity_note": (
+        "review_prior": REVIEW_PRIOR_PATH.relative_to(REPO).as_posix(),
+        "review_prior_batch_id": REVIEW_PRIOR_BATCH_ID,
+        "review_prior_schema_version": REVIEW_PRIOR_SCHEMA_VERSION,
+        "review_prior_content_sha256_before": _prior_content_before,
+        "review_prior_content_sha256_after": None,  # filled in after the write
+        "review_prior_blob_id": _prior_blob_before,
+        "review_prior_unchanged": None,
+        "review_prior_identity_note": (
+            "The immutable conditions-1 review prior: accepted authority as it "
+            "stood when this batch was reviewed - conditions-1 alone, schema 3, "
+            "unanchored - frozen byte for byte. It is the only prior this run "
+            "reads. The live accepted-authority oracle is NOT an input: it "
+            "accumulates, already carrying hazards-1 and later actions-1, so "
+            "reading it would make a retained proof of a completed review "
+            "depend on authority accepted after that review. This run reads it "
+            "only as a read-only mutation sentinel - bytes captured before "
+            "generation and asserted identical afterwards - and its digest is "
+            "deliberately not recorded here, because an accumulating "
+            "artifact's identity goes stale at the next acceptance. "
             "Identified by content, not by the bytes one working copy holds. "
             ".gitattributes declares 'text=auto eol=lf', so a fresh checkout "
             "writes this file with LF while a working copy predating the "
@@ -2762,7 +2842,7 @@ AUDIT_DOC = {
             "checkouts of one commit - and is printed to stdout instead."
         ),
         "note": (
-            "the committed conditions-1 artifact declares schema 3 and reaches "
+            "the conditions-1 review prior declares schema 3 and reaches "
             "schema 5 across two registered crossings, each proved separately"
         ),
     },
@@ -2842,11 +2922,11 @@ assert AUDIT_DOC["proposal_identity"] == EXPECTED_IDENTITY, AUDIT_DOC[
     "proposal_identity"
 ]
 assert (
-    AUDIT_DOC["schema_succession"]["accepted_artifact_content_sha256_before"]
-    == ACCEPTED_CONTENT_SHA256
+    AUDIT_DOC["schema_succession"]["review_prior_content_sha256_before"]
+    == REVIEW_PRIOR_CONTENT_SHA256
 ), AUDIT_DOC["schema_succession"]
 assert (
-    AUDIT_DOC["schema_succession"]["accepted_artifact_blob_id"] == ACCEPTED_BLOB_ID
+    AUDIT_DOC["schema_succession"]["review_prior_blob_id"] == REVIEW_PRIOR_BLOB
 ), AUDIT_DOC["schema_succession"]
 
 
@@ -2898,38 +2978,45 @@ DETERMINISM_SECTION = {
     ),
 }
 
-# The accepted artifact, read again after this run has written its own output,
-# so the audit carries the after value rather than only the before value. It is
-# re-read once more below, after the audit itself is written.
-_, _accepted_after, _accepted_blob_after = _accepted_identifiers()
-assert _accepted_after == _accepted_before, "the committed accepted artifact changed"
-assert _accepted_blob_after == _accepted_blob_before, "the accepted blob id moved"
+# The review prior, read again after this run has written its own output, so the
+# audit carries the after value rather than only the before value. It is re-read
+# once more below, after the audit itself is written.
+_, _prior_content_after, _prior_blob_after = _review_prior_identifiers()
+assert _prior_content_after == _prior_content_before, "the review prior changed"
+assert _prior_blob_after == _prior_blob_before, "the review prior's blob id moved"
 AUDIT_DOC["schema_succession"][
-    "accepted_artifact_content_sha256_after"
-] = _accepted_after
-AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"] = (
-    _accepted_after == _accepted_before == ACCEPTED_CONTENT_SHA256
-    and _accepted_blob_after == ACCEPTED_BLOB_ID
+    "review_prior_content_sha256_after"
+] = _prior_content_after
+AUDIT_DOC["schema_succession"]["review_prior_unchanged"] = (
+    _prior_content_after == _prior_content_before == REVIEW_PRIOR_CONTENT_SHA256
+    and _prior_blob_after == REVIEW_PRIOR_BLOB
 )
 
 AUDIT_DOC["determinism"] = DETERMINISM_SECTION
 _audit_bytes = _write_artifact(AUDIT_FILE, AUDIT_DOC)
 
-# Retained evidence and the accepted artifact must be untouched by this run.
+# Retained evidence, the review prior, and the live oracle must all be
+# untouched by this run.
 for _n, _before in _RETAINED_BEFORE.items():
     _after = hashlib.sha256((OUT / _n).read_bytes()).hexdigest()
     assert _after == _before, f"retained evidence {_n} changed"
-_raw_end, _accepted_end, _blob_end = _accepted_identifiers()
-assert _accepted_end == _accepted_before == ACCEPTED_CONTENT_SHA256, _accepted_end
-assert _blob_end == _accepted_blob_before == ACCEPTED_BLOB_ID, _blob_end
-assert _raw_end == _accepted_raw_before, "the accepted artifact's bytes changed"
+_raw_end, _prior_end, _blob_end = _review_prior_identifiers()
+assert _prior_end == _prior_content_before == REVIEW_PRIOR_CONTENT_SHA256, _prior_end
+assert _blob_end == _prior_blob_before == REVIEW_PRIOR_BLOB, _blob_end
+assert _raw_end == _prior_raw_before, "the review prior's bytes changed"
 assert (
-    AUDIT_DOC["schema_succession"]["accepted_artifact_content_sha256_after"]
-    == ACCEPTED_CONTENT_SHA256
+    AUDIT_DOC["schema_succession"]["review_prior_content_sha256_after"]
+    == REVIEW_PRIOR_CONTENT_SHA256
 ), AUDIT_DOC["schema_succession"]
-assert AUDIT_DOC["schema_succession"]["accepted_artifact_unchanged"], AUDIT_DOC[
+assert AUDIT_DOC["schema_succession"]["review_prior_unchanged"], AUDIT_DOC[
     "schema_succession"
 ]
+
+# The sentinel. Compared as raw bytes, because "this run did not touch it" is a
+# claim about the file rather than about its canonical content. Nothing derived
+# from it enters an artifact - not its digest, not its path, not its counts.
+LIVE_ORACLE_UNCHANGED = LIVE_ORACLE_PATH.read_bytes() == _LIVE_ORACLE_BYTES_BEFORE
+assert LIVE_ORACLE_UNCHANGED, "this run modified the live accepted-authority oracle"
 
 # ---------------------------------------------------------------------------
 # Determinism: a clean rerun must reproduce identical bytes and identity
@@ -2969,7 +3056,8 @@ if not RERUN:
 print(f"repo root      {REPO}")
 print(f"imported from  {IMPORTED_FROM}")
 print(f"source pdf     {SOURCE_PDF}")
-print(f"accepted       {ACCEPTED_PATH}")
+print(f"review prior   {REVIEW_PRIOR_PATH}")
+print(f"live oracle    {LIVE_ORACLE_PATH}  (sentinel only, not an input)")
 print(f"output dir     {OUT}")
 print(f"schema         {SCHEMA[0]} / {SCHEMA[1]}")
 print(f"policy         {SEMANTIC_POLICY_VERSION} / {semantic_policy_hash()}")
@@ -3028,17 +3116,18 @@ for _rec in LIFT_RECORDS:
         f"lift           {_rec.lift_id}: "
         f"{len(_rec.verified_collections)} collections verified"
     )
-print(f"accepted content sha {_accepted_before} -> {_accepted_after}")
-print(f"accepted blob id     {_accepted_blob_before} -> {_accepted_blob_after}")
+print(f"prior content sha    {_prior_content_before} -> {_prior_content_after}")
+print(f"prior blob id        {_prior_blob_before} -> {_prior_blob_after}")
 print(
-    f"accepted raw sha     {_accepted_raw_before}"
+    f"prior raw sha        {_prior_raw_before}"
     + (
         "  (CRLF working copy; matches the figure reported before the repository "
         "root was derived)"
-        if _accepted_raw_before == ACCEPTED_CRLF_WORKING_COPY_SHA256
+        if _prior_raw_before == REVIEW_PRIOR_CRLF_WORKING_COPY_SHA256
         else "  (equals the content digest: this checkout honours eol=lf)"
     )
 )
+print(f"live oracle unchanged {LIVE_ORACLE_UNCHANGED}  (read as a sentinel only)")
 print(
     "disjointness   "
     + json.dumps(

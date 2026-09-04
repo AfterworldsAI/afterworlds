@@ -10,7 +10,8 @@ because the value it measured is not the value it names.*
 | 1 | `determinism.sha256` built by walking a `set` | The audit was not byte-stable across processes, while the run asserted it was — the comparison was real, the *thing compared* varied |
 | 2 | The determinism child wrote an audit without the determinism section | The parent compared an intermediate artifact and then wrote a different one, so the proof did not cover the file that ships |
 | 3 | `--verify` preservation (round 3) | `conditions_1_payload_elements_present` was a dict holding one explanatory string; `all()` over it is `True` for no reason. And the "prior" it measured was the merged file |
-| 4 | The proposal and merged-artifact pins (#161 Codex P2) | `PROPOSAL_SHA256` and `MERGED_SHA256` hold **canonical-LF** digests, and the assertions compared the **raw on-disk** digest against them. On a CRLF checkout, byte-identical JSON fails — verification exits before its acceptance checks and reports the checkout as an unreviewed edit |
+| 4 | The proposal and merged-artifact pins (#161 Codex round 1) | `PROPOSAL_SHA256` and `MERGED_SHA256` hold **canonical-LF** digests, and the assertions compared the **raw on-disk** digest against them. On a CRLF checkout, byte-identical JSON fails — verification exits before its acceptance checks and reports the checkout as an unreviewed edit |
+| 5 | The regeneration generator's prior (#161 Codex round 2) | The generator read the **live accumulating oracle** as its review prior and pinned that file's *pre-acceptance* digest. Once the Owner accepted `hazards-1` into it, the generator refused to run at all against the committed tree — a retained proof that could no longer re-derive either artifact it is retained to prove. The refusal had been *described* as a deliberate freeze, which is the family's signature: prose asserting a property the code beneath it did not have |
 
 The family is not "a wrong hash". It is **a label that outruns its evidence** — a name asserting a
 comparison that the code beneath it did not perform.
@@ -93,9 +94,14 @@ mutating the committed artifact.
 
 **Round 3:** 14 patched · 9 already safe · 0 out of scope · 0 owner decisions.
 
-**Round 4 (#161 Codex P2, digest class):** 3 further patched — the two rows above that round 3 marked
-"already safe" in error, plus the composite Boolean built on one of them. No new surface was opened;
-the same five surfaces were re-examined against the sharpened question.
+**Round 4 (#161 Codex round 1, digest class):** 3 further patched — the two rows above that round 3
+marked "already safe" in error, plus the composite Boolean built on one of them. No new surface was
+opened; the same five surfaces were re-examined against the sharpened question.
+
+**Round 5 (#161 Codex round 2, mutable prior):** 1 patched · 3 already safe. The generator now derives
+from an immutable prior and executes from the final committed tree; the other retained proofs read
+the live artifact as their subject rather than as an input, which is a different relationship and
+does not expire.
 
 No check was loosened, no assertion deleted, and no pinned identity moved. The accepted artifact, the
 proposal, the audit and the frozen fixture are byte-identical throughout.
@@ -109,6 +115,24 @@ proposal, the audit and the frozen fixture are byte-identical throughout.
   that claim stays mode-specific and says why in place.
 * It did not begin `actions-1`, and it published, activated, retired and merged nothing.
 
+## Round 5 — the other retained executable proofs, swept for the same coupling
+
+The question, asked of every retained executable proof in the repository: **does this proof read, or
+pin, authority that later acceptances will change?** Three tracked scripts under
+`.claude/review-notes/`, plus the test module that pins the same artifact.
+
+| proof | what it reads / pins | disposition |
+|---|---|---|
+| `issue-5d-hazards-1-schema5-REGEN-generator.py` | read the live oracle as `PRIOR` and pinned its pre-acceptance digest | **patched** — reads the frozen `legacy_conditions_1_unanchored_schema3.json`, pinned by content SHA-256, Git blob, batch list and schema version; the live oracle is retained only as a raw-byte mutation sentinel, absent from the audit entirely |
+| `issue-5d-hazards-1-ACCEPT.py` | loads the live oracle and pins its merged identity | **already safe** — the live artifact is this proof's **subject**, not an input: `--verify` exists to check that the committed acceptance is the one the Owner made. Its prior already comes from the frozen fixture. **Stated so it is not a surprise:** accepting `actions-1` will move the merged artifact, and this script's merged pins are then a record of a superseded state — which is correct for a one-time acceptance record, and is exactly why the *generator* must not work that way |
+| `repin-schema-4.py` | nothing under `oracles/` | **already safe** — its own docstring names the committed production oracle as something it deliberately never touches |
+| `tests/…/test_committed_accepted_authority.py` | pins the merged artifact's identities | **already safe** — same subject-not-input relationship, and it is the test whose job is to fail when accepted authority changes without review |
+
+**The distinction the sweep turned on:** an artifact a proof *checks* may legitimately be the live
+one; an artifact a proof *derives from* must be immutable, or the proof expires on someone else's
+schedule. The generator was deriving from a live artifact and calling the resulting refusal a design
+choice.
+
 ## The rule this family leaves behind
 
 **A reported Boolean must be the result of the comparison its name describes, and a reported digest
@@ -121,6 +145,14 @@ The second clause is what round 3 missed. A digest has a *provenance* (which fil
 under a name that makes the wrong comparison. Every digest label in the acceptance record now states
 its class, and only checkout-independent classes decide anything: raw digests are labelled
 `..._raw_sha256_diagnostic` and appear in the report as evidence, never in an assertion.
+
+**Round 5 adds a third clause: a retained proof must derive from an immutable input.** A proof whose
+input accumulates stops being reproducible the moment somebody else's work is accepted, and the
+failure arrives disguised as a deliberate refusal. The test is temporal: *will this proof still
+execute from the committed tree after the next batch is accepted?* If the answer depends on nobody
+accepting anything, the input is wrong — pinning the mutable artifact's current identity only moves
+the expiry date. Derive from a frozen artifact; keep the live one as a sentinel if the proof needs to
+show it touched nothing.
 
 **Executed, not argued.** `test_the_pinned_identities_survive_a_crlf_checkout_and_the_raw_digest_does_not`
 in `tests/ingestion/mechanical/test_committed_accepted_authority.py` builds a CRLF copy of the

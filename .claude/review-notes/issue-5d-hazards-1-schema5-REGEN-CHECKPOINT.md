@@ -22,7 +22,8 @@ source per record, recorded and executed, not a green run.
 | Schema | `5d-representation-schema-5` / `2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40` |
 | Policy | `5d-semantic-policy-1` / `e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454` |
 | Release | `4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` / `5.2.1-corpus.36b786d8-fa2` |
-| Accepted artifact | content `ead1458e…8d81ce`, Git blob `42faeca2…de87` — before **and** after the run, both pinned as literals the run asserts (§4a) |
+| Review prior | `tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json` — content `ead1458e…8d81ce`, Git blob `42faeca2…de87`, `conditions-1` only, schema 3; before **and** after the run, all pinned as literals the run asserts (§4a) |
+| Live accepted oracle | **not an input** — read only as a mutation sentinel, bytes asserted unchanged, digest never recorded (§4a) |
 | Open questions / disclosed limits | **none** — asserted empty by the generator |
 | Repository root | derived from the generator's own location, `Path(__file__).resolve().parents[2]` — no hard-coded path |
 
@@ -137,25 +138,56 @@ define, twice: `hazard.dehydration → condition.exhaustion` and
 not "only Exhaustion appears". Both resolve into accepted `conditions-1` authority, and the merged
 gate reports nothing at all.
 
-## 4a. How the accepted artifact is identified — and a figure that had to be corrected
+## 4a. Which prior this run reads, and how it is identified
+
+**The prior is frozen, and it is not the live oracle.** This batch was reviewed against accepted
+authority as it stood before `hazards-1` was accepted: `conditions-1` alone, representation schema 3,
+unanchored. That state is frozen byte for byte at
+`tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json`, and it is the only
+prior the generator reads — for the lift, the merged-representation validation, the cross-batch
+Exhaustion resolution, the disjointness and zero-movement checks, and every inherited span, record,
+reference and provenance edge.
+
+Reading the live accepted-authority oracle instead would make a retained proof of a *completed*
+review depend on authority accepted *after* that review. It already carries `hazards-1`; it will
+carry `actions-1` next. Pinning its present merged identity would only move the breakage to the next
+acceptance, which is why the frozen prior — an immutable file — is the right input and the pin
+`ead1458e…8d81ce` / `42faeca2…de87` is stable for good.
+
+The live oracle is still read, but **only as a mutation sentinel**: its bytes are captured before
+generation and asserted identical afterwards, so the run still proves it touched nothing. It is never
+loaded as `PRIOR`, never lifted, never merged, and neither its path nor its digest appears in the
+audit — recording an accumulating artifact's identity would re-create exactly the coupling this
+correction removes.
+
+Corrected on 2026-09-04 (#161 Codex round 2). Until then the generator read the live oracle and
+pinned its pre-acceptance digest, so after the Owner accepted `hazards-1` it refused to run at all
+against the committed tree — it could no longer re-derive either committed review artifact. The
+refusal had been described as a deliberate freeze; it was a defect, because a retained proof must
+execute from the final committed tree. The pinned digest and blob did not change, because the frozen
+file is byte-identical to the artifact as it stood at review time. **The proposal is byte-identical
+and its identity is unmoved:** `f7ce4491…c40417`.
+
+### The identity classes, unchanged by any of that
 
 Deriving the repository root from the generator's own location, instead of a hard-coded absolute
-path, immediately surfaced something the hard-coded path had been hiding: **the accepted artifact's
-raw on-disk SHA-256 is a property of a checkout, not of the authority.**
+path, surfaced something the hard-coded path had been hiding: **a JSON file's raw on-disk SHA-256 is
+a property of a checkout, not of its content.**
 
-`.gitattributes` declares `* text=auto eol=lf`, so a fresh checkout writes
-`oracles/srd-5-2-1-corpus-36b786d8-fa2.json` with LF. The long-lived working copy this batch was
-developed in predates that attribute and holds CRLF. Same committed content, same loaded authority —
-line endings between JSON tokens are structural whitespace — but different raw digests.
+`.gitattributes` declares `* text=auto eol=lf`, so a fresh checkout writes the prior with LF. The
+long-lived working copy this batch was developed in predates that attribute and holds CRLF. Same
+committed content, same loaded authority — line endings between JSON tokens are structural
+whitespace — but different raw digests.
 
 | identity | value | stable across checkouts? |
 |---|---|---|
 | content SHA-256 (CRLF normalized to LF) | `ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce` | **yes** — asserted, and written into the audit |
-| Git blob id | `42faeca2486117cd1ea518f8b679d036d6fcde87` | **yes** — asserted; this is what *"accepted authority was not modified"* means |
+| Git blob id | `42faeca2486117cd1ea518f8b679d036d6fcde87` | **yes** — asserted; this is what *"the reviewed prior is the one that was reviewed"* means |
 | raw on-disk SHA-256, CRLF working copy | `aa59c69ddb844ad086700e0ecb8f5f9d7ad07ce9e74a38d5f19656b4c66e8a1a` | **no** — printed to stdout, never asserted, never in an artifact |
 
-**Nothing about the accepted authority changed.** The blob id is `42faeca2…de87` at this branch head,
-at `origin/main`, and at the commit that first committed it — it has never moved. `aa59c69d…6e8a1a`,
+**Nothing about the reviewed prior changed.** The blob id is `42faeca2…de87` for the frozen fixture,
+for the accepted artifact as it stood before this acceptance, at `origin/main`, and at the commit
+that first committed it — it has never moved. `aa59c69d…6e8a1a`,
 the figure this batch reported in earlier rounds, was accurate for the checkout it was measured in
 and is simply not reproducible where the repository's own line-ending rule is honoured. It is
 recorded here rather than quietly replaced.
@@ -238,19 +270,22 @@ raised are closed:
 
 The generator asserts that the audit's disclosed-limit list and open-question list are both empty,
 that all three carry a resolved status, that the proposal identity is `f7ce4491…c40417`, and that the
-accepted artifact's **content SHA-256** is `ead1458e…8d81ce` and its **Git blob** is
-`42faeca2…de87`, both before and after the run. Those two are checkout-independent; the raw on-disk
-digest of that file is not, is never asserted, and is never written into an artifact (§4a).
+review prior's **content SHA-256** is `ead1458e…8d81ce`, its **Git blob** is `42faeca2…de87`, its
+batch list is `conditions-1` alone and its schema is `5d-representation-schema-3` — all before and
+after the run. Those identities are checkout-independent; the raw on-disk digest of that file is not,
+is never asserted, and is never written into an artifact (§4a). It further asserts that the live
+accepted-authority oracle's bytes are unchanged by the run, and records nothing about it anywhere.
 
 `hazards-1` has passed semantic review and is ready for a **separate Owner-acceptance step**. This
 work does not take it: acceptance remains a distinct decision and a distinct action.
 
 ## 7. Stop conditions honoured
 
-`accept_proposal` not called · **accepted authority not modified**, proved by the two identities that
-do not depend on a checkout — content SHA-256 `ead1458e…8d81ce` and Git blob `42faeca2…de87`, both
-asserted identical before and after the run; the file's raw on-disk digest is checkout-specific, is
-deliberately left unpinned, and proves nothing about the authority (§4a) · nothing published,
+`accept_proposal` not called · **accepted authority not modified**, proved by a raw-byte sentinel
+comparison across the whole run · **the review prior not modified**, proved by the two identities
+that do not depend on a checkout — content SHA-256 `ead1458e…8d81ce` and Git blob `42faeca2…de87`,
+both asserted identical before and after the run; that file's raw on-disk digest is checkout-specific,
+is deliberately left unpinned, and proves nothing about its content (§4a) · nothing published,
 activated, or retired · branch not merged · `actions-1` not begun · the rejected proposal's payload
 not used as input · no schema, validator, or reason code changed by this work — `src/` is untouched
 on this branch.

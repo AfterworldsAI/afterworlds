@@ -1339,12 +1339,15 @@
     ]
    }
   ],
-  "accepted_artifact_content_sha256_before": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
-  "accepted_artifact_content_sha256_after": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
-  "accepted_artifact_blob_id": "42faeca2486117cd1ea518f8b679d036d6fcde87",
-  "accepted_artifact_unchanged": true,
-  "accepted_artifact_identity_note": "Identified by content, not by the bytes one working copy holds. .gitattributes declares 'text=auto eol=lf', so a fresh checkout writes this file with LF while a working copy predating the attribute can hold CRLF. Both are the same committed content and load to the same authority. The content digest normalizes CRLF to LF; the blob id is Git's own content identity, derived from those same normalized bytes. The raw on-disk digest is deliberately not recorded here - it would make this artifact differ between two checkouts of one commit - and is printed to stdout instead.",
-  "note": "the committed conditions-1 artifact declares schema 3 and reaches schema 5 across two registered crossings, each proved separately"
+  "review_prior": "tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json",
+  "review_prior_batch_id": "conditions-1",
+  "review_prior_schema_version": "5d-representation-schema-3",
+  "review_prior_content_sha256_before": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "review_prior_content_sha256_after": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "review_prior_blob_id": "42faeca2486117cd1ea518f8b679d036d6fcde87",
+  "review_prior_unchanged": true,
+  "review_prior_identity_note": "The immutable conditions-1 review prior: accepted authority as it stood when this batch was reviewed - conditions-1 alone, schema 3, unanchored - frozen byte for byte. It is the only prior this run reads. The live accepted-authority oracle is NOT an input: it accumulates, already carrying hazards-1 and later actions-1, so reading it would make a retained proof of a completed review depend on authority accepted after that review. This run reads it only as a read-only mutation sentinel - bytes captured before generation and asserted identical afterwards - and its digest is deliberately not recorded here, because an accumulating artifact's identity goes stale at the next acceptance. Identified by content, not by the bytes one working copy holds. .gitattributes declares 'text=auto eol=lf', so a fresh checkout writes this file with LF while a working copy predating the attribute can hold CRLF. Both are the same committed content and load to the same authority. The content digest normalizes CRLF to LF; the blob id is Git's own content identity, derived from those same normalized bytes. The raw on-disk digest is deliberately not recorded here - it would make this artifact differ between two checkouts of one commit - and is printed to stdout instead.",
+  "note": "the conditions-1 review prior declares schema 3 and reaches schema 5 across two registered crossings, each proved separately"
  },
  "resolved_representation_questions": [
   {
@@ -1692,10 +1695,10 @@
  "repository_inputs": {
   "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
   "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
-  "accepted_artifact": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json",
+  "review_prior": "tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json",
   "afterworlds_package": "src/afterworlds",
   "output_directory": ".claude/review-notes",
-  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every one of these is asserted to exist, and the imported package is asserted to be the one beneath this root."
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every one of these is asserted to exist, and the imported package is asserted to be the one beneath this root. The live accepted-authority oracle is deliberately absent from this list: it is not an input. This run reads it only as a mutation sentinel - bytes captured before generation and asserted identical afterwards - and neither its path nor its digest is recorded here, because an accumulating artifact's identity would go stale the moment a later batch is accepted."
  },
  "obligation_closure": {
   "O-1": {

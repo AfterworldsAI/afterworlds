@@ -63,6 +63,24 @@ payload equals the committed proposal JSON byte for byte, and that the proposal 
 content SHA-256 and Git blob are unchanged across the run — so the acceptance cannot be a covert
 regeneration.
 
+### Two proofs, two questions, neither substituting for the other
+
+Corrected on 2026-09-04 (#161 Codex round 2). This section previously said `--verify` skips the
+generator because the generator had legitimately stopped working once the artifact grew. That was a
+defect described as a design choice, and it is fixed:
+
+* **`ACCEPT.py --verify` verifies the committed acceptance** — that the artifact on disk is the one
+  the Owner accepted, that every `conditions-1` element survived, that the pinned identities hold.
+  Its subject is necessarily the live artifact.
+* **The regeneration generator separately reproduces the proposal and audit** from the immutable
+  reviewed prior, `tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json`. It
+  reads the live oracle only as a raw-byte mutation sentinel and records nothing about it, so it
+  executes from the final committed tree and keeps executing after `actions-1` is accepted.
+
+Neither substitutes for the other, and `--verify` does not invoke the generator because the two
+answer different questions — not because the generator cannot run. Proposal identity is unmoved and
+the proposal JSON is byte-identical: `f7ce4491…c40417` / `6d0e0566…753f`.
+
 The prior is the committed `conditions-1` artifact, asserted **first** by the two identities that do
 not depend on a checkout — Git blob `42faeca2486117cd1ea518f8b679d036d6fcde87` and content SHA-256
 `ead1458e…8d81ce` — and asserted to hold that one batch and nothing else.
@@ -154,8 +172,10 @@ adjusted:
 
 ## Stop conditions honoured
 
-`accept_proposal` called exactly once, for exactly the authorized batch and scope · the proposal,
-audit and semantic representation unchanged · no schema, policy, or `src/` change other than the one
+`accept_proposal` called exactly once, for exactly the authorized batch and scope · the proposal and
+semantic representation byte-identical, and the regeneration audit changed only in the seventeen
+label and path leaves that name the review prior (every digest, count, disposition and semantic value
+in it unchanged) · no schema, policy, or `src/` change other than the one
 accepted-authority artifact this acceptance is authorized to extend · no partial acceptance: all 96
 spans or none · conditions-1 evidence neither altered nor discarded · nothing published, activated,
 or retired · branch not merged · `actions-1` not begun.
