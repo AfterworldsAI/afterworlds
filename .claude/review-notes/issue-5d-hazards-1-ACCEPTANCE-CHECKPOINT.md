@@ -5,8 +5,25 @@
 
 Performed through the repository's real `accept_proposal` path. Nothing is published, activated, or
 retired; the branch is not merged; `actions-1` is not begun. Every claim below is executed by
-`.claude/review-notes/issue-5d-hazards-1-ACCEPT.py`, which is retained — `--verify` re-checks the
-committed artifact without attempting the one-time action again.
+`.claude/review-notes/issue-5d-hazards-1-ACCEPT.py`, which is retained.
+
+**`--verify` re-checks the committed artifact against the frozen prior**, without attempting the
+one-time action again. The prior it compares against is
+`tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json`, asserted at content
+SHA-256 `ead1458e…8d81ce` and Git blob `42faeca2…de87` — not the merged file, which would make every
+preservation comparison compare the artifact to itself. The comparisons are element-wise and real in
+both modes: the conditions-1 batch record, all 185 acceptance records, all 185 spans, every prior
+element of each of the six representation collections, and every prior obligation, each reported as
+its own Boolean with a count of missing elements beside it. It also asserts the merged artifact
+against three pinned identities — SHA-256 `0925d796…73f7`, blob `6e65533f…b59a`, oracle identity
+`c794bde4…356245` — so an unreviewed edit to the acceptance **evidence**, which the oracle identity
+deliberately does not cover, fails there too.
+
+A corrected earlier claim, recorded rather than replaced: until 2026-09-03 this section said
+`--verify` re-checked *every* post-acceptance assertion. It did not. Its preservation entry was a
+dictionary holding one explanatory string, and `all()` over that is `True` for no reason — so the
+check reported success while comparing nothing, and it read the merged file as the prior, reporting
+`0925d796…73f7` under a "prior" label. Both are closed above.
 
 | | |
 |---|---|

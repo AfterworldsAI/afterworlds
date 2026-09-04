@@ -163,13 +163,19 @@ def _accept(prior, proposal):
 
 
 def test_a_schema_4_proposal_extends_schema_3_accepted_authority() -> None:
-    """The seam this whole mechanism exists for, on the real committed artifact.
+    """The seam this whole mechanism exists for, on real accepted content.
 
-    Schema 5 made the crossing a *path*: the artifact was reviewed under schema 3
+    Schema 5 made the crossing a *path*: the content was reviewed under schema 3
     and the build now implements schema 5, so it crosses two registered
     successions rather than one. The seam is unchanged — what it proves is that
     the destination this build declares is reached only through rows the registry
     holds.
+
+    The prior here is the **frozen historical fixture**, not the live committed
+    artifact. It was the live artifact until the Owner accepted ``hazards-1``
+    into the same file; the fixture is that state byte for byte, and it is what
+    a schema-3-to-later crossing has to be demonstrated against now that the
+    committed artifact declares schema 5 and needs no crossing at all.
     """
     prior = _prior()
     assert prior.oracle.schema_version == SCHEMA_3_VERSION

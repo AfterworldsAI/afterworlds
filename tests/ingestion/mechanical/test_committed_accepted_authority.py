@@ -35,8 +35,10 @@ module is about the artifact the release actually resolves to.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import pathlib
+from dataclasses import replace
 
 from afterworlds.ingestion.mechanical.models import ReviewState, SemanticDisposition
 from afterworlds.ingestion.mechanical.oracle import (
@@ -91,6 +93,20 @@ HAZARDS_BATCH_ID = "hazards-1"
 HAZARDS_PROPOSAL_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
 
 ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245"  # noqa: E501  # pragma: allowlist secret
+
+#: The whole committed file, by two identities the oracle identity does not
+#: cover. ``oracle_identity`` is content-only **by design** — reviewer and
+#: timestamp are evidence, not identity, so re-reviewing an unchanged
+#: classification must not remint a projection (#137 acceptance criterion 11).
+#: The consequence is that an unreviewed edit to the acceptance *evidence* —
+#: reviewer, timestamp, batch rule, resolved scope, anchors, lifts — leaves the
+#: oracle identity untouched. These two pin the file itself, so it does not.
+#:
+#: The content digest normalizes CRLF to LF, which is what ``.gitattributes``
+#: declares this file is stored as; the blob id is Git's own content identity,
+#: computed from those same bytes rather than read out of ``.git``.
+ARTIFACT_CONTENT_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
+ARTIFACT_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
 PROJECTION_UUID = "f4ab8dd0-dfaf-543e-b54e-20a4f6b26f9e"
 PROJECTION_PAYLOAD_HASH = "d19e70575eb60dc2dcb4f6535d512140ea70a549de4854c5201b9d2cd69adecb"  # noqa: E501  # pragma: allowlist secret
 
@@ -374,11 +390,12 @@ def test_the_accepted_candidate_reproduces_every_derived_identity() -> None:
     different projection than the one reviewed, acceptance would name one thing
     and the build would produce another.
 
-    Asserted **under the schema the artifact declares**, which is the whole
-    point after schema 4: the historical identity has to remain exactly
-    reproducible on a build that implements a later contract. It is not built as
-    current authority here — ``validate_schema_binding`` refuses that, and the
-    test above asserts the refusal.
+    Asserted **under the schema the artifact declares**, which since
+    ``hazards-1`` is the schema this build implements: the artifact is built as
+    current authority, and the test above asserts that it is admitted rather
+    than refused. The refusal that used to belong in this sentence is not gone —
+    it applies to the frozen schema-3 specimen, and the test above asserts it
+    there.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     identified = identify_projection(candidate_from_accepted_inputs(inputs))
@@ -599,3 +616,86 @@ def test_a_later_batch_extended_this_artifact_rather_than_adding_one() -> None:
     # release is precisely what the resolver refuses.
     assert LEGACY_PATH.parent.name == "data"
     assert LEGACY_PATH not in set(COMMITTED_ORACLE_DIR.glob("*.json"))
+
+
+# ---------------------------------------------------------------------------
+# 6. The complete acceptance record, not merely the accepted content
+# ---------------------------------------------------------------------------
+
+
+def _content_identities(path: pathlib.Path) -> tuple[str, str]:
+    """SHA-256 of the canonical LF content, and Git's blob id for it.
+
+    Both are properties of the *content*. The raw on-disk digest is not: a
+    working copy predating ``.gitattributes``' ``eol=lf`` can hold CRLF and
+    hash differently while holding the same committed file.
+    """
+    canonical = path.read_bytes().replace(b"\r\n", b"\n")
+    blob = hashlib.sha1(  # noqa: S324 - Git's object id, not a security digest
+        b"blob " + str(len(canonical)).encode() + b"\x00" + canonical
+    ).hexdigest()
+    return hashlib.sha256(canonical).hexdigest(), blob
+
+
+def test_the_whole_acceptance_record_is_pinned_not_only_the_oracle() -> None:
+    """An unreviewed edit anywhere in this file fails here.
+
+    The oracle identity is deliberately blind to acceptance evidence, so pinning
+    it alone would let someone rewrite a reviewer, a timestamp, a batch rule, a
+    resolved scope, an anchor or a lift and still pass every other test in this
+    module. The file's own content digest and Git blob close that, and they are
+    asserted beside the evidence they protect so a reader can see what would
+    have slipped through.
+    """
+    content_sha, blob = _content_identities(ARTIFACT_PATH)
+    assert content_sha == ARTIFACT_CONTENT_SHA256
+    assert blob == ARTIFACT_BLOB
+
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    assert oracle_identity(inputs.oracle) == ORACLE_IDENTITY
+
+    # The evidence the two file-level pins are what actually protect.
+    assert [b.batch_id for b in inputs.batches] == [BATCH_ID, HAZARDS_BATCH_ID]
+    assert [b.proposal_identity for b in inputs.batches] == [
+        PROPOSAL_IDENTITY,
+        HAZARDS_PROPOSAL_IDENTITY,
+    ]
+    assert {a.reviewer for a in inputs.acceptances} == {REVIEWER}
+    assert {a.accepted_at for a in inputs.acceptances} == {
+        "2026-08-23T09:53:55Z",
+        "2026-09-03T10:58:59Z",
+    }
+    assert [a.schema_version for a in inputs.schema_anchors] == [
+        "5d-representation-schema-3",
+        REPRESENTATION_SCHEMA_VERSION,
+    ]
+    assert [lift.lift_id for lift in inputs.lifts] == [
+        "5d-lift-schema-3-to-4",
+        "5d-lift-schema-4-to-5",
+    ]
+    assert all(b.rule.strip() for b in inputs.batches)
+
+
+def test_the_oracle_identity_alone_would_not_have_caught_an_evidence_edit() -> None:
+    """Why the file-level pins above exist, demonstrated rather than asserted.
+
+    Done entirely in memory: the committed artifact is never mutated. Rewriting
+    a reviewer produces different accepted *inputs* — a different file, which
+    the pins above would refuse — while leaving the accepted *oracle* and its
+    identity untouched, which is exactly the gap the pins close.
+    """
+    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    forged = replace(
+        inputs,
+        acceptances=tuple(
+            replace(a, reviewer="Somebody Else") for a in inputs.acceptances
+        ),
+    )
+
+    assert oracle_identity(forged.oracle) == oracle_identity(inputs.oracle)
+    assert accepted_inputs_payload(forged) != accepted_inputs_payload(inputs)
+    # And the file on disk is untouched by any of this.
+    assert _content_identities(ARTIFACT_PATH) == (
+        ARTIFACT_CONTENT_SHA256,
+        ARTIFACT_BLOB,
+    )

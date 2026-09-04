@@ -143,17 +143,6 @@ from tests.ingestion.mechanical.conftest import (
 )
 
 #: The **legacy specimen**: the committed accepted artifact exactly as it stood
-#: before hazards-1 was accepted into it - the conditions-1 batch alone,
-#: reviewed under schema 3. What this module asserts is true of that accepted
-#: content, so it reads the frozen copy rather than whatever the release
-#: currently accepts. Byte-identical to the file this repository committed
-#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
-LEGACY_PATH = (
-    pathlib.Path(__file__).resolve().parent
-    / "data"
-    / "legacy_conditions_1_unanchored_schema3.json"
-)
-#: The **legacy specimen**: the committed accepted artifact exactly as it stood
 #: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
 #: with no schema anchors and no lift evidence. That is the shape this module's
 #: scenarios are about, and the Owner's acceptance of hazards-1 legitimately

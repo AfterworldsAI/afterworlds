@@ -264,10 +264,12 @@ def test_the_production_path_refuses_the_real_release(
 
     Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
     judged the release at all. Authority now exists and resolves, so the refusal
-    moves to ``INCOMPLETE`` — the accepted artifact covers 16 condition records
-    while the persisted projection covers the whole SRD. The change of *reason*
-    is the point: publication is refused because the CRD Issue 5d corpus is
-    unfinished, not because nothing was ever reviewed.
+    moves to ``INCOMPLETE`` — the accepted artifact covers 22 records (15
+    conditions and 5 hazards, plus the glossary entry defining each list) while
+    the persisted projection covers the whole SRD. Accepting a second batch
+    narrowed the gap and did not close it, which is the point: publication is
+    refused because the CRD Issue 5d corpus is unfinished, not because nothing
+    was ever reviewed.
     """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW

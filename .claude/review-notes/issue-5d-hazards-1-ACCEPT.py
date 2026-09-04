@@ -76,6 +76,25 @@ PRIOR_BLOB = "42faeca2486117cd1ea518f8b679d036d6fcde87"  # pragma: allowlist sec
 PRIOR_CONTENT_SHA256 = "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce"  # noqa: E501  # pragma: allowlist secret
 PRIOR_SCHEMA_VERSION = "5d-representation-schema-3"
 
+#: The frozen prior. Accepting hazards-1 into the one accepted-authority file
+#: ended the repository's only instance of the pre-acceptance state, so
+#: verification cannot read the prior out of production any more - the file
+#: there *is* the merged result. This fixture is that prior, byte-identical,
+#: and it is what ``--verify`` compares the merged artifact against.
+LEGACY_PRIOR_PATH = (
+    REPO
+    / "tests/ingestion/mechanical/data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
+
+#: The merged artifact of record: the result of the one acceptance that
+#: happened. Pinned so that an unreviewed edit to *any* part of it fails here -
+#: acceptance evidence included, which the oracle identity deliberately does not
+#: cover, because reviewer and timestamp are evidence rather than identity.
+MERGED_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
+MERGED_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
+MERGED_ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245"  # noqa: E501  # pragma: allowlist secret
+
 # --- Expected merged shape, stated before it is computed --------------------
 PRIOR_COUNTS = {
     "spans": 185,
@@ -112,12 +131,17 @@ EXHAUSTION_REFERENCES = (
     ("hazard.malnutrition", "condition.exhaustion"),
 )
 
+from afterworlds.ingestion.corpus.hashing import hash_obj  # noqa: E402
+from afterworlds.ingestion.corpus.pipeline import build_candidate  # noqa: E402
+from afterworlds.ingestion.corpus.policy import exclusion_reason_for  # noqa: E402
+from afterworlds.ingestion.corpus.reconcile import _full_coverage_edges  # noqa: E402
+from afterworlds.ingestion.mechanical.acceptance import accept_proposal  # noqa: E402
 from afterworlds.ingestion.mechanical.accounting import (  # noqa: E402
     validate_acceptance,
 )
-from afterworlds.ingestion.mechanical.acceptance import accept_proposal  # noqa: E402
 from afterworlds.ingestion.mechanical.bound_corpus import (  # noqa: E402
     BoundCorpusSnapshot,
+    ChunkCoverage,  # noqa: E402
 )
 from afterworlds.ingestion.mechanical.models import (  # noqa: E402
     ReviewState,
@@ -145,11 +169,6 @@ from afterworlds.ingestion.mechanical.schema_lift import (  # noqa: E402
 from afterworlds.ingestion.mechanical.validation import (  # noqa: E402
     validate_representation,
 )
-from afterworlds.ingestion.corpus.hashing import hash_obj  # noqa: E402
-from afterworlds.ingestion.corpus.pipeline import build_candidate  # noqa: E402
-from afterworlds.ingestion.corpus.policy import exclusion_reason_for  # noqa: E402
-from afterworlds.ingestion.corpus.reconcile import _full_coverage_edges  # noqa: E402
-from afterworlds.ingestion.mechanical.bound_corpus import ChunkCoverage  # noqa: E402
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa: E402
 
 
@@ -237,32 +256,46 @@ def _write_artifact(path: Path, payload: dict[str, object]) -> bytes:
 # 1. The prior accepted authority, asserted before anything is computed from it
 # ---------------------------------------------------------------------------
 
-_prior_raw_sha, _prior_content_sha, _prior_blob = _identifiers(ACCEPTED_PATH)
 VERIFY_ONLY = "--verify" in sys.argv
 
-if not VERIFY_ONLY:
-    assert _prior_content_sha == PRIOR_CONTENT_SHA256, _prior_content_sha
-    assert _prior_blob == PRIOR_BLOB, _prior_blob
+#: Where the prior comes from, and it is a different file in each mode. During
+#: the acceptance the prior is the live artifact being extended; afterwards that
+#: file is the merged result, so verification reads the frozen prior instead.
+#: Reading the merged file and calling it "the prior" is exactly the mistake
+#: this correction closes - it makes every preservation comparison compare the
+#: artifact to itself.
+PRIOR_PATH = ACCEPTED_PATH if not VERIFY_ONLY else LEGACY_PRIOR_PATH
+_prior_raw_sha, _prior_content_sha, _prior_blob = _identifiers(PRIOR_PATH)
 
-PRIOR = load_accepted_inputs(ACCEPTED_PATH)
+#: Asserted in **both** modes, against the same two pinned values. The frozen
+#: fixture is byte-identical to the artifact as it stood before the acceptance,
+#: so there is one prior identity, not two.
+assert _prior_content_sha == PRIOR_CONTENT_SHA256, (PRIOR_PATH, _prior_content_sha)
+assert _prior_blob == PRIOR_BLOB, (PRIOR_PATH, _prior_blob)
+
+PRIOR = load_accepted_inputs(PRIOR_PATH)
 PRIOR_PAYLOAD = accepted_inputs_payload(PRIOR)
 
-if not VERIFY_ONLY:
-    # It holds the previously accepted conditions-1 batch, and only that.
-    assert [b.batch_id for b in PRIOR.batches] == [PRIOR_BATCH_ID], PRIOR.batches
-    assert PRIOR.batches[0].proposal_identity == PRIOR_PROPOSAL_IDENTITY
-    assert {a.batch_id for a in PRIOR.acceptances} == {PRIOR_BATCH_ID}
-    assert PRIOR.oracle.schema_version == PRIOR_SCHEMA_VERSION
-    assert len(PRIOR.oracle.spans) == PRIOR_COUNTS["spans"]
-    assert len(PRIOR.acceptances) == PRIOR_COUNTS["acceptances"]
-    for _coll in REPRESENTATION_COLLECTIONS:
-        assert (
-            len(getattr(PRIOR.oracle.representation, _coll)) == PRIOR_COUNTS[_coll]
-        ), _coll
-    # Its committed serialization is the form this script will write back.
+# It holds the previously accepted conditions-1 batch, and only that - in both
+# modes, because in both modes it is the same content.
+assert [b.batch_id for b in PRIOR.batches] == [PRIOR_BATCH_ID], PRIOR.batches
+assert PRIOR.batches[0].proposal_identity == PRIOR_PROPOSAL_IDENTITY
+assert {a.batch_id for a in PRIOR.acceptances} == {PRIOR_BATCH_ID}
+assert PRIOR.oracle.schema_version == PRIOR_SCHEMA_VERSION
+assert len(PRIOR.oracle.spans) == PRIOR_COUNTS["spans"]
+assert len(PRIOR.acceptances) == PRIOR_COUNTS["acceptances"]
+for _coll in REPRESENTATION_COLLECTIONS:
     assert (
-        json.dumps(PRIOR_PAYLOAD, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
-    ).encode("utf-8") == ACCEPTED_PATH.read_bytes().replace(b"\r\n", b"\n")
+        len(getattr(PRIOR.oracle.representation, _coll)) == PRIOR_COUNTS[_coll]
+    ), _coll
+
+# The prior's committed serialization is the form this script writes back, and
+# it is checked against whichever file the prior was loaded from - the live
+# artifact during the acceptance, the frozen fixture afterwards.
+assert (
+    json.dumps(PRIOR_PAYLOAD, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+).encode("utf-8") == PRIOR_PATH.read_bytes().replace(b"\r\n", b"\n")
+
 
 # ---------------------------------------------------------------------------
 # 2. The reviewed proposal, rebuilt through the reviewed generator
@@ -381,6 +414,17 @@ RESULT_PAYLOAD = accepted_inputs_payload(RESULT)
 _raw_sha, _content_sha, _blob = _identifiers(ACCEPTED_PATH)
 ORACLE_IDENTITY = oracle_identity(RESULT.oracle)
 
+#: The merged artifact of record, pinned by three identities that fail for three
+#: different reasons. The oracle identity covers the accepted *content*; the
+#: file digest and the Git blob additionally cover the acceptance **evidence** -
+#: reviewer, timestamp, batch rule, resolved scope, anchors and lifts - which
+#: the oracle identity deliberately excludes, because re-reviewing an unchanged
+#: classification must not remint a projection. Without the file-level pins an
+#: unreviewed edit to the evidence would pass every other check here.
+assert _raw_sha == MERGED_SHA256, _raw_sha
+assert _blob == MERGED_BLOB, _blob
+assert ORACLE_IDENTITY == MERGED_ORACLE_IDENTITY, ORACLE_IDENTITY
+
 # ---------------------------------------------------------------------------
 # 4. Post-acceptance assertions
 # ---------------------------------------------------------------------------
@@ -441,73 +485,63 @@ _conditions_1_records = [a for a in RESULT.acceptances if a.batch_id == PRIOR_BA
 _conditions_1_spans = [
     s_ for s_ in RESULT.oracle.spans if s_.span_id in set(_prior_batch.resolved_scope)
 ]
-if VERIFY_ONLY:
-    PRESERVATION = {
-        "conditions_1_batch_record_intact": (
-            _prior_batch.batch_id == PRIOR_BATCH_ID
-            and _prior_batch.proposal_identity == PRIOR_PROPOSAL_IDENTITY
-            and len(_prior_batch.resolved_scope) == PRIOR_COUNTS["spans"]
-            and len(_prior_batch.diff) == PRIOR_COUNTS["spans"]
-        ),
-        "conditions_1_acceptance_records_intact": (
-            len(_conditions_1_records) == PRIOR_COUNTS["acceptances"]
-            and {a.reviewer for a in _conditions_1_records} == {REVIEWER}
-            and len({a.accepted_at for a in _conditions_1_records}) == 1
-        ),
-        "conditions_1_spans_intact": (
-            len(_conditions_1_spans) == PRIOR_COUNTS["spans"]
-            and {s_.span_id for s_ in _conditions_1_spans}
-            == set(_prior_batch.resolved_scope)
-        ),
-        "conditions_1_payload_elements_present": {
-            "note": "compared against the pre-acceptance artifact only during "
-            "the acceptance itself; here the counts below carry the claim"
-        },
-        "conditions_1_obligations_preserved": len(RESULT.oracle.obligations)
-        == MERGED_COUNTS["records"],
-    }
-    assert PRESERVATION["conditions_1_batch_record_intact"], PRESERVATION
-    assert PRESERVATION["conditions_1_acceptance_records_intact"], PRESERVATION
-    assert PRESERVATION["conditions_1_spans_intact"], PRESERVATION
-    assert PRESERVATION["conditions_1_obligations_preserved"], PRESERVATION
-    for _coll in REPRESENTATION_COLLECTIONS:
-        assert (
-            len(RESULT_PAYLOAD["representation"][_coll]) == MERGED_COUNTS[_coll]
-        ), _coll
-else:
-    PRESERVATION = {
-        "conditions_1_batch_record_identical": _prior_batch == PRIOR.batches[0],
-        "conditions_1_acceptance_records_identical": _conditions_1_records
-        == list(PRIOR.acceptances),
-        "conditions_1_spans_identical": _conditions_1_spans == list(PRIOR.oracle.spans),
-        "conditions_1_payload_elements_present": {
-            coll: all(
-                element in representation_payload(RESULT.oracle.representation)[coll]
-                for element in PRIOR_PAYLOAD["representation"][coll]
-            )
-            for coll in REPRESENTATION_COLLECTIONS
-        },
-        "conditions_1_obligations_preserved": all(
-            obligation in RESULT_PAYLOAD["obligations"]
-            for obligation in PRIOR_PAYLOAD["obligations"]
-        ),
-    }
-    for _coll in REPRESENTATION_COLLECTIONS:
+# **One statement, real in both modes.** Every entry below is an element
+# comparison against the prior loaded above - never a count, and never a
+# non-empty explanatory string standing in for a comparison that did not happen.
+# A count is not preservation: 185 acceptance records with a rewritten reviewer
+# is still 185. A truthy note is not preservation either, and `all()` over a
+# dict holding one is `True` for no reason at all.
+_merged_representation_payload = representation_payload(RESULT.oracle.representation)
+PRESERVATION = {
+    "conditions_1_batch_record_identical": _prior_batch == PRIOR.batches[0],
+    "conditions_1_acceptance_records_identical": _conditions_1_records
+    == list(PRIOR.acceptances),
+    "conditions_1_spans_identical": _conditions_1_spans == list(PRIOR.oracle.spans),
+    "conditions_1_payload_elements_present": {
+        coll: all(
+            element in _merged_representation_payload[coll]
+            for element in PRIOR_PAYLOAD["representation"][coll]
+        )
+        for coll in REPRESENTATION_COLLECTIONS
+    },
+    "conditions_1_obligations_preserved": all(
+        obligation in RESULT_PAYLOAD["obligations"]
+        for obligation in PRIOR_PAYLOAD["obligations"]
+    ),
+}
+#: Every element of the prior that the merged artifact does not carry, per
+#: collection. Reported rather than only asserted, so a failure names what is
+#: missing instead of only that something is.
+MISSING_PRIOR_ELEMENTS = {
+    coll: [
+        element
+        for element in PRIOR_PAYLOAD["representation"][coll]
+        if element not in _merged_representation_payload[coll]
+    ]
+    for coll in REPRESENTATION_COLLECTIONS
+}
+for _coll in REPRESENTATION_COLLECTIONS:
+    if not VERIFY_ONLY:
+        # The acceptance seam keeps prior items first, so the in-memory result
+        # carries them as a byte-identical prefix. There is no in-memory result
+        # to check under --verify, and the serialized order is canonical rather
+        # than prior-first, so this is the one claim that is acceptance-only.
         _prior_elements = getattr(PRIOR.oracle.representation, _coll)
         _in_memory = getattr(ACCEPTED.oracle.representation, _coll)
         assert _in_memory[: len(_prior_elements)] == _prior_elements, _coll
-        _prior_payload_elements = PRIOR_PAYLOAD["representation"][_coll]
-        _merged_payload_elements = RESULT_PAYLOAD["representation"][_coll]
-        _absent = [
-            e for e in _prior_payload_elements if e not in _merged_payload_elements
-        ]
-        assert not _absent, (_coll, len(_absent))
-        assert len(_merged_payload_elements) == MERGED_COUNTS[_coll], _coll
-    assert PRESERVATION["conditions_1_batch_record_identical"], "the prior batch moved"
-    assert PRESERVATION["conditions_1_acceptance_records_identical"]
-    assert PRESERVATION["conditions_1_spans_identical"]
-    assert all(PRESERVATION["conditions_1_payload_elements_present"].values())
-    assert PRESERVATION["conditions_1_obligations_preserved"]
+    assert not MISSING_PRIOR_ELEMENTS[_coll], (
+        _coll,
+        len(MISSING_PRIOR_ELEMENTS[_coll]),
+    )
+    assert len(RESULT_PAYLOAD["representation"][_coll]) == MERGED_COUNTS[_coll], _coll
+assert PRESERVATION["conditions_1_batch_record_identical"], "the prior batch moved"
+assert PRESERVATION["conditions_1_acceptance_records_identical"]
+assert PRESERVATION["conditions_1_spans_identical"]
+assert all(PRESERVATION["conditions_1_payload_elements_present"].values())
+assert len(PRESERVATION["conditions_1_payload_elements_present"]) == len(
+    REPRESENTATION_COLLECTIONS
+), "a collection was not compared at all"
+assert PRESERVATION["conditions_1_obligations_preserved"]
 
 # --- Schema anchors and the registered 3 -> 4 -> 5 succession ---------------
 ANCHORS = [
@@ -553,7 +587,7 @@ assert set(HAZARD_RECORDS) <= _keys, sorted(HAZARD_RECORDS)
 assert {o.record_key for o in RESULT.oracle.obligations} == _keys
 
 # --- Round trip, and the two validators ------------------------------------
-ROUND_TRIP = RESULT_PAYLOAD == json.loads(ACCEPTED_PATH.read_text(encoding="utf-8"))
+ROUND_TRIP = json.loads(ACCEPTED_PATH.read_text(encoding="utf-8")) == RESULT_PAYLOAD
 assert ROUND_TRIP, "the written artifact does not round-trip"
 assert RESULT_PAYLOAD["artifact_kind"] == ACCEPTED_ARTIFACT_KIND
 ACCEPTANCE_FINDINGS = list(validate_acceptance(RESULT.classification()))
@@ -615,10 +649,10 @@ REPORT = {
     "batches": [b.batch_id for b in RESULT.batches],
     "schema_anchors": ANCHORS,
     "lifts": LIFTS,
-    "preservation": {
-        k: (v if not isinstance(v, dict) else all(v.values()))
-        for k, v in PRESERVATION.items()
-    },
+    # Reported as computed, never collapsed. `all()` over a dict is what turned
+    # a single explanatory string into a passing preservation claim; the six
+    # per-collection Booleans are the evidence, so the report shows six.
+    "preservation": PRESERVATION,
     "round_trip": ROUND_TRIP,
     "validate_acceptance": ACCEPTANCE_FINDINGS,
     "validate_representation": REPRESENTATION_FINDINGS,
@@ -627,8 +661,17 @@ REPORT = {
     "accepted_artifact_sha256": _raw_sha,
     "accepted_artifact_content_sha256": _content_sha,
     "accepted_artifact_blob": _blob,
-    "prior_artifact_sha256_before": _prior_content_sha,
-    "prior_artifact_blob_before": _prior_blob,
+    "accepted_artifact_matches_pinned_merged_identity": (
+        _raw_sha == MERGED_SHA256
+        and _blob == MERGED_BLOB
+        and ORACLE_IDENTITY == MERGED_ORACLE_IDENTITY
+    ),
+    "prior_artifact_source": str(PRIOR_PATH.relative_to(REPO).as_posix()),
+    "prior_artifact_content_sha256": _prior_content_sha,
+    "prior_artifact_blob": _prior_blob,
+    "missing_prior_elements": {
+        coll: len(missing) for coll, missing in MISSING_PRIOR_ELEMENTS.items()
+    },
 }
 
 print(json.dumps(REPORT, indent=1))
