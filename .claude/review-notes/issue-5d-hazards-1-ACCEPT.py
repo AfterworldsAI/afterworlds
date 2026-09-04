@@ -462,25 +462,26 @@ assert {a.span_id for a in RESULT.acceptances} == {
 
 # --- Every prior element and every piece of prior evidence, unchanged -------
 #
-# Two different statements, because the two modes have two different premises.
+# One statement, and it is the strong one in both modes. `PRIOR` is the genuine
+# pre-acceptance content either way: the live artifact during the acceptance,
+# and the byte-identical frozen fixture under `--verify`. So the exact
+# comparisons below - the conditions-1 batch record, all 185 acceptance records,
+# all 185 spans, every prior element of each of the six representation
+# collections, and every prior obligation - run in full in both modes. Counts
+# and measurements are reported beside them, never in place of them.
 #
-# During the acceptance, `PRIOR` is the genuine pre-acceptance artifact, so the
-# claim is the strong one: every accepted element, span, acceptance record and
-# batch is byte-identical afterwards. `_merged_collection` retains prior items
-# first, so the in-memory result carries them as a byte-identical *prefix*.
-#
-# Under `--verify` the file has already been extended, so there is no
-# pre-acceptance object to compare against and a prefix claim would be
-# meaningless. What is checked instead is that the conditions-1 half of the
-# committed artifact still measures exactly what the Owner accepted in 2026-08:
-# its batch, its proposal identity, its scope size, its span and acceptance
-# counts, and its single timestamp.
+# Exactly one claim is acceptance-only, and it is not a weaker version of any of
+# those: the in-memory prior-first *prefix*. `_merged_collection` retains prior
+# items ahead of new ones, so the object `accept_proposal` returns carries them
+# as a byte-identical prefix - but verification performs no new in-memory merge,
+# so there is no such object for it to inspect.
 #
 # The *serialized* artifact never carries the prefix property in either mode:
 # `representation_payload` orders every collection canonically, so once written
-# and loaded back the prior elements interleave with the new ones. The property
-# that must hold there is that every prior element survives unchanged and
-# nothing was dropped or coalesced.
+# and loaded back the prior elements interleave with the new ones. On disk the
+# requirement is therefore preservation, not prefix order - every prior element
+# survives unchanged and nothing was dropped or coalesced - which is what the
+# per-collection comparisons below assert.
 _conditions_1_records = [a for a in RESULT.acceptances if a.batch_id == PRIOR_BATCH_ID]
 _conditions_1_spans = [
     s_ for s_ in RESULT.oracle.spans if s_.span_id in set(_prior_batch.resolved_scope)
