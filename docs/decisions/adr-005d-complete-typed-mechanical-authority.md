@@ -213,9 +213,11 @@ is asserted against the artifact rather than assumed.
 **Amended by representation schema 6 — the `actions-1` schema stop.** Discovery over the thirteen
 `actions-1` records reached a schema stop before any proposal was generated: 21 blocking families across
 35 `UNRESOLVED` obligations, none of which schema 5's union could carry without either losing a
-distinction the source draws or asserting one it does not. Schema 6 closes them under contract 3's first
+distinction the source draws or asserting one it does not. Schema 6 answers them under contract 3's first
 branch — twelve typed families and a set of widenings — and leaves the rest under its second, as prose
-bound at the scope where it applies.
+bound at the scope where it applies. Answering the batch's obligations is not the same as discharging a
+contract-3 family group: `known_unknowns.md` records each affected group against its own closure
+standard, and none of them reaches **discharged** on this batch's evidence.
 
 The twelve families are `ActionAllowanceFact`, `MovementAllowanceFact`, `MovementInterleaveFact`,
 `EffectDurationFact`, `ReactionProvocationFact`, `RetryRestrictionFact`, `RecurringActionRequirementFact`,

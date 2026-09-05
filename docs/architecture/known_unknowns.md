@@ -346,18 +346,27 @@ audit and is deliberately not decided here:
 `UNRESOLVED` obligations. Schema 6 is the batch-driven accounting the *untouched* list above anticipated,
 and it moves three of those groups:
 
-* **discharged — *eligibility*.** `ActivationCostEligibilityFact` carries *"a spell must have a casting
-  time of an action"* over the printed, enumerable casting-time field, with three instances in three
-  records (`Ready` L8, `Magic` K1, `Utilize` O2). Reclassifying L8 from supporting authority to
-  substantive is a correction recorded with the schema, not a silent move;
-* **discharged — *sequencing*.** Split rather than unified: `MovementInterleaveFact` locates a point
-  inside a repeated action, `TriggeredResolutionFact` locates one relative to a trigger. One enum
-  spanning both would be the cross-domain vocabulary the module refuses;
+* **narrowed, still deferred — *eligibility*.** `ActivationCostEligibilityFact` carries *"a spell must
+  have a casting time of an action"* over the printed, enumerable casting-time field, with three
+  instances in three records (`Ready` L8, `Magic` K1, `Utilize` O2). Reclassifying L8 from supporting
+  authority to substantive is a correction recorded with the schema, not a silent move. Not
+  discharged: `EligibilitySubject.SPELL` has siblings in more than one section, but `.OBJECT` has a
+  single instance in a single one, and no corpus sweep has shown what else a mechanic can be made
+  eligible by. Revisit when a batch forces a subject the two members do not reach;
+* **narrowed, still deferred — *sequencing*.** Split rather than unified: `MovementInterleaveFact`
+  locates a point inside a repeated action, `TriggeredResolutionFact` locates one relative to a
+  trigger. One enum spanning both would be the cross-domain vocabulary the module refuses — but each
+  vocabulary currently holds **one member with one instance**, which is the weakest closure evidence
+  this document admits, and no sequencing sweep has been run. Two typed families are what these two
+  clauses forced, not a demonstration that sequencing closes;
 * **narrowed, still deferred — *choices*.** `ProseBindingDraft.option_key` lets prose govern one arm of
   an exhaustive choice, which is what `Help` forces. It does **not** make every printed "or" an option
   set: `Attack` B2 is one entitlement with an instrument qualification, and `Ready` L4 has an arm no
   closed vocabulary reaches. Both were proved unauthorable by `option_set_violations` rather than
   chosen.
+
+Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
+members each required siblings in more than one section, and neither group above meets it yet.
 
 *Contests*, *explicit probability* and *random-table selection* remain **untouched**, due no later than
 full-corpus closure. The suggested skill tables in `Influence`, `Search` and `Study` are **not**

@@ -740,13 +740,17 @@ def applicability_payload_violations(raw: object) -> list[str]:
             findings.append(f"any_of_terms is {type(terms).__name__}, not an array")
         else:
             # Each term is a whole applicability, so it is checked by this same
-            # function rather than by a second statement of the key set. The
-            # recursion terminates on content because a term that itself
-            # carries terms is refused by the depth-1 typed invariant; here it
-            # simply gets checked one level further down.
+            # function rather than by a second statement of the key set - but
+            # exactly one level down. Depth 1 is the typed contract, and a
+            # payload nested arbitrarily deep would otherwise exhaust the stack
+            # here rather than failing as the malformed payload it is.
             for index, term in enumerate(terms):
+                at = f"any_of_terms[{index}]"
+                if isinstance(term, dict) and term.get("any_of_terms"):
+                    findings.append(f"{at} states terms of its own")
+                    continue
                 findings.extend(
-                    f"any_of_terms[{index}]: {finding}"
+                    f"{at}: {finding}"
                     for finding in applicability_payload_violations(term)
                 )
     return findings

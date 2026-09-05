@@ -111,9 +111,20 @@ LEGACY_PATH = (
 )
 
 
-def _persist(session: Session, representation: object) -> object:
+def _persist(
+    session: Session,
+    representation: object,
+    ledger: ClassificationLedger | None = None,
+) -> object:
+    """Persist one draft against the ledger its provenance actually names.
+
+    The option-scoped draft partitions the spell leaf, so persisting it against
+    the unpartitioned fixture ledger would bind a projection to spans that
+    ledger does not contain - and ``verify_persisted_state`` would then be
+    proving less than it reads as proving.
+    """
     identified = identify_projection(
-        candidate_of(RELEASE_BINDING, build_ledger(), representation)
+        candidate_of(RELEASE_BINDING, ledger or build_ledger(), representation)
     )
     persist_draft(session, identified, now=NOW)
     record_persisted_state_digest(session, identified.projection_uuid)
@@ -270,6 +281,23 @@ def test_a_nested_disjunction_is_refused_by_every_loader(tmp_path: object) -> No
         load_accepted_inputs(_artifact_with(payload, tmp_path, "nested.json"))
 
 
+def test_an_arbitrarily_deep_payload_fails_closed(tmp_path: object) -> None:
+    """Depth is refused as malformed content, not as an exhausted stack.
+
+    The key-set check runs before anything is constructed, so it is the first
+    thing a hostile payload meets — and a checker that recursed as deep as the
+    payload told it to would raise ``RecursionError`` from inside the layer
+    whose contract is to report a finding.
+    """
+    payload = applicability_payload(DODGE_LOSS)
+    for _ in range(200):
+        payload = {**applicability_payload(DODGE_LOSS), "any_of_terms": [payload]}
+    with pytest.raises(InvalidPatchError):
+        _build_applicability(payload, "f")
+    with pytest.raises(OracleLoadError):
+        load_accepted_inputs(_artifact_with(payload, tmp_path, "deep.json"))
+
+
 # ---------------------------------------------------------------------------
 # Option-scoped prose crosses the validator, the closure check, and the column
 # ---------------------------------------------------------------------------
@@ -406,7 +434,7 @@ def test_an_option_key_survives_storage_and_reconstruction(
     session: Session,
 ) -> None:
     """The column, the write, and the read — proved against a real session."""
-    identified = _persist(session, _option_scoped_draft(ABILITY_ARM))
+    identified = _persist(session, _option_scoped_draft(ABILITY_ARM), _ledger())
     stored = session.scalars(select(MechanicalProseBindingORM)).all()
     assert [row.option_key for row in stored] == [ABILITY_ARM]
 
@@ -440,7 +468,7 @@ def test_the_raw_closure_check_reports_a_binding_naming_no_option_row(
     *option* row is missing would simply resolve to nothing in silence. This is
     the check that turns that into a reported problem.
     """
-    identified = _persist(session, _option_scoped_draft(ABILITY_ARM))
+    identified = _persist(session, _option_scoped_draft(ABILITY_ARM), _ledger())
     row = session.scalars(select(MechanicalProseBindingORM)).one()
     row.option_key = "no-such-arm"
     session.flush()
