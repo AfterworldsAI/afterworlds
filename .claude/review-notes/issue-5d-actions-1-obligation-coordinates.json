@@ -11,12 +11,12 @@
  "leaves_carrying_an_obligation": 79,
  "overlapping_claims": 0,
  "disposition_tally": {
-  "P": 21,
+  "P": 20,
   "R": 4,
   "S": 8,
   "T": 7,
   "TP": 4,
-  "X": 31
+  "X": 32
  },
  "blocking_families": {
   "F1": [
@@ -55,6 +55,7 @@
    "H6"
   ],
   "F19": [
+   "H2",
    "H5",
    "H6",
    "L4"
@@ -112,6 +113,7 @@
   "G4",
   "G5",
   "H1",
+  "H2",
   "H3",
   "H4",
   "H5",

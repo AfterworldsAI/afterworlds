@@ -23,7 +23,7 @@ Nothing in this revision moves an identity, a count, or a boundary.
 
 ### Why the stop, in one line
 
-**31 of 75 obligations, across 10 of the 13 records, must be classified `UNRESOLVED`** —
+**32 of 75 obligations, across 10 of the 13 records, must be classified `UNRESOLVED`** —
 substantive source meaning with no typed home *and* no member of the closed irreducibility
 catalog that is affirmatively true of it. `SemanticDisposition.UNRESOLVED` is documented as
 *"an honest 'cannot classify safely yet'"* that **blocks publication**. The batch therefore
@@ -49,7 +49,7 @@ table rather than from prose. It emits no proposal, no audit, and no representat
 ```
 venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py
 -> records=13 leaves=92
-   dispositions={'P': 21, 'R': 4, 'S': 8, 'T': 7, 'TP': 4, 'X': 31} unresolved=31 in 10 records
+   dispositions={'P': 20, 'R': 4, 'S': 8, 'T': 7, 'TP': 4, 'X': 32} unresolved=32 in 10 records
    blocking families=17
    interior gap characters still unassigned=74
    obligations=75 rows=132 leaves_with_an_obligation=79
@@ -110,7 +110,10 @@ glossary:"* followed by twelve names across four leaves. Twelve names, twelve la
 residue in either direction.
 
 **13 records, 92 represented leaves.** Two leaves inside the boundary are policy-excluded,
-both `running_header_footer` (the p.184 footer in `Help`, the p.188 footer in `Ready`).
+both `running_header_footer` — the leaves whose whole content is
+*"System Reference Document 5.2.1 183"* (in `Help`) and *"...187"* (in `Ready`), which
+are the printed p.183 and p.187 footers. That footer text already carries the printed
+number, so the `page_index + 1` convention does not apply to it.
 No substantive leaf is excluded.
 
 | Record | Entry label | Printed page | Leaves | Obligations | of which `UNRESOLVED` |
@@ -120,7 +123,7 @@ No substantive leaf is excluded.
 | `action.dash` | `Dash [Action]` | 180 | 8 | 7 | 4 |
 | `action.disengage` | `Disengage [Action]` | 181 | 2 | 3 | 2 |
 | `action.dodge` | `Dodge [Action]` | 181 | 2 | 6 | 2 |
-| `action.help` | `Help [Action]` | 182–183 | 7 | 7 | 6 |
+| `action.help` | `Help [Action]` | 182–183 | 7 | 7 | 7 |
 | `action.hide` | `Hide [Action]` | 183 | 2 | 8 | 2 |
 | `action.influence` | `Influence [Action]` | 184 | 20 | 11 | 3 |
 | `action.magic` | `Magic [Action]` | 185 | 5 | 5 | 2 |
@@ -128,7 +131,7 @@ No substantive leaf is excluded.
 | `action.search` | `Search [Action]` | 187 | 12 | 3 | 0 |
 | `action.study` | `Study [Action]` | 189 | 15 | 2 | 0 |
 | `action.utilize` | `Utilize [Action]` | 191 | 2 | 2 | 0 |
-| | | | **92** | **75** | **31** |
+| | | | **92** | **75** | **32** |
 
 Record keys are the shape discovery assumes; they are not authored authority.
 
@@ -264,7 +267,7 @@ the coordinates JSON. Where an obligation spans several leaves, all of its spans
 | # | Source meaning | Coordinates | Disp. | Family | Rationale |
 |---|---|---|---|---|---|
 | H1 | *"you do one of the following."* · *"Assist an Ability Check."* · *"Assist an Attack Roll."* | `7e1a032c[0:59]`, `08258187[0:24]`, `0c421a48[0:22]` | **X** | F17, F18 | An exhaustive two-arm actor choice, stated as such — the shape is right. It cannot be authored: `option_set_violations` rejects *"option states no typed facts"* (`representation.py:7441`), and **both arms' entire content is H3 and H6**, neither of which has a fact. |
-| H2 | *"Choose one of your skill or tool proficiencies and one ally who is near"* · *"enough for you to assist verbally or physically when they make an ability check."* | `a6f0faa2[0:71]`, `6e7c9ae8[0:80]` | **P** | — | `contextual_applicability`: a proximity judgement over fiction, plus a use-time proficiency selection. Honest — but it is **option-specific prose**, see F19. |
+| H2 | *"Choose one of your skill or tool proficiencies and one ally who is near"* · *"enough for you to assist verbally or physically when they make an ability check."* | `a6f0faa2[0:71]`, `6e7c9ae8[0:80]` | **X** | F19 | `contextual_applicability` is affirmatively true — a proximity judgement over fiction, plus a use-time proficiency selection — so the **classification** is honest. It is blocking for H5's reason: this is **arm 1's** prose, and bound at component grain it would govern the attack-roll arm too. |
 | H3 | *"That ally has Advantage on the next ability check they make with the chosen skill or tool."* | `6e7c9ae8[81:171]` | **X** | F17, F18 | The rule applies determinately; the **consequence** is inexpressible. `RollActor` is closed at `SUBJECT` and `AGAINST_SUBJECT` — the ally's ability check is directed at nobody, so neither member names it. Two separable defects: the beneficiary (F17) and *"the **next** … check"*, a one-shot limiter (F18). **The `RollActor` precedent does not cover this — see §10.1.** |
 | H4 | *"This benefit expires if the ally doesn't use it before the start of your next turn."* | `6e7c9ae8[172:255]` | **X** | F3 | Expiry. |
 | H5 | *"The GM has final say on whether your assistance is possible."* | `6e7c9ae8[256:316]` | **X** | F19 | `gamemaster_latitude` is affirmatively true, so the **classification** is honest — but the clause governs the *first arm only*, and there is nowhere to bind it. `ProseBindingDraft` keys on `(record_key, component_key)`; `ProvenanceTargetKind` has no `OPTION` member; `FactQualifier` carries an `Applicability`, never prose. Bound at component grain it would govern the attack-roll arm too, which the source never says. |
@@ -289,7 +292,7 @@ the coordinates JSON. Where an obligation spans several leaves, all of its spans
 | # | Source meaning | Coordinates | Disp. | Family | Rationale |
 |---|---|---|---|---|---|
 | J1 | *"you urge a monster to do something. Describe or roleplay how you're communicating…"* | `ab01adba[0:192]` | **P** | — | `open_ended_effect`. |
-| J2 | *"The GM then determines whether the monster feels willing, unwilling, or hesitant…"* | `ab01adba[193:388]` | **P** | — | `gamemaster_latitude`. **Not a gap:** the three branches need no option set. `options` is an *actor* choice, and using it for a GM determination would misstate who decides; three components, each `MIXED` with its own branch prose as applicability, is faithful under schema 5. |
+| J2 | *"The GM then determines whether the monster feels willing, unwilling, or hesitant…"* | `ab01adba[193:388]` | **P** | — | `gamemaster_latitude`. **Not a gap**, and the structural claim is checked rather than assumed. The three branches need no option set: `options` is an *actor* choice, and using it for a GM determination would misstate who decides. Three sibling components carry them, and a component with **no typed facts** is not merely legal but is what `PROSE_BOUND` requires — `validation.py` refuses *"structured handling with no typed facts"* and *"mixed handling with no typed facts"*, while `PROSE_BOUND` is refused only *with* typed facts and needs bound prose plus a closed reason. So `influence_willing` and `influence_unwilling` are `PROSE_BOUND` under `gamemaster_latitude`; `influence_hesitant` becomes `MIXED` once its own blockers (F8, F10) clear. A component's `applies_when` is a typed `Applicability` with no prose form, so each branch's condition rides its prose binding rather than that field. |
 | J3 | *"Willing."* · *"If your urging aligns with the monster's desires, no ability check is necessary; the monster fulfills your request in a way it prefers."* | `d1a853d4[0:8]`, `eeda1b62[0:135]` | **P** | — | `open_ended_effect`. *"No check is necessary"* is the absence of J6, not a fact. |
 | J4 | *"Unwilling."* · *"If your urging is repugnant … it doesn't comply."* | `72e486bb[0:10]`, `2db001c2[0:121]` | **P** | — | `contextual_applicability`. |
 | J6 | *"Hesitant."* · *"If you urge the monster to do something that it is hesitant to do, you must make an ability check,"* | `f45c09d8[0:9]`, `1fc21186[0:98]` | **X** | F8 | `AbilityCheckFact.ability` is **required and undefaulted**. The source fixes no ability, so the fact cannot be emitted — and with it the stated DC (J9) has no carrier. `gamemaster_latitude` is true of *which* ability, but the requirement that a check happens, and its DC, are determinate. |
@@ -385,10 +388,10 @@ Two admission bars apply, and they are different:
 | ID | Family | Obligations | Records | Kind | Admission bar |
 |---|---|---|---|---|---|
 | **F3** | Duration / expiry axis | D3, E2, G4, H4, H7, L2, L9 (7) | 5 | vocabulary reuse | sweep |
-| **F1** | Grant / entitlement — the inverse of consumption | A1, B1, B2, B3, D1, L2 (6) | 4 | new family | sweep |
+| **F1** | Grant / entitlement — the inverse of consumption | A1, B1, B3, D1, L2, plus B2 *derived from B1* (6) | 4 | new family | sweep |
 | **F2** | Movement allowance quantified by the subject's own Speed | D1, D2, D5, L4 (4) | 2 | new family | sweep |
 | **F6a** | Applicability over a state predicate | G5, K4, L10 (3) | 3 | new kind | sweep |
-| **F19** | Governing prose at **option** grain | H5, H6, L4 (3) | 2 | **structural** | none — by construction |
+| **F19** | Governing prose at **option** grain | H2, H5, H6, L4 (4) | 2 | **structural** | none — by construction |
 | **F17** | A benefit conferred on another creature's roll | H1, H3, H6 (3) | 1 | new axis | sweep (weakest evidence) |
 | **F18** | A one-shot *"next roll"* use limiter | H1, H3, H6 (3) | 1 | new field | sweep (weakest evidence) |
 | **F6b** | Disjunction across applicability kinds | G5, I2 (2) | 2 | structural + kind | sweep |
@@ -454,6 +457,11 @@ proposal that swallowed I7 would be reopening exactly that.
 N of a named economy slot per a named boundary*, reusing `ActionCost` and
 `RecurrenceBoundary` rather than minting vocabularies.
 
+B2 is counted among the family's six obligations but is **derived from B1, not an
+independent instance**: its option arms are factless only because B1 has no fact for them
+to carry. The independent instances are A1, B1, B3, D1 and L2 — still four records, which
+is what the sibling evidence rests on.
+
 | Case | Stated as | Covered |
 |---|---|---|
 | A1 `Action` | "one action" per turn | ✅ `(ACTION, 1, per turn)` |
@@ -481,6 +489,7 @@ way to name an option.
 
 | Case | Stated as | Covered |
 |---|---|---|
+| H2 Help | the proficiency and ally selection — governs arm 1 only | ✅ |
 | H5 Help | "The GM has final say" — governs arm 1 only | ✅ |
 | H6 Help | 5-foot range and "that enemy" coreference — arm 2 only | ✅ |
 | L4 Ready | arm 1's open action choice | ✅ |
@@ -771,7 +780,7 @@ Revision 1 reported *"fifteen gap IDs across twelve of thirteen records"* from a
 count, and its ledger carried no source coordinates. Both are replaced: every obligation
 now resolves to exact `(leaf_id, char_start, char_end)` coordinates against the bound
 release, and every tally is computed from the disposition table by the evidence script.
-The figures moved — 17 blocking families, 31 `UNRESOLVED` obligations, 10 of 13 records —
+The figures moved — 17 blocking families, 32 `UNRESOLVED` obligations, 10 of 13 records —
 principally because F9 was reclassified as an enrichment, which removes `Search` and
 `Study` from the blocked set entirely.
 
@@ -784,13 +793,13 @@ evidence belongs to the remediation step that changes code.
 
 | Check | Command | Result |
 |---|---|---|
-| Evidence script | `venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py` | exit 0 — 13 records, 92 leaves, 75 obligations, 132 non-overlapping spans, 31 `UNRESOLVED`, 17 blocking families |
+| Evidence script | `venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py` | exit 0 — 13 records, 92 leaves, 75 obligations, 132 non-overlapping spans, 32 `UNRESOLVED`, 17 blocking families |
 | Determinism | three runs, `PYTHONHASHSEED` unset / `1` / `99991` | output byte-identical: `870058b8f69bd63e31a020046bdf9980bd1205fb27ce4c09d82454d0cc1e12a2` |
 | Output hygiene | grep for an absolute checkout path; CRLF and UTF-8 check | 0 absolute paths, 0 CRLF, valid UTF-8 |
 | Script formatting | `venv/Scripts/black --check <script>` | unchanged |
 | Script lint | `venv/Scripts/ruff check <script>` | 43 findings, **all `E501`** on ledger rows where a quoted phrase must stay on one line or the matched string changes. Review-note scripts are outside the gates' scope (`ruff check src/ tests/`, `mypy files = ["src"]`), as the accepted `issue-5d-hazards-1-schema5-REGEN-generator.py` is — which itself reports 8. |
 | Mechanical suite | `venv/Scripts/python -m pytest tests/ingestion/mechanical -q` | 1935 passed in 287.48 s |
-| Ledger cross-check | §3's per-record obligation and `UNRESOLVED` columns recomputed from the coordinates JSON | all 13 rows match; totals 75 / 31 |
+| Ledger cross-check | §3's per-record obligation and `UNRESOLVED` columns recomputed from the coordinates JSON | all 13 rows match; totals 75 / 32 |
 
 The pytest run reported `FAIL Required test coverage of 80% not reached. Total coverage:
 45.56%`. That is an artifact of running **a subset** of the suite while `--cov` is
@@ -818,15 +827,15 @@ source digest that script asserts against.
 
 | Scope | Comparison | Value |
 |---|---|---|
-| Whole-PR | `git diff --shortstat b5d386ba5575a6482bb0eca3d6d38a2ec7e8fc5d...HEAD` | dominated by the 11,514-line frozen prior fixture, a byte-for-byte copy of accepted authority rather than authored content |
-| Individual commits | three: the stop checkpoint and fixture; its accounting corrections; this revision | each stated in its own message |
+| Whole-PR | `git diff --shortstat b5d386ba5575a6482bb0eca3d6d38a2ec7e8fc5d...d25addc` | **6 files changed, +16,074 / −0.** Measured against `d25addc`, which is fixed history, so the figure cannot go stale; re-derive the current head's with the same command and `HEAD`. Dominated by the 11,514-line frozen prior fixture — a byte-for-byte copy of accepted authority, not authored content. |
+| Individual commits | the stop checkpoint and fixture; its accounting corrections; this revision; this revision's own corrections | each stated in its own message |
 | Runtime | one pytest invocation; one evidence-script invocation | 287.48 s; ~35 s |
 
 Commits are named by role rather than by SHA: a document that cites the commit containing
 it cannot stay correct after the commit that fixes it. Every figure above is re-derivable
 from the command given.
 
-Discovery **counts** (13 records, 92 leaves, 75 obligations, 31 `UNRESOLVED`) are source
+Discovery **counts** (13 records, 92 leaves, 75 obligations, 32 `UNRESOLVED`) are source
 measurements, not diff measurements, and are not comparable to the table above.
 
 ---
@@ -837,7 +846,7 @@ measurements, not diff measurements, and are not comparable to the table above.
 acceptance recorded, nothing published, activated, retired, or merged; `accept_proposal`
 was not called; #137 remains open. No schema change was implemented.
 
-**The boundary this stop surfaces** is that representation schema 5 leaves 31 of 75
+**The boundary this stop surfaces** is that representation schema 5 leaves 32 of 75
 obligations, across 10 of 13 records, with no honest classification — `UNRESOLVED`, which
 blocks publication by the schema's own definition. Seventeen blocking families are named,
 all of them **issue-scoped schema work**; each carries a corpus-sweep precondition except
@@ -860,7 +869,7 @@ families: this batch proves the gaps are real, not that the families should be a
 
 ## 13. Why regeneration has not begun
 
-1. **The schema gate is not clear.** 31 obligations must be `UNRESOLVED`, which blocks
+1. **The schema gate is not clear.** 32 obligations must be `UNRESOLVED`, which blocks
    publication by definition. No proposal can be admissible, at any fidelity trade.
 2. **Authoring one now would require** either stating claims the source does not make — a
    doubled Speed, an invented attack bonus, a mandatory suggested check, a GM-set DC where

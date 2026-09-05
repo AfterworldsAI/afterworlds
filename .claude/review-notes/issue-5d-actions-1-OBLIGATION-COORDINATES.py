@@ -607,7 +607,11 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "G5": ("X", ("F6a", "F6b")),
     "G6": ("S", ()),
     "H1": ("X", ("F17", "F18")),
-    "H2": ("P", ()),
+    # Option-scoped governing prose: it states arm 1's selection and proximity
+    # judgement, and `gamemaster_latitude`/`contextual_applicability` is true of
+    # it - but bound at component grain it would govern the attack-roll arm too.
+    # Same defect as H5, so the same family and the same disposition.
+    "H2": ("X", ("F19",)),
     "H3": ("X", ("F17", "F18")),
     "H4": ("X", ("F3",)),
     "H5": ("X", ("F19",)),
