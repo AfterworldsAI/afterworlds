@@ -451,6 +451,21 @@ SCHEMA_6_ONLY = [
         Applicability(kind=ApplicabilityKind.COVER, cover=CoverDegree.TOTAL),
         id="vocabulary-cover_degree",
     ),
+    # The nullable-field axis. `Influence`'s forced case: *"you must make an
+    # ability check"* whose ability the GM chooses, beside a printed DC. The
+    # key is emitted under every contract because it is a schema-1 field, so
+    # the payload is complete and only the *value* is one no earlier schema
+    # admitted - which is why neither the omission registry nor the
+    # required-since one can see it.
+    pytest.param(
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        id="nullable_field-ability_check-ability",
+    ),
 ]
 
 
