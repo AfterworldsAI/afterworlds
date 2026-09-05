@@ -72,11 +72,14 @@ from afterworlds.ingestion.mechanical.representation import (
     AutomaticOutcome,
     Comparison,
     ComponentOption,
+    ConditionKind,
+    CoverDegree,
     CreatureSize,
     DamageOutcome,
     FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
+    ObscurementState,
     ParticipantRole,
     Phase,
     RecordKind,
@@ -86,6 +89,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     SizeComparison,
     SizeRelation,
+    StateEffectKind,
     TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
@@ -437,6 +441,15 @@ def _build_applicability(raw: object, what: str) -> Applicability | None:
         raise InvalidPatchError(f"{what} applies_when must be an object or null")
     if shape := applicability_payload_violations(dict(raw)):
         raise InvalidPatchError(f"{what} applies_when: {'; '.join(shape)}")
+    # A disjunction's terms are whole applicabilities, so an override states
+    # them in the same shape and this same builder rebuilds them.
+    terms = []
+    for index, raw_term in enumerate(raw.get("any_of_terms") or ()):
+        at = f"{what} applies_when.any_of_terms[{index}]"
+        term = _build_applicability(raw_term, at)
+        if term is None:
+            raise InvalidPatchError(f"{at}: a disjunction term may not be null")
+        terms.append(term)
     try:
         built = Applicability(
             kind=ApplicabilityKind(raw["kind"]),
@@ -488,6 +501,24 @@ def _build_applicability(raw: object, what: str) -> Applicability | None:
                 else DamageOutcome(raw["damage_outcome"])
             ),
             unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
+            # Schema 6's operands, read the same way and for the same reason.
+            condition=(
+                None
+                if raw.get("condition") is None
+                else ConditionKind(raw["condition"])
+            ),
+            effect_state=(
+                None
+                if raw.get("effect_state") is None
+                else StateEffectKind(raw["effect_state"])
+            ),
+            obscurement=(
+                None
+                if raw.get("obscurement") is None
+                else ObscurementState(raw["obscurement"])
+            ),
+            cover=None if raw.get("cover") is None else CoverDegree(raw["cover"]),
+            any_of_terms=tuple(terms),
             band=(
                 None
                 if raw.get("band") is None

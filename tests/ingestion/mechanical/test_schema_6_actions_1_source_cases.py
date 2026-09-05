@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import pytest
 
-from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
     AbilityCheckFact,
@@ -44,7 +43,6 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackRelativeTiming,
     BenefitUseLimit,
     Comparison,
-    ComponentDraft,
     ComponentOption,
     ConditionKind,
     CoverDegree,
@@ -708,19 +706,8 @@ def test_two_arms_of_one_choice_address_the_same_clause_distinctly() -> None:
     assert first[:5] == second[:5] == component_wide
 
 
-def test_an_option_scoped_binding_names_an_option_its_component_states() -> None:
-    """An option key naming nothing would govern no arm while reading as scoped."""
-    component = ComponentDraft(
-        record_key="action.help",
-        semantic_key="help-benefit",
-        handling=ComponentHandling.MIXED,
-        options=(
-            ComponentOption(
-                semantic_key=HELP_ABILITY_CHECK_ARM, facts=(CASES["H3"][1],)
-            ),
-            ComponentOption(semantic_key=HELP_ATTACK_ROLL_ARM, facts=(CASES["H6"][1],)),
-        ),
-    )
-    stated = {o.semantic_key for o in component.options}
-    assert _help_binding(HELP_ABILITY_CHECK_ARM).option_key in stated
-    assert _help_binding("no-such-arm").option_key not in stated
+# An option key that names no option of its component is refused by the draft
+# validator, and the binding's scope survives its own column and the raw
+# closure check. Those are validator and storage paths rather than shapes, so
+# they are proved in ``test_schema_6_reconstruction_paths`` against a real
+# session — an assertion here could only restate this module's own fixtures.

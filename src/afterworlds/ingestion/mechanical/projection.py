@@ -676,7 +676,20 @@ _APPLICABILITY_PAYLOAD_KEYS = frozenset(
 #: absent — the canonical payload omits them when they carry no meaning, so
 #: absence reads as the declared default and nothing is lost. They are kept out
 #: of the required set above so a schema-3 payload still validates unchanged.
-_APPLICABILITY_OPTIONAL_KEYS = frozenset({"outcome", "damage_outcome", "unit", "band"})
+#: Schema 6 added five more on the same terms.
+_APPLICABILITY_OPTIONAL_KEYS = frozenset(
+    {
+        "outcome",
+        "damage_outcome",
+        "unit",
+        "band",
+        "condition",
+        "effect_state",
+        "obscurement",
+        "cover",
+        "any_of_terms",
+    }
+)
 _SIZE_COMPARISON_PAYLOAD_KEYS = frozenset(
     {"category", "relation", "at_least", "at_most", "measured", "reference"}
 )
@@ -721,6 +734,21 @@ def applicability_payload_violations(raw: object) -> list[str]:
                     findings.append(f"any_of[{index}] is missing {lost}")
                 if odd := sorted(held - _SIZE_COMPARISON_PAYLOAD_KEYS):
                     findings.append(f"any_of[{index}] carries unexpected {odd}")
+    terms = raw.get("any_of_terms")
+    if terms is not None:
+        if not isinstance(terms, list):
+            findings.append(f"any_of_terms is {type(terms).__name__}, not an array")
+        else:
+            # Each term is a whole applicability, so it is checked by this same
+            # function rather than by a second statement of the key set. The
+            # recursion terminates on content because a term that itself
+            # carries terms is refused by the depth-1 typed invariant; here it
+            # simply gets checked one level further down.
+            for index, term in enumerate(terms):
+                findings.extend(
+                    f"any_of_terms[{index}]: {finding}"
+                    for finding in applicability_payload_violations(term)
+                )
     return findings
 
 

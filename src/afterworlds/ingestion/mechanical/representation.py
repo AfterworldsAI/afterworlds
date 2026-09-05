@@ -1723,9 +1723,14 @@ class AbilityCheckFact:
 
     Deliberately **not** migrated onto :class:`RollSpec`. This family states
     *that a roll is called for and where its DC comes from*; ``RollSpec`` says
-    *which roll a stated modification applies to*. A DC source has no actor
-    polarity — the DC is the same value whoever rolls against it — so folding
-    the two together would give this family a field it can never populate.
+    *which roll a stated modification applies to*, and it selects that roll by
+    a :class:`RollActor` polarity this family has no use for.
+
+    Schema 6 added ``against_subject``, which is not that polarity returning by
+    another name. It is a single boolean, admitted only where the DC is a
+    *recorded check total*, and it names who makes the check the DC is stated
+    for — the reading a two-member actor vocabulary cannot express and a merge
+    onto ``RollSpec`` would still get wrong.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_CHECK
@@ -6115,11 +6120,12 @@ def _shape(annotation: object, seen: tuple[type, ...] = ()) -> dict[str, object]
     """Render one declared annotation as its canonical wire shape.
 
     The grammar is closed: ``integer``, ``string``, ``boolean``,
-    ``enum(values)``, ``object(fields)``, ``array(items)``, and a ``nullable``
-    flag. Every member describes something a JSON payload can exhibit, which is
-    the entire rule — a Python class name describes the implementation, so this
-    grammar has nowhere to put one, and an annotation it cannot describe raises
-    instead of falling back to a name.
+    ``enum(values)``, ``object(fields)``, ``array(items)``, ``self(of)`` for a
+    shape that nests itself, and a ``nullable`` flag. Every member describes
+    something a JSON payload can exhibit, which is the entire rule — a Python
+    class name describes the implementation, so this grammar has nowhere to put
+    one, and an annotation it cannot describe raises instead of falling back to
+    a name.
     """
     if annotation == MechanicalFact:
         # The closed typed-fact union, described once under ``facts`` and
