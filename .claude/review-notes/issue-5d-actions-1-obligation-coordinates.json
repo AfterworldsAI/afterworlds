@@ -11,9 +11,9 @@
  "leaves_carrying_an_obligation": 79,
  "overlapping_claims": 0,
  "disposition_tally": {
-  "P": 15,
+  "P": 16,
   "R": 4,
-  "S": 13,
+  "S": 12,
   "T": 7,
   "TP": 4,
   "X": 35
@@ -22,7 +22,6 @@
   "F1": [
    "A1",
    "B1",
-   "B2",
    "B3",
    "D1",
    "L2"
@@ -61,8 +60,7 @@
   "F19": [
    "H2",
    "H5",
-   "H6",
-   "L4"
+   "H6"
   ],
   "F2": [
    "D1",
@@ -72,6 +70,12 @@
   ],
   "F20": [
    "K3"
+  ],
+  "F21": [
+   "L8"
+  ],
+  "F22": [
+   "I6"
   ],
   "F3": [
    "D3",
@@ -104,11 +108,10 @@
    "J6"
   ]
  },
- "blocking_family_count": 19,
+ "blocking_family_count": 21,
  "unresolved_obligations": [
   "A1",
   "B1",
-  "B2",
   "B3",
   "B4",
   "B7",
@@ -140,13 +143,15 @@
   "L4",
   "L6",
   "L7",
+  "L8",
   "L9"
  ],
  "records_with_an_unresolved_obligation": 10,
  "non_blocking_families": {
   "F4": "never defined; the identifier was unused",
-  "F9": "prose-bound today under contract 3's second branch, but 'random-table selection' is a named contract-3 family group and this batch surfaces three instances - deferred and owed, not dismissed",
-  "F15": "withdrawn - both motivating cases are representable as authored"
+  "F9": "prose-bound under contract 3's second branch. Revision 4 removes the scope claim: the suggested skill tables do not evidence random-table selection - they state what the GM *may* choose and nothing follows from them by itself - so this batch surfaces no instance of that contract-3 group. The prose bindings are justified and stay; the full-corpus obligation for random-table selection stands on its own and is not discharged or advanced by these three tables",
+  "F15": "withdrawn - both motivating cases are representable as authored",
+  "F19": "narrowed to Help alone. Revision 4 withdraws L4, which is not an option set; H2, H5 and H6 remain, and component-grain binding is false for them rather than lossy"
  },
  "non_heading_leaves": 79,
  "unassigned_characters": 59,

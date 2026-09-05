@@ -1,12 +1,16 @@
 # CRD Issue 5d — `actions-1` discovery and schema-stop checkpoint
 
-**Revision 3.** Revision 2 corrected Revision 1's authority classification, representation
+**Revision 4, reconciled with the implementation.** Revision 2 corrected Revision 1's authority classification, representation
 analysis, and evidence completeness. This revision corrects **Revision 2's own
 classification rule**, which misstated the closed irreducibility catalog; reassesses every
 disposition that rested on it; withdraws a sibling-count admission bar that no governing
 authority states; and replaces the source-coverage measurement, which understated the
-unassigned residue. The conclusion — a schema stop — is unchanged across all three
-revisions. Where a revision **rejects** an earlier conclusion it says so and cites the
+unassigned residue. The conclusion — a schema stop — held across all three
+revisions, and **§14 records what building the schema then settled**: two
+dispositions moved, two option-set claims were withdrawn, one gap turned out to
+have a second half nobody had named, and one scope claim was removed. Every
+tally below is re-derived from the evidence script's disposition table rather
+than edited, so the prose cannot drift from the ledger. Where a revision **rejects** an earlier conclusion it says so and cites the
 source or contract evidence that overturns it (§10).
 
 **Return type: schema/boundary stop.** No acceptance-ready proposal, audit, or generator
@@ -65,8 +69,8 @@ proposal, no audit, and no representation.
 ```
 venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py
 -> records=13 leaves=92
-   dispositions={'P': 15, 'R': 4, 'S': 13, 'T': 7, 'TP': 4, 'X': 35} unresolved=35 in 10 records
-   blocking families=19
+   dispositions={'P': 16, 'R': 4, 'S': 12, 'T': 7, 'TP': 4, 'X': 35} unresolved=35 in 10 records
+   blocking families=21
    unassigned characters=59 across 53 run(s); substantive=0
    obligations=78 rows=135 leaves_with_an_obligation=79
 ```
@@ -133,7 +137,7 @@ p.187 footers. No substantive leaf is excluded.
 | Record | Entry label | Printed page | Leaves | Obligations | judged `UNRESOLVED` |
 |---|---|---|---|---|---|
 | `glossary.action` | `Action` | 176 | 8 | 4 | 1 |
-| `action.attack` | `Attack [Action]` | 177 | 6 | 7 | 5 |
+| `action.attack` | `Attack [Action]` | 177 | 6 | 7 | 4 |
 | `action.dash` | `Dash [Action]` | 180 | 8 | 8 | 4 |
 | `action.disengage` | `Disengage [Action]` | 181 | 2 | 3 | 2 |
 | `action.dodge` | `Dodge [Action]` | 181 | 2 | 7 | 2 |
@@ -141,7 +145,7 @@ p.187 footers. No substantive leaf is excluded.
 | `action.hide` | `Hide [Action]` | 183 | 2 | 9 | 2 |
 | `action.influence` | `Influence [Action]` | 184 | 20 | 11 | 3 |
 | `action.magic` | `Magic [Action]` | 185 | 5 | 5 | 3 |
-| `action.ready` | `Ready [Action]` | 186–187 | 3 | 10 | 6 |
+| `action.ready` | `Ready [Action]` | 186–187 | 3 | 10 | 7 |
 | `action.search` | `Search [Action]` | 187 | 12 | 3 | 0 |
 | `action.study` | `Study [Action]` | 189 | 15 | 2 | 0 |
 | `action.utilize` | `Utilize [Action]` | 191 | 2 | 2 | 0 |
@@ -931,7 +935,7 @@ evidence belongs to the remediation step that changes code.
 
 | Check | Command | Result |
 |---|---|---|
-| Evidence script | `venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py` | exit 0 — 13 records, 92 leaves, 78 obligations, 135 non-overlapping spans, 35 `UNRESOLVED`, 19 blocking families, 0 substantive unassigned runs |
+| Evidence script | `venv/Scripts/python .claude/review-notes/issue-5d-actions-1-OBLIGATION-COORDINATES.py` | exit 0 — 13 records, 92 leaves, 78 obligations, 135 non-overlapping spans, 35 `UNRESOLVED`, 21 blocking families, 0 substantive unassigned runs |
 | Coverage failure mode | remove any obligation and re-run | the run **fails** with the unaccounted text and its coordinates — which is how D8, G7 and I10 were found |
 | Determinism | three runs, `PYTHONHASHSEED` unset / `1` / `99991` | output byte-identical |
 | Output hygiene | grep for an absolute checkout path; CRLF and UTF-8 check | 0 absolute paths, 0 CRLF, valid UTF-8 |
@@ -1024,3 +1028,108 @@ reviewer may overturn — §5.14 says where to look first.
 Stop here for Codex's inspection and an independent semantic review. Completing `actions-1`
 would complete this batch worklist, not the full-corpus or activation obligations of
 CRD Issue 5d.
+
+---
+
+## 14. Reconciliation with the implementation (Revision 4)
+
+Representation **schema 6** is built. This section records what building it
+settled, and nothing else: it re-classifies where implementation proved a
+classification wrong, and it withdraws a scope claim that was not evidenced. It
+does not re-litigate anything the schema step did not touch.
+
+### 14.1 Dispositions that moved
+
+| # | Was | Now | Why |
+|---|---|---|---|
+| **L8** `Ready` | **S** | **X** / F21 | *"To be readied, a spell must have a casting time of an action."* A spell's casting time is a printed, enumerable `SpellDescriptorFact` field, so nothing in the clause is unenumerable fiction. What it states is **which spells the mechanic reaches** — substantive eligibility authority, not material that merely limits one. §5.14 flagged this row as open to reversal, and it reversed. |
+| **B2** `Attack` | **X** / F1 | **P** | *"with a weapon or an Unarmed Strike."* Recorded as blocked only because it was modelled as an **option set**, and it is not one: both arms would state B1's identical entitlement, and `option_set_violations` refuses two options a consumer could not tell apart. The clause is the instrument qualification on that one entitlement, and `contextual_applicability` is affirmatively true of it — which weapons qualify is not determined by this record. |
+| **L4** `Ready` | **X** / F2, F19 | **X** / F2 | The F19 half is withdrawn for the same reason: not an option set. Arm 1's action space includes whatever the subject's features provide, which no closed vocabulary reaches, and an option must state at least one typed fact. The set is unauthorable, and relaxing that rule to admit it is exactly what §8.3 said not to do. Still blocking on the movement half. |
+| **I6** `Hide` | **X** / F7 | **X** / F7, **F22** | F7 named the DC *source* and stopped there. The check that DC is stated for is made by the **finder** — *"the DC for a creature to find you with a Wisdom (Perception) check"* — and `AbilityCheckFact` had no axis for that. A fact carrying only the new DC source would read as the subject making a Perception check to find themselves: false rather than lossy, and the same beneficiary defect family as F17. |
+
+Tallies after the four: **`{'P': 16, 'R': 4, 'S': 12, 'T': 7, 'TP': 4, 'X': 35}`,
+35 `UNRESOLVED` in 10 records, 21 blocking families.** Every figure is computed
+from the script's `DISPOSITION` table, so it re-derives rather than being edited.
+
+### 14.2 The eligibility sweep
+
+L8's error was a *classification* error, so the sweep asks which comparable
+clauses could carry the same one: a clause limiting a mechanic by a **printed,
+enumerable property** of what it ranges over.
+
+| Clause | Was | Result |
+|---|---|---|
+| `Magic` **K1** — *"a spell that has a casting time of an action"* | **TP** | **already correct.** Typed, not prose-classified. It now shares L8's family, which is what makes the three read alike. |
+| `Utilize` **O2** — *"When an object requires an action for its use"* | **TP** | **already correct**, same shape over objects. |
+| `Attack` **B5** — *"you don't need to use it for that attack"* | **S** | **not comparable.** An explicit non-requirement limits B3's permission; it names no property a thing either has or lacks. |
+| `Attack` **B6**, `Utilize` **O1** | **S** | **not comparable.** Definitional scope and a contrast. |
+
+**Only L8 was misclassified.** K1 and O2 were already typed, so they are the
+family's confirming siblings rather than further corrections. The evidence
+script names a family only on an `UNRESOLVED` row, which is why the table in
+§14.1 carries F21 on L8 alone while the family has three instances in three
+records.
+
+### 14.3 The suggested skill tables — scope claim removed
+
+§6's F9 entry recorded J7, M3 and N2 as *"three instances"* of contract 3's
+**random-table selection** group, surfaced by this batch and owed at full-corpus
+closure. **That claim is withdrawn.**
+
+A suggested skill table is not a random table and evidences nothing about
+selecting from one. `Influence`'s table *suggests which ability check to make*
+and J8 states outright that the GM chooses; `Search` and `Study` *suggest which
+skills are applicable*. Nothing is rolled, no row is selected by a die, and
+nothing follows from the table by itself — which is precisely why
+`gamemaster_latitude` and `subjective_judgment` are affirmatively true of them.
+
+What stands, unchanged:
+
+* the three **prose bindings are justified** under contract 3's second branch,
+  and they stay; and
+* the **full-corpus obligation for random-table selection stands on its own**.
+  It is a named contract-3 group and `known_unknowns.md` records it among the
+  untouched ones due no later than full-corpus closure. This batch neither
+  discharges nor advances it, and §8.5's open problem — that the printed row
+  keys range over no closed vocabulary — is unaffected.
+
+### 14.4 F-ID → what schema 6 actually built
+
+Twelve families, not one per F-ID. Where the checkpoint recorded two gaps that
+implementation showed to be one claim, they merged; where it recorded one that
+turned out to be two, they split. The counts and shapes in §6 were evidence,
+and this is the design they evidenced.
+
+| F-ID | Built as |
+|---|---|
+| F1 | `ActionAllowanceFact(count, per, cost \| activity)` — exactly one of an `ActionCost` slot or a `GrantedActivity`. No second vocabulary spanning both: two vocabularies admitting overlapping values render identically on the wire. |
+| F2 | `MovementAllowanceFact(basis)` — kept apart from F1 because a count of slots is an integer and *"equals your Speed"* is a quantity no integer can state. |
+| F3 | `EffectDurationFact(until, whose)` |
+| F5 | `ReactionProvocationFact(reaction, provokes)` |
+| F6a | `ApplicabilityKind.CONDITION_STATE` and `.EFFECT_STATE`, over the already-closed `ConditionKind` and `StateEffectKind` |
+| F6b | `ApplicabilityKind.ANY_OF` + `Applicability.any_of_terms` — flat, depth-1, in canonical order, at least two, each distinct |
+| F6c | `ApplicabilityKind.OBSCUREMENT` / `.COVER` over `ObscurementState` and `CoverDegree`. **Two vocabularies, not one:** obscurement is about vision and cover about attacks and Dexterity saves, and one merged enum would assert a union the source never makes. |
+| F7 | `DcKind.RECORDED_CHECK_TOTAL` |
+| F8 | `AbilityCheckFact.ability` made optional — and deliberately **not** registered as omit-when-empty: it is a schema-1 field, so `"ability": null` is an explicit statement rather than an absence that could also read as a default. |
+| F10 | `DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE` + `AbilityCheckFact.dc_ability`, with `dc_value` carrying the printed floor. The *"only `FIXED` carries a number"* rule is corrected in the declaration rather than worked around. |
+| F11 | `RetryRestrictionFact(amount, unit, gamemaster_may_set_other)` |
+| F12 | `RecurringActionRequirementFact(cost, per)` |
+| F13 | `ResourceExpenditureFact(resource, expended)` |
+| F14 | `EquipmentChangeFact(change, timing)` — both stated axes on one fact, so the four option arms are the exact permitted set |
+| F16 | **Split**, against §8.7's open question: `MovementInterleaveFact(between)` for B7 and `TriggeredResolutionFact(timing, optional)` for L6. One enum spanning *"a point inside a repeated action"* and *"a point relative to a trigger"* would be the cross-domain vocabulary this module refuses. |
+| F17 | `RollActor.ALLY` — admitted because `Help`'s two arms are neither the subject's roll nor a roll *directed at* the subject, so under the two-member vocabulary they produced identical typed authority. The docstring's earlier refusal is kept and is still right about the case it addressed. |
+| F18 | `AdvantageFact.use_limit: BenefitUseLimit` — an enum rather than a count, because *"the **next** check"* fixes which roll and a one-use benefit could be held back for a later one |
+| F19 | `ProseBindingDraft.option_key`, with `prose_binding_target_key` appending a sixth element only when non-empty. **No `ProvenanceTargetKind.OPTION`:** all twenty accepted five-element coordinates stay unchanged, which the heavier shape §6 proposed would not have done. |
+| F20 | `SustainedStateRequirementFact(state)` — **kept a sibling of F12**, resolving §8.6. One discriminator over two operand domains would have to refuse both cross combinations, which is two families wearing one field. |
+| **F21** | `ActivationCostEligibilityFact(subject, cost)` — new in Revision 4; L8, K1, O2 |
+| **F22** | `AbilityCheckFact.against_subject` — new in Revision 4; I6 |
+
+§8's open engineering choices are all closed by the above except §8.5, which the
+withdrawn scope claim in §14.3 leaves standing as full-corpus work.
+
+### 14.5 What is unchanged
+
+The schema stop itself, the boundary (13 records, 92 leaves), the coverage
+partition (59 unassigned characters, 0 substantive), the source binding, the
+frozen prior, the classification rule reconciled in §4, and every rejected
+review conclusion in §10. Acceptance-ready regeneration remains paused.

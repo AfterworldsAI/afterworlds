@@ -632,7 +632,13 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "I3": ("P", ()),
     "I4": ("P", ()),
     "I5": ("T", ()),
-    "I6": ("X", ("F7",)),
+    # Revision 4. F7 named the DC source and stopped there. The check the DC
+    # is stated for is made by the *finder* - "the DC for a creature to find
+    # you" - and `AbilityCheckFact` had no axis for that, so a fact carrying
+    # only the new DC source would read as the subject making a Perception
+    # check to find themselves. False rather than lossy, and the same
+    # beneficiary defect family as F17. Recorded as F22 beside F7.
+    "I6": ("X", ("F7", "F22")),
     "I7": ("P", ()),
     "I9": ("S", ()),
     "I10": ("S", ()),
@@ -655,11 +661,28 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "L1": ("T", ()),
     "L2": ("X", ("F1", "F3")),
     "L3": ("P", ()),
-    "L4": ("X", ("F2", "F19")),
+    # Revision 4. The F19 claim is withdrawn: this is not an option set
+    # either. Arm 1's action space includes whatever the subject's features
+    # provide, which no closed vocabulary reaches, and an option must state at
+    # least one typed fact - so the set is unauthorable and relaxing that rule
+    # to admit it is what would make the arm's emptiness indistinguishable from
+    # an authoring omission. One MIXED component: the own-Speed allowance typed,
+    # the whole "you choose the action ... or" clause bound under
+    # `open_ended_effect`. Still blocking, on the movement half alone.
+    "L4": ("X", ("F2",)),
     "L5": ("S", ()),
     "L6": ("X", ("F16",)),
     "L7": ("X", ("F13",)),
-    "L8": ("S", ()),
+    # Revision 4. Revision 3 had this as supporting authority; it is
+    # substantive eligibility. A spell's casting time is a printed, enumerable
+    # SpellDescriptorFact field, so nothing here is unenumerable fiction, and
+    # what the clause states is *which spells the mechanic reaches*. The sweep
+    # for comparable clauses found two - K1's "a spell that has a casting time
+    # of an action" and O2's "an object requires an action for its use" - and
+    # both were already typed rather than misclassified, so only this one moved.
+    # They are the family's confirming siblings and stay TP; a family may be
+    # named only on an UNRESOLVED row here, which is why they carry none.
+    "L8": ("X", ("F21",)),
     "L9": ("X", ("F3",)),
     "L10": ("X", ("F6a",)),
     "M1": ("T", ()),
@@ -670,7 +693,14 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "O1": ("S", ()),
     "O2": ("TP", ()),
     "B1": ("X", ("F1",)),
-    "B2": ("X", ("F1",)),
+    # Revision 4. Recorded as blocked only because it was modelled as an
+    # option set, and it is not one: both arms would state B1's identical
+    # entitlement, which `option_set_violations` refuses as two options a
+    # consumer could not tell apart. The clause is the instrument qualification
+    # on that single entitlement, and `contextual_applicability` is
+    # affirmatively true of it - which weapons qualify is not determined by this
+    # record. Honest prose on a MIXED component beside the allowance.
+    "B2": ("P", ()),
     "B3": ("X", ("F1", "F14")),
     "B4": ("X", ("F14",)),
     "B5": ("S", ()),
@@ -684,11 +714,20 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
 NON_BLOCKING = {
     "F4": "never defined; the identifier was unused",
     "F9": (
-        "prose-bound today under contract 3's second branch, but 'random-table "
-        "selection' is a named contract-3 family group and this batch surfaces "
-        "three instances - deferred and owed, not dismissed"
+        "prose-bound under contract 3's second branch. Revision 4 removes the "
+        "scope claim: the suggested skill tables do not evidence random-table "
+        "selection - they state what the GM *may* choose and nothing follows "
+        "from them by itself - so this batch surfaces no instance of that "
+        "contract-3 group. The prose bindings are justified and stay; the "
+        "full-corpus obligation for random-table selection stands on its own "
+        "and is not discharged or advanced by these three tables"
     ),
     "F15": "withdrawn - both motivating cases are representable as authored",
+    "F19": (
+        "narrowed to Help alone. Revision 4 withdraws L4, which is not an "
+        "option set; H2, H5 and H6 remain, and component-grain binding is false "
+        "for them rather than lossy"
+    ),
 }
 
 rows: list[dict[str, object]] = []
