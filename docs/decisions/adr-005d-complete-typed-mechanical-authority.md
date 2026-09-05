@@ -250,8 +250,37 @@ component-grain binding would be false rather than merely lossy. `option_key` ap
 the provenance coordinate **only when non-empty**, so all twenty accepted five-element coordinates are
 unchanged.
 
-The schema-6 destination pin is
-`d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6`. Schema 4 and schema 5 remain
+**Amended in the same review round, before anything was accepted under it.** Schema 6 was reviewed
+against its own consuming paths and four things it declared were not yet true of them. Each is a defect
+of *propagation* — new meaning that existing contracts had not been carried across — rather than a
+reason to revisit the twelve families, and one of them changes this ADR's own contract:
+
+* **Option-scoped prose reaches a consumer.** The effective view discarded `option_key`, so `Help`'s two
+  arms published the same governing passage twice and moving a clause between arms produced an
+  identical effective record. `SourceProse` now carries the scope, and the component-wide scope stays
+  the empty string every accepted binding states.
+* **A schema-6 null is refused under an earlier declaration.** `AbilityCheckFact.ability` became
+  optional at schema 6, and nothing enforced that: an artifact declaring schema 5 could state
+  `"ability": null` — a check fixing no ability, beside a printed DC — and be read as authority a
+  schema-5 reviewer signed off on. The key is a schema-1 field, so the payload is *complete* either way
+  and only the value is new; neither the omission registry nor the required-since registry can see that
+  shape. A third registry states it, and **it is part of the version-legality contract, so it is inside
+  the schema hash**: the destination pin is now
+  `0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7`, replacing the
+  `d4584a74…c1d6` recorded above before review. Nothing accepted moves — every accepted ability check
+  states an ability, so every accepted payload and `fact_key` is byte-identical — and no batch had been
+  accepted under the earlier pin.
+* **A disjunction is not a place to hide a condition from its scope rule.** `ANY_OF` states no operand
+  of its own, so the roll-outcome and counterpart-establishment rules read it as stating nothing:
+  wrapping a refused condition in one made it legal, in component, option, fact-qualifier and override
+  scope alike. Both rules now read a disjunction's terms, which is a flatten rather than a walk because
+  depth is 1 by invariant.
+* **Every applicability ingress refuses depth before it recurses.** The builder reached through
+  `fact_from_payload` — and therefore `ConditionRemovalRestrictionFact.until`, and the override seam —
+  rebuilt terms as deep as the payload asked, so a 600-level payload raised `RecursionError` from the
+  one layer whose contract is to report malformed input.
+
+Schema 4 and schema 5 remain
 recognized contracts and their pins are unchanged. Succession stays one row per crossing and resolved as
 a path: the committed artifact declares schema 5, which is where `hazards-1` was reviewed, and reaches
 schema 6 across `5d-lift-schema-5-to-6`. Zero movement was re-run against the finalized destination —
