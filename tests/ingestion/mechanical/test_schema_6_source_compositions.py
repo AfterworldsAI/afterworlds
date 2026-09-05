@@ -43,12 +43,16 @@ from afterworlds.ingestion.mechanical.oracle import (
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
+    AbilityCheckFact,
+    AbilityScore,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
     ComponentDraft,
     ComponentOption,
     ConditionKind,
+    DcKind,
     FactQualifier,
     MalformedFactPayloadError,
     MovementTransportFact,
@@ -57,6 +61,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
+    RollContext,
     SizeComparison,
     SizeRelation,
     TransportKind,
@@ -65,8 +70,13 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_from_payload,
     fact_key,
     prose_binding_target_key,
+    representation_schema_hash,
 )
-from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_5_HASH, SCHEMA_5_VERSION
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_5_HASH,
+    SCHEMA_5_VERSION,
+    schema_binding_violations,
+)
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
@@ -716,3 +726,59 @@ def test_a_schema_5_artifact_stating_an_ability_still_loads(
     path = _artifact_with_ability("strength", tmp_path, "stated-ability.json")
     loaded = load_accepted_inputs(path)
     assert loaded.oracle.representation.components[0].facts
+
+
+def _ability_check_draft(ability: object) -> object:
+    """The fixture draft holding one ability check with *ability*."""
+    component = ComponentDraft(
+        record_key=SPELL_KEY,
+        semantic_key=OPEN_ENDED_KEY,
+        handling=ComponentHandling.MIXED,
+        irreducibility_reason_code="open_ended_effect",
+        facts=(
+            AbilityCheckFact(
+                ability=ability,  # type: ignore[arg-type]
+                dc_kind=DcKind.FIXED,
+                dc_value=15,
+                context=RollContext.ABILITY_CHECK,
+            ),
+        ),
+    )
+    return _composed(
+        component,
+        (_prose(""),),
+        (((SPELL_KEY, OPEN_ENDED_KEY, fact_key(component.facts[0])), _spans(1)[0]),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("declared", "admitted"),
+    [
+        ((SCHEMA_5_VERSION, SCHEMA_5_HASH), False),
+        ((REPRESENTATION_SCHEMA_VERSION, representation_schema_hash()), True),
+    ],
+    ids=["schema-5", "schema-6"],
+)
+def test_the_shared_admission_seam_refuses_an_ability_less_check_before_schema_6(
+    declared: tuple[str, str], admitted: bool
+) -> None:
+    """One function guards every seam that admits authority, so assert on it.
+
+    ``schema_binding_violations`` is what ``load_accepted_inputs``,
+    ``verify_lift`` and ``accept_proposal`` all run — a restamped prior reaches
+    acceptance through the last two, never through the loader, so asserting
+    only the loader would leave the attack this row exists to stop untested.
+    """
+    findings = schema_binding_violations(_ability_check_draft(None), declared)
+    assert (findings == []) is admitted, findings
+
+
+def test_the_shared_admission_seam_still_admits_a_stated_ability_at_schema_5() -> None:
+    """The valid sibling: a row here refuses a value, never a shape."""
+    assert (
+        schema_binding_violations(
+            _ability_check_draft(AbilityScore.STRENGTH),
+            (SCHEMA_5_VERSION, SCHEMA_5_HASH),
+        )
+        == []
+    )
