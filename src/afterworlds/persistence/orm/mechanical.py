@@ -327,6 +327,14 @@ class MechanicalProseBindingORM(_ProjectionScoped):
     irreducibility_reason_code: Mapped[str] = mapped_column(
         sa.String(64), nullable=False
     )
+    #: The option of the component's actor choice this binding governs, or the
+    #: empty string when it governs the whole component. Schema 6, and stored
+    #: exactly as ``MechanicalFactORM.option_key`` is: not nullable, with the
+    #: empty string as the *absence* of an option rather than a second null
+    #: meaning nobody would be able to tell from a blank key.
+    option_key: Mapped[str] = mapped_column(
+        sa.String(255), nullable=False, server_default=""
+    )
 
 
 class MechanicalRelationshipORM(_ProjectionScoped):

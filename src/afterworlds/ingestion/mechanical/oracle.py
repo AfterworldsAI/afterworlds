@@ -78,6 +78,7 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    COMPONENT_WIDE_PROSE,
     RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
@@ -780,6 +781,10 @@ def _representation(payload: object) -> RepresentationDraft:
                 "irreducibility_reason_code",
             ),
             where,
+            # Schema 6, and absent from every payload written before it. The
+            # canonical form omits it when the binding governs the whole
+            # component, so its absence has exactly one reading.
+            optional=("option_key",),
         )
         prose_bindings.append(
             ProseBindingDraft(
@@ -794,6 +799,11 @@ def _representation(payload: object) -> RepresentationDraft:
                 irreducibility_reason_code=_string(
                     b["irreducibility_reason_code"],
                     f"{where}.irreducibility_reason_code",
+                ),
+                option_key=(
+                    COMPONENT_WIDE_PROSE
+                    if b.get("option_key") is None
+                    else _string(b["option_key"], f"{where}.option_key")
                 ),
             )
         )

@@ -40,10 +40,12 @@ from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.representation import (
+    COMPONENT_WIDE_PROSE,
     RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
+    ProseBindingDraft,
     Recurrence,
     ReferenceDraft,
     RepresentationDraft,
@@ -76,6 +78,7 @@ __all__ = [
     "SCHEMA_3_VERSION",
     "SCHEMA_4_VERSION",
     "SCHEMA_5_VERSION",
+    "SCHEMA_6_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -143,6 +146,7 @@ SCHEMA_2_VERSION = "5d-representation-schema-2"
 SCHEMA_3_VERSION = "5d-representation-schema-3"
 SCHEMA_4_VERSION = "5d-representation-schema-4"
 SCHEMA_5_VERSION = "5d-representation-schema-5"
+SCHEMA_6_VERSION = "5d-representation-schema-6"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -278,6 +282,13 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_5_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # Its own row, written out rather than inherited. Schema 6's additions are
+    # twelve fact families, several omit-when-empty fact and applicability
+    # fields, and one omit-when-empty *prose-binding* key. None of them is a
+    # component key, so this is schema 5's set repeated deliberately.
+    SCHEMA_6_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -312,8 +323,57 @@ def _emitted_component_fields(schema_version: str) -> frozenset[str]:
 #: Explicit membership, never ordering, for the same reason ``_VERSION_STATES``
 #: is: an unrecognised declaration states nothing and fails closed.
 _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_4_VERSION, SCHEMA_5_VERSION}
+    {SCHEMA_4_VERSION, SCHEMA_5_VERSION, SCHEMA_6_VERSION}
 )
+
+#: The versions whose prose bindings may be scoped to one option of a choice.
+#: Schema 6 and later; stated as a set rather than a comparison for the same
+#: reason ``_MERGED_COMPONENT_FIELDS`` is a registry.
+_OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset({SCHEMA_6_VERSION})
+
+
+def _prose_binding_payload(
+    binding: ProseBindingDraft, schema_version: str
+) -> dict[str, object]:
+    """One prose binding's canonical payload under *schema_version*.
+
+    ``option_key`` is emitted **only when it carries meaning**, which is the
+    same omit-when-empty rule the representation walker applies to a
+    post-schema-3 fact field and for the same purpose: every binding accepted
+    before schema 6 has the exact payload — and therefore the exact provenance
+    coordinate — it already had.
+
+    A binding that *is* option-scoped under a contract with no such scope is
+    refused rather than flattened to the component, because flattening it would
+    silently widen governing prose to arms the source does not govern.
+    """
+    if (
+        binding.option_key != COMPONENT_WIDE_PROSE
+        and schema_version not in _OPTION_SCOPED_PROSE_VERSIONS
+    ):
+        raise LegacySchemaPayloadError(
+            f"prose binding {binding.record_key}/{binding.component_key} is "
+            f"scoped to option {binding.option_key!r}, but declares schema "
+            f"{schema_version!r}, which has no option-scoped prose — that "
+            f"arrived with {SCHEMA_6_VERSION}; refusing to omit meaning-bearing "
+            "data to reproduce a legacy identity"
+        )
+    payload: dict[str, object] = {
+        "record_key": binding.record_key,
+        "component_key": binding.component_key,
+        "chunk_id": binding.chunk_id,
+        # The accepted span and its extent are meaning-bearing. A binding moved
+        # to a different clause of the same chunk governs different text, so it
+        # is a different projection — the same reason the chunk itself has
+        # always been in this payload.
+        "span_id": binding.span_id,
+        "chunk_char_start": binding.chunk_char_start,
+        "chunk_char_end": binding.chunk_char_end,
+        "irreducibility_reason_code": binding.irreducibility_reason_code,
+    }
+    if binding.option_key != COMPONENT_WIDE_PROSE:
+        payload["option_key"] = binding.option_key
+    return payload
 
 
 def _reference_payload(
@@ -442,20 +502,7 @@ def representation_payload(
             for c in draft.components
         ),
         "prose_bindings": canonical_order(
-            {
-                "record_key": b.record_key,
-                "component_key": b.component_key,
-                "chunk_id": b.chunk_id,
-                # The accepted span and its extent are meaning-bearing. A
-                # binding moved to a different clause of the same chunk governs
-                # different text, so it is a different projection — the same
-                # reason the chunk itself has always been in this payload.
-                "span_id": b.span_id,
-                "chunk_char_start": b.chunk_char_start,
-                "chunk_char_end": b.chunk_char_end,
-                "irreducibility_reason_code": b.irreducibility_reason_code,
-            }
-            for b in draft.prose_bindings
+            _prose_binding_payload(b, schema_version) for b in draft.prose_bindings
         ),
         "relationships": canonical_order(
             {

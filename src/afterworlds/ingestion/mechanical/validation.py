@@ -307,6 +307,14 @@ def _validate_prose_bindings(
         component = components.get((binding.record_key, binding.component_key))
         if component is None:
             findings.append(f"{tag}: unknown component")
+        elif binding.option_key:
+            # Schema 6. An option key that names nothing would make the binding
+            # unresolvable at runtime while still reading as scoped, which is
+            # worse than an unscoped binding: the prose would silently govern
+            # no arm at all rather than every arm.
+            tag = f"{tag} option {binding.option_key}"
+            if binding.option_key not in {o.semantic_key for o in component.options}:
+                findings.append(f"{tag}: names no option of its component")
 
         # Exact governing prose resolves through the bound release's own
         # authoritative chunk population. A non-empty string is not resolution:

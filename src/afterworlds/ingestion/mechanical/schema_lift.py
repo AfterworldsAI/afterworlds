@@ -87,6 +87,8 @@ __all__ = [
     "lift_accepted_inputs",
     "SchemaLift",
     "SchemaLiftError",
+    "SCHEMA_6_HASH",
+    "SCHEMA_6_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -102,6 +104,9 @@ SCHEMA_4_HASH = "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e
 SCHEMA_5_VERSION = "5d-representation-schema-5"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_5_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_6_VERSION = "5d-representation-schema-6"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_6_HASH = "d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -206,6 +211,31 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "cannot carry, because schema 5 redefines what that kind ranges "
             "over; it fails closed rather than being reshaped, and no accepted "
             "authority contains one."
+        ),
+    ),
+    (SCHEMA_5_VERSION, SCHEMA_5_HASH): SchemaLift(
+        lift_id="5d-lift-schema-5-to-6",
+        from_version=SCHEMA_5_VERSION,
+        from_hash=SCHEMA_5_HASH,
+        to_version=SCHEMA_6_VERSION,
+        to_hash=SCHEMA_6_HASH,
+        rationale=(
+            "Schema 6 adds twelve fact families for batch actions-1, three "
+            "members to vocabularies earlier schemas already had, fourteen new "
+            "closed vocabularies, five omit-when-empty fields on structures "
+            "earlier schemas already had, and one omit-when-empty key on a "
+            "prose binding. It adds no required field: the one field it "
+            "changed on an existing family made AbilityCheckFact.ability "
+            "*optional*, which is the opposite movement and leaves that key "
+            "emitted unconditionally, so every accepted ability check keeps its "
+            "exact payload. Every other addition is omitted from the canonical "
+            "payload when it carries no meaning, and every inherited element "
+            "therefore has the same canonical form under both contracts — which "
+            "verify_lift proves element by element rather than asserting. An "
+            "option-scoped prose binding is the one shape this succession "
+            "cannot carry backwards; it fails closed in the projection rather "
+            "than being flattened to its component, because flattening would "
+            "widen governing prose to arms the source does not govern."
         ),
     ),
 }

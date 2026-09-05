@@ -325,6 +325,7 @@ def persist_draft(
                 chunk_char_start=binding.chunk_char_start,
                 chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
+                option_key=binding.option_key,
             )
         )
 
@@ -754,6 +755,7 @@ def reconstruct_candidate(
                 chunk_char_start=p.chunk_char_start,
                 chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
+                option_key=p.option_key,
             )
             for p in raw.prose_bindings
         ),
