@@ -186,7 +186,7 @@ not because a typed shape was merely inconvenient.
 | D2 | *"The increase equals your Speed after applying any modifiers."* | `dash_movement` | — | **✗ F2** | The amount is *equal to post-modifier Speed*. `MovementAmount` admits only `FEET` and `HALF_SPEED`; `ScalingBasis` has no own-Speed member; `SpeedModificationFact` changes Speed rather than granting budget. Encoding this as doubling, as a fixed number, or as a movement *cost* would each be false rather than lossy. |
 | D3 | *"for the current turn"* | `dash_movement` | — | **✗ F3** | A duration. `Recurrence` states repeats; `Phase` admits only `WHILE_ACTIVE`/`ON_END`; `EffectTerminationFact` carries no trigger. Nothing states "until the end of the current turn". |
 | D4 | *"With a Speed of 30 feet, for example, you can move up to 60 feet on your turn if you Dash. If your Speed of 30 feet is reduced to 15 feet, you can move up to 30 feet this turn if you Dash."* | `dash_movement` | — | **S** | Worked examples. Substantive authority is D2; the printed 60 and 30 are illustrations of it and are **not** copied into a fact. |
-| D5 | *"If you have a special speed, such as a Fly Speed or Swim Speed, you can use that speed instead of your Speed when you take this action."* | `dash_speed_choice` | — | **✗ F2 + F4** | The selection ranges over *the special speeds the subject happens to have* — *"such as"* is illustrative, not an enumeration. `ComponentDraft.options` is exhaustive by definition in this version, so a four-arm `MovementMode` set would state a closed choice the source does not. Each arm would also need the missing grant fact. |
+| D5 | *"If you have a special speed, such as a Fly Speed or Swim Speed, you can use that speed instead of your Speed when you take this action."* | `dash_speed_choice` | — | **✗ F2 + F15** | The selection ranges over *the special speeds the subject happens to have* — *"such as"* is illustrative, not an enumeration. `ComponentDraft.options` is exhaustive by definition in this version, so a four-arm `MovementMode` set would state a closed choice the source does not. Each arm would also need the missing grant fact. |
 | D6 | *"You choose which speed to use each time you take it."* | `dash_speed_choice` | — | **T** (once D5 is representable) | Per-exercise re-selection is already `ComponentOption`'s stated semantics (*"mutually exclusive with its siblings per exercise; selecting one does not permanently remove the others"*). This clause is **not** itself a gap. |
 | D7 | *"See also"* / *"'Speed.'"* | record-owned | `ReferenceDraft` | **R — out of cut** | Target `Speed` (p.188). See §6. |
 
@@ -444,7 +444,7 @@ because a family should not be minted for one clause.
 | **F12** | *"you must take the Magic action on each turn of that casting"* — a per-turn obligation to act | `Magic` (K2) | **Issue-scoped schema work.** Decided, not left borderline: `Recurrence(START_OF_TURN)` is **false** here, because it would state that an effect fires at a turn boundary rather than that the subject must spend an action each turn for the effect to continue. |
 | **F13** | Spell-slot / resource expenditure and **non**-expenditure as an event | `Magic` (K4), `Ready` (L7) | **Known Unknown — do not decide in code.** ADR-015b's typed parameter contract for spell-slot upcasting and variable-resource recovery is the recorded Known Unknown named in `representation.py`'s own header. Expenditure semantics sit against that boundary. Flagged, not resolved. |
 | **F14** | Equipping / unequipping a weapon | `Attack` (B3) | **Issue-scoped schema work**, but see F15 — the two are one clause and should be decided together. `EquipmentDescriptorFact` is price and weight; `WeaponPropertyFact` is a printed property. Neither is an equip event. |
-| **F15** | Two orthogonal binary choice axes over one clause (equip/unequip × before/after) | `Attack` (B4) | **Scope boundary.** `ComponentDraft.options` is one level deep *by construction*, and its exhaustiveness is a declared schema-version property. Adding a second axis or nesting changes the component model itself, not a fact family — a materially different structure that must be reconciled at ADR level rather than patched in. |
+| **F15** | The component **option model** itself: (a) two orthogonal binary choice axes over one clause — equip/unequip × before/after; (b) an option set that ranges over *what the subject happens to possess* rather than a source-enumerated closed set | `Attack` (B4), `Dash` (D5) | **Scope boundary.** `ComponentDraft.options` is one level deep *by construction*, and its exhaustiveness is a declared schema-version property (*"exhaustive by definition in this schema version"*, evidenced by Prone's *"your only movement options are"*). (a) needs a second axis or nesting; (b) needs a non-exhaustive or open-domain option set — Dash's *"such as a Fly Speed or Swim Speed"* is illustrative, so a four-arm `MovementMode` set would state a closed choice the source does not. Both change the component model rather than the fact union, which is a materially different structure to be reconciled at ADR level rather than patched in. Grouped as one entry because the cause is one: the option model's declared shape. |
 | **F16** | Interleaving movement between multiple attacks | `Attack` (B7) | **Scope leak — out of scope for `actions-1`.** The permission is conditional on possessing a class feature (*"such as Extra Attack"*) that has no Rules Definitions record and lies outside this batch and outside Rules Definitions entirely. Sequencing is listed as untouched in `representation.py`'s header. Representing it here would require importing authority this batch never accounted. Not fixed, not silently dropped: disclosed. |
 
 ### Explicitly *not* gaps
@@ -566,10 +566,19 @@ unrun check is presented as passed.
 mypy 1.19.1, pytest 9.0.3, pip-audit 2.10.0, detect-secrets 1.5.0. Recorded in the hygiene
 checkpoint with the environment checks.
 
-**detect-secrets.** The deterministic baseline was established at the start of the session
-and is unmodified (`.secrets.baseline`, blob `474ed2f15e2508d9cc31a0a4ead1b9afcf5f2cca`,
-content SHA-256 `c95a0cb6555ad95c8ef8f0e7b27db060d65959600f67b2119ff83c98f15b9b9a`, 4 files
-/ 129 findings). Three files are new on this branch, plus the baseline itself; each was scanned
+**detect-secrets.** The deterministic baseline was established at the start of the session,
+**before any artifact of this work existed**, so new findings are separable from
+pre-existing ones. This branch then adds exactly one path-scoped entry to it.
+
+| | Blob | Content SHA-256 (LF) | Files | Findings |
+|---|---|---|---|---|
+| As established at session start (= baseline commit `b5d386ba…`) | `474ed2f15e2508d9cc31a0a4ead1b9afcf5f2cca` | `c95a0cb6555ad95c8ef8f0e7b27db060d65959600f67b2119ff83c98f15b9b9a` | 4 | 129 |
+| At this branch head | `99de7d2e38f8ddfc5d7b68469e57790ed3a4cc6d` | `2cccfb4c0caf31629339d3b5986c648896649be6ca66cf75b2ba736ff4ff01d2` | 5 | 189 |
+
+The hygiene checkpoint records the baseline as unmodified; that was accurate at hygiene
+time and is superseded by the single addition below, not contradicted by it.
+
+Three files are new on this branch, plus the baseline itself; each was scanned
 individually against it:
 
 | File | Result |
@@ -593,10 +602,27 @@ detect-secrets-hook --baseline .secrets.baseline \
 separators git reports, which is what the baseline's keys are stored with)
 ```
 
-**Measurement scope.** Every count in this document describes the batch boundary derived
-from the bound source at the branch head `b5d386ba…`. No whole-PR (`verified base…final
-head`), per-commit, or runtime measurement is reported, because no commit has been made
-and no timed run was performed.
+**Measurement scope.** The three scopes the brief requires kept apart:
+
+| Scope | Comparison | Value |
+|---|---|---|
+| **Whole-PR** | `git diff --shortstat b5d386ba5575a6482bb0eca3d6d38a2ec7e8fc5d...HEAD` | 4 files changed, **+12,959 / -0** |
+| **Individual commit** — first | hygiene checkpoint, frozen prior fixture, baseline entry, this checkpoint | 4 files, +12,930 / -0 |
+| **Individual commit** — second | corrections to this checkpoint's own summary accounting; no discovery finding changed | 1 file, +43 / -14 |
+| **Runtime** | one `pytest tests/ingestion/mechanical -q` invocation | 287.48 s |
+
+The whole-PR insertion count is dominated by the 11,514-line frozen prior fixture, which
+is a byte-for-byte copy of already-accepted authority, not authored content; the two
+checkpoints are 335 and ~700 lines, and the baseline addition 422.
+
+Commits are named by role rather than by SHA, deliberately: a document that cites the
+commit containing it can never be correct after the commit that fixes it. The comparison
+command is given so every figure above is re-derivable rather than trusted.
+
+Every **discovery** count in this document (13 records, 92 leaves, the per-record leaf
+counts, the gap IDs) describes the batch boundary derived from the bound source at this
+branch head. Those are source measurements, not diff measurements, and are not comparable
+to the table above.
 
 **Determinism.** The boundary derivation is a pure function of the committed PDF and the
 committed pipeline; it was executed from a script whose repository root is derived from
@@ -617,8 +643,11 @@ Invariant 12 (surface scope creep and Known Unknowns rather than resolving them 
 is the reason this is a stop rather than a proposal.
 
 **The boundary this stop surfaces** is that schema 5 is insufficient for `actions-1`
-across sixteen distinct source meanings in eleven of thirteen records, grouped into five
-recurring defect families and eleven singletons. Two of those are not ordinary
+across **fifteen distinct gap IDs** (F1–F3, F5–F16; there is no F4) touching **twelve of
+thirteen** records — every record except `Utilize` — grouped into five recurring defect
+families and ten singletons. Counted as IDs rather than as clauses on purpose: several IDs
+cover more than one ledger row (F3 alone covers seven), so a clause count would be a
+different, larger number. Two of those are not ordinary
 implementation work and are named as such: **F13** touches the recorded ADR-015b Known
 Unknown; **F10** touches the `ParticipantRole.COUNTERPART` restriction and the ADR-005d
 Decision 4 generic-actor boundary, and is marked `[OWNER DECISION]:` residue. **F15**
@@ -637,8 +666,8 @@ targeting-restrictions sweep reaffirms the existing refusal for some arms.
 
 Explicitly, per §4 of the brief:
 
-1. **The schema gate is not clear.** Sixteen distinct source meanings across eleven
-   records have no faithful home under schema 5. All three of the brief's named pressure
+1. **The schema gate is not clear.** Fifteen distinct gap IDs, touching twelve of the
+   thirteen records, have no faithful home under schema 5. All three of the brief's named pressure
    points fail — Dash on F1/F2/F3, Influence on F8/F9/F10/F11 plus the attitude scope
    boundary, Attack on F1/F14/F15/F16 with `AttackRollFact.to_hit_bonus` proving the
    entitlement gap by construction.
