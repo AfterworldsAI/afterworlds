@@ -5,6 +5,11 @@ DISCOVERY EVIDENCE, not a generator. This script resolves every obligation in
 char_end)` coordinates in the bound CRD Issue 5c release, and fails loudly if a
 quoted phrase is not present verbatim in the leaf it claims.
 
+It also measures coverage as a **full partition** of every non-heading leaf:
+every character is either claimed by an obligation or reported as an unassigned
+run, and an unassigned run containing a word character fails the run rather than
+being counted and passed over.
+
 It emits no proposal, no audit, and no representation. It never writes to
 `oracles/`, never calls `accept_proposal`, never touches the database, and never
 publishes or activates anything. The batch payload is deliberately absent: the
@@ -144,6 +149,7 @@ LEDGER_SPEC: list[tuple[str, str, int, str | tuple[str, str]]] = [
     ("A4", "Action", 6, "Influence Magic Ready"),
     ("A4", "Action", 7, "Search Study Utilize"),
     # --- Dash ---------------------------------------------------------------
+    ("D8", "Dash [Action]", 1, "When you take the Dash action,"),
     ("D1", "Dash [Action]", 1, "you gain extra movement"),
     (
         "D2",
@@ -197,6 +203,7 @@ LEDGER_SPEC: list[tuple[str, str, int, str | tuple[str, str]]] = [
         1,
         "If you take the Dodge action, you gain the following benefits:",
     ),
+    ("G7", "Dodge [Action]", 1, ", and "),
     # --- Help ---------------------------------------------------------------
     (
         "H1",
@@ -277,6 +284,7 @@ LEDGER_SPEC: list[tuple[str, str, int, str | tuple[str, str]]] = [
         "You stop being hidden immediately after any of the following occurs: you make a sound louder than a whisper, an enemy finds you, you make an attack roll, or you cast a spell with a Verbal component.",
     ),
     ("I9", "Hide [Action]", 1, "With the Hide action, you try to hide yourself."),
+    ("I10", "Hide [Action]", 1, " To do so, "),
     # --- Influence ----------------------------------------------------------
     (
         "J1",
@@ -590,6 +598,7 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "A2": ("P", ()),
     "A3": ("S", ()),
     "A4": ("R", ()),
+    "D8": ("S", ()),
     "D1": ("X", ("F1", "F2")),
     "D2": ("X", ("F2",)),
     "D3": ("X", ("F3",)),
@@ -606,6 +615,7 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "G4": ("X", ("F3",)),
     "G5": ("X", ("F6a", "F6b")),
     "G6": ("S", ()),
+    "G7": ("S", ()),
     "H1": ("X", ("F17", "F18")),
     # Option-scoped governing prose: it states arm 1's selection and proximity
     # judgement, and `gamemaster_latitude`/`contextual_applicability` is true of
@@ -625,6 +635,7 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "I6": ("X", ("F7",)),
     "I7": ("P", ()),
     "I9": ("S", ()),
+    "I10": ("S", ()),
     "J1": ("P", ()),
     "J2": ("P", ()),
     "J3": ("P", ()),
@@ -638,7 +649,7 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "J11": ("X", ("F11",)),
     "K1": ("TP", ()),
     "K2": ("X", ("F12",)),
-    "K3": ("P", ()),
+    "K3": ("X", ("F20",)),
     "K4": ("X", ("F6a", "F13")),
     "K5": ("R", ()),
     "L1": ("T", ()),
@@ -646,9 +657,9 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "L3": ("P", ()),
     "L4": ("X", ("F2", "F19")),
     "L5": ("S", ()),
-    "L6": ("P", ()),
+    "L6": ("X", ("F16",)),
     "L7": ("X", ("F13",)),
-    "L8": ("P", ()),
+    "L8": ("S", ()),
     "L9": ("X", ("F3",)),
     "L10": ("X", ("F6a",)),
     "M1": ("T", ()),
@@ -662,9 +673,9 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "B2": ("X", ("F1",)),
     "B3": ("X", ("F1", "F14")),
     "B4": ("X", ("F14",)),
-    "B5": ("P", ()),
+    "B5": ("S", ()),
     "B6": ("S", ()),
-    "B7": ("P", ()),
+    "B7": ("X", ("F16",)),
 }
 
 #: Families whose motivating cases are all representable, or which name an
@@ -672,9 +683,12 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
 #: correction is legible against the previous revision.
 NON_BLOCKING = {
     "F4": "never defined; the identifier was unused",
-    "F9": "enrichment - the suggested tables are honestly prose-bound",
+    "F9": (
+        "prose-bound today under contract 3's second branch, but 'random-table "
+        "selection' is a named contract-3 family group and this batch surfaces "
+        "three instances - deferred and owed, not dismissed"
+    ),
     "F15": "withdrawn - both motivating cases are representable as authored",
-    "F16": "enrichment - in scope, and honestly prose-bound",
 }
 
 rows: list[dict[str, object]] = []
@@ -777,18 +791,82 @@ for _oid, (_code, _fams) in sorted(DISPOSITION.items()):
     if _code != "X" and _fams:
         errors.append(f"{_oid}: names a blocking family but is not UNRESOLVED")
 
-# Interior gaps: characters of a leaf between two consecutive claims that no
-# obligation claims. The eventual proposal needs an exact per-leaf partition,
-# so these are the characters still to be assigned.
-interior_gap_chars = 0
-interior_gaps: list[dict[str, object]] = []
-for _lid, _spans in claimed.items():
-    for (_s1, _e1, _o1), (_s2, _e2, _o2) in zip(_spans, _spans[1:], strict=False):
-        if _s2 > _e1:
-            interior_gap_chars += _s2 - _e1
-            interior_gaps.append(
-                {"leaf_id": _lid, "start": _e1, "end": _s2, "between": [_o1, _o2]}
+# ---------------------------------------------------------------------------
+# Full per-leaf coverage
+# ---------------------------------------------------------------------------
+#
+# The previous revision measured only the gaps *between* consecutive claims and
+# reported 74 characters. That understated the residue by ignoring the head of a
+# leaf (before the first claim) and its tail (after the last), which is where a
+# whole clause can hide: Dash's trigger, "When you take the Dash action, ", is a
+# 31-character head run that no obligation claimed.
+#
+# Coverage is therefore measured as a partition of every represented leaf. A run
+# no obligation claims is classified, not merely counted:
+#
+#   separator  - only whitespace and inter-clause punctuation. Real residue an
+#                exact partition still has to assign, but it states nothing.
+#   SUBSTANTIVE - contains a word character. This is source meaning nobody
+#                accounted, and it FAILS the run.
+#
+# Heading leaves are excluded from the partition by the same rule that excludes
+# them from the obligation table: they are record-owned supporting authority.
+_SEPARATOR_CHARS = set(" \t\r\n.,;:()[]\u2019'\u201c\u201d\"\u2014-\u2013/")
+
+
+def _classify(run: str) -> str:
+    """A run is separator-only, or it is substantive source text."""
+    return "separator" if set(run) <= _SEPARATOR_CHARS else "SUBSTANTIVE"
+
+
+unassigned_total = 0
+unassigned_runs: list[dict[str, object]] = []
+partition: list[dict[str, object]] = []
+for label, leaves in BATCH.items():
+    for index, leaf in enumerate(leaves):
+        if index == HEADING_LEAVES[label]:
+            continue
+        spans = sorted((s, e, o) for s, e, o in claimed.get(leaf.leaf_id, []))
+        cursor = 0
+        runs: list[tuple[int, int]] = []
+        for s, e, _o in spans:
+            if s > cursor:
+                runs.append((cursor, s))
+            cursor = max(cursor, e)
+        if cursor < len(leaf.content):
+            runs.append((cursor, len(leaf.content)))
+        leaf_unassigned = 0
+        for s, e in runs:
+            run = leaf.content[s:e]
+            kind = _classify(run)
+            leaf_unassigned += e - s
+            unassigned_total += e - s
+            unassigned_runs.append(
+                {
+                    "entry": label,
+                    "leaf_index": index,
+                    "leaf_id": leaf.leaf_id,
+                    "start": s,
+                    "end": e,
+                    "kind": kind,
+                    "text": run,
+                }
             )
+            if kind == "SUBSTANTIVE":
+                errors.append(
+                    f"unaccounted source text in {label}[{index}] "
+                    f"{leaf.leaf_id[:8]}[{s}:{e}]: {run!r}"
+                )
+        partition.append(
+            {
+                "entry": label,
+                "leaf_index": index,
+                "leaf_id": leaf.leaf_id,
+                "length": len(leaf.content),
+                "claimed_characters": len(leaf.content) - leaf_unassigned,
+                "unassigned_characters": leaf_unassigned,
+            }
+        )
 
 report = {
     "release_version": CAND.release_version,
@@ -810,8 +888,13 @@ report = {
     ),
     "records_with_an_unresolved_obligation": 0,
     "non_blocking_families": NON_BLOCKING,
-    "interior_gap_characters": interior_gap_chars,
-    "interior_gaps": interior_gaps,
+    "non_heading_leaves": len(partition),
+    "unassigned_characters": unassigned_total,
+    "substantive_unassigned_runs": sum(
+        1 for r in unassigned_runs if r["kind"] == "SUBSTANTIVE"
+    ),
+    "unassigned_runs": unassigned_runs,
+    "leaf_partition": partition,
     "coordinates": rows,
     "leaves_without_an_obligation_row": uncovered,
 }
@@ -837,7 +920,11 @@ print(
     f"blocking families={report['blocking_family_count']}: "
     f"{sorted(report['blocking_families'])}"
 )
-print(f"interior gap characters still unassigned={report['interior_gap_characters']}")
+print(
+    f"unassigned characters={report['unassigned_characters']} "
+    f"across {len(report['unassigned_runs'])} run(s); "
+    f"substantive={report['substantive_unassigned_runs']}"
+)
 print(
     f"obligations={report['distinct_obligations']} "
     f"rows={report['obligation_rows']} "

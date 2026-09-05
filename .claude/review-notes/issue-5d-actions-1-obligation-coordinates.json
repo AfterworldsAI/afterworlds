@@ -6,17 +6,17 @@
  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
  "records": 13,
  "represented_leaves": 92,
- "obligation_rows": 132,
- "distinct_obligations": 75,
+ "obligation_rows": 135,
+ "distinct_obligations": 78,
  "leaves_carrying_an_obligation": 79,
  "overlapping_claims": 0,
  "disposition_tally": {
-  "P": 20,
+  "P": 15,
   "R": 4,
-  "S": 8,
+  "S": 13,
   "T": 7,
   "TP": 4,
-  "X": 32
+  "X": 35
  },
  "blocking_families": {
   "F1": [
@@ -44,6 +44,10 @@
    "B3",
    "B4"
   ],
+  "F16": [
+   "B7",
+   "L6"
+  ],
   "F17": [
    "H1",
    "H3",
@@ -65,6 +69,9 @@
    "D2",
    "D5",
    "L4"
+  ],
+  "F20": [
+   "K3"
   ],
   "F3": [
    "D3",
@@ -97,13 +104,14 @@
    "J6"
   ]
  },
- "blocking_family_count": 17,
+ "blocking_family_count": 19,
  "unresolved_obligations": [
   "A1",
   "B1",
   "B2",
   "B3",
   "B4",
+  "B7",
   "D1",
   "D2",
   "D3",
@@ -125,498 +133,1135 @@
   "J6",
   "J9",
   "K2",
+  "K3",
   "K4",
   "L10",
   "L2",
   "L4",
+  "L6",
   "L7",
   "L9"
  ],
  "records_with_an_unresolved_obligation": 10,
  "non_blocking_families": {
   "F4": "never defined; the identifier was unused",
-  "F9": "enrichment - the suggested tables are honestly prose-bound",
-  "F15": "withdrawn - both motivating cases are representable as authored",
-  "F16": "enrichment - in scope, and honestly prose-bound"
+  "F9": "prose-bound today under contract 3's second branch, but 'random-table selection' is a named contract-3 family group and this batch surfaces three instances - deferred and owed, not dismissed",
+  "F15": "withdrawn - both motivating cases are representable as authored"
  },
- "interior_gap_characters": 74,
- "interior_gaps": [
+ "non_heading_leaves": 79,
+ "unassigned_characters": 59,
+ "substantive_unassigned_runs": 0,
+ "unassigned_runs": [
   {
-   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
-   "start": 38,
-   "end": 39,
-   "between": [
-    "A1",
-    "A2"
-   ]
-  },
-  {
-   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
-   "start": 31,
-   "end": 32,
-   "between": [
-    "A3",
-    "A4"
-   ]
-  },
-  {
-   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
-   "start": 54,
-   "end": 55,
-   "between": [
-    "D1",
-    "D3"
-   ]
-  },
-  {
-   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
-   "start": 75,
-   "end": 77,
-   "between": [
-    "D3",
-    "D2"
-   ]
-  },
-  {
-   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
-   "start": 137,
-   "end": 138,
-   "between": [
-    "D2",
-    "D4"
-   ]
-  },
-  {
-   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
-   "start": 131,
-   "end": 132,
-   "between": [
-    "D4",
-    "D5"
-   ]
-  },
-  {
-   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
-   "start": 32,
-   "end": 33,
-   "between": [
-    "D5",
-    "D6"
-   ]
-  },
-  {
-   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
-   "start": 33,
-   "end": 34,
-   "between": [
-    "E3",
-    "E1"
-   ]
-  },
-  {
-   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
-   "start": 83,
-   "end": 84,
-   "between": [
-    "E1",
-    "E2"
-   ]
-  },
-  {
-   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
-   "start": 62,
-   "end": 63,
-   "between": [
-    "G6",
-    "G4"
-   ]
-  },
-  {
-   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
-   "start": 96,
-   "end": 98,
-   "between": [
-    "G4",
-    "G1"
-   ]
-  },
-  {
-   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
-   "start": 147,
-   "end": 148,
-   "between": [
-    "G1",
-    "G2"
-   ]
-  },
-  {
-   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
-   "start": 175,
-   "end": 181,
-   "between": [
-    "G2",
-    "G3"
-   ]
-  },
-  {
-   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
-   "start": 228,
-   "end": 230,
-   "between": [
-    "G3",
-    "G5"
-   ]
-  },
-  {
-   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
-   "start": 80,
-   "end": 81,
-   "between": [
-    "H2",
-    "H3"
-   ]
-  },
-  {
-   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
-   "start": 171,
-   "end": 172,
-   "between": [
-    "H3",
-    "H4"
-   ]
-  },
-  {
-   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
-   "start": 255,
-   "end": 256,
-   "between": [
-    "H4",
-    "H5"
-   ]
-  },
-  {
-   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
-   "start": 138,
-   "end": 139,
-   "between": [
-    "H6",
-    "H7"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 47,
-   "end": 58,
-   "between": [
-    "I9",
-    "I1"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 111,
-   "end": 112,
-   "between": [
-    "I1",
-    "I2"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 187,
-   "end": 189,
-   "between": [
-    "I2",
-    "I3"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 237,
-   "end": 239,
-   "between": [
-    "I3",
-    "I4"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 304,
-   "end": 306,
-   "between": [
-    "I4",
-    "I5"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 375,
-   "end": 376,
-   "between": [
-    "I5",
-    "I6"
-   ]
-  },
-  {
-   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
-   "start": 485,
-   "end": 486,
-   "between": [
-    "I6",
-    "I7"
-   ]
-  },
-  {
-   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
-   "start": 192,
-   "end": 193,
-   "between": [
-    "J1",
-    "J2"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 98,
-   "end": 99,
-   "between": [
-    "J6",
-    "J5"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 221,
-   "end": 222,
-   "between": [
-    "J5",
-    "J7"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 335,
-   "end": 336,
-   "between": [
-    "J7",
-    "J8"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 361,
-   "end": 362,
-   "between": [
-    "J8",
-    "J9"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 454,
-   "end": 455,
-   "between": [
-    "J9",
-    "J10"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 504,
-   "end": 505,
-   "between": [
-    "J10",
-    "J11"
-   ]
-  },
-  {
-   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "start": 616,
-   "end": 617,
-   "between": [
-    "J11",
-    "J7"
-   ]
-  },
-  {
-   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
-   "start": 127,
-   "end": 128,
-   "between": [
-    "K2",
-    "K3"
-   ]
-  },
-  {
-   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
-   "start": 180,
-   "end": 181,
-   "between": [
-    "K3",
-    "K4"
-   ]
-  },
-  {
-   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
-   "start": 124,
-   "end": 125,
-   "between": [
-    "L1",
-    "L2"
-   ]
-  },
-  {
-   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
-   "start": 200,
-   "end": 201,
-   "between": [
-    "L2",
-    "L3"
-   ]
-  },
-  {
-   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
-   "start": 276,
-   "end": 277,
-   "between": [
-    "L3",
-    "L4"
-   ]
-  },
-  {
-   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
-   "start": 405,
-   "end": 406,
-   "between": [
-    "L4",
-    "L5"
-   ]
-  },
-  {
-   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
-   "start": 96,
-   "end": 97,
-   "between": [
-    "L5",
-    "L6"
-   ]
-  },
-  {
-   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
-   "start": 211,
-   "end": 212,
-   "between": [
-    "L6",
-    "L7"
-   ]
-  },
-  {
-   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
-   "start": 382,
-   "end": 383,
-   "between": [
-    "L7",
-    "L8"
-   ]
-  },
-  {
-   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
-   "start": 444,
-   "end": 445,
-   "between": [
-    "L8",
-    "L9"
-   ]
-  },
-  {
-   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
-   "start": 562,
-   "end": 563,
-   "between": [
-    "L9",
-    "L10"
-   ]
-  },
-  {
-   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
-   "start": 56,
-   "end": 57,
-   "between": [
-    "M1",
-    "M2"
-   ]
-  },
-  {
-   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
-   "start": 97,
-   "end": 98,
-   "between": [
-    "M2",
-    "M3"
-   ]
-  },
-  {
-   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
-   "start": 221,
-   "end": 222,
-   "between": [
-    "M3",
-    "M3"
-   ]
-  },
-  {
-   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
-   "start": 192,
-   "end": 193,
-   "between": [
-    "N1",
-    "N2"
-   ]
-  },
-  {
-   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
-   "start": 124,
-   "end": 125,
-   "between": [
-    "O1",
-    "O2"
-   ]
-  },
-  {
+   "entry": "Attack [Action]",
+   "leaf_index": 1,
    "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
    "start": 61,
    "end": 62,
-   "between": [
-    "B1",
-    "B2"
-   ]
+   "kind": "separator",
+   "text": " "
   },
   {
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
    "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
    "start": 90,
    "end": 91,
-   "between": [
-    "B3",
-    "B4"
-   ]
+   "kind": "separator",
+   "text": " "
   },
   {
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
    "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
    "start": 135,
    "end": 136,
-   "between": [
-    "B4",
-    "B5"
-   ]
+   "kind": "separator",
+   "text": " "
   },
   {
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
    "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
    "start": 217,
    "end": 218,
-   "between": [
-    "B5",
-    "B6"
-   ]
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 30,
+   "end": 31,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 54,
+   "end": 55,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 75,
+   "end": 77,
+   "kind": "separator",
+   "text": ". "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 137,
+   "end": 138,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 3,
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "start": 131,
+   "end": 132,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 4,
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "start": 32,
+   "end": 33,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "start": 33,
+   "end": 34,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "start": 83,
+   "end": 84,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "start": 116,
+   "end": 117,
+   "kind": "separator",
+   "text": "."
+  },
+  {
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 62,
+   "end": 63,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 96,
+   "end": 98,
+   "kind": "separator",
+   "text": ", "
+  },
+  {
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 147,
+   "end": 148,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 228,
+   "end": 230,
+   "kind": "separator",
+   "text": ". "
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 80,
+   "end": 81,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 171,
+   "end": 172,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 255,
+   "end": 256,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 6,
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "start": 138,
+   "end": 139,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 111,
+   "end": 112,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 187,
+   "end": 189,
+   "kind": "separator",
+   "text": ", "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 237,
+   "end": 239,
+   "kind": "separator",
+   "text": "; "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 304,
+   "end": 306,
+   "kind": "separator",
+   "text": ". "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 375,
+   "end": 376,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 485,
+   "end": 486,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 1,
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "start": 192,
+   "end": 193,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 98,
+   "end": 99,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 221,
+   "end": 222,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 335,
+   "end": 336,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 361,
+   "end": 362,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 454,
+   "end": 455,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 504,
+   "end": 505,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 616,
+   "end": 617,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "start": 127,
+   "end": 128,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "start": 180,
+   "end": 181,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 124,
+   "end": 125,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 200,
+   "end": 201,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 276,
+   "end": 277,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 405,
+   "end": 406,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 96,
+   "end": 97,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 211,
+   "end": 212,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 382,
+   "end": 383,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 444,
+   "end": 445,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 562,
+   "end": 563,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 56,
+   "end": 57,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 97,
+   "end": 98,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 221,
+   "end": 222,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "start": 192,
+   "end": 193,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Utilize [Action]",
+   "leaf_index": 1,
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "start": 124,
+   "end": 125,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 1,
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "start": 38,
+   "end": 39,
+   "kind": "separator",
+   "text": " "
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 3,
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "start": 31,
+   "end": 32,
+   "kind": "separator",
+   "text": " "
+  }
+ ],
+ "leaf_partition": [
+  {
+   "entry": "Attack [Action]",
+   "leaf_index": 1,
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "length": 97,
+   "claimed_characters": 96,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Attack [Action]",
+   "leaf_index": 2,
+   "leaf_id": "e3f9e1e6-70c7-5931-904b-3ba4ce7cd79b",
+   "length": 34,
+   "claimed_characters": 34,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "length": 354,
+   "claimed_characters": 351,
+   "unassigned_characters": 3
+  },
+  {
+   "entry": "Attack [Action]",
+   "leaf_index": 4,
+   "leaf_id": "7aed0944-935d-56db-b6e0-e847971d4fff",
+   "length": 23,
+   "claimed_characters": 23,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Attack [Action]",
+   "leaf_index": 5,
+   "leaf_id": "2a4a9331-f52b-5d86-9e68-e1242e49eb49",
+   "length": 204,
+   "claimed_characters": 204,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "length": 144,
+   "claimed_characters": 139,
+   "unassigned_characters": 5
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 2,
+   "leaf_id": "c5e32691-8ec5-5150-8369-5dfa0cb381b5",
+   "length": 49,
+   "claimed_characters": 49,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 3,
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "length": 234,
+   "claimed_characters": 233,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 4,
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "length": 49,
+   "claimed_characters": 48,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 5,
+   "leaf_id": "e4ba97fe-c01e-5dd0-a664-66af39750b88",
+   "length": 35,
+   "claimed_characters": 35,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 6,
+   "leaf_id": "869c0a0b-93a3-58e2-9f40-b60d6da1f56b",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Dash [Action]",
+   "leaf_index": 7,
+   "leaf_id": "319ae274-cae6-58aa-9184-26a6940bf266",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "length": 117,
+   "claimed_characters": 114,
+   "unassigned_characters": 3
+  },
+  {
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "length": 316,
+   "claimed_characters": 310,
+   "unassigned_characters": 6
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 1,
+   "leaf_id": "7e1a032c-9c1a-5728-a01c-f6ba5d14de40",
+   "length": 59,
+   "claimed_characters": 59,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 2,
+   "leaf_id": "08258187-108f-5d6d-85ca-d622b9753fca",
+   "length": 24,
+   "claimed_characters": 24,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 3,
+   "leaf_id": "a6f0faa2-ad42-5e77-a4b7-35e4ce353d61",
+   "length": 71,
+   "claimed_characters": 71,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "length": 316,
+   "claimed_characters": 313,
+   "unassigned_characters": 3
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 5,
+   "leaf_id": "0c421a48-e2bc-5897-9136-eb2ff52786f3",
+   "length": 22,
+   "claimed_characters": 22,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Help [Action]",
+   "leaf_index": 6,
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "length": 191,
+   "claimed_characters": 190,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "length": 684,
+   "claimed_characters": 675,
+   "unassigned_characters": 9
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 1,
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "length": 388,
+   "claimed_characters": 387,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 2,
+   "leaf_id": "d1a853d4-3e28-5dfc-b704-cffef3fceabe",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 3,
+   "leaf_id": "eeda1b62-45de-576a-82a5-e5cbea43056c",
+   "length": 135,
+   "claimed_characters": 135,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 4,
+   "leaf_id": "72e486bb-4adb-5959-852e-0d8668bf7f93",
+   "length": 10,
+   "claimed_characters": 10,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 5,
+   "leaf_id": "2db001c2-80f4-5ddf-bbfb-1a0ac32e271c",
+   "length": 121,
+   "claimed_characters": 121,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 6,
+   "leaf_id": "f45c09d8-e12a-5f96-8e4b-5839dae451f4",
+   "length": 9,
+   "claimed_characters": 9,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "length": 633,
+   "claimed_characters": 626,
+   "unassigned_characters": 7
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 8,
+   "leaf_id": "bb7c7fee-92ee-5df7-9b91-6da3ecc09189",
+   "length": 13,
+   "claimed_characters": 13,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 9,
+   "leaf_id": "e68c6022-5edb-54ce-992f-6ffe7e5dc3d3",
+   "length": 11,
+   "claimed_characters": 11,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 10,
+   "leaf_id": "c22e9bd0-5b30-514c-9e10-eac4d4389807",
+   "length": 20,
+   "claimed_characters": 20,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 11,
+   "leaf_id": "d48b74d9-f5e9-5a40-9ec9-601d9ae8fce0",
+   "length": 40,
+   "claimed_characters": 40,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 12,
+   "leaf_id": "1bc03d6b-97c5-53a6-a9b0-13a611dd4926",
+   "length": 23,
+   "claimed_characters": 23,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 13,
+   "leaf_id": "09f28fab-fdb8-5585-8892-222e9beefae8",
+   "length": 22,
+   "claimed_characters": 22,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 14,
+   "leaf_id": "4931c340-2cba-57b4-bdbd-201dcff15a13",
+   "length": 22,
+   "claimed_characters": 22,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 15,
+   "leaf_id": "9d094e31-7390-57b9-9cb8-334ec226bf29",
+   "length": 17,
+   "claimed_characters": 17,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 16,
+   "leaf_id": "3ea6292c-1bbb-5c3d-a507-11e1a7df1d14",
+   "length": 21,
+   "claimed_characters": 21,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 17,
+   "leaf_id": "2ae61ef9-ba6a-5b42-a0df-b0f2a99913c4",
+   "length": 41,
+   "claimed_characters": 41,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 18,
+   "leaf_id": "eb1fe09f-f871-5c62-aa57-b6e91308a45c",
+   "length": 24,
+   "claimed_characters": 24,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Influence [Action]",
+   "leaf_index": 19,
+   "leaf_id": "fa1c8355-d239-5b47-82a5-be4300bf5860",
+   "length": 37,
+   "claimed_characters": 37,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "length": 162,
+   "claimed_characters": 162,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "length": 265,
+   "claimed_characters": 263,
+   "unassigned_characters": 2
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 3,
+   "leaf_id": "a874caf3-9c4d-5dd6-8b4a-5319fd2817c7",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Magic [Action]",
+   "leaf_index": 4,
+   "leaf_id": "d407d33d-3d6f-53e3-a752-e43e64922754",
+   "length": 16,
+   "claimed_characters": 16,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "length": 451,
+   "claimed_characters": 447,
+   "unassigned_characters": 4
+  },
+  {
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "length": 639,
+   "claimed_characters": 634,
+   "unassigned_characters": 5
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "length": 228,
+   "claimed_characters": 225,
+   "unassigned_characters": 3
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 2,
+   "leaf_id": "d31f589a-7728-5dc9-b99d-f7d5db65d84c",
+   "length": 5,
+   "claimed_characters": 5,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 3,
+   "leaf_id": "77f16205-c984-504c-b3ac-8e3c1a767aa8",
+   "length": 15,
+   "claimed_characters": 15,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 4,
+   "leaf_id": "0dc61963-a67f-5dea-b834-b1dc64869198",
+   "length": 7,
+   "claimed_characters": 7,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 5,
+   "leaf_id": "0359338d-0686-53d8-8dc4-2fd8b586227b",
+   "length": 24,
+   "claimed_characters": 24,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 6,
+   "leaf_id": "916892b1-0d65-5f1c-9e86-0970307b3cdc",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 7,
+   "leaf_id": "0176a010-5a58-51cc-8e03-d3b642896af8",
+   "length": 36,
+   "claimed_characters": 36,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 8,
+   "leaf_id": "3c839508-52a7-50ea-87a6-ab337a1063c2",
+   "length": 10,
+   "claimed_characters": 10,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 9,
+   "leaf_id": "f9730b5f-d9be-5aad-af7e-fb1cd6d4a018",
+   "length": 28,
+   "claimed_characters": 28,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 10,
+   "leaf_id": "18c872cc-0415-5eb3-9fb6-f25c88ae7901",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Search [Action]",
+   "leaf_index": 11,
+   "leaf_id": "fd5903b7-d978-51fb-8d89-f649bc21dfc4",
+   "length": 14,
+   "claimed_characters": 14,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "length": 289,
+   "claimed_characters": 288,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 2,
+   "leaf_id": "7eb7570f-9468-5ead-a971-b14ee6b64c44",
+   "length": 18,
+   "claimed_characters": 18,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 3,
+   "leaf_id": "ad7b798c-3b73-5216-94d1-fedb7bc4275e",
+   "length": 5,
+   "claimed_characters": 5,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 4,
+   "leaf_id": "b6323b48-bc0d-5bcd-83e6-df96753a5bea",
+   "length": 5,
+   "claimed_characters": 5,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 5,
+   "leaf_id": "1490ebb7-9b83-5528-8ab7-b0f9de2f2324",
+   "length": 6,
+   "claimed_characters": 6,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 6,
+   "leaf_id": "e0859b5d-2345-5510-a0ce-c1edf2e57ab2",
+   "length": 163,
+   "claimed_characters": 163,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 7,
+   "leaf_id": "79d26ad4-6797-5cdb-b9f1-d6d40a04e1c0",
+   "length": 7,
+   "claimed_characters": 7,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 8,
+   "leaf_id": "f616e08a-84e9-574d-b12a-8b66a1f531df",
+   "length": 101,
+   "claimed_characters": 101,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 9,
+   "leaf_id": "729faadf-66d9-5c27-bcab-3f2944c61d6f",
+   "length": 13,
+   "claimed_characters": 13,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 10,
+   "leaf_id": "32c16067-d42c-5d19-b389-124bbb2313af",
+   "length": 37,
+   "claimed_characters": 37,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 11,
+   "leaf_id": "dbe5c512-12a9-5a8c-b28b-6bf8dee2af04",
+   "length": 6,
+   "claimed_characters": 6,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 12,
+   "leaf_id": "bde2b6c2-6289-52bf-afd6-2042999fb3bb",
+   "length": 83,
+   "claimed_characters": 83,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 13,
+   "leaf_id": "ba34d2df-ba69-504e-b557-37b6fe97da31",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Study [Action]",
+   "leaf_index": 14,
+   "leaf_id": "dd988728-ac2f-5e04-af4c-9d861702a34f",
+   "length": 117,
+   "claimed_characters": 117,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Utilize [Action]",
+   "leaf_index": 1,
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "length": 200,
+   "claimed_characters": 199,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 1,
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "length": 138,
+   "claimed_characters": 137,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 2,
+   "leaf_id": "47bce016-6358-52ce-90b9-60b63fae2f86",
+   "length": 8,
+   "claimed_characters": 8,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 3,
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "length": 85,
+   "claimed_characters": 84,
+   "unassigned_characters": 1
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 4,
+   "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
+   "length": 21,
+   "claimed_characters": 21,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 5,
+   "leaf_id": "eb323c9a-47dc-51e5-9d62-165c607c3012",
+   "length": 15,
+   "claimed_characters": 15,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 6,
+   "leaf_id": "cee71353-43a1-53a1-8fb3-d8351803b881",
+   "length": 21,
+   "claimed_characters": 21,
+   "unassigned_characters": 0
+  },
+  {
+   "entry": "Action",
+   "leaf_index": 7,
+   "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
+   "length": 20,
+   "claimed_characters": 20,
+   "unassigned_characters": 0
   }
  ],
  "coordinates": [
@@ -718,6 +1363,17 @@
    "char_start": 0,
    "char_end": 20,
    "source_text": "Search Study Utilize"
+  },
+  {
+   "obligation": "D8",
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 30,
+   "source_text": "When you take the Dash action,"
   },
   {
    "obligation": "D1",
@@ -951,6 +1607,17 @@
    "source_text": "If you take the Dodge action, you gain the following benefits:"
   },
   {
+   "obligation": "G7",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 175,
+   "char_end": 181,
+   "source_text": ", and "
+  },
+  {
    "obligation": "H1",
    "entry": "Help [Action]",
    "leaf_index": 1,
@@ -1147,6 +1814,17 @@
    "char_start": 0,
    "char_end": 47,
    "source_text": "With the Hide action, you try to hide yourself."
+  },
+  {
+   "obligation": "I10",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 47,
+   "char_end": 58,
+   "source_text": " To do so, "
   },
   {
    "obligation": "J1",
