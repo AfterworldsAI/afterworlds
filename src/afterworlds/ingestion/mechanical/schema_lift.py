@@ -106,7 +106,7 @@ SCHEMA_5_VERSION = "5d-representation-schema-5"
 SCHEMA_5_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_6_VERSION = "5d-representation-schema-6"
 #: Pinned literally, for the same reason every predecessor is.
-SCHEMA_6_HASH = "d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_6_HASH = "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):

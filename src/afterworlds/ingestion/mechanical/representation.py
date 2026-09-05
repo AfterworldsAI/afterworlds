@@ -4853,10 +4853,20 @@ def _build_applicability(value: object, where: str) -> Applicability:
     raw_terms = p.get("any_of_terms") or ()
     if not isinstance(raw_terms, (list, tuple)):
         _reject_at(where, [f"{where}.any_of_terms is not an array"])
-    terms = tuple(
-        _build_applicability(raw, f"{where}.any_of_terms[{index}]")
-        for index, raw in enumerate(raw_terms)
-    )
+    # Depth 1 is the typed contract, and this builder is reached through
+    # ``fact_from_payload`` — so it is the ingress for every applicability held
+    # *inside* a fact, ``ConditionRemovalRestrictionFact.until`` included, and
+    # for the override seam that shares it. A term stating terms of its own is
+    # refused here by name rather than recursed into: an arbitrarily nested
+    # payload would otherwise exhaust the stack and raise ``RecursionError``
+    # from the one layer whose contract is to report malformed input.
+    built_terms: list[Applicability] = []
+    for index, raw in enumerate(raw_terms):
+        at = f"{where}.any_of_terms[{index}]"
+        if isinstance(raw, Mapping) and raw.get("any_of_terms"):
+            _reject_at(where, [f"{at} states terms of its own"])
+        built_terms.append(_build_applicability(raw, at))
+    terms = tuple(built_terms)
     raw_any_of = p["any_of"]
     if not isinstance(raw_any_of, (list, tuple)):
         _reject_at(where, [f"{where}.any_of is not an array"])
@@ -6465,6 +6475,13 @@ class _Introduction:
         already; this row is what makes the *legality* contract see it too, so
         ``verify_lift`` and ``accept_proposal`` refuse a restamped prior rather
         than relying on a payload raise from somewhere else.
+    ``nullable_field``
+        A field a later schema made optional on a family an earlier schema
+        already had, so the *null* is the new meaning. ``owner`` is the family
+        discriminator and ``name`` the key. Registered for the same reason the
+        family rows are: the payload's key set is complete under both
+        contracts, so nothing short of the legality contract can tell that the
+        value is one the declared schema never admitted.
     """
 
     kind: str
@@ -6519,6 +6536,11 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_6)
             for member in members
         )
+    rows.extend(
+        _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
+        for owner, keys in _OPTIONAL_SINCE.items()
+        for key, arrived in keys.items()
+    )
     return tuple(sorted(rows, key=lambda r: (r.kind, r.owner, r.name)))
 
 
@@ -6560,9 +6582,10 @@ def introduction_manifest() -> list[dict[str, object]]:
 def _vocabulary_shape(owner: str) -> list[str] | None:
     """The admitted values of *owner*, or ``None`` where it is not a vocabulary.
 
-    ``fact_family`` and ``reference_ownership`` rows name a discriminator and an
-    ownership form respectively; neither is a vocabulary, and inventing a value
-    set for them would assert a shape the wire does not have.
+    ``fact_family``, ``reference_ownership`` and ``nullable_field`` rows name a
+    discriminator, an ownership form and a key respectively; none is a
+    vocabulary, and inventing a value set for them would assert a shape the wire
+    does not have.
     """
     members = (
         _SCHEMA_4_VOCABULARY_ALL.get(owner)
@@ -6716,6 +6739,21 @@ def _collect_post_schema_3(
                     f"{key!r} key — that arrived with {arrived} and is required "
                     "there; refusing to read a distinction the declared contract "
                     "cannot state"
+                )
+        # A field a later schema made *optional* on a family an earlier schema
+        # already had. The key is present under both contracts, so neither the
+        # omission registry nor the required-since one fires: what the earlier
+        # contract cannot state is the null itself.
+        for key, arrived in _OPTIONAL_SINCE.get(declared.__name__, {}).items():
+            if getattr(value, key, None) is None and not _version_states(
+                schema_version, arrived
+            ):
+                where = f"{path}.{key}" if path else key
+                findings.append(
+                    f"{where}: declares schema {schema_version!r}, which "
+                    f"requires {key!r} to be stated — stating none arrived "
+                    f"with {arrived}; refusing to read a distinction the "
+                    "declared contract cannot state"
                 )
         omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
         for field in fields(declared):
@@ -6933,14 +6971,46 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
 #: and a stated one would then hash alike and re-create the collapse schema 5
 #: exists to close.
 #:
-#: **Schema 6 adds no row, and that is a decision rather than an omission.** It
-#: made :attr:`AbilityCheckFact.ability` *optional*, which is the opposite
-#: movement: nothing becomes newly required, the key stays emitted
-#: unconditionally because it is a schema-1 field, and ``"ability": null`` is a
-#: statement no earlier contract could make but every earlier reader can refuse
-#: — the payload is complete, and only the value is one they do not admit.
+#: **Schema 6 adds no row here, and that is a decision rather than an
+#: omission.** It made :attr:`AbilityCheckFact.ability` *optional*, which is the
+#: opposite movement: nothing becomes newly required, and the key stays emitted
+#: unconditionally because it is a schema-1 field. That belongs in
+#: :data:`_OPTIONAL_SINCE` instead.
 _REQUIRED_SINCE: dict[str, dict[str, str]] = {
     "AbilityCheckFact": {"context": SCHEMA_5},
+}
+
+#: A field a later schema made **optional** on a family an earlier schema
+#: already had: the key is present under every contract, and it is the *null*
+#: that is new meaning.
+#:
+#: The third legality question, and neither of the other two registries can
+#: answer it. :data:`_POST_SCHEMA_3_FIELDS` gates a key that *carries* meaning
+#: an earlier contract had no name for, and reads absence as the declared
+#: default; here absence is the meaning, and the key is never omitted at all.
+#: :data:`_REQUIRED_SINCE` gates a key made newly *required*, which is this
+#: movement's mirror image and fires on the wrong side of it.
+#:
+#: Without a row here, ``{"ability": null}`` under a schema-5 declaration is a
+#: statement schema 5 cannot make — a check that fixes no ability, beside a
+#: stated DC — read as authority a schema-5 reviewer signed off on. The
+#: canonical payload is *complete* in that case rather than short, so nothing
+#: downstream of the key set has any reason to look twice, which is exactly why
+#: the legality contract has to say it.
+#:
+#: **Historical payloads are unchanged.** A row here refuses a value, never a
+#: shape: every accepted ability check states an ability, so every accepted
+#: payload and every accepted ``fact_key`` is byte-identical either way.
+_OPTIONAL_SINCE: dict[str, dict[str, str]] = {
+    "AbilityCheckFact": {"ability": SCHEMA_6},
+}
+
+#: The family discriminator each :data:`_OPTIONAL_SINCE` owner writes on the
+#: wire. Stated rather than derived from the class name for the reason
+#: :func:`introduction_manifest` gives: no payload carries a type tag, so the
+#: manifest may not either.
+_OPTIONAL_SINCE_FAMILIES: dict[str, str] = {
+    "AbilityCheckFact": FactFamily.ABILITY_CHECK.value,
 }
 
 _VERSION_STATES: dict[str, frozenset[str]] = {
@@ -7956,23 +8026,22 @@ def _counterpart_scope_violations(
                 f"{fact_key(fact)} names the counterpart, but nothing in "
                 f"{where} establishes one"
             )
-    for applicability in applicabilities:
-        if type(applicability) is not Applicability:
-            continue
-        any_of = applicability.any_of
-        if type(any_of) is not tuple:
-            continue
-        for comparison in any_of:
-            if type(comparison) is not SizeComparison:
+    for held in applicabilities:
+        for applicability in _stated_applicabilities(held):
+            any_of = applicability.any_of
+            if type(any_of) is not tuple:
                 continue
-            if ParticipantRole.COUNTERPART in (
-                comparison.measured,
-                comparison.reference,
-            ):
-                findings.append(
-                    "size comparison names the counterpart, but nothing in "
-                    f"{where} establishes one"
-                )
+            for comparison in any_of:
+                if type(comparison) is not SizeComparison:
+                    continue
+                if ParticipantRole.COUNTERPART in (
+                    comparison.measured,
+                    comparison.reference,
+                ):
+                    findings.append(
+                        "size comparison names the counterpart, but nothing "
+                        f"in {where} establishes one"
+                    )
     return findings
 
 
@@ -8043,26 +8112,45 @@ def _rolls_established(facts: Sequence[object]) -> int:
     )
 
 
+def _stated_applicabilities(value: object) -> tuple[Applicability, ...]:
+    """One applicability and every condition it actually states.
+
+    ``ANY_OF`` is a condition *holder*: the applicability itself states no
+    operand, and what governs is each of its terms. A scope rule that read only
+    the outer value would therefore see a disjunction as stating nothing, and
+    wrapping a refused condition in one would make it legal — which is a
+    strictly worse outcome than the refusal, because the disjunction's whole
+    point is that any term suffices.
+
+    Depth is 1 by invariant, so this is a flatten rather than a walk. Values
+    outside the closed type are declined here exactly as the callers decline
+    them: another validator has already named them, and reading fields off one
+    would replace a collected report with a crash.
+    """
+    if type(value) is not Applicability:
+        return ()
+    return (value, *(t for t in value.any_of_terms if type(t) is Applicability))
+
+
 def _roll_outcome_scope_violations(
     conditions: Sequence[object], established: int, whose: str
 ) -> list[str]:
     findings: list[str] = []
-    for condition in conditions:
-        if (
-            type(condition) is not Applicability
-            or condition.kind is not ApplicabilityKind.ROLL_OUTCOME
-        ):
-            continue
-        if established == 0:
-            findings.append(
-                "states a roll outcome, but no fact in scope calls for a roll; "
-                f"{whose} names an outcome of nothing"
-            )
-        elif established > 1:
-            findings.append(
-                f"states a roll outcome, but {whose} calls for {established} "
-                "rolls, so which one the outcome is about is unstated"
-            )
+    for held in conditions:
+        for condition in _stated_applicabilities(held):
+            if condition.kind is not ApplicabilityKind.ROLL_OUTCOME:
+                continue
+            if established == 0:
+                findings.append(
+                    "states a roll outcome, but no fact in scope calls for a "
+                    f"roll; {whose} names an outcome of nothing"
+                )
+            elif established > 1:
+                findings.append(
+                    f"states a roll outcome, but {whose} calls for "
+                    f"{established} rolls, so which one the outcome is about "
+                    "is unstated"
+                )
     return findings
 
 

@@ -56,7 +56,7 @@
         "from_hash": "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40",
         "from_version": "5d-representation-schema-5",
         "lift_id": "5d-lift-schema-5-to-6",
-        "to_hash": "d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6",
+        "to_hash": "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7",
         "to_version": "5d-representation-schema-6",
         "verified_collections": [
           "components",
@@ -228,7 +228,7 @@
     ]
   },
   "representation_schema": {
-    "hash": "d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6",
+    "hash": "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7",
     "version": "5d-representation-schema-6"
   },
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
