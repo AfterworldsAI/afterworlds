@@ -39,7 +39,6 @@ from afterworlds.ingestion.mechanical.gate import (
     run_publication_gate,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
@@ -77,7 +76,24 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 DECLARED_4 = (SCHEMA_4_VERSION, SCHEMA_4_HASH)
 DECLARED_3 = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 
@@ -114,7 +130,7 @@ def test_no_evidence_is_legal() -> None:
 
 def test_the_committed_artifact_still_loads() -> None:
     """The discriminating test for the loader guard."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     assert inputs.lifts == ()
     assert inputs.oracle.schema_version == SCHEMA_3_VERSION
 
@@ -229,7 +245,7 @@ def test_a_disconnected_chain_is_refused() -> None:
 
 def test_the_loader_refuses_invented_evidence_end_to_end(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """Through ``load_accepted_inputs``, not only through the validator."""
-    raw = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    raw = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
     raw["acceptance"]["lifts"] = [
         {
             "lift_id": "totally-made-up",
@@ -249,7 +265,7 @@ def test_the_loader_refuses_invented_evidence_end_to_end(tmp_path) -> None:  # t
 
 def _lifted_artifact(tmp_path: pathlib.Path) -> tuple[pathlib.Path, SchemaLiftRecord]:
     """The committed schema-3 artifact, really lifted and really written out."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     lifted, records = lift_accepted_inputs(inputs, DECLARED_4)
     path = tmp_path / "lifted.json"
     path.write_text(

@@ -341,14 +341,15 @@ audit and is deliberately not decided here:
   closed vocabularies. Related to the targeting-restriction disposition above: revisit when a batch
   forces a referent set that closes.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Batch
-`conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and is committed as accepted
-authority for the production SRD 5.2.1 release, so that release now resolves to a committed oracle —
-but that oracle covers 15 conditions and the glossary entry defining them, not the corpus. The
-publication path therefore returns `INCOMPLETE` for the production projection rather than `ABSENT`,
-the runtime binding still reports `UNPUBLISHED` because no mechanical projection has been published or
-activated, and later batches extend the same release artifact through `accept_proposal`'s `prior=`
-merge rather than committing a second one. The obsolete `MechanicalEntity` path and the legacy
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
+accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on
+2026-09-03; both are committed as accepted authority for the production SRD 5.2.1 release, so that
+release resolves to a committed oracle — but that oracle covers **22 records and 281 spans** (15
+conditions and 5 hazards, plus the glossary entry defining each list), not the corpus. Batch
+`actions-1` has not begun. The publication path therefore returns `INCOMPLETE` for the production
+projection rather than `ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical
+projection has been published or activated, and later batches extend the same release artifact through
+`accept_proposal`'s `prior=` merge rather than committing a second one — as `hazards-1` did. The obsolete `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.
 

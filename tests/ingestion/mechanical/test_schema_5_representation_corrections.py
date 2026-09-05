@@ -87,10 +87,16 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     lift_path,
 )
 
-ACCEPTED = (
-    Path(__file__).resolve().parents[3]
-    / "src/afterworlds/ingestion/mechanical/oracles"
-    / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it - the conditions-1 batch alone,
+#: reviewed under schema 3. What this module asserts is true of that accepted
+#: content, so it reads the frozen copy rather than whatever the release
+#: currently accepts. Byte-identical to the file this repository committed
+#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
+LEGACY_PATH = (
+    Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
 )
 D6 = DiceExpression(count=1, die=DieSize.D6)
 
@@ -749,7 +755,7 @@ def test_an_unauthorized_succession_fails_closed(
 
 @pytest.fixture(scope="module")
 def accepted() -> AcceptedInputs:
-    return load_accepted_inputs(ACCEPTED)
+    return load_accepted_inputs(LEGACY_PATH)
 
 
 def test_the_accepted_artifact_holds_no_ability_check_fact(
@@ -821,9 +827,9 @@ def test_lifting_the_accepted_artifact_to_schema_5_moves_nothing(
 
 def test_the_committed_artifact_is_never_written(accepted: AcceptedInputs) -> None:
     """A succession is proved against the file, never applied to it."""
-    before = ACCEPTED.read_bytes()
+    before = LEGACY_PATH.read_bytes()
     lift_accepted_inputs(accepted, (SCHEMA_5_VERSION, SCHEMA_5_HASH))
-    assert ACCEPTED.read_bytes() == before
+    assert LEGACY_PATH.read_bytes() == before
     assert json.loads(before.decode("utf-8"))["representation_schema"] == {
         "version": SCHEMA_3_VERSION,
         "hash": SCHEMA_3_HASH,

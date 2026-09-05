@@ -20,6 +20,7 @@ Everything here is about the grammar. Nothing accepts, publishes, or activates.
 from __future__ import annotations
 
 import json
+import pathlib
 from dataclasses import replace
 from pathlib import Path
 
@@ -30,7 +31,6 @@ from sqlalchemy.orm import Session
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     OracleLoadError,
     load_accepted_inputs,
 )
@@ -80,7 +80,17 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it - the conditions-1 batch alone,
+#: reviewed under schema 3. What this module asserts is true of that accepted
+#: content, so it reads the frozen copy rather than whatever the release
+#: currently accepts. Byte-identical to the file this repository committed
+#: (Git blob 42faeca2...), so every identity pinned here is unchanged.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 
 #: Every context a skill may not qualify. ``ABILITY_CHECK`` is the sole
 #: exception and is asserted separately, so this list is the whole complement.
@@ -450,7 +460,7 @@ def test_the_override_patch_builder_refuses_it() -> None:
 
 def test_the_committed_loader_refuses_it(tmp_path: object) -> None:
     """End to end, through the file the Owner actually signs off."""
-    raw = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    raw = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
     raw["representation"]["components"][0]["facts"] = [_skilled_save_payload()]
     raw["representation_schema"] = {"version": SCHEMA_5_VERSION, "hash": SCHEMA_5_HASH}
     raw["acceptance"]["schema_anchors"] = [
@@ -496,7 +506,7 @@ def test_every_accepted_element_is_still_byte_identical() -> None:
     from afterworlds.ingestion.mechanical.projection import representation_payload
     from afterworlds.ingestion.mechanical.schema_lift import lift_accepted_inputs
 
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     lifted, records = lift_accepted_inputs(inputs, (SCHEMA_5_VERSION, SCHEMA_5_HASH))
     before = representation_payload(
         inputs.oracle.representation, schema_version=inputs.oracle.schema_version

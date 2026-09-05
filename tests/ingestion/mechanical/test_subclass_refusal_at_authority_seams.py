@@ -39,7 +39,6 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     accepted_inputs_payload,
     load_accepted_inputs,
     load_oracle,
@@ -140,7 +139,24 @@ from tests.ingestion.mechanical.conftest import (
 COMMITTED_ORACLE = pathlib.Path(
     "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
 )
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_3 = (SCHEMA_3_VERSION, SCHEMA_3_HASH)
 SCHEMA_4 = (SCHEMA_4_VERSION, SCHEMA_4_HASH)
@@ -451,7 +467,7 @@ def test_accept_proposal_refuses_rather_than_merging() -> None:
     Against the committed prior, so the refusal is proved on the path a real
     acceptance takes rather than on a synthetic one built to suit the test.
     """
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     span = SemanticSpan(
         span_id=PROBE_SPAN,
         leaf_id=PROBE_LEAF,
@@ -623,7 +639,7 @@ def test_lifting_accepted_inputs_refuses_every_top_level_subclass(
     untouched, so if it did not check the shape it would hand a hostile artifact
     back certified as already at its target.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     tampered = tamper(inputs.oracle.representation)  # type: ignore[arg-type]
     hostile = replace(inputs, oracle=replace(inputs.oracle, representation=tampered))
     with pytest.raises(SchemaLiftError) as raised:
@@ -665,7 +681,7 @@ def test_the_exact_base_types_still_lift_and_validate() -> None:
     )
     assert verify_lift(lift, honest).lift_id == "5d-lift-schema-3-to-4"
 
-    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    committed = load_accepted_inputs(LEGACY_PATH).oracle.representation
     assert declared_meaning_violations(committed, SCHEMA_3_VERSION) == []
 
 
@@ -982,7 +998,7 @@ def test_the_bounded_fixture_and_committed_artifact_report_nothing() -> None:
     assert held_structure_violations(honest) == []
     assert declared_meaning_violations(honest, SCHEMA_3_VERSION) == []
 
-    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    committed = load_accepted_inputs(LEGACY_PATH).oracle.representation
     assert held_structure_violations(committed) == []
     assert declared_meaning_violations(committed, SCHEMA_3_VERSION) == []
 
@@ -1012,7 +1028,7 @@ def test_lifting_accepted_inputs_refuses_them_on_both_paths(
     tamper, field: str, target: tuple[str, str]
 ) -> None:  # type: ignore[no-untyped-def]
     """Including R10-1's equal-schema no-op, which returns its input untouched."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     hostile = replace(
         inputs, oracle=replace(inputs.oracle, representation=tamper(SmuggledTuple))
     )
@@ -1038,7 +1054,7 @@ def test_acceptance_refuses_them_before_merging_or_minting_an_identity() -> None
     nothing produced — so no merged representation and no oracle identity exist
     to have been minted from a container whose contents nothing can trust.
     """
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     tampered = _with_fact(_ability_check(SmuggledTuple(ALTERNATIVE_ROLLS)))
     proposal = MechanicalProposal(
         binding=prior.oracle.binding,
@@ -1076,15 +1092,15 @@ def test_acceptance_refuses_them_before_merging_or_minting_an_identity() -> None
     assert "alternatives must be tuple" in str(raised.value)
 
     # The prior is untouched by the refused acceptance, so nothing was merged.
-    assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches
+    assert load_accepted_inputs(LEGACY_PATH).batches == prior.batches
 
 
 def test_the_committed_artifact_is_unmoved_by_this_round() -> None:
     """Zero movement, asserted where a container rule could have reached it."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     draft = inputs.oracle.representation
     assert accepted_inputs_payload(inputs) == json.loads(
-        ARTIFACT_PATH.read_text(encoding="utf-8")
+        LEGACY_PATH.read_text(encoding="utf-8")
     )
     assert (len(draft.provenance), len(draft.references)) == (185, 15)
     assert [b.proposal_identity for b in inputs.batches] == [
@@ -1352,7 +1368,7 @@ def test_every_authority_seam_refuses_a_hostile_parent(
         verify_lift(lift, draft)
     assert expected in str(raised.value)
 
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     hostile_inputs = replace(
         inputs, oracle=replace(inputs.oracle, representation=draft)
     )
@@ -1369,7 +1385,7 @@ def test_every_authority_seam_refuses_a_hostile_parent(
 
 def test_acceptance_refuses_a_hostile_parent_as_a_typed_error() -> None:
     """``AcceptanceError``, not the probe's ``AssertionError`` escaping."""
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     proposal = MechanicalProposal(
         binding=prior.oracle.binding,
         policy_version=prior.oracle.policy_version,
@@ -1404,7 +1420,7 @@ def test_acceptance_refuses_a_hostile_parent_as_a_typed_error() -> None:
             prior=prior,
         )
     assert "must be MechanicalFact" in str(raised.value)
-    assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches
+    assert load_accepted_inputs(LEGACY_PATH).batches == prior.batches
 
 
 def test_ordinary_instances_keep_their_semantic_findings_and_controls() -> None:
@@ -1428,7 +1444,7 @@ def test_ordinary_instances_keep_their_semantic_findings_and_controls() -> None:
     honest = build_representation()
     assert held_structure_violations(honest) == []
     assert declared_meaning_violations(honest, SCHEMA_3_VERSION) == []
-    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    committed = load_accepted_inputs(LEGACY_PATH).oracle.representation
     assert held_structure_violations(committed) == []
 
 
@@ -1735,7 +1751,7 @@ def test_honest_authority_is_admitted_unchanged() -> None:
     exists to protect — and the committed artifact cannot be edited to suit it.
     """
     assert structural_admission_violations(build_representation()) == []
-    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    committed = load_accepted_inputs(LEGACY_PATH).oracle.representation
     assert structural_admission_violations(committed) == []
     assert declared_meaning_violations(committed, SCHEMA_3_VERSION) == []
     assert held_structure_violations(committed) == []
@@ -1749,7 +1765,7 @@ def test_the_admission_gate_reaches_every_declared_authority_field() -> None:
     joins the admitted surface by being declared, and a future annotation the
     gate cannot model shows up here rather than passing silently.
     """
-    committed = load_accepted_inputs(ARTIFACT_PATH).oracle.representation
+    committed = load_accepted_inputs(LEGACY_PATH).oracle.representation
     modelled = {
         cls
         for cls in _admitted_structures()
@@ -1799,7 +1815,7 @@ def test_every_authority_seam_refuses_an_unadmitted_child(cost: object) -> None:
         verify_lift(lift, draft)
     assert expected in str(raised.value)
 
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     hostile_inputs = replace(
         inputs, oracle=replace(inputs.oracle, representation=draft)
     )
@@ -1816,7 +1832,7 @@ def test_every_authority_seam_refuses_an_unadmitted_child(cost: object) -> None:
 
 def test_acceptance_refuses_an_unadmitted_child_as_a_typed_error() -> None:
     """``AcceptanceError``, and nothing merged."""
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     proposal = MechanicalProposal(
         binding=prior.oracle.binding,
         policy_version=prior.oracle.policy_version,
@@ -1853,4 +1869,4 @@ def test_acceptance_refuses_an_unadmitted_child_as_a_typed_error() -> None:
             prior=prior,
         )
     assert "must be ActionCost" in str(raised.value)
-    assert load_accepted_inputs(ARTIFACT_PATH).batches == prior.batches
+    assert load_accepted_inputs(LEGACY_PATH).batches == prior.batches

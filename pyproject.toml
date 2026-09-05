@@ -57,10 +57,10 @@ afterworlds = [
     "ingestion/corpus/srd_table_inventory.json",
     # CRD Issue 5d committed accepted oracles, resolved at runtime by
     # oracle.committed_oracle_for from the fixed packaged directory. The
-    # directory is deliberately empty of production content today; the glob has
-    # to exist before the accepted-content PR adds a file, or an installed
-    # distribution would resolve no accepted authority and publication would
-    # return ABSENT for reasons that have nothing to do with the oracle.
+    # directory holds one production artifact today — the SRD 5.2.1 release,
+    # carrying accepted batches conditions-1 and hazards-1 — so the glob must
+    # ship it, or an installed distribution would resolve no accepted authority
+    # and publication would return ABSENT rather than the honest INCOMPLETE.
     "ingestion/mechanical/oracles/*.json",
 ]
 

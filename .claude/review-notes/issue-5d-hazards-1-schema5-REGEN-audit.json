@@ -1,0 +1,3505 @@
+{
+ "_": "CRD Issue 5d batch hazards-1, representation schema 5. Proposal and audit only: nothing accepted, published, activated or retired. Zero validator findings is necessary and explicitly insufficient - this is material for semantic review, not a recommendation to accept.",
+ "proposal_identity": "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417",
+ "rejected_predecessor": {
+  "identity": "6277ff735e0e47b3337f2c3736ca7922864b1cde9a3c286b3aee48ee461ba259",
+  "schema": "5d-representation-schema-4",
+  "differs": true,
+  "use": "historical diagnostic evidence only. Its payload was not imported, edited, translated, restamped, cloned, or read as generator input."
+ },
+ "representation_schema": {
+  "version": "5d-representation-schema-5",
+  "hash": "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"
+ },
+ "semantic_policy": {
+  "version": "5d-semantic-policy-1",
+  "hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"
+ },
+ "release_binding": {
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "derivation": "five of six re-derived from the committed PDF through build_candidate and asserted at run time; persisted_corpus_digest carried from the published CRD Issue 5c release record and disclosed as such"
+ },
+ "boundary": {
+  "records": 6,
+  "represented_leaves": 43,
+  "policy_exclusions": 0,
+  "canaries": {
+   "records": {
+    "derived": 6,
+    "expected": 6
+   },
+   "represented_leaves": {
+    "derived": 43,
+    "expected": 43
+   },
+   "policy_exclusions": {
+    "derived": 0,
+    "expected": 0
+   }
+  },
+  "derivation": "the source's own [Hazard] entry class under Rules Definitions plus the umbrella Hazard glossary rule; the five names are re-checked against the umbrella's own See-also text"
+ },
+ "counts": {
+  "records": 6,
+  "represented_leaves": 43,
+  "policy_exclusions": 0,
+  "spans": 96,
+  "substantive": 65,
+  "supporting_authority": 31,
+  "non_mechanical": 0,
+  "unresolved": 0,
+  "components": 15,
+  "components_structured": 10,
+  "components_mixed": 5,
+  "components_prose_bound": 0,
+  "facts": 21,
+  "distinct_fact_keys": 16,
+  "fact_qualifiers": 3,
+  "prose_bindings": 5,
+  "references": 7,
+  "relationships": 0,
+  "provenance_edges": 96
+ },
+ "count_derivation": {
+  "records": "one per source entry in the boundary: the Hazard umbrella plus the five [Hazard] entries",
+  "represented_leaves": "distinct leaf ids the spans cover, all of them 5c-represented",
+  "spans": "one per segment of the run-time cut; the segments of each leaf reconstruct it byte for byte",
+  "substantive": "F + A + Q + P segments: a mechanic, a component-scope claim, a fact-scope qualifier, or affirmative governing prose",
+  "supporting_authority": "R + C + X segments: framing owned by the record, by a component, or by a reference",
+  "components": "declared in COMPONENTS and emitted with the facts the clause table assigned them",
+  "facts": "distinct fact keys per component; a fact stated by several spans is held once",
+  "provenance_edges": "exactly one claim per span, which is what the ownership check asserts",
+  "movement_from_the_rejected_schema_4_artifact": "A diagnostic comparison made AFTER this run, against the recorded counts of the rejected proposal - never an input to it. Spans 96 -> 96 and provenance edges 96 -> 96: the source cut is unchanged, because the corrections are about what claims each span, not where the source's clauses fall. Substantive 64 -> 65 and supporting 32 -> 31: exactly one span moved, ' and rolling on the ground.' from supporting commentary to affirmative governing prose. Prose bindings 4 -> 5 for that same span. Components 17 -> 15: `landing` merged into `fall_damage` and `fall_halving` into `surface_check`, so each rule sits with the fact it answers to. Facts 22 -> 21: the Falling `ScalingFact` is gone, replaced by `DamageFact.per` on the fact that already stated the amount - no other fact was added or dropped. Two further spans changed claimant kind from a component-scope claim to a fact-scope qualifier (A -> Q): ' unless it avoids taking any damage from the fall.' and ' On a successful check,'. A reviewer should read the drop in components and facts as consolidation, not as loss."
+ },
+ "per_record": {
+  "glossary.hazard": {
+   "leaves": 4,
+   "spans": 9,
+   "unresolved": 0
+  },
+  "hazard.burning": {
+   "leaves": 2,
+   "spans": 10,
+   "unresolved": 0
+  },
+  "hazard.dehydration": {
+   "leaves": 13,
+   "spans": 25,
+   "unresolved": 0
+  },
+  "hazard.falling": {
+   "leaves": 2,
+   "spans": 13,
+   "unresolved": 0
+  },
+  "hazard.malnutrition": {
+   "leaves": 20,
+   "spans": 31,
+   "unresolved": 0
+  },
+  "hazard.suffocation": {
+   "leaves": 2,
+   "spans": 8,
+   "unresolved": 0
+  }
+ },
+ "record_shapes": {
+  "hazard.burning/burning_damage": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "DamageFact"
+   ],
+   "applies_when": null,
+   "recurs": "start_of_turn",
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.burning/self_extinguish": {
+   "handling": "mixed",
+   "irreducibility_reason_code": "contextual_applicability",
+   "facts": [
+    "ActionEconomyFact",
+    "EffectTerminationFact",
+    "ConditionEffectFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.burning/ambient_extinguish": {
+   "handling": "mixed",
+   "irreducibility_reason_code": "contextual_applicability",
+   "facts": [
+    "EffectTerminationFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.dehydration/water_requirement": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "SizeKeyedQuantityFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.dehydration/dehydration_exhaustion": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "applies_when": "consumption_threshold",
+   "recurs": "end_of_day",
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.dehydration/dehydration_recovery": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "ConditionRemovalRestrictionFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.falling/fall_damage": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "DamageFact",
+    "ConditionEffectFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [
+    "damage_outcome"
+   ],
+   "options": 0
+  },
+  "hazard.falling/surface_check": {
+   "handling": "mixed",
+   "irreducibility_reason_code": "contextual_applicability",
+   "facts": [
+    "ActionEconomyFact",
+    "AbilityCheckFact",
+    "DamageModificationFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [
+    "roll_outcome"
+   ],
+   "options": 0
+  },
+  "hazard.malnutrition/food_requirement": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "SizeKeyedQuantityFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.malnutrition/starvation_save": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "AbilityCheckFact",
+    "ConditionLevelFact"
+   ],
+   "applies_when": "consumption_threshold",
+   "recurs": "end_of_day",
+   "fact_qualifiers": [
+    "roll_outcome"
+   ],
+   "options": 0
+  },
+  "hazard.malnutrition/starvation_automatic": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "applies_when": "consumption_threshold",
+   "recurs": "end_of_day",
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.malnutrition/malnutrition_recovery": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "ConditionRemovalRestrictionFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.suffocation/breath_duration": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "DerivedQuantityFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.suffocation/suffocation_accrual": {
+   "handling": "mixed",
+   "irreducibility_reason_code": "contextual_applicability",
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "applies_when": null,
+   "recurs": "end_of_turn",
+   "fact_qualifiers": [],
+   "options": 0
+  },
+  "hazard.suffocation/suffocation_recovery": {
+   "handling": "mixed",
+   "irreducibility_reason_code": "contextual_applicability",
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "applies_when": null,
+   "recurs": null,
+   "fact_qualifiers": [],
+   "options": 0
+  }
+ },
+ "validation": {
+  "partition": [],
+  "structural": [],
+  "component_rules_schema_5": [],
+  "wire_round_trip": true,
+  "reason_codes": [],
+  "schema_binding": [],
+  "representation_standalone": [
+   "reference srd-5.2.1/rules-glossary:'Exhaustion': unknown target record condition.exhaustion",
+   "reference srd-5.2.1/rules-glossary:'Exhaustion': unknown target record condition.exhaustion"
+  ],
+  "representation_merged_with_accepted_conditions_1": [],
+  "seams_reporting_findings": {
+   "build-time draft shape (representation_draft_violations)": 0,
+   "held authority shape (held_structure_violations)": 0,
+   "schema-5 component rules (damage composition + roll outcome)": 0,
+   "declared schema binding (schema_binding_violations)": 0,
+   "representation gate, standalone (validate_representation)": 2,
+   "representation gate, merged with accepted conditions-1": 0,
+   "committed-loader round trip (representation_payload -> _representation)": 0
+  },
+  "seams_that_answer_by_raising": {
+   "acceptance merge (_merge_representation)": {
+    "raised": false
+   },
+   "succession (lift_path + verify_lift_path, 3 -> 4 -> 5)": {
+    "raised": false,
+    "steps": [
+     "5d-lift-schema-3-to-4",
+     "5d-lift-schema-4-to-5"
+    ]
+   },
+   "proposal identity (proposal_payload + proposal_identity)": {
+    "raised": false
+   }
+  },
+  "seams_not_exercised_here": [
+   "persistence round trip and override application need a database; they are covered by the schema-5 test modules on main, not by this generator, which touches no database by design"
+  ],
+  "note": "validate_representation is only ever run on the post-merge candidate. The standalone column exists to show which findings are exactly the cross-batch reference resolutions the prior= merge supplies."
+ },
+ "classification_partitions": {
+  "0a6f353d-bce5-595c-9b17-2ffeaee072f6": [
+   {
+    "range": [
+     0,
+     103
+    ],
+    "text": "A creature needs an amount of food per day based on its size, as shown in the Food Needs per Day table.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     103,
+     180
+    ],
+    "text": " A creature that eats but consumes less than half the required food for a day",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     180,
+     230
+    ],
+    "text": " must succeed on a DC 10 Constitution saving throw",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     230,
+     233
+    ],
+    "text": " or",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     233,
+     257
+    ],
+    "text": " gain 1 Exhaustion level",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     257,
+     275
+    ],
+    "text": " at the day’s end.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     275,
+     315
+    ],
+    "text": " A creature that eats nothing for 5 days",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     315,
+     354
+    ],
+    "text": " automatically gains 1 Exhaustion level",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     354,
+     461
+    ],
+    "text": " at the end of the fifth day as well as an additional level at the end of each subsequent day without food.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     461,
+     495
+    ],
+    "text": " Exhaustion caused by malnutrition",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     495,
+     580
+    ],
+    "text": " can’t be removed until the creature eats the full amount of food required for a day.",
+    "disposition": "substantive"
+   }
+  ],
+  "0c177194-8568-5db6-93da-e945acece1bf": [
+   {
+    "range": [
+     0,
+     20
+    ],
+    "text": "Dehydration [Hazard]",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "0d182a5a-bb50-51dc-93dc-d2dc43886636": [
+   {
+    "range": [
+     0,
+     16
+    ],
+    "text": "Burning [Hazard]",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "0f028852-962f-5de3-a770-425227013535": [
+   {
+    "range": [
+     0,
+     10
+    ],
+    "text": "1/4 gallon",
+    "disposition": "substantive"
+   }
+  ],
+  "0f8c64db-a70f-5eb6-a48f-c33a634d2eea": [
+   {
+    "range": [
+     0,
+     28
+    ],
+    "text": "A burning creature or object",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     28,
+     50
+    ],
+    "text": " takes 1d4 Fire damage",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     50,
+     85
+    ],
+    "text": " at the start of each of its turns.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     85,
+     99
+    ],
+    "text": " As an action,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     99,
+     135
+    ],
+    "text": " you can extinguish fire on yourself",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     135,
+     174
+    ],
+    "text": " by giving yourself the Prone condition",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     174,
+     201
+    ],
+    "text": " and rolling on the ground.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     201,
+     224
+    ],
+    "text": " The fire also goes out",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     224,
+     267
+    ],
+    "text": " if it is doused, submerged, or suffocated.",
+    "disposition": "substantive"
+   }
+  ],
+  "10cb2604-ab15-5ee6-9d55-5e2a087b554b": [
+   {
+    "range": [
+     0,
+     10
+    ],
+    "text": "Gargantuan",
+    "disposition": "substantive"
+   }
+  ],
+  "11fe0d88-a6bd-504b-a9c0-767d46978558": [
+   {
+    "range": [
+     0,
+     5
+    ],
+    "text": "Water",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "1b5b2441-5ce4-5d6a-a0ee-f6d57e0e98bc": [
+   {
+    "range": [
+     0,
+     6
+    ],
+    "text": "Hazard",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "1cc56040-9d88-5a71-820d-0ffad1693f03": [
+   {
+    "range": [
+     0,
+     36
+    ],
+    "text": "A hazard is an environmental danger.",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "257431cc-4f10-5cbc-873a-84c91992c77c": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Size",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "26a890d8-c53d-5257-a9d1-7253267f0103": [
+   {
+    "range": [
+     0,
+     108
+    ],
+    "text": "A creature requires an amount of water per day based on its size, as shown in the Water Needs per Day table.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     108,
+     175
+    ],
+    "text": " A creature that drinks less than half the required water for a day",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     175,
+     200
+    ],
+    "text": " gains 1 Exhaustion level",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     200,
+     218
+    ],
+    "text": " at the day’s end.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     218,
+     251
+    ],
+    "text": " Exhaustion caused by dehydration",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     251,
+     339
+    ],
+    "text": " can’t be removed until the creature drinks the full amount of water required for a day.",
+    "disposition": "substantive"
+   }
+  ],
+  "29b57bd7-3272-512f-bd50-4208784ec8d9": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "1 gallon",
+    "disposition": "substantive"
+   }
+  ],
+  "32209bd5-2287-59fe-8ced-4ca8269f2afd": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "See also",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "3301515c-9ea2-5607-b8bb-c7b01f5fe419": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Food",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "4218a982-b90e-59e8-b406-f715189136cd": [
+   {
+    "range": [
+     0,
+     21
+    ],
+    "text": "A creature that falls",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     21,
+     73
+    ],
+    "text": " takes 1d6 Bludgeoning damage at the end of the fall",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     73,
+     100
+    ],
+    "text": " for every 10 feet it fell,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     100,
+     122
+    ],
+    "text": " to a maximum of 20d6.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     122,
+     174
+    ],
+    "text": " When the creature lands, it has the Prone condition",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     174,
+     224
+    ],
+    "text": " unless it avoids taking any damage from the fall.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     224,
+     275
+    ],
+    "text": " A creature that falls into water or another liquid",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     275,
+     296
+    ],
+    "text": " can use its Reaction",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     296,
+     365
+    ],
+    "text": " to make a DC 15 Strength (Athletics) or Dexterity (Acrobatics) check",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     365,
+     404
+    ],
+    "text": " to hit the surface head or feet first.",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     404,
+     427
+    ],
+    "text": " On a successful check,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     427,
+     473
+    ],
+    "text": " any damage resulting from the fall is halved.",
+    "disposition": "substantive"
+   }
+  ],
+  "47d252e4-a921-515f-b209-e68549d67bb2": [
+   {
+    "range": [
+     0,
+     10
+    ],
+    "text": "Size Water",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     10,
+     16
+    ],
+    "text": " Large",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     16,
+     26
+    ],
+    "text": " 4 gallons",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     26,
+     31
+    ],
+    "text": " Huge",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     31,
+     42
+    ],
+    "text": " 16 gallons",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     42,
+     53
+    ],
+    "text": " Gargantuan",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     53,
+     64
+    ],
+    "text": " 64 gallons",
+    "disposition": "substantive"
+   }
+  ],
+  "5bb08b93-6a81-59b9-bd3a-693a78afdb3b": [
+   {
+    "range": [
+     0,
+     21
+    ],
+    "text": "Malnutrition [Hazard]",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "63cb8191-d113-5d86-9f32-201d3aa4464b": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Tiny",
+    "disposition": "substantive"
+   }
+  ],
+  "69d62995-ecc5-5115-96a0-20a4f4b3e949": [
+   {
+    "range": [
+     0,
+     6
+    ],
+    "text": "Medium",
+    "disposition": "substantive"
+   }
+  ],
+  "6bfe4a24-3a42-5847-9fc5-84420fd322ab": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Size",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "7571f4e8-7845-564a-8e60-7c36c7f2fd97": [
+   {
+    "range": [
+     0,
+     120
+    ],
+    "text": "A creature can hold its breath for a number of minutes equal to 1 plus its Constitution modifier (minimum of 30 seconds)",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     120,
+     147
+    ],
+    "text": " before suffocation begins.",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     147,
+     197
+    ],
+    "text": " When a creature runs out of breath or is choking,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     197,
+     225
+    ],
+    "text": " it gains 1 Exhaustion level",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     225,
+     258
+    ],
+    "text": " at the end of each of its turns.",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     258,
+     293
+    ],
+    "text": " When a creature can breathe again,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     293,
+     357
+    ],
+    "text": " it removes all levels of Exhaustion it gained from suffocating.",
+    "disposition": "substantive"
+   }
+  ],
+  "7a68c161-6337-5b0e-9a2b-b9d8934c2f34": [
+   {
+    "range": [
+     0,
+     20
+    ],
+    "text": "Suffocation [Hazard]",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "7c43a7ca-4a38-5f92-9349-9aa42126fc9b": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Size",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "7d17aa68-ce65-515f-8ec8-8de637f11806": [
+   {
+    "range": [
+     0,
+     9
+    ],
+    "text": "64 pounds",
+    "disposition": "substantive"
+   }
+  ],
+  "7ed36a77-aad8-5b8b-8d5c-4e574190a7a1": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "4 pounds",
+    "disposition": "substantive"
+   }
+  ],
+  "88893271-5c09-5915-a7d6-acb042ed18e8": [
+   {
+    "range": [
+     0,
+     6
+    ],
+    "text": "Medium",
+    "disposition": "substantive"
+   }
+  ],
+  "89c4ea1b-0848-573f-b6e0-26b2f4ca8407": [
+   {
+    "range": [
+     0,
+     9
+    ],
+    "text": "16 pounds",
+    "disposition": "substantive"
+   }
+  ],
+  "8f170f82-2638-5087-8c55-e0fe1ecdd558": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Tiny",
+    "disposition": "substantive"
+   }
+  ],
+  "948c7e91-a21a-5c05-85b5-9ddde6f578ae": [
+   {
+    "range": [
+     0,
+     13
+    ],
+    "text": "“Exhaustion.”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     13,
+     32
+    ],
+    "text": " Food Needs per Day",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "a05aa0e0-d275-5e96-b042-b0b0aa4cafe1": [
+   {
+    "range": [
+     0,
+     5
+    ],
+    "text": "Small",
+    "disposition": "substantive"
+   }
+  ],
+  "af48fec0-52be-5d11-8d3f-07d60caa4abd": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Huge",
+    "disposition": "substantive"
+   }
+  ],
+  "b72491aa-8521-5f9f-aca0-0a831d9640d7": [
+   {
+    "range": [
+     0,
+     7
+    ],
+    "text": "1 pound",
+    "disposition": "substantive"
+   }
+  ],
+  "bb4928b0-c355-5496-9d4e-fafe16f9731f": [
+   {
+    "range": [
+     0,
+     7
+    ],
+    "text": "1 pound",
+    "disposition": "substantive"
+   }
+  ],
+  "c83dc7e5-81b3-5473-b022-3ba21779acc4": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "See also",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "d38034f1-6906-5f6b-b097-7717508ba46d": [
+   {
+    "range": [
+     0,
+     5
+    ],
+    "text": "Large",
+    "disposition": "substantive"
+   }
+  ],
+  "d51910e6-1a94-5591-9a4e-bb60e9cd89c8": [
+   {
+    "range": [
+     0,
+     10
+    ],
+    "text": "“Burning,”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     10,
+     25
+    ],
+    "text": " “Dehydration,”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     25,
+     36
+    ],
+    "text": " “Falling,”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     36,
+     52
+    ],
+    "text": " “Malnutrition,”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     52,
+     56
+    ],
+    "text": " and",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     56,
+     71
+    ],
+    "text": " “Suffocation.”",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "ddb6a3d5-bf68-5237-b6df-ba8e27caa181": [
+   {
+    "range": [
+     0,
+     16
+    ],
+    "text": "Falling [Hazard]",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "e1b2a92a-25c0-55aa-a280-2f009d4c97e7": [
+   {
+    "range": [
+     0,
+     4
+    ],
+    "text": "Food",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "e5debac8-d74b-525f-8e41-e6d273056886": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "1 gallon",
+    "disposition": "substantive"
+   }
+  ],
+  "f05421c4-2e2d-5f64-b252-f30b75d02784": [
+   {
+    "range": [
+     0,
+     5
+    ],
+    "text": "Small",
+    "disposition": "substantive"
+   }
+  ],
+  "f7413beb-acb8-56f6-b1c2-402c4316d078": [
+   {
+    "range": [
+     0,
+     9
+    ],
+    "text": "1/4 pound",
+    "disposition": "substantive"
+   }
+  ],
+  "f85658c8-fe13-51c1-8c84-e83f352274c3": [
+   {
+    "range": [
+     0,
+     8
+    ],
+    "text": "See also",
+    "disposition": "supporting_authority"
+   }
+  ],
+  "ff0b2d68-38b6-566c-8bce-ab582fd14d29": [
+   {
+    "range": [
+     0,
+     13
+    ],
+    "text": "“Exhaustion.”",
+    "disposition": "supporting_authority"
+   },
+   {
+    "range": [
+     13,
+     33
+    ],
+    "text": " Water Needs per Day",
+    "disposition": "supporting_authority"
+   }
+  ]
+ },
+ "cross_batch_references": {
+  "standalone_unresolved_targets": [
+   "hazard.dehydration -> condition.exhaustion",
+   "hazard.malnutrition -> condition.exhaustion"
+  ],
+  "standalone_findings": [
+   "reference srd-5.2.1/rules-glossary:'Exhaustion': unknown target record condition.exhaustion",
+   "reference srd-5.2.1/rules-glossary:'Exhaustion': unknown target record condition.exhaustion"
+  ],
+  "resolved_beside_conditions_1": true,
+  "target_present_in_accepted_authority": [
+   "condition.exhaustion",
+   "condition.exhaustion"
+  ],
+  "note": "Standalone findings are exactly the two cross-batch reference targets. The merged column is the shape acceptance validates and reports nothing."
+ },
+ "disjointness_from_accepted_conditions_1": {
+  "span_overlap": [],
+  "leaf_overlap": [],
+  "collection_overlap": {
+   "records": [],
+   "components": [],
+   "prose_bindings": [],
+   "relationships": [],
+   "references": [],
+   "provenance": []
+  },
+  "prior_spans_retained": 185,
+  "zero_movement": {
+   "records": {
+    "prior_elements": 16,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 16,
+     "new": 6,
+     "merged": 22,
+     "sums": true
+    }
+   },
+   "components": {
+    "prior_elements": 54,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 54,
+     "new": 15,
+     "merged": 69,
+     "sums": true
+    }
+   },
+   "prose_bindings": {
+    "prior_elements": 15,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 15,
+     "new": 5,
+     "merged": 20,
+     "sums": true
+    }
+   },
+   "relationships": {
+    "prior_elements": 0,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 0,
+     "new": 0,
+     "merged": 0,
+     "sums": true
+    }
+   },
+   "references": {
+    "prior_elements": 15,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 15,
+     "new": 7,
+     "merged": 22,
+     "sums": true
+    }
+   },
+   "provenance": {
+    "prior_elements": 185,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 185,
+     "new": 96,
+     "merged": 281,
+     "sums": true
+    }
+   }
+  }
+ },
+ "shape_claims": {
+  "no_component_holds_both_facts_and_options": [],
+  "no_scaling_fact_anywhere": [],
+  "no_detached_or_ambiguous_roll_outcome": [],
+  "roll_outcome_scopes": [
+   {
+    "component": "hazard.falling/surface_check",
+    "rolls_established_in_scope": 1,
+    "qualified_fact": "645b0fdb277b2150"
+   },
+   {
+    "component": "hazard.malnutrition/starvation_save",
+    "rolls_established_in_scope": 1,
+    "qualified_fact": "a2dfac8bea01c536"
+   }
+  ]
+ },
+ "schema_succession": {
+  "path": [
+   {
+    "lift_id": "5d-lift-schema-3-to-4",
+    "from": [
+     "5d-representation-schema-3",
+     "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"
+    ],
+    "to": [
+     "5d-representation-schema-4",
+     "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"
+    ],
+    "verified_collections": [
+     "components",
+     "prose_bindings",
+     "provenance",
+     "records",
+     "references",
+     "relationships"
+    ]
+   },
+   {
+    "lift_id": "5d-lift-schema-4-to-5",
+    "from": [
+     "5d-representation-schema-4",
+     "241860418b183f67bcc4d914d1fdaa3bbcea1705f28cdd460eb05716d40ce3e9"
+    ],
+    "to": [
+     "5d-representation-schema-5",
+     "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"
+    ],
+    "verified_collections": [
+     "components",
+     "prose_bindings",
+     "provenance",
+     "records",
+     "references",
+     "relationships"
+    ]
+   }
+  ],
+  "review_prior": "tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json",
+  "review_prior_batch_id": "conditions-1",
+  "review_prior_schema_version": "5d-representation-schema-3",
+  "review_prior_content_sha256_before": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "review_prior_content_sha256_after": "ead1458e9b54cb33831908d6c6b0faf4c1038daa474bd3acc76599b5008d81ce",
+  "review_prior_blob_id": "42faeca2486117cd1ea518f8b679d036d6fcde87",
+  "review_prior_unchanged": true,
+  "review_prior_identity_note": "The immutable conditions-1 review prior: accepted authority as it stood when this batch was reviewed - conditions-1 alone, schema 3, unanchored - frozen byte for byte. It is the only prior this run reads. The live accepted-authority oracle is NOT an input: it accumulates, already carrying hazards-1 and later actions-1, so reading it would make a retained proof of a completed review depend on authority accepted after that review. This run reads it only as a read-only mutation sentinel - bytes captured before generation and asserted identical afterwards - and its digest is deliberately not recorded here, because an accumulating artifact's identity goes stale at the next acceptance. Identified by content, not by the bytes one working copy holds. .gitattributes declares 'text=auto eol=lf', so a fresh checkout writes this file with LF while a working copy predating the attribute can hold CRLF. Both are the same committed content and load to the same authority. The content digest normalizes CRLF to LF; the blob id is Git's own content identity, derived from those same normalized bytes. The raw on-disk digest is deliberately not recorded here - it would make this artifact differ between two checkouts of one commit - and is printed to stdout instead.",
+  "note": "the conditions-1 review prior declares schema 3 and reaches schema 5 across two registered crossings, each proved separately"
+ },
+ "resolved_representation_questions": [
+  {
+   "id": "D-3",
+   "status": "resolved - Owner Decision 2026-09-02",
+   "where": "hazard.falling/fall_damage",
+   "question_as_disclosed": "'at the end of the fall' and 'When the creature lands' state when a one-shot effect occurs, and no declared element carried a moment. The open question was whether that needed a new timing structure.",
+   "ruling": "A normal fall finishes during the turn in which it begins. Resolve its damage and landing immediately. Only delay completion when a specific rule provides a falling rate or duration.",
+   "grounds": "The SRD's general Falling rule gives no speed, no distance per round and no duration. Where the SRD intends a slower descent it says so explicitly - Ring of Feather Falling prints 60 feet per round - so no general fall-duration calculation and no real-world physics apply.",
+   "what_the_phrases_mean": "the immediate completion of the fall, not a delayed event requiring a new timing structure",
+   "consequence_for_this_batch": "None to the proposed mechanical authority: this ruling changes review documentation, not the proposal. Both phrases stay SUBSTANTIVE with their exact source accounting; fall_damage stays one component holding the falling damage and the landing consequence, with the Prone result dependent on whether falling damage occurred.",
+   "checked": {
+    "fall_damage_holds_damage_and_landing": true,
+    "components_for_the_fall": 1,
+    "recurs": null,
+    "applies_when": null,
+    "prose_bindings": 0,
+    "prone_gated_on_falling_damage": true,
+    "structure_added_for_ordinary_falls": "none"
+   },
+   "evidence": [
+    {
+     "phrase": "at the end of the fall",
+     "span_range": [
+      21,
+      73
+     ],
+     "span_text": " takes 1d6 Bludgeoning damage at the end of the fall",
+     "disposition": "substantive",
+     "claimant_kind": "fact",
+     "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+     "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+     "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+     "structure_added": "none"
+    },
+    {
+     "phrase": "When the creature lands",
+     "span_range": [
+      122,
+      174
+     ],
+     "span_text": " When the creature lands, it has the Prone condition",
+     "disposition": "substantive",
+     "claimant_kind": "fact",
+     "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+     "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+     "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+     "structure_added": "none"
+    }
+   ]
+  },
+  {
+   "id": "D-4",
+   "status": "resolved - correctly represented",
+   "where": "hazard.burning/self_extinguish",
+   "question_as_disclosed": "whether 'and rolling on the ground' - half of a compound required performance whose other half is typed - was honestly bound as governing prose, or needed a typed family.",
+   "resolution": "Correctly represented, and settled by the governing review instructions rather than left open: self_extinguish is one MIXED component, 'and rolling on the ground' is substantive governing rule text, and the extinguishing consequence is stated once. No schema change and no Owner decision is outstanding.",
+   "checked": {
+    "one_mixed_component": true,
+    "typed_facts": [
+     "ActionEconomyFact",
+     "ConditionEffectFact",
+     "EffectTerminationFact"
+    ],
+    "prose_bindings": 1,
+    "bound_span": {
+     "range": [
+      174,
+      201
+     ],
+     "text": " and rolling on the ground.",
+     "disposition": "substantive",
+     "claimant": "hazard.burning/self_extinguish (contextual_applicability)"
+    },
+    "consequence_stated_once": 1,
+    "consequence_restated_in_the_bound_span": false,
+    "reason_code": "contextual_applicability"
+   }
+  },
+  {
+   "id": "Z-1",
+   "status": "resolved - correctly represented",
+   "where": "hazard.malnutrition/starvation_automatic",
+   "question_as_disclosed": "whether the point band sustained for five days, composed with a daily recurrence, is a faithful reading of 'eats nothing for 5 days ... as well as an additional level at the end of each subsequent day without food'.",
+   "required_reading": [
+    "'eats nothing for 5 days' means continuous zero consumption for at least five days",
+    "Exhaustion is gained at the end of the fifth foodless day",
+    "additional Exhaustion is gained at the end of each following foodless day",
+    "the recurrence stays conditional on continued zero consumption",
+    "eating any food ends that zero-consumption applicability"
+   ],
+   "resolution": "Correctly represented. The band is the state and the recurrence is the cadence: a component's applies_when says when the component applies at all, so the daily gain repeats only while zero consumption holds and stops the day eating resumes. No stop condition, elapsed clock, or second predicate is needed, and none is added.",
+   "checked": {
+    "band_is_the_zero_point": true,
+    "sustained_at_least": 5,
+    "sustained_unit": "day",
+    "quantity": "food",
+    "recurrence": "end_of_day",
+    "facts": [
+     "ConditionLevelFact"
+    ],
+    "elapsed_duration_applicability_anywhere": 0,
+    "distinct_from_the_partial_band": true
+   }
+  }
+ ],
+ "disclosed_representation_limits": [],
+ "_superseded_disclosure_wording": [
+  {
+   "id": "D-4",
+   "status": "resolved; retained wording from when it was disclosed",
+   "where": "hazard.burning/self_extinguish",
+   "limit": "'and rolling on the ground' is half of a compound required performance whose other half - the Prone condition - is typed. Rolling on the ground has no typed family.",
+   "how_it_is_accounted": "Bound as affirmative governing prose under contextual_applicability: whether the extinguishing applies depends on whether the creature performed an act the projection cannot enumerate. It is substantive, not supporting commentary. The typed consequence (EffectTerminationFact) is stated once beside it and is not restated inside the binding's span, so the consequence is not published twice.",
+   "reason_code_justification": "Chosen against the catalog's literal wording rather than for validation: the clause conditions whether the rule takes effect, which is applicability, and its operand is unenumerable fiction. subjective_judgment would claim a judgement call the source does not ask for, and fiction_dependent_consequence would misdescribe a consequence that is typed."
+  }
+ ],
+ "schema_5_structures_demonstrated": {
+  "the roll a DC states (schema 5)": {
+   "AbilityCheckFact.context (ability_check)": [
+    "hazard.falling/surface_check"
+   ],
+   "AbilityCheckFact.context (saving_throw)": [
+    "hazard.malnutrition/starvation_save"
+   ]
+  },
+  "consumption bands, all four stated forms (schema 5)": {
+   "applicability (consumption_threshold)": [
+    "hazard.dehydration/dehydration_exhaustion",
+    "hazard.malnutrition/starvation_automatic",
+    "hazard.malnutrition/starvation_save"
+   ],
+   "ConsumptionBand (water: -inf<x<1/2)": [
+    "hazard.dehydration/dehydration_exhaustion"
+   ],
+   "ConsumptionBand (food: 0/1<x<1/2)": [
+    "hazard.malnutrition/starvation_save"
+   ],
+   "ConsumptionBand (food: 0/1<=x<=0/1, sustained>=5 day)": [
+    "hazard.malnutrition/starvation_automatic"
+   ],
+   "ConditionRemovalRestrictionFact.until carries a band": [
+    "hazard.dehydration/dehydration_recovery",
+    "hazard.malnutrition/malnutrition_recovery"
+   ]
+  },
+  "one damage composition (schema 5)": {
+   "DamageFact.per = DamageInterval(distance_fallen, 10 foot)": [
+    "hazard.falling/fall_damage"
+   ],
+   "DamageFact.maximum_dice (the 20d6 cap)": [
+    "hazard.falling/fall_damage"
+   ]
+  },
+  "a roll outcome answering to a roll in its own scope (schema 5)": {
+   "fact qualifier (roll_outcome)": [
+    "hazard.falling/surface_check",
+    "hazard.malnutrition/starvation_save"
+   ]
+  },
+  "recurrence and termination": {
+   "recurrence (start_of_turn)": [
+    "hazard.burning/burning_damage"
+   ],
+   "recurrence (end_of_turn)": [
+    "hazard.suffocation/suffocation_accrual"
+   ],
+   "recurrence (end_of_day)": [
+    "hazard.dehydration/dehydration_exhaustion",
+    "hazard.malnutrition/starvation_automatic",
+    "hazard.malnutrition/starvation_save"
+   ],
+   "fact family (effect_termination)": [
+    "hazard.burning/ambient_extinguish",
+    "hazard.burning/self_extinguish"
+   ]
+  },
+  "size-keyed requirements": {
+   "fact family (size_keyed_quantity)": [
+    "hazard.dehydration/water_requirement",
+    "hazard.malnutrition/food_requirement"
+   ]
+  },
+  "cause-scoped Exhaustion and removal restrictions": {
+   "ConditionLevelFact.cause_scoped": [
+    "hazard.suffocation/suffocation_recovery"
+   ],
+   "ConditionRemovalRestrictionFact.cause_scoped": [
+    "hazard.dehydration/dehydration_recovery",
+    "hazard.malnutrition/malnutrition_recovery"
+   ],
+   "fact family (condition_removal_restriction)": [
+    "hazard.dehydration/dehydration_recovery",
+    "hazard.malnutrition/malnutrition_recovery"
+   ]
+  },
+  "damage-outcome applicability, scoped to one fact": {
+   "fact qualifier (damage_outcome)": [
+    "hazard.falling/fall_damage"
+   ]
+  },
+  "alternative Strength (Athletics) / Dexterity (Acrobatics) checks": {
+   "AbilityCheckFact.alternatives + Skill axis": [
+    "hazard.falling/surface_check"
+   ]
+  },
+  "damage halving": {
+   "fact family (damage_modification)": [
+    "hazard.falling/surface_check"
+   ]
+  },
+  "modifier-derived duration with a floor": {
+   "fact family (derived_quantity)": [
+    "hazard.suffocation/breath_duration"
+   ],
+   "DerivedQuantityFact floor": [
+    "hazard.suffocation/breath_duration"
+   ]
+  },
+  "record-owned references": {
+   "record-owned reference": [
+    "glossary.hazard -> hazard.burning",
+    "glossary.hazard -> hazard.dehydration",
+    "glossary.hazard -> hazard.falling",
+    "glossary.hazard -> hazard.malnutrition",
+    "glossary.hazard -> hazard.suffocation",
+    "hazard.dehydration -> condition.exhaustion",
+    "hazard.malnutrition -> condition.exhaustion"
+   ]
+  }
+ },
+ "d3_resolution": {
+  "id": "D-3",
+  "status": "resolved - Owner Decision 2026-09-02",
+  "where": "hazard.falling/fall_damage",
+  "question_as_disclosed": "'at the end of the fall' and 'When the creature lands' state when a one-shot effect occurs, and no declared element carried a moment. The open question was whether that needed a new timing structure.",
+  "ruling": "A normal fall finishes during the turn in which it begins. Resolve its damage and landing immediately. Only delay completion when a specific rule provides a falling rate or duration.",
+  "grounds": "The SRD's general Falling rule gives no speed, no distance per round and no duration. Where the SRD intends a slower descent it says so explicitly - Ring of Feather Falling prints 60 feet per round - so no general fall-duration calculation and no real-world physics apply.",
+  "what_the_phrases_mean": "the immediate completion of the fall, not a delayed event requiring a new timing structure",
+  "consequence_for_this_batch": "None to the proposed mechanical authority: this ruling changes review documentation, not the proposal. Both phrases stay SUBSTANTIVE with their exact source accounting; fall_damage stays one component holding the falling damage and the landing consequence, with the Prone result dependent on whether falling damage occurred.",
+  "checked": {
+   "fall_damage_holds_damage_and_landing": true,
+   "components_for_the_fall": 1,
+   "recurs": null,
+   "applies_when": null,
+   "prose_bindings": 0,
+   "prone_gated_on_falling_damage": true,
+   "structure_added_for_ordinary_falls": "none"
+  },
+  "evidence": [
+   {
+    "phrase": "at the end of the fall",
+    "span_range": [
+     21,
+     73
+    ],
+    "span_text": " takes 1d6 Bludgeoning damage at the end of the fall",
+    "disposition": "substantive",
+    "claimant_kind": "fact",
+    "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+    "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+    "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+    "structure_added": "none"
+   },
+   {
+    "phrase": "When the creature lands",
+    "span_range": [
+     122,
+     174
+    ],
+    "span_text": " When the creature lands, it has the Prone condition",
+    "disposition": "substantive",
+    "claimant_kind": "fact",
+    "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+    "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+    "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+    "structure_added": "none"
+   }
+  ]
+ },
+ "d4_resolution": {
+  "id": "D-4",
+  "status": "resolved - correctly represented",
+  "where": "hazard.burning/self_extinguish",
+  "question_as_disclosed": "whether 'and rolling on the ground' - half of a compound required performance whose other half is typed - was honestly bound as governing prose, or needed a typed family.",
+  "resolution": "Correctly represented, and settled by the governing review instructions rather than left open: self_extinguish is one MIXED component, 'and rolling on the ground' is substantive governing rule text, and the extinguishing consequence is stated once. No schema change and no Owner decision is outstanding.",
+  "checked": {
+   "one_mixed_component": true,
+   "typed_facts": [
+    "ActionEconomyFact",
+    "ConditionEffectFact",
+    "EffectTerminationFact"
+   ],
+   "prose_bindings": 1,
+   "bound_span": {
+    "range": [
+     174,
+     201
+    ],
+    "text": " and rolling on the ground.",
+    "disposition": "substantive",
+    "claimant": "hazard.burning/self_extinguish (contextual_applicability)"
+   },
+   "consequence_stated_once": 1,
+   "consequence_restated_in_the_bound_span": false,
+   "reason_code": "contextual_applicability"
+  }
+ },
+ "z1_resolution": {
+  "id": "Z-1",
+  "status": "resolved - correctly represented",
+  "where": "hazard.malnutrition/starvation_automatic",
+  "question_as_disclosed": "whether the point band sustained for five days, composed with a daily recurrence, is a faithful reading of 'eats nothing for 5 days ... as well as an additional level at the end of each subsequent day without food'.",
+  "required_reading": [
+   "'eats nothing for 5 days' means continuous zero consumption for at least five days",
+   "Exhaustion is gained at the end of the fifth foodless day",
+   "additional Exhaustion is gained at the end of each following foodless day",
+   "the recurrence stays conditional on continued zero consumption",
+   "eating any food ends that zero-consumption applicability"
+  ],
+  "resolution": "Correctly represented. The band is the state and the recurrence is the cadence: a component's applies_when says when the component applies at all, so the daily gain repeats only while zero consumption holds and stops the day eating resumes. No stop condition, elapsed clock, or second predicate is needed, and none is added.",
+  "checked": {
+   "band_is_the_zero_point": true,
+   "sustained_at_least": 5,
+   "sustained_unit": "day",
+   "quantity": "food",
+   "recurrence": "end_of_day",
+   "facts": [
+    "ConditionLevelFact"
+   ],
+   "elapsed_duration_applicability_anywhere": 0,
+   "distinct_from_the_partial_band": true
+  }
+ },
+ "review_disposition": {
+  "open_semantic_questions": [],
+  "disclosed_representation_limits": [],
+  "resolved": [
+   "D-3",
+   "D-4",
+   "Z-1"
+  ],
+  "statement": "hazards-1 has passed semantic review. Every question this batch raised is resolved: D-3 by Owner Decision 2026-09-02, D-4 and Z-1 as correctly represented. Acceptance is a separate Owner step and is not performed here."
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "review_prior": "tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every one of these is asserted to exist, and the imported package is asserted to be the one beneath this root. The live accepted-authority oracle is deliberately absent from this list: it is not an input. This run reads it only as a mutation sentinel - bytes captured before generation and asserted identical afterwards - and neither its path nor its digest is recorded here, because an accumulating artifact's identity would go stale the moment a later batch is accepted."
+ },
+ "obligation_closure": {
+  "O-1": {
+   "claim": "glossary.hazard: five record-owned references, one per hazard record",
+   "closed": true
+  },
+  "O-2": {
+   "claim": "burning_damage: DamageFact(FIRE, 1d4), no interval and no ceiling",
+   "closed": true
+  },
+  "O-3": {
+   "claim": "burning_damage.recurs Recurrence(START_OF_TURN, subject)",
+   "closed": true
+  },
+  "O-4": {
+   "claim": "self_extinguish: ActionEconomyFact(ACTION) - the stated cost",
+   "closed": true
+  },
+  "O-5": {
+   "claim": "self_extinguish: EffectTerminationFact - the fire goes out, stated once",
+   "closed": true
+  },
+  "O-6": {
+   "claim": "self_extinguish: ConditionEffectFact(PRONE, APPLIES)",
+   "closed": true
+  },
+  "O-7": {
+   "claim": "self_extinguish is one MIXED component with exactly one prose binding, over ' and rolling on the ground.' and nothing else (D-4)",
+   "closed": true
+  },
+  "O-8": {
+   "claim": "ambient_extinguish: EffectTerminationFact + a prose binding over its trigger",
+   "closed": true
+  },
+  "O-9": {
+   "claim": "water_requirement: SizeKeyedQuantityFact(WATER, DAY, six printed rows)",
+   "closed": true
+  },
+  "O-10": {
+   "claim": "dehydration_exhaustion.applies_when band(WATER, upper 1/2 exclusive, no lower bound) - 'drinks less than half'",
+   "closed": true
+  },
+  "O-11": {
+   "claim": "dehydration_exhaustion: ConditionLevelFact(EXHAUSTION, GAIN, 1)",
+   "closed": true
+  },
+  "O-12": {
+   "claim": "dehydration_exhaustion.recurs Recurrence(END_OF_DAY)",
+   "closed": true
+  },
+  "O-13": {
+   "claim": "dehydration_recovery: cause-scoped removal restriction until band(WATER, lower 1 inclusive, unbounded above)",
+   "closed": true
+  },
+  "O-14": {
+   "claim": "hazard.dehydration cites condition.exhaustion, resolved beside conditions-1",
+   "closed": true
+  },
+  "O-15": {
+   "claim": "fall_damage: one DamageFact - 1d6 Bludgeoning per 10 feet fallen, maximum_dice 20, and NO ScalingFact anywhere in the batch",
+   "closed": true
+  },
+  "O-16": {
+   "claim": "fall_damage holds the landing fact too, with the no-damage exception qualified onto that fact alone and no component-wide applicability",
+   "closed": true
+  },
+  "O-17": {
+   "claim": "surface_check: ActionEconomyFact(REACTION)",
+   "closed": true
+  },
+  "O-18": {
+   "claim": "surface_check: AbilityCheckFact context=ABILITY_CHECK, DC 15, Strength (Athletics) with Dexterity (Acrobatics) as a closed alternative, and every alternative RollSpec is itself an ability check",
+   "closed": true
+  },
+  "O-19": {
+   "claim": "surface_check: MIXED, one prose binding over the water/liquid trigger",
+   "closed": true
+  },
+  "O-20": {
+   "claim": "surface_check: the halving lives with the check it answers to, qualified ROLL_OUTCOME(SUCCESS) onto the halving fact alone, rounding left unset (R-3 is separate authority)",
+   "closed": true
+  },
+  "O-21": {
+   "claim": "food_requirement: SizeKeyedQuantityFact(FOOD, DAY, six printed rows)",
+   "closed": true
+  },
+  "O-22": {
+   "claim": "starvation_save.applies_when band(FOOD, 0 exclusive .. 1/2 exclusive) - 'eats BUT consumes less than half', distinct from the zero band",
+   "closed": true
+  },
+  "O-23": {
+   "claim": "starvation_save: AbilityCheckFact(CON, FIXED 10) with context=SAVING_THROW, no skill, no alternatives",
+   "closed": true
+  },
+  "O-24": {
+   "claim": "starvation_save: the Exhaustion gain is qualified ROLL_OUTCOME(FAILURE) on the very save this component calls for",
+   "closed": true
+  },
+  "O-25": {
+   "claim": "starvation_save.recurs Recurrence(END_OF_DAY)",
+   "closed": true
+  },
+  "O-26": {
+   "claim": "starvation_automatic.applies_when band(FOOD, 0..0 inclusive) sustained at least 5 days - 'eats nothing for 5 days', not an elapsed clock",
+   "closed": true
+  },
+  "O-27": {
+   "claim": "starvation_automatic: ConditionLevelFact(EXHAUSTION, GAIN, 1), one fact for the fifth day and every subsequent day without food",
+   "closed": true
+  },
+  "O-28": {
+   "claim": "starvation_automatic.recurs Recurrence(END_OF_DAY) - the cadence that, composed with the band, stops when eating resumes",
+   "closed": true
+  },
+  "O-29": {
+   "claim": "malnutrition_recovery: cause-scoped removal restriction until band(FOOD, lower 1 inclusive), preserved as this record's own rule",
+   "closed": true
+  },
+  "O-30": {
+   "claim": "hazard.malnutrition cites condition.exhaustion, resolved beside conditions-1",
+   "closed": true
+  },
+  "O-31": {
+   "claim": "breath_duration: DerivedQuantityFact(1 + CON modifier minutes, floor 30 s)",
+   "closed": true
+  },
+  "O-32": {
+   "claim": "suffocation_accrual: one MIXED component, one prose binding carrying the WHOLE disjunctive trigger [147,197) uncut (H-16 Shape B)",
+   "closed": true
+  },
+  "O-33": {
+   "claim": "suffocation_accrual: the Exhaustion gain stated ONCE, and it is the record's only accrual fact",
+   "closed": true
+  },
+  "O-34": {
+   "claim": "suffocation_accrual.recurs Recurrence(END_OF_TURN, subject), once at component scope",
+   "closed": true
+  },
+  "O-35": {
+   "claim": "suffocation_recovery: MIXED, one prose binding over the recovery trigger",
+   "closed": true
+  },
+  "O-36": {
+   "claim": "suffocation_recovery: ConditionLevelFact(REMOVE, all levels, cause-scoped)",
+   "closed": true
+  }
+ },
+ "sibling_fact_pairs": [
+  {
+   "record": "hazard.burning",
+   "fact_key": "08d4572fe00ecf1e",
+   "components": [
+    "ambient_extinguish",
+    "self_extinguish"
+   ],
+   "spans_per_component": {
+    "ambient_extinguish": [
+     " The fire also goes out"
+    ],
+    "self_extinguish": [
+     " you can extinguish fire on yourself"
+    ]
+   },
+   "shares_a_substantive_span": false,
+   "verdict": "legal: two different rules state the same mechanic, from different spans; the rule requires a SHARED substantive span and there is none"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "fact_key": "a2dfac8bea01c536",
+   "components": [
+    "starvation_automatic",
+    "starvation_save"
+   ],
+   "spans_per_component": {
+    "starvation_automatic": [
+     " automatically gains 1 Exhaustion level"
+    ],
+    "starvation_save": [
+     " gain 1 Exhaustion level"
+    ]
+   },
+   "shares_a_substantive_span": false,
+   "verdict": "legal: two different rules state the same mechanic, from different spans; the rule requires a SHARED substantive span and there is none"
+  }
+ ],
+ "ownership_integrity": {
+  "substantive_spans": 65,
+  "substantive_with_exactly_one_primary_claimant": 65,
+  "primary_claimants_by_element_kind": {
+   "component": 8,
+   "fact": 49,
+   "fact_qualifier": 3,
+   "prose_binding": 5
+  },
+  "supporting_spans": 31,
+  "supporting_spans_carrying_a_primary_claim": 0,
+  "prose_bindings_over_supporting_text": 0,
+  "spans_with_no_claim_at_all": 0
+ },
+ "h16_shape_b": {
+  "handling": "mixed",
+  "irreducibility_reason_code": "contextual_applicability",
+  "typed_facts": 1,
+  "components_in_record": 3,
+  "trigger": {
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "range": [
+    147,
+    197
+   ],
+   "text": " When a creature runs out of breath or is choking,",
+   "span_id": "5408e30c-9cf1-5612-875b-fe6b1b9977f9",
+   "carried_as": "one prose binding over the whole disjunction, uncut",
+   "derivation": "found in the bound leaf at run time, then asserted equal to [147,197)"
+  },
+  "recurrence_stated_once_at_component_scope": true,
+  "boolean_predicates_invented": 0,
+  "wrapper_facts_invented": 0,
+  "duplicated_sibling_authority": 0,
+  "trigger_split_into_siblings": 0
+ },
+ "r3_disposition": {
+  "governing_rule": "Rules Glossary > Rules Definitions > Round Down",
+  "exists_as_its_own_entry": true,
+  "in_this_boundary": false,
+  "imported": false,
+  "rounding_field": null,
+  "disposition": "left unset. This record states a halving and nothing about rounding; the Round Down entry states its own rule in its own batch, and a fact must not claim provenance over a span this batch never accounted."
+ },
+ "falling_timing_spans": [
+  {
+   "phrase": "at the end of the fall",
+   "span_range": [
+    21,
+    73
+   ],
+   "span_text": " takes 1d6 Bludgeoning damage at the end of the fall",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+   "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+   "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+   "structure_added": "none"
+  },
+  {
+   "phrase": "When the creature lands",
+   "span_range": [
+    122,
+    174
+   ],
+   "span_text": " When the creature lands, it has the Prone condition",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+   "accounted_as": "claimed PRIMARY inside the span of the fact it belongs to; neither omitted nor demoted to supporting authority",
+   "means": "the immediate completion of the fall, not a delayed event: a normal fall finishes during the turn in which it begins, so damage and landing resolve at once",
+   "structure_added": "none"
+  }
+ ],
+ "spans": [
+  {
+   "record": "glossary.hazard",
+   "leaf": "1b5b2441-5ce4-5d6a-a0ee-f6d57e0e98bc",
+   "span_id": "31f1acc0-ecb7-588e-b5e3-aa8e90207c7b",
+   "range": [
+    0,
+    6
+   ],
+   "text": "Hazard",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.hazard",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "1cc56040-9d88-5a71-820d-0ffad1693f03",
+   "span_id": "b23adb44-335d-5759-93ed-ea1a3dddd8f7",
+   "range": [
+    0,
+    36
+   ],
+   "text": "A hazard is an environmental danger.",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.hazard",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "f85658c8-fe13-51c1-8c84-e83f352274c3",
+   "span_id": "56a1a635-34c5-5ce9-9a61-86bca529c453",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.hazard",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "12b0cb37-5155-5c79-8d6e-c7bdfa7a49c6",
+   "range": [
+    0,
+    10
+   ],
+   "text": "“Burning,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.hazard -> hazard.burning",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "d18a11a7-0c7d-5a85-b403-f07d0086b6c3",
+   "range": [
+    10,
+    25
+   ],
+   "text": " “Dehydration,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.hazard -> hazard.dehydration",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "332e196c-ca5d-51a1-b539-73f8e67bbba0",
+   "range": [
+    25,
+    36
+   ],
+   "text": " “Falling,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.hazard -> hazard.falling",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "843a2620-80a4-5989-a9ff-db5250f6cfca",
+   "range": [
+    36,
+    52
+   ],
+   "text": " “Malnutrition,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.hazard -> hazard.malnutrition",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "f68c7d5c-3c47-5129-810c-f15f4a3e4698",
+   "range": [
+    52,
+    56
+   ],
+   "text": " and",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.hazard",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.hazard",
+   "leaf": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "span_id": "b8c7c745-4336-5b04-9b77-d32502e721a0",
+   "range": [
+    56,
+    71
+   ],
+   "text": " “Suffocation.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.hazard -> hazard.suffocation",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0d182a5a-bb50-51dc-93dc-d2dc43886636",
+   "span_id": "a7c95fbb-6268-5920-bb09-b30276b51b61",
+   "range": [
+    0,
+    16
+   ],
+   "text": "Burning [Hazard]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.burning",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "fc51efe1-41de-5936-bd85-2cc8a7c444ad",
+   "range": [
+    0,
+    28
+   ],
+   "text": "A burning creature or object",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.burning/burning_damage",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "71d50d48-d01a-5aa7-9e84-648b4bb73389",
+   "range": [
+    28,
+    50
+   ],
+   "text": " takes 1d4 Fire damage",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.burning/burning_damage/27183b13d6f8797b",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "cebc8bf4-cf0e-5059-9e2d-d6e14a07cd22",
+   "range": [
+    50,
+    85
+   ],
+   "text": " at the start of each of its turns.",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.burning/burning_damage",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "7842115c-a7ea-5603-bb1c-3c39803151f4",
+   "range": [
+    85,
+    99
+   ],
+   "text": " As an action,",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.burning/self_extinguish/fe97b30136297ea9",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "86bc6db2-4003-5981-a494-c247d68f69e0",
+   "range": [
+    99,
+    135
+   ],
+   "text": " you can extinguish fire on yourself",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.burning/self_extinguish/08d4572fe00ecf1e",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "0e71af43-f5f8-5c61-bda4-05a3b65c1b01",
+   "range": [
+    135,
+    174
+   ],
+   "text": " by giving yourself the Prone condition",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.burning/self_extinguish/e756f5850569798d",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "fd456f5d-0386-5f2e-9b00-cf3154734324",
+   "range": [
+    174,
+    201
+   ],
+   "text": " and rolling on the ground.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "hazard.burning/self_extinguish (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "cb3c680d-c14f-5c71-ba21-b6aad03a00f9",
+   "range": [
+    201,
+    224
+   ],
+   "text": " The fire also goes out",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.burning/ambient_extinguish/08d4572fe00ecf1e",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.burning",
+   "leaf": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "span_id": "87eaabc4-32b4-5f75-84d7-017ebdcb7f8c",
+   "range": [
+    224,
+    267
+   ],
+   "text": " if it is doused, submerged, or suffocated.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "hazard.burning/ambient_extinguish (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "0c177194-8568-5db6-93da-e945acece1bf",
+   "span_id": "f6e72677-b004-5db8-a11e-12f5d3b4c5ef",
+   "range": [
+    0,
+    20
+   ],
+   "text": "Dehydration [Hazard]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.dehydration",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "8d0bd486-9bf1-59da-9231-0c8b22bb1a2f",
+   "range": [
+    0,
+    108
+   ],
+   "text": "A creature requires an amount of water per day based on its size, as shown in the Water Needs per Day table.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "bb8710dd-9e8f-5938-b1f7-0d6320c03969",
+   "range": [
+    108,
+    175
+   ],
+   "text": " A creature that drinks less than half the required water for a day",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/dehydration_exhaustion",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "3a76dd31-318f-54a8-bd53-fa96403ffdda",
+   "range": [
+    175,
+    200
+   ],
+   "text": " gains 1 Exhaustion level",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/dehydration_exhaustion/a2dfac8bea01c536",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "a9c881d8-ea76-55c9-9e2f-a69315adc156",
+   "range": [
+    200,
+    218
+   ],
+   "text": " at the day’s end.",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/dehydration_exhaustion",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "1b70eef2-037a-5b21-9f26-ab5b1ddc7628",
+   "range": [
+    218,
+    251
+   ],
+   "text": " Exhaustion caused by dehydration",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/dehydration_recovery/5cb21f934acea548",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "span_id": "87454552-a92b-51ca-9aa2-91571031e2b8",
+   "range": [
+    251,
+    339
+   ],
+   "text": " can’t be removed until the creature drinks the full amount of water required for a day.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/dehydration_recovery/5cb21f934acea548",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "c83dc7e5-81b3-5473-b022-3ba21779acc4",
+   "span_id": "00bcfe5b-c5e6-5445-abec-bccb882ebc56",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.dehydration",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "ff0b2d68-38b6-566c-8bce-ab582fd14d29",
+   "span_id": "7cb725f3-e784-5c21-ac9d-7aa782dd21dc",
+   "range": [
+    0,
+    13
+   ],
+   "text": "“Exhaustion.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "hazard.dehydration -> condition.exhaustion",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "ff0b2d68-38b6-566c-8bce-ab582fd14d29",
+   "span_id": "fa7172b7-b9be-5ca4-9c9c-ca8089686c3a",
+   "range": [
+    13,
+    33
+   ],
+   "text": " Water Needs per Day",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/water_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "7c43a7ca-4a38-5f92-9349-9aa42126fc9b",
+   "span_id": "2992173c-fa8b-5401-82b5-3789d4acac89",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Size",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/water_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "11fe0d88-a6bd-504b-a9c0-767d46978558",
+   "span_id": "006597e6-3c60-5de9-bc9b-f6fe1a73baee",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Water",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/water_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "8f170f82-2638-5087-8c55-e0fe1ecdd558",
+   "span_id": "f7d7114a-89fb-5e10-9b11-09afd759c89a",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Tiny",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "0f028852-962f-5de3-a770-425227013535",
+   "span_id": "7db90d63-24aa-52ac-bbdc-7844abe7232b",
+   "range": [
+    0,
+    10
+   ],
+   "text": "1/4 gallon",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "a05aa0e0-d275-5e96-b042-b0b0aa4cafe1",
+   "span_id": "c3f93a9a-8512-5894-9dde-de7c2fd9bd93",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Small",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "29b57bd7-3272-512f-bd50-4208784ec8d9",
+   "span_id": "b6743878-1197-56e3-adc5-7519b3198fe4",
+   "range": [
+    0,
+    8
+   ],
+   "text": "1 gallon",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "69d62995-ecc5-5115-96a0-20a4f4b3e949",
+   "span_id": "49b81357-5bf1-5050-9f96-517273c52bb4",
+   "range": [
+    0,
+    6
+   ],
+   "text": "Medium",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "e5debac8-d74b-525f-8e41-e6d273056886",
+   "span_id": "05b99d36-265c-541f-97d0-2d3c85c0b0c4",
+   "range": [
+    0,
+    8
+   ],
+   "text": "1 gallon",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "70c5c340-ff9d-5a90-afa4-26907bd289e3",
+   "range": [
+    0,
+    10
+   ],
+   "text": "Size Water",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.dehydration/water_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "9d4b73bb-0f5b-5429-b2aa-9e0b6e8612cc",
+   "range": [
+    10,
+    16
+   ],
+   "text": " Large",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "cfe0febf-90ba-551e-8025-88c8e8bd9696",
+   "range": [
+    16,
+    26
+   ],
+   "text": " 4 gallons",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "0cd89ae2-99b9-59c0-b5e3-f560a04f24a8",
+   "range": [
+    26,
+    31
+   ],
+   "text": " Huge",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "9e7388ac-70be-5a8d-91d2-5d97f49783a4",
+   "range": [
+    31,
+    42
+   ],
+   "text": " 16 gallons",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "3f0a8bf5-fa7f-5f5d-b697-f1e97716de40",
+   "range": [
+    42,
+    53
+   ],
+   "text": " Gargantuan",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.dehydration",
+   "leaf": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "span_id": "83c54082-33f8-5978-bb8e-3a6e480a9713",
+   "range": [
+    53,
+    64
+   ],
+   "text": " 64 gallons",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.dehydration/water_requirement/6bd1bf8c972fb4d7",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "ddb6a3d5-bf68-5237-b6df-ba8e27caa181",
+   "span_id": "8a0a0ad0-e472-58b3-af25-f8bfaa3fe379",
+   "range": [
+    0,
+    16
+   ],
+   "text": "Falling [Hazard]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.falling",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "5b5ed8e5-117e-55e1-b1ba-f1015f5c1ee4",
+   "range": [
+    0,
+    21
+   ],
+   "text": "A creature that falls",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.falling/fall_damage",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "122728e8-95d9-5980-8294-a6978bd7f5b0",
+   "range": [
+    21,
+    73
+   ],
+   "text": " takes 1d6 Bludgeoning damage at the end of the fall",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "3d307c9c-307e-5b8c-b5a7-0de2a69d023e",
+   "range": [
+    73,
+    100
+   ],
+   "text": " for every 10 feet it fell,",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "128b658d-94e0-5040-85c6-47f7fb5c26a7",
+   "range": [
+    100,
+    122
+   ],
+   "text": " to a maximum of 20d6.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/0617d42b33c8b298",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "d21ee5c7-d8e5-52de-b285-5bbe07ff7b88",
+   "range": [
+    122,
+    174
+   ],
+   "text": " When the creature lands, it has the Prone condition",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "6009ffb3-bb15-5aea-86b3-4154536721fd",
+   "range": [
+    174,
+    224
+   ],
+   "text": " unless it avoids taking any damage from the fall.",
+   "disposition": "substantive",
+   "kind": "Q",
+   "claimant_kind": "fact_qualifier",
+   "claimant": "hazard.falling/fall_damage/e756f5850569798d",
+   "role": "primary",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "7e8256e3-dd2b-59f9-ba93-02c011141a01",
+   "range": [
+    224,
+    275
+   ],
+   "text": " A creature that falls into water or another liquid",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "hazard.falling/surface_check (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "5d7df550-5bcd-5ed0-9624-60be4f6a7905",
+   "range": [
+    275,
+    296
+   ],
+   "text": " can use its Reaction",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/surface_check/9a446b7e43c85d53",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "c422291a-20ec-55a7-ac5a-27d96a3b197a",
+   "range": [
+    296,
+    365
+   ],
+   "text": " to make a DC 15 Strength (Athletics) or Dexterity (Acrobatics) check",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/surface_check/6c214c6946704c3f",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "ab50d74f-cc2f-5b56-baae-24b6786a0a51",
+   "range": [
+    365,
+    404
+   ],
+   "text": " to hit the surface head or feet first.",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.falling/surface_check",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "e03661df-cb93-5546-a972-e404095fbbd4",
+   "range": [
+    404,
+    427
+   ],
+   "text": " On a successful check,",
+   "disposition": "substantive",
+   "kind": "Q",
+   "claimant_kind": "fact_qualifier",
+   "claimant": "hazard.falling/surface_check/645b0fdb277b2150",
+   "role": "primary",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier"
+  },
+  {
+   "record": "hazard.falling",
+   "leaf": "4218a982-b90e-59e8-b406-f715189136cd",
+   "span_id": "626d51bb-b3e2-596f-b00c-7532f2b13f54",
+   "range": [
+    427,
+    473
+   ],
+   "text": " any damage resulting from the fall is halved.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.falling/surface_check/645b0fdb277b2150",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "5bb08b93-6a81-59b9-bd3a-693a78afdb3b",
+   "span_id": "b354d403-a536-54da-8a17-6792f81578c0",
+   "range": [
+    0,
+    21
+   ],
+   "text": "Malnutrition [Hazard]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.malnutrition",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "ba04d70c-8039-5c11-8f07-b4b9c72b00ae",
+   "range": [
+    0,
+    103
+   ],
+   "text": "A creature needs an amount of food per day based on its size, as shown in the Food Needs per Day table.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "b3f39529-22b5-5bf8-9190-ce2ee2e31b03",
+   "range": [
+    103,
+    180
+   ],
+   "text": " A creature that eats but consumes less than half the required food for a day",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/starvation_save",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "c187a267-5567-5dff-843a-343dfa7c085a",
+   "range": [
+    180,
+    230
+   ],
+   "text": " must succeed on a DC 10 Constitution saving throw",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/starvation_save/ce8834862b4aa506",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "f6a14cd7-5c75-569b-9183-7bbfcd838002",
+   "range": [
+    230,
+    233
+   ],
+   "text": " or",
+   "disposition": "substantive",
+   "kind": "Q",
+   "claimant_kind": "fact_qualifier",
+   "claimant": "hazard.malnutrition/starvation_save/a2dfac8bea01c536",
+   "role": "primary",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "dbbc194c-d6e2-585c-bdc5-d308ac334840",
+   "range": [
+    233,
+    257
+   ],
+   "text": " gain 1 Exhaustion level",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/starvation_save/a2dfac8bea01c536",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "35f53d63-cfb3-5301-b069-51a3c5855c56",
+   "range": [
+    257,
+    275
+   ],
+   "text": " at the day’s end.",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/starvation_save",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "808a94a1-a756-5d64-ad98-21a1c4bd18ef",
+   "range": [
+    275,
+    315
+   ],
+   "text": " A creature that eats nothing for 5 days",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/starvation_automatic",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "1c116ef9-5236-5210-bdf9-85ef02ef13b8",
+   "range": [
+    315,
+    354
+   ],
+   "text": " automatically gains 1 Exhaustion level",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/starvation_automatic/a2dfac8bea01c536",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "23f72c86-6dd6-54d7-bb81-d4d7d98a9556",
+   "range": [
+    354,
+    461
+   ],
+   "text": " at the end of the fifth day as well as an additional level at the end of each subsequent day without food.",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/starvation_automatic",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "7a04a5fe-237b-5042-9284-2507bec8e942",
+   "range": [
+    461,
+    495
+   ],
+   "text": " Exhaustion caused by malnutrition",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/malnutrition_recovery/7e3b50690faf404f",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "span_id": "fa761ae6-1401-5a6b-9ab5-acdf0456a8d7",
+   "range": [
+    495,
+    580
+   ],
+   "text": " can’t be removed until the creature eats the full amount of food required for a day.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/malnutrition_recovery/7e3b50690faf404f",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "32209bd5-2287-59fe-8ced-4ca8269f2afd",
+   "span_id": "3f4d4006-419e-5cf2-a9bc-f39bdba29041",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.malnutrition",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "948c7e91-a21a-5c05-85b5-9ddde6f578ae",
+   "span_id": "fcdff11e-3f04-55f8-8228-d078ba861af9",
+   "range": [
+    0,
+    13
+   ],
+   "text": "“Exhaustion.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "hazard.malnutrition -> condition.exhaustion",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "948c7e91-a21a-5c05-85b5-9ddde6f578ae",
+   "span_id": "3681fc45-f184-596b-be59-705e74e580fb",
+   "range": [
+    13,
+    32
+   ],
+   "text": " Food Needs per Day",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/food_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "257431cc-4f10-5cbc-873a-84c91992c77c",
+   "span_id": "340209c3-fa8b-5d4c-b624-b8c1d6b83593",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Size",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/food_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "3301515c-9ea2-5607-b8bb-c7b01f5fe419",
+   "span_id": "932cd5e7-eb9f-57bc-802f-85c0a2370632",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Food",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/food_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "6bfe4a24-3a42-5847-9fc5-84420fd322ab",
+   "span_id": "f8e95eb6-0f94-52a4-856d-4ba5901f828c",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Size",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/food_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "e1b2a92a-25c0-55aa-a280-2f009d4c97e7",
+   "span_id": "896a36a4-7609-58e2-94c9-8bbc7241ae7d",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Food",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.malnutrition/food_requirement",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "63cb8191-d113-5d86-9f32-201d3aa4464b",
+   "span_id": "fc274dd3-8cf8-5d8e-b50c-1667ae19a9f9",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Tiny",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "f7413beb-acb8-56f6-b1c2-402c4316d078",
+   "span_id": "39d91ead-e62c-56d5-ae34-a11c9cae6e0a",
+   "range": [
+    0,
+    9
+   ],
+   "text": "1/4 pound",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "d38034f1-6906-5f6b-b097-7717508ba46d",
+   "span_id": "2ff9d74f-cffe-5e3b-b453-de7bcbe0cc85",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Large",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "7ed36a77-aad8-5b8b-8d5c-4e574190a7a1",
+   "span_id": "5988704e-e2a6-539e-b237-2825fd4cb7c1",
+   "range": [
+    0,
+    8
+   ],
+   "text": "4 pounds",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "f05421c4-2e2d-5f64-b252-f30b75d02784",
+   "span_id": "c38eb907-087b-5668-a78c-94ffaf8929a9",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Small",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "b72491aa-8521-5f9f-aca0-0a831d9640d7",
+   "span_id": "4157ec63-0429-5546-9560-c8b8acf83712",
+   "range": [
+    0,
+    7
+   ],
+   "text": "1 pound",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "af48fec0-52be-5d11-8d3f-07d60caa4abd",
+   "span_id": "e0787839-2cfd-50ee-a14b-65b936c7adb9",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Huge",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "89c4ea1b-0848-573f-b6e0-26b2f4ca8407",
+   "span_id": "ed3aaf75-519d-579c-accb-6fe4db1449ea",
+   "range": [
+    0,
+    9
+   ],
+   "text": "16 pounds",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "88893271-5c09-5915-a7d6-acb042ed18e8",
+   "span_id": "3e7a700f-f2d3-566a-9b13-122843530472",
+   "range": [
+    0,
+    6
+   ],
+   "text": "Medium",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "bb4928b0-c355-5496-9d4e-fafe16f9731f",
+   "span_id": "82bd75a7-e631-50bd-87ce-182c8646b69e",
+   "range": [
+    0,
+    7
+   ],
+   "text": "1 pound",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "10cb2604-ab15-5ee6-9d55-5e2a087b554b",
+   "span_id": "a2184b65-27f1-58ac-a0ce-6d940a3cb585",
+   "range": [
+    0,
+    10
+   ],
+   "text": "Gargantuan",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.malnutrition",
+   "leaf": "7d17aa68-ce65-515f-8ec8-8de637f11806",
+   "span_id": "b4701aec-7b75-55f5-904e-c13cac1cb48d",
+   "range": [
+    0,
+    9
+   ],
+   "text": "64 pounds",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.malnutrition/food_requirement/d83b6961472de9c3",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7a68c161-6337-5b0e-9a2b-b9d8934c2f34",
+   "span_id": "ebca6b71-5e44-5c70-bcae-235c19954715",
+   "range": [
+    0,
+    20
+   ],
+   "text": "Suffocation [Hazard]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "hazard.suffocation",
+   "role": "contextual",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "c6d99b07-5cec-559e-8f1c-8989cfdf32ff",
+   "range": [
+    0,
+    120
+   ],
+   "text": "A creature can hold its breath for a number of minutes equal to 1 plus its Constitution modifier (minimum of 30 seconds)",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.suffocation/breath_duration/08d554c9bd5778df",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "e5edd98a-6166-57e7-90b0-4bbff4344544",
+   "range": [
+    120,
+    147
+   ],
+   "text": " before suffocation begins.",
+   "disposition": "supporting_authority",
+   "kind": "C",
+   "claimant_kind": "component",
+   "claimant": "hazard.suffocation/breath_duration",
+   "role": "contextual",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "5408e30c-9cf1-5612-875b-fe6b1b9977f9",
+   "range": [
+    147,
+    197
+   ],
+   "text": " When a creature runs out of breath or is choking,",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "hazard.suffocation/suffocation_accrual (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "c98bc898-fc07-5c07-80b3-78e42883205c",
+   "range": [
+    197,
+    225
+   ],
+   "text": " it gains 1 Exhaustion level",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.suffocation/suffocation_accrual/a2dfac8bea01c536",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "22998ada-1c4c-531c-9798-6da8989a3e65",
+   "range": [
+    225,
+    258
+   ],
+   "text": " at the end of each of its turns.",
+   "disposition": "substantive",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "hazard.suffocation/suffocation_accrual",
+   "role": "primary",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "17feaaea-de56-5f09-9b89-ec799b52ce29",
+   "range": [
+    258,
+    293
+   ],
+   "text": " When a creature can breathe again,",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "hazard.suffocation/suffocation_recovery (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it"
+  },
+  {
+   "record": "hazard.suffocation",
+   "leaf": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "span_id": "2645070f-932f-55e5-a028-2254d0470a23",
+   "range": [
+    293,
+    357
+   ],
+   "text": " it removes all levels of Exhaustion it gained from suffocating.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "hazard.suffocation/suffocation_recovery/ba0486823e87e9ee",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  }
+ ],
+ "determinism": {
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files. Parent and child produce identical final documents, so the comparison is about what ships.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "6d0e0566eaa7241f0d7bb519040b874815fe5a9df79ba278427a926b7d25753f",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout."
+ }
+}

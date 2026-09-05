@@ -32,9 +32,15 @@ required field is never omitted, so every payload of that family moves. Such a
 succession is registrable only where the accepted artifact holds no element of
 that family, and :func:`verify_lift` is what establishes it: the proof is byte
 identity of what is actually there, element by element, not an argument from the
-omission rule. Schema 5's registered row is legal because the committed
-``conditions-1`` artifact contains no ability-check fact at all, which its own
-tests assert against the artifact rather than assume.
+omission rule. Schema 5's registered row is legal because the accepted content
+it was proved against — the ``conditions-1`` artifact as it stood when the lift
+was verified — contains no ability-check fact at all, which its own tests assert
+against those bytes rather than assume. The frozen specimen of that state is
+``tests/ingestion/mechanical/data/legacy_conditions_1_unanchored_schema3.json``.
+The production artifact has since been extended by ``hazards-1``, which *does*
+carry ability-check facts, and that is not retroactive: a lift's legality is a
+statement about the content it carried across, never about every batch a later
+acceptance adds to the same file.
 
 **Compatibility is declared, never inferred.** The registry is keyed by the exact
 source pair and names its destination pair literally. Version ordering is not

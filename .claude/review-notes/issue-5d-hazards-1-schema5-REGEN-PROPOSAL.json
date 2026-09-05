@@ -1,0 +1,2674 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py (CRD Issue 5d batch hazards-1, representation schema 5)",
+ "proposal_schema_version": "5d-proposal-1",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "hazard.suffocation",
+    "recurs": {
+     "boundary": "end_of_turn",
+     "whose": "subject"
+    },
+    "semantic_key": "suffocation_accrual"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": true,
+      "amount": null,
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "remove",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "hazard.suffocation",
+    "semantic_key": "suffocation_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "base": 1,
+      "family": "derived_quantity",
+      "floor_amount": 30,
+      "floor_unit": "second",
+      "modifier": "constitution",
+      "unit": "minute"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.suffocation",
+    "semantic_key": "breath_duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "family": "condition_removal_restriction",
+      "until": {
+       "any_of": [],
+       "band": {
+        "lower": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "lower_inclusive": true,
+        "period": "day",
+        "quantity": "food",
+        "sustained_at_least": null,
+        "sustained_unit": null,
+        "upper": null,
+        "upper_inclusive": false
+       },
+       "comparison": null,
+       "kind": "consumption_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.malnutrition",
+    "semantic_key": "malnutrition_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "family": "condition_removal_restriction",
+      "until": {
+       "any_of": [],
+       "band": {
+        "lower": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "lower_inclusive": true,
+        "period": "day",
+        "quantity": "water",
+        "sustained_at_least": null,
+        "sustained_unit": null,
+        "upper": null,
+        "upper_inclusive": false
+       },
+       "comparison": null,
+       "kind": "consumption_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.dehydration",
+    "semantic_key": "dehydration_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     },
+     {
+      "cost": "action",
+      "family": "action_economy"
+     },
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "hazard.burning",
+    "semantic_key": "self_extinguish"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "damage_type": "fire",
+      "dice": {
+       "count": 1,
+       "die": "d4",
+       "modifier": 0
+      },
+      "family": "damage",
+      "flat_amount": null,
+      "stated_average": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.burning",
+    "recurs": {
+     "boundary": "start_of_turn",
+     "whose": "subject"
+    },
+    "semantic_key": "burning_damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "hazard.burning",
+    "semantic_key": "ambient_extinguish"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "size_keyed_quantity",
+      "period": "day",
+      "quantity": "food",
+      "values": [
+       {
+        "amount": {
+         "denominator": 4,
+         "numerator": 1
+        },
+        "size": "tiny",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "small",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "medium",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 4
+        },
+        "size": "large",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 16
+        },
+        "size": "huge",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 64
+        },
+        "size": "gargantuan",
+        "unit": "pound"
+       }
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.malnutrition",
+    "semantic_key": "food_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "size_keyed_quantity",
+      "period": "day",
+      "quantity": "water",
+      "values": [
+       {
+        "amount": {
+         "denominator": 4,
+         "numerator": 1
+        },
+        "size": "tiny",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "small",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "medium",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 4
+        },
+        "size": "large",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 16
+        },
+        "size": "huge",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 64
+        },
+        "size": "gargantuan",
+        "unit": "gallon"
+       }
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.dehydration",
+    "semantic_key": "water_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "damage_outcome": "no_damage",
+       "kind": "damage_outcome",
+       "negated": true,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "e756f5850569798d",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     },
+     {
+      "damage_type": "bludgeoning",
+      "dice": {
+       "count": 1,
+       "die": "d6",
+       "modifier": 0
+      },
+      "family": "damage",
+      "flat_amount": null,
+      "maximum_dice": 20,
+      "per": {
+       "amount": 10,
+       "basis": "distance_fallen",
+       "unit": "foot"
+      },
+      "stated_average": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.falling",
+    "semantic_key": "fall_damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "success",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "645b0fdb277b2150",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "strength",
+      "alternatives": [
+       {
+        "ability": "dexterity",
+        "actor": "subject",
+        "context": "ability_check",
+        "skill": "acrobatics"
+       },
+       {
+        "ability": "strength",
+        "actor": "subject",
+        "context": "ability_check",
+        "skill": "athletics"
+       }
+      ],
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 15,
+      "family": "ability_check",
+      "skill": "athletics"
+     },
+     {
+      "cost": "reaction",
+      "family": "action_economy"
+     },
+     {
+      "direction": "reduce",
+      "factor": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "family": "damage_modification",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "hazard.falling",
+    "semantic_key": "surface_check"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": null,
+      "lower_inclusive": false,
+      "period": "day",
+      "quantity": "water",
+      "sustained_at_least": null,
+      "sustained_unit": null,
+      "upper": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "upper_inclusive": false
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.dehydration",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "dehydration_exhaustion"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "lower_inclusive": false,
+      "period": "day",
+      "quantity": "food",
+      "sustained_at_least": null,
+      "sustained_unit": null,
+      "upper": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "upper_inclusive": false
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "failure",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "a2dfac8bea01c536",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "constitution",
+      "context": "saving_throw",
+      "dc_kind": "fixed",
+      "dc_value": 10,
+      "family": "ability_check"
+     },
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.malnutrition",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "starvation_save"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "lower_inclusive": true,
+      "period": "day",
+      "quantity": "food",
+      "sustained_at_least": 5,
+      "sustained_unit": "day",
+      "upper": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "upper_inclusive": true
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "hazard.malnutrition",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "starvation_automatic"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 197,
+    "chunk_char_start": 147,
+    "chunk_id": "fbe8a745-d1f4-50ca-b35a-139af4d22540",
+    "component_key": "suffocation_accrual",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "hazard.suffocation",
+    "span_id": "5408e30c-9cf1-5612-875b-fe6b1b9977f9"
+   },
+   {
+    "chunk_char_end": 201,
+    "chunk_char_start": 174,
+    "chunk_id": "5462cf8c-7027-5385-a0ce-1ad910ff6900",
+    "component_key": "self_extinguish",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "hazard.burning",
+    "span_id": "fd456f5d-0386-5f2e-9b00-cf3154734324"
+   },
+   {
+    "chunk_char_end": 267,
+    "chunk_char_start": 224,
+    "chunk_id": "5462cf8c-7027-5385-a0ce-1ad910ff6900",
+    "component_key": "ambient_extinguish",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "hazard.burning",
+    "span_id": "87eaabc4-32b4-5f75-84d7-017ebdcb7f8c"
+   },
+   {
+    "chunk_char_end": 275,
+    "chunk_char_start": 224,
+    "chunk_id": "c0c8c687-6d39-572f-a1bf-46079cade564",
+    "component_key": "surface_check",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "hazard.falling",
+    "span_id": "7e8256e3-dd2b-59f9-ba93-02c011141a01"
+   },
+   {
+    "chunk_char_end": 293,
+    "chunk_char_start": 258,
+    "chunk_id": "fbe8a745-d1f4-50ca-b35a-139af4d22540",
+    "component_key": "suffocation_recovery",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "hazard.suffocation",
+    "span_id": "17feaaea-de56-5f09-9b89-ec799b52ce29"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "006597e6-3c60-5de9-bc9b-f6fe1a73baee",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "00bcfe5b-c5e6-5445-abec-bccb882ebc56",
+    "target_key": [
+     "hazard.dehydration"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "12b0cb37-5155-5c79-8d6e-c7bdfa7a49c6",
+    "target_key": [
+     "glossary.hazard",
+     "",
+     "Burning",
+     "srd-5.2.1/rules-glossary",
+     "hazard.burning"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2992173c-fa8b-5401-82b5-3789d4acac89",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "31f1acc0-ecb7-588e-b5e3-aa8e90207c7b",
+    "target_key": [
+     "glossary.hazard"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "332e196c-ca5d-51a1-b539-73f8e67bbba0",
+    "target_key": [
+     "glossary.hazard",
+     "",
+     "Falling",
+     "srd-5.2.1/rules-glossary",
+     "hazard.falling"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "340209c3-fa8b-5d4c-b624-b8c1d6b83593",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3681fc45-f184-596b-be59-705e74e580fb",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3f4d4006-419e-5cf2-a9bc-f39bdba29041",
+    "target_key": [
+     "hazard.malnutrition"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "56a1a635-34c5-5ce9-9a61-86bca529c453",
+    "target_key": [
+     "glossary.hazard"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5b5ed8e5-117e-55e1-b1ba-f1015f5c1ee4",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70c5c340-ff9d-5a90-afa4-26907bd289e3",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7cb725f3-e784-5c21-ac9d-7aa782dd21dc",
+    "target_key": [
+     "hazard.dehydration",
+     "",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "condition.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "843a2620-80a4-5989-a9ff-db5250f6cfca",
+    "target_key": [
+     "glossary.hazard",
+     "",
+     "Malnutrition",
+     "srd-5.2.1/rules-glossary",
+     "hazard.malnutrition"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "896a36a4-7609-58e2-94c9-8bbc7241ae7d",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8a0a0ad0-e472-58b3-af25-f8bfaa3fe379",
+    "target_key": [
+     "hazard.falling"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "932cd5e7-eb9f-57bc-802f-85c0a2370632",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a7c95fbb-6268-5920-bb09-b30276b51b61",
+    "target_key": [
+     "hazard.burning"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ab50d74f-cc2f-5b56-baae-24b6786a0a51",
+    "target_key": [
+     "hazard.falling",
+     "surface_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b23adb44-335d-5759-93ed-ea1a3dddd8f7",
+    "target_key": [
+     "glossary.hazard"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b354d403-a536-54da-8a17-6792f81578c0",
+    "target_key": [
+     "hazard.malnutrition"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b8c7c745-4336-5b04-9b77-d32502e721a0",
+    "target_key": [
+     "glossary.hazard",
+     "",
+     "Suffocation",
+     "srd-5.2.1/rules-glossary",
+     "hazard.suffocation"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d18a11a7-0c7d-5a85-b403-f07d0086b6c3",
+    "target_key": [
+     "glossary.hazard",
+     "",
+     "Dehydration",
+     "srd-5.2.1/rules-glossary",
+     "hazard.dehydration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e5edd98a-6166-57e7-90b0-4bbff4344544",
+    "target_key": [
+     "hazard.suffocation",
+     "breath_duration"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ebca6b71-5e44-5c70-bcae-235c19954715",
+    "target_key": [
+     "hazard.suffocation"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f68c7d5c-3c47-5129-810c-f15f4a3e4698",
+    "target_key": [
+     "glossary.hazard"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f6e72677-b004-5db8-a11e-12f5d3b4c5ef",
+    "target_key": [
+     "hazard.dehydration"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f8e95eb6-0f94-52a4-856d-4ba5901f828c",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa7172b7-b9be-5ca4-9c9c-ca8089686c3a",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fc51efe1-41de-5936-bd85-2cc8a7c444ad",
+    "target_key": [
+     "hazard.burning",
+     "burning_damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fcdff11e-3f04-55f8-8228-d078ba861af9",
+    "target_key": [
+     "hazard.malnutrition",
+     "",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "condition.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "05b99d36-265c-541f-97d0-2d3c85c0b0c4",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "0cd89ae2-99b9-59c0-b5e3-f560a04f24a8",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "0e71af43-f5f8-5c61-bda4-05a3b65c1b01",
+    "target_key": [
+     "hazard.burning",
+     "self_extinguish",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "122728e8-95d9-5980-8294-a6978bd7f5b0",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage",
+     "0617d42b33c8b298"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "128b658d-94e0-5040-85c6-47f7fb5c26a7",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage",
+     "0617d42b33c8b298"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "17feaaea-de56-5f09-9b89-ec799b52ce29",
+    "target_key": [
+     "hazard.suffocation",
+     "suffocation_recovery",
+     "fbe8a745-d1f4-50ca-b35a-139af4d22540",
+     "17feaaea-de56-5f09-9b89-ec799b52ce29",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b70eef2-037a-5b21-9f26-ab5b1ddc7628",
+    "target_key": [
+     "hazard.dehydration",
+     "dehydration_recovery",
+     "5cb21f934acea548"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "1c116ef9-5236-5210-bdf9-85ef02ef13b8",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_automatic",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "22998ada-1c4c-531c-9798-6da8989a3e65",
+    "target_key": [
+     "hazard.suffocation",
+     "suffocation_accrual"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "23f72c86-6dd6-54d7-bb81-d4d7d98a9556",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_automatic"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "2645070f-932f-55e5-a028-2254d0470a23",
+    "target_key": [
+     "hazard.suffocation",
+     "suffocation_recovery",
+     "ba0486823e87e9ee"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "2ff9d74f-cffe-5e3b-b453-de7bcbe0cc85",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "35f53d63-cfb3-5301-b069-51a3c5855c56",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_save"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "39d91ead-e62c-56d5-ae34-a11c9cae6e0a",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3a76dd31-318f-54a8-bd53-fa96403ffdda",
+    "target_key": [
+     "hazard.dehydration",
+     "dehydration_exhaustion",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3d307c9c-307e-5b8c-b5a7-0de2a69d023e",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage",
+     "0617d42b33c8b298"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3e7a700f-f2d3-566a-9b13-122843530472",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3f0a8bf5-fa7f-5f5d-b697-f1e97716de40",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "4157ec63-0429-5546-9560-c8b8acf83712",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "49b81357-5bf1-5050-9f96-517273c52bb4",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "5408e30c-9cf1-5612-875b-fe6b1b9977f9",
+    "target_key": [
+     "hazard.suffocation",
+     "suffocation_accrual",
+     "fbe8a745-d1f4-50ca-b35a-139af4d22540",
+     "5408e30c-9cf1-5612-875b-fe6b1b9977f9",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5988704e-e2a6-539e-b237-2825fd4cb7c1",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "5d7df550-5bcd-5ed0-9624-60be4f6a7905",
+    "target_key": [
+     "hazard.falling",
+     "surface_check",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "6009ffb3-bb15-5aea-86b3-4154536721fd",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage",
+     "e756f5850569798d",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "626d51bb-b3e2-596f-b00c-7532f2b13f54",
+    "target_key": [
+     "hazard.falling",
+     "surface_check",
+     "645b0fdb277b2150"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "71d50d48-d01a-5aa7-9e84-648b4bb73389",
+    "target_key": [
+     "hazard.burning",
+     "burning_damage",
+     "27183b13d6f8797b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7842115c-a7ea-5603-bb1c-3c39803151f4",
+    "target_key": [
+     "hazard.burning",
+     "self_extinguish",
+     "fe97b30136297ea9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7a04a5fe-237b-5042-9284-2507bec8e942",
+    "target_key": [
+     "hazard.malnutrition",
+     "malnutrition_recovery",
+     "7e3b50690faf404f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7db90d63-24aa-52ac-bbdc-7844abe7232b",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7e8256e3-dd2b-59f9-ba93-02c011141a01",
+    "target_key": [
+     "hazard.falling",
+     "surface_check",
+     "c0c8c687-6d39-572f-a1bf-46079cade564",
+     "7e8256e3-dd2b-59f9-ba93-02c011141a01",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "808a94a1-a756-5d64-ad98-21a1c4bd18ef",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_automatic"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "82bd75a7-e631-50bd-87ce-182c8646b69e",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "83c54082-33f8-5978-bb8e-3a6e480a9713",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "86bc6db2-4003-5981-a494-c247d68f69e0",
+    "target_key": [
+     "hazard.burning",
+     "self_extinguish",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "87454552-a92b-51ca-9aa2-91571031e2b8",
+    "target_key": [
+     "hazard.dehydration",
+     "dehydration_recovery",
+     "5cb21f934acea548"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "87eaabc4-32b4-5f75-84d7-017ebdcb7f8c",
+    "target_key": [
+     "hazard.burning",
+     "ambient_extinguish",
+     "5462cf8c-7027-5385-a0ce-1ad910ff6900",
+     "87eaabc4-32b4-5f75-84d7-017ebdcb7f8c",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8d0bd486-9bf1-59da-9231-0c8b22bb1a2f",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9d4b73bb-0f5b-5429-b2aa-9e0b6e8612cc",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9e7388ac-70be-5a8d-91d2-5d97f49783a4",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a2184b65-27f1-58ac-a0ce-6d940a3cb585",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a9c881d8-ea76-55c9-9e2f-a69315adc156",
+    "target_key": [
+     "hazard.dehydration",
+     "dehydration_exhaustion"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "b3f39529-22b5-5bf8-9190-ce2ee2e31b03",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_save"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "b4701aec-7b75-55f5-904e-c13cac1cb48d",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "b6743878-1197-56e3-adc5-7519b3198fe4",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "ba04d70c-8039-5c11-8f07-b4b9c72b00ae",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "bb8710dd-9e8f-5938-b1f7-0d6320c03969",
+    "target_key": [
+     "hazard.dehydration",
+     "dehydration_exhaustion"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "c187a267-5567-5dff-843a-343dfa7c085a",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_save",
+     "ce8834862b4aa506"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c38eb907-087b-5668-a78c-94ffaf8929a9",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c3f93a9a-8512-5894-9dde-de7c2fd9bd93",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c422291a-20ec-55a7-ac5a-27d96a3b197a",
+    "target_key": [
+     "hazard.falling",
+     "surface_check",
+     "6c214c6946704c3f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c6d99b07-5cec-559e-8f1c-8989cfdf32ff",
+    "target_key": [
+     "hazard.suffocation",
+     "breath_duration",
+     "08d554c9bd5778df"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c98bc898-fc07-5c07-80b3-78e42883205c",
+    "target_key": [
+     "hazard.suffocation",
+     "suffocation_accrual",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb3c680d-c14f-5c71-ba21-b6aad03a00f9",
+    "target_key": [
+     "hazard.burning",
+     "ambient_extinguish",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "cebc8bf4-cf0e-5059-9e2d-d6e14a07cd22",
+    "target_key": [
+     "hazard.burning",
+     "burning_damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "cfe0febf-90ba-551e-8025-88c8e8bd9696",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d21ee5c7-d8e5-52de-b285-5bbe07ff7b88",
+    "target_key": [
+     "hazard.falling",
+     "fall_damage",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "dbbc194c-d6e2-585c-bdc5-d308ac334840",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_save",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "e03661df-cb93-5546-a972-e404095fbbd4",
+    "target_key": [
+     "hazard.falling",
+     "surface_check",
+     "645b0fdb277b2150",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "e0787839-2cfd-50ee-a14b-65b936c7adb9",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "ed3aaf75-519d-579c-accb-6fe4db1449ea",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "f6a14cd7-5c75-569b-9183-7bbfcd838002",
+    "target_key": [
+     "hazard.malnutrition",
+     "starvation_save",
+     "a2dfac8bea01c536",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "f7d7114a-89fb-5e10-9b11-09afd759c89a",
+    "target_key": [
+     "hazard.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "fa761ae6-1401-5a6b-9ab5-acdf0456a8d7",
+    "target_key": [
+     "hazard.malnutrition",
+     "malnutrition_recovery",
+     "7e3b50690faf404f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "fc274dd3-8cf8-5d8e-b50c-1667ae19a9f9",
+    "target_key": [
+     "hazard.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "fd456f5d-0386-5f2e-9b00-cf3154734324",
+    "target_key": [
+     "hazard.burning",
+     "self_extinguish",
+     "5462cf8c-7027-5385-a0ce-1ad910ff6900",
+     "fd456f5d-0386-5f2e-9b00-cf3154734324",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.hazard"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "hazard.burning"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "hazard.dehydration"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "hazard.falling"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "hazard.malnutrition"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "hazard.suffocation"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hazard",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Burning",
+    "target_record_key": "hazard.burning"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hazard",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dehydration",
+    "target_record_key": "hazard.dehydration"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hazard",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Falling",
+    "target_record_key": "hazard.falling"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hazard",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Malnutrition",
+    "target_record_key": "hazard.malnutrition"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hazard",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Suffocation",
+    "target_record_key": "hazard.suffocation"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "hazard.dehydration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "condition.exhaustion"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "hazard.malnutrition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "condition.exhaustion"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_spans": [
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0f028852-962f-5de3-a770-425227013535",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "7db90d63-24aa-52ac-bbdc-7844abe7232b"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "10cb2604-ab15-5ee6-9d55-5e2a087b554b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a2184b65-27f1-58ac-a0ce-6d940a3cb585"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "70c5c340-ff9d-5a90-afa4-26907bd289e3"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "12b0cb37-5155-5c79-8d6e-c7bdfa7a49c6"
+  },
+  {
+   "char_end": 100,
+   "char_start": 73,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3d307c9c-307e-5b8c-b5a7-0de2a69d023e"
+  },
+  {
+   "char_end": 103,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "ba04d70c-8039-5c11-8f07-b4b9c72b00ae"
+  },
+  {
+   "char_end": 108,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "8d0bd486-9bf1-59da-9231-0c8b22bb1a2f"
+  },
+  {
+   "char_end": 120,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c6d99b07-5cec-559e-8f1c-8989cfdf32ff"
+  },
+  {
+   "char_end": 122,
+   "char_start": 100,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "128b658d-94e0-5040-85c6-47f7fb5c26a7"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "948c7e91-a21a-5c05-85b5-9ddde6f578ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "fcdff11e-3f04-55f8-8228-d078ba861af9"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ff0b2d68-38b6-566c-8bce-ab582fd14d29",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "7cb725f3-e784-5c21-ac9d-7aa782dd21dc"
+  },
+  {
+   "char_end": 135,
+   "char_start": 99,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "86bc6db2-4003-5981-a494-c247d68f69e0"
+  },
+  {
+   "char_end": 147,
+   "char_start": 120,
+   "disposition": "supporting_authority",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "e5edd98a-6166-57e7-90b0-4bbff4344544"
+  },
+  {
+   "char_end": 16,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0d182a5a-bb50-51dc-93dc-d2dc43886636",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "a7c95fbb-6268-5920-bb09-b30276b51b61"
+  },
+  {
+   "char_end": 16,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ddb6a3d5-bf68-5237-b6df-ba8e27caa181",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "8a0a0ad0-e472-58b3-af25-f8bfaa3fe379"
+  },
+  {
+   "char_end": 16,
+   "char_start": 10,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "9d4b73bb-0f5b-5429-b2aa-9e0b6e8612cc"
+  },
+  {
+   "char_end": 174,
+   "char_start": 122,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "d21ee5c7-d8e5-52de-b285-5bbe07ff7b88"
+  },
+  {
+   "char_end": 174,
+   "char_start": 135,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "0e71af43-f5f8-5c61-bda4-05a3b65c1b01"
+  },
+  {
+   "char_end": 175,
+   "char_start": 108,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "bb8710dd-9e8f-5938-b1f7-0d6320c03969"
+  },
+  {
+   "char_end": 180,
+   "char_start": 103,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "b3f39529-22b5-5bf8-9190-ce2ee2e31b03"
+  },
+  {
+   "char_end": 197,
+   "char_start": 147,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it",
+   "span_id": "5408e30c-9cf1-5612-875b-fe6b1b9977f9"
+  },
+  {
+   "char_end": 20,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0c177194-8568-5db6-93da-e945acece1bf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f6e72677-b004-5db8-a11e-12f5d3b4c5ef"
+  },
+  {
+   "char_end": 20,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7a68c161-6337-5b0e-9a2b-b9d8934c2f34",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "ebca6b71-5e44-5c70-bcae-235c19954715"
+  },
+  {
+   "char_end": 200,
+   "char_start": 175,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3a76dd31-318f-54a8-bd53-fa96403ffdda"
+  },
+  {
+   "char_end": 201,
+   "char_start": 174,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it",
+   "span_id": "fd456f5d-0386-5f2e-9b00-cf3154734324"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "5b5ed8e5-117e-55e1-b1ba-f1015f5c1ee4"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "5bb08b93-6a81-59b9-bd3a-693a78afdb3b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "b354d403-a536-54da-8a17-6792f81578c0"
+  },
+  {
+   "char_end": 218,
+   "char_start": 200,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "a9c881d8-ea76-55c9-9e2f-a69315adc156"
+  },
+  {
+   "char_end": 224,
+   "char_start": 174,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "6009ffb3-bb15-5aea-86b3-4154536721fd"
+  },
+  {
+   "char_end": 224,
+   "char_start": 201,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "cb3c680d-c14f-5c71-ba21-b6aad03a00f9"
+  },
+  {
+   "char_end": 225,
+   "char_start": 197,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c98bc898-fc07-5c07-80b3-78e42883205c"
+  },
+  {
+   "char_end": 230,
+   "char_start": 180,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c187a267-5567-5dff-843a-343dfa7c085a"
+  },
+  {
+   "char_end": 233,
+   "char_start": 230,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "f6a14cd7-5c75-569b-9183-7bbfcd838002"
+  },
+  {
+   "char_end": 25,
+   "char_start": 10,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "d18a11a7-0c7d-5a85-b403-f07d0086b6c3"
+  },
+  {
+   "char_end": 251,
+   "char_start": 218,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "1b70eef2-037a-5b21-9f26-ab5b1ddc7628"
+  },
+  {
+   "char_end": 257,
+   "char_start": 233,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "dbbc194c-d6e2-585c-bdc5-d308ac334840"
+  },
+  {
+   "char_end": 258,
+   "char_start": 225,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "22998ada-1c4c-531c-9798-6da8989a3e65"
+  },
+  {
+   "char_end": 26,
+   "char_start": 16,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "cfe0febf-90ba-551e-8025-88c8e8bd9696"
+  },
+  {
+   "char_end": 267,
+   "char_start": 224,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it",
+   "span_id": "87eaabc4-32b4-5f75-84d7-017ebdcb7f8c"
+  },
+  {
+   "char_end": 275,
+   "char_start": 224,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it",
+   "span_id": "7e8256e3-dd2b-59f9-ba93-02c011141a01"
+  },
+  {
+   "char_end": 275,
+   "char_start": 257,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "35f53d63-cfb3-5301-b069-51a3c5855c56"
+  },
+  {
+   "char_end": 28,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "fc51efe1-41de-5936-bd85-2cc8a7c444ad"
+  },
+  {
+   "char_end": 293,
+   "char_start": 258,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is stated as typed authority beside it",
+   "span_id": "17feaaea-de56-5f09-9b89-ec799b52ce29"
+  },
+  {
+   "char_end": 296,
+   "char_start": 275,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "5d7df550-5bcd-5ed0-9624-60be4f6a7905"
+  },
+  {
+   "char_end": 31,
+   "char_start": 26,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "0cd89ae2-99b9-59c0-b5e3-f560a04f24a8"
+  },
+  {
+   "char_end": 315,
+   "char_start": 275,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "808a94a1-a756-5d64-ad98-21a1c4bd18ef"
+  },
+  {
+   "char_end": 32,
+   "char_start": 13,
+   "disposition": "supporting_authority",
+   "leaf_id": "948c7e91-a21a-5c05-85b5-9ddde6f578ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "3681fc45-f184-596b-be59-705e74e580fb"
+  },
+  {
+   "char_end": 33,
+   "char_start": 13,
+   "disposition": "supporting_authority",
+   "leaf_id": "ff0b2d68-38b6-566c-8bce-ab582fd14d29",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "fa7172b7-b9be-5ca4-9c9c-ca8089686c3a"
+  },
+  {
+   "char_end": 339,
+   "char_start": 251,
+   "disposition": "substantive",
+   "leaf_id": "26a890d8-c53d-5257-a9d1-7253267f0103",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "87454552-a92b-51ca-9aa2-91571031e2b8"
+  },
+  {
+   "char_end": 354,
+   "char_start": 315,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "1c116ef9-5236-5210-bdf9-85ef02ef13b8"
+  },
+  {
+   "char_end": 357,
+   "char_start": 293,
+   "disposition": "substantive",
+   "leaf_id": "7571f4e8-7845-564a-8e60-7c36c7f2fd97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "2645070f-932f-55e5-a028-2254d0470a23"
+  },
+  {
+   "char_end": 36,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1cc56040-9d88-5a71-820d-0ffad1693f03",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "b23adb44-335d-5759-93ed-ea1a3dddd8f7"
+  },
+  {
+   "char_end": 36,
+   "char_start": 25,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "332e196c-ca5d-51a1-b539-73f8e67bbba0"
+  },
+  {
+   "char_end": 365,
+   "char_start": 296,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c422291a-20ec-55a7-ac5a-27d96a3b197a"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "63cb8191-d113-5d86-9f32-201d3aa4464b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "fc274dd3-8cf8-5d8e-b50c-1667ae19a9f9"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8f170f82-2638-5087-8c55-e0fe1ecdd558",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "f7d7114a-89fb-5e10-9b11-09afd759c89a"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "af48fec0-52be-5d11-8d3f-07d60caa4abd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e0787839-2cfd-50ee-a14b-65b936c7adb9"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "257431cc-4f10-5cbc-873a-84c91992c77c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "340209c3-fa8b-5d4c-b624-b8c1d6b83593"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "3301515c-9ea2-5607-b8bb-c7b01f5fe419",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "932cd5e7-eb9f-57bc-802f-85c0a2370632"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "6bfe4a24-3a42-5847-9fc5-84420fd322ab",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "f8e95eb6-0f94-52a4-856d-4ba5901f828c"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7c43a7ca-4a38-5f92-9349-9aa42126fc9b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "2992173c-fa8b-5401-82b5-3789d4acac89"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e1b2a92a-25c0-55aa-a280-2f009d4c97e7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "896a36a4-7609-58e2-94c9-8bbc7241ae7d"
+  },
+  {
+   "char_end": 404,
+   "char_start": 365,
+   "disposition": "supporting_authority",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "ab50d74f-cc2f-5b56-baae-24b6786a0a51"
+  },
+  {
+   "char_end": 42,
+   "char_start": 31,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "9e7388ac-70be-5a8d-91d2-5d97f49783a4"
+  },
+  {
+   "char_end": 427,
+   "char_start": 404,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "e03661df-cb93-5546-a972-e404095fbbd4"
+  },
+  {
+   "char_end": 461,
+   "char_start": 354,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "23f72c86-6dd6-54d7-bb81-d4d7d98a9556"
+  },
+  {
+   "char_end": 473,
+   "char_start": 427,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "626d51bb-b3e2-596f-b00c-7532f2b13f54"
+  },
+  {
+   "char_end": 495,
+   "char_start": 461,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "7a04a5fe-237b-5042-9284-2507bec8e942"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a05aa0e0-d275-5e96-b042-b0b0aa4cafe1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c3f93a9a-8512-5894-9dde-de7c2fd9bd93"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d38034f1-6906-5f6b-b097-7717508ba46d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "2ff9d74f-cffe-5e3b-b453-de7bcbe0cc85"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f05421c4-2e2d-5f64-b252-f30b75d02784",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c38eb907-087b-5668-a78c-94ffaf8929a9"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "11fe0d88-a6bd-504b-a9c0-767d46978558",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "names, frames, or describes what a component states; supporting authority owned by that component",
+   "span_id": "006597e6-3c60-5de9-bc9b-f6fe1a73baee"
+  },
+  {
+   "char_end": 50,
+   "char_start": 28,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "71d50d48-d01a-5aa7-9e84-648b4bb73389"
+  },
+  {
+   "char_end": 52,
+   "char_start": 36,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "843a2620-80a4-5989-a9ff-db5250f6cfca"
+  },
+  {
+   "char_end": 53,
+   "char_start": 42,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3f0a8bf5-fa7f-5f5d-b697-f1e97716de40"
+  },
+  {
+   "char_end": 56,
+   "char_start": 52,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f68c7d5c-3c47-5129-810c-f15f4a3e4698"
+  },
+  {
+   "char_end": 580,
+   "char_start": 495,
+   "disposition": "substantive",
+   "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "fa761ae6-1401-5a6b-9ab5-acdf0456a8d7"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "69d62995-ecc5-5115-96a0-20a4f4b3e949",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "49b81357-5bf1-5050-9f96-517273c52bb4"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "88893271-5c09-5915-a7d6-acb042ed18e8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3e7a700f-f2d3-566a-9b13-122843530472"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1b5b2441-5ce4-5d6a-a0ee-f6d57e0e98bc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "31f1acc0-ecb7-588e-b5e3-aa8e90207c7b"
+  },
+  {
+   "char_end": 64,
+   "char_start": 53,
+   "disposition": "substantive",
+   "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "83c54082-33f8-5978-bb8e-3a6e480a9713"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b72491aa-8521-5f9f-aca0-0a831d9640d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "4157ec63-0429-5546-9560-c8b8acf83712"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bb4928b0-c355-5496-9d4e-fafe16f9731f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "82bd75a7-e631-50bd-87ce-182c8646b69e"
+  },
+  {
+   "char_end": 71,
+   "char_start": 56,
+   "disposition": "supporting_authority",
+   "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "b8c7c745-4336-5b04-9b77-d32502e721a0"
+  },
+  {
+   "char_end": 73,
+   "char_start": 21,
+   "disposition": "substantive",
+   "leaf_id": "4218a982-b90e-59e8-b406-f715189136cd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "122728e8-95d9-5980-8294-a6978bd7f5b0"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "29b57bd7-3272-512f-bd50-4208784ec8d9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "b6743878-1197-56e3-adc5-7519b3198fe4"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7ed36a77-aad8-5b8b-8d5c-4e574190a7a1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "5988704e-e2a6-539e-b237-2825fd4cb7c1"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e5debac8-d74b-525f-8e41-e6d273056886",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "05b99d36-265c-541f-97d0-2d3c85c0b0c4"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "32209bd5-2287-59fe-8ced-4ca8269f2afd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "3f4d4006-419e-5cf2-a9bc-f39bdba29041"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c83dc7e5-81b3-5473-b022-3ba21779acc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "00bcfe5b-c5e6-5445-abec-bccb882ebc56"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f85658c8-fe13-51c1-8c84-e83f352274c3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "56a1a635-34c5-5ce9-9a61-86bca529c453"
+  },
+  {
+   "char_end": 85,
+   "char_start": 50,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states when its component applies, or how often its effect repeats; the owning component is the element that carries the claim, exactly as it carries an applicability",
+   "span_id": "cebc8bf4-cf0e-5059-9e2d-d6e14a07cd22"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7d17aa68-ce65-515f-8ec8-8de637f11806",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "b4701aec-7b75-55f5-904e-c13cac1cb48d"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "89c4ea1b-0848-573f-b6e0-26b2f4ca8407",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "ed3aaf75-519d-579c-accb-6fe4db1449ea"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f7413beb-acb8-56f6-b1c2-402c4316d078",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "39d91ead-e62c-56d5-ae34-a11c9cae6e0a"
+  },
+  {
+   "char_end": 99,
+   "char_start": 85,
+   "disposition": "substantive",
+   "leaf_id": "0f8c64db-a70f-5eb6-a48f-c33a634d2eea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-hazards-1-schema5-REGEN-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "7842115c-a7ea-5603-bb1c-3c39803151f4"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40",
+  "version": "5d-representation-schema-5"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1"
+}

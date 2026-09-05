@@ -242,18 +242,19 @@ def test_the_bound_release_supplies_the_accounting_population(
 def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Accepted authority exists for the real SRD release — batch conditions-1.
+    """Accepted authority exists for the real SRD release — two accepted batches.
 
-    It judges the 16 condition records and nothing else, which is exactly why
-    the publication test below still refuses.
+    It judges 22 records — 15 conditions and 5 hazards, plus the glossary entry
+    that defines each list — and nothing else, which is exactly why the
+    publication test below still refuses: the SRD has far more than 22 records.
     """
     resolved = committed_oracle_for(
         production.binding.package_uuid, production.binding.release_version
     )
     assert resolved is not None
     assert resolved.binding == production.binding
-    assert len(resolved.representation.records) == 16
-    assert len(resolved.spans) == 185
+    assert len(resolved.representation.records) == 22
+    assert len(resolved.spans) == 281
 
 
 def test_the_production_path_refuses_the_real_release(
@@ -263,10 +264,12 @@ def test_the_production_path_refuses_the_real_release(
 
     Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
     judged the release at all. Authority now exists and resolves, so the refusal
-    moves to ``INCOMPLETE`` — the accepted artifact covers 16 condition records
-    while the persisted projection covers the whole SRD. The change of *reason*
-    is the point: publication is refused because the CRD Issue 5d corpus is
-    unfinished, not because nothing was ever reviewed.
+    moves to ``INCOMPLETE`` — the accepted artifact covers 22 records (15
+    conditions and 5 hazards, plus the glossary entry defining each list) while
+    the persisted projection covers the whole SRD. Accepting a second batch
+    narrowed the gap and did not close it, which is the point: publication is
+    refused because the CRD Issue 5d corpus is unfinished, not because nothing
+    was ever reviewed.
     """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW

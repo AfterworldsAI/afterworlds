@@ -23,6 +23,7 @@ accepted cannot.
 
 from __future__ import annotations
 
+import pathlib
 from dataclasses import replace
 
 import pytest
@@ -36,7 +37,6 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
@@ -65,7 +65,24 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     lift_chain_violations,
 )
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 PRIOR_PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"  # noqa: E501  # pragma: allowlist secret
 PRIOR_SPANS = 185
 
@@ -80,7 +97,7 @@ GAIN = ConditionLevelFact(
 
 
 def _prior():
-    return load_accepted_inputs(ARTIFACT_PATH)
+    return load_accepted_inputs(LEGACY_PATH)
 
 
 def _schema_4_proposal(prior, *, version: str, schema_hash: str) -> MechanicalProposal:
@@ -146,13 +163,19 @@ def _accept(prior, proposal):
 
 
 def test_a_schema_4_proposal_extends_schema_3_accepted_authority() -> None:
-    """The seam this whole mechanism exists for, on the real committed artifact.
+    """The seam this whole mechanism exists for, on real accepted content.
 
-    Schema 5 made the crossing a *path*: the artifact was reviewed under schema 3
+    Schema 5 made the crossing a *path*: the content was reviewed under schema 3
     and the build now implements schema 5, so it crosses two registered
     successions rather than one. The seam is unchanged — what it proves is that
     the destination this build declares is reached only through rows the registry
     holds.
+
+    The prior here is the **frozen historical fixture**, not the live committed
+    artifact. It was the live artifact until the Owner accepted ``hazards-1``
+    into the same file; the fixture is that state byte for byte, and it is what
+    a schema-3-to-later crossing has to be demonstrated against now that the
+    committed artifact declares schema 5 and needs no crossing at all.
     """
     prior = _prior()
     assert prior.oracle.schema_version == SCHEMA_3_VERSION

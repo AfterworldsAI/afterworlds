@@ -26,12 +26,12 @@ what the fixed code now does on its own.
 
 from __future__ import annotations
 
+import pathlib
 from dataclasses import replace
 
 from afterworlds.ingestion.corpus.hashing import canonical_bytes
 from afterworlds.ingestion.mechanical.gate import _comparable_collections
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     load_accepted_inputs,
     oracle_identity,
     oracle_payload,
@@ -53,7 +53,24 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_3_HASH
 
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
+)
 #: The value recorded on the committed artifact's only acceptance batch.
 COMMITTED_ORACLE_IDENTITY = "a0f0bd2f6f6f05d3b0b46b63d1dfa9c5e4c3bf0741118b063a5d2b6adf401fda"  # noqa: E501  # pragma: allowlist secret
 
@@ -65,7 +82,7 @@ def test_the_build_implements_a_later_schema_than_the_artifact_declares() -> Non
     widens with every succession, and pinning it to a particular one would make
     this premise expire the next time the union grows.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     assert inputs.oracle.schema_version == SCHEMA_3_VERSION
     assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_3_VERSION
     assert inputs.oracle.schema_hash != representation_schema_hash()
@@ -78,7 +95,7 @@ def test_d2_the_oracle_serializes_under_the_schema_it_declares() -> None:
     argument is a means: what must hold is that the accepted authority a reviewer
     committed still hashes to the value recorded against it.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     assert oracle_identity(inputs.oracle) == COMMITTED_ORACLE_IDENTITY
 
     payload = oracle_payload(inputs.oracle)
@@ -94,7 +111,7 @@ def test_d2_the_oracle_does_not_borrow_the_builds_contract() -> None:
     Without this the test above could pass because the two contracts happen to
     agree, which would make it a tautology rather than a regression.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     declared = representation_payload(
         inputs.oracle.representation, schema_version=SCHEMA_3_VERSION
     )
@@ -117,7 +134,7 @@ def test_d3_a_proposal_identity_stays_derivable_under_its_own_schema() -> None:
     If that identity could only be reproduced by a build implementing the same
     schema, the evidence would become unverifiable rather than merely old.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     proposal = MechanicalProposal(
         binding=inputs.oracle.binding,
         policy_version=inputs.oracle.policy_version,
@@ -149,7 +166,7 @@ def test_d3_a_proposal_identity_stays_derivable_under_its_own_schema() -> None:
 
 def test_d3_the_declaration_is_what_moves_the_proposal_identity() -> None:
     """Two proposals with identical content and different declarations differ."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     base = MechanicalProposal(
         binding=inputs.oracle.binding,
         policy_version=inputs.oracle.policy_version,
@@ -175,7 +192,7 @@ def test_the_gate_compares_each_side_under_its_own_declaration() -> None:
     sides under one contract would additionally report every element as missing
     or unexpected, burying the real finding under noise it invented.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     under_three = _comparable_collections(
         inputs.oracle.representation, SCHEMA_3_VERSION
     )

@@ -46,7 +46,6 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     OracleLoadError,
     accepted_inputs_payload,
     load_accepted_inputs,
@@ -143,10 +142,24 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
-COMMITTED_ORACLE = pathlib.Path(
-    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
+#: The **legacy specimen**: the committed accepted artifact exactly as it stood
+#: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
+#: with no schema anchors and no lift evidence. That is the shape this module's
+#: scenarios are about, and the Owner's acceptance of hazards-1 legitimately
+#: ended it in production, so the specimen is frozen under ``data/`` rather than
+#: read out of the oracle directory. Byte-identical to the file this repository
+#: committed (Git blob ``42faeca2…``), so every identity pinned below is
+#: unchanged.
+#:
+#: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
+#: claiming one release is exactly what the resolver refuses, and
+#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: it stays the only one.
+LEGACY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "legacy_conditions_1_unanchored_schema3.json"
 )
-ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 # ---------------------------------------------------------------------------
 # One live exemplar per axis of the delta
@@ -423,7 +436,7 @@ def test_the_committed_oracle_is_legal_under_the_schema_it_declares() -> None:
     means the manifest over-classifies something, and the artifact — which no
     longer moves and cannot be edited — would be the thing it accused.
     """
-    oracle = load_oracle(COMMITTED_ORACLE)
+    oracle = load_oracle(LEGACY_PATH)
     assert post_schema_3_violations(oracle.representation, SCHEMA_3_VERSION) == []
 
 
@@ -439,7 +452,7 @@ def test_verify_lift_refuses_a_restamped_prior(bounded_prior=None) -> None:  # t
     under both requested versions, so byte-identity would "prove" it survived
     unchanged. The legality step runs first and refuses it as the restamp it is.
     """
-    oracle = load_oracle(COMMITTED_ORACLE)
+    oracle = load_oracle(LEGACY_PATH)
     tampered = replace(
         oracle.representation,
         components=(
@@ -512,7 +525,7 @@ def _probe_proposal(fact: object, version: str, schema_hash: str, prior):  # typ
 
 
 def _accept(fact: object, version: str, schema_hash: str, *, with_prior: bool):  # type: ignore[no-untyped-def]
-    prior = load_accepted_inputs(ARTIFACT_PATH)
+    prior = load_accepted_inputs(LEGACY_PATH)
     return accept_proposal(
         _probe_proposal(fact, version, schema_hash, prior),
         batch_id="legality-probe-1",
@@ -667,7 +680,7 @@ def test_the_schema_3_source_pin_is_unmoved() -> None:
 
 def _tampered(mutate) -> dict:  # type: ignore[no-untyped-def, type-arg]
     """The committed artifact payload with exactly one thing changed."""
-    raw = copy.deepcopy(json.loads(ARTIFACT_PATH.read_text(encoding="utf-8")))
+    raw = copy.deepcopy(json.loads(LEGACY_PATH.read_text(encoding="utf-8")))
     mutate(raw)
     return raw
 
@@ -775,8 +788,8 @@ def test_the_committed_artifact_still_loads_and_is_byte_identical() -> None:
     bytes: this guard sits on the ingress path the committed file itself takes,
     so "still loads" is not enough — it has to still be the same artifact.
     """
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
-    committed = json.loads(ARTIFACT_PATH.read_text(encoding="utf-8"))
+    inputs = load_accepted_inputs(LEGACY_PATH)
+    committed = json.loads(LEGACY_PATH.read_text(encoding="utf-8"))
 
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == (
         SCHEMA_3_VERSION,
@@ -788,7 +801,7 @@ def test_the_committed_artifact_still_loads_and_is_byte_identical() -> None:
 
 def test_lifted_schema_4_authority_loads(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """The other half of the recognition set: a destination pair, really reached."""
-    inputs = load_accepted_inputs(ARTIFACT_PATH)
+    inputs = load_accepted_inputs(LEGACY_PATH)
     # Stopping at schema 4 deliberately: this is about a *destination* pair
     # being recognized on the ingress path, and schema 4 is one this build no
     # longer implements — which is exactly the case worth proving.

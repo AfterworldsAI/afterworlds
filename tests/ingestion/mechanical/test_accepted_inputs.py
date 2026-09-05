@@ -263,13 +263,15 @@ def test_an_accepted_artifact_round_trips_through_its_committed_form(
 
 
 def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
-    """CRD Issue 5d batch ``conditions-1`` is accepted; nothing else is.
+    """CRD Issue 5d batches ``conditions-1`` and ``hazards-1``, and nothing else.
 
     Stated as a test rather than a claim in a PR description, so the day
     somebody commits production authority without review, this fails. It used
     to assert the directory was empty; that claim expired when the Owner
-    accepted ``conditions-1``, and the property worth keeping is the narrower
-    one — **one** artifact, for **this** release, holding **this** batch.
+    accepted ``conditions-1``, and again when ``hazards-1`` extended the same
+    file. The property worth keeping survives both: **one** artifact, for
+    **this** release, holding exactly the batches the Owner accepted, in the
+    order they were accepted.
     """
     assert sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json")) == [
         "srd-5-2-1-corpus-36b786d8-fa2.json"
@@ -277,7 +279,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
     inputs = committed_inputs_for(PRODUCTION_PACKAGE, PRODUCTION_RELEASE)
     assert inputs is not None
     assert committed_oracle_for(PRODUCTION_PACKAGE, PRODUCTION_RELEASE) is not None
-    assert [b.batch_id for b in inputs.batches] == ["conditions-1"]
+    assert [b.batch_id for b in inputs.batches] == ["conditions-1", "hazards-1"]
 
 
 def test_the_production_release_cannot_publish_or_activate(session: Session) -> None:
@@ -287,7 +289,8 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     parameter that would let a caller supply authority of its own. The uuid here
     names no persisted header, so this is the "nothing to publish" refusal —
     distinct from the real release's, which now refuses as ``INCOMPLETE``
-    because ``conditions-1`` is accepted but the corpus is not finished.
+    because ``conditions-1`` and ``hazards-1`` are accepted — 22 records over 281
+    spans — but the corpus is not finished.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT

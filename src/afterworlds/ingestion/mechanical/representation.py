@@ -1429,8 +1429,10 @@ class AbilityCheckFact:
     #: Required rather than defaulted, and therefore never omitted from the
     #: canonical payload: a default would make one of the two spellings free and
     #: re-create exactly the collapse, because the omitted form and the stated
-    #: form would hash alike. Nothing accepted moves — the committed
-    #: ``conditions-1`` artifact holds no ability-check fact at all.
+    #: form would hash alike. Nothing already accepted moved when this axis was
+    #: added — the ``conditions-1`` content the schema-5 lift crossed holds no
+    #: ability-check fact at all. ``hazards-1``, reviewed under schema 5, states
+    #: the axis outright.
     #:
     #: Exactly two members are admitted. An attack roll has no DC source, and
     #: ``INITIATIVE`` and the ``D20_TEST`` umbrella name no single roll this
