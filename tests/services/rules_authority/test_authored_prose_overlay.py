@@ -356,6 +356,11 @@ def test_append_prose_on_prose_bound_preserves_source_and_adds_authored(
     source, authored = component.governing_prose
     assert isinstance(source, SourceProse)
     assert source.chunk_id == WISH_CHUNK
+    # APPEND concatenates, so a source entry crosses the override path
+    # unchanged - scope included. This fixture's binding is component-wide,
+    # which is the scope every accepted binding states, and REPLACE and
+    # DISABLE discard source prose entirely rather than rewriting it.
+    assert source.option_key == ""
     assert isinstance(authored, AuthoredProse)
     assert authored.text == "an authored addendum"
     assert authored.supplied_by_override_id == "ov-append"
