@@ -12,6 +12,7 @@ because the value it measured is not the value it names.*
 | 3 | `--verify` preservation (round 3) | `conditions_1_payload_elements_present` was a dict holding one explanatory string; `all()` over it is `True` for no reason. And the "prior" it measured was the merged file |
 | 4 | The proposal and merged-artifact pins (#161 Codex round 1) | `PROPOSAL_SHA256` and `MERGED_SHA256` hold **canonical-LF** digests, and the assertions compared the **raw on-disk** digest against them. On a CRLF checkout, byte-identical JSON fails — verification exits before its acceptance checks and reports the checkout as an unreviewed edit |
 | 5 | The regeneration generator's prior (#161 Codex round 2) | The generator read the **live accumulating oracle** as its review prior and pinned that file's *pre-acceptance* digest. Once the Owner accepted `hazards-1` into it, the generator refused to run at all against the committed tree — a retained proof that could no longer re-derive either artifact it is retained to prove. The refusal had been *described* as a deliberate freeze, which is the family's signature: prose asserting a property the code beneath it did not have |
+| 6 | The secrets-gate accounting (#161 Codex round 4) | The checkpoint and PR body reported the baseline change as **+423 / −1, 60 findings reviewed**, and said the proposal and fixture blocks "keep byte-identical entries". True of `1bec566..124d088`. False of the **PR**, which adds **three** blocks and **122** findings against base — and the PR is the scope a reviewer reads and the scope the gate judges. The numbers were right; the scope they silently belonged to was not stated |
 
 The family is not "a wrong hash". It is **a label that outruns its evidence** — a name asserting a
 comparison that the code beneath it did not perform.
@@ -99,9 +100,14 @@ marked "already safe" in error, plus the composite Boolean built on one of them.
 opened; the same five surfaces were re-examined against the sharpened question.
 
 **Round 5 (#161 Codex round 2, mutable prior):** 1 patched · 3 already safe. The generator now derives
-from an immutable prior and executes from the final committed tree; the other retained proofs read
-the live artifact as their subject rather than as an input, which is a different relationship and
-does not expire.
+from an immutable prior and executes from the committed tree; the other retained proofs read the live
+artifact as their subject rather than as an input, which is a different relationship and does not
+expire.
+
+**Round 6 (#161 Codex round 4, unstated scope):** 7 patched · 2 already safe. Every diff figure and
+every revision-dependent result in the checkpoint and PR body now names the base or revision it was
+measured against, and the security accounting covers all 122 findings the PR adds rather than the 60
+its last commit added.
 
 No check was loosened, no assertion deleted, and no pinned identity moved. The accepted artifact, the
 proposal, the audit and the frozen fixture are byte-identical throughout.
@@ -114,6 +120,28 @@ proposal, the audit and the frozen fixture are byte-identical throughout.
 * It did not weaken the acceptance-only prefix check into something that would pass under `--verify`;
   that claim stays mode-specific and says why in place.
 * It did not begin `actions-1`, and it published, activated, retired and merged nothing.
+
+## Round 6 — claims whose scope is a commit but whose reader assumes the PR
+
+Codex read the checkpoint's `+423 / −1` and checked it against the PR diff, where the real figure is
+`+861 / −1`. Its own comment misattributed 861 to "the parent commit" — that is the whole-PR figure,
+and the parent-relative one really is 423 — but the defect it found is real: **a diff figure without
+its base is not evidence, it is a number.** Two scopes were in play and neither was named.
+
+| claim | scope it was true of | disposition |
+|---|---|---|
+| `.secrets.baseline` diff `+423 / −1`, one block, 60 findings | `1bec566..124d088` | **patched** — both documents now state the two scopes side by side, and the PR body leads with the whole-PR one: `+861 / −1`, three blocks, **122** findings |
+| "the bounded-oracle fixture, the hazards proposal and the frozen `conditions-1` fixture keep byte-identical entries" | the remediation commit | **patched** — kept, but now says explicitly it is a statement about that commit; the PR-scope truth is that two of those three blocks are *new* in the PR (21 in `520ebd8`, 41 in `ca4a50d`), and all 122 are now accounted for |
+| "60 findings were reviewed" | the oracle block | **patched** — all **122** newly baselined findings are now reviewed and categorised, with the proposal's 21 and the fixture's 41 given the same accounting the oracle's 60 had |
+| *"Suite on the final head `a2f4cc1`"* | a revision three commits behind | **patched** — and not replaced with another self-expiring head claim. It now names the revision it was measured on (`124d088`), states that gates run on every pushed revision, and defers the current-head claim to the CI run linked on that commit |
+| *"generator from a clean checkout of the final head"* | `1bec566` | **patched** — names the revision |
+| *"Hook results on the final head"* | `124d088` | **patched** — names the revision |
+| `detect-secrets` "passes on 23 of the 24 changed files… as it does identically on `main`" | superseded | **already patched in round 3** — the earlier text leaned on `main` as an exemption; it was replaced when the oracle was baselined |
+| the `known_unknowns` / `oracle.py` / `README` / `publication.py` status claims | current production authority | **already safe** — corrected in round 3's accepted-status audit and re-checked here; none of them quotes a diff figure |
+| the merged-count, anchor, lift and preservation tables | the committed artifact | **already safe** — none is a diff statistic; each names the artifact it measured |
+
+**7 patched · 2 already safe.** No pinned identity moved and `.secrets.baseline` was not touched by
+this round — the entries were verified as correct, and only the prose describing them changed.
 
 ## Round 5 — the other retained executable proofs, swept for the same coupling
 
@@ -145,6 +173,12 @@ The second clause is what round 3 missed. A digest has a *provenance* (which fil
 under a name that makes the wrong comparison. Every digest label in the acceptance record now states
 its class, and only checkout-independent classes decide anything: raw digests are labelled
 `..._raw_sha256_diagnostic` and appear in the report as evidence, never in an assertion.
+
+**Round 6 adds a fourth clause: a measurement must name what it was measured against.** A diff
+figure without its base, a test result without its revision, and a "final head" that later commits
+move are all the same error — a number whose meaning depends on context the reader cannot see, and
+which therefore reads as a stronger claim than it is. Where two scopes exist, state both and lead
+with the one the reader is in: for a pull request, that is the whole-PR diff against its base.
 
 **Round 5 adds a third clause: a retained proof must derive from an immutable input.** A proof whose
 input accumulates stops being reproducible the moment somebody else's work is accepted, and the
