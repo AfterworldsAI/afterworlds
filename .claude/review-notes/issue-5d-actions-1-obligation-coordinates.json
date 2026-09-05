@@ -1,0 +1,2075 @@
+{
+ "release_version": "5.2.1-corpus.36b786d8-fa2",
+ "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+ "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+ "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+ "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+ "records": 13,
+ "represented_leaves": 92,
+ "obligation_rows": 132,
+ "distinct_obligations": 75,
+ "leaves_carrying_an_obligation": 79,
+ "overlapping_claims": 0,
+ "disposition_tally": {
+  "P": 21,
+  "R": 4,
+  "S": 8,
+  "T": 7,
+  "TP": 4,
+  "X": 31
+ },
+ "blocking_families": {
+  "F1": [
+   "A1",
+   "B1",
+   "B2",
+   "B3",
+   "D1",
+   "L2"
+  ],
+  "F10": [
+   "J9"
+  ],
+  "F11": [
+   "J11"
+  ],
+  "F12": [
+   "K2"
+  ],
+  "F13": [
+   "K4",
+   "L7"
+  ],
+  "F14": [
+   "B3",
+   "B4"
+  ],
+  "F17": [
+   "H1",
+   "H3",
+   "H6"
+  ],
+  "F18": [
+   "H1",
+   "H3",
+   "H6"
+  ],
+  "F19": [
+   "H5",
+   "H6",
+   "L4"
+  ],
+  "F2": [
+   "D1",
+   "D2",
+   "D5",
+   "L4"
+  ],
+  "F3": [
+   "D3",
+   "E2",
+   "G4",
+   "H4",
+   "H7",
+   "L2",
+   "L9"
+  ],
+  "F5": [
+   "E1"
+  ],
+  "F6a": [
+   "G5",
+   "K4",
+   "L10"
+  ],
+  "F6b": [
+   "G5",
+   "I2"
+  ],
+  "F6c": [
+   "I2"
+  ],
+  "F7": [
+   "I6"
+  ],
+  "F8": [
+   "J6"
+  ]
+ },
+ "blocking_family_count": 17,
+ "unresolved_obligations": [
+  "A1",
+  "B1",
+  "B2",
+  "B3",
+  "B4",
+  "D1",
+  "D2",
+  "D3",
+  "D5",
+  "E1",
+  "E2",
+  "G4",
+  "G5",
+  "H1",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "H7",
+  "I2",
+  "I6",
+  "J11",
+  "J6",
+  "J9",
+  "K2",
+  "K4",
+  "L10",
+  "L2",
+  "L4",
+  "L7",
+  "L9"
+ ],
+ "records_with_an_unresolved_obligation": 10,
+ "non_blocking_families": {
+  "F4": "never defined; the identifier was unused",
+  "F9": "enrichment - the suggested tables are honestly prose-bound",
+  "F15": "withdrawn - both motivating cases are representable as authored",
+  "F16": "enrichment - in scope, and honestly prose-bound"
+ },
+ "interior_gap_characters": 74,
+ "interior_gaps": [
+  {
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "start": 38,
+   "end": 39,
+   "between": [
+    "A1",
+    "A2"
+   ]
+  },
+  {
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "start": 31,
+   "end": 32,
+   "between": [
+    "A3",
+    "A4"
+   ]
+  },
+  {
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 54,
+   "end": 55,
+   "between": [
+    "D1",
+    "D3"
+   ]
+  },
+  {
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 75,
+   "end": 77,
+   "between": [
+    "D3",
+    "D2"
+   ]
+  },
+  {
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "start": 137,
+   "end": 138,
+   "between": [
+    "D2",
+    "D4"
+   ]
+  },
+  {
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "start": 131,
+   "end": 132,
+   "between": [
+    "D4",
+    "D5"
+   ]
+  },
+  {
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "start": 32,
+   "end": 33,
+   "between": [
+    "D5",
+    "D6"
+   ]
+  },
+  {
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "start": 33,
+   "end": 34,
+   "between": [
+    "E3",
+    "E1"
+   ]
+  },
+  {
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "start": 83,
+   "end": 84,
+   "between": [
+    "E1",
+    "E2"
+   ]
+  },
+  {
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 62,
+   "end": 63,
+   "between": [
+    "G6",
+    "G4"
+   ]
+  },
+  {
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 96,
+   "end": 98,
+   "between": [
+    "G4",
+    "G1"
+   ]
+  },
+  {
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 147,
+   "end": 148,
+   "between": [
+    "G1",
+    "G2"
+   ]
+  },
+  {
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 175,
+   "end": 181,
+   "between": [
+    "G2",
+    "G3"
+   ]
+  },
+  {
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "start": 228,
+   "end": 230,
+   "between": [
+    "G3",
+    "G5"
+   ]
+  },
+  {
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 80,
+   "end": 81,
+   "between": [
+    "H2",
+    "H3"
+   ]
+  },
+  {
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 171,
+   "end": 172,
+   "between": [
+    "H3",
+    "H4"
+   ]
+  },
+  {
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "start": 255,
+   "end": 256,
+   "between": [
+    "H4",
+    "H5"
+   ]
+  },
+  {
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "start": 138,
+   "end": 139,
+   "between": [
+    "H6",
+    "H7"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 47,
+   "end": 58,
+   "between": [
+    "I9",
+    "I1"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 111,
+   "end": 112,
+   "between": [
+    "I1",
+    "I2"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 187,
+   "end": 189,
+   "between": [
+    "I2",
+    "I3"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 237,
+   "end": 239,
+   "between": [
+    "I3",
+    "I4"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 304,
+   "end": 306,
+   "between": [
+    "I4",
+    "I5"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 375,
+   "end": 376,
+   "between": [
+    "I5",
+    "I6"
+   ]
+  },
+  {
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "start": 485,
+   "end": 486,
+   "between": [
+    "I6",
+    "I7"
+   ]
+  },
+  {
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "start": 192,
+   "end": 193,
+   "between": [
+    "J1",
+    "J2"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 98,
+   "end": 99,
+   "between": [
+    "J6",
+    "J5"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 221,
+   "end": 222,
+   "between": [
+    "J5",
+    "J7"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 335,
+   "end": 336,
+   "between": [
+    "J7",
+    "J8"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 361,
+   "end": 362,
+   "between": [
+    "J8",
+    "J9"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 454,
+   "end": 455,
+   "between": [
+    "J9",
+    "J10"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 504,
+   "end": 505,
+   "between": [
+    "J10",
+    "J11"
+   ]
+  },
+  {
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "start": 616,
+   "end": 617,
+   "between": [
+    "J11",
+    "J7"
+   ]
+  },
+  {
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "start": 127,
+   "end": 128,
+   "between": [
+    "K2",
+    "K3"
+   ]
+  },
+  {
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "start": 180,
+   "end": 181,
+   "between": [
+    "K3",
+    "K4"
+   ]
+  },
+  {
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 124,
+   "end": 125,
+   "between": [
+    "L1",
+    "L2"
+   ]
+  },
+  {
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 200,
+   "end": 201,
+   "between": [
+    "L2",
+    "L3"
+   ]
+  },
+  {
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 276,
+   "end": 277,
+   "between": [
+    "L3",
+    "L4"
+   ]
+  },
+  {
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "start": 405,
+   "end": 406,
+   "between": [
+    "L4",
+    "L5"
+   ]
+  },
+  {
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 96,
+   "end": 97,
+   "between": [
+    "L5",
+    "L6"
+   ]
+  },
+  {
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 211,
+   "end": 212,
+   "between": [
+    "L6",
+    "L7"
+   ]
+  },
+  {
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 382,
+   "end": 383,
+   "between": [
+    "L7",
+    "L8"
+   ]
+  },
+  {
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 444,
+   "end": 445,
+   "between": [
+    "L8",
+    "L9"
+   ]
+  },
+  {
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "start": 562,
+   "end": 563,
+   "between": [
+    "L9",
+    "L10"
+   ]
+  },
+  {
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 56,
+   "end": 57,
+   "between": [
+    "M1",
+    "M2"
+   ]
+  },
+  {
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 97,
+   "end": 98,
+   "between": [
+    "M2",
+    "M3"
+   ]
+  },
+  {
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "start": 221,
+   "end": 222,
+   "between": [
+    "M3",
+    "M3"
+   ]
+  },
+  {
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "start": 192,
+   "end": 193,
+   "between": [
+    "N1",
+    "N2"
+   ]
+  },
+  {
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "start": 124,
+   "end": 125,
+   "between": [
+    "O1",
+    "O2"
+   ]
+  },
+  {
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "start": 61,
+   "end": 62,
+   "between": [
+    "B1",
+    "B2"
+   ]
+  },
+  {
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "start": 90,
+   "end": 91,
+   "between": [
+    "B3",
+    "B4"
+   ]
+  },
+  {
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "start": 135,
+   "end": 136,
+   "between": [
+    "B4",
+    "B5"
+   ]
+  },
+  {
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "start": 217,
+   "end": 218,
+   "between": [
+    "B5",
+    "B6"
+   ]
+  }
+ ],
+ "coordinates": [
+  {
+   "obligation": "A1",
+   "entry": "Action",
+   "leaf_index": 1,
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 38,
+   "source_text": "On your turn, you can take one action."
+  },
+  {
+   "obligation": "A2",
+   "entry": "Action",
+   "leaf_index": 1,
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 39,
+   "char_end": 138,
+   "source_text": "Choose which action to take from those below or from the special actions provided by your features."
+  },
+  {
+   "obligation": "A3",
+   "entry": "Action",
+   "leaf_index": 2,
+   "leaf_id": "47bce016-6358-52ce-90b9-60b63fae2f86",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "See also"
+  },
+  {
+   "obligation": "A3",
+   "entry": "Action",
+   "leaf_index": 3,
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 31,
+   "source_text": "“Playing the Game” (“Actions”)."
+  },
+  {
+   "obligation": "A4",
+   "entry": "Action",
+   "leaf_index": 3,
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 32,
+   "char_end": 85,
+   "source_text": "These actions are defined elsewhere in this glossary:"
+  },
+  {
+   "obligation": "A4",
+   "entry": "Action",
+   "leaf_index": 4,
+   "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 21,
+   "source_text": "Attack Dash Disengage"
+  },
+  {
+   "obligation": "A4",
+   "entry": "Action",
+   "leaf_index": 5,
+   "leaf_id": "eb323c9a-47dc-51e5-9d62-165c607c3012",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 15,
+   "source_text": "Dodge Help Hide"
+  },
+  {
+   "obligation": "A4",
+   "entry": "Action",
+   "leaf_index": 6,
+   "leaf_id": "cee71353-43a1-53a1-8fb3-d8351803b881",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 21,
+   "source_text": "Influence Magic Ready"
+  },
+  {
+   "obligation": "A4",
+   "entry": "Action",
+   "leaf_index": 7,
+   "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
+   "leaf_type": "paragraph",
+   "printed_page": 176,
+   "char_start": 0,
+   "char_end": 20,
+   "source_text": "Search Study Utilize"
+  },
+  {
+   "obligation": "D1",
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 31,
+   "char_end": 54,
+   "source_text": "you gain extra movement"
+  },
+  {
+   "obligation": "D2",
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 77,
+   "char_end": 137,
+   "source_text": "The increase equals your Speed after applying any modifiers."
+  },
+  {
+   "obligation": "D3",
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 55,
+   "char_end": 75,
+   "source_text": "for the current turn"
+  },
+  {
+   "obligation": "D4",
+   "entry": "Dash [Action]",
+   "leaf_index": 1,
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 138,
+   "char_end": 144,
+   "source_text": "With a"
+  },
+  {
+   "obligation": "D4",
+   "entry": "Dash [Action]",
+   "leaf_index": 2,
+   "leaf_id": "c5e32691-8ec5-5150-8369-5dfa0cb381b5",
+   "leaf_type": "stat_field",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 49,
+   "source_text": "Speed of 30 feet, for example, you can move up to"
+  },
+  {
+   "obligation": "D4",
+   "entry": "Dash [Action]",
+   "leaf_index": 3,
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 131,
+   "source_text": "60 feet on your turn if you Dash. If your Speed of 30 feet is reduced to 15 feet, you can move up to 30 feet this turn if you Dash."
+  },
+  {
+   "obligation": "D5",
+   "entry": "Dash [Action]",
+   "leaf_index": 3,
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 132,
+   "char_end": 234,
+   "source_text": "If you have a special speed, such as a Fly Speed or Swim Speed, you can use that speed instead of your"
+  },
+  {
+   "obligation": "D5",
+   "entry": "Dash [Action]",
+   "leaf_index": 4,
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "leaf_type": "stat_field",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 32,
+   "source_text": "Speed when you take this action."
+  },
+  {
+   "obligation": "D6",
+   "entry": "Dash [Action]",
+   "leaf_index": 4,
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "leaf_type": "stat_field",
+   "printed_page": 180,
+   "char_start": 33,
+   "char_end": 49,
+   "source_text": "You choose which"
+  },
+  {
+   "obligation": "D6",
+   "entry": "Dash [Action]",
+   "leaf_index": 5,
+   "leaf_id": "e4ba97fe-c01e-5dd0-a664-66af39750b88",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 35,
+   "source_text": "speed to use each time you take it."
+  },
+  {
+   "obligation": "D7",
+   "entry": "Dash [Action]",
+   "leaf_index": 6,
+   "leaf_id": "869c0a0b-93a3-58e2-9f40-b60d6da1f56b",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "See also"
+  },
+  {
+   "obligation": "D7",
+   "entry": "Dash [Action]",
+   "leaf_index": 7,
+   "leaf_id": "319ae274-cae6-58aa-9184-26a6940bf266",
+   "leaf_type": "paragraph",
+   "printed_page": 180,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "“Speed.”"
+  },
+  {
+   "obligation": "E1",
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 34,
+   "char_end": 83,
+   "source_text": "your movement doesn’t provoke Opportunity Attacks"
+  },
+  {
+   "obligation": "E2",
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 84,
+   "char_end": 116,
+   "source_text": "for the rest of the current turn"
+  },
+  {
+   "obligation": "E3",
+   "entry": "Disengage [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 0,
+   "char_end": 33,
+   "source_text": "If you take the Disengage action,"
+  },
+  {
+   "obligation": "G1",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 98,
+   "char_end": 147,
+   "source_text": "any attack roll made against you has Disadvantage"
+  },
+  {
+   "obligation": "G2",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 148,
+   "char_end": 175,
+   "source_text": "if you can see the attacker"
+  },
+  {
+   "obligation": "G3",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 181,
+   "char_end": 228,
+   "source_text": "you make Dexterity saving throws with Advantage"
+  },
+  {
+   "obligation": "G4",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 63,
+   "char_end": 96,
+   "source_text": "until the start of your next turn"
+  },
+  {
+   "obligation": "G5",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 230,
+   "char_end": 316,
+   "source_text": "You lose these benefits if you have the Incapacitated condition or if your Speed is 0."
+  },
+  {
+   "obligation": "G6",
+   "entry": "Dodge [Action]",
+   "leaf_index": 1,
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "leaf_type": "paragraph",
+   "printed_page": 181,
+   "char_start": 0,
+   "char_end": 62,
+   "source_text": "If you take the Dodge action, you gain the following benefits:"
+  },
+  {
+   "obligation": "H1",
+   "entry": "Help [Action]",
+   "leaf_index": 1,
+   "leaf_id": "7e1a032c-9c1a-5728-a01c-f6ba5d14de40",
+   "leaf_type": "paragraph",
+   "printed_page": 182,
+   "char_start": 0,
+   "char_end": 59,
+   "source_text": "When you take the Help action, you do one of the following."
+  },
+  {
+   "obligation": "H1",
+   "entry": "Help [Action]",
+   "leaf_index": 2,
+   "leaf_id": "08258187-108f-5d6d-85ca-d622b9753fca",
+   "leaf_type": "paragraph",
+   "printed_page": 182,
+   "char_start": 0,
+   "char_end": 24,
+   "source_text": "Assist an Ability Check."
+  },
+  {
+   "obligation": "H1",
+   "entry": "Help [Action]",
+   "leaf_index": 5,
+   "leaf_id": "0c421a48-e2bc-5897-9136-eb2ff52786f3",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 0,
+   "char_end": 22,
+   "source_text": "Assist an Attack Roll."
+  },
+  {
+   "obligation": "H2",
+   "entry": "Help [Action]",
+   "leaf_index": 3,
+   "leaf_id": "a6f0faa2-ad42-5e77-a4b7-35e4ce353d61",
+   "leaf_type": "paragraph",
+   "printed_page": 182,
+   "char_start": 0,
+   "char_end": 71,
+   "source_text": "Choose one of your skill or tool proficiencies and one ally who is near"
+  },
+  {
+   "obligation": "H2",
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 0,
+   "char_end": 80,
+   "source_text": "enough for you to assist verbally or physically when they make an ability check."
+  },
+  {
+   "obligation": "H3",
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 81,
+   "char_end": 171,
+   "source_text": "That ally has Advantage on the next ability check they make with the chosen skill or tool."
+  },
+  {
+   "obligation": "H4",
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 172,
+   "char_end": 255,
+   "source_text": "This benefit expires if the ally doesn’t use it before the start of your next turn."
+  },
+  {
+   "obligation": "H5",
+   "entry": "Help [Action]",
+   "leaf_index": 4,
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 256,
+   "char_end": 316,
+   "source_text": "The GM has final say on whether your assistance is possible."
+  },
+  {
+   "obligation": "H6",
+   "entry": "Help [Action]",
+   "leaf_index": 6,
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 0,
+   "char_end": 138,
+   "source_text": "You momentarily distract an enemy within 5 feet of you, giving Advantage to the next attack roll by one of your allies against that enemy."
+  },
+  {
+   "obligation": "H7",
+   "entry": "Help [Action]",
+   "leaf_index": 6,
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 139,
+   "char_end": 191,
+   "source_text": "This benefit expires at the start of your next turn."
+  },
+  {
+   "obligation": "I1",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 58,
+   "char_end": 111,
+   "source_text": "you must succeed on a DC 15 Dexterity (Stealth) check"
+  },
+  {
+   "obligation": "I2",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 112,
+   "char_end": 187,
+   "source_text": "while you’re Heavily Obscured or behind Three-Quarters Cover or Total Cover"
+  },
+  {
+   "obligation": "I3",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 189,
+   "char_end": 237,
+   "source_text": "and you must be out of any enemy’s line of sight"
+  },
+  {
+   "obligation": "I4",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 239,
+   "char_end": 304,
+   "source_text": "if you can see a creature, you can discern whether it can see you"
+  },
+  {
+   "obligation": "I5",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 306,
+   "char_end": 375,
+   "source_text": "On a successful check, you have the Invisible condition while hidden."
+  },
+  {
+   "obligation": "I6",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 376,
+   "char_end": 485,
+   "source_text": "Make note of your check’s total, which is the DC for a creature to find you with a Wisdom (Perception) check."
+  },
+  {
+   "obligation": "I7",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 486,
+   "char_end": 684,
+   "source_text": "You stop being hidden immediately after any of the following occurs: you make a sound louder than a whisper, an enemy finds you, you make an attack roll, or you cast a spell with a Verbal component."
+  },
+  {
+   "obligation": "I9",
+   "entry": "Hide [Action]",
+   "leaf_index": 1,
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "leaf_type": "paragraph",
+   "printed_page": 183,
+   "char_start": 0,
+   "char_end": 47,
+   "source_text": "With the Hide action, you try to hide yourself."
+  },
+  {
+   "obligation": "J1",
+   "entry": "Influence [Action]",
+   "leaf_index": 1,
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 192,
+   "source_text": "With the Influence action, you urge a monster to do something. Describe or roleplay how you’re communicating with the monster. Are you trying to deceive, intimidate, amuse, or gently persuade?"
+  },
+  {
+   "obligation": "J2",
+   "entry": "Influence [Action]",
+   "leaf_index": 1,
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 193,
+   "char_end": 388,
+   "source_text": "The GM then determines whether the monster feels willing, unwilling, or hesitant due to your interaction; this determination establishes whether an ability check is necessary, as explained below."
+  },
+  {
+   "obligation": "J3",
+   "entry": "Influence [Action]",
+   "leaf_index": 2,
+   "leaf_id": "d1a853d4-3e28-5dfc-b704-cffef3fceabe",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "Willing."
+  },
+  {
+   "obligation": "J3",
+   "entry": "Influence [Action]",
+   "leaf_index": 3,
+   "leaf_id": "eeda1b62-45de-576a-82a5-e5cbea43056c",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 135,
+   "source_text": "If your urging aligns with the monster’s desires, no ability check is necessary; the monster fulfills your request in a way it prefers."
+  },
+  {
+   "obligation": "J4",
+   "entry": "Influence [Action]",
+   "leaf_index": 4,
+   "leaf_id": "72e486bb-4adb-5959-852e-0d8668bf7f93",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 10,
+   "source_text": "Unwilling."
+  },
+  {
+   "obligation": "J4",
+   "entry": "Influence [Action]",
+   "leaf_index": 5,
+   "leaf_id": "2db001c2-80f4-5ddf-bbfb-1a0ac32e271c",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 121,
+   "source_text": "If your urging is repugnant to the monster or counter to its alignment, no ability check is necessary; it doesn’t comply."
+  },
+  {
+   "obligation": "J5",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 99,
+   "char_end": 221,
+   "source_text": "which is affected by the monster’s attitude: Indifferent, Friendly, or Hostile, each of which is defined in this glossary."
+  },
+  {
+   "obligation": "J6",
+   "entry": "Influence [Action]",
+   "leaf_index": 6,
+   "leaf_id": "f45c09d8-e12a-5f96-8e4b-5839dae451f4",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 9,
+   "source_text": "Hesitant."
+  },
+  {
+   "obligation": "J6",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 98,
+   "source_text": "If you urge the monster to do something that it is hesitant to do, you must make an ability check,"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 222,
+   "char_end": 335,
+   "source_text": "The Influence Checks table suggests which ability check to make based on how you’re interacting with the monster."
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 617,
+   "char_end": 633,
+   "source_text": "Influence Checks"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 8,
+   "leaf_id": "bb7c7fee-92ee-5df7-9b91-6da3ecc09189",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 13,
+   "source_text": "Ability Check"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 9,
+   "leaf_id": "e68c6022-5edb-54ce-992f-6ffe7e5dc3d3",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 11,
+   "source_text": "Interaction"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 10,
+   "leaf_id": "c22e9bd0-5b30-514c-9e10-eac4d4389807",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 20,
+   "source_text": "Charisma (Deception)"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 11,
+   "leaf_id": "d48b74d9-f5e9-5a40-9ec9-601d9ae8fce0",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 40,
+   "source_text": "Deceiving a monster that understands you"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 12,
+   "leaf_id": "1bc03d6b-97c5-53a6-a9b0-13a611dd4926",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 23,
+   "source_text": "Charisma (Intimidation)"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 13,
+   "leaf_id": "09f28fab-fdb8-5585-8892-222e9beefae8",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 22,
+   "source_text": "Intimidating a monster"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 14,
+   "leaf_id": "4931c340-2cba-57b4-bdbd-201dcff15a13",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 22,
+   "source_text": "Charisma (Performance)"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 15,
+   "leaf_id": "9d094e31-7390-57b9-9cb8-334ec226bf29",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 17,
+   "source_text": "Amusing a monster"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 16,
+   "leaf_id": "3ea6292c-1bbb-5c3d-a507-11e1a7df1d14",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 21,
+   "source_text": "Charisma (Persuasion)"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 17,
+   "leaf_id": "2ae61ef9-ba6a-5b42-a0df-b0f2a99913c4",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 41,
+   "source_text": "Persuading a monster that understands you"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 18,
+   "leaf_id": "eb1fe09f-f871-5c62-aa57-b6e91308a45c",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 24,
+   "source_text": "Wisdom (Animal Handling)"
+  },
+  {
+   "obligation": "J7",
+   "entry": "Influence [Action]",
+   "leaf_index": 19,
+   "leaf_id": "fa1c8355-d239-5b47-82a5-be4300bf5860",
+   "leaf_type": "table_cell",
+   "printed_page": 184,
+   "char_start": 0,
+   "char_end": 37,
+   "source_text": "Gently coaxing a Beast or Monstrosity"
+  },
+  {
+   "obligation": "J8",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 336,
+   "char_end": 361,
+   "source_text": "The GM chooses the check,"
+  },
+  {
+   "obligation": "J9",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 362,
+   "char_end": 454,
+   "source_text": "which has a default DC equal to 15 or the monster’s Intelligence score, whichever is higher."
+  },
+  {
+   "obligation": "J10",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 455,
+   "char_end": 504,
+   "source_text": "On a successful check, the monster does as urged."
+  },
+  {
+   "obligation": "J11",
+   "entry": "Influence [Action]",
+   "leaf_index": 7,
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "leaf_type": "paragraph",
+   "printed_page": 184,
+   "char_start": 505,
+   "char_end": 616,
+   "source_text": "On a failed check, you must wait 24 hours (or a duration set by the GM) before urging it in the same way again."
+  },
+  {
+   "obligation": "K1",
+   "entry": "Magic [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 0,
+   "char_end": 162,
+   "source_text": "When you take the Magic action, you cast a spell that has a casting time of an action or use a feature or magic item that requires a Magic action to be activated."
+  },
+  {
+   "obligation": "K2",
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 0,
+   "char_end": 127,
+   "source_text": "If you cast a spell that has a casting time of 1 minute or longer, you must take the Magic action on each turn of that casting,"
+  },
+  {
+   "obligation": "K3",
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 128,
+   "char_end": 180,
+   "source_text": "and you must maintain Concentration while you do so."
+  },
+  {
+   "obligation": "K4",
+   "entry": "Magic [Action]",
+   "leaf_index": 2,
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 181,
+   "char_end": 265,
+   "source_text": "If your Concentration is broken, the spell fails, but you don’t expend a spell slot."
+  },
+  {
+   "obligation": "K5",
+   "entry": "Magic [Action]",
+   "leaf_index": 3,
+   "leaf_id": "a874caf3-9c4d-5dd6-8b4a-5319fd2817c7",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "See also"
+  },
+  {
+   "obligation": "K5",
+   "entry": "Magic [Action]",
+   "leaf_index": 4,
+   "leaf_id": "d407d33d-3d6f-53e3-a752-e43e64922754",
+   "leaf_type": "paragraph",
+   "printed_page": 185,
+   "char_start": 0,
+   "char_end": 16,
+   "source_text": "“Concentration.”"
+  },
+  {
+   "obligation": "L1",
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "leaf_type": "paragraph",
+   "printed_page": 186,
+   "char_start": 0,
+   "char_end": 124,
+   "source_text": "You take the Ready action to wait for a particular circumstance before you act. To do so, you take this action on your turn,"
+  },
+  {
+   "obligation": "L2",
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "leaf_type": "paragraph",
+   "printed_page": 186,
+   "char_start": 125,
+   "char_end": 200,
+   "source_text": "which lets you act by taking a Reaction before the start of your next turn."
+  },
+  {
+   "obligation": "L3",
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "leaf_type": "paragraph",
+   "printed_page": 186,
+   "char_start": 201,
+   "char_end": 276,
+   "source_text": "First, you decide what perceivable circumstance will trigger your Reaction."
+  },
+  {
+   "obligation": "L4",
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "leaf_type": "paragraph",
+   "printed_page": 186,
+   "char_start": 277,
+   "char_end": 405,
+   "source_text": "Then, you choose the action you will take in response to that trigger, or you choose to move up to your Speed in response to it."
+  },
+  {
+   "obligation": "L5",
+   "entry": "Ready [Action]",
+   "leaf_index": 1,
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "leaf_type": "paragraph",
+   "printed_page": 186,
+   "char_start": 406,
+   "char_end": 451,
+   "source_text": "Examples include “If the cultist steps on the"
+  },
+  {
+   "obligation": "L5",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 96,
+   "source_text": "trapdoor, I’ll pull the lever that opens it,” and “If the zombie steps next to me, I move away.”"
+  },
+  {
+   "obligation": "L6",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 97,
+   "char_end": 211,
+   "source_text": "When the trigger occurs, you can either take your Reaction right after the trigger finishes or ignore the trigger."
+  },
+  {
+   "obligation": "L7",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 212,
+   "char_end": 382,
+   "source_text": "When you Ready a spell, you cast it as normal (expending any resources used to cast it) but hold its energy, which you release with your Reaction when the trigger occurs."
+  },
+  {
+   "obligation": "L8",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 383,
+   "char_end": 444,
+   "source_text": "To be readied, a spell must have a casting time of an action,"
+  },
+  {
+   "obligation": "L9",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 445,
+   "char_end": 562,
+   "source_text": "and holding on to the spell’s magic requires Concentration, which you can maintain up to the start of your next turn."
+  },
+  {
+   "obligation": "L10",
+   "entry": "Ready [Action]",
+   "leaf_index": 2,
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 563,
+   "char_end": 639,
+   "source_text": "If your Concentration is broken, the spell dissipates without taking effect."
+  },
+  {
+   "obligation": "M1",
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 56,
+   "source_text": "When you take the Search action, you make a Wisdom check"
+  },
+  {
+   "obligation": "M2",
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 57,
+   "char_end": 97,
+   "source_text": "to discern something that isn’t obvious."
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 98,
+   "char_end": 221,
+   "source_text": "The Search table suggests which skills are applicable when you take this action, depending on what you’re trying to detect."
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 1,
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "leaf_type": "paragraph",
+   "printed_page": 187,
+   "char_start": 222,
+   "char_end": 228,
+   "source_text": "Search"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 2,
+   "leaf_id": "d31f589a-7728-5dc9-b99d-f7d5db65d84c",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 5,
+   "source_text": "Skill"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 3,
+   "leaf_id": "77f16205-c984-504c-b3ac-8e3c1a767aa8",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 15,
+   "source_text": "Thing to Detect"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 4,
+   "leaf_id": "0dc61963-a67f-5dea-b834-b1dc64869198",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 7,
+   "source_text": "Insight"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 5,
+   "leaf_id": "0359338d-0686-53d8-8dc4-2fd8b586227b",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 24,
+   "source_text": "Creature’s state of mind"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 6,
+   "leaf_id": "916892b1-0d65-5f1c-9e86-0970307b3cdc",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "Medicine"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 7,
+   "leaf_id": "0176a010-5a58-51cc-8e03-d3b642896af8",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 36,
+   "source_text": "Creature’s ailment or cause of death"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 8,
+   "leaf_id": "3c839508-52a7-50ea-87a6-ab337a1063c2",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 10,
+   "source_text": "Perception"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 9,
+   "leaf_id": "f9730b5f-d9be-5aad-af7e-fb1cd6d4a018",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 28,
+   "source_text": "Concealed creature or object"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 10,
+   "leaf_id": "18c872cc-0415-5eb3-9fb6-f25c88ae7901",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "Survival"
+  },
+  {
+   "obligation": "M3",
+   "entry": "Search [Action]",
+   "leaf_index": 11,
+   "leaf_id": "fd5903b7-d978-51fb-8d89-f649bc21dfc4",
+   "leaf_type": "table_cell",
+   "printed_page": 187,
+   "char_start": 0,
+   "char_end": 14,
+   "source_text": "Tracks or food"
+  },
+  {
+   "obligation": "N1",
+   "entry": "Study [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "leaf_type": "paragraph",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 192,
+   "source_text": "When you take the Study action, you make an Intelligence check to study your memory, a book, a clue, or another source of knowledge and call to mind an important piece of information about it."
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 1,
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "leaf_type": "paragraph",
+   "printed_page": 189,
+   "char_start": 193,
+   "char_end": 289,
+   "source_text": "The Areas of Knowledge table suggests which skills are applicable to various areas of knowledge."
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 2,
+   "leaf_id": "7eb7570f-9468-5ead-a971-b14ee6b64c44",
+   "leaf_type": "paragraph",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 18,
+   "source_text": "Areas of Knowledge"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 3,
+   "leaf_id": "ad7b798c-3b73-5216-94d1-fedb7bc4275e",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 5,
+   "source_text": "Skill"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 4,
+   "leaf_id": "b6323b48-bc0d-5bcd-83e6-df96753a5bea",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 5,
+   "source_text": "Areas"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 5,
+   "leaf_id": "1490ebb7-9b83-5528-8ab7-b0f9de2f2324",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 6,
+   "source_text": "Arcana"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 6,
+   "leaf_id": "e0859b5d-2345-5510-a0ce-c1edf2e57ab2",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 163,
+   "source_text": "Spells, magic items, eldritch symbols, magical traditions, planes of existence, and certain creatures (Aberrations, Constructs, Elementals, Fey, and Monstrosities)"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 7,
+   "leaf_id": "79d26ad4-6797-5cdb-b9f1-d6d40a04e1c0",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 7,
+   "source_text": "History"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 8,
+   "leaf_id": "f616e08a-84e9-574d-b12a-8b66a1f531df",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 101,
+   "source_text": "Historic events and people, ancient civilizations, wars, and certain creatures (Giants and Humanoids)"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 9,
+   "leaf_id": "729faadf-66d9-5c27-bcab-3f2944c61d6f",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 13,
+   "source_text": "Investigation"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 10,
+   "leaf_id": "32c16067-d42c-5d19-b389-124bbb2313af",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 37,
+   "source_text": "Traps, ciphers, riddles, and gadgetry"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 11,
+   "leaf_id": "dbe5c512-12a9-5a8c-b28b-6bf8dee2af04",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 6,
+   "source_text": "Nature"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 12,
+   "leaf_id": "bde2b6c2-6289-52bf-afd6-2042999fb3bb",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 83,
+   "source_text": "Terrain, flora, weather, and certain creatures (Beasts, Dragons, Oozes, and Plants)"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 13,
+   "leaf_id": "ba34d2df-ba69-504e-b557-37b6fe97da31",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 8,
+   "source_text": "Religion"
+  },
+  {
+   "obligation": "N2",
+   "entry": "Study [Action]",
+   "leaf_index": 14,
+   "leaf_id": "dd988728-ac2f-5e04-af4c-9d861702a34f",
+   "leaf_type": "table_cell",
+   "printed_page": 189,
+   "char_start": 0,
+   "char_end": 117,
+   "source_text": "Deities, religious hierarchies and rites, holy symbols, cults, and certain creatures (Celestials, Fiends, and Undead)"
+  },
+  {
+   "obligation": "O1",
+   "entry": "Utilize [Action]",
+   "leaf_index": 1,
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "leaf_type": "paragraph",
+   "printed_page": 191,
+   "char_start": 0,
+   "char_end": 124,
+   "source_text": "You normally interact with an object while doing something else, such as when you draw a sword as part of the Attack action."
+  },
+  {
+   "obligation": "O2",
+   "entry": "Utilize [Action]",
+   "leaf_index": 1,
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "leaf_type": "paragraph",
+   "printed_page": 191,
+   "char_start": 125,
+   "char_end": 200,
+   "source_text": "When an object requires an action for its use, you take the Utilize action."
+  },
+  {
+   "obligation": "B1",
+   "entry": "Attack [Action]",
+   "leaf_index": 1,
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 0,
+   "char_end": 61,
+   "source_text": "When you take the Attack action, you can make one attack roll"
+  },
+  {
+   "obligation": "B2",
+   "entry": "Attack [Action]",
+   "leaf_index": 1,
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 62,
+   "char_end": 97,
+   "source_text": "with a weapon or an Unarmed Strike."
+  },
+  {
+   "obligation": "B3",
+   "entry": "Attack [Action]",
+   "leaf_index": 2,
+   "leaf_id": "e3f9e1e6-70c7-5931-904b-3ba4ce7cd79b",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 0,
+   "char_end": 34,
+   "source_text": "Equipping and Unequipping Weapons."
+  },
+  {
+   "obligation": "B3",
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 0,
+   "char_end": 90,
+   "source_text": "You can either equip or unequip one weapon when you make an attack as part of this action."
+  },
+  {
+   "obligation": "B4",
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 91,
+   "char_end": 135,
+   "source_text": "You do so either before or after the attack."
+  },
+  {
+   "obligation": "B5",
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 136,
+   "char_end": 217,
+   "source_text": "If you equip a weapon before an attack, you don’t need to use it for that attack."
+  },
+  {
+   "obligation": "B6",
+   "entry": "Attack [Action]",
+   "leaf_index": 3,
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 218,
+   "char_end": 354,
+   "source_text": "Equipping a weapon includes drawing it from a sheath or picking it up. Unequipping a weapon includes sheathing, stowing, or dropping it."
+  },
+  {
+   "obligation": "B7",
+   "entry": "Attack [Action]",
+   "leaf_index": 4,
+   "leaf_id": "7aed0944-935d-56db-b6e0-e847971d4fff",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 0,
+   "char_end": 23,
+   "source_text": "Moving between Attacks."
+  },
+  {
+   "obligation": "B7",
+   "entry": "Attack [Action]",
+   "leaf_index": 5,
+   "leaf_id": "2a4a9331-f52b-5d86-9e68-e1242e49eb49",
+   "leaf_type": "paragraph",
+   "printed_page": 177,
+   "char_start": 0,
+   "char_end": 204,
+   "source_text": "If you move on your turn and have a feature, such as Extra Attack, that gives you more than one attack as part of the Attack action, you can use some or all of that movement to move between those attacks."
+  }
+ ],
+ "leaves_without_an_obligation_row": {}
+}
