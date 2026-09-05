@@ -210,6 +210,56 @@ identity, the batch anchor still at schema 3, and the committed file never writt
 moves at the new required axis because the accepted artifact holds no ability-check fact at all, which
 is asserted against the artifact rather than assumed.
 
+**Amended by representation schema 6 — the `actions-1` schema stop.** Discovery over the thirteen
+`actions-1` records reached a schema stop before any proposal was generated: 21 blocking families across
+35 `UNRESOLVED` obligations, none of which schema 5's union could carry without either losing a
+distinction the source draws or asserting one it does not. Schema 6 closes them under contract 3's first
+branch — twelve typed families and a set of widenings — and leaves the rest under its second, as prose
+bound at the scope where it applies.
+
+The twelve families are `ActionAllowanceFact`, `MovementAllowanceFact`, `MovementInterleaveFact`,
+`EffectDurationFact`, `ReactionProvocationFact`, `RetryRestrictionFact`, `RecurringActionRequirementFact`,
+`SustainedStateRequirementFact`, `ResourceExpenditureFact`, `EquipmentChangeFact`,
+`TriggeredResolutionFact`, and `ActivationCostEligibilityFact`. Three of the decisions inside that set
+are the ones worth recording here, because each refuses a shape that would have been smaller:
+
+* **An allowance states either a slot or an activity, never both, and never one vocabulary spanning
+  the two.** *"You can take one additional action"* and *"you can make one additional attack"* are
+  different grants; a single enum admitting overlapping members would render them identically on the
+  wire.
+* **A sequencing point is two families, not one discriminator.** *"between attacks"* and *"immediately
+  after the trigger"* locate a thing in different domains, and one enum spanning both would have to
+  refuse most of its own cross products — two families wearing one field. The same argument keeps
+  `RecurringActionRequirementFact` and `SustainedStateRequirementFact` apart, and keeps obscurement's
+  vocabulary apart from cover's.
+* **Eligibility is substantive authority, not supporting prose.** *"To be readied, a spell must have a
+  casting time of an action"* states **which spells the mechanic reaches**, over a printed, enumerable
+  field. `Ready` L8 had been classified as supporting; the sweep for comparable clauses confirmed
+  `Magic` K1 and `Utilize` O2 were already typed, so it is the only reclassification.
+
+The widenings: `RollActor.ALLY`, admitted because `Help`'s two arms are neither the subject's roll nor a
+roll directed at the subject and so produced identical typed authority; two `DcKind` members, one of
+which carries a number, correcting the family's earlier "only `FIXED` carries a number" declaration;
+`AbilityCheckFact.ability` made **optional** — an ability the GM chooses, beside a printed DC, was
+otherwise unrepresentable — with `dc_ability` and `against_subject` beside it; `AdvantageFact.use_limit`;
+five `ApplicabilityKind` members including a **depth-1, canonically ordered, at-least-two**
+disjunction; and `ProseBindingDraft.option_key`, which lets prose govern one arm of a choice where
+component-grain binding would be false rather than merely lossy. `option_key` appends a sixth element to
+the provenance coordinate **only when non-empty**, so all twenty accepted five-element coordinates are
+unchanged.
+
+The schema-6 destination pin is
+`d4584a748ed70cc62ec0f3ad2430aa42496c62a08092e82c62aaa0ffc148c1d6`. Schema 4 and schema 5 remain
+recognized contracts and their pins are unchanged. Succession stays one row per crossing and resolved as
+a path: the committed artifact declares schema 5, which is where `hazards-1` was reviewed, and reaches
+schema 6 across `5d-lift-schema-5-to-6`. Zero movement was re-run against the finalized destination —
+all six collections byte-identical, 281 spans and every accepted provenance coordinate carried by object
+identity, both batch anchors still at the schema each was reviewed under, and the committed file never
+written.
+
+Nothing is accepted, published, activated, or retired by the schema change, and acceptance-ready
+regeneration for `actions-1` stays paused until it passes review.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

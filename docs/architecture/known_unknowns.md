@@ -341,6 +341,35 @@ audit and is deliberately not decided here:
   closed vocabularies. Related to the targeting-restriction disposition above: revisit when a batch
   forces a referent set that closes.
 
+**Narrowed by representation schema 6 (the `actions-1` schema stop).** Discovery over the thirteen
+`actions-1` records stopped at the schema before generating a proposal: 21 blocking families across 35
+`UNRESOLVED` obligations. Schema 6 is the batch-driven accounting the *untouched* list above anticipated,
+and it moves three of those groups:
+
+* **discharged — *eligibility*.** `ActivationCostEligibilityFact` carries *"a spell must have a casting
+  time of an action"* over the printed, enumerable casting-time field, with three instances in three
+  records (`Ready` L8, `Magic` K1, `Utilize` O2). Reclassifying L8 from supporting authority to
+  substantive is a correction recorded with the schema, not a silent move;
+* **discharged — *sequencing*.** Split rather than unified: `MovementInterleaveFact` locates a point
+  inside a repeated action, `TriggeredResolutionFact` locates one relative to a trigger. One enum
+  spanning both would be the cross-domain vocabulary the module refuses;
+* **narrowed, still deferred — *choices*.** `ProseBindingDraft.option_key` lets prose govern one arm of
+  an exhaustive choice, which is what `Help` forces. It does **not** make every printed "or" an option
+  set: `Attack` B2 is one entitlement with an instrument qualification, and `Ready` L4 has an arm no
+  closed vocabulary reaches. Both were proved unauthorable by `option_set_violations` rather than
+  chosen.
+
+*Contests*, *explicit probability* and *random-table selection* remain **untouched**, due no later than
+full-corpus closure. The suggested skill tables in `Influence`, `Search` and `Study` are **not**
+instances of random-table selection and were briefly recorded as such in error: nothing is rolled, no row
+is selected by a die, and each table states what the GM *may* choose — which is why their prose bindings
+under `gamemaster_latitude` and `subjective_judgment` are justified and stay. The open problem behind
+that group is unaffected: a printed table's row keys range over no closed vocabulary.
+
+Known residue from this batch, prose-bound at the scope where it applies rather than typed: `Ready` L4's
+open action space, `Attack` B2's instrument qualification, and the option-scoped clauses on `Help` that
+`option_key` records without typing.
+
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on
 2026-09-03; both are committed as accepted authority for the production SRD 5.2.1 release, so that
