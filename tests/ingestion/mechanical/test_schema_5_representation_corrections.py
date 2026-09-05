@@ -664,9 +664,25 @@ def test_a_component_wide_outcome_is_not_established_by_one_arm() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_this_build_declares_schema_5_and_the_registry_pins_its_hash() -> None:
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_5_VERSION
-    assert representation_schema_hash() == SCHEMA_5_HASH
+def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> None:
+    """Superseded, and therefore *more* load-bearing rather than less.
+
+    This build declares schema 6. Schema 5's pin is unchanged, and what it now
+    names is the **source** of the registered ``5d-lift-schema-5-to-6``
+    transition — which is what keeps accepted schema-5 authority reachable. A
+    drift in this literal would not merely stale a canary; it would strand the
+    ``hazards-1`` acceptance, whose artifact declares exactly this pair.
+    """
+    from afterworlds.ingestion.mechanical.schema_lift import (
+        SCHEMA_6_HASH,
+        SCHEMA_6_VERSION,
+        SCHEMA_LIFTS,
+    )
+
+    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_6_VERSION
+    assert representation_schema_hash() == SCHEMA_6_HASH
+    lift = SCHEMA_LIFTS[(SCHEMA_5_VERSION, SCHEMA_5_HASH)]
+    assert (lift.to_version, lift.to_hash) == (SCHEMA_6_VERSION, SCHEMA_6_HASH)
 
 
 def test_schema_4_rejects_schema_5_only_meaning() -> None:

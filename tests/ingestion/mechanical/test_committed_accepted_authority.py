@@ -67,6 +67,8 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
+    SCHEMA_5_HASH,
+    SCHEMA_5_VERSION,
     lift_accepted_inputs,
 )
 
@@ -308,27 +310,33 @@ def test_each_batch_still_states_the_schema_it_was_reviewed_under() -> None:
     """The declaration follows the newest acceptance; the anchors do not move.
 
     An accepted artifact records the contract a human reviewed it under, and
-    that record is per batch, not per file. ``hazards-1`` was reviewed under
-    schema 5, so the file now declares schema 5 — but ``conditions-1`` is still
-    anchored at schema 3, which is where *its* review happened, and restamping
-    that anchor to match the declaration is exactly the attack
-    ``BatchSchemaAnchor`` exists to refuse.
+    that record is per batch, not per file. ``conditions-1`` was reviewed under
+    schema 3 and ``hazards-1`` under schema 5, so those are the two anchors —
+    and restamping either to match whatever the build currently implements is
+    exactly the attack ``BatchSchemaAnchor`` exists to refuse.
 
-    The registered succession is what connects the two, and it is retained in
-    full: schema 3 → 4 → 5, one row per crossing, never collapsed into a
-    transition the registry has no row for.
+    **Schema 6 makes the point sharper rather than staler.** The file declared
+    the current schema when ``hazards-1`` was accepted; it declares schema 5
+    still, because nothing has been accepted since. What must be true after a
+    succession is not that the file moved — it must not — but that the
+    registered chain still reaches current authority from where it sits, which
+    is asserted in the lift tests below.
+
+    The retained succession is the one that has actually run: schema 3 → 4 → 5,
+    one row per crossing, never collapsed into a transition the registry has no
+    row for.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert inputs.oracle.schema_hash == representation_schema_hash()
+    assert inputs.oracle.schema_version == SCHEMA_5_VERSION
+    assert inputs.oracle.schema_hash == SCHEMA_5_HASH
 
     anchors = {a.batch_id: a for a in inputs.schema_anchors}
     assert sorted(anchors) == sorted([BATCH_ID, HAZARDS_BATCH_ID])
     assert anchors[BATCH_ID].schema_version == "5d-representation-schema-3"
     assert anchors[BATCH_ID].schema_hash == SCHEMA_3_HASH
     assert anchors[BATCH_ID].proposal_identity == PROPOSAL_IDENTITY
-    assert anchors[HAZARDS_BATCH_ID].schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert anchors[HAZARDS_BATCH_ID].schema_hash == representation_schema_hash()
+    assert anchors[HAZARDS_BATCH_ID].schema_version == SCHEMA_5_VERSION
+    assert anchors[HAZARDS_BATCH_ID].schema_hash == SCHEMA_5_HASH
     assert anchors[HAZARDS_BATCH_ID].proposal_identity == HAZARDS_PROPOSAL_IDENTITY
 
     assert [lift.lift_id for lift in inputs.lifts] == [
@@ -340,25 +348,33 @@ def test_each_batch_still_states_the_schema_it_was_reviewed_under() -> None:
         SCHEMA_3_HASH,
     )
     assert (inputs.lifts[-1].to_version, inputs.lifts[-1].to_hash) == (
-        REPRESENTATION_SCHEMA_VERSION,
-        representation_schema_hash(),
+        SCHEMA_5_VERSION,
+        SCHEMA_5_HASH,
     )
 
 
 def test_the_committed_artifact_is_buildable_and_the_legacy_form_is_not() -> None:
     """Both halves of the fail-closed rule, in one place.
 
-    The committed artifact declares the contract this build implements, so it
-    builds as current authority — that is what accepting a batch reviewed under
-    the current schema *means*.
+    Schema 6 puts the committed artifact back where the specimen already was:
+    it declares schema 5, and an artifact declaring a schema this build no
+    longer implements is **not** current authority as it stands. That refusal
+    is correct rather than a regression — a projection built under a wider
+    union is a different projection (ADR-005d Decision 6) — and the authorized
+    way through is the registered lift, which is what the next test runs.
 
-    The refusal it used to demonstrate is not weakened, it has moved to the
-    specimen: a schema-3 artifact still cannot be built as authority under a
-    later union it never agreed to, and the authorized way through is still a
-    registered lift.
+    The specimen keeps demonstrating the same rule one succession further back.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    assert inputs.oracle.schema_version == SCHEMA_5_VERSION
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings != ()
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
+
+    lifted, _ = lift_accepted_inputs(
+        inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    )
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
 
     legacy = load_accepted_inputs(LEGACY_PATH)
     assert legacy.oracle.schema_version == "5d-representation-schema-3"
@@ -431,6 +447,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
     assert [r.lift_id for r in records] == [
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
+        "5d-lift-schema-5-to-6",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
@@ -667,7 +684,7 @@ def test_the_whole_acceptance_record_is_pinned_not_only_the_oracle() -> None:
     }
     assert [a.schema_version for a in inputs.schema_anchors] == [
         "5d-representation-schema-3",
-        REPRESENTATION_SCHEMA_VERSION,
+        SCHEMA_5_VERSION,
     ]
     assert [lift.lift_id for lift in inputs.lifts] == [
         "5d-lift-schema-3-to-4",

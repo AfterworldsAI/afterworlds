@@ -104,7 +104,6 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
-    SCHEMA_5_HASH,
     SCHEMA_6_HASH,
     UnknownSchemaLiftError,
     lift_for,

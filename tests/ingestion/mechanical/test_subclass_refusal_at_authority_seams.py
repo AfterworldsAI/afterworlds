@@ -65,6 +65,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ApplicabilityKind,
     ComponentDraft,
     ComponentOption,
+    CoverDegree,
     CreatureSize,
     DamageFact,
     DamageResponseFact,
@@ -77,6 +78,7 @@ from afterworlds.ingestion.mechanical.representation import (
     EffectTerminationFact,
     FactQualifier,
     MeasureUnit,
+    ObscurementState,
     ParticipantRole,
     Phase,
     ProvenanceRole,
@@ -100,8 +102,10 @@ from afterworlds.ingestion.mechanical.representation import (
     TimePeriod,
     UnknownFactFamilyError,
     _admitted_structures,
+    _dataclass_payload,
     _declared_field_types,
     _enum_field,
+    canonical_bytes,
     declared_meaning_violations,
     exact_type_violations,
     fact_invariant_violations,
@@ -111,7 +115,6 @@ from afterworlds.ingestion.mechanical.representation import (
     held_structure_violations,
     post_schema_3_violations,
     representation_draft_violations,
-    representation_schema_hash,
     structural_admission_violations,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
@@ -119,7 +122,6 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
-    SCHEMA_5_HASH,
     SchemaLiftError,
     lift_accepted_inputs,
     lift_for,
@@ -811,6 +813,31 @@ def _size_applicability(any_of: object) -> Applicability:
     )
 
 
+#: The two closed states ``Hide`` (p183) disjoins, in canonical order — the
+#: schema-6 flat disjunction's own tuple field, which needs a witness here for
+#: the same reason ``any_of`` does: a subclass term carrying an undeclared
+#: meaning-bearing field would canonicalize identically to one asserting
+#: something else.
+DISJUNCTION_TERMS = tuple(
+    sorted(
+        (
+            Applicability(
+                kind=ApplicabilityKind.OBSCUREMENT,
+                obscurement=ObscurementState.HEAVILY_OBSCURED,
+            ),
+            Applicability(kind=ApplicabilityKind.COVER, cover=CoverDegree.TOTAL),
+        ),
+        key=lambda a: canonical_bytes(_dataclass_payload(a)),
+    )
+)
+
+
+def _disjunction(any_of_terms: object) -> Applicability:
+    return Applicability(
+        kind=ApplicabilityKind.ANY_OF, any_of_terms=cast(Any, any_of_terms)
+    )
+
+
 def _first_component(**overrides: object) -> RepresentationDraft:
     """The bounded fixture with one field of its first component replaced."""
     base = build_representation()
@@ -865,6 +892,11 @@ NESTED_TUPLE_FIELDS = [
         lambda c: _with_applicability(_size_applicability(c(SIZE_COMPARISONS))),
         "any_of",
         id="Applicability.any_of",
+    ),
+    pytest.param(
+        lambda c: _with_applicability(_disjunction(c(DISJUNCTION_TERMS))),
+        "any_of_terms",
+        id="Applicability.any_of_terms",
     ),
     pytest.param(
         lambda c: _first_component(facts=c(build_representation().components[0].facts)),
@@ -1107,7 +1139,12 @@ def test_the_committed_artifact_is_unmoved_by_this_round() -> None:
         inputs.batches[0].proposal_identity
     ]
     assert oracle_identity(inputs.oracle) == COMMITTED_ORACLE_IDENTITY
-    assert representation_schema_hash() == SCHEMA_5_HASH
+    # The artifact's own declaration — schema 3, which is what it was reviewed
+    # under and which no succession may rewrite. The *live* build's hash is
+    # deliberately not asserted here: this test is about the committed bytes
+    # being unmoved, and pinning it to whatever schema is current would make it
+    # fail at every future succession for no reason of its own.
+    assert inputs.oracle.schema_hash == SCHEMA_3_HASH
     # Every top-level collection is an exact tuple in the artifact as committed,
     # which is what makes the new rule a refusal rather than a restriction.
     assert all(type(getattr(draft, name)) is tuple for name in _DRAFT_ELEMENT_TYPES)
