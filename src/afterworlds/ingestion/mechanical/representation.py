@@ -8126,8 +8126,17 @@ def _stated_applicabilities(value: object) -> tuple[Applicability, ...]:
     outside the closed type are declined here exactly as the callers decline
     them: another validator has already named them, and reading fields off one
     would replace a collected report with a crash.
+
+    **The container is checked before it is iterated**, for that same reason
+    one level down. ``any_of_terms`` is a declared field, not a validated one:
+    a draft may hold ``None`` or an integer there, ``applicability_violations``
+    has already reported it as the malformed container it is, and iterating it
+    here would raise ``TypeError`` out of a collecting validator and lose every
+    finding gathered beside it — including that one. A string is refused by the
+    same check rather than iterated into its characters, which would decline
+    each one for the right reason by accident.
     """
-    if type(value) is not Applicability:
+    if type(value) is not Applicability or type(value.any_of_terms) is not tuple:
         return ()
     return (value, *(t for t in value.any_of_terms if type(t) is Applicability))
 

@@ -46,6 +46,9 @@ from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
     AbilityCheckFact,
     AbilityScore,
+    ActionAllowanceFact,
+    ActionCost,
+    AllowanceScope,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
@@ -53,6 +56,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentOption,
     ConditionKind,
     DcKind,
+    EligibilitySubject,
     FactQualifier,
     MalformedFactPayloadError,
     MovementTransportFact,
@@ -65,10 +69,13 @@ from afterworlds.ingestion.mechanical.representation import (
     SizeComparison,
     SizeRelation,
     TransportKind,
+    applicability_violations,
     component_participant_violations,
     component_roll_outcome_violations,
     fact_from_payload,
+    fact_invariant_violations,
     fact_key,
+    option_set_violations,
     prose_binding_target_key,
     representation_schema_hash,
 )
@@ -102,6 +109,7 @@ from tests.ingestion.mechanical.conftest import (
 )
 from tests.ingestion.mechanical.test_schema_6_actions_1_source_cases import (
     CASES,
+    HIDE_PREREQUISITE,
     _canonical,
 )
 
@@ -166,11 +174,13 @@ _PROSE_HALVES = ((0, 15), (15, 30))
 
 
 def _prose(
-    option_key: str, extent: tuple[int, int] = (0, _PROSE_LENGTH)
+    option_key: str,
+    extent: tuple[int, int] = (0, _PROSE_LENGTH),
+    component_key: str = OPEN_ENDED_KEY,
 ) -> ProseBindingDraft:
     start, end = extent
     return ProseBindingDraft(
-        component_key=OPEN_ENDED_KEY,
+        component_key=component_key,
         record_key=SPELL_KEY,
         chunk_id=build_representation().prose_bindings[0].chunk_id,
         span_id=derive_span_id(PROSE_LEAF, start, end),
@@ -182,7 +192,7 @@ def _prose(
 
 
 def _composed(
-    component: ComponentDraft,
+    components: ComponentDraft | tuple[ComponentDraft, ...],
     bindings: tuple[ProseBindingDraft, ...],
     fact_spans: tuple[tuple[tuple[str, ...], str], ...],
 ) -> object:
@@ -204,9 +214,11 @@ def _composed(
         )
         for claim in kept
     )
+    if isinstance(components, ComponentDraft):
+        components = (components,)
     return replace(
         base,
-        components=(component,),
+        components=components,
         prose_bindings=bindings,
         provenance=(
             *kept,
@@ -424,60 +436,245 @@ def test_help_refuses_a_clause_bound_to_an_arm_it_does_not_state() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Ready, pp186-187 — five printed clauses in one component
+# Ready, pp186-187 — the whole action, and the one thing it cannot state
 # ---------------------------------------------------------------------------
 #
 #   L2  "...lets you act by taking a Reaction before the start of your next turn"
+#   L4  "Then, you choose the action you will take in response to that trigger,
+#        or you choose to move up to your Speed in response to it."
 #   L6  "you can either take your Reaction right after the trigger finishes or
 #        ignore the trigger"
-#   L7  "expending any resources used to cast it"
+#   L7  "you cast it as normal (expending any resources used to cast it)"
 #   L8  "To be readied, a spell must have a casting time of an action"
-#   L9  "which you can maintain up to the start of your next turn"
+#   L9  "holding on to the spell's magic requires Concentration, which you can
+#        maintain up to the start of your next turn"
 #
-# Five different schema-6 families in one component, beside prose for the open
-# action space L4 states and no closed vocabulary reaches. The composition is
-# the claim: these hold together, they are distinguishable from one another,
-# and every one of them reaches a consumer.
+# **L4 is not an option set, and the reason matters.** An earlier reading said
+# arm 1 is untypeable because no closed vocabulary reaches *which* action the
+# subject chooses, and that an option must therefore type every fact. Neither
+# is the rule — an option must state *at least* one typed fact, and rejecting
+# a deliberately factless arm proves only that a factless arm is refused.
+#
+# The real limitation is narrower. Arm 1 states a **designation**: the subject
+# chooses, in advance, what the already-granted Reaction will be spent on.
+# `ActionAllowanceFact.cost` names a slot the owning effect *grants* — that is
+# the family's whole claim — so typing arm 1 as an Action allowance would
+# publish two grants, an Action and L2's Reaction, where the source states one.
+# `option_set_violations` would admit that pair: structural authorability is
+# not truth, which is exactly why it is not the test being applied here.
+#
+# So the honest form is what this module composes: the own-Speed allowance
+# typed, and the whole *"you choose the action ... or"* clause bound as prose
+# under `open_ended_effect`, which is affirmatively true of an open action
+# space. `test_the_unrepresented_half_of_l4_is_named_exactly` states the
+# residue so that it is recorded rather than implied.
 
-_READY_FACTS = tuple(CASES[k][1] for k in ("L2", "L6", "L7", "L8", "L9"))
-_READY_SPANS = _spans(len(_READY_FACTS))
+RESPONSE_KEY = "ready-response"
+CHOICE_KEY = "readied-choice"
+SPELL_COMPONENT_KEY = "ready-a-spell"
+
+#: Arm 1 typed as an allowance — **the false representation**, kept as a named
+#: value so the test below can show what is wrong with it rather than describe
+#: it. Structurally valid, admitted by every structural rule, and untrue.
+_ARM_ONE_AS_A_GRANT = ActionAllowanceFact(
+    count=1, per=AllowanceScope.OWNING_EFFECT, cost=ActionCost.ACTION
+)
+
+_READY_FACT_SPANS = _spans(7)
 
 
-def _ready_draft() -> object:
-    component = ComponentDraft(
-        record_key=SPELL_KEY,
-        semantic_key=OPEN_ENDED_KEY,
-        handling=ComponentHandling.MIXED,
-        irreducibility_reason_code="open_ended_effect",
-        facts=_READY_FACTS,
-    )
-    return _composed(
-        component,
-        (_prose(""),),
-        tuple(
-            ((SPELL_KEY, OPEN_ENDED_KEY, fact_key(fact)), span)
-            for fact, span in zip(_READY_FACTS, _READY_SPANS, strict=True)
+def _ready_components() -> tuple[ComponentDraft, ...]:
+    return (
+        ComponentDraft(
+            record_key=SPELL_KEY,
+            semantic_key=RESPONSE_KEY,
+            handling=ComponentHandling.STRUCTURED,
+            facts=(CASES["L2"][1], CASES["L6"][1]),
+        ),
+        # One MIXED component, not a choice: the movement allowance is a real
+        # grant and is typed; the alternation and the designated action are
+        # prose, at the grain where the clause is true.
+        ComponentDraft(
+            record_key=SPELL_KEY,
+            semantic_key=CHOICE_KEY,
+            handling=ComponentHandling.MIXED,
+            irreducibility_reason_code="open_ended_effect",
+            facts=(CASES["L4"][1],),
+        ),
+        ComponentDraft(
+            record_key=SPELL_KEY,
+            semantic_key=SPELL_COMPONENT_KEY,
+            handling=ComponentHandling.MIXED,
+            irreducibility_reason_code="open_ended_effect",
+            facts=(
+                CASES["L7"][1],
+                CASES["L8"][1],
+                CASES["K3"][1],
+                CASES["L9"][1],
+            ),
         ),
     )
 
 
+def _ready_draft() -> object:
+    response, choice, spell = _ready_components()
+    keyed: list[tuple[tuple[str, ...], str]] = []
+    spans = iter(_READY_FACT_SPANS)
+    for component in (response, choice, spell):
+        for fact in component.facts:
+            keyed.append(
+                (
+                    (SPELL_KEY, component.semantic_key, fact_key(fact)),
+                    next(spans),
+                )
+            )
+    return _composed(
+        (response, choice, spell),
+        (
+            # The whole "you choose the action ... or" clause, at component
+            # grain because that is the grain at which it is true: with no
+            # option rows there is no arm to bind one half to.
+            _prose("", _PROSE_HALVES[0], CHOICE_KEY),
+            # L10's dissipation clause governs the spell component as a whole.
+            _prose("", _PROSE_HALVES[1], SPELL_COMPONENT_KEY),
+        ),
+        tuple(keyed),
+    )
+
+
 def test_ready_composes_and_validates_as_printed() -> None:
-    """Five families in one component, beside the prose L4's open arm needs."""
-    assert validate_representation(_ready_draft(), _ledger(5), bound_corpus()) == ()
+    """The whole action passes the build contract, in the form it can take."""
+    assert (
+        validate_representation(_ready_draft(), _ledger(7, prose=True), bound_corpus())
+        == ()
+    )
+
+
+def test_the_movement_allowance_and_its_governing_clause_survive_together() -> None:
+    """The typed half and the prose half of L4, in one effective component.
+
+    This is the requirement the composition exists to meet: a consumer reading
+    the record gets the own-Speed allowance *and* the clause that says it is
+    one alternative — not the allowance alone, which would read as an
+    unconditional grant, and not the prose alone, which would lose the one
+    thing the union can carry exactly.
+    """
+    records = _base_records(
+        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+    )
+    choice = next(
+        c for c in records[SPELL_KEY].components if c.semantic_key == CHOICE_KEY
+    )
+    assert choice.handling is ComponentHandling.MIXED
+    assert [entry.fact for entry in choice.facts] == [CASES["L4"][1]]
+    assert all(entry.span_ids for entry in choice.facts)
+    assert [e.option_key for e in choice.governing_prose] == [""]  # type: ignore[union-attr]
+    assert choice.irreducibility_reason_code == "open_ended_effect"
+
+
+def test_the_governing_clause_reaches_the_gamemaster_with_its_text() -> None:
+    """A GameMaster adjudicating the alternation reads the printed clause.
+
+    The residue is prose, so the view that resolves prose is where it has to
+    arrive intact — an unresolved passage here would leave the alternation
+    stated nowhere at all.
+    """
+    records = _base_records(
+        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+    )
+    authority = EffectiveAuthority(
+        binding=RulesPackageBinding(
+            package_uuid=uuid5(NAMESPACE_URL, "pkg-5c"),
+            release_version="rel-5c",
+            mechanical_projection_uuid=uuid5(NAMESPACE_URL, "proj-1"),
+            override_set_uuid=uuid5(NAMESPACE_URL, "ovs-1"),
+        ),
+        records=tuple(records.values()),
+        applied_overrides=(),
+    )
+    view = build_gamemaster_view(
+        authority, {build_representation().prose_bindings[0].chunk_id: "x" * 30}
+    )
+    choice = next(c for c in view.components if c.component_key == CHOICE_KEY)
+    assert [e.text for e in choice.governing_prose] == ["x" * 15]
+    assert [f.fact for f in choice.structured_context] == [CASES["L4"][1]]
+
+
+def test_a_readied_spell_s_requirements_do_not_reach_the_movement() -> None:
+    """The scope that matters, and the reason Ready is three components.
+
+    *"When you Ready a spell"* qualifies one way of readying, not the action.
+    Stated beside the movement allowance, the expenditure, the casting-time
+    eligibility and the Concentration duty would read as requirements of
+    readying anything — so a subject who readied a **move** would appear to
+    expend casting resources and maintain Concentration.
+    """
+    records = _base_records(
+        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+    )
+    by_key = {c.semantic_key: c for c in records[SPELL_KEY].components}
+    spell_facts = {entry.fact for entry in by_key[SPELL_COMPONENT_KEY].facts}
+    assert spell_facts == {
+        CASES["L7"][1],
+        CASES["L8"][1],
+        CASES["K3"][1],
+        CASES["L9"][1],
+    }
+    assert not spell_facts & {entry.fact for entry in by_key[CHOICE_KEY].facts}
+    assert not spell_facts & {entry.fact for entry in by_key[RESPONSE_KEY].facts}
+    # And the eligibility fact itself names what it ranges over, so its scope
+    # is legible from the fact and not only from its component.
+    eligibility = CASES["L8"][1]
+    assert eligibility.subject is EligibilitySubject.SPELL
 
 
 def test_ready_publishes_every_clause_it_states() -> None:
-    """Each fact reaches the effective view under its own key and its own span.
-
-    A composition that validated but published four of five facts, or published
-    them without their provenance, would be a lossy read of the same mechanic.
-    """
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(5), _ready_draft()))
-    published = records[SPELL_KEY].components[0].facts
-    assert [entry.fact for entry in published] == list(_READY_FACTS)
-    assert len({entry.fact_key for entry in published}) == len(_READY_FACTS)
+    """Each fact reaches a consumer under its own key and its own provenance."""
+    records = _base_records(
+        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+    )
+    published = [
+        entry
+        for component in records[SPELL_KEY].components
+        for entry in component.facts
+    ]
+    assert {entry.fact for entry in published} == {
+        CASES[k][1] for k in ("L2", "L4", "L6", "L7", "L8", "L9", "K3")
+    }
+    assert len({entry.fact_key for entry in published}) == len(published)
     assert all(entry.span_ids for entry in published)
-    assert records[SPELL_KEY].components[0].governing_prose
+
+
+def test_the_unrepresented_half_of_l4_is_named_exactly() -> None:
+    """The residue, stated as a property rather than as a paragraph.
+
+    Arm 1 designates what an already-granted slot will be spent on.
+    ``ActionAllowanceFact`` cannot say that: its ``cost`` names a slot the
+    owning effect **grants**, so the fact below would publish an Action grant
+    beside L2's Reaction grant — two grants where ``Ready`` states one.
+
+    The point of asserting it is that **every structural rule admits the false
+    form**. Nothing in the build refuses it; only the reading does. A
+    limitation that only a human notices is one that returns, so it is pinned
+    here beside the composition that avoids it.
+    """
+    assert list(fact_invariant_violations(_ARM_ONE_AS_A_GRANT)) == []
+    as_an_option_set = (
+        ComponentOption(semantic_key="chosen-action", facts=(_ARM_ONE_AS_A_GRANT,)),
+        ComponentOption(semantic_key="move", facts=(CASES["L4"][1],)),
+    )
+    assert option_set_violations((), as_an_option_set, "ready/choice") == []
+
+    # What makes it false is a claim about the record as a whole, which no
+    # component-scoped rule can see: `Ready` grants exactly one slot, and L2
+    # already states it.
+    granted_slots = {
+        fact.cost
+        for fact in (CASES["L2"][1], _ARM_ONE_AS_A_GRANT)
+        if isinstance(fact, ActionAllowanceFact)
+    }
+    assert granted_slots == {ActionCost.REACTION, ActionCost.ACTION}
+    assert CASES["L2"][1].cost is ActionCost.REACTION
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +773,155 @@ def test_a_counterpart_comparison_in_a_disjunction_is_admitted_when_established(
         )
         == []
     )
+
+
+@pytest.mark.parametrize("terms", [None, 7, "prone"], ids=["null", "int", "str"])
+@pytest.mark.parametrize("scope", ["component", "option", "qualifier"])
+def test_a_malformed_disjunction_container_is_reported_not_raised(
+    terms: object, scope: str
+) -> None:
+    """A collecting validator may not lose its report to a ``TypeError``.
+
+    ``any_of_terms`` is a declared field, not a validated one, so a draft can
+    hold ``None`` or an integer there. ``applicability_violations`` already
+    names it as the malformed container it is — and the scope rules, reading
+    the same value one step later, iterated it and raised out of the middle of
+    the collection, taking that finding and every other one with them.
+
+    The string case is here because it does not raise: iterating it yields
+    characters, each declined for the right reason by accident, so the rule
+    would have looked correct while checking nothing.
+    """
+    held = Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=terms)
+    assert applicability_violations(held), "the intrinsic finding is the premise"
+
+    component = ComponentDraft(
+        record_key=SPELL_KEY,
+        semantic_key=OPEN_ENDED_KEY,
+        handling=ComponentHandling.MIXED,
+        irreducibility_reason_code="open_ended_effect",
+        facts=(CASES["L2"][1],),
+    )
+    if scope == "component":
+        component = replace(component, applies_when=held)
+    elif scope == "option":
+        component = replace(
+            component,
+            facts=(),
+            options=(
+                ComponentOption(
+                    semantic_key="arm-a",
+                    facts=(CASES["L2"][1],),
+                    applies_when=held,
+                ),
+                ComponentOption(semantic_key="arm-b", facts=(CASES["L6"][1],)),
+            ),
+        )
+    else:
+        component = replace(
+            component,
+            fact_qualifiers=(
+                FactQualifier(fact_key=fact_key(CASES["L2"][1]), applies_when=held),
+            ),
+        )
+    facts = component.facts or tuple(
+        f for option in component.options for f in option.facts
+    )
+    draft = _composed(
+        component,
+        (_prose(""),),
+        tuple(
+            ((SPELL_KEY, OPEN_ENDED_KEY, *_scope_key(component, fact)), span)
+            for fact, span in zip(facts, _spans(len(facts)), strict=True)
+        ),
+    )
+    findings = validate_representation(draft, _ledger(len(facts)), bound_corpus())
+    assert any("any_of_terms must be tuple" in f for f in findings), findings
+
+
+def _scope_key(component: ComponentDraft, fact: object) -> tuple[str, ...]:
+    """A fact's coordinate tail — its key, plus its option when it has one."""
+    for option in component.options:
+        if fact in option.facts:
+            return (fact_key(fact), option.semantic_key)
+    return (fact_key(fact),)
+
+
+@pytest.mark.parametrize("scope", ["component", "option", "qualifier"])
+def test_a_well_formed_disjunction_is_still_admitted_in_every_scope(
+    scope: str,
+) -> None:
+    """The valid sibling, and the reason the guard is a check and not a refusal.
+
+    The same three scopes, carrying a disjunction whose prerequisite holds:
+    Hide's, which states no roll outcome and names no counterpart, so nothing
+    in either scope rule has anything to object to.
+    """
+    component = ComponentDraft(
+        record_key=SPELL_KEY,
+        semantic_key=OPEN_ENDED_KEY,
+        handling=ComponentHandling.MIXED,
+        irreducibility_reason_code="open_ended_effect",
+        facts=(CASES["L2"][1],),
+    )
+    if scope == "component":
+        component = replace(component, applies_when=HIDE_PREREQUISITE)
+    elif scope == "option":
+        component = replace(
+            component,
+            facts=(),
+            options=(
+                ComponentOption(
+                    semantic_key="arm-a",
+                    facts=(CASES["L2"][1],),
+                    applies_when=HIDE_PREREQUISITE,
+                ),
+                ComponentOption(semantic_key="arm-b", facts=(CASES["L6"][1],)),
+            ),
+        )
+    else:
+        component = replace(
+            component,
+            fact_qualifiers=(
+                FactQualifier(
+                    fact_key=fact_key(CASES["L2"][1]),
+                    applies_when=HIDE_PREREQUISITE,
+                ),
+            ),
+        )
+    facts = component.facts or tuple(
+        f for option in component.options for f in option.facts
+    )
+    # A qualifier is its own authority and carries its own edge, so the valid
+    # sibling states one. The malformed cases above assert on a finding rather
+    # than on emptiness, so they need no such claim.
+    needed = len(facts) + len(component.fact_qualifiers)
+    spans = _spans(needed)
+    claims = tuple(
+        ((SPELL_KEY, OPEN_ENDED_KEY, *_scope_key(component, fact)), span)
+        for fact, span in zip(facts, spans, strict=False)
+    )
+    draft = _composed(component, (_prose(""),), claims)
+    if component.fact_qualifiers:
+        qualifier = component.fact_qualifiers[0]
+        draft = replace(
+            draft,  # type: ignore[type-var]
+            provenance=(
+                *draft.provenance,  # type: ignore[attr-defined]
+                ProvenanceClaim(
+                    ProvenanceTargetKind.FACT_QUALIFIER,
+                    (
+                        SPELL_KEY,
+                        OPEN_ENDED_KEY,
+                        qualifier.fact_key,
+                        qualifier.option_key,
+                    ),
+                    spans[-1],
+                    ProvenanceRole.PRIMARY,
+                ),
+            ),
+        )
+    assert validate_representation(draft, _ledger(needed), bound_corpus()) == ()
 
 
 def test_a_composed_component_refuses_a_wrapped_outcome_through_validation() -> None:
