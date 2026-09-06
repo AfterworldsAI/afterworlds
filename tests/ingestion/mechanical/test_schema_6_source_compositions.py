@@ -48,6 +48,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ActionAllowanceFact,
     ActionCost,
+    ActionEconomyFact,
     AllowanceScope,
     Applicability,
     ApplicabilityKind,
@@ -149,19 +150,21 @@ def _accepted(leaf: str, extents: tuple[tuple[int, int], ...]):
     )
 
 
-def _ledger(count: int, prose: bool = False) -> ClassificationLedger:
+def _ledger(
+    count: int, prose: bool = False, prose_parts: int = 2
+) -> ClassificationLedger:
     """The fixture ledger with the spell leaf partitioned *count* ways.
 
-    *prose* partitions the prose leaf in two as well, which is what a component
-    whose arms are governed by two different clauses of one paragraph needs:
-    one accepted span per clause, and one primary claim per span.
+    *prose* partitions the prose leaf too, which is what a component whose arms
+    are governed by different clauses of one paragraph needs: one accepted span
+    per clause, and one primary claim per span.
     """
     dropped = {SPELL_LEAF, PROSE_LEAF} if prose else {SPELL_LEAF}
     kept = tuple(s for s in build_ledger().spans if s.leaf_id not in dropped)
     edges = [round(_LEAF_LENGTH * i / count) for i in range(count + 1)]
     spans = _accepted(SPELL_LEAF, tuple(zip(edges[:-1], edges[1:], strict=True)))
     if prose:
-        spans += _accepted(PROSE_LEAF, _PROSE_HALVES)
+        spans += _accepted(PROSE_LEAF, _prose_extents(prose_parts))
     return build_ledger(spans=kept + spans)
 
 
@@ -170,7 +173,15 @@ def _ledger(count: int, prose: bool = False) -> ClassificationLedger:
 #: ``_validate_prose_extent`` checks against the accepted span, so a binding
 #: cannot claim a scope its span did not accept.
 _PROSE_LENGTH = 30
-_PROSE_HALVES = ((0, 15), (15, 30))
+
+
+def _prose_extents(count: int) -> tuple[tuple[int, int], ...]:
+    """*count* consecutive clauses partitioning the prose leaf."""
+    edges = [round(_PROSE_LENGTH * i / count) for i in range(count + 1)]
+    return tuple(zip(edges[:-1], edges[1:], strict=True))
+
+
+_PROSE_HALVES = _prose_extents(2)
 
 
 def _prose(
@@ -436,7 +447,7 @@ def test_help_refuses_a_clause_bound_to_an_arm_it_does_not_state() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Ready, pp186-187 — the whole action, and the one thing it cannot state
+# Ready, pp186-187 — the whole action, composed
 # ---------------------------------------------------------------------------
 #
 #   L2  "...lets you act by taking a Reaction before the start of your next turn"
@@ -449,38 +460,53 @@ def test_help_refuses_a_clause_bound_to_an_arm_it_does_not_state() -> None:
 #   L9  "holding on to the spell's magic requires Concentration, which you can
 #        maintain up to the start of your next turn"
 #
-# **L4 is not an option set, and the reason matters.** An earlier reading said
-# arm 1 is untypeable because no closed vocabulary reaches *which* action the
-# subject chooses, and that an option must therefore type every fact. Neither
-# is the rule — an option must state *at least* one typed fact, and rejecting
-# a deliberately factless arm proves only that a factless arm is refused.
+# **L4 is an exhaustive actor choice, and both arms are authorable.** Two
+# earlier readings said otherwise — that both arms are factless, and then that
+# arm 1 designates rather than grants so no family reaches it. Both looked only
+# at the *allowance* families, where `cost` names a slot the owning effect
+# grants; typing arm 1 there would publish an Action grant beside L2's
+# Reaction grant, which is why that route was refused and the refusal was
+# right.
 #
-# The real limitation is narrower. Arm 1 states a **designation**: the subject
-# chooses, in advance, what the already-granted Reaction will be spent on.
-# `ActionAllowanceFact.cost` names a slot the owning effect *grants* — that is
-# the family's whole claim — so typing arm 1 as an Action allowance would
-# publish two grants, an Action and L2's Reaction, where the source states one.
-# `option_set_violations` would admit that pair: structural authorability is
-# not truth, which is exactly why it is not the test being applied here.
+# It is not the only route. `ActionEconomyFact` states what a component's
+# effect **consumes**, and the source says plainly what both arms consume:
+# *"lets you act by taking a Reaction"* (L2) and *"you can either take your
+# Reaction right after the trigger finishes"* (L6). Each arm therefore states
+# one true typed fact — `ActionEconomyFact(REACTION)` — and arm 2 states the
+# own-Speed allowance beside it. No grant is invented, and the family is not
+# new: `ACTION_ECONOMY` predates schema 6, so L4's genuinely new dependencies
+# were only ever F2 (the movement allowance) and F19 (option-grain prose).
 #
-# So the honest form is what this module composes: the own-Speed allowance
-# typed, and the whole *"you choose the action ... or"* clause bound as prose
-# under `open_ended_effect`, which is affirmatively true of an open action
-# space. `test_the_unrepresented_half_of_l4_is_named_exactly` states the
-# residue so that it is recorded rather than implied.
+# What the encoding costs, stated rather than left to be discovered: the
+# Reaction consumption is **printed once and carried twice**, once per arm,
+# because a component is a conjunction or a choice and never both — there is no
+# place to state a cost the arms share. It is redundant, and it is true of each
+# arm.
+#
+# What *which* action the subject chooses remains prose, now bound at option
+# grain: one clause governs one arm and says nothing about its sibling.
 
 RESPONSE_KEY = "ready-response"
 CHOICE_KEY = "readied-choice"
 SPELL_COMPONENT_KEY = "ready-a-spell"
+ACTION_ARM = "take-the-chosen-action"
+MOVE_ARM = "move-up-to-your-speed"
 
-#: Arm 1 typed as an allowance — **the false representation**, kept as a named
-#: value so the test below can show what is wrong with it rather than describe
-#: it. Structurally valid, admitted by every structural rule, and untrue.
+#: What taking the readied response spends, whichever arm is taken. Not a
+#: grant: `ActionEconomyFact` is the consumption side of the same slot L2's
+#: allowance establishes, which is the pairing the two families exist for.
+READIED_REACTION = ActionEconomyFact(cost=ActionCost.REACTION)
+
+#: Arm 1 typed as an *allowance* — the route two earlier readings tested and
+#: rejected. Kept as a named value because the rejection is still correct and
+#: worth pinning: it is structurally valid and states a grant the source does
+#: not make.
 _ARM_ONE_AS_A_GRANT = ActionAllowanceFact(
     count=1, per=AllowanceScope.OWNING_EFFECT, cost=ActionCost.ACTION
 )
 
-_READY_FACT_SPANS = _spans(7)
+_READY_FACT_SPANS = _spans(9)
+_READY_PROSE = _prose_extents(3)
 
 
 def _ready_components() -> tuple[ComponentDraft, ...]:
@@ -491,15 +517,18 @@ def _ready_components() -> tuple[ComponentDraft, ...]:
             handling=ComponentHandling.STRUCTURED,
             facts=(CASES["L2"][1], CASES["L6"][1]),
         ),
-        # One MIXED component, not a choice: the movement allowance is a real
-        # grant and is typed; the alternation and the designated action are
-        # prose, at the grain where the clause is true.
         ComponentDraft(
             record_key=SPELL_KEY,
             semantic_key=CHOICE_KEY,
             handling=ComponentHandling.MIXED,
             irreducibility_reason_code="open_ended_effect",
-            facts=(CASES["L4"][1],),
+            options=(
+                ComponentOption(semantic_key=ACTION_ARM, facts=(READIED_REACTION,)),
+                ComponentOption(
+                    semantic_key=MOVE_ARM,
+                    facts=(READIED_REACTION, CASES["L4"][1]),
+                ),
+            ),
         ),
         ComponentDraft(
             record_key=SPELL_KEY,
@@ -516,71 +545,126 @@ def _ready_components() -> tuple[ComponentDraft, ...]:
     )
 
 
-def _ready_draft() -> object:
+def _ready_draft(
+    action_arm_prose: str = ACTION_ARM, move_arm_prose: str = MOVE_ARM
+) -> object:
     response, choice, spell = _ready_components()
-    keyed: list[tuple[tuple[str, ...], str]] = []
     spans = iter(_READY_FACT_SPANS)
-    for component in (response, choice, spell):
-        for fact in component.facts:
-            keyed.append(
-                (
-                    (SPELL_KEY, component.semantic_key, fact_key(fact)),
-                    next(spans),
-                )
-            )
+    keyed: list[tuple[tuple[str, ...], str]] = [
+        ((SPELL_KEY, RESPONSE_KEY, fact_key(fact)), next(spans))
+        for fact in response.facts
+    ]
+    keyed += [
+        ((SPELL_KEY, CHOICE_KEY, fact_key(fact), option.semantic_key), next(spans))
+        for option in choice.options
+        for fact in option.facts
+    ]
+    keyed += [
+        ((SPELL_KEY, SPELL_COMPONENT_KEY, fact_key(fact)), next(spans))
+        for fact in spell.facts
+    ]
     return _composed(
         (response, choice, spell),
         (
-            # The whole "you choose the action ... or" clause, at component
-            # grain because that is the grain at which it is true: with no
-            # option rows there is no arm to bind one half to.
-            _prose("", _PROSE_HALVES[0], CHOICE_KEY),
+            _prose(action_arm_prose, _READY_PROSE[0], CHOICE_KEY),
+            _prose(move_arm_prose, _READY_PROSE[1], CHOICE_KEY),
             # L10's dissipation clause governs the spell component as a whole.
-            _prose("", _PROSE_HALVES[1], SPELL_COMPONENT_KEY),
+            _prose("", _READY_PROSE[2], SPELL_COMPONENT_KEY),
         ),
         tuple(keyed),
     )
 
 
+def _ready_ledger() -> ClassificationLedger:
+    return _ledger(9, prose=True, prose_parts=3)
+
+
 def test_ready_composes_and_validates_as_printed() -> None:
-    """The whole action passes the build contract, in the form it can take."""
+    """The whole action, the choice included, passes the build contract."""
     assert (
-        validate_representation(_ready_draft(), _ledger(7, prose=True), bound_corpus())
-        == ()
+        validate_representation(_ready_draft(), _ready_ledger(), bound_corpus()) == ()
     )
 
 
-def test_the_movement_allowance_and_its_governing_clause_survive_together() -> None:
-    """The typed half and the prose half of L4, in one effective component.
+def test_the_readied_choice_is_an_exhaustive_actor_choice() -> None:
+    """Two arms, each stating one true typed fact.
 
-    This is the requirement the composition exists to meet: a consumer reading
-    the record gets the own-Speed allowance *and* the clause that says it is
-    one alternative — not the allowance alone, which would read as an
-    unconditional grant, and not the prose alone, which would lose the one
-    thing the union can carry exactly.
+    ``option_set_violations`` is what decides authorability, so it is asked
+    rather than asserted around: at least two options, each with at least one
+    typed fact, and no two arms a consumer could not tell apart.
+    """
+    _, choice, _ = _ready_components()
+    assert option_set_violations(choice.facts, choice.options, "ready/choice") == []
+    assert [o.semantic_key for o in choice.options] == [ACTION_ARM, MOVE_ARM]
+
+
+def test_both_arms_state_the_reaction_and_only_one_states_the_movement() -> None:
+    """Exclusivity, cost and movement, as the source states them.
+
+    Both arms spend the Reaction; only the second grants movement. An
+    encoding that put the movement on the component would say it is available
+    whichever arm is taken, and one that put the cost on only one arm would say
+    the other is free.
     """
     records = _base_records(
-        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+        candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     choice = next(
         c for c in records[SPELL_KEY].components if c.semantic_key == CHOICE_KEY
     )
-    assert choice.handling is ComponentHandling.MIXED
-    assert [entry.fact for entry in choice.facts] == [CASES["L4"][1]]
-    assert all(entry.span_ids for entry in choice.facts)
-    assert [e.option_key for e in choice.governing_prose] == [""]  # type: ignore[union-attr]
+    by_arm = {o.semantic_key: [f.fact for f in o.facts] for o in choice.options}
+    assert by_arm[ACTION_ARM] == [READIED_REACTION]
+    assert by_arm[MOVE_ARM] == [READIED_REACTION, CASES["L4"][1]]
+    # The arms are the only place facts live here: a choice states no
+    # conjunction of its own, which is what makes them mutually exclusive.
+    assert choice.facts == ()
+    assert all(f.span_ids for o in choice.options for f in o.facts)
+
+
+def test_each_arm_s_clause_is_bound_to_that_arm() -> None:
+    """The advance choice, at the grain where it is true.
+
+    *Which* action the subject readies is open, so it stays prose — but it is
+    arm 1's prose. A component-grain binding would say the clause governs the
+    movement arm too, which is false about the arm it does not describe.
+    """
+    records = _base_records(
+        candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
+    )
+    choice = next(
+        c for c in records[SPELL_KEY].components if c.semantic_key == CHOICE_KEY
+    )
+    assert sorted(
+        e.option_key for e in choice.governing_prose  # type: ignore[union-attr]
+    ) == sorted([ACTION_ARM, MOVE_ARM])
     assert choice.irreducibility_reason_code == "open_ended_effect"
 
 
-def test_the_governing_clause_reaches_the_gamemaster_with_its_text() -> None:
-    """A GameMaster adjudicating the alternation reads the printed clause.
+def test_swapping_the_two_clauses_changes_the_effective_record() -> None:
+    """The scope is authority, not decoration — keyed by extent so only it moves."""
 
-    The residue is prose, so the view that resolves prose is where it has to
-    arrive intact — an unresolved passage here would leave the alternation
-    stated nowhere at all.
-    """
+    def governed(draft: object) -> dict[tuple[int, int], str]:
+        records = _base_records(candidate_of(RELEASE_BINDING, _ready_ledger(), draft))
+        choice = next(
+            c for c in records[SPELL_KEY].components if c.semantic_key == CHOICE_KEY
+        )
+        return {
+            (e.char_start, e.char_end): e.option_key  # type: ignore[union-attr]
+            for e in choice.governing_prose
+        }
+
+    printed = governed(_ready_draft())
+    swapped = governed(
+        _ready_draft(action_arm_prose=MOVE_ARM, move_arm_prose=ACTION_ARM)
+    )
+    assert set(printed) == set(swapped)
+    assert printed != swapped
+
+
+def test_the_choice_reaches_the_gamemaster_with_both_arms_and_both_clauses() -> None:
+    """The view a GameMaster adjudicates from carries the whole alternation."""
     records = _base_records(
-        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+        candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     authority = EffectiveAuthority(
         binding=RulesPackageBinding(
@@ -596,85 +680,86 @@ def test_the_governing_clause_reaches_the_gamemaster_with_its_text() -> None:
         authority, {build_representation().prose_bindings[0].chunk_id: "x" * 30}
     )
     choice = next(c for c in view.components if c.component_key == CHOICE_KEY)
-    assert [e.text for e in choice.governing_prose] == ["x" * 15]
-    assert [f.fact for f in choice.structured_context] == [CASES["L4"][1]]
+    assert [o.semantic_key for o in choice.options] == [ACTION_ARM, MOVE_ARM]
+    assert all(e.text for e in choice.governing_prose)
+    assert sorted(
+        e.option_key for e in choice.governing_prose  # type: ignore[union-attr]
+    ) == sorted([ACTION_ARM, MOVE_ARM])
+
+    typed = build_typed_view(authority)
+    typed_choice = next(
+        c for r in typed.records for c in r.components if c.semantic_key == CHOICE_KEY
+    )
+    assert [o.semantic_key for o in typed_choice.options] == [ACTION_ARM, MOVE_ARM]
 
 
-def test_a_readied_spell_s_requirements_do_not_reach_the_movement() -> None:
-    """The scope that matters, and the reason Ready is three components.
+def test_a_readied_spell_s_requirements_do_not_reach_the_movement_arm() -> None:
+    """The scope that makes Ready three components.
 
     *"When you Ready a spell"* qualifies one way of readying, not the action.
-    Stated beside the movement allowance, the expenditure, the casting-time
-    eligibility and the Concentration duty would read as requirements of
-    readying anything — so a subject who readied a **move** would appear to
-    expend casting resources and maintain Concentration.
+    Stated beside the arms, the expenditure, the casting-time eligibility and
+    the Concentration duty would read as requirements of the choice itself — so
+    a subject who readied a **move** would appear to expend casting resources.
     """
     records = _base_records(
-        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+        candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     by_key = {c.semantic_key: c for c in records[SPELL_KEY].components}
-    spell_facts = {entry.fact for entry in by_key[SPELL_COMPONENT_KEY].facts}
+    spell_facts = {e.fact for e in by_key[SPELL_COMPONENT_KEY].facts}
     assert spell_facts == {
         CASES["L7"][1],
         CASES["L8"][1],
         CASES["K3"][1],
         CASES["L9"][1],
     }
-    assert not spell_facts & {entry.fact for entry in by_key[CHOICE_KEY].facts}
-    assert not spell_facts & {entry.fact for entry in by_key[RESPONSE_KEY].facts}
-    # And the eligibility fact itself names what it ranges over, so its scope
-    # is legible from the fact and not only from its component.
-    eligibility = CASES["L8"][1]
-    assert eligibility.subject is EligibilitySubject.SPELL
+    choice = by_key[CHOICE_KEY]
+    assert not spell_facts & {f.fact for o in choice.options for f in o.facts}
+    assert not spell_facts & {e.fact for e in by_key[RESPONSE_KEY].facts}
+    assert CASES["L8"][1].subject is EligibilitySubject.SPELL
 
 
 def test_ready_publishes_every_clause_it_states() -> None:
     """Each fact reaches a consumer under its own key and its own provenance."""
     records = _base_records(
-        candidate_of(RELEASE_BINDING, _ledger(7, prose=True), _ready_draft())
+        candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     published = [
         entry
         for component in records[SPELL_KEY].components
-        for entry in component.facts
+        for entry in (
+            *component.facts,
+            *(f for o in component.options for f in o.facts),
+        )
     ]
     assert {entry.fact for entry in published} == {
         CASES[k][1] for k in ("L2", "L4", "L6", "L7", "L8", "L9", "K3")
-    }
-    assert len({entry.fact_key for entry in published}) == len(published)
+    } | {READIED_REACTION}
+    # The shared consumption appears once per arm and the two are distinct
+    # targets, which is what keeps a repeated fact from collapsing to one id.
+    assert len({entry.fact_key for entry in published}) == len(published) - 1
     assert all(entry.span_ids for entry in published)
 
 
-def test_the_unrepresented_half_of_l4_is_named_exactly() -> None:
-    """The residue, stated as a property rather than as a paragraph.
+def test_arm_one_still_may_not_be_typed_as_a_grant() -> None:
+    """The route that was rejected stays rejected, and for the stated reason.
 
-    Arm 1 designates what an already-granted slot will be spent on.
-    ``ActionAllowanceFact`` cannot say that: its ``cost`` names a slot the
-    owning effect **grants**, so the fact below would publish an Action grant
-    beside L2's Reaction grant — two grants where ``Ready`` states one.
-
-    The point of asserting it is that **every structural rule admits the false
-    form**. Nothing in the build refuses it; only the reading does. A
-    limitation that only a human notices is one that returns, so it is pinned
-    here beside the composition that avoids it.
+    Nothing structural refuses it — the fact is valid and the option set it
+    forms is admitted — so the reason is a claim about the record: `Ready`
+    grants one slot, L2 states it, and an Action allowance beside it would be a
+    second grant the source never makes. Pinned because no component-scoped
+    rule can see it: L2 and the arms live in different components.
     """
     assert list(fact_invariant_violations(_ARM_ONE_AS_A_GRANT)) == []
-    as_an_option_set = (
-        ComponentOption(semantic_key="chosen-action", facts=(_ARM_ONE_AS_A_GRANT,)),
-        ComponentOption(semantic_key="move", facts=(CASES["L4"][1],)),
+    as_a_grant = (
+        ComponentOption(semantic_key=ACTION_ARM, facts=(_ARM_ONE_AS_A_GRANT,)),
+        ComponentOption(semantic_key=MOVE_ARM, facts=(CASES["L4"][1],)),
     )
-    assert option_set_violations((), as_an_option_set, "ready/choice") == []
-
-    # What makes it false is a claim about the record as a whole, which no
-    # component-scoped rule can see: `Ready` grants exactly one slot, and L2
-    # already states it.
-    granted_slots = {
-        fact.cost
-        for fact in (CASES["L2"][1], _ARM_ONE_AS_A_GRANT)
-        if isinstance(fact, ActionAllowanceFact)
-    }
-    assert granted_slots == {ActionCost.REACTION, ActionCost.ACTION}
+    assert option_set_violations((), as_a_grant, "ready/choice") == []
     assert CASES["L2"][1].cost is ActionCost.REACTION
+    assert _ARM_ONE_AS_A_GRANT.cost is ActionCost.ACTION
+    # The encoding this module uses states a consumption instead, which is the
+    # one difference that matters.
+    assert isinstance(READIED_REACTION, ActionEconomyFact)
 
 
 # ---------------------------------------------------------------------------
