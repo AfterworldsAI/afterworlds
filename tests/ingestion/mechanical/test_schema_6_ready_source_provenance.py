@@ -8,10 +8,12 @@ reaches — and it deliberately says nothing about where any of it is printed.
 
 This module answers the different question: **what does the real source
 actually support?** Every leaf id, leaf length, character extent and printed
-string below is copied from the committed evidence artifact
+string below is **transcribed by hand** from the committed evidence artifact
 ``.claude/review-notes/issue-5d-actions-1-obligation-coordinates.json``, which
 was derived from the bound 5c release. Nothing here is sized to make a count
-come out.
+come out. The transcription is not read back from the artifact at runtime, so
+``test_each_transcribed_clause_is_as_long_as_the_extent_it_claims`` checks each
+string against the extent it is recorded at.
 
 What the source states, and where:
 
@@ -354,12 +356,35 @@ def test_the_split_is_the_printed_or_and_nothing_else() -> None:
     """
     assert L4A_TEXT + L4B_TEXT == L4_TEXT
     assert L4_START < L4_BOUNDARY < L4_END
-    assert len(L4_TEXT) == L4_END - L4_START
     assert L4B_TEXT.startswith("or ")
     # And both halves fall inside the leaf the artifact says they are printed
     # on, which is what makes them addressable at all.
     assert L4_END <= FIRST_LEAF_LENGTH
     assert L6_END <= SECOND_LEAF_LENGTH
+
+
+def test_each_transcribed_clause_is_as_long_as_the_extent_it_claims() -> None:
+    """The one thing a transcription can get wrong without anything noticing.
+
+    The printed strings are copied into this module by hand, so nothing below
+    would catch a paraphrase or a truncation on its own — the reconstructed leaf
+    is built from the same literals. Length against the artifact's own extent is
+    the check that does: a clause shorter or longer than the span it is recorded
+    at is not the clause that span accepts. L2 matters most, since it is the
+    span both contextual edges cite.
+
+    It also protects the reconstruction. ``_leaf_text`` assigns into a list
+    slice, so a text whose length disagreed with its extent would resize the
+    leaf and shift every offset after it.
+    """
+    assert len(L2_TEXT) == L2_END - L2_START
+    assert len(L4_TEXT) == L4_END - L4_START
+    assert len(L6_TEXT) == L6_END - L6_START
+    assert len(FIRST_LEAF_TEXT) == FIRST_LEAF_LENGTH
+    assert len(SECOND_LEAF_TEXT) == SECOND_LEAF_LENGTH
+    assert FIRST_LEAF_TEXT[L2_START:L2_END] == L2_TEXT
+    assert FIRST_LEAF_TEXT[L4_START:L4_END] == L4_TEXT
+    assert SECOND_LEAF_TEXT[L6_START:L6_END] == L6_TEXT
 
 
 def test_l4_states_the_choice_and_does_not_state_the_reaction() -> None:

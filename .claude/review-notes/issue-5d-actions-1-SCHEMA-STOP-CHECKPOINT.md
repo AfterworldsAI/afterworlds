@@ -1072,7 +1072,7 @@ does not re-litigate anything the schema step did not touch.
 |---|---|---|---|
 | **L8** `Ready` | **S** | **X** / F21 | *"To be readied, a spell must have a casting time of an action."* A spell's casting time is a printed, enumerable `SpellDescriptorFact` field, so nothing in the clause is unenumerable fiction. What it states is **which spells the mechanic reaches** — substantive eligibility authority, not material that merely limits one. §5.14 flagged this row as open to reversal, and it reversed. |
 | **B2** `Attack` | **X** / F1 | **P** | *"with a weapon or an Unarmed Strike."* Recorded as blocked only because it was modelled as an **option set**, and it is not one: both arms would state B1's identical entitlement, and `option_set_violations` refuses two options a consumer could not tell apart. The clause is the instrument qualification on that one entitlement, and `contextual_applicability` is affirmatively true of it — which weapons qualify is not determined by this record. |
-| **L4** `Ready` | **X** / F2, F19 | **X** / F2 | **Disposition confirmed, reasoning replaced — §14.6.** Revision 4 reached the right value by an argument that does not hold: it read "an option must state at least one typed fact" as "every fact". The correct reason is that arm 1 designates rather than grants. |
+| **L4** `Ready` | **X** / F2, F19 | **X** / F2, F19 | **Moved twice and returned — §14.6.** Revisions 4 and 5 dropped F19 on two arguments (an option must type *every* fact; arm 1 *designates* rather than grants) that §14.6 now records as refuted. Revision 6 restored it: `ActionEconomyFact` states what each arm consumes, so both arms are authorable and the clause binds at option grain. **Net movement from Revision 3: none.** |
 | **I6** `Hide` | **X** / F7 | **X** / F7, **F22** | F7 named the DC *source* and stopped there. The check that DC is stated for is made by the **finder** — *"the DC for a creature to find you with a Wisdom (Perception) check"* — and `AbilityCheckFact` had no axis for that. A fact carrying only the new DC source would read as the subject making a Perception check to find themselves: false rather than lossy, and the same beneficiary defect family as F17. |
 
 Tallies after the four: **`{'P': 16, 'R': 4, 'S': 12, 'T': 7, 'TP': 4, 'X': 35}`,
@@ -1261,8 +1261,9 @@ nothing in its clause is left untyped — the MIXED handling rule reads the
 component's prose, not each arm's.
 
 Verified in `test_schema_6_ready_source_provenance` against the real leaf ids,
-leaf lengths, extents and printed text from
-`issue-5d-actions-1-obligation-coordinates.json`: full `validate_representation`
+leaf lengths, extents and printed text, transcribed into that module from
+`issue-5d-actions-1-obligation-coordinates.json` rather than read from it: full
+`validate_representation`
 returns no findings; the arms' contextual-only consumption is admitted; the
 GameMaster view resolves the binding's declared offsets back to the printed
 clause; and dropping arm 2's claim, moving arm 1's binding onto L4b, repeating
