@@ -360,14 +360,18 @@ and it moves three of those groups:
   this document admits, and no sequencing sweep has been run. Two typed families are what these two
   clauses forced, not a demonstration that sequencing closes;
 * **narrowed, still deferred — *choices*.** `ProseBindingDraft.option_key` lets prose govern one arm of
-  an exhaustive choice, which is what `Help` needs: one clause governs one arm and says nothing about its
-  sibling. It does **not** make every printed "or" an option set. `Attack` B2 is one entitlement with an
-  instrument qualification. `Ready` L4 is the harder case and the one that keeps this group open: arm 1
-  *designates* what the already-granted Reaction will be spent on, and every action-economy family in the
-  union asserts a grant, a consumption or a restriction of a slot rather than a designation — so typing it
-  would publish two grants where the source states one. Its honest form is one MIXED component, the
-  own-Speed allowance typed and the whole alternation bound as prose. Revisit when a batch forces either a
-  designation family or an alternation whose arms need not all be typed; **neither is proposed here**.
+  an exhaustive choice, which is what `Help` and `Ready` L4 both need: one clause governs one arm and says
+  nothing about its sibling. Both are authorable under the union as it stands — L4's arms each state
+  `ActionEconomyFact(REACTION)`, the consumption the source names, with the own-Speed allowance on the
+  second and *which* action left to option-grain prose. Three earlier readings held L4 unauthorable; each
+  looked only at the allowance families, where typing arm 1 would have published a grant the source never
+  makes, and each is recorded as refuted in the batch checkpoint.
+
+  It does **not** make every printed "or" an option set: `Attack` B2 is one entitlement with an instrument
+  qualification, refused by `option_set_violations` rather than by choice. The group stays open because
+  deciding whether a printed alternation is a choice is still case-by-case work, and because L4's encoding
+  needs five primary provenance claims over one printed sentence — an authoring question for the eventual
+  proposal, since `actions-1` is not accepted. **No new family is proposed here.**
 
 Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
 members each required siblings in more than one section, and neither group above meets it yet.
@@ -382,12 +386,11 @@ under `gamemaster_latitude` and `subjective_judgment`. The earlier note that a p
 range over no closed vocabulary is withdrawn with the claim it supported: the full-corpus random-table
 work remains deferred on its own evidence and borrows none from these tables.
 
-Known residue from this batch, prose-bound at the scope where it applies rather than typed: `Ready` L4's
-designated action and the alternation that holds it (the own-Speed half *is* typed; what no family states
-is that an already-granted slot is committed in advance to an activity the subject names), `Attack` B2's
-instrument qualification, and the option-scoped clauses on `Help` — where `option_key` records the arm a
-clause governs without typing its content. Each is contract 3's second branch used as intended rather
-than a deferral: a catalog reason is affirmatively true of every one of them.
+Known residue from this batch, prose-bound at the scope where it applies rather than typed: *which*
+action a subject readies (`Ready` L4 — both arms are typed; the identity of the chosen action is open),
+`Attack` B2's instrument qualification, and the option-scoped clauses on `Help`. In each case `option_key`
+records the arm a clause governs without typing its content. Each is contract 3's second branch used as
+intended rather than a deferral: a catalog reason is affirmatively true of every one of them.
 
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on

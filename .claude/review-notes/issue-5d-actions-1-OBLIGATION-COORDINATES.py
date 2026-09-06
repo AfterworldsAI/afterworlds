@@ -661,28 +661,28 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "L1": ("T", ()),
     "L2": ("X", ("F1", "F3")),
     "L3": ("P", ()),
-    # Revision 5 keeps Revision 4's disposition and replaces its reason, which
-    # was wrong in a way that mattered. Revision 4 said arm 1 is untypeable
-    # because no closed vocabulary reaches *which* action the subject chooses,
-    # and read "an option must state at least one typed fact" as "every fact" -
-    # neither of which is the rule.
+    # Revision 6 restores F19 and returns this row to where Revision 3 had it.
+    # Two earlier revisions argued the set is unauthorable - first that both
+    # arms are factless, then that arm 1 designates rather than grants so no
+    # family reaches it. Both looked only at the *allowance* families, where
+    # `cost` names a slot the owning effect grants; typing arm 1 there would
+    # publish an Action grant beside L2's Reaction grant, and refusing that was
+    # right.
     #
-    # The real limitation is narrower and harder. Arm 1 states a *designation*:
-    # the subject chooses, in advance, what the already-granted Reaction will
-    # be spent on. `ActionAllowanceFact.cost` names a slot the owning effect
-    # *grants* - that is the family's whole claim - so typing arm 1 as an
-    # Action allowance would publish two grants (an Action, and L2's Reaction)
-    # where the source states one. `option_set_violations` would admit the
-    # pair, because structural authorability is not truth.
+    # `ActionEconomyFact` states what an effect *consumes*, and the source says
+    # what both arms consume: "lets you act by taking a Reaction" (L2) and "you
+    # can either take your Reaction right after the trigger finishes" (L6). So
+    # each arm states one true typed fact and arm 2 states the own-Speed
+    # allowance beside it. Verified through `option_set_violations`, full
+    # `validate_representation`, `_base_records` and both effective views in
+    # `test_schema_6_source_compositions`. `ACTION_ECONOMY` predates schema 6,
+    # so this row's genuinely new dependencies are F2 and F19 alone.
     #
-    # So the set is not authorable, and the honest form is one MIXED component:
-    # the own-Speed allowance typed under F2, and the whole "you choose the
-    # action ... or" clause bound under `open_ended_effect`, which is
-    # affirmatively true of the open action space. F19 is not claimed - with no
-    # option rows there is no option grain to bind at. Composed and shown in
-    # `test_schema_6_source_compositions`; the unrepresented meaning is named
-    # in the checkpoint's 14.6.
-    "L4": ("X", ("F2",)),
+    # The encoding's cost, recorded rather than hidden: the Reaction
+    # consumption is printed once and carried twice, because a component is a
+    # conjunction or a choice and never both, so there is no place to state a
+    # cost the arms share. See the checkpoint's 14.6.
+    "L4": ("X", ("F2", "F19")),
     "L5": ("S", ()),
     "L6": ("X", ("F16",)),
     "L7": ("X", ("F13",)),
@@ -737,11 +737,11 @@ NON_BLOCKING = {
     ),
     "F15": "withdrawn - both motivating cases are representable as authored",
     "F19": (
-        "Help alone. Revision 4 narrowed it there by withdrawing L4 and "
-        "Revision 5 confirms the withdrawal on a corrected reason: L4 is not "
-        "an option set because arm 1 designates rather than grants, so there "
-        "are no option rows to bind at. H2, H5 and H6 remain, and "
-        "component-grain binding is false for them rather than lossy"
+        "Help and Ready. Revisions 4 and 5 narrowed this to Help alone on two "
+        "different arguments that L4 is not an option set; Revision 6 restores "
+        "L4 after `ActionEconomyFact` was shown to type both arms truthfully. "
+        "Component-grain binding is false for these arms rather than lossy: "
+        "one clause governs one arm and says nothing about its sibling"
     ),
 }
 

@@ -1,6 +1,6 @@
 # CRD Issue 5d — `actions-1` discovery and schema-stop checkpoint
 
-**Revision 5, reconciled with the implementation and with the Owner clarification on the skill tables.** Revision 2 corrected Revision 1's authority classification, representation
+**Revision 6, reconciled with the implementation, with the Owner clarification on the skill tables, and with the Reaction-cost counterexample to §14.6's earlier impossibility argument.** Revision 2 corrected Revision 1's authority classification, representation
 analysis, and evidence completeness. This revision corrects **Revision 2's own
 classification rule**, which misstated the closed irreducibility catalog; reassesses every
 disposition that rested on it; withdraws a sibling-count admission bar that no governing
@@ -398,7 +398,7 @@ Rows marked **↺** changed disposition in Revision 3; the reason is in the rati
 | L1 | *"You take the Ready action to wait for a particular circumstance before you act. To do so, you take this action on your turn,"* | `af20f466[0:124]` | **T** | — | `ActionEconomyFact(ACTION)`. |
 | L2 | *"which lets you act by taking a Reaction before the start of your next turn."* | `af20f466[125:200]` | **X** | F1, F3 | A **grant** of a Reaction slot, plus its window. |
 | L3 | *"First, you decide what perceivable circumstance will trigger your Reaction."* | `af20f466[201:276]` | **P** | — | `open_ended_effect`: the trigger space is player-authored. |
-| L4 | *"Then, you choose the action you will take in response to that trigger, **or** you choose to move up to your Speed in response to it."* | `af20f466[277:405]` | **X** | F2 | A two-arm choice that is **not** an option set, for the reason in §14.6: arm 1 *designates* what the already-granted Reaction will be spent on, and no family states a designation. Arm 2 is D2's own-Speed movement allowance. Honest form: one MIXED component — arm 2 typed, the whole clause bound under `open_ended_effect`. |
+| L4 | *"Then, you choose the action you will take in response to that trigger, **or** you choose to move up to your Speed in response to it."* | `af20f466[277:405]` | **X** | F2, F19 | An exhaustive actor choice, and both arms are authorable — §14.6. Each arm states `ActionEconomyFact(REACTION)`, what the source says taking the response *consumes*; arm 2 states D2's own-Speed allowance beside it. *Which* action is chosen stays prose, bound at option grain. |
 | L5 | Examples: *"If the cultist steps on the trapdoor…"* and *"If the zombie steps next to me, I move away."* | `af20f466[406:451]`, `1022361f[0:96]` | **S** | — | |
 | **L6 ↺** | *"When the trigger occurs, you can either take your Reaction right after the trigger finishes or ignore the trigger."* | `1022361f[97:211]` | **X** | F16 | **Revision 2 said P under `contextual_applicability`. Withdrawn:** the clause states *when* the granted Reaction resolves — immediately after the trigger finishes — and that taking it is optional. A determinate **sequencing** statement, the same family as B7, with nothing fiction-dependent about it. |
 | L7 | *"When you Ready a spell, you cast it as normal (expending any resources used to cast it) but hold its energy, which you release with your Reaction when the trigger occurs."* | `1022361f[212:382]` | **X** | F13 | The **positive** form of K4's expenditure: resources are expended at cast time. Same missing family. |
@@ -500,7 +500,7 @@ that surfaces choices and sequencing.
 |---|---|---|---|---|
 | **F3** | Duration / expiry axis | D3, E2, G4, H4, H7, L2, L9 (7) | 5 | duration/concentration, recurrence |
 | **F1** | Grant / entitlement — the inverse of consumption | A1, B1, B3, D1, L2, + B2 *derived from B1* (6) | 4 | action economy |
-| **F19** | Governing prose at **option** grain | H2, H5, H6 (3) | 1 | structural, not a family group. L4 was listed here until Revision 4 withdrew it; §14.6 confirms the withdrawal on a corrected reason |
+| **F19** | Governing prose at **option** grain | H2, H5, H6, L4 (4) | 2 | structural, not a family group. Revisions 4 and 5 withdrew L4 on two arguments §14.6 now records as refuted; Revision 6 restores it |
 | **F2** | Movement allowance quantified by the subject's own Speed | D1, D2, D5, L4 (4) | 2 | movement |
 | **F17** | A benefit conferred on another creature's roll | H1, H3, H6 (3) | 1 | advantage/disadvantage |
 | **F18** | A one-shot *"next roll"* use limiter | H1, H3, H6 (3) | 1 | duration/recurrence |
@@ -611,13 +611,12 @@ key on the prose binding plus an `OPTION` provenance target kind — the same wi
 | H2 Help | the proficiency and ally selection — governs arm 1 only | ✅ |
 | H5 Help | "The GM has final say" — governs arm 1 only | ✅ |
 | H6 Help | 5-foot range and "that enemy" coreference — arm 2 only | ✅ |
-| ~~L4 Ready~~ | ~~arm 1's open action choice~~ | **withdrawn — §14.6.** L4 has no option rows to bind at: arm 1 designates rather than grants, so the set is not authorable and the clause binds at component grain |
+| L4 Ready | arm 1's open action choice | ✅ |
 
 Left unsolved by F19 alone: an option must still carry **at least one typed fact**
 (`option_set_violations`). An arm whose whole content is prose stays unauthorable even with
-an option-grain binding. §8.3. That rule is why L4 is not on this list, and §14.6 records
-the reason it fails it — arm 1 has content, and the content is a designation no family
-states, not an absence.
+an option-grain binding. §8.3. L4 satisfies that rule rather than escaping it — §14.6 — and
+the rule is not relaxed anywhere in this batch.
 
 ### F9 — suggested roll tables: deferred and owed, not dismissed
 
@@ -1025,10 +1024,12 @@ not. One was a scope claim with no evidence: J7, M3 and N2 were recorded as inst
 contract 3's random-table selection group, and under the Owner clarification the skill
 tables are **exemplars and DM guidance** — nothing is rolled, no row is selected, their
 advisory content stands as the governing prose it always was, and §8.5's row-key obstacle
-is withdrawn with the claim that produced it (§14.3). One was a correct value reached by
-an argument that does not hold: L4 is not an option set, but not for the reason Revision 4
-gave, and §14.6 replaces it with the limitation that is actually there — a designation no
-family in the union states.
+is withdrawn with the claim that produced it (§14.3). One was reversed outright: L4 **is** an
+exhaustive actor choice. Three revisions argued it could not be authored, each looked only
+at the allowance families, and `ActionEconomyFact` — which predates schema 6 — types both
+arms truthfully as the consumption the source states. §14.6 records the sequence, what is
+now verified through the consuming paths, what the encoding costs, and the span-budget
+question it leaves to the proposal.
 
 The tallies, the blocking-family count and the coverage partition are unchanged by all
 four. That is the point of deriving them from the disposition table rather than editing
@@ -1166,69 +1167,80 @@ partition (59 unassigned characters, 0 substantive), the source binding, the
 frozen prior, the classification rule reconciled in §4, and every rejected
 review conclusion in §10. Acceptance-ready regeneration remains paused.
 
-### 14.6 Ready L4, and the exact meaning that is unrepresented (Revision 5)
+### 14.6 Ready L4 is an exhaustive actor choice (Revision 6)
 
-Revision 4 moved L4 from **X** / F2, F19 to **X** / F2 on the ground that arm 1
-is untypeable: its action space includes whatever the subject's features
-provide, no closed vocabulary reaches it, and an option must state at least one
-typed fact. **The value is right and the argument is not.** An option must
-state *at least one* typed fact, not every fact its clause mentions, and
-rejecting a deliberately factless arm shows only that a factless arm is
-refused. Left standing, that reasoning would also refuse `Help`, whose arms are
-authorable precisely because each types one thing and leaves the rest to prose.
+Three revisions argued this clause could not be authored as an option set, and
+each argument has now been refuted by construction. The record is kept because
+the sequence is the finding.
 
-#### The real limitation
-
-Arm 1 states a **designation**: the subject chooses, in advance, what the
-already-granted Reaction will be spent on. The nearest family is
-`ActionAllowanceFact`, and it cannot carry it — its `cost` names a slot the
-owning effect **grants**, which is the family's whole claim. Typing arm 1 as
-`ActionAllowanceFact(count=1, per=OWNING_EFFECT, cost=ACTION)` would publish
-two grants, an Action and L2's Reaction, where `Ready` states one.
-
-**The exact unrepresented meaning:** *that an already-granted slot is committed
-in advance to an activity the subject names, and that a stated allowance is one
-alternative of that commitment.* Two halves, neither reachable:
-
-* no family expresses a **designation** — every action-economy family in the
-  union asserts a grant, a consumption, or a restriction of a slot, and a
-  designation is none of the three; and
-* no structure expresses an **alternation whose arms are not both typed**, which
-  is `option_set_violations`' at-least-one-typed-fact rule doing exactly what
-  §8.3 says it must keep doing.
-
-`option_set_violations` would admit the false pair. Structural authorability is
-not truth, and no component-scoped rule can see the defect at all: L2 and arm 1
-would sit in different components, so nothing in the build would compare them.
-That is why the false form is pinned in
-`test_the_unrepresented_half_of_l4_is_named_exactly` rather than described.
-
-#### What is representable, and is composed
-
-`test_schema_6_source_compositions` builds `Ready` whole on the fixture record,
-as a **demonstration of the shape** — not as the `Ready` record's decomposition,
-which belongs to the eventual proposal and is not recorded in this checkpoint's
-per-record counts:
-
-| Component | Clauses | Why |
+| Revision | Argument | Status |
 |---|---|---|
-| `ready-response` | L2, L6 | What the Ready grants, and when it resolves |
-| `readied-choice` | L4 | **MIXED**: the own-Speed allowance typed, the whole *"you choose the action … or"* clause bound under `open_ended_effect`, which is affirmatively true of an open action space |
-| `ready-a-spell` | L7, L8, L9 | *"When you Ready a spell"* qualifies one way of readying, not the action. Stated beside the movement allowance, the expenditure, the casting-time eligibility and the Concentration duty would read as requirements of readying **anything** — so a subject who readied a move would appear to expend casting resources |
+| 3 | Both arms are factless, so `option_set_violations` refuses the set | Refuted: arm 2 is D2's own-Speed allowance |
+| 4 | Arm 1 is untypeable because no closed vocabulary reaches *which* action is chosen — read as "an option must type every fact" | Refuted: the rule is *at least* one typed fact |
+| 5 | Arm 1 *designates* rather than grants, and no family states a designation | Refuted: the arm need not state the designation |
 
-The tests assert the movement allowance and its governing clause survive
-*together* through validation, `_base_records` and the GameMaster view, and
-that no spell requirement reaches the movement.
+Each looked only at the **allowance** families, where `cost` names a slot the
+owning effect *grants*. Typing arm 1 there would publish an Action grant beside
+L2's Reaction grant — two grants where `Ready` states one — and refusing that
+route was correct every time. What none of the three checked is that the
+allowance families are not the only ones that reach an action-economy slot.
 
-#### Readiness, reconciled
+#### What is verified
 
-**L4's disposition is unchanged at X / F2**, and so are every tally, the
-blocking-family count and the coverage partition. F19 stays at `Help` alone:
-with no option rows there is no option grain to bind at.
+`ActionEconomyFact` states what a component's effect **consumes**, and the
+source says plainly what taking the readied response consumes: *"lets you act
+by taking a Reaction"* (L2) and *"you can either take your Reaction right after
+the trigger finishes"* (L6). So:
 
-The residue is **not a new blocking family and not a schema gap this batch must
-close.** It is contract 3's second branch used as intended — `open_ended_effect`
-is affirmatively true of the clause, the prose binding is justified on its own
-reason, and the one thing the union carries exactly is carried exactly. A
-designation family remains a legitimate future addition if the corpus forces
-one; nothing here proposes it, and §8.3's rule is not relaxed to avoid it.
+* **arm 1** — `ActionEconomyFact(REACTION)`, with *which* action bound as
+  option-grain prose;
+* **arm 2** — the same consumption plus `MovementAllowanceFact(OWN_SPEED)`.
+
+Proved through the real paths in `test_schema_6_source_compositions`, not
+asserted: `option_set_violations` admits the set; full
+`validate_representation` returns no findings; both arms, both option-scoped
+prose entries and every fact's provenance survive `_base_records`; and both the
+GameMaster and typed views carry the arms and the two clauses. Swapping the
+clauses between arms changes the effective record, keyed by extent so the
+difference is the scope alone. The spell requirements sit in their own
+component and reach neither arm.
+
+**No family was added and none was needed.** `FactFamily.ACTION_ECONOMY`
+predates schema 6, so L4's genuinely new dependencies are **F2** (the movement
+allowance) and **F19** (option-grain prose) — which is where Revision 3 had
+them, restored here on evidence rather than on argument.
+
+#### What the encoding costs
+
+The Reaction consumption is **printed once and carried twice**, once per arm.
+A component is a conjunction or a choice and never both, so there is nowhere to
+state a cost the arms share. It is redundant and it is true of each arm; the
+two are distinct provenance targets because `fact_target_key` appends the
+option key.
+
+#### What remains open, and what it is not
+
+Each arm's facts and each arm's prose binding need their own primary claim, and
+a substantive span carries exactly one — verified. On the real record that is
+**five primary claims over L4's single printed sentence** (`af20f466[277:405]`,
+128 characters): two consumptions, one movement allowance, two prose bindings.
+
+This is an **authoring question, not a schema gap and not a classification
+boundary.** `actions-1` is not accepted — the committed artifact carries
+`conditions-1` and `hazards-1` only — so its span partition is still a
+proposal, and choosing a five-span partition of that sentence is a decision the
+eventual proposal makes. It is recorded here so the proposal does not meet it
+unprepared.
+
+#### Disposition
+
+**L4 returns to X / F2, F19.** Every tally, the blocking-family count and the
+coverage partition are unchanged — the count of *blocking families* does not
+move because both were already blocking on other rows. §8.3's
+at-least-one-typed-fact rule is untouched: L4 satisfies it rather than escaping
+it.
+
+The composition in `test_schema_6_source_compositions` is a **demonstration of
+the shape** on the fixture record. It is not the `Ready` record's decomposition,
+which belongs to the eventual proposal and is not recorded in this checkpoint's
+per-record component counts.

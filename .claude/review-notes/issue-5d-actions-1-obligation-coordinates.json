@@ -60,7 +60,8 @@
   "F19": [
    "H2",
    "H5",
-   "H6"
+   "H6",
+   "L4"
   ],
   "F2": [
    "D1",
@@ -151,7 +152,7 @@
   "F4": "never defined; the identifier was unused",
   "F9": "prose-bound under contract 3's second branch. Revision 4 removes the scope claim: the suggested skill tables do not evidence random-table selection - they state what the GM *may* choose and nothing follows from them by itself - so this batch surfaces no instance of that contract-3 group. The prose bindings are justified and stay; the full-corpus obligation for random-table selection stands on its own and is not discharged or advanced by these three tables",
   "F15": "withdrawn - both motivating cases are representable as authored",
-  "F19": "Help alone. Revision 4 narrowed it there by withdrawing L4 and Revision 5 confirms the withdrawal on a corrected reason: L4 is not an option set because arm 1 designates rather than grants, so there are no option rows to bind at. H2, H5 and H6 remain, and component-grain binding is false for them rather than lossy"
+  "F19": "Help and Ready. Revisions 4 and 5 narrowed this to Help alone on two different arguments that L4 is not an option set; Revision 6 restores L4 after `ActionEconomyFact` was shown to type both arms truthfully. Component-grain binding is false for these arms rather than lossy: one clause governs one arm and says nothing about its sibling"
  },
  "non_heading_leaves": 79,
  "unassigned_characters": 59,
