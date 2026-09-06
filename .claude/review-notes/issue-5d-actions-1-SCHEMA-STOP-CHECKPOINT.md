@@ -1,6 +1,6 @@
 # CRD Issue 5d — `actions-1` discovery and schema-stop checkpoint
 
-**Revision 6, reconciled with the implementation, with the Owner clarification on the skill tables, and with the Reaction-cost counterexample to §14.6's earlier impossibility argument.** Revision 2 corrected Revision 1's authority classification, representation
+**Revision 7, reconciled with the implementation, with the Owner clarification on the skill tables, with the Reaction-cost counterexample to §14.6's earlier impossibility argument, and with L4's real source coordinates — which refute §14.6's own five-primary-claims residue.** Revision 2 corrected Revision 1's authority classification, representation
 analysis, and evidence completeness. This revision corrects **Revision 2's own
 classification rule**, which misstated the closed irreducibility catalog; reassesses every
 disposition that rested on it; withdraws a sibling-count admission bar that no governing
@@ -1027,9 +1027,11 @@ advisory content stands as the governing prose it always was, and §8.5's row-ke
 is withdrawn with the claim that produced it (§14.3). One was reversed outright: L4 **is** an
 exhaustive actor choice. Three revisions argued it could not be authored, each looked only
 at the allowance families, and `ActionEconomyFact` — which predates schema 6 — types both
-arms truthfully as the consumption the source states. §14.6 records the sequence, what is
-now verified through the consuming paths, what the encoding costs, and the span-budget
-question it leaves to the proposal.
+arms truthfully as the consumption the source states. Revision 7 then removed §14.6's own
+last error: the "five primary claims over one printed sentence" residue misread the
+provenance contract, and L4's real coordinates need four spans with one primary owner
+each. §14.6 records the sequence, what is verified through the consuming paths against the
+real source, what the encoding costs, and the proof's limits.
 
 The tallies, the blocking-family count and the coverage partition are unchanged by all
 four. That is the point of deriving them from the disposition table rather than editing
@@ -1218,19 +1220,63 @@ state a cost the arms share. It is redundant and it is true of each arm; the
 two are distinct provenance targets because `fact_target_key` appends the
 option key.
 
-#### What remains open, and what it is not
+#### The provenance contract, and the mapping the source actually supports
 
-Each arm's facts and each arm's prose binding need their own primary claim, and
-a substantive span carries exactly one — verified. On the real record that is
-**five primary claims over L4's single printed sentence** (`af20f466[277:405]`,
-128 characters): two consumptions, one movement allowance, two prose bindings.
+Revision 6 recorded a residue here that does not exist. It read
+`_validate_provenance` as requiring **each arm's facts and each arm's prose
+binding to have their own primary claim**, and derived *"five primary claims
+over L4's single printed sentence"* from it. That is not the contract. The
+contract is two separate obligations:
 
-This is an **authoring question, not a schema gap and not a classification
-boundary.** `actions-1` is not accepted — the committed artifact carries
-`conditions-1` and `hazards-1` only — so its span partition is still a
-proposal, and choosing a five-span partition of that sentence is a decision the
-eventual proposal makes. It is recorded here so the proposal does not meet it
-unprepared.
+* every authoritative **element** carries at least one admissible edge — of
+  **any** role, primary or contextual; and
+* every SUBSTANTIVE **span** carries exactly one **primary** owner, no more and
+  no fewer.
+
+Roles are gated by disposition, not by element: `_ADMISSIBLE_ROLES` permits
+PRIMARY or CONTEXTUAL on a substantive span and CONTEXTUAL only on supporting
+authority. A fact whose sole evidence is contextual is admitted, and nothing
+requires an element to own the span it cites.
+
+With that read, the real coordinates map cleanly, and the fifth claim was never
+needed. L4 states the choice and **no Reaction** — the Reaction is printed in
+L2 and again in L6 — so the consumption each arm states draws its evidence from
+where it is printed:
+
+| Span | Printed text | Primary owner | Contextual |
+|---|---|---|---|
+| L2 `af20f466[125:200]` | *"which lets you act by taking a Reaction before the start of your next turn."* | `ActionAllowanceFact(1, OWNING_EFFECT, REACTION)` | both arms' `ActionEconomyFact(REACTION)` |
+| L4a `af20f466[277:348]` | *"Then, you choose the action you will take in response to that trigger, "* | arm 1's option-scoped prose binding | — |
+| L4b `af20f466[348:405]` | *"or you choose to move up to your Speed in response to it."* | arm 2's `MovementAllowanceFact(OWN_SPEED)` | — |
+| L6 `1022361f[97:211]` | *"When the trigger occurs, you can either take your Reaction right after the trigger finishes or ignore the trigger."* | `TriggeredResolutionFact(IMMEDIATELY_AFTER_TRIGGER, optional=True)` | — |
+
+**Four spans, four primary owners, two contextual edges** — not five primary
+claims, and not five subdivisions of one sentence. L4 is split **once**, at its
+printed `or`; the offset is computed from the sentence rather than declared, so
+the partition is the source's and not a shape chosen to satisfy a count. No
+direct statement is relabelled contextual: L4's own two statements keep primary
+ownership of the text that prints them, and the contextual edges sit on the
+clause that does state the Reaction. Arm 2 carries no prose binding, because
+nothing in its clause is left untyped — the MIXED handling rule reads the
+component's prose, not each arm's.
+
+Verified in `test_schema_6_ready_source_provenance` against the real leaf ids,
+leaf lengths, extents and printed text from
+`issue-5d-actions-1-obligation-coordinates.json`: full `validate_representation`
+returns no findings; the arms' contextual-only consumption is admitted; the
+GameMaster view resolves the binding's declared offsets back to the printed
+clause; and dropping arm 2's claim, moving arm 1's binding onto L4b, repeating
+an edge, and citing page 187's span from page 186's chunk each fail by name.
+
+**Proof limits.** Chunk ids in that module are local to it — the release's own
+chunk ids for these two leaves are not in the evidence artifact, and a binding
+needs a projection edge to resolve. Its ledger carries only the four spans it
+claims, not `Ready`'s whole partition (11 obligation spans and 9 one-character
+gaps across 451 + 639 characters), because a substantive span it did not claim
+would correctly fail as unclaimed. And `actions-1` is **not accepted** — the
+committed artifact carries `conditions-1` and `hazards-1` only — so the span
+partition remains a proposal's decision. The demonstration shows the partition
+is available and honest; it does not make it.
 
 #### Disposition
 
@@ -1241,6 +1287,7 @@ at-least-one-typed-fact rule is untouched: L4 satisfies it rather than escaping
 it.
 
 The composition in `test_schema_6_source_compositions` is a **demonstration of
-the shape** on the fixture record. It is not the `Ready` record's decomposition,
-which belongs to the eventual proposal and is not recorded in this checkpoint's
-per-record component counts.
+the shape** on the fixture record; `test_schema_6_ready_source_provenance` is
+the same choice mapped to `Ready`'s **own printed coordinates**. Neither is the
+`Ready` record's decomposition, which belongs to the eventual proposal and is
+not recorded in this checkpoint's per-record component counts.

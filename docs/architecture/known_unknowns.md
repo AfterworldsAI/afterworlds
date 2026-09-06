@@ -369,9 +369,14 @@ and it moves three of those groups:
 
   It does **not** make every printed "or" an option set: `Attack` B2 is one entitlement with an instrument
   qualification, refused by `option_set_violations` rather than by choice. The group stays open because
-  deciding whether a printed alternation is a choice is still case-by-case work, and because L4's encoding
-  needs five primary provenance claims over one printed sentence — an authoring question for the eventual
-  proposal, since `actions-1` is not accepted. **No new family is proposed here.**
+  deciding whether a printed alternation is a choice is still case-by-case work — not because of any span
+  budget. An earlier note here said L4's encoding needs five primary provenance claims over one printed
+  sentence; it does not, and the reading behind it was wrong. Every authoritative element needs *evidence*
+  of any role, and only a substantive *span* needs one *primary owner*. L4's real coordinates satisfy both
+  with four spans: L2, L4 split once at its printed `or`, and L6, with the shared Reaction evidenced
+  contextually on L2 — the clause that prints it, since L4 states no Reaction at all. Verified on the real
+  leaf ids and extents in `test_schema_6_ready_source_provenance`. **No new family is proposed here**, and
+  `actions-1` is not accepted, so the span partition remains a proposal's decision.
 
 Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
 members each required siblings in more than one section, and neither group above meets it yet.
