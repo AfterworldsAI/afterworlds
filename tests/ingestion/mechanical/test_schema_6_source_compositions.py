@@ -120,10 +120,14 @@ LEGACY_PATH = (
     / "legacy_conditions_1_unanchored_schema3.json"
 )
 
-#: One primary provenance claim per span, so a composition stating N
-#: authorities needs N spans. The spell leaf's accepted span is partitioned
-#: into as many as a composition needs; the fixture ledger is a shape to work
-#: in rather than a constant to assert against.
+#: A substantive span carries exactly one **primary** owner, so a composition
+#: needs one span per element it wants to own text — not one per element it
+#: states, since evidence may also be contextual. These compositions give every
+#: fact its own primary span because the fixture leaf has no printed structure
+#: to say otherwise; `test_schema_6_ready_source_provenance` shows what the
+#: distinction is worth on real coordinates, where the shared Reaction is
+#: evidenced contextually on the clause that prints it. The fixture ledger is a
+#: shape to work in rather than a constant to assert against.
 _LEAF_LENGTH = 40
 
 
@@ -266,6 +270,10 @@ def _composed(
 # own printed clause. Binding either clause at component grain would say it
 # governs both arms, which is false about the arm it does not describe - not
 # merely imprecise - so the scope is authority, not decoration.
+#
+# The two clauses here are halves of the fixture's 30-character prose leaf, not
+# `Help`'s printed extents: this composition proves that a per-arm scope
+# survives every path, and it makes no claim about where `Help` is printed.
 
 ABILITY_ARM = "aid-an-ally-arm"
 ATTACK_ARM = "team-up-arm"
@@ -485,6 +493,14 @@ def test_help_refuses_a_clause_bound_to_an_arm_it_does_not_state() -> None:
 #
 # What *which* action the subject chooses remains prose, now bound at option
 # grain: one clause governs one arm and says nothing about its sibling.
+#
+# **This is the shape, on the fixture record.** Its spans are a synthetic
+# partition of a 40-character leaf, and its provenance gives every fact a
+# primary claim because nothing in the fixture says where anything is printed.
+# `test_schema_6_ready_source_provenance` maps the same choice onto `Ready`'s
+# real leaf ids and extents, where L4 splits once at its printed `or` and the
+# shared Reaction is evidenced *contextually* on L2. Read that module for what
+# the source supports; read this one for what the composition paths do.
 
 RESPONSE_KEY = "ready-response"
 CHOICE_KEY = "readied-choice"
