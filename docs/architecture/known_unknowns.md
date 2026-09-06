@@ -360,24 +360,34 @@ and it moves three of those groups:
   this document admits, and no sequencing sweep has been run. Two typed families are what these two
   clauses forced, not a demonstration that sequencing closes;
 * **narrowed, still deferred — *choices*.** `ProseBindingDraft.option_key` lets prose govern one arm of
-  an exhaustive choice, which is what `Help` forces. It does **not** make every printed "or" an option
-  set: `Attack` B2 is one entitlement with an instrument qualification, and `Ready` L4 has an arm no
-  closed vocabulary reaches. Both were proved unauthorable by `option_set_violations` rather than
-  chosen.
+  an exhaustive choice, which is what `Help` needs: one clause governs one arm and says nothing about its
+  sibling. It does **not** make every printed "or" an option set. `Attack` B2 is one entitlement with an
+  instrument qualification. `Ready` L4 is the harder case and the one that keeps this group open: arm 1
+  *designates* what the already-granted Reaction will be spent on, and every action-economy family in the
+  union asserts a grant, a consumption or a restriction of a slot rather than a designation — so typing it
+  would publish two grants where the source states one. Its honest form is one MIXED component, the
+  own-Speed allowance typed and the whole alternation bound as prose. Revisit when a batch forces either a
+  designation family or an alternation whose arms need not all be typed; **neither is proposed here**.
 
 Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
 members each required siblings in more than one section, and neither group above meets it yet.
 
 *Contests*, *explicit probability* and *random-table selection* remain **untouched**, due no later than
-full-corpus closure. The suggested skill tables in `Influence`, `Search` and `Study` are **not**
-instances of random-table selection and were briefly recorded as such in error: nothing is rolled, no row
-is selected by a die, and each table states what the GM *may* choose — which is why their prose bindings
-under `gamemaster_latitude` and `subjective_judgment` are justified and stay. The open problem behind
-that group is unaffected: a printed table's row keys range over no closed vocabulary.
+full-corpus closure, and this batch contributes no evidence to any of them. The suggested skill tables in
+`Influence`, `Search` and `Study` were briefly recorded as three surfaced instances of random-table
+selection; **that was an error, and the Owner has clarified what they are: exemplars and DM guidance.**
+The GM chooses, nothing is rolled, and no row is selected — so they neither instantiate that group nor
+stand as an obstacle to it. Their advisory content is preserved as the governing prose it always was,
+under `gamemaster_latitude` and `subjective_judgment`. The earlier note that a printed table's row keys
+range over no closed vocabulary is withdrawn with the claim it supported: the full-corpus random-table
+work remains deferred on its own evidence and borrows none from these tables.
 
 Known residue from this batch, prose-bound at the scope where it applies rather than typed: `Ready` L4's
-open action space, `Attack` B2's instrument qualification, and the option-scoped clauses on `Help` that
-`option_key` records without typing.
+designated action and the alternation that holds it (the own-Speed half *is* typed; what no family states
+is that an already-granted slot is committed in advance to an activity the subject names), `Attack` B2's
+instrument qualification, and the option-scoped clauses on `Help` — where `option_key` records the arm a
+clause governs without typing its content. Each is contract 3's second branch used as intended rather
+than a deferral: a catalog reason is affirmatively true of every one of them.
 
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on

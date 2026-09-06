@@ -661,14 +661,27 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     "L1": ("T", ()),
     "L2": ("X", ("F1", "F3")),
     "L3": ("P", ()),
-    # Revision 4. The F19 claim is withdrawn: this is not an option set
-    # either. Arm 1's action space includes whatever the subject's features
-    # provide, which no closed vocabulary reaches, and an option must state at
-    # least one typed fact - so the set is unauthorable and relaxing that rule
-    # to admit it is what would make the arm's emptiness indistinguishable from
-    # an authoring omission. One MIXED component: the own-Speed allowance typed,
-    # the whole "you choose the action ... or" clause bound under
-    # `open_ended_effect`. Still blocking, on the movement half alone.
+    # Revision 5 keeps Revision 4's disposition and replaces its reason, which
+    # was wrong in a way that mattered. Revision 4 said arm 1 is untypeable
+    # because no closed vocabulary reaches *which* action the subject chooses,
+    # and read "an option must state at least one typed fact" as "every fact" -
+    # neither of which is the rule.
+    #
+    # The real limitation is narrower and harder. Arm 1 states a *designation*:
+    # the subject chooses, in advance, what the already-granted Reaction will
+    # be spent on. `ActionAllowanceFact.cost` names a slot the owning effect
+    # *grants* - that is the family's whole claim - so typing arm 1 as an
+    # Action allowance would publish two grants (an Action, and L2's Reaction)
+    # where the source states one. `option_set_violations` would admit the
+    # pair, because structural authorability is not truth.
+    #
+    # So the set is not authorable, and the honest form is one MIXED component:
+    # the own-Speed allowance typed under F2, and the whole "you choose the
+    # action ... or" clause bound under `open_ended_effect`, which is
+    # affirmatively true of the open action space. F19 is not claimed - with no
+    # option rows there is no option grain to bind at. Composed and shown in
+    # `test_schema_6_source_compositions`; the unrepresented meaning is named
+    # in the checkpoint's 14.6.
     "L4": ("X", ("F2",)),
     "L5": ("S", ()),
     "L6": ("X", ("F16",)),
@@ -724,9 +737,11 @@ NON_BLOCKING = {
     ),
     "F15": "withdrawn - both motivating cases are representable as authored",
     "F19": (
-        "narrowed to Help alone. Revision 4 withdraws L4, which is not an "
-        "option set; H2, H5 and H6 remain, and component-grain binding is false "
-        "for them rather than lossy"
+        "Help alone. Revision 4 narrowed it there by withdrawing L4 and "
+        "Revision 5 confirms the withdrawal on a corrected reason: L4 is not "
+        "an option set because arm 1 designates rather than grants, so there "
+        "are no option rows to bind at. H2, H5 and H6 remain, and "
+        "component-grain binding is false for them rather than lossy"
     ),
 }
 

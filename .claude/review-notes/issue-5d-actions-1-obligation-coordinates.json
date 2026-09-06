@@ -151,7 +151,7 @@
   "F4": "never defined; the identifier was unused",
   "F9": "prose-bound under contract 3's second branch. Revision 4 removes the scope claim: the suggested skill tables do not evidence random-table selection - they state what the GM *may* choose and nothing follows from them by itself - so this batch surfaces no instance of that contract-3 group. The prose bindings are justified and stay; the full-corpus obligation for random-table selection stands on its own and is not discharged or advanced by these three tables",
   "F15": "withdrawn - both motivating cases are representable as authored",
-  "F19": "narrowed to Help alone. Revision 4 withdraws L4, which is not an option set; H2, H5 and H6 remain, and component-grain binding is false for them rather than lossy"
+  "F19": "Help alone. Revision 4 narrowed it there by withdrawing L4 and Revision 5 confirms the withdrawal on a corrected reason: L4 is not an option set because arm 1 designates rather than grants, so there are no option rows to bind at. H2, H5 and H6 remain, and component-grain binding is false for them rather than lossy"
  },
  "non_heading_leaves": 79,
  "unassigned_characters": 59,

@@ -1,6 +1,6 @@
 # CRD Issue 5d — `actions-1` discovery and schema-stop checkpoint
 
-**Revision 4, reconciled with the implementation.** Revision 2 corrected Revision 1's authority classification, representation
+**Revision 5, reconciled with the implementation and with the Owner clarification on the skill tables.** Revision 2 corrected Revision 1's authority classification, representation
 analysis, and evidence completeness. This revision corrects **Revision 2's own
 classification rule**, which misstated the closed irreducibility catalog; reassesses every
 disposition that rested on it; withdraws a sibling-count admission bar that no governing
@@ -398,7 +398,7 @@ Rows marked **↺** changed disposition in Revision 3; the reason is in the rati
 | L1 | *"You take the Ready action to wait for a particular circumstance before you act. To do so, you take this action on your turn,"* | `af20f466[0:124]` | **T** | — | `ActionEconomyFact(ACTION)`. |
 | L2 | *"which lets you act by taking a Reaction before the start of your next turn."* | `af20f466[125:200]` | **X** | F1, F3 | A **grant** of a Reaction slot, plus its window. |
 | L3 | *"First, you decide what perceivable circumstance will trigger your Reaction."* | `af20f466[201:276]` | **P** | — | `open_ended_effect`: the trigger space is player-authored. |
-| L4 | *"Then, you choose the action you will take in response to that trigger, **or** you choose to move up to your Speed in response to it."* | `af20f466[277:405]` | **X** | F2, F19 | A two-arm choice. Arm 1 is open-ended prose; arm 2 is D2's own-Speed movement allowance. Both arms factless, so `option_set_violations` refuses the set — and arm 1's prose has no option-grain binding target. |
+| L4 | *"Then, you choose the action you will take in response to that trigger, **or** you choose to move up to your Speed in response to it."* | `af20f466[277:405]` | **X** | F2 | A two-arm choice that is **not** an option set, for the reason in §14.6: arm 1 *designates* what the already-granted Reaction will be spent on, and no family states a designation. Arm 2 is D2's own-Speed movement allowance. Honest form: one MIXED component — arm 2 typed, the whole clause bound under `open_ended_effect`. |
 | L5 | Examples: *"If the cultist steps on the trapdoor…"* and *"If the zombie steps next to me, I move away."* | `af20f466[406:451]`, `1022361f[0:96]` | **S** | — | |
 | **L6 ↺** | *"When the trigger occurs, you can either take your Reaction right after the trigger finishes or ignore the trigger."* | `1022361f[97:211]` | **X** | F16 | **Revision 2 said P under `contextual_applicability`. Withdrawn:** the clause states *when* the granted Reaction resolves — immediately after the trigger finishes — and that taking it is optional. A determinate **sequencing** statement, the same family as B7, with nothing fiction-dependent about it. |
 | L7 | *"When you Ready a spell, you cast it as normal (expending any resources used to cast it) but hold its energy, which you release with your Reaction when the trigger occurs."* | `1022361f[212:382]` | **X** | F13 | The **positive** form of K4's expenditure: resources are expended at cast time. Same missing family. |
@@ -449,7 +449,7 @@ Stated so a reviewer can go to them first rather than diffing the whole ledger.
 | **B5**, **L8** → **S** | Both *limit* a mechanic, which is `SUPPORTING_AUTHORITY`'s stated role. | Both also state something a reader could call substantive — a non-requirement and a prerequisite. If read as substantive, neither has a family and neither has a true reason, so both become **X** and the family total rises. These two moved *away* from blocking in the same pass that moved three others toward it, which is exactly the asymmetry a reviewer should test. |
 | **B7**, **L6** → **X** / F16 | The consequence is determinate sequencing and no reason is true of it. | One could hold that B7's gating feature makes the whole clause `contextual_applicability` (Revision 2's reading), and that L6 is supporting authority explaining L2's grant. Both are defensible readings of a *non-decomposed* clause; §4 decomposes, following Burning. |
 | **K3** → **X** / F20 | A determinate duty to sustain a state. | Could be folded into F12 as one *continuation-requirement* family rather than a sibling — §8.6. Either way the obligation is blocking. |
-| **J7 / M3 / N2** → **P** | `gamemaster_latitude` / `subjective_judgment` are true, so contract 3's second branch is available. | Contract 3 names *random-table selection* as a family the projection must be capable of representing, and this batch surfaces three instances. §6 records it as owed rather than dismissed. |
+| **J7 / M3 / N2** → **P** | `gamemaster_latitude` / `subjective_judgment` are true, so contract 3's second branch is available. | Revision 4 recorded these as instances of contract 3's *random-table selection* group and Revision 5 withdraws that under Owner clarification: the tables are **exemplars and DM guidance**. Nothing is rolled and no row is selected, so they evidence nothing about that group either way. The prose bindings are unaffected — they were justified on their own reasons. |
 | **H3 / H6** → **X** | No catalog reason describes stated mechanics the union cannot name. | If `contextual_applicability` were read as ranging over the unenumerable *ally* rather than over the rule's applicability, these would be **P** and F17/F18 would vanish. §5.5 gives the reason-by-reason test; §10.1 rejects the precedent claimed for it. |
 
 ---
@@ -500,7 +500,7 @@ that surfaces choices and sequencing.
 |---|---|---|---|---|
 | **F3** | Duration / expiry axis | D3, E2, G4, H4, H7, L2, L9 (7) | 5 | duration/concentration, recurrence |
 | **F1** | Grant / entitlement — the inverse of consumption | A1, B1, B3, D1, L2, + B2 *derived from B1* (6) | 4 | action economy |
-| **F19** | Governing prose at **option** grain | H2, H5, H6, L4 (4) | 2 | structural, not a family group |
+| **F19** | Governing prose at **option** grain | H2, H5, H6 (3) | 1 | structural, not a family group. L4 was listed here until Revision 4 withdrew it; §14.6 confirms the withdrawal on a corrected reason |
 | **F2** | Movement allowance quantified by the subject's own Speed | D1, D2, D5, L4 (4) | 2 | movement |
 | **F17** | A benefit conferred on another creature's roll | H1, H3, H6 (3) | 1 | advantage/disadvantage |
 | **F18** | A one-shot *"next roll"* use limiter | H1, H3, H6 (3) | 1 | duration/recurrence |
@@ -611,11 +611,13 @@ key on the prose binding plus an `OPTION` provenance target kind — the same wi
 | H2 Help | the proficiency and ally selection — governs arm 1 only | ✅ |
 | H5 Help | "The GM has final say" — governs arm 1 only | ✅ |
 | H6 Help | 5-foot range and "that enemy" coreference — arm 2 only | ✅ |
-| L4 Ready | arm 1's open action choice | ✅ |
+| ~~L4 Ready~~ | ~~arm 1's open action choice~~ | **withdrawn — §14.6.** L4 has no option rows to bind at: arm 1 designates rather than grants, so the set is not authorable and the clause binds at component grain |
 
 Left unsolved by F19 alone: an option must still carry **at least one typed fact**
 (`option_set_violations`). An arm whose whole content is prose stays unauthorable even with
-an option-grain binding. §8.3.
+an option-grain binding. §8.3. That rule is why L4 is not on this list, and §14.6 records
+the reason it fails it — arm 1 has content, and the content is a designation no family
+states, not an absence.
 
 ### F9 — suggested roll tables: deferred and owed, not dismissed
 
@@ -629,15 +631,18 @@ is no determinate claim to decompose out: the table states what the GM *may* cho
 nothing follows from it by itself. So J7, M3 and N2 are honestly prose-bound today, and the
 batch is not blocked on them.
 
-**What Revision 2 omitted:** contract 3 lists **random-table selection** among the families
-the first projection must be *capable* of representing, and `known_unknowns.md` records it
-among the *"untouched"* groups *"added by batch-driven accounting as the corpus surfaces
-them, **due no later than full-corpus closure**."* This batch surfaces **three instances
-across three records**. That is the corpus surfacing it.
+**What Revision 2 omitted, and what Revision 4 then over-claimed.** Revision 2 said nothing
+about contract 3's *random-table selection* group; Revision 4 recorded J7, M3 and N2 as three
+surfaced instances of it. **Owner clarification supersedes both: these tables are exemplars
+and DM guidance.** They suggest which ability check or which skills may apply, the GM chooses,
+nothing is rolled and no row is selected — so they are not instances of random-table
+selection, and this batch surfaces none.
 
-**Disposition:** prose-bound under contract 3's second branch **for this batch**, and
-recorded as a **surfaced contract-3 family group still owed at full-corpus closure**. Not
-an enrichment, not dismissed. What a typed form would have to solve is in §8.5.
+**Disposition:** prose-bound under contract 3's second branch, on the reasons that were always
+true of them — `gamemaster_latitude` and `subjective_judgment` — and their **advisory content
+is preserved as the governing prose it is**, not recorded as a typing debt. The full-corpus
+obligation for random-table selection is unchanged and stands on its own evidence; it is
+neither advanced nor discharged here, and nothing in §8.5 is owed on account of these tables.
 
 ### Families that are not blocking
 
@@ -645,6 +650,7 @@ an enrichment, not dismissed. What a typed form would have to solve is in §8.5.
 |---|---|
 | **F4** | Never defined; the identifier was unused in Revision 1. Kept visible so the ID set is legible against the earlier commits. |
 | **F15** — option model | **Withdrawn.** Both motivating cases are representable as authored. §10.3. |
+| **F9** — suggested skill tables | **Withdrawn (Revision 5).** Under the Owner clarification the tables are exemplars and DM guidance: nothing is rolled and no row is selected, so no typed form is owed and the row-key obstacle §8.5 recorded goes with the claim. Their advisory content stands as governing prose under `gamemaster_latitude` / `subjective_judgment`. §14.3. |
 
 ---
 
@@ -751,10 +757,13 @@ an ADR.
    should not be relaxed to make this batch pass.
 4. **F6a's two vocabularies.** `ConditionKind` and `StateEffectKind` as two kinds, or one
    kind over a union. Two is proposed because no closed union vocabulary exists today.
-5. **F9's typed shape, if it is ever built.** A non-binding suggestion set needs row keys,
-   and the printed keys (*"Deceiving a monster that understands you"*, *"Traps, ciphers,
-   riddles, and gadgetry"*) range over no closed vocabulary. That is the open problem the
-   owed contract-3 group has to solve.
+5. **F9 is withdrawn.** Revision 4 stated an obstacle here — that the printed row keys range
+   over no closed vocabulary, and that this was the problem the owed contract-3 group had to
+   solve. Under the Owner clarification the premise is gone: the tables are exemplars and DM
+   guidance, their rows are advisory prose rather than selectable entries, and no typed form
+   of them is owed. The row keys are therefore not an obstacle to anything, here or in the
+   full-corpus random-table work, which stands on its own evidence and borrows none from
+   these tables.
 6. **Whether F12 and F20 are one family.** K2 is a per-turn *action* obligation and K3 a
    duty to *sustain a state*; both are continuation requirements for the same ongoing
    effect, stated in one sentence. One family with two operand forms would need a kind
@@ -988,7 +997,7 @@ was not called; #137 remains open. No schema change was implemented.
 
 **The boundary this stop surfaces** is that representation schema 5 leaves 35 of 78
 obligations, across 10 of 13 records, with no honest classification — `UNRESOLVED`, which
-blocks publication by the schema's own definition. Nineteen blocking families are named,
+blocks publication by the schema's own definition. Twenty-one blocking families are named,
 all **issue-scoped schema work**, and most map to family groups #137 contract 3 already
 requires the first projection to be capable of representing.
 
@@ -1004,10 +1013,26 @@ reference criterion — stand as recorded.
 
 **Deferred risk.** F17 and F18 rest on a single record's evidence. F6c requires two new
 closed vocabularies whose corpus evidence is not established here. F16's two instances
-establish the gap without establishing one shape. F9 is prose-bound today and owed at
-full-corpus closure. F1's slot axis, F10's subject reference and the F12/F20 boundary are
-open design questions inside accepted scope. And the counts throughout are judgments a
-reviewer may overturn — §5.14 says where to look first.
+establish the gap without establishing one shape. F1's slot axis, F10's subject reference
+and the F12/F20 boundary are open design questions inside accepted scope. And the counts
+throughout are judgments a reviewer may overturn — §5.14 says where to look first.
+
+**Revisions 4 and 5 (§14), stated as drift rather than left implicit.** Building the
+schema and then reviewing it against its consuming paths overturned four of this
+checkpoint's own conclusions. Two were classification errors — L8 was supporting authority
+and is substantive eligibility (§14.1); B2 was recorded as blocked on an option set it is
+not. One was a scope claim with no evidence: J7, M3 and N2 were recorded as instances of
+contract 3's random-table selection group, and under the Owner clarification the skill
+tables are **exemplars and DM guidance** — nothing is rolled, no row is selected, their
+advisory content stands as the governing prose it always was, and §8.5's row-key obstacle
+is withdrawn with the claim that produced it (§14.3). One was a correct value reached by
+an argument that does not hold: L4 is not an option set, but not for the reason Revision 4
+gave, and §14.6 replaces it with the limitation that is actually there — a designation no
+family in the union states.
+
+The tallies, the blocking-family count and the coverage partition are unchanged by all
+four. That is the point of deriving them from the disposition table rather than editing
+them: a reasoning correction that does not move a value is visible as exactly that.
 
 ---
 
@@ -1031,7 +1056,7 @@ CRD Issue 5d.
 
 ---
 
-## 14. Reconciliation with the implementation (Revision 4)
+## 14. Reconciliation with the implementation (Revisions 4 and 5)
 
 Representation **schema 6** is built. This section records what building it
 settled, and nothing else: it re-classifies where implementation proved a
@@ -1044,7 +1069,7 @@ does not re-litigate anything the schema step did not touch.
 |---|---|---|---|
 | **L8** `Ready` | **S** | **X** / F21 | *"To be readied, a spell must have a casting time of an action."* A spell's casting time is a printed, enumerable `SpellDescriptorFact` field, so nothing in the clause is unenumerable fiction. What it states is **which spells the mechanic reaches** — substantive eligibility authority, not material that merely limits one. §5.14 flagged this row as open to reversal, and it reversed. |
 | **B2** `Attack` | **X** / F1 | **P** | *"with a weapon or an Unarmed Strike."* Recorded as blocked only because it was modelled as an **option set**, and it is not one: both arms would state B1's identical entitlement, and `option_set_violations` refuses two options a consumer could not tell apart. The clause is the instrument qualification on that one entitlement, and `contextual_applicability` is affirmatively true of it — which weapons qualify is not determined by this record. |
-| **L4** `Ready` | **X** / F2, F19 | **X** / F2 | The F19 half is withdrawn for the same reason: not an option set. Arm 1's action space includes whatever the subject's features provide, which no closed vocabulary reaches, and an option must state at least one typed fact. The set is unauthorable, and relaxing that rule to admit it is exactly what §8.3 said not to do. Still blocking on the movement half. |
+| **L4** `Ready` | **X** / F2, F19 | **X** / F2 | **Disposition confirmed, reasoning replaced — §14.6.** Revision 4 reached the right value by an argument that does not hold: it read "an option must state at least one typed fact" as "every fact". The correct reason is that arm 1 designates rather than grants. |
 | **I6** `Hide` | **X** / F7 | **X** / F7, **F22** | F7 named the DC *source* and stopped there. The check that DC is stated for is made by the **finder** — *"the DC for a creature to find you with a Wisdom (Perception) check"* — and `AbilityCheckFact` had no axis for that. A fact carrying only the new DC source would read as the subject making a Perception check to find themselves: false rather than lossy, and the same beneficiary defect family as F17. |
 
 Tallies after the four: **`{'P': 16, 'R': 4, 'S': 12, 'T': 7, 'TP': 4, 'X': 35}`,
@@ -1070,7 +1095,7 @@ script names a family only on an `UNRESOLVED` row, which is why the table in
 §14.1 carries F21 on L8 alone while the family has three instances in three
 records.
 
-### 14.3 The suggested skill tables — scope claim removed
+### 14.3 The suggested skill tables — scope claim removed (and §8.5 with it)
 
 §6's F9 entry recorded J7, M3 and N2 as *"three instances"* of contract 3's
 **random-table selection** group, surfaced by this batch and owed at full-corpus
@@ -1090,8 +1115,13 @@ What stands, unchanged:
 * the **full-corpus obligation for random-table selection stands on its own**.
   It is a named contract-3 group and `known_unknowns.md` records it among the
   untouched ones due no later than full-corpus closure. This batch neither
-  discharges nor advances it, and §8.5's open problem — that the printed row
-  keys range over no closed vocabulary — is unaffected.
+  discharges nor advances it, and it borrows no evidence from these tables.
+
+**Revision 5, under Owner clarification.** The tables are **exemplars and DM guidance**, and
+their advisory content is preserved as the governing prose it already is. §8.5's fifth item
+stated a row-key obstacle as the problem a typed form would have to solve; that premise
+depended on the withdrawn claim, so the item is withdrawn too rather than left standing as an
+obstacle to work it was never evidence for.
 
 ### 14.4 F-ID → what schema 6 actually built
 
@@ -1124,8 +1154,10 @@ and this is the design they evidenced.
 | **F21** | `ActivationCostEligibilityFact(subject, cost)` — new in Revision 4; L8, K1, O2 |
 | **F22** | `AbilityCheckFact.against_subject` — new in Revision 4; I6 |
 
-§8's open engineering choices are all closed by the above except §8.5, which the
-withdrawn scope claim in §14.3 leaves standing as full-corpus work.
+§8's open engineering choices are all closed by the above. §8.5's fifth item is
+**withdrawn** rather than deferred (§14.3): it stated an obstacle that only existed
+under the scope claim Revision 4 made and Revision 5 removes. The full-corpus
+random-table group remains open on its own evidence, which is not this batch's.
 
 ### 14.5 What is unchanged
 
@@ -1133,3 +1165,70 @@ The schema stop itself, the boundary (13 records, 92 leaves), the coverage
 partition (59 unassigned characters, 0 substantive), the source binding, the
 frozen prior, the classification rule reconciled in §4, and every rejected
 review conclusion in §10. Acceptance-ready regeneration remains paused.
+
+### 14.6 Ready L4, and the exact meaning that is unrepresented (Revision 5)
+
+Revision 4 moved L4 from **X** / F2, F19 to **X** / F2 on the ground that arm 1
+is untypeable: its action space includes whatever the subject's features
+provide, no closed vocabulary reaches it, and an option must state at least one
+typed fact. **The value is right and the argument is not.** An option must
+state *at least one* typed fact, not every fact its clause mentions, and
+rejecting a deliberately factless arm shows only that a factless arm is
+refused. Left standing, that reasoning would also refuse `Help`, whose arms are
+authorable precisely because each types one thing and leaves the rest to prose.
+
+#### The real limitation
+
+Arm 1 states a **designation**: the subject chooses, in advance, what the
+already-granted Reaction will be spent on. The nearest family is
+`ActionAllowanceFact`, and it cannot carry it — its `cost` names a slot the
+owning effect **grants**, which is the family's whole claim. Typing arm 1 as
+`ActionAllowanceFact(count=1, per=OWNING_EFFECT, cost=ACTION)` would publish
+two grants, an Action and L2's Reaction, where `Ready` states one.
+
+**The exact unrepresented meaning:** *that an already-granted slot is committed
+in advance to an activity the subject names, and that a stated allowance is one
+alternative of that commitment.* Two halves, neither reachable:
+
+* no family expresses a **designation** — every action-economy family in the
+  union asserts a grant, a consumption, or a restriction of a slot, and a
+  designation is none of the three; and
+* no structure expresses an **alternation whose arms are not both typed**, which
+  is `option_set_violations`' at-least-one-typed-fact rule doing exactly what
+  §8.3 says it must keep doing.
+
+`option_set_violations` would admit the false pair. Structural authorability is
+not truth, and no component-scoped rule can see the defect at all: L2 and arm 1
+would sit in different components, so nothing in the build would compare them.
+That is why the false form is pinned in
+`test_the_unrepresented_half_of_l4_is_named_exactly` rather than described.
+
+#### What is representable, and is composed
+
+`test_schema_6_source_compositions` builds `Ready` whole on the fixture record,
+as a **demonstration of the shape** — not as the `Ready` record's decomposition,
+which belongs to the eventual proposal and is not recorded in this checkpoint's
+per-record counts:
+
+| Component | Clauses | Why |
+|---|---|---|
+| `ready-response` | L2, L6 | What the Ready grants, and when it resolves |
+| `readied-choice` | L4 | **MIXED**: the own-Speed allowance typed, the whole *"you choose the action … or"* clause bound under `open_ended_effect`, which is affirmatively true of an open action space |
+| `ready-a-spell` | L7, L8, L9 | *"When you Ready a spell"* qualifies one way of readying, not the action. Stated beside the movement allowance, the expenditure, the casting-time eligibility and the Concentration duty would read as requirements of readying **anything** — so a subject who readied a move would appear to expend casting resources |
+
+The tests assert the movement allowance and its governing clause survive
+*together* through validation, `_base_records` and the GameMaster view, and
+that no spell requirement reaches the movement.
+
+#### Readiness, reconciled
+
+**L4's disposition is unchanged at X / F2**, and so are every tally, the
+blocking-family count and the coverage partition. F19 stays at `Help` alone:
+with no option rows there is no option grain to bind at.
+
+The residue is **not a new blocking family and not a schema gap this batch must
+close.** It is contract 3's second branch used as intended — `open_ended_effect`
+is affirmatively true of the clause, the prose binding is justified on its own
+reason, and the one thing the union carries exactly is carried exactly. A
+designation family remains a legitimate future addition if the corpus forces
+one; nothing here proposes it, and §8.3's rule is not relaxed to avoid it.
