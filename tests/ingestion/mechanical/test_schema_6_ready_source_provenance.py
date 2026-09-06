@@ -8,12 +8,17 @@ reaches — and it deliberately says nothing about where any of it is printed.
 
 This module answers the different question: **what does the real source
 actually support?** Every leaf id, leaf length, character extent and printed
-string below is **transcribed by hand** from the committed evidence artifact
+string below is transcribed from the committed evidence artifact
 ``.claude/review-notes/issue-5d-actions-1-obligation-coordinates.json``, which
-was derived from the bound 5c release. Nothing here is sized to make a count
-come out. The transcription is not read back from the artifact at runtime, so
-``test_each_transcribed_clause_is_as_long_as_the_extent_it_claims`` checks each
-string against the extent it is recorded at.
+``issue-5d-actions-1-OBLIGATION-COORDINATES.py`` derives from the pinned SRD
+5.2.1 PDF. Nothing here is sized to make a count come out.
+
+``test_the_transcription_equals_the_pinned_source_evidence`` reads that artifact
+back and compares every literal to it — leaf ids, leaf lengths, extents and
+printed strings — and checks the artifact's own
+``authoritative_source_hash`` against the pinned source digest, so the
+comparison is tied to the pinned PDF rather than to any regeneration. Length
+checks alone were not enough: they pass for any same-length paraphrase.
 
 What the source states, and where:
 
@@ -25,15 +30,29 @@ What the source states, and where:
 * **L6** ``1022361f…[97:211)`` — *"When the trigger occurs, you can either
   take your Reaction right after the trigger finishes or ignore the trigger."*
 
-**L4 contains the choice and no Reaction statement.** The Reaction is stated in
-L2 and again in L6. So the two arms' ``ActionEconomyFact(REACTION)`` — true of
-each arm, and the fact that makes each arm authorable — draws its evidence from
-L2, where the consumption is printed, under a **contextual** role. That is what
-``_validate_provenance`` requires and all it requires: every authoritative
+**Why the two arms' cost edges are contextual on L2.** ``ProvenanceRole``
+distinguishes whether a span *states* a claim or *merely supports* it, so the
+role has to follow from the cited span's own content — L2's — and not from what
+some other clause omits. L2 says *"lets you act by taking a Reaction"*: it
+states the slot **once, for the whole readied response**, and
+``ActionAllowanceFact(count=1, per=OWNING_EFFECT, cost=REACTION)`` is that
+statement with its count and its owning-effect scope intact. That is L2's
+primary owner.
+
+``ActionEconomyFact(REACTION)`` on an arm asserts something L2 never scopes:
+that *this alternative* is what spends the slot. L2 makes each arm's copy true
+without stating it — the docstring's "merely supports it" — so the two copies
+carry contextual edges to the span that supports them. They are two copies of
+one printed cost, restated per arm only because a component is a conjunction or
+a choice and never both, and so has no position for a cost the arms share.
+
+The rest of the contract is what it has always been: every authoritative
 element carries at least one admissible edge *of any role*, and every
-substantive span carries exactly one **primary** owner. No direct statement is
-relabelled: L4's own two statements — the open action choice and the own-Speed
-allowance — keep primary ownership of the text that prints them.
+substantive span carries exactly one **primary** owner. Nothing direct is
+relabelled — L4's own two statements keep primary ownership of the text that
+prints them, and L2's grant keeps primary ownership of L2. (L4 also happens to
+print no Reaction at all; that is a true observation about the source, and it is
+not what decides the role.)
 
 The one partition is at the printed ``or``, computed from the sentence rather
 than written down, so it cannot drift into an arbitrary offset chosen to make
@@ -50,12 +69,16 @@ binding, because nothing in its clause is left untyped.
 
 **Limits of this proof, stated so it is not read for more than it proves.**
 
-* Leaf ids, leaf lengths, extents and printed text are the accepted-source
-  values. **Chunk ids are local to this module**: a prose binding resolves
-  through ``covers_span``, which needs a projection edge, and the real 5c chunk
-  ids for these leaves are not in the evidence artifact. Coverage is stated as
-  one chunk per whole leaf, which is what the SRD 5.2.1 projection does
-  everywhere, but the identifiers are not the release's own.
+* Leaf ids, leaf lengths, extents and printed text are checked against the
+  pinned artifact. **Chunk ids are local to this module**: a prose binding
+  resolves through ``covers_span``, which needs a projection edge, and the real
+  5c chunk ids for these leaves are not in the artifact — deriving them means
+  rebuilding the corpus from the PDF, which is outside a unit test. Coverage is
+  stated as one chunk per whole leaf, which is what the SRD 5.2.1 projection
+  does everywhere, but the identifiers are not the release's own. Codex
+  substituted the release's real projection chunks out of band and validation
+  and the GameMaster view still passed; that corroboration is external to this
+  module and is recorded rather than reproduced here.
 * The ledger carries the **four spans this demonstration claims**, not
   ``Ready``'s whole partition. Both leaves are fully enumerated in the artifact
   (11 obligation spans, 9 single-character gaps, 451 + 639 characters); every
@@ -68,7 +91,9 @@ binding, because nothing in its clause is left untyped.
 
 from __future__ import annotations
 
+import json
 from dataclasses import replace
+from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 from afterworlds.ingestion.mechanical.accounting import derive_span_id
@@ -82,6 +107,7 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.representation import (
     ActionCost,
     ActionEconomyFact,
+    AllowanceScope,
     ComponentDraft,
     ComponentOption,
     ProseBindingDraft,
@@ -117,8 +143,43 @@ from tests.ingestion.mechanical.conftest import (
 from tests.ingestion.mechanical.test_schema_6_actions_1_source_cases import CASES
 
 # ---------------------------------------------------------------------------
-# The accepted source coordinates, copied from the evidence artifact
+# The accepted source coordinates, and the pinned evidence they are checked at
 # ---------------------------------------------------------------------------
+
+#: The committed discovery evidence.
+#: ``issue-5d-actions-1-OBLIGATION-COORDINATES.py`` derives it from the pinned
+#: SRD PDF through the real 5c pipeline, and fails loudly if a quoted phrase is
+#: not present verbatim in the leaf it claims — so it is independent of the
+#: literals transcribed below.
+EVIDENCE_PATH = (
+    Path(__file__).resolve().parents[3]
+    / ".claude"
+    / "review-notes"
+    / "issue-5d-actions-1-obligation-coordinates.json"
+)
+
+#: The pinned source the artifact must have been derived from. Without this the
+#: comparison would only prove the transcription matches *some* regeneration.
+#: Not a credential: it is the published SRD 5.2.1 PDF's content digest, the
+#: same literal `issue-5d-actions-1-OBLIGATION-COORDINATES.py` pins.
+PINNED_SOURCE_SHA256 = "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"  # noqa: E501  # pragma: allowlist secret
+
+
+def pinned_evidence() -> dict[str, object]:
+    """The committed artifact, read as UTF-8 and never skipped past.
+
+    A missing artifact fails rather than skips: a guard that quietly stops
+    running is the exact defect family this module exists to close.
+    """
+    assert EVIDENCE_PATH.exists(), (
+        f"pinned source evidence is missing: {EVIDENCE_PATH}. Re-derive it with "
+        "`venv/Scripts/python .claude/review-notes/"
+        "issue-5d-actions-1-OBLIGATION-COORDINATES.py`."
+    )
+    with open(EVIDENCE_PATH, encoding="utf-8") as handle:
+        payload: dict[str, object] = json.load(handle)
+    return payload
+
 
 #: ``Ready [Action]``, leaf 1 of 2 — printed page 186.
 FIRST_LEAF = "af20f466-ce0c-5790-9912-0c93dae7211a"
@@ -199,9 +260,10 @@ CHOICE_KEY = "readied-choice"
 ACTION_ARM = "take-the-chosen-action"
 MOVE_ARM = "move-up-to-your-speed"
 
-#: What taking the readied response spends, true of either arm. Printed in L2
-#: and again in L6, and **not** printed in L4 — which is why its evidence is
-#: contextual on L2 rather than primary on the clause that does not state it.
+#: That *this arm* is what spends the readied Reaction. One printed cost
+#: restated per arm, because a choice has no position for a cost its arms
+#: share. L2 states the slot once for the whole response and so supports each
+#: copy without stating it — which is why these edges are contextual on L2.
 READIED_REACTION = ActionEconomyFact(cost=ActionCost.REACTION)
 
 #: ``ActionAllowanceFact(1, OWNING_EFFECT, REACTION)`` — L2's grant.
@@ -270,7 +332,10 @@ READY_PROVENANCE = (
     _fact_edge(RESPONSE_KEY, READY_GRANT, L2_SPAN, ProvenanceRole.PRIMARY),
     # L6 states when the response resolves and that it may be declined.
     _fact_edge(RESPONSE_KEY, TRIGGER_RESOLUTION, L6_SPAN, ProvenanceRole.PRIMARY),
-    # The consumption each arm states is evidenced where it is printed.
+    # Each arm's copy of the one printed cost, evidenced on the span that
+    # grants the slot. Contextual: L2 scopes the Reaction to the whole readied
+    # response, never to an alternative, so it supports these without stating
+    # them.
     _fact_edge(
         CHOICE_KEY, READIED_REACTION, L2_SPAN, ProvenanceRole.CONTEXTUAL, ACTION_ARM
     ),
@@ -363,23 +428,47 @@ def test_the_split_is_the_printed_or_and_nothing_else() -> None:
     assert L6_END <= SECOND_LEAF_LENGTH
 
 
-def test_each_transcribed_clause_is_as_long_as_the_extent_it_claims() -> None:
-    """The one thing a transcription can get wrong without anything noticing.
+def test_the_transcription_equals_the_pinned_source_evidence() -> None:
+    """Every literal in this module, against evidence it did not produce.
 
-    The printed strings are copied into this module by hand, so nothing below
-    would catch a paraphrase or a truncation on its own — the reconstructed leaf
-    is built from the same literals. Length against the artifact's own extent is
-    the check that does: a clause shorter or longer than the span it is recorded
-    at is not the clause that span accepts. L2 matters most, since it is the
-    span both contextual edges cite.
+    Comparing hand-entered strings with hand-entered extents proves nothing: a
+    same-length paraphrase — *"saving a Reaction"* for *"taking a Reaction"* —
+    passes every other check in this file, because the reconstructed leaf is
+    built from the same literals. This is the check that fails.
 
-    It also protects the reconstruction. ``_leaf_text`` assigns into a list
-    slice, so a text whose length disagreed with its extent would resize the
-    leaf and shift every offset after it.
+    The artifact is derived from the pinned SRD PDF by a committed script, and
+    its recorded ``authoritative_source_hash`` is asserted too, so equality here
+    is equality to the pinned source and not to whatever a regeneration made.
     """
-    assert len(L2_TEXT) == L2_END - L2_START
-    assert len(L4_TEXT) == L4_END - L4_START
-    assert len(L6_TEXT) == L6_END - L6_START
+    evidence = pinned_evidence()
+    assert evidence["authoritative_source_hash"] == PINNED_SOURCE_SHA256
+
+    rows = {
+        row["obligation"]: row
+        for row in evidence["coordinates"]  # type: ignore[union-attr]
+        if row["entry"] == "Ready [Action]"
+    }
+    for name, leaf, start, end, text in (
+        ("L2", FIRST_LEAF, L2_START, L2_END, L2_TEXT),
+        ("L4", FIRST_LEAF, L4_START, L4_END, L4_TEXT),
+        ("L6", SECOND_LEAF, L6_START, L6_END, L6_TEXT),
+    ):
+        row = rows[name]
+        assert row["leaf_id"] == leaf
+        assert (row["char_start"], row["char_end"]) == (start, end)
+        assert row["source_text"] == text
+
+    lengths = {
+        row["leaf_id"]: row["length"]
+        for row in evidence["leaf_partition"]  # type: ignore[union-attr]
+    }
+    assert lengths[FIRST_LEAF] == FIRST_LEAF_LENGTH
+    assert lengths[SECOND_LEAF] == SECOND_LEAF_LENGTH
+
+    # The reconstruction is built from strings now proven, so the leaf it
+    # assembles is the right length and carries each clause at its own offset.
+    # ``_leaf_text`` assigns into a list slice, so a length disagreement would
+    # resize the leaf and shift every offset after it.
     assert len(FIRST_LEAF_TEXT) == FIRST_LEAF_LENGTH
     assert len(SECOND_LEAF_TEXT) == SECOND_LEAF_LENGTH
     assert FIRST_LEAF_TEXT[L2_START:L2_END] == L2_TEXT
@@ -387,16 +476,24 @@ def test_each_transcribed_clause_is_as_long_as_the_extent_it_claims() -> None:
     assert SECOND_LEAF_TEXT[L6_START:L6_END] == L6_TEXT
 
 
-def test_l4_states_the_choice_and_does_not_state_the_reaction() -> None:
-    """The source claim the whole mapping rests on.
+def test_the_cost_edges_are_contextual_because_of_what_l2_scopes() -> None:
+    """The role argument, in checkable form.
 
-    If L4 stated the Reaction, arm 1's consumption would be a direct statement
-    of this clause and the contextual role below would be a relabelling. It
-    does not; L2 and L6 do.
+    ``ProvenanceRole`` asks whether the cited span *states* the claim or merely
+    supports it, so the answer has to come from L2 — the span these edges cite —
+    and not from L4's silence. L2 states the slot once for the whole readied
+    response: the grant is scoped to the owning effect, and its cost names the
+    same slot each arm's fact spends. The arms' copies are therefore not
+    independent authority. They assert what L2 never scopes — that *this
+    alternative* is what spends it — and L2 makes them true without saying it.
     """
+    assert READIED_REACTION.cost is READY_GRANT.cost
+    assert READY_GRANT.per is AllowanceScope.OWNING_EFFECT
+    assert READY_GRANT.count == 1
+    # L4 prints no Reaction. True of the source, and deliberately *not* the
+    # reason for the role: an edge citing L2 cannot be justified by L4.
     assert "Reaction" not in L4_TEXT
     assert "Reaction" in L2_TEXT
-    assert "Reaction" in L6_TEXT
 
 
 # ---------------------------------------------------------------------------
@@ -447,8 +544,9 @@ def test_every_element_carries_evidence_and_a_contextual_only_fact_is_enough() -
     ``_validate_provenance`` requires every authoritative element to carry at
     least one admissible edge *of any role*. Both arms' consumption facts carry
     a contextual edge and nothing else, and the representation validates — so a
-    fact whose only evidence is contextual is admitted, and the arms did not
-    need a primary claim carved out of a clause that does not state them.
+    fact whose only evidence is contextual is admitted. Why those two are
+    contextual is decided by what L2 scopes, and is checked in
+    ``test_the_cost_edges_are_contextual_because_of_what_l2_scopes``.
     """
     elements = {
         (READY_KEY, RESPONSE_KEY, fact_key(READY_GRANT)),
@@ -600,6 +698,31 @@ def test_a_second_primary_owner_on_one_span_is_refused() -> None:
     )
     # And L4a, no longer owned by anything, is reported too.
     assert f"span {L4A_SPAN}: substantive but unclaimed" in findings
+
+
+def test_promoting_a_cost_edge_makes_l2_say_two_things_at_once() -> None:
+    """The role is refused, not merely preferred.
+
+    Arm 1's consumption is promoted to PRIMARY on the span it already cites.
+    Nothing about the fact or the span changes — only the claim that L2 *states*
+    this arm spends the slot, beside L2's grant already stating that the readied
+    response has one. ``_validate_provenance`` refuses exactly that: two
+    structures both asserting they are what one sentence says.
+    """
+    promoted = tuple(
+        (
+            replace(c, role=ProvenanceRole.PRIMARY)
+            if c.span_id == L2_SPAN and c.role is ProvenanceRole.CONTEXTUAL
+            else c
+        )
+        for c in READY_PROVENANCE
+    )
+    findings = validate_representation(
+        ready_draft(promoted), ready_ledger(), READY_CORPUS
+    )
+    assert any(
+        f.startswith(f"span {L2_SPAN}: conflicting primary claims by") for f in findings
+    )
 
 
 def test_the_same_edge_twice_is_one_claim_recorded_twice() -> None:

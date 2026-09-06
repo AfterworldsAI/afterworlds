@@ -374,8 +374,11 @@ and it moves three of those groups:
   sentence; it does not, and the reading behind it was wrong. Every authoritative element needs *evidence*
   of any role, and only a substantive *span* needs one *primary owner*. L4's real coordinates satisfy both
   with four spans: L2, L4 split once at its printed `or`, and L6, with the shared Reaction evidenced
-  contextually on L2 — the clause that prints it, since L4 states no Reaction at all. Verified on the real
-  leaf ids and extents in `test_schema_6_ready_source_provenance`. **No new family is proposed here**, and
+  contextually on L2. Those edges are contextual because of what L2 *scopes*, not because of what L4
+  omits: L2 states the slot once for the whole readied response, so it supports each arm's copy without
+  stating that *this alternative* is what spends it. Verified on the real leaf ids, extents and printed
+  text in `test_schema_6_ready_source_provenance`, which checks its literals against the committed
+  coordinates artifact and its pinned source digest. **No new family is proposed here**, and
   `actions-1` is not accepted, so the span partition remains a proposal's decision.
 
 Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose

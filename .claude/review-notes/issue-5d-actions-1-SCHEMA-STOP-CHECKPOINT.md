@@ -1239,9 +1239,7 @@ authority. A fact whose sole evidence is contextual is admitted, and nothing
 requires an element to own the span it cites.
 
 With that read, the real coordinates map cleanly, and the fifth claim was never
-needed. L4 states the choice and **no Reaction** — the Reaction is printed in
-L2 and again in L6 — so the consumption each arm states draws its evidence from
-where it is printed:
+needed:
 
 | Span | Printed text | Primary owner | Contextual |
 |---|---|---|---|
@@ -1253,25 +1251,66 @@ where it is printed:
 **Four spans, four primary owners, two contextual edges** — not five primary
 claims, and not five subdivisions of one sentence. L4 is split **once**, at its
 printed `or`; the offset is computed from the sentence rather than declared, so
-the partition is the source's and not a shape chosen to satisfy a count. No
-direct statement is relabelled contextual: L4's own two statements keep primary
-ownership of the text that prints them, and the contextual edges sit on the
-clause that does state the Reaction. Arm 2 carries no prose binding, because
-nothing in its clause is left untyped — the MIXED handling rule reads the
-component's prose, not each arm's.
+the partition is the source's and not a shape chosen to satisfy a count. Arm 2
+carries no prose binding, because nothing in its clause is left untyped — the
+MIXED handling rule reads the component's prose, not each arm's.
 
-Verified in `test_schema_6_ready_source_provenance` against the real leaf ids,
-leaf lengths, extents and printed text, transcribed into that module from
-`issue-5d-actions-1-obligation-coordinates.json` rather than read from it: full
-`validate_representation`
-returns no findings; the arms' contextual-only consumption is admitted; the
-GameMaster view resolves the binding's declared offsets back to the printed
-clause; and dropping arm 2's claim, moving arm 1's binding onto L4b, repeating
-an edge, and citing page 187's span from page 186's chunk each fail by name.
+#### Why the two cost edges are contextual
+
+An earlier statement of this section justified those two edges by what **L4**
+omits: L4 prints no Reaction, so the consumption was said to draw its evidence
+from where the Reaction *is* printed. That reasoning does not hold.
+`ProvenanceRole` asks whether the **cited** span states the claim or merely
+supports it, and both edges cite **L2** — which does say *"by taking a
+Reaction"*. What another clause omits cannot decide the role of an edge that
+does not cite it.
+
+The reason is in L2's own scope. L2 states the slot **once, for the whole
+readied response**, and `ActionAllowanceFact(count=1, per=OWNING_EFFECT,
+cost=REACTION)` is that statement with its count and its owning-effect scope
+intact. That is what L2 says, and it is L2's primary owner.
+`ActionEconomyFact(REACTION)` on an arm asserts something L2 never scopes: that
+*this alternative* is what spends the slot. L2 makes each arm's copy true
+without stating it — `ProvenanceRole`'s own "merely supports it" — so the two
+copies carry contextual edges to the span that supports them.
+
+They are two copies of one printed cost, restated per arm only because a
+component is a conjunction or a choice and never both, and so has no position
+for a cost the arms share. **That duplication is permitted across mutually
+exclusive options and is not what settles the role**; the role is settled by
+scope, and `_validate_duplicated_fact_authority`'s refusal of the same fact
+drawn from one span by two sibling *components* is untouched.
+
+Nothing direct is relabelled. L2's grant keeps primary ownership of L2, and
+L4's own two statements keep primary ownership of the text that prints them.
+Promoting either cost edge to PRIMARY on L2 is refused rather than merely
+disfavoured — two structures asserting they are what one sentence says — and
+that refusal is exercised on the real coordinates.
+
+Verified in `test_schema_6_ready_source_provenance`, whose literals are checked
+against the committed `issue-5d-actions-1-obligation-coordinates.json` — leaf
+ids, leaf lengths, extents and printed strings, plus that artifact's own
+`authoritative_source_hash` against the pinned SRD digest, so the comparison is
+tied to the pinned PDF and not to a regeneration. An earlier guard compared
+hand-entered strings with hand-entered extents and passed a same-length
+paraphrase (*"saving a Reaction"* for *"taking a Reaction"*); that substitution
+now fails.
+
+On that evidence: full `validate_representation` returns no findings; the arms'
+contextual-only consumption is admitted; `READIED_REACTION.cost is
+READY_GRANT.cost` and `READY_GRANT.per is OWNING_EFFECT` state the scope
+argument in checkable form; the GameMaster view resolves the binding's declared
+offsets back to the printed clause; and five refusals fire by name — dropping
+arm 2's claim, moving arm 1's binding onto L4b, **promoting a cost edge to
+PRIMARY on L2**, repeating an edge, and citing page 187's span from page 186's
+chunk.
 
 **Proof limits.** Chunk ids in that module are local to it — the release's own
-chunk ids for these two leaves are not in the evidence artifact, and a binding
-needs a projection edge to resolve. Its ledger carries only the four spans it
+chunk ids for these two leaves are not in the evidence artifact, and deriving
+them means rebuilding the corpus from the PDF, which is outside a unit test.
+Codex substituted the release's real projection chunks out of band, and
+validation and the GameMaster text and option scope still passed; that is
+external corroboration, recorded rather than reproduced here. Its ledger carries only the four spans it
 claims, not `Ready`'s whole partition (11 obligation spans and 9 one-character
 gaps across 451 + 639 characters), because a substantive span it did not claim
 would correctly fail as unclaimed. And `actions-1` is **not accepted** — the

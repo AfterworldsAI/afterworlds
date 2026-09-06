@@ -683,13 +683,15 @@ DISPOSITION: dict[str, tuple[str, tuple[str, ...]]] = {
     # conjunction or a choice and never both, so there is no place to state a
     # cost the arms share.
     #
-    # Revision 7. That redundancy does *not* cost a span apiece. This row's own
-    # text states the choice and no Reaction, so both arms' consumption is
-    # evidenced *contextually* on L2, where it is printed. Every element needs
-    # evidence of any role; only a substantive span needs a primary owner. On
-    # the real coordinates that is four spans and four owners - L2, L4 split
-    # once at its printed `or`, and L6 - not five claims over this row's single
-    # sentence. See the checkpoint's 14.6 and
+    # Revision 7. That redundancy does *not* cost a span apiece. Both arms'
+    # consumption is evidenced *contextually* on L2 - not because this row
+    # omits the word Reaction, but because of what L2 scopes: L2 states the
+    # slot once for the whole readied response, so it supports each arm's copy
+    # without stating that this alternative is what spends it. Every element
+    # needs evidence of any role; only a substantive span needs a primary
+    # owner. On the real coordinates that is four spans and four owners - L2,
+    # L4 split once at its printed `or`, and L6 - not five claims over this
+    # row's single sentence. See the checkpoint's 14.6 and
     # `test_schema_6_ready_source_provenance`.
     "L4": ("X", ("F2", "F19")),
     "L5": ("S", ()),
