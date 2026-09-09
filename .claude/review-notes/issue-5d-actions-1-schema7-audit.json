@@ -2850,7 +2850,7 @@
  },
  "evidence_classes": [
   {
-   "class": "real source-prose resolution",
+   "class": "source extraction and partition reconstruction",
    "executed_here": true,
    "what_it_is": "the committed PDF is re-derived through the 5c pipeline, and every represented leaf is cut into a partition that reconstructs that leaf byte for byte. Cut points are found in the bound content at run time, so a source that moved fails the run rather than silently re-anchoring.",
    "where": [
@@ -2858,7 +2858,18 @@
     "classification_partitions",
     "boundary.canaries"
    ],
-   "strength": "strong for coverage and for span boundaries. It says nothing about whether the meaning assigned to a span is right - that is what semantic review is for."
+   "strength": "strong for coverage and for span boundaries. It says nothing about whether the meaning assigned to a span is right - that is what semantic review is for.",
+   "distinct_from": "consumer prose resolution, below. This class shows the SOURCE was cut faithfully; it does not show a reader of the authority gets that text back."
+  },
+  {
+   "class": "consumer prose resolution",
+   "executed_here": "partially",
+   "what_it_is": "the governing-prose entries `_base_records` attaches to a component are read back and their extents compared - which arm of Help each binding governs, that Influence's hesitancy gate is carried by prose at its own extent.",
+   "where": [
+    "consumer_boundary_proofs.help_qualified_next_roll",
+    "consumer_boundary_proofs.influence_hesitancy_gate"
+   ],
+   "strength": "what DID run: the projection's `SourceProse` entries and their span ids, with text taken from THIS RUN's own span map. What did NOT run: resolution through the GameMaster view, which reads the authoritative RuleChunk by chunk id from storage. So the binding's SCOPE is evidenced here and its delivered TEXT is not."
   },
   {
    "class": "structural validation",
@@ -2905,75 +2916,67 @@
    "why_not": "it needs a database. The CastingTimeThreshold this run builds is never persisted and read back out of a stored row, so nothing here shows the gate surviving storage. The in-memory wire round trip (representation_payload -> _representation) is the nearest thing that DID run, and it is strictly weaker: same process, no schema migration, no column types. Persistence round trips are covered by the repository's test modules, not by this generator."
   },
   {
+   "class": "acceptance",
+   "executed_here": false,
+   "why_not": "acceptance is an Owner step that merges a proposal into accepted authority and records the decision. This run reproduces the MERGE in memory so it can validate the same shape acceptance would - and accepts nothing, writes nothing, and records no decision. The accepted oracle is read as a read-only sentinel and asserted unchanged."
+  },
+  {
    "class": "publication-gate execution",
    "executed_here": false,
-   "why_not": "the publication gate runs over a persisted projection during acceptance. This run accepts nothing, persists nothing and touches no database, so it neither passes nor fails that gate - its verdict on this batch is UNKNOWN here, not favourable. The schema-6 run reported a gate outcome for the S-1 residue; with S-1 closed there is no such residue to report, and no gate result is invented in its place."
+   "why_not": "a SEPARATE check from acceptance, and downstream of it: the gate runs over a PERSISTED projection. This run persists nothing and touches no database, so it neither passes nor fails that gate - its verdict on this batch is UNKNOWN here, not favourable. The schema-6 run reported a gate outcome for the S-1 residue; with S-1 closed there is no such residue to report, and no gate result is invented in its place."
   }
  ],
  "obligation_accounting": {
-  "what_these_mean": "ACCOUNTED FOR is the weakest claim: the obligation's text lies inside the run-time partition and is claimed by some element, so nothing was dropped. REPRESENTED is stronger and is split in two, because a mechanic carried by a typed fact/component/qualifier and a mechanic carried by a prose binding are not the same achievement. CARRIED AS SUPPORTING AUTHORITY ONLY means the text was read and preserved but states no mechanic of its own. UNRESOLVED means read and deliberately not classified. The four buckets are disjoint and sum to the ledger.",
+  "basis": "the emission kind of each span the obligation owns - what the span CARRIES - not the element the span belongs to. `claimant_kind` answers a different question (which element owns this text) and cannot distinguish a component's own typed Applicability from supporting text that same component merely owns.",
+  "what_these_mean": "ACCOUNTED FOR is the weakest claim: the obligation's text lies inside the run-time partition and is claimed by some element, so nothing was dropped. It is not a representation claim. REPRESENTED IN TYPED STRUCTURE means at least one span of this obligation is a fact (F), a component's own applicability (A) or a fact qualifier (Q). REPRESENTED AS BOUND PROSE means its meaning is carried by a prose binding (P) and by no typed structure. REPRESENTED BY BOTH is reported separately rather than rounded up, because part of such a clause is prose and saying otherwise would credit the typed vocabulary with prose's work. CARRIED AS SUPPORTING AUTHORITY ONLY means the text was read and preserved (R/C/X) but states no mechanic of its own - it may sit on a component whose facts state a DIFFERENT obligation, and it does not inherit them. UNRESOLVED means read and deliberately not classified. The five buckets are disjoint and sum to the ledger.",
   "accounted_for": 78,
   "represented_in_typed_structure": [
    "A1",
-   "A4",
    "B1",
-   "B2",
    "B3",
    "B4",
-   "B5",
-   "B6",
-   "B7",
    "D1",
    "D2",
    "D3",
-   "D4",
    "D5",
    "D6",
-   "D8",
    "E1",
    "E2",
-   "E3",
    "G1",
    "G3",
    "G4",
    "G5",
    "H1",
-   "H3",
    "H4",
-   "H6",
    "H7",
    "I1",
-   "I10",
    "I2",
    "I5",
    "I6",
-   "I7",
    "J11",
-   "J3",
-   "J4",
-   "J5",
-   "J6",
-   "J7",
    "J9",
-   "K1",
    "K2",
    "K3",
    "K4",
    "L1",
    "L10",
    "L2",
-   "L4",
-   "L5",
    "L6",
    "L7",
    "L8",
    "L9",
    "M1",
-   "M3",
-   "N1",
-   "N2",
-   "O1",
    "O2"
+  ],
+  "represented_by_typed_structure_and_bound_prose": [
+   "B7",
+   "H3",
+   "H6",
+   "I7",
+   "J6",
+   "K1",
+   "L4",
+   "N1"
   ],
   "represented_as_bound_prose": [
    "A2",
@@ -2985,26 +2988,49 @@
    "J1",
    "J10",
    "J2",
+   "J3",
+   "J4",
+   "J7",
    "J8",
    "L3",
-   "M2"
+   "M2",
+   "M3",
+   "N2"
   ],
   "carried_as_supporting_authority_only": [
    "A3",
+   "A4",
+   "B2",
+   "B5",
+   "B6",
+   "D4",
    "D7",
+   "D8",
+   "E3",
    "G6",
    "G7",
+   "I10",
    "I9",
-   "K5"
+   "J5",
+   "K5",
+   "L5",
+   "O1"
   ],
   "unresolved": [],
   "tally": {
-   "carried_as_supporting_authority_only": 6,
-   "represented_as_bound_prose": 12,
-   "represented_in_typed_structure": 60,
+   "carried_as_supporting_authority_only": 17,
+   "represented_as_bound_prose": 17,
+   "represented_by_typed_structure_and_bound_prose": 8,
+   "represented_in_typed_structure": 36,
    "unresolved": 0
   },
-  "not_claimed_by_this": "that the typed representation of any obligation is complete, adequate for adjudication, or accepted. Bucketing states which vocabulary carries a clause, not that the clause is finished."
+  "worked_cases": {
+   "N2 (action.study/study_areas)": "prose only. The component is PROSE_BOUND and holds no fact and no option; the entry's table is governing guidance plus supporting example rows. One P span, thirteen C spans, zero typed carriage.",
+   "O1 (action.utilize/utilize_action)": "supporting only. Every span is closure text (C). The component's two facts state O2, not O1, and an obligation does not acquire a sibling clause's facts by sharing a component with it.",
+   "B7, N1 and six others": "both. A typed fact states part of the clause and a prose binding carries the rest at its own extent - reported as its own bucket, not as typed.",
+   "K2, K3, K4 (action.magic)": "typed. K2 is an `A` span - magic_long_casting's own SPELL_CASTING_TIME applicability, where the gate IS the mechanic - plus an `F` span for the recurring Magic action; K3 is an `F` span; K4 is a `Q` span and two `F` spans. A component-level claim counts as typed carriage only because `A` means the component itself holds a typed structure - an applicability or an option set - which this run asserts for every `A` row. `C`, which means the component merely owns some text, does not count."
+  },
+  "not_claimed_by_this": "that the typed representation of any obligation is complete, adequate for adjudication, reviewed, or accepted. Bucketing states which vocabulary carries a clause, not that the clause is finished."
  },
  "semantic_diff_from_the_reviewed_schema_6_proposal": {
   "against": "issue-5d-actions-1-schema6-PROPOSAL.json (reviewed, retained)",

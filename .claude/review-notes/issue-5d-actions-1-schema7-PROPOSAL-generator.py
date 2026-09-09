@@ -1813,47 +1813,109 @@ assert not _open_obligations, f"obligations with no span: {_open_obligations}"
 _unknown = sorted(set(obligation_spans) - set(OBLIGATION_IDS))
 assert not _unknown, f"spans naming an obligation the ledger does not have: {_unknown}"
 
-# --- What "discharged" actually means, split three ways ---------------------
+# --- What "discharged" actually means, classified by carriage ---------------
 #
 # "All 78 discharged" is true and, on its own, misleading: it counts an
 # obligation whose text was cut and handed to a supporting-authority span
-# exactly the same as one whose mechanic entered the typed vocabulary. The
-# three buckets below are disjoint, cover all 78, and are derived from the
-# emitted audit rows rather than declared.
+# exactly the same as one whose mechanic entered the typed vocabulary.
+#
+# The basis is CARRIAGE, not ownership. An earlier cut of this section keyed on
+# `claimant_kind`, which reports WHICH element a span belongs to and not WHAT
+# the span contributes - and `claimant_kind == "component"` covers both the `A`
+# segments, where a component's own typed `Applicability` is the mechanic, and
+# the `C` segments, which are supporting text a component merely owns. Keying
+# on ownership therefore let a clause inherit a sibling clause's facts:
+# action.study/study_areas (N2) is PROSE_BOUND and holds no fact at all, and
+# action.utilize/utilize_action's facts state O2 while O1 is closure text, yet
+# both scored as typed. The fix is one substitution - classify each row by the
+# emission kind that produced it - not a list of exceptions.
+#
+#   F  a typed fact                     -> typed carriage
+#   A  a component's own typed claim      -> typed carriage (legitimate: the
+#                                           component itself holds the mechanic
+#                                           - an Applicability gate, as in Magic
+#                                           K2, or an option set no single
+#                                           option can state, as in Attack B3)
+#   Q  a typed fact qualifier            -> typed carriage
+#   P  a prose binding                   -> prose carriage
+#   R C X  supporting authority          -> neither
+#   U  unresolved                        -> neither
+#
+# An obligation carried BOTH ways gets its own bucket rather than being
+# rounded up into "typed": B7 and N1 each state a typed fact and hand a
+# further clause to a prose binding, and reporting them as typed would claim
+# for the typed vocabulary work that prose is doing.
 _rows_for = {
     oid: [a for a in audit if a["obligation"] == oid] for oid in OBLIGATION_IDS
 }
-_TYPED = {"fact", "component", "fact_qualifier"}
+_TYPED_KINDS = {"F", "A", "Q"}
+
+
+def _carriage(rows: list[dict]) -> tuple[bool, bool, bool]:
+    """(typed, prose, unresolved) - what actually carries this obligation."""
+    return (
+        any(r["kind"] in _TYPED_KINDS for r in rows),
+        any(r["kind"] == "P" for r in rows),
+        any(r["kind"] == "U" for r in rows),
+    )
 
 
 def _bucket(rows: list[dict]) -> str:
-    if any(r["disposition"] == "unresolved" for r in rows):
+    typed, prose, unresolved = _carriage(rows)
+    if unresolved:
         return "unresolved"
-    if any(r["claimant_kind"] in _TYPED for r in rows):
+    if typed and prose:
+        return "represented_by_typed_structure_and_bound_prose"
+    if typed:
         return "represented_in_typed_structure"
-    if any(r["claimant_kind"] == "prose_binding" for r in rows):
+    if prose:
         return "represented_as_bound_prose"
     return "carried_as_supporting_authority_only"
 
+
+#: Every `A` row must really name a component that holds a typed claim of its
+#: own - an applicability gate or an option set - or the kind above is not the
+#: carriage it says it is. This is what separates `A` from `C`, which names a
+#: component only to say who owns some supporting text.
+for _a_row in (r for r in audit if r["kind"] == "A"):
+    _rk, _, _ck = _a_row["claimant"].partition("/")
+    _spec = COMPONENTS[(_rk, _ck)]
+    assert _spec.get("applies_when") or _spec.get("options"), _a_row
 
 _buckets: dict[str, list[str]] = defaultdict(list)
 for _oid in OBLIGATION_IDS:
     _buckets[_bucket(_rows_for[_oid])].append(_oid)
 
 OBLIGATION_ACCOUNTING = {
+    "basis": (
+        "the emission kind of each span the obligation owns - what the span "
+        "CARRIES - not the element the span belongs to. `claimant_kind` answers "
+        "a different question (which element owns this text) and cannot "
+        "distinguish a component's own typed Applicability from supporting text "
+        "that same component merely owns."
+    ),
     "what_these_mean": (
         "ACCOUNTED FOR is the weakest claim: the obligation's text lies inside "
         "the run-time partition and is claimed by some element, so nothing was "
-        "dropped. REPRESENTED is stronger and is split in two, because a "
-        "mechanic carried by a typed fact/component/qualifier and a mechanic "
-        "carried by a prose binding are not the same achievement. CARRIED AS "
-        "SUPPORTING AUTHORITY ONLY means the text was read and preserved but "
-        "states no mechanic of its own. UNRESOLVED means read and deliberately "
-        "not classified. The four buckets are disjoint and sum to the ledger."
+        "dropped. It is not a representation claim. REPRESENTED IN TYPED "
+        "STRUCTURE means at least one span of this obligation is a fact (F), a "
+        "component's own applicability (A) or a fact qualifier (Q). REPRESENTED "
+        "AS BOUND PROSE means its meaning is carried by a prose binding (P) and "
+        "by no typed structure. REPRESENTED BY BOTH is reported separately "
+        "rather than rounded up, because part of such a clause is prose and "
+        "saying otherwise would credit the typed vocabulary with prose's work. "
+        "CARRIED AS SUPPORTING AUTHORITY ONLY means the text was read and "
+        "preserved (R/C/X) but states no mechanic of its own - it may sit on a "
+        "component whose facts state a DIFFERENT obligation, and it does not "
+        "inherit them. UNRESOLVED means read and deliberately not classified. "
+        "The five buckets are disjoint and sum to the ledger."
     ),
     "accounted_for": len(OBLIGATION_IDS),
     "represented_in_typed_structure": sorted(
         _buckets["represented_in_typed_structure"]
+    ),
+    "represented_by_typed_structure_and_bound_prose": sorted(
+        _buckets["represented_by_typed_structure_and_bound_prose"]
     ),
     "represented_as_bound_prose": sorted(_buckets["represented_as_bound_prose"]),
     "carried_as_supporting_authority_only": sorted(
@@ -1861,17 +1923,60 @@ OBLIGATION_ACCOUNTING = {
     ),
     "unresolved": sorted(_buckets["unresolved"]),
     "tally": {k: len(v) for k, v in sorted(_buckets.items())},
+    "worked_cases": {
+        "N2 (action.study/study_areas)": (
+            "prose only. The component is PROSE_BOUND and holds no fact and no "
+            "option; the entry's table is governing guidance plus supporting "
+            "example rows. One P span, thirteen C spans, zero typed carriage."
+        ),
+        "O1 (action.utilize/utilize_action)": (
+            "supporting only. Every span is closure text (C). The component's "
+            "two facts state O2, not O1, and an obligation does not acquire a "
+            "sibling clause's facts by sharing a component with it."
+        ),
+        "B7, N1 and six others": (
+            "both. A typed fact states part of the clause and a prose binding "
+            "carries the rest at its own extent - reported as its own bucket, "
+            "not as typed."
+        ),
+        "K2, K3, K4 (action.magic)": (
+            "typed. K2 is an `A` span - magic_long_casting's own "
+            "SPELL_CASTING_TIME applicability, where the gate IS the mechanic - "
+            "plus an `F` span for the recurring Magic action; K3 is an `F` span; "
+            "K4 is a `Q` span and two `F` spans. A component-level claim counts "
+            "as typed carriage only because `A` means the component itself holds "
+            "a typed structure - an applicability or an option set - which this "
+            "run asserts for every `A` row. `C`, which means the component "
+            "merely owns some text, does not count."
+        ),
+    },
     "not_claimed_by_this": (
         "that the typed representation of any obligation is complete, adequate "
-        "for adjudication, or accepted. Bucketing states which vocabulary "
-        "carries a clause, not that the clause is finished."
+        "for adjudication, reviewed, or accepted. Bucketing states which "
+        "vocabulary carries a clause, not that the clause is finished."
     ),
 }
 assert sum(len(v) for v in _buckets.values()) == len(OBLIGATION_IDS), _buckets
-#: The schema-6 run put K2/K3/K4 here. Schema 7 empties the bucket.
+#: The schema-6 run put K2/K3/K4 in `unresolved`. Schema 7 empties the bucket.
 assert OBLIGATION_ACCOUNTING["unresolved"] == [], OBLIGATION_ACCOUNTING
-for _oid in ("K2", "K3", "K4"):
+#: The four cases that fix the basis, asserted rather than described. N2 and O1
+#: are the ones an ownership-keyed rule got wrong.
+for _oid in ("K2", "K3", "K4", "O2"):
     assert _bucket(_rows_for[_oid]) == "represented_in_typed_structure", _oid
+assert _bucket(_rows_for["N2"]) == "represented_as_bound_prose", _rows_for["N2"]
+assert _bucket(_rows_for["O1"]) == "carried_as_supporting_authority_only", _rows_for[
+    "O1"
+]
+for _oid in ("B7", "N1"):
+    assert (
+        _bucket(_rows_for[_oid]) == "represented_by_typed_structure_and_bound_prose"
+    ), _oid
+#: No obligation reaches a representation bucket on supporting text alone.
+for _oid, _b in ((o, _bucket(_rows_for[o])) for o in OBLIGATION_IDS):
+    if _b.startswith("represented"):
+        assert any(
+            r["kind"] in _TYPED_KINDS or r["kind"] == "P" for r in _rows_for[_oid]
+        ), _oid
 
 
 # --- Merged verification, exactly the shape acceptance would validate -------
@@ -3218,7 +3323,7 @@ DISCLOSED_LIMITS = [
 # not omitted.
 EVIDENCE_CLASSES = [
     {
-        "class": "real source-prose resolution",
+        "class": "source extraction and partition reconstruction",
         "executed_here": True,
         "what_it_is": (
             "the committed PDF is re-derived through the 5c pipeline, and every "
@@ -3236,6 +3341,32 @@ EVIDENCE_CLASSES = [
             "strong for coverage and for span boundaries. It says nothing about "
             "whether the meaning assigned to a span is right - that is what "
             "semantic review is for."
+        ),
+        "distinct_from": (
+            "consumer prose resolution, below. This class shows the SOURCE was "
+            "cut faithfully; it does not show a reader of the authority gets "
+            "that text back."
+        ),
+    },
+    {
+        "class": "consumer prose resolution",
+        "executed_here": "partially",
+        "what_it_is": (
+            "the governing-prose entries `_base_records` attaches to a "
+            "component are read back and their extents compared - which arm of "
+            "Help each binding governs, that Influence's hesitancy gate is "
+            "carried by prose at its own extent."
+        ),
+        "where": [
+            "consumer_boundary_proofs.help_qualified_next_roll",
+            "consumer_boundary_proofs.influence_hesitancy_gate",
+        ],
+        "strength": (
+            "what DID run: the projection's `SourceProse` entries and their span "
+            "ids, with text taken from THIS RUN's own span map. What did NOT "
+            "run: resolution through the GameMaster view, which reads the "
+            "authoritative RuleChunk by chunk id from storage. So the binding's "
+            "SCOPE is evidenced here and its delivered TEXT is not."
         ),
     },
     {
@@ -3321,23 +3452,39 @@ EVIDENCE_CLASSES = [
         ),
     },
     {
+        "class": "acceptance",
+        "executed_here": False,
+        "why_not": (
+            "acceptance is an Owner step that merges a proposal into accepted "
+            "authority and records the decision. This run reproduces the MERGE "
+            "in memory so it can validate the same shape acceptance would - and "
+            "accepts nothing, writes nothing, and records no decision. The "
+            "accepted oracle is read as a read-only sentinel and asserted "
+            "unchanged."
+        ),
+    },
+    {
         "class": "publication-gate execution",
         "executed_here": False,
         "why_not": (
-            "the publication gate runs over a persisted projection during "
-            "acceptance. This run accepts nothing, persists nothing and touches "
-            "no database, so it neither passes nor fails that gate - its verdict "
-            "on this batch is UNKNOWN here, not favourable. The schema-6 run "
-            "reported a gate outcome for the S-1 residue; with S-1 closed there "
-            "is no such residue to report, and no gate result is invented in its "
-            "place."
+            "a SEPARATE check from acceptance, and downstream of it: the gate "
+            "runs over a PERSISTED projection. This run persists nothing and "
+            "touches no database, so it neither passes nor fails that gate - its "
+            "verdict on this batch is UNKNOWN here, not favourable. The schema-6 "
+            "run reported a gate outcome for the S-1 residue; with S-1 closed "
+            "there is no such residue to report, and no gate result is invented "
+            "in its place."
         ),
     },
 ]
-assert [e["class"] for e in EVIDENCE_CLASSES if not e["executed_here"]] == [
+assert [e["class"] for e in EVIDENCE_CLASSES if e["executed_here"] is False] == [
     "illustrative counterexample",
     "stored-threshold reconstruction",
+    "acceptance",
     "publication-gate execution",
+], EVIDENCE_CLASSES
+assert [e["class"] for e in EVIDENCE_CLASSES if e["executed_here"] == "partially"] == [
+    "consumer prose resolution"
 ], EVIDENCE_CLASSES
 
 # ---------------------------------------------------------------------------
@@ -3975,14 +4122,15 @@ print(f"  components + {SEMANTIC_DIFF['components_added']}")
 print(f"  facts      + {SEMANTIC_DIFF['facts_added']}")
 print(f"  gates      + {SEMANTIC_DIFF['gates_added']}")
 print(f"  spans        {SEMANTIC_DIFF['span_dispositions']}")
-print(
-    "evidence       executed="
-    + str([e["class"] for e in EVIDENCE_CLASSES if e["executed_here"]])
-)
-print(
-    "               NOT executed="
-    + str([e["class"] for e in EVIDENCE_CLASSES if not e["executed_here"]])
-)
+for _label, _want in (
+    ("evidence  run", True),
+    ("  partial   ", "partially"),
+    ("  NOT run   ", False),
+):
+    print(
+        f"{_label} "
+        + str([e["class"] for e in EVIDENCE_CLASSES if e["executed_here"] == _want])
+    )
 print(
     f"consumer proof dash={DASH_PROOF['movement_allowances_reachable_in_one_dash']} "
     f"allowance | eligibility={ELIGIBILITY_PROOF['admitted_pairs']}"

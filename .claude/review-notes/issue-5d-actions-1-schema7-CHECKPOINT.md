@@ -8,7 +8,7 @@ activated, retired, pushed or merged. Branch `feature/issue-5d-actions-1`.
 | Artifact | sha256 |
 | --- | --- |
 | `issue-5d-actions-1-schema7-PROPOSAL.json` | `e08759e7202793a3fa61b6589f21eb68f1b0fdbb3e39743129918837b2633c03` |
-| `issue-5d-actions-1-schema7-audit.json` | `0824439031e895f6e8b2b54788baed1e982fc19e5596a0dbaab85cbf34761c9b` |
+| `issue-5d-actions-1-schema7-audit.json` | `a087c17e90271a4a94582cce117b4a3fe521c04559485d6ad85aa6a8e1bbeb72` |
 
 * Proposal identity `62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c`
   — not pinned in advance; this is a fresh proposal, and the value is reported
@@ -114,13 +114,15 @@ which did **not** run:
 
 | Class | Executed here |
 | --- | --- |
-| real source-prose resolution (byte-exact leaf partitions from the bound PDF) | **yes** |
+| source extraction and partition reconstruction (byte-exact leaf partitions from the bound PDF) | **yes** |
 | structural validation (draft/held shape, component rules, reason codes, schema binding, standalone + merged `validate_representation`, wire round trip, 5→6→7 lift verified element by element) | **yes** |
 | consumer projection assertion (`_base_records`, in memory) | **yes** |
+| consumer prose resolution (which arm of Help a binding governs; Influence's hesitancy extent) | **partly** — the projection's `SourceProse` entries and span ids are read back, but the text is this run's own span map. Resolution through the GameMaster view, which fetches the authoritative `RuleChunk` by id from storage, did not run: the binding's **scope** is evidenced, its **delivered text** is not |
 | executed comparison on constructed operands (`casting_time_meets` against the published gate) | **yes**, but they are hand-written operands — this generator reads no spell table |
 | illustrative counterexample (what an ungated publication *would* have asserted) | **no** — reasoning, named `counterexample`/`illustrative` so it cannot pass for a check |
 | stored-threshold reconstruction | **no** — needs a database. The threshold is never persisted and read back. The in-memory wire round trip is the nearest thing that ran and is strictly weaker |
-| publication-gate execution | **no** — it runs over a persisted projection during acceptance. Its verdict on this batch is **unknown** here, not favourable |
+| acceptance | **no** — an Owner step that merges a proposal into accepted authority and records the decision. This run reproduces the *merge* in memory to validate shape; it accepts nothing, writes nothing, records nothing |
+| publication-gate execution | **no** — a separate check, downstream of acceptance, over a **persisted** projection. Nothing is persisted here, so its verdict on this batch is **unknown**, not favourable |
 
 The schema-6 report printed a publication-gate outcome for the S-1 residue.
 With S-1 closed there is no such residue, so no gate result is printed and none
@@ -129,14 +131,39 @@ decorate the file.
 
 **Obligations** are no longer reported as a flat "78 discharged", which counted
 a clause handed to a supporting-authority span the same as one that entered the
-typed vocabulary. Four disjoint buckets, derived from the emitted audit rows:
+typed vocabulary. Five disjoint buckets, derived from the emitted audit rows:
 
 * accounted for: **78** (weakest claim — the text is inside the partition and
-  claimed by some element)
-* represented in a typed structure: **60**
-* represented as bound prose: **12**
-* carried as supporting authority only: **6**
-* unresolved: **0** (asserted empty; K2/K3/K4 each asserted typed)
+  claimed by some element; not a representation claim)
+* represented in a typed structure: **36**
+* represented by typed structure **and** bound prose: **8**
+* represented as bound prose: **17**
+* carried as supporting authority only: **17**
+* unresolved: **0** (asserted empty)
+
+The basis is **carriage**, not ownership. An earlier cut keyed on
+`claimant_kind`, which answers *which element owns this text* — and
+`claimant_kind == "component"` covers both `A` segments, where a component's own
+typed structure is the mechanic, and `C` segments, which are supporting text a
+component merely owns. That let a clause inherit a sibling's facts and reported
+60/12/6. Classification now keys on the **emission kind**: `F`/`A`/`Q` typed,
+`P` prose, `R`/`C`/`X` supporting, `U` unresolved. `A` is admitted as typed only
+because it means the component itself holds an `Applicability` or an option set,
+which the run asserts for **every** `A` row.
+
+Four cases are asserted rather than described, and they are the ones the old
+basis got wrong:
+
+| Obligation | Rows | Bucket |
+| --- | --- | --- |
+| **N2** `action.study/study_areas` | 1 × `P`, 13 × `C` | prose only — the component is `PROSE_BOUND` with no fact and no option; the table is governing guidance plus supporting examples |
+| **O1** `action.utilize/utilize_action` | 1 × `C` | supporting only — the component's two facts state **O2**, and O1 does not acquire them by sharing a component |
+| **N1**, **B7** | `F`+`P` / `C`+`P`+`F` | both — a typed fact states part, a prose binding carries the rest |
+| **K2**, **K3**, **K4** `action.magic` | `A`+`F` / `F` / `Q`+`F`+`F` | typed — K2's `A` span is `magic_long_casting`'s own casting-time gate |
+
+**O2** is asserted typed alongside O1 to show the two clauses of the shared
+component separate correctly, and no obligation reaches a `represented_*` bucket
+on supporting text alone.
 
 `publishability` also gained an explicit `state: "proposed"` and a
 `what_closing_s_1_did_not_do` field, and `review_disposition` now separates
