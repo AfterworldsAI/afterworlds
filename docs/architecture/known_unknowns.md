@@ -401,14 +401,15 @@ one applicability kind, `SPELL_CASTING_TIME`, over one closed value object, `Cas
 
 New residue recorded with the mint, and open:
 
-* **No conversion constant between printed time units.** `casting_time_meets` ranks unit *names* —
-  `SECOND < ROUND < TURN < MINUTE < HOUR < DAY` — and compares amounts only *within* a unit. A casting
-  time printed in a unit shorter than the threshold's therefore never meets it, whatever its amount,
-  including a hundred rounds against a one-minute threshold. That is deliberately under-inclusive rather
-  than a modelled equivalence: declaring `1 minute = 10 rounds` would state a conversion the SRD's
-  casting-time descriptors never print, and the corpus contains no casting time in seconds or rounds, so
-  nothing is currently reached by the refusal. Revisit when a batch forces a cross-unit comparison — at
-  which point the question is where the conversion is *stated*, not how to compute it.
+* **A round and a turn have no length this layer may read.** `casting_time_meets` compares two stated
+  durations by magnitude across the calendar units whose length is fixed — second, minute, hour, day —
+  so cross-unit comparisons are ordinary arithmetic and are *not* an open question. `ROUND` and `TURN`
+  are slices of the initiative cycle, and no printed casting-time descriptor states how long one lasts.
+  Rather than assign a guessed length or answer `False` — which would report the substantive
+  *"this rule does not reach that spell"* for a comparison never made — the comparison **raises**
+  `UncomparableCastingTimeError`. The corpus prints no casting time in rounds or turns, so nothing is
+  currently reached by the refusal. Revisit when a batch forces one — at which point the question is
+  where a round's length is *stated*, not how to compute with it.
 * **A component carries exactly one `applies_when`.** Where two components of one record sit inside the
   same printed condition, the second restates it, and its evidence edge on the shared span is
   `CONTEXTUAL` because there is no position for a condition two components share. This is a structural

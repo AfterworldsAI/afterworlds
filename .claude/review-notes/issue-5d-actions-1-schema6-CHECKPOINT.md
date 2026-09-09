@@ -459,10 +459,12 @@ artifact still declares schema 5 and now reaches schema 7 across
 
 Two intrinsic invariants are declared inside schema identity: an amount below 1
 states no duration, and `ROUND`/`TURN` are cadences of the initiative cycle rather
-than units a casting time is printed in. `casting_time_meets` ranks unit *names* and
-declares **no conversion constant**, so a shorter printed unit never meets the
-threshold at any amount. That limitation is declared, not discovered, and recorded
-in `known_unknowns.md`.
+than units a casting time is printed in. `casting_time_meets` compares the two stated
+durations by **magnitude**, through the fixed calendar lengths of second, minute, hour
+and day, and **raises** on a round or a turn, whose length nothing printed states.
+(See 15.5: the first shape of that helper ranked unit *names* and dropped the
+amounts.) The refusal is declared, not discovered, and recorded in
+`known_unknowns.md`.
 
 ### 15.2 Why applicability rather than a fact
 
@@ -534,3 +536,42 @@ deferred** in `known_unknowns.md` rather than discharged.
 Nothing is accepted, published, activated, retired, pushed or merged by this
 amendment. The five pending cross-batch references, both batch anchors and the frozen
 prior are unchanged.
+
+### 15.5 Correction — `casting_time_meets` compared unit names, not durations
+
+Independent schema review found one P1 correctness family in the helper shipped with
+the mint, and reproduced it on validated, admitted values: the comparison ranked the
+unit *names* and dropped both amounts whenever the units differed. A 120-minute
+threshold was met by a 1-hour casting (over-inclusive); a 1-hour threshold was not
+met by a 120-minute casting, and a 1-minute threshold was not met by a 60-second one
+(under-inclusive). The new shorter-unit test and the ADR / Known Unknown / 15.1
+language had each institutionalized the error as a declared limitation.
+
+Corrected: both sides are reduced through the fixed calendar length of their unit —
+second 1, minute 60, hour 3600, day 86400 — and compared as durations. Those lengths
+are properties of the calendar words, not quantities read out of the corpus, so no
+source coordinate is being invented.
+
+The unsupported forms are now refused rather than answered. `ROUND` and `TURN` are
+slices of the initiative cycle and no printed descriptor states how long one lasts;
+`casting_time_meets` raises `UncomparableCastingTimeError` on either side rather than
+returning `False`, because `False` is the substantive answer *"this rule does not
+reach that spell"*. No fixed duration is inferred for a turn.
+
+Three things this correction does **not** change. Schema identity is untouched —
+`representation_schema_hash()` still equals the schema-7 pin
+`80e853ef…ade6f43d`, because `_THRESHOLD_UNITS` still holds exactly
+`{second, minute, hour, day}` and both invariant-manifest rows read as before; the
+registered succession, the frozen prior and every accepted collection are unaffected.
+The cost arm still returns `False`, and that remains an answer rather than a gap: an
+Action, Bonus Action or Reaction casting prints no amount and no unit, so it states
+no duration for a duration threshold to reach. And the general eligibility deferral
+in `known_unknowns.md` stands — `SPELL_CASTING_TIME` still rests on one instance in
+one record.
+
+Regression evidence is in `test_schema_7_casting_time_gate.py`: twelve magnitude
+cases covering the three reproduced counterexamples, equality in both directions
+across minute/hour and hour/day, a shorter unit that genuinely falls short, and the
+same-unit boundary at and either side; four refusal cases covering rounds and turns
+on the casting-time side and a cadence threshold on the other; and the three
+immediate-cost cases unchanged. 57 tests in the module.

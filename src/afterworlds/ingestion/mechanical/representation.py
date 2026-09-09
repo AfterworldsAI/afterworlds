@@ -255,6 +255,7 @@ __all__ = [
     "RepresentationDraft",
     # Errors and helpers
     "MalformedFactPayloadError",
+    "UncomparableCastingTimeError",
     "UnknownFactFamilyError",
     "UnsupportedRepresentationShapeError",
     "fact_from_payload",
@@ -1518,34 +1519,31 @@ class SpellCastingTime:
     unit: TimeUnit | None = None
 
 
-#: The printed time units, ranked by the magnitude of the unit itself.
+#: How long each printed calendar unit lasts, in seconds.
 #:
-#: An ordering of the words, carrying **no conversion constant**: it can answer
-#: "is an hour longer than a minute" and never "how many minutes are in an
-#: hour". That is the whole of what :func:`casting_time_meets` needs, and
-#: minting a seconds-per-round or minutes-per-hour value here would record a
-#: quantity the bound source never printed at this coordinate.
+#: Only the units the calendar itself fixes: sixty seconds in a minute, sixty
+#: minutes in an hour, twenty-four hours in a day. These are properties of the
+#: words, not rulings about the corpus, and they are what lets
+#: :func:`casting_time_meets` compare two stated durations by magnitude instead
+#: of by the rank of a unit's name.
 #:
-#: ``ROUND`` and ``TURN`` are slices of the initiative cycle and rank below a
-#: minute. :class:`CastingTimeThreshold` refuses them as a threshold unit — the
-#: source states its thresholds in calendar units — so they can appear only on
-#: the casting-time side, where being strictly shorter is the whole answer.
-_TIME_UNIT_ORDER: tuple[TimeUnit, ...] = (
-    TimeUnit.SECOND,
-    TimeUnit.ROUND,
-    TimeUnit.TURN,
-    TimeUnit.MINUTE,
-    TimeUnit.HOUR,
-    TimeUnit.DAY,
-)
+#: ``ROUND`` and ``TURN`` are slices of the initiative cycle whose length no
+#: printed casting time states, so they are absent rather than assigned a
+#: guessed one. :class:`CastingTimeThreshold` refuses them as a threshold unit,
+#: and :func:`casting_time_meets` refuses them explicitly on the casting-time
+#: side rather than answering a comparison it cannot make.
+_CALENDAR_SECONDS: Mapping[TimeUnit, int] = {
+    TimeUnit.SECOND: 1,
+    TimeUnit.MINUTE: 60,
+    TimeUnit.HOUR: 60 * 60,
+    TimeUnit.DAY: 24 * 60 * 60,
+}
 
-#: The units a threshold may be stated in: the calendar units, and never a
-#: cadence of the initiative cycle. Keyed as its own set rather than written
-#: inside the checker so the refusal is auditable beside the ordering it
-#: depends on.
-_THRESHOLD_UNITS: frozenset[TimeUnit] = frozenset(_TIME_UNIT_ORDER) - frozenset(
-    {TimeUnit.ROUND, TimeUnit.TURN}
-)
+#: The units a threshold may be stated in: exactly those with a fixed length,
+#: and never a cadence of the initiative cycle. Derived from the conversion
+#: table so no unit can be admitted as a threshold without a length to compare
+#: it by.
+_THRESHOLD_UNITS: frozenset[TimeUnit] = frozenset(_CALENDAR_SECONDS)
 
 
 @dataclass(frozen=True)
@@ -1575,18 +1573,29 @@ class CastingTimeThreshold:
     arm — so there is nothing for an amount threshold to meet and no comparison
     that could be got wrong.
 
-    **What it cannot answer, stated rather than guessed.** With no conversion
-    constant (see :data:`_TIME_UNIT_ORDER`), a casting time printed in a unit
-    *shorter* than the threshold's never meets it, whatever its amount. No SRD
-    casting time is printed in seconds, so nothing in the corpus is reached by
-    that refusal; a batch that forces one is a schema question rather than an
-    arithmetic one, and is recorded in ``known_unknowns.md``.
+    **What it cannot answer, refused rather than guessed.** A round and a turn
+    state no fixed length (see :data:`_CALENDAR_SECONDS`), so a casting time
+    printed in one cannot be compared against a threshold at all:
+    :func:`casting_time_meets` raises rather than returning an answer. Every
+    other printed unit is compared by magnitude. No SRD casting time is printed
+    in rounds or turns, so nothing in the corpus is reached by that refusal; a
+    batch that forces one is a schema question rather than an arithmetic one,
+    and is recorded in ``known_unknowns.md``.
     """
 
     #: At least this many of :attr:`at_least_unit`. Never below one: a
     #: threshold of zero reaches every timed casting and states nothing.
     at_least_amount: int
     at_least_unit: TimeUnit
+
+
+class UncomparableCastingTimeError(ValueError):
+    """Raised when a stated casting time has no length to compare.
+
+    Fail loudly, deliberately. ``False`` is a substantive answer — *"this rule
+    does not reach that spell"* — and returning it for a comparison that was
+    never made would put a wrong eligibility decision behind a plain Boolean.
+    """
 
 
 def casting_time_meets(
@@ -1598,18 +1607,34 @@ def casting_time_meets(
     Decision 4 permits; there is no expression to interpret, no operator to
     select, and nothing here is authored in the projection.
 
-    Answers only what :data:`_TIME_UNIT_ORDER` can support: a strictly longer
-    unit meets the threshold at any amount, the same unit is compared by
-    amount, and a strictly shorter unit does not meet it. The cost arm meets
-    nothing, because it states no amount to compare.
+    Both sides are reduced to seconds through :data:`_CALENDAR_SECONDS`, so the
+    comparison respects the magnitude of the stated duration rather than the
+    rank of the unit's name: 60 seconds meets a 1-minute threshold, 1 hour does
+    not meet a 120-minute one, and 120 minutes meets a 1-hour one.
+
+    The cost arm returns ``False``, and that is an answer rather than a gap: a
+    spell cast as an Action, a Bonus Action or a Reaction prints no amount and
+    no unit, so it states no duration for a duration threshold to reach.
+
+    A round or a turn on either side raises
+    :class:`UncomparableCastingTimeError`, because their length is not fixed by
+    anything this module may read.
     """
     if casting_time.amount is None or casting_time.unit is None:
         return False
-    printed = _TIME_UNIT_ORDER.index(casting_time.unit)
-    least = _TIME_UNIT_ORDER.index(threshold.at_least_unit)
-    if printed != least:
-        return printed > least
-    return casting_time.amount >= threshold.at_least_amount
+    if (
+        casting_time.unit not in _CALENDAR_SECONDS
+        or threshold.at_least_unit not in _CALENDAR_SECONDS
+    ):
+        raise UncomparableCastingTimeError(
+            f"a casting time of {casting_time.amount} "
+            f"{casting_time.unit.value} cannot be compared against a threshold "
+            f"of {threshold.at_least_amount} {threshold.at_least_unit.value}: "
+            "a round and a turn state no fixed length"
+        )
+    return casting_time.amount * _CALENDAR_SECONDS[casting_time.unit] >= (
+        threshold.at_least_amount * _CALENDAR_SECONDS[threshold.at_least_unit]
+    )
 
 
 @dataclass(frozen=True)

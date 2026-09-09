@@ -46,11 +46,13 @@ of that decision:
   ``test_schema_6_ready_source_provenance`` records: one chunk per whole leaf,
   which is the shape the production projection has, with identifiers that are
   not the release's own.
-* :func:`casting_time_meets` answers only what a unit *ordering* can support. A
-  casting time printed in a unit shorter than the threshold's never meets it,
-  whatever its amount, because no conversion constant is declared. No SRD
-  casting time is printed in seconds or rounds, so nothing in the corpus is
-  reached by that refusal; the residue is recorded in ``known_unknowns.md``.
+* :func:`casting_time_meets` compares the two stated durations by magnitude,
+  across the calendar units whose length is fixed (second, minute, hour, day).
+  A round or a turn has no fixed length, so it is **refused** — the function
+  raises rather than returning ``False``, which would claim a comparison it
+  never made. No SRD casting time is printed in rounds or turns, so nothing in
+  the corpus is reached by that refusal; the residue is recorded in
+  ``known_unknowns.md``.
 """
 
 from __future__ import annotations
@@ -109,6 +111,7 @@ from afterworlds.ingestion.mechanical.representation import (
     SustainedStateRequirementFact,
     TerminationScope,
     TimeUnit,
+    UncomparableCastingTimeError,
     applicability_violations,
     build_casting_time_threshold,
     casting_time_meets,
@@ -481,24 +484,93 @@ def test_an_immediate_casting_does_not_satisfy_a_timed_threshold(
 
 
 @pytest.mark.parametrize(
-    "printed",
+    ("least", "printed", "expected"),
     [
-        SpellCastingTime(amount=6, unit=TimeUnit.SECOND),
-        SpellCastingTime(amount=1, unit=TimeUnit.ROUND),
-        SpellCastingTime(amount=100, unit=TimeUnit.ROUND),
+        # The three counterexamples the schema review reproduced against a
+        # comparison that ranked unit *names* and dropped the amounts.
+        ((120, TimeUnit.MINUTE), (1, TimeUnit.HOUR), False),
+        ((1, TimeUnit.HOUR), (120, TimeUnit.MINUTE), True),
+        ((1, TimeUnit.MINUTE), (60, TimeUnit.SECOND), True),
+        # Equality across calendar units, in both directions.
+        ((1, TimeUnit.HOUR), (60, TimeUnit.MINUTE), True),
+        ((60, TimeUnit.MINUTE), (1, TimeUnit.HOUR), True),
+        ((1, TimeUnit.DAY), (24, TimeUnit.HOUR), True),
+        ((24, TimeUnit.HOUR), (1, TimeUnit.DAY), True),
+        # A shorter unit that genuinely falls short, and the boundary beside it.
+        ((1, TimeUnit.MINUTE), (59, TimeUnit.SECOND), False),
+        ((1, TimeUnit.HOUR), (59, TimeUnit.MINUTE), False),
+        # Same unit, at and either side of the boundary.
+        ((10, TimeUnit.MINUTE), (9, TimeUnit.MINUTE), False),
+        ((10, TimeUnit.MINUTE), (10, TimeUnit.MINUTE), True),
+        ((10, TimeUnit.MINUTE), (11, TimeUnit.MINUTE), True),
     ],
-    ids=["six-seconds", "one-round", "a-hundred-rounds"],
+    ids=[
+        "two-hours-stated-in-minutes-vs-one-hour",
+        "one-hour-vs-two-hours-stated-in-minutes",
+        "one-minute-vs-sixty-seconds",
+        "an-hour-equals-sixty-minutes",
+        "sixty-minutes-equals-an-hour",
+        "a-day-equals-twenty-four-hours",
+        "twenty-four-hours-equals-a-day",
+        "fifty-nine-seconds-falls-short",
+        "fifty-nine-minutes-falls-short",
+        "same-unit-below",
+        "same-unit-at",
+        "same-unit-above",
+    ],
 )
-def test_a_shorter_unit_never_meets_the_threshold(printed: SpellCastingTime) -> None:
-    """The declared limitation, asserted rather than left to be discovered.
+def test_a_casting_time_is_compared_by_magnitude_not_by_the_rank_of_its_unit(
+    least: tuple[int, TimeUnit],
+    printed: tuple[int, TimeUnit],
+    expected: bool,
+) -> None:
+    """The correction: two stated durations, reduced to one scale.
 
-    No conversion constant is declared, so a shorter unit is refused at any
-    amount — including the hundred rounds that would exceed a minute in play.
-    Nothing in the SRD prints a casting time in seconds or rounds, so nothing
-    in the corpus is reached by this; a batch that forces one is a schema
-    question, and it is recorded as one.
+    The first shape of this comparison ranked the unit *names* and dropped both
+    amounts whenever the units differed, which was over-inclusive one way (a
+    1-hour casting satisfied a 120-minute threshold) and under-inclusive the
+    other (a 60-second casting failed a 1-minute one). Second, minute, hour and
+    day have lengths the calendar fixes, so all of these are arithmetic and
+    none of them is a ruling about the corpus.
     """
-    assert not casting_time_meets(THRESHOLD, printed)
+    threshold = CastingTimeThreshold(at_least_amount=least[0], at_least_unit=least[1])
+    assert (
+        casting_time_meets(
+            threshold, SpellCastingTime(amount=printed[0], unit=printed[1])
+        )
+        is expected
+    )
+
+
+@pytest.mark.parametrize(
+    ("least", "printed"),
+    [
+        ((1, TimeUnit.MINUTE), SpellCastingTime(amount=1, unit=TimeUnit.ROUND)),
+        ((1, TimeUnit.MINUTE), SpellCastingTime(amount=100, unit=TimeUnit.ROUND)),
+        ((1, TimeUnit.MINUTE), SpellCastingTime(amount=1, unit=TimeUnit.TURN)),
+        # The threshold side too, reached only by a threshold the intrinsic
+        # check would refuse — the function does not rely on that check having
+        # run.
+        ((1, TimeUnit.ROUND), SpellCastingTime(amount=1, unit=TimeUnit.MINUTE)),
+    ],
+    ids=["one-round", "a-hundred-rounds", "one-turn", "a-cadence-threshold"],
+)
+def test_a_cadence_of_the_initiative_cycle_is_refused_not_answered(
+    least: tuple[int, TimeUnit], printed: SpellCastingTime
+) -> None:
+    """The supported forms end here, and the boundary is explicit.
+
+    A round and a turn are slices of the initiative cycle; no printed casting
+    time states how long one lasts, and this module may not decide it. So the
+    comparison refuses rather than returning ``False`` — ``False`` would say
+    *"this rule does not reach that spell"*, a substantive answer, for a
+    question that was never asked. Nothing in the SRD prints a casting time in
+    rounds or turns, so no corpus record reaches this; a batch that forces one
+    is a schema question, and it is recorded as one.
+    """
+    threshold = CastingTimeThreshold(at_least_amount=least[0], at_least_unit=least[1])
+    with pytest.raises(UncomparableCastingTimeError):
+        casting_time_meets(threshold, printed)
 
 
 def test_a_one_minute_spell_falls_outside_magic_k1_not_outside_the_action() -> None:

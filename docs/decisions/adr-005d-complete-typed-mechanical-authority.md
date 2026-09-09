@@ -327,10 +327,19 @@ decisions inside it are worth recording:
 Two intrinsic invariants are declared inside schema identity, so weakening either moves the hash and
 strands the registered lift: an amount below 1 states no duration and would reach every timed casting,
 and `ROUND`/`TURN` are cadences of the initiative cycle rather than units a casting time is printed in.
-`casting_time_meets` ranks unit *names* and declares **no conversion constant**, so a casting time
-printed in a unit shorter than the threshold's never meets it whatever its amount. That is an
-under-inclusive limitation, not a modelled equivalence; no SRD casting time is printed in seconds or
-rounds, so nothing in the corpus is reached by it, and the residue is recorded in `known_unknowns.md`.
+`casting_time_meets` compares the two **stated durations by magnitude**, reducing each through the
+fixed calendar length of its unit — second, minute, hour, day. A 120-minute threshold is therefore not
+met by a 1-hour casting, and a 1-minute threshold is met by a 60-second one. *(An earlier draft of this
+helper ranked the unit *names* and dropped both amounts whenever the units differed, which was
+over-inclusive in the first direction and under-inclusive in the second. Corrected before any
+acceptance; recorded here rather than silently replaced.)* A round and a turn are slices of the
+initiative cycle whose length no printed casting time states, so a casting time or threshold in either
+**raises** rather than answering — `False` is the substantive answer *"this rule does not reach that
+spell"*, and returning it for a comparison never made would hide a wrong eligibility decision behind a
+Boolean. That refusal is the boundary of the supported forms; no SRD casting time is printed in rounds
+or turns, so nothing in the corpus is reached by it, and the residue is recorded in
+`known_unknowns.md`. The conversion table is a property of the calendar words, not a ruling about the
+corpus, and the general eligibility question stays deferred.
 
 The schema-7 destination pin is
 `80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`. Schemas 4, 5 and 6 remain recognized
