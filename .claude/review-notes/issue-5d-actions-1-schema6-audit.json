@@ -1,6 +1,6 @@
 {
- "_": "CRD Issue 5d batch actions-1, representation schema 6. Proposal and audit only: nothing accepted, published, activated or retired. Zero validator findings would be necessary and insufficient - and this batch does not even have zero: it cites five records no accepted batch defines, so it is explicitly NOT publishable on its own.",
- "proposal_identity": "b7420dae2deea72d75991615cad397881da4929c0d80266a8a20737a8fb660f2",
+ "_": "CRD Issue 5d batch actions-1, representation schema 6. Proposal and audit only: nothing accepted, published, activated or retired. Zero validator findings would be necessary and insufficient - and this batch does not even have zero: it cites five records no accepted batch defines, and it leaves three spans UNRESOLVED at a named schema stop, so it is explicitly NOT publishable on its own.",
+ "proposal_identity": "debd95ace5ec6ef7ecadfc511e9859764a8bed943e9ed88a4db9d469ed7365f2",
  "identity_is_pinned": false,
  "superseded_predecessor": {
   "identity": "ff30c25a568836b3e44b60b692a713aa8da90cca3ffc8326fbc8adc0ff541bf0",
@@ -68,28 +68,28 @@
   "records": 13,
   "represented_leaves": 92,
   "policy_exclusions": 2,
-  "spans": 177,
+  "spans": 179,
   "substantive": 78,
-  "supporting_authority": 99,
+  "supporting_authority": 98,
   "non_mechanical": 0,
-  "unresolved": 0,
-  "components": 37,
-  "components_structured": 18,
+  "unresolved": 3,
+  "components": 35,
+  "components_structured": 16,
   "components_mixed": 10,
   "components_prose_bound": 9,
   "components_with_options": 4,
   "options": 10,
-  "facts": 47,
-  "component_grain_facts": 34,
+  "facts": 44,
+  "component_grain_facts": 31,
   "option_grain_facts": 13,
   "fact_qualifiers": 2,
-  "prose_bindings": 24,
-  "option_grain_prose_bindings": 5,
+  "prose_bindings": 27,
+  "option_grain_prose_bindings": 7,
   "references": 17,
   "record_owned_references": 2,
   "relationships": 0,
   "provenance_edges": 191,
-  "extra_contextual_edges": 14,
+  "extra_contextual_edges": 15,
   "obligations": 78
  },
  "count_derivation": {
@@ -122,7 +122,7 @@
   },
   "action.help": {
    "leaves": 7,
-   "spans": 12
+   "spans": 14
   },
   "action.hide": {
    "leaves": 2,
@@ -130,11 +130,11 @@
   },
   "action.influence": {
    "leaves": 20,
-   "spans": 33
+   "spans": 34
   },
   "action.magic": {
    "leaves": 5,
-   "spans": 10
+   "spans": 9
   },
   "action.ready": {
    "leaves": 3,
@@ -236,18 +236,6 @@
   "action.dash/dash_movement": {
    "handling": "structured",
    "irreducibility_reason_code": null,
-   "facts": [
-    "MovementAllowanceFact",
-    "EffectDurationFact"
-   ],
-   "options": {},
-   "applies_when": null,
-   "applies_when_negated": null,
-   "fact_qualifiers": []
-  },
-  "action.dash/dash_speed_choice": {
-   "handling": "structured",
-   "irreducibility_reason_code": null,
    "facts": [],
    "options": {
     "standard_speed": [
@@ -257,6 +245,17 @@
      "MovementAllowanceFact"
     ]
    },
+   "applies_when": null,
+   "applies_when_negated": null,
+   "fact_qualifiers": []
+  },
+  "action.dash/dash_duration": {
+   "handling": "structured",
+   "irreducibility_reason_code": null,
+   "facts": [
+    "EffectDurationFact"
+   ],
+   "options": {},
    "applies_when": null,
    "applies_when_negated": null,
    "fact_qualifiers": []
@@ -432,35 +431,12 @@
    "handling": "mixed",
    "irreducibility_reason_code": "open_ended_effect",
    "facts": [
-    "ActionEconomyFact"
+    "ActionEconomyFact",
+    "ActivationCostEligibilityFact"
    ],
    "options": {},
    "applies_when": null,
    "applies_when_negated": null,
-   "fact_qualifiers": []
-  },
-  "action.magic/magic_long_casting": {
-   "handling": "structured",
-   "irreducibility_reason_code": null,
-   "facts": [
-    "RecurringActionRequirementFact",
-    "SustainedStateRequirementFact"
-   ],
-   "options": {},
-   "applies_when": null,
-   "applies_when_negated": null,
-   "fact_qualifiers": []
-  },
-  "action.magic/magic_concentration_break": {
-   "handling": "structured",
-   "irreducibility_reason_code": null,
-   "facts": [
-    "EffectTerminationFact",
-    "ResourceExpenditureFact"
-   ],
-   "options": {},
-   "applies_when": "effect_state",
-   "applies_when_negated": false,
    "fact_qualifiers": []
   },
   "action.ready/ready_action": {
@@ -528,6 +504,7 @@
    "irreducibility_reason_code": null,
    "facts": [
     "ResourceExpenditureFact",
+    "ActivationCostEligibilityFact",
     "SustainedStateRequirementFact",
     "EffectDurationFact"
    ],
@@ -766,7 +743,7 @@
      444
     ],
     "text": " To be readied, a spell must have a casting time of an action,",
-    "disposition": "supporting_authority"
+    "disposition": "substantive"
    },
    {
     "range": [
@@ -863,9 +840,17 @@
    {
     "range": [
      0,
+     66
+    ],
+    "text": "If you urge the monster to do something that it is hesitant to do,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     66,
      98
     ],
-    "text": "If you urge the monster to do something that it is hesitant to do, you must make an ability check,",
+    "text": " you must make an ability check,",
     "disposition": "substantive"
    },
    {
@@ -1287,9 +1272,17 @@
    {
     "range": [
      55,
+     118
+    ],
+    "text": " giving Advantage to the next attack roll by one of your allies",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     118,
      138
     ],
-    "text": " giving Advantage to the next attack roll by one of your allies against that enemy.",
+    "text": " against that enemy.",
     "disposition": "substantive"
    },
    {
@@ -1313,9 +1306,17 @@
    {
     "range": [
      80,
+     140
+    ],
+    "text": " That ally has Advantage on the next ability check they make",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     140,
      171
     ],
-    "text": " That ally has Advantage on the next ability check they make with the chosen skill or tool.",
+    "text": " with the chosen skill or tool.",
     "disposition": "substantive"
    },
    {
@@ -1576,7 +1577,7 @@
      127
     ],
     "text": "If you cast a spell that has a casting time of 1 minute or longer, you must take the Magic action on each turn of that casting,",
-    "disposition": "substantive"
+    "disposition": "unresolved"
    },
    {
     "range": [
@@ -1584,31 +1585,15 @@
      180
     ],
     "text": " and you must maintain Concentration while you do so.",
-    "disposition": "substantive"
+    "disposition": "unresolved"
    },
    {
     "range": [
      180,
-     213
-    ],
-    "text": " If your Concentration is broken,",
-    "disposition": "substantive"
-   },
-   {
-    "range": [
-     213,
-     230
-    ],
-    "text": " the spell fails,",
-    "disposition": "substantive"
-   },
-   {
-    "range": [
-     230,
      265
     ],
-    "text": " but you don’t expend a spell slot.",
-    "disposition": "substantive"
+    "text": " If your Concentration is broken, the spell fails, but you don’t expend a spell slot.",
+    "disposition": "unresolved"
    }
   ],
   "b2cdbf59-5d8d-5361-b1e6-f34b43721962": [
@@ -1953,9 +1938,17 @@
    {
     "range": [
      0,
+     31
+    ],
+    "text": "When you take the Magic action,",
+    "disposition": "substantive"
+   },
+   {
+    "range": [
+     31,
      85
     ],
-    "text": "When you take the Magic action, you cast a spell that has a casting time of an action",
+    "text": " you cast a spell that has a casting time of an action",
     "disposition": "substantive"
    },
    {
@@ -2273,7 +2266,7 @@
    "glossary.speed"
   ],
   "publishable_alone": false,
-  "note": "Every one of the five targets is absent from this batch AND from the accepted conditions-1 + hazards-1 prior, so the standalone and merged finding sets are identical and non-empty. glossary.speed and glossary.concentration belong to a later glossary batch; attitude.friendly, attitude.hostile and attitude.indifferent belong to the monster-attitude batch. This batch is material for semantic review, not a publishable unit."
+  "note": "Every one of the five targets is absent from this batch AND from the accepted conditions-1 + hazards-1 prior, so the standalone and merged finding sets are identical and non-empty. glossary.speed and glossary.concentration belong to a later glossary batch; attitude.friendly, attitude.hostile and attitude.indifferent belong to the monster-attitude batch. This is one of the two things blocking publication; the other is the UNRESOLVED residue at schema stop S-1, which the validator does not report because UNRESOLVED is a classification, not a representation violation. This batch is material for semantic review, not a publishable unit."
  },
  "publishability": {
   "publishable_alone": false,
@@ -2284,7 +2277,7 @@
    "glossary.concentration",
    "glossary.speed"
   ],
-  "statement": "actions-1 is complete as a batch of its own boundary - every one of the 92 represented leaves is partitioned and claimed, and every one of the 78 discovery obligations is discharged - and it is not a publishable unit, because five source-authored citations point at records no accepted batch defines yet. Naming that precisely is the point; calling this batch clean would not be."
+  "statement": "actions-1 is complete as a batch of its own boundary - every one of the 92 represented leaves is partitioned, and every one of the 78 discovery obligations is discharged - and it is not a publishable unit, for two independent reasons. Five source-authored citations point at records no accepted batch defines yet, and three spans (Magic K2/K3/K4) are UNRESOLVED because their governing casting-time threshold has no shape in this schema (S-1). Naming both precisely is the point; calling this batch clean would not be."
  },
  "disjointness_from_the_accepted_prior": {
   "span_overlap": [],
@@ -2316,8 +2309,8 @@
     "prior_payloads_absent_from_the_merge": [],
     "payload_element_count": {
      "prior": 69,
-     "new": 37,
-     "merged": 106,
+     "new": 35,
+     "merged": 104,
      "sums": true
     }
    },
@@ -2327,8 +2320,8 @@
     "prior_payloads_absent_from_the_merge": [],
     "payload_element_count": {
      "prior": 20,
-     "new": 24,
-     "merged": 44,
+     "new": 27,
+     "merged": 47,
      "sums": true
     }
    },
@@ -2378,6 +2371,8 @@
    "action.help/help_choice#assist_ability_check",
    "action.help/help_choice#assist_ability_check",
    "action.help/help_choice#assist_ability_check",
+   "action.help/help_choice#assist_ability_check",
+   "action.help/help_choice#assist_attack_roll",
    "action.help/help_choice#assist_attack_roll",
    "action.ready/ready_response#chosen_action"
   ],
@@ -2395,25 +2390,6 @@
   ]
  },
  "sibling_fact_pairs": [
-  {
-   "record": "action.dash",
-   "fact_key": "19e79a3af45f2eb9",
-   "components": [
-    "dash_movement",
-    "dash_speed_choice"
-   ],
-   "spans_per_component": {
-    "dash_movement": [
-     ". The increase equals your Speed after applying any modifiers.",
-     " you gain extra movement"
-    ],
-    "dash_speed_choice": [
-     " You choose which"
-    ]
-   },
-   "shares_a_substantive_span": false,
-   "verdict": "legal: two rules state the same mechanic from different spans; the refusal requires a SHARED substantive span and there is none"
-  },
   {
    "record": "action.ready",
    "fact_key": "5b740198082726b7",
@@ -2438,19 +2414,17 @@
   "substantive_with_exactly_one_primary_claimant": 78,
   "primary_claimants_by_element_kind": {
    "component": 9,
-   "fact": 43,
+   "fact": 40,
    "fact_qualifier": 2,
-   "prose_binding": 24
+   "prose_binding": 27
   },
-  "supporting_spans": 99,
+  "supporting_spans": 98,
   "supporting_spans_carrying_a_primary_claim": 0,
   "prose_bindings_over_supporting_text": 0,
-  "spans_with_no_claim_at_all": 0,
+  "unresolved_spans": 3,
+  "spans_with_no_claim_at_all": 3,
+  "unresolved_spans_carrying_any_claim": 0,
   "spans_carrying_more_than_one_claim": [
-   [
-    " You choose which",
-    2
-   ],
    [
     " You do so either before or after the attack.",
     5
@@ -2464,6 +2438,10 @@
     3
    ],
    [
+    " you gain extra movement",
+    3
+   ],
+   [
     ". You lose these benefits if you have the Incapacitated condition or if your Speed is 0.",
     2
    ],
@@ -2472,12 +2450,12 @@
     5
    ]
   ],
-  "extra_contextual_edges": 14
+  "extra_contextual_edges": 15
  },
  "schema_6_structures_demonstrated": {
   "actor choice (ComponentOption)": [
    "action.attack/attack_equipment_change",
-   "action.dash/dash_speed_choice",
+   "action.dash/dash_movement",
    "action.help/help_choice",
    "action.ready/ready_response"
   ],
@@ -2501,7 +2479,6 @@
    "action.hide/hide_check"
   ],
   "applicability (effect_state)": [
-   "action.magic/magic_concentration_break",
    "action.ready/ready_concentration_break"
   ],
   "fact qualifier (roll_outcome)": [
@@ -2577,6 +2554,264 @@
    "was": "carried forward as the expected policy exclusions",
    "now": "the two policy exclusions are the running header/footer leaves on the Help and Ready pages; the headings carry whole-leaf supporting authority exactly as in hazards-1",
    "why": "re-derived from `exclusion_reason_for` against the bound ledger"
+  },
+  {
+   "id": "JC-10",
+   "what": "Dash is one allowance whose basis is chosen, plus its own duration",
+   "was": "dash_movement granted an OWN_SPEED allowance outright and dash_speed_choice separately offered OWN_SPEED / OWN_SPECIAL_SPEED, so the consumer view carried two movement allowances for one Dash",
+   "now": "dash_movement holds the two bases as the two arms of one choice and no facts of its own; dash_duration holds the single END_OF_TURN duration",
+   "why": "'you can use that speed instead of your Speed when you take this action' is a replacement, not an addition: one allowance is measured per Dash and the source only says which speed measures it. The duration is a component of its own for the reason JC-6 gives - a component holds either facts or options, never both, so the only alternative was to repeat the duration inside both arms, which would publish two durations for one allowance and read as a reviewer-convenient composition rather than the printed rule. D1 ('you gain extra movement') states the allowance before either basis is named, so the owning component claims it PRIMARY and both option facts take CONTEXTUAL edges there - the same shape L-1 uses for Attack."
+  },
+  {
+   "id": "JC-11",
+   "what": "Magic K1 and Ready L8 hold SPELL activation-cost eligibility",
+   "was": "Magic K1 carried only ActionEconomyFact(action) and Ready L8 was supporting authority owned by ready_spell",
+   "now": "both hold ActivationCostEligibilityFact(spell, action), beside Utilize O2's (object, action)",
+   "why": "ADR-005d decides it in terms: eligibility is substantive authority, not supporting prose, because 'a spell must have a casting time of an action' states which spells the mechanic reaches over a printed, enumerable field. The fact's own docstring names these three records as its three instances. Utilize was already typed; Magic and Ready were the two that had not been, and without them the consumer view admitted every spell. The same fact in two records is admissible: the duplicated-authority rule refuses an equivalent fact held by two components of ONE record, and these are two."
+  },
+  {
+   "id": "JC-12",
+   "what": "Help's two narrowing clauses and Influence's hesitancy gate survive as governing prose at their own extents",
+   "was": "'with the chosen skill or tool' and 'against that enemy' were absorbed into the spans claimed by the two AdvantageFacts, and 'that it is hesitant to do' into the span claimed by AbilityCheckFact - covered, but stating nothing",
+   "now": "three additional spans, each PRIMARY by a prose binding at exactly its clause: two at option scope on help_choice, one on influence_check",
+   "why": "full clause coverage is not the same as full clause representation. Each of the three narrows a mechanic the schema types beside it, and none is a vocabulary gap dressed as irreducibility: AdvantageFact enumerates neither a proficiency nor a target because which proficiency was chosen and which enemy was distracted are facts of the fiction, and J2 hands the hesitancy determination to the GM outright. contextual_applicability and gamemaster_latitude are literally true of them, and both were already the owning component's reason, so no reason code was invented and R-help-reason is unchanged."
+  },
+  {
+   "id": "JC-13",
+   "what": "Magic K2, K3 and K4 are UNRESOLVED, and hold no components",
+   "was": "magic_long_casting and magic_concentration_break published the recurring-action, Concentration, termination and slot facts with no representation of 'a casting time of 1 minute or longer'",
+   "now": "three UNRESOLVED spans claimed by nothing; the two components are not authored at all, so action.magic publishes magic_activation only",
+   "why": "the gate has no admissible shape under this schema (SCHEMA_STOP), and every alternative asserts something false. Published ungated, the facts state that every Magic action requires an action on each turn and Concentration throughout. Prose-bound under an irreducibility reason, they would record a vocabulary gap as an affirmative claim that the clause is irreducible - which it is not: the clause is determinate, and the schema already enumerates a spell's casting time in SpellCastingTime. UNRESOLVED is the treatment the Applicability contract itself prescribes for a condition stated over something outside its vocabularies, and it blocks publication rather than hiding the gap."
+  }
+ ],
+ "consumer_boundary_proofs": {
+  "boundary": "services/rules_authority/application.py::_base_records, applied to the merged candidate (accepted prior + this batch). No acceptance, no publication, no persistence: the projection is built in memory and read.",
+  "dash_one_allowance": {
+   "component_facts_outside_the_choice": 0,
+   "arms": {
+    "special_speed": [
+     "MovementAllowanceFact"
+    ],
+    "standard_speed": [
+     "MovementAllowanceFact"
+    ]
+   },
+   "bases": {
+    "special_speed": [
+     "own_special_speed"
+    ],
+    "standard_speed": [
+     "own_speed"
+    ]
+   },
+   "movement_allowances_reachable_in_one_dash": 1,
+   "duration_component_facts": [
+    "EffectDurationFact"
+   ],
+   "duration_facts_inside_either_arm": 0,
+   "movement_allowances_elsewhere_in_action_dash": 0,
+   "counterexample": "Taking Dash once selects one arm. The standard arm publishes OWN_SPEED and the special arm OWN_SPECIAL_SPEED, and no third MovementAllowanceFact exists anywhere in action.dash - so no reading of this record grants both a Speed allowance and a special-speed allowance for one Dash. 'instead of your Speed' is what the source says, and exclusivity is what the option set means (EffectiveOption: options are mutually exclusive)."
+  },
+  "activation_cost_eligibility": {
+   "holders": [
+    [
+     "action.magic",
+     "magic_activation",
+     "spell",
+     "action"
+    ],
+    [
+     "action.ready",
+     "ready_spell",
+     "spell",
+     "action"
+    ],
+    [
+     "action.utilize",
+     "utilize_action",
+     "object",
+     "action"
+    ]
+   ],
+   "admitted_pairs": [
+    [
+     "object",
+     "action"
+    ],
+    [
+     "spell",
+     "action"
+    ]
+   ],
+   "counterexample": "Eligible: a spell whose printed Casting Time is Action satisfies (spell, action) and is reached by both Magic and Ready. Ineligible: a spell whose printed Casting Time is a Bonus Action, a Reaction, or 1 minute matches no eligibility fact this batch publishes - the admitted set is exactly {(spell, action), (object, action)} - so neither Magic nor Ready reaches it. Before this correction Ready L8 and Magic K1 held no eligibility fact at all, and the consumer view admitted every spell."
+  },
+  "help_qualified_next_roll": {
+   "arms": [
+    "assist_ability_check",
+    "assist_attack_roll"
+   ],
+   "advantage_fact_fields": [
+    "roll",
+    "state",
+    "use_limit"
+   ],
+   "governing_prose_by_arm": {
+    "assist_ability_check": [
+     "enough for you to assist verbally or physically when they make an ability check.",
+     " with the chosen skill or tool.",
+     " The GM has final say on whether your assistance is possible.",
+     "Choose one of your skill or tool proficiencies and one ally who is near"
+    ],
+    "assist_attack_roll": [
+     "You momentarily distract an enemy within 5 feet of you,",
+     " against that enemy."
+    ]
+   },
+   "counterexample": "The typed facts say only that an ally has Advantage on their next ability check or attack roll: AdvantageFact enumerates no proficiency and no target, so on the facts alone an unrelated next roll - a different skill, or an attack against a different enemy - would read as benefiting. The qualifying roll is distinguished only by the governing prose, which is why 'with the chosen skill or tool' and 'against that enemy' are carried at their own extents and at arm scope rather than absorbed into a neighbouring span."
+  },
+  "influence_hesitancy_gate": {
+   "governing_prose": [
+    "If you urge the monster to do something that it is hesitant to do,",
+    " The Influence Checks table suggests which ability check to make based on how you’re interacting with the monster.",
+    " The GM chooses the check,"
+   ],
+   "typed_facts": [
+    "AbilityCheckFact",
+    "RetryRestrictionFact"
+   ],
+   "counterexample": "AbilityCheckFact states which check and at what DC, never whether one is called for. Willing and Unwilling monsters need no check at all (J3, J4), so publishing the check ungated would require a roll the source does not. The hesitancy gate is carried at its own extent, under gamemaster_latitude, because J2 hands the determination to the GM outright rather than because the schema lacks a word for it."
+  },
+  "magic_long_casting_unresolved": {
+   "components": [
+    "magic_activation"
+   ],
+   "published_fact_types": [
+    "ActionEconomyFact",
+    "ActivationCostEligibilityFact"
+   ],
+   "k2_k3_k4_spans": [
+    "2dde4105-774b-59d1-acc2-23e1459a35dc",
+    "483ccdbb-46b0-5c72-bb2d-10551a71ce94",
+    "d2ebb26a-c96f-54f5-8781-b2c66208fc94"
+   ],
+   "k2_k3_k4_dispositions": [
+    "unresolved"
+   ],
+   "gate_outcome_for_that_residue": "unresolved",
+   "residue_span_ids": [
+    "2dde4105-774b-59d1-acc2-23e1459a35dc",
+    "483ccdbb-46b0-5c72-bb2d-10551a71ce94",
+    "d2ebb26a-c96f-54f5-8781-b2c66208fc94"
+   ],
+   "counterexample": "The gate is 'a casting time of 1 minute or longer'. Published without it, RecurringActionRequirementFact would require a Magic action on every turn of every casting, SustainedStateRequirementFact would require Concentration for every Magic action, and ResourceExpenditureFact would say a broken Concentration expends no slot for spells that never had a casting to break - each one false of the Action-casting-time spells K1 reaches. So action.magic publishes the activation component only, the three clauses stay UNRESOLVED, and the publication gate refuses the batch for them by name (SCHEMA_STOP)."
+  }
+ },
+ "schema_stop": {
+  "id": "S-1",
+  "where": "action.magic, leaf b196aa1b (SRD 5.2.1 p185), obligations K2/K3/K4",
+  "clause": "If you cast a spell that has a casting time of 1 minute or longer, you must take the Magic action on each turn of that casting, and you must maintain Concentration while you do so. If your Concentration is broken, the spell fails, but you don't expend a spell slot.",
+  "what_cannot_be_expressed": "the qualification 'a casting time of 1 minute or longer' - a comparison against the elapsed-time arm of a spell's printed casting time. The three mechanics it governs are all typed (RecurringActionRequirementFact, SustainedStateRequirementFact, EffectTerminationFact, ResourceExpenditureFact); it is only the gate that has no shape.",
+  "attempted_admissible_shapes": [
+   {
+    "shape": "ActivationCostEligibilityFact(subject=SPELL, cost=...)",
+    "why_refused": "`cost` is `ActionCost` - action | bonus_action | reaction | legendary_action | none | special. No member denotes '1 minute or longer', and the fact has no arm for SpellCastingTime's amount/unit pair at all. This is the fact that carries the sibling clause in K1 and L8, which is exactly why its ceiling is the right place to look: it ranges over the cost arm only."
+   },
+   {
+    "shape": "Applicability(kind=ELAPSED_DURATION, value=1, unit=MINUTE)",
+    "why_refused": "false, not merely lossy. ELAPSED_DURATION is about time that has passed in play. A spell's stated casting time is a printed property of the spell, and the gate reads it before any time elapses: a 1-minute casting qualifies at the instant it begins."
+   },
+   {
+    "shape": "Applicability(kind=QUANTITY_THRESHOLD, quantity=..., ...)",
+    "why_refused": "`TrackedQuantity` is speed | condition_level | weight. Casting time is not among them, and Applicability is deliberately not a predicate language: there is no operator, no nesting, and no way to build a third predicate from two of these."
+   },
+   {
+    "shape": "MIXED component: the three facts, plus a prose binding carrying the gate under an irreducibility reason",
+    "why_refused": "this is the shape that would have made the batch look clean, and it is the one the authorization forbids. An irreducibility reason is an affirmative claim that the clause cannot be reduced. This clause is determinate, and the schema itself enumerates the field it ranges over (SpellCastingTime carries an amount/unit arm). Recording a vocabulary gap as irreducibility would put a false reason code in accepted authority - and the facts would still publish ungated beside it."
+   }
+  ],
+  "missing_capability": "an eligibility fact - or an ApplicabilityKind - that ranges over the ELAPSED-TIME arm of SpellCastingTime with a comparison operator: the exact analogue of ActivationCostEligibilityFact for `amount`/`unit` rather than `cost`. Something of the shape (subject=SPELL, at_least=(1, MINUTE)). Nothing weaker suffices: the clause is a threshold ('or longer'), not an equality, so an enumerated casting-time member would not carry it either.",
+  "treatment_taken_instead": "K2, K3 and K4 are classified UNRESOLVED. The text is read and its extents are recorded, no element claims it, and no component of action.magic holds the facts it governs. This is what SemanticDisposition.UNRESOLVED is for - an honest 'cannot classify safely yet' that blocks publication - and it is distinct from a missing span, which would mean nobody looked.",
+  "what_it_costs": "action.magic's authority stops at K1. A consumer asking what a 1-minute casting requires gets nothing from this batch rather than something wrong, and the batch cannot be published until the gate is expressible - a second, independent block beside the five cross-batch citations.",
+  "not_done_here": "the schema and its pin are unchanged, the accepted prior is unchanged, and no ruling is made about what the printed rules mean. Widening the union is an Owner decision and a schema-7 question."
+ },
+ "sibling_dispositions": [
+  {
+   "family": "one grant published twice by two components of one record",
+   "trigger": "Dash's dash_movement + dash_speed_choice",
+   "inspected": [
+    {
+     "where": "action.dash/dash_movement + dash_duration",
+     "disposition": "patched (JC-10)"
+    },
+    {
+     "where": "action.dodge/dodge_duration + its two benefits",
+     "disposition": "already safe - the standalone-duration shape Dash now adopts; JC-6 settled it and nothing changed"
+    },
+    {
+     "where": "action.ready/ready_response (chosen_action | move_up_to_speed)",
+     "disposition": "already safe - both arms take AE_REACTION as CONTEXTUAL edges from ready_reaction_grant's single PRIMARY span, so the reaction is granted once"
+    },
+    {
+     "where": "action.attack/attack_equipment_change",
+     "disposition": "already safe, disclosed as L-1 - the four options are the cross product of two axes and are closed without change"
+    },
+    {
+     "where": "action.help/help_choice",
+     "disposition": "already safe - the two arms are alternatives of one Help action and neither publishes the other's Advantage"
+    },
+    {
+     "where": "glossary.action/action_allowance + action_choice",
+     "disposition": "already safe - one allowance, one open effect space"
+    }
+   ],
+   "regression_coverage": "CONSUMER_PROOFS['dash_one_allowance'] asserts at most one MovementAllowanceFact is reachable per Dash, no duration inside either arm, and no movement allowance anywhere else in action.dash; SIBLING_PAIRS asserts no two components of one record hold an equivalent fact on a shared substantive span."
+  },
+  {
+   "family": "a clause fully covered by a span whose claimant does not state it",
+   "trigger": "Ready L8 as supporting authority; Help H3/H6; Influence J6",
+   "inspected": [
+    {
+     "where": "action.ready/ready_spell L8",
+     "disposition": "patched (JC-11) - typed eligibility"
+    },
+    {
+     "where": "action.magic/magic_activation K1",
+     "disposition": "patched (JC-11) - typed eligibility, K1 split in three"
+    },
+    {
+     "where": "action.utilize/utilize_action O2",
+     "disposition": "already safe - the working sibling; typed since JC-8 and the model for the other two"
+    },
+    {
+     "where": "action.help/help_choice H3 and H6",
+     "disposition": "patched (JC-12) - two option-scope prose bindings"
+    },
+    {
+     "where": "action.influence/influence_check J6",
+     "disposition": "patched (JC-12) - one prose binding at the gate"
+    },
+    {
+     "where": "action.magic K2/K3/K4",
+     "disposition": "schema stop (S-1) - the gate has no admissible shape, so the clauses are UNRESOLVED and the facts are not published"
+    },
+    {
+     "where": "action.hide/hide_check, hide_end",
+     "disposition": "already safe - both gates are carried by a real Applicability (any_of over condition_state / obscurement / cover) rather than by prose"
+    },
+    {
+     "where": "action.dodge/dodge_attack_disadvantage",
+     "disposition": "already safe - the 'unimpaired' condition is a negated any_of applicability, not an absorbed clause"
+    },
+    {
+     "where": "action.attack/attack_movement_interleave B7",
+     "disposition": "already safe - the interleave condition is prose-bound at its own extent with the typed fact beside it"
+    },
+    {
+     "where": "action.search / action.study table rows",
+     "disposition": "out of scope - guidance, closed by JC-2 and the Owner's clarification; random-table selection is not reopened"
+    }
+   ],
+   "regression_coverage": "CONSUMER_PROOFS asserts the admitted eligibility pairs are exactly {(spell, action), (object, action)} over exactly three holders, that each Help arm's governing prose ends at its own qualification, that influence_check's prose carries the hesitancy gate, and that action.magic publishes none of the four long-casting fact types."
   }
  ],
  "disclosed_representation_limits": [
@@ -2806,7 +3041,7 @@
     "d87df4eb-9bac-5a18-ac0d-db9b01dcb223"
    ],
    "claimants": [
-    "action.dash/dash_movement/19e79a3af45f2eb9"
+    "action.dash/dash_movement"
    ],
    "dispositions": [
     "substantive"
@@ -2820,7 +3055,7 @@
     "d5971952-09e4-5aaa-854e-8e1fa0c073a9"
    ],
    "claimants": [
-    "action.dash/dash_movement/19e79a3af45f2eb9"
+    "action.dash/dash_movement#standard_speed/19e79a3af45f2eb9"
    ],
    "dispositions": [
     "substantive"
@@ -2834,7 +3069,7 @@
     "11b65835-55b5-521e-b692-e80ff260c420"
    ],
    "claimants": [
-    "action.dash/dash_movement/d1571f5f71cce907"
+    "action.dash/dash_duration/d1571f5f71cce907"
    ],
    "dispositions": [
     "substantive"
@@ -2867,7 +3102,7 @@
     "e75baa1c-7528-5fbd-a053-a01466c7b6a1"
    ],
    "claimants": [
-    "action.dash/dash_speed_choice#special_speed/4b2caa04b9e30828"
+    "action.dash/dash_movement#special_speed/4b2caa04b9e30828"
    ],
    "dispositions": [
     "substantive"
@@ -2883,7 +3118,7 @@
     "02520181-45ae-5b7e-90c0-7b95498ffb4f"
    ],
    "claimants": [
-    "action.dash/dash_speed_choice"
+    "action.dash/dash_movement"
    ],
    "dispositions": [
     "substantive"
@@ -3101,16 +3336,19 @@
   },
   "H3": {
    "spans": [
-    "251ef6fd-53af-53b8-855b-ae5bdbfe41dc"
+    "193105a9-a737-5a09-acab-2c84ff69db4d",
+    "5007ed4a-92f4-5f04-b8db-7b8313f47e7e"
    ],
    "claimants": [
+    "action.help/help_choice#assist_ability_check (contextual_applicability)",
     "action.help/help_choice#assist_ability_check/6c8900586960c7ad"
    ],
    "dispositions": [
     "substantive"
    ],
    "text": [
-    " That ally has Advantage on the next ability check they make with the chosen skill or tool."
+    " That ally has Advantage on the next ability check they make",
+    " with the chosen skill or tool."
    ]
   },
   "H4": {
@@ -3144,7 +3382,8 @@
   "H6": {
    "spans": [
     "df47c20f-cc51-5eb5-81c4-16ed9e1b0be3",
-    "b022718b-7b15-5a09-b02c-6ba90e72cd4b"
+    "6948cd25-1322-5c50-b1c5-9bffac2f7a99",
+    "0c8c6278-2053-5864-959c-72613d698765"
    ],
    "claimants": [
     "action.help/help_choice#assist_attack_roll (contextual_applicability)",
@@ -3155,7 +3394,8 @@
    ],
    "text": [
     "You momentarily distract an enemy within 5 feet of you,",
-    " giving Advantage to the next attack roll by one of your allies against that enemy."
+    " giving Advantage to the next attack roll by one of your allies",
+    " against that enemy."
    ]
   },
   "H7": {
@@ -3395,10 +3635,12 @@
   "J6": {
    "spans": [
     "83ef0f35-7bf9-5c17-9e0a-24c43268b586",
-    "77af539c-fdb6-5091-8c95-c8da5aeb3476"
+    "dd3350de-7940-5a75-b183-3d46cc66f495",
+    "c69177cd-5f32-5e89-aa01-899d79a815c5"
    ],
    "claimants": [
     "action.influence/influence_check",
+    "action.influence/influence_check (gamemaster_latitude)",
     "action.influence/influence_check/a667776d6a57411e"
    ],
    "dispositions": [
@@ -3407,7 +3649,8 @@
    ],
    "text": [
     "Hesitant.",
-    "If you urge the monster to do something that it is hesitant to do, you must make an ability check,"
+    "If you urge the monster to do something that it is hesitant to do,",
+    " you must make an ability check,"
    ]
   },
   "J7": {
@@ -3512,18 +3755,21 @@
   },
   "K1": {
    "spans": [
-    "a398991c-77d9-5163-9702-40bd42af9454",
+    "e8738f42-4a8f-55d2-9ddd-c08fc0bc633b",
+    "79c6fdb5-b0ba-53f9-a81a-e2eb5a7597b2",
     "92ee5864-9b22-5d96-ae12-31d26dc013a3"
    ],
    "claimants": [
     "action.magic/magic_activation (open_ended_effect)",
+    "action.magic/magic_activation/d389954c36659e07",
     "action.magic/magic_activation/fe97b30136297ea9"
    ],
    "dispositions": [
     "substantive"
    ],
    "text": [
-    "When you take the Magic action, you cast a spell that has a casting time of an action",
+    "When you take the Magic action,",
+    " you cast a spell that has a casting time of an action",
     " or use a feature or magic item that requires a Magic action to be activated."
    ]
   },
@@ -3532,10 +3778,10 @@
     "2dde4105-774b-59d1-acc2-23e1459a35dc"
    ],
    "claimants": [
-    "action.magic/magic_long_casting/096eddb9536f112a"
+    ""
    ],
    "dispositions": [
-    "substantive"
+    "unresolved"
    ],
    "text": [
     "If you cast a spell that has a casting time of 1 minute or longer, you must take the Magic action on each turn of that casting,"
@@ -3546,10 +3792,10 @@
     "d2ebb26a-c96f-54f5-8781-b2c66208fc94"
    ],
    "claimants": [
-    "action.magic/magic_long_casting/97d8386ce7f85d18"
+    ""
    ],
    "dispositions": [
-    "substantive"
+    "unresolved"
    ],
    "text": [
     " and you must maintain Concentration while you do so."
@@ -3557,22 +3803,16 @@
   },
   "K4": {
    "spans": [
-    "2ca89ad4-5ed9-580f-b5ca-14d63aa1fe55",
-    "b0ecfa1c-fba1-50f7-bb66-3560c74eb8db",
-    "2fbfeae6-5fcf-5f3b-a110-2c513209590a"
+    "483ccdbb-46b0-5c72-bb2d-10551a71ce94"
    ],
    "claimants": [
-    "action.magic/magic_concentration_break",
-    "action.magic/magic_concentration_break/08d4572fe00ecf1e",
-    "action.magic/magic_concentration_break/f48175a8ab780dcd"
+    ""
    ],
    "dispositions": [
-    "substantive"
+    "unresolved"
    ],
    "text": [
-    " If your Concentration is broken,",
-    " the spell fails,",
-    " but you don’t expend a spell slot."
+    " If your Concentration is broken, the spell fails, but you don’t expend a spell slot."
    ]
   },
   "K5": {
@@ -3711,10 +3951,10 @@
     "23a38508-62af-5bc4-8e76-e6cfa451f1c6"
    ],
    "claimants": [
-    "action.ready/ready_spell"
+    "action.ready/ready_spell/d389954c36659e07"
    ],
    "dispositions": [
-    "supporting_authority"
+    "substantive"
    ],
    "text": [
     " To be readied, a spell must have a casting time of an action,"
@@ -3955,7 +4195,10 @@
    "L-1",
    "R-help-reason"
   ],
-  "statement": "Prepared for semantic review, not recommended for acceptance. Acceptance is a separate Owner step and is not performed here, and this batch cannot be published until its five cross-batch citations have targets."
+  "schema_stops": [
+   "S-1"
+  ],
+  "statement": "Prepared for semantic review, not recommended for acceptance. Acceptance is a separate Owner step and is not performed here. This batch cannot be published for two independent reasons: five cross-batch citations have no target yet, and three spans are UNRESOLVED because Magic's long-casting gate has no admissible shape under representation schema 6 (S-1)."
  },
  "repository_inputs": {
   "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
@@ -4563,12 +4806,15 @@
    ],
    "text": " you gain extra movement",
    "disposition": "substantive",
-   "kind": "F",
-   "claimant_kind": "fact",
-   "claimant": "action.dash/dash_movement/19e79a3af45f2eb9",
+   "kind": "A",
+   "claimant_kind": "component",
+   "claimant": "action.dash/dash_movement",
    "role": "primary",
-   "also_grounds": [],
-   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+   "also_grounds": [
+    "action.dash/dash_movement#standard_speed/19e79a3af45f2eb9",
+    "action.dash/dash_movement#special_speed/4b2caa04b9e30828"
+   ],
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it"
   },
   {
    "record": "action.dash",
@@ -4583,7 +4829,7 @@
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
-   "claimant": "action.dash/dash_movement/d1571f5f71cce907",
+   "claimant": "action.dash/dash_duration/d1571f5f71cce907",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
@@ -4601,7 +4847,7 @@
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
-   "claimant": "action.dash/dash_movement/19e79a3af45f2eb9",
+   "claimant": "action.dash/dash_movement#standard_speed/19e79a3af45f2eb9",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
@@ -4673,7 +4919,7 @@
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
-   "claimant": "action.dash/dash_speed_choice#special_speed/4b2caa04b9e30828",
+   "claimant": "action.dash/dash_movement#special_speed/4b2caa04b9e30828",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
@@ -4691,7 +4937,7 @@
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
-   "claimant": "action.dash/dash_speed_choice#special_speed/4b2caa04b9e30828",
+   "claimant": "action.dash/dash_movement#special_speed/4b2caa04b9e30828",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
@@ -4709,11 +4955,9 @@
    "disposition": "substantive",
    "kind": "A",
    "claimant_kind": "component",
-   "claimant": "action.dash/dash_speed_choice",
+   "claimant": "action.dash/dash_movement",
    "role": "primary",
-   "also_grounds": [
-    "action.dash/dash_speed_choice#standard_speed/19e79a3af45f2eb9"
-   ],
+   "also_grounds": [],
    "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it"
   },
   {
@@ -4729,7 +4973,7 @@
    "disposition": "substantive",
    "kind": "A",
    "claimant_kind": "component",
-   "claimant": "action.dash/dash_speed_choice",
+   "claimant": "action.dash/dash_movement",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it"
@@ -5085,12 +5329,12 @@
    "record": "action.help",
    "obligation": "H3",
    "leaf": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
-   "span_id": "251ef6fd-53af-53b8-855b-ae5bdbfe41dc",
+   "span_id": "193105a9-a737-5a09-acab-2c84ff69db4d",
    "range": [
     80,
-    171
+    140
    ],
-   "text": " That ally has Advantage on the next ability check they make with the chosen skill or tool.",
+   "text": " That ally has Advantage on the next ability check they make",
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
@@ -5098,6 +5342,24 @@
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "action.help",
+   "obligation": "H3",
+   "leaf": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "span_id": "5007ed4a-92f4-5f04-b8db-7b8313f47e7e",
+   "range": [
+    140,
+    171
+   ],
+   "text": " with the chosen skill or tool.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "action.help/help_choice#assist_ability_check (contextual_applicability)",
+   "role": "primary",
+   "also_grounds": [],
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it"
   },
   {
    "record": "action.help",
@@ -5175,12 +5437,12 @@
    "record": "action.help",
    "obligation": "H6",
    "leaf": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
-   "span_id": "b022718b-7b15-5a09-b02c-6ba90e72cd4b",
+   "span_id": "6948cd25-1322-5c50-b1c5-9bffac2f7a99",
    "range": [
     55,
-    138
+    118
    ],
-   "text": " giving Advantage to the next attack roll by one of your allies against that enemy.",
+   "text": " giving Advantage to the next attack roll by one of your allies",
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
@@ -5188,6 +5450,24 @@
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "action.help",
+   "obligation": "H6",
+   "leaf": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "span_id": "0c8c6278-2053-5864-959c-72613d698765",
+   "range": [
+    118,
+    138
+   ],
+   "text": " against that enemy.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "action.help/help_choice#assist_attack_roll (contextual_applicability)",
+   "role": "primary",
+   "also_grounds": [],
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it"
   },
   {
    "record": "action.help",
@@ -5571,12 +5851,30 @@
    "record": "action.influence",
    "obligation": "J6",
    "leaf": "1fc21186-9145-5d1d-92c4-3a392504139b",
-   "span_id": "77af539c-fdb6-5091-8c95-c8da5aeb3476",
+   "span_id": "dd3350de-7940-5a75-b183-3d46cc66f495",
    "range": [
     0,
+    66
+   ],
+   "text": "If you urge the monster to do something that it is hesitant to do,",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "action.influence/influence_check (gamemaster_latitude)",
+   "role": "primary",
+   "also_grounds": [],
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it"
+  },
+  {
+   "record": "action.influence",
+   "obligation": "J6",
+   "leaf": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "span_id": "c69177cd-5f32-5e89-aa01-899d79a815c5",
+   "range": [
+    66,
     98
    ],
-   "text": "If you urge the monster to do something that it is hesitant to do, you must make an ability check,",
+   "text": " you must make an ability check,",
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
@@ -6039,16 +6337,34 @@
    "record": "action.magic",
    "obligation": "K1",
    "leaf": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
-   "span_id": "a398991c-77d9-5163-9702-40bd42af9454",
+   "span_id": "e8738f42-4a8f-55d2-9ddd-c08fc0bc633b",
    "range": [
     0,
-    85
+    31
    ],
-   "text": "When you take the Magic action, you cast a spell that has a casting time of an action",
+   "text": "When you take the Magic action,",
    "disposition": "substantive",
    "kind": "F",
    "claimant_kind": "fact",
    "claimant": "action.magic/magic_activation/fe97b30136297ea9",
+   "role": "primary",
+   "also_grounds": [],
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "action.magic",
+   "obligation": "K1",
+   "leaf": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "span_id": "79c6fdb5-b0ba-53f9-a81a-e2eb5a7597b2",
+   "range": [
+    31,
+    85
+   ],
+   "text": " you cast a spell that has a casting time of an action",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "action.magic/magic_activation/d389954c36659e07",
    "role": "primary",
    "also_grounds": [],
    "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
@@ -6081,13 +6397,13 @@
     127
    ],
    "text": "If you cast a spell that has a casting time of 1 minute or longer, you must take the Magic action on each turn of that casting,",
-   "disposition": "substantive",
-   "kind": "F",
-   "claimant_kind": "fact",
-   "claimant": "action.magic/magic_long_casting/096eddb9536f112a",
-   "role": "primary",
+   "disposition": "unresolved",
+   "kind": "U",
+   "claimant_kind": "none",
+   "claimant": "",
+   "role": "none",
    "also_grounds": [],
-   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+   "rationale": "states a determinate mechanic under a qualification this schema has no structure for, so no admissible composition carries it: publishing the mechanic would assert it beyond its printed scope, and prose-binding it would record a vocabulary gap as an irreducibility. Read, unclaimed, and publication-blocking until the schema can express the gate"
   },
   {
    "record": "action.magic",
@@ -6099,67 +6415,31 @@
     180
    ],
    "text": " and you must maintain Concentration while you do so.",
-   "disposition": "substantive",
-   "kind": "F",
-   "claimant_kind": "fact",
-   "claimant": "action.magic/magic_long_casting/97d8386ce7f85d18",
-   "role": "primary",
+   "disposition": "unresolved",
+   "kind": "U",
+   "claimant_kind": "none",
+   "claimant": "",
+   "role": "none",
    "also_grounds": [],
-   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+   "rationale": "states a determinate mechanic under a qualification this schema has no structure for, so no admissible composition carries it: publishing the mechanic would assert it beyond its printed scope, and prose-binding it would record a vocabulary gap as an irreducibility. Read, unclaimed, and publication-blocking until the schema can express the gate"
   },
   {
    "record": "action.magic",
    "obligation": "K4",
    "leaf": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
-   "span_id": "2ca89ad4-5ed9-580f-b5ca-14d63aa1fe55",
+   "span_id": "483ccdbb-46b0-5c72-bb2d-10551a71ce94",
    "range": [
     180,
-    213
-   ],
-   "text": " If your Concentration is broken,",
-   "disposition": "substantive",
-   "kind": "A",
-   "claimant_kind": "component",
-   "claimant": "action.magic/magic_concentration_break",
-   "role": "primary",
-   "also_grounds": [],
-   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it"
-  },
-  {
-   "record": "action.magic",
-   "obligation": "K4",
-   "leaf": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
-   "span_id": "b0ecfa1c-fba1-50f7-bb66-3560c74eb8db",
-   "range": [
-    213,
-    230
-   ],
-   "text": " the spell fails,",
-   "disposition": "substantive",
-   "kind": "F",
-   "claimant_kind": "fact",
-   "claimant": "action.magic/magic_concentration_break/08d4572fe00ecf1e",
-   "role": "primary",
-   "also_grounds": [],
-   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
-  },
-  {
-   "record": "action.magic",
-   "obligation": "K4",
-   "leaf": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
-   "span_id": "2fbfeae6-5fcf-5f3b-a110-2c513209590a",
-   "range": [
-    230,
     265
    ],
-   "text": " but you don’t expend a spell slot.",
-   "disposition": "substantive",
-   "kind": "F",
-   "claimant_kind": "fact",
-   "claimant": "action.magic/magic_concentration_break/f48175a8ab780dcd",
-   "role": "primary",
+   "text": " If your Concentration is broken, the spell fails, but you don’t expend a spell slot.",
+   "disposition": "unresolved",
+   "kind": "U",
+   "claimant_kind": "none",
+   "claimant": "",
+   "role": "none",
    "also_grounds": [],
-   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+   "rationale": "states a determinate mechanic under a qualification this schema has no structure for, so no admissible composition carries it: publishing the mechanic would assert it beyond its printed scope, and prose-binding it would record a vocabulary gap as an irreducibility. Read, unclaimed, and publication-blocking until the schema can express the gate"
   },
   {
    "record": "action.magic",
@@ -6444,13 +6724,13 @@
     444
    ],
    "text": " To be readied, a spell must have a casting time of an action,",
-   "disposition": "supporting_authority",
-   "kind": "C",
-   "claimant_kind": "component",
-   "claimant": "action.ready/ready_spell",
-   "role": "contextual",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "action.ready/ready_spell/d389954c36659e07",
+   "role": "primary",
    "also_grounds": [],
-   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component"
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
   },
   {
    "record": "action.ready",
@@ -7176,7 +7456,7 @@
  "determinism": {
   "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
   "newlines": "LF, written explicitly, on every platform",
-  "proposal_sha256": "88675ae05a9dc336ca5ee46c70aaeee7b01dd820a1d99219bcf98c70fd2fcdbd",
+  "proposal_sha256": "d7e8fcd240972651da238b887ede3f64803314f0c9077c580c6a05ab39b9fc89",
   "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout."
  }
 }

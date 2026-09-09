@@ -11,11 +11,16 @@ What this run is, and is not
 ----------------------------
 * It is *proposal preparation*. Zero validator findings is necessary and
   explicitly insufficient; this is material for semantic review.
-* This batch is **not publishable on its own**. It cites five records that
-  actions-1 does not define and that accepted authority does not yet carry, so
-  the standalone *and* the merged validation both report exactly those five.
-  That is asserted as set equality below, and reported as such — a partial
-  batch is not relabelled as a complete one.
+* This batch is **not publishable on its own**, for two independent reasons.
+  It cites five records that actions-1 does not define and that accepted
+  authority does not yet carry, so the standalone *and* the merged validation
+  both report exactly those five; that is asserted as set equality below. And
+  three spans — Magic K2/K3/K4 — are classified UNRESOLVED, because the
+  clause governing them ("a casting time of 1 minute or longer") has no
+  admissible shape under representation schema 6. That is stated in full as
+  ``SCHEMA_STOP`` rather than worked around, and the publication gate refuses
+  the batch for those three spans by name. A partial batch is not relabelled
+  as a complete one.
 * The proposal is derived from the bound source. No earlier actions-1 proposal
   payload, audit row, or unit-test chunk id is read as input. The superseded
   schema-1 artifact is named only so the run can prove it differs.
@@ -95,6 +100,7 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
+from dataclasses import fields
 from pathlib import Path
 
 #: The repository this run reads everything from, derived from where this file
@@ -210,9 +216,23 @@ from afterworlds.ingestion.mechanical.policy import (  # noqa: E402
     irreducibility_reason_for,
     semantic_policy_hash,
 )
+from afterworlds.ingestion.mechanical.gate import (  # noqa: E402
+    GateFailure,
+    GateFailureCategory,
+    GateResult,
+)
 from afterworlds.ingestion.mechanical.projection import (  # noqa: E402
+    ProjectionCandidate,
     ReleaseBinding,
     representation_payload,
+)
+from afterworlds.ingestion.mechanical.publication import (  # noqa: E402
+    PublicationOutcome,
+    _outcome_for,
+)
+from afterworlds.services.rules_authority.application import (  # noqa: E402
+    SourceProse,
+    _base_records,
 )
 from afterworlds.ingestion.mechanical.proposal import (  # noqa: E402
     MechanicalProposal,
@@ -266,7 +286,6 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     RecordDraft,
     RecordKind,
     RecurrenceBoundary,
-    RecurringActionRequirementFact,
     ReferenceDraft,
     RepresentationDraft,
     ResolutionTiming,
@@ -655,12 +674,15 @@ RETRY_24H = RetryRestrictionFact(
     amount=24, unit=TimeUnit.HOUR, gamemaster_may_set_other=True
 )
 
-# --- action.magic -----------------------------------------------------------
-RECUR_ACTION_PER_TURN = RecurringActionRequirementFact(
-    cost=ActionCost.ACTION, per=TimeUnit.TURN
-)
-NO_SLOT_EXPENDED = ResourceExpenditureFact(
-    resource=ExpendableResource.SPELL_SLOT, expended=False
+# --- action.magic / action.ready --------------------------------------------
+# One fact, two records. "you cast a spell that has a casting time of an
+# action" (Magic K1) and "To be readied, a spell must have a casting time of an
+# action" (Ready L8) state the same limit over the same printed, enumerable
+# field, so each record holds it in its own right; `Utilize` O2 is the
+# object-subject sibling of the same family. ADR-005d: eligibility is
+# substantive authority, not supporting prose.
+SPELL_ACTION_ELIGIBLE = ActivationCostEligibilityFact(
+    subject=EligibilitySubject.SPELL, cost=ActionCost.ACTION
 )
 CONCENTRATION_BROKEN = Applicability(
     kind=K.EFFECT_STATE, effect_state=StateEffectKind.CONCENTRATION_BROKEN
@@ -718,13 +740,19 @@ COMPONENTS: dict[tuple[str, str], dict] = {
         handling=ComponentHandling.MIXED, reason=CTX
     ),
     # --- action.dash -------------------------------------------------------
-    (DASH, "dash_movement"): dict(handling=ComponentHandling.STRUCTURED),
-    # An actor choice, not a conjunction: "You choose which speed to use each
-    # time you take it."
-    (DASH, "dash_speed_choice"): dict(
+    # One allowance, chosen between two bases, not two allowances. "you can use
+    # that speed instead of your Speed" makes the special-speed arm a
+    # replacement for the Speed arm, so the two bases are the options of one
+    # component and exactly one of them is measured per Dash.
+    (DASH, "dash_movement"): dict(
         handling=ComponentHandling.STRUCTURED,
         options=("standard_speed", "special_speed"),
     ),
+    # The duration stands alone for the same reason `dodge_duration` does: one
+    # duration governs the single allowance whichever basis is chosen, and a
+    # component holds either facts or options, never both. Repeating it inside
+    # both arms would assert two durations for one allowance.
+    (DASH, "dash_duration"): dict(handling=ComponentHandling.STRUCTURED),
     # --- action.disengage --------------------------------------------------
     (DISE, "disengage_movement"): dict(handling=ComponentHandling.STRUCTURED),
     # --- action.dodge ------------------------------------------------------
@@ -793,10 +821,10 @@ COMPONENTS: dict[tuple[str, str], dict] = {
     ),
     # --- action.magic ------------------------------------------------------
     (MAGI, "magic_activation"): dict(handling=ComponentHandling.MIXED, reason=OEE),
-    (MAGI, "magic_long_casting"): dict(handling=ComponentHandling.STRUCTURED),
-    (MAGI, "magic_concentration_break"): dict(
-        handling=ComponentHandling.STRUCTURED, applies_when=CONCENTRATION_BROKEN
-    ),
+    # K2/K3/K4 are governed by "a casting time of 1 minute or longer", which no
+    # structure of schema 6 can carry (see SCHEMA_STOP). Their spans stay
+    # UNRESOLVED rather than being published ungated, so no component here
+    # holds the recurring-action, sustained-state or slot facts.
     # --- action.ready ------------------------------------------------------
     (REDY, "ready_action"): dict(handling=ComponentHandling.STRUCTURED),
     (REDY, "ready_reaction_grant"): dict(handling=ComponentHandling.STRUCTURED),
@@ -848,6 +876,11 @@ COMPONENTS: dict[tuple[str, str], dict] = {
 #   Q  substantive, claimed PRIMARY by a fact qualifier               arg=(comp,fact)
 #   P  substantive, claimed PRIMARY by a prose binding
 #                                     arg=(comp, reason[, option])
+#   U  unresolved: read, but not classifiable safely under this schema. Claimed
+#      by nothing, because `UNRESOLVED` admits no provenance claim at all, and
+#      it blocks publication. Not a bucket for text nobody looked at - that is
+#      what a missing span means - and not a place to put a mechanic that has
+#      an admissible shape.                                            arg=None
 #
 # Extra kinds (lower case: CONTEXTUAL only, never PRIMARY, never a new span):
 #   f  a typed fact also grounded here                 arg=(comp, fact[, option])
@@ -938,29 +971,39 @@ SPEC["Dash [Action]"] = [
     W,
     [
         ("Dash action,", "C", "dash_movement", "D8"),
-        ("extra movement", "F", ("dash_movement", MOVE_OWN), "D1"),
-        ("the current turn", "F", ("dash_movement", DUR_END_TURN), "D3"),
-        # One fact, two spans, both PRIMARY: the increase's basis is stated
-        # twice, once as "extra movement" and once as "equals your Speed".
-        ("any modifiers.", "F", ("dash_movement", MOVE_OWN), "D2"),
+        # "you gain extra movement" states the allowance itself, before either
+        # basis is named and without naming one: it is the axis of the choice
+        # that no single option states, so the owning component claims it and
+        # both option facts are grounded here CONTEXTUALLY.
+        (
+            "extra movement",
+            "A",
+            "dash_movement",
+            "D1",
+            (
+                ("f", ("dash_movement", MOVE_OWN, "standard_speed")),
+                ("f", ("dash_movement", MOVE_SPECIAL, "special_speed")),
+            ),
+        ),
+        # The duration is stated once, of the one allowance, whichever basis
+        # measures it — so it is held once, by its own component.
+        ("the current turn", "F", ("dash_duration", DUR_END_TURN), "D3"),
+        # "The increase equals your Speed" is the standard-speed arm's basis.
+        ("any modifiers.", "F", ("dash_movement", MOVE_OWN, "standard_speed"), "D2"),
         (None, "C", "dash_movement", "D4"),
     ],
     [(None, "C", "dash_movement", "D4")],
     [
         ("this turn if you Dash.", "C", "dash_movement", "D4"),
-        (None, "F", ("dash_speed_choice", MOVE_SPECIAL, "special_speed"), "D5"),
+        # "you can use that speed instead of your Speed" - a replacement, so
+        # the special-speed arm's basis, not a second allowance beside it.
+        (None, "F", ("dash_movement", MOVE_SPECIAL, "special_speed"), "D5"),
     ],
     [
-        ("take this action.", "F", ("dash_speed_choice", MOVE_SPECIAL, "special_speed"), "D5"),
-        (
-            "You choose which",
-            "A",
-            "dash_speed_choice",
-            "D6",
-            (("f", ("dash_speed_choice", MOVE_OWN, "standard_speed")),),
-        ),
+        ("take this action.", "F", ("dash_movement", MOVE_SPECIAL, "special_speed"), "D5"),
+        ("You choose which", "A", "dash_movement", "D6"),
     ],
-    [(None, "A", "dash_speed_choice", "D6")],
+    [(None, "A", "dash_movement", "D6")],
     [(None, "R", None, "D7")],  # 'See also'
     [(None, "X", ("Speed", "glossary.speed"), "D7")],
 ]
@@ -1011,7 +1054,12 @@ SPEC["Help [Action]"] = [
     [(None, "P", ("help_choice", CTX, "assist_ability_check"), "H2")],
     [
         ("an ability check.", "P", ("help_choice", CTX, "assist_ability_check"), "H2"),
-        ("skill or tool.", "F", ("help_choice", ADV_ALLY_CHECK, "assist_ability_check"), "H3"),
+        ("they make", "F", ("help_choice", ADV_ALLY_CHECK, "assist_ability_check"), "H3"),
+        # "with the chosen skill or tool" narrows the Advantage to the one
+        # proficiency this use of Help chose. `RollSpec` enumerates no
+        # proficiency, so the qualification is contextual applicability and is
+        # kept as governing prose at exactly its own extent, not dropped.
+        ("skill or tool.", "P", ("help_choice", CTX, "assist_ability_check"), "H3"),
         ("your next turn.", "F", ("help_choice", DUR_START_TURN, "assist_ability_check"), "H4"),
         # R-help-reason: substantive, and carried under the component's single
         # reason rather than demoted or split onto a false sibling scope.
@@ -1020,7 +1068,11 @@ SPEC["Help [Action]"] = [
     [(None, "C", "help_choice", "H1")],  # 'Assist an Attack Roll.'
     [
         ("5 feet of you,", "P", ("help_choice", CTX, "assist_attack_roll"), "H6"),
-        ("against that enemy.", "F", ("help_choice", ADV_ALLY_ATTACK, "assist_attack_roll"), "H6"),
+        ("one of your allies", "F", ("help_choice", ADV_ALLY_ATTACK, "assist_attack_roll"), "H6"),
+        # "against that enemy" binds the Advantage to the enemy distracted by
+        # this Help. No fact of this schema carries an attack roll's target, so
+        # the qualification is contextual applicability at its own extent.
+        ("against that enemy.", "P", ("help_choice", CTX, "assist_attack_roll"), "H6"),
         (None, "F", ("help_choice", DUR_START_TURN, "assist_attack_roll"), "H7"),
     ],
 ]
@@ -1058,6 +1110,10 @@ SPEC["Influence [Action]"] = [
     [(None, "P", ("influence_unwilling", CTX), "J4")],
     [(None, "C", "influence_check", "J6")],  # 'Hesitant.'
     [
+        # The check is required only when the monster is hesitant, and J2 makes
+        # that determination the GM's outright. The gate is carried at its own
+        # extent under the one reason this component holds.
+        ("hesitant to do,", "P", ("influence_check", GML), "J6"),
         ("an ability check,", "F", ("influence_check", INFLUENCE_CHECK), "J6"),
         ("attitude:", "C", "influence_check", "J5"),
         (
@@ -1089,17 +1145,23 @@ SPEC["Influence [Action]"] = [
 SPEC["Magic [Action]"] = [
     W,
     [
-        ("of an action", "F", ("magic_activation", AE_ACTION), "K1"),
+        ("the Magic action,", "F", ("magic_activation", AE_ACTION), "K1"),
+        # Which spells the action reaches, over a printed enumerable field.
+        ("casting time of an action", "F", ("magic_activation", SPELL_ACTION_ELIGIBLE), "K1"),
         # "a feature or magic item that requires a Magic action" - the effect
         # space of what such a feature does is the whole of the game's features.
         (None, "P", ("magic_activation", OEE), "K1"),
     ],
+    # Every clause of this leaf is governed by "a casting time of 1 minute or
+    # longer". That gate has no admissible shape under schema 6 (SCHEMA_STOP),
+    # and publishing these facts without it would assert them of every Magic
+    # action. UNRESOLVED is the schema's own prescribed treatment: the text is
+    # read, claimed by nothing, and blocks publication until the gate can be
+    # expressed.
     [
-        ("of that casting,", "F", ("magic_long_casting", RECUR_ACTION_PER_TURN), "K2"),
-        ("while you do so.", "F", ("magic_long_casting", SUST_CONC), "K3"),
-        ("is broken,", "A", "magic_concentration_break", "K4"),
-        ("the spell fails,", "F", ("magic_concentration_break", TERMINATION), "K4"),
-        (None, "F", ("magic_concentration_break", NO_SLOT_EXPENDED), "K4"),
+        ("of that casting,", "U", None, "K2"),
+        ("while you do so.", "U", None, "K3"),
+        (None, "U", None, "K4"),
     ],
     [(None, "R", None, "K5")],  # 'See also'
     [(None, "X", ("Concentration", "glossary.concentration"), "K5")],
@@ -1134,7 +1196,7 @@ SPEC["Ready [Action]"] = [
         ("ignore the trigger.", "F", ("ready_resolution", TRIGGER_RESOLUTION), "L6"),
         ("used to cast it)", "F", ("ready_spell", CASTING_RESOURCES_SPENT), "L7"),
         ("the trigger occurs.", "C", "ready_spell", "L7"),
-        ("casting time of an action,", "C", "ready_spell", "L8"),
+        ("casting time of an action,", "F", ("ready_spell", SPELL_ACTION_ELIGIBLE), "L8"),
         ("requires Concentration,", "F", ("ready_spell", SUST_CONC), "L9"),
         ("your next turn.", "F", ("ready_spell", DUR_START_TURN), "L9"),
         ("is broken,", "A", "ready_concentration_break", "L10"),
@@ -1216,6 +1278,7 @@ DISP = {
     "A": SemanticDisposition.SUBSTANTIVE,
     "Q": SemanticDisposition.SUBSTANTIVE,
     "P": SemanticDisposition.SUBSTANTIVE,
+    "U": SemanticDisposition.UNRESOLVED,
 }
 RATIONALE = {
     "R": (
@@ -1250,6 +1313,13 @@ RATIONALE = {
         "ranges over fiction the projection cannot enumerate, or the effect space "
         "is unbounded, and whatever mechanic it governs is typed beside it"
     ),
+    "U": (
+        "states a determinate mechanic under a qualification this schema has no "
+        "structure for, so no admissible composition carries it: publishing the "
+        "mechanic would assert it beyond its printed scope, and prose-binding it "
+        "would record a vocabulary gap as an irreducibility. Read, unclaimed, "
+        "and publication-blocking until the schema can express the gate"
+    ),
 }
 CLAIMANT_KIND = {
     "R": "record",
@@ -1259,6 +1329,7 @@ CLAIMANT_KIND = {
     "A": "component",
     "Q": "fact_qualifier",
     "P": "prose_binding",
+    "U": "none",
 }
 
 
@@ -1344,6 +1415,8 @@ for label, leafspecs in SPEC.items():
                 claimant = f"{rkey}/{arg[0]}{('#' + _o) if _o else ''} ({arg[1]})"
             elif kind == "X":
                 claimant = f"{rkey} -> {arg[1]}"
+            elif kind == "U":
+                claimant = ""
             else:
                 claimant = rkey
             audit.append(
@@ -1361,6 +1434,8 @@ for label, leafspecs in SPEC.items():
                     "role": (
                         "primary"
                         if disp is SemanticDisposition.SUBSTANTIVE
+                        else "none"
+                        if disp is SemanticDisposition.UNRESOLVED
                         else "contextual"
                     ),
                     "also_grounds": [
@@ -1705,8 +1780,11 @@ UNRESOLVED = {
         "finding sets are identical and non-empty. glossary.speed and "
         "glossary.concentration belong to a later glossary batch; "
         "attitude.friendly, attitude.hostile and attitude.indifferent belong to "
-        "the monster-attitude batch. This batch is material for semantic "
-        "review, not a publishable unit."
+        "the monster-attitude batch. This is one of the two things blocking "
+        "publication; the other is the UNRESOLVED residue at schema stop S-1, "
+        "which the validator does not report because UNRESOLVED is a "
+        "classification, not a representation violation. This batch is "
+        "material for semantic review, not a publishable unit."
     ),
 }
 #: Set equality on both columns, not a count. A finding that happened to be
@@ -1999,7 +2077,15 @@ OWNERSHIP = {
         for b in prose_bindings
         if _disp[b.span_id] is not SemanticDisposition.SUBSTANTIVE
     ),
+    "unresolved_spans": sum(
+        1 for d in _disp.values() if d is SemanticDisposition.UNRESOLVED
+    ),
     "spans_with_no_claim_at_all": sum(1 for sid in _disp if not _by_span[sid]),
+    "unresolved_spans_carrying_any_claim": sum(
+        1
+        for sid, d in _disp.items()
+        if d is SemanticDisposition.UNRESOLVED and _by_span[sid]
+    ),
     "spans_carrying_more_than_one_claim": sorted(
         {
             _text_of[sid]: len(cls) for sid, cls in _by_span.items() if len(cls) > 1
@@ -2013,7 +2099,13 @@ assert (
 ), OWNERSHIP
 assert OWNERSHIP["supporting_spans_carrying_a_primary_claim"] == 0, OWNERSHIP
 assert OWNERSHIP["prose_bindings_over_supporting_text"] == 0, OWNERSHIP
-assert OWNERSHIP["spans_with_no_claim_at_all"] == 0, OWNERSHIP
+# `SemanticDisposition.UNRESOLVED` admits no provenance claim (validation.py
+# maps it to the empty frozenset), so the unclaimed spans are exactly the
+# unresolved ones - no more, and none of them claimed.
+assert OWNERSHIP["unresolved_spans_carrying_any_claim"] == 0, OWNERSHIP
+assert (
+    OWNERSHIP["spans_with_no_claim_at_all"] == OWNERSHIP["unresolved_spans"]
+), OWNERSHIP
 
 # --- Schema-6 structures demonstrated, derived from the emitted draft --------
 _sites: dict[str, list[str]] = defaultdict(list)
@@ -2043,6 +2135,245 @@ for _needed in (
     "option-grain prose binding",
 ):
     assert SCHEMA6_STRUCTURES.get(_needed), f"{_needed} is exercised nowhere"
+
+# --- The consumer boundary: what a reader of this authority actually sees ----
+#
+# Span tallies are not the contract. `_base_records` is the function every
+# consumer of mechanical authority goes through, so the corrected compositions
+# are proved there - together with the counterexamples that limit them, because
+# a composition that admits too much is wrong in exactly the way a missing one
+# is.
+CANDIDATE = ProjectionCandidate(
+    binding=BINDING,
+    classification=MERGED_LEDGER,
+    representation=MERGED,
+    schema_version=SCHEMA[0],
+    schema_hash=SCHEMA[1],
+)
+EFFECTIVE = _base_records(CANDIDATE)
+_span_text = {a["span_id"]: a["text"] for a in audit}
+
+
+def _comp(record_key: str, component_key: str):
+    """One component of the effective view, by key."""
+    (found,) = [
+        c for c in EFFECTIVE[record_key].components if c.semantic_key == component_key
+    ]
+    return found
+
+
+def _all_facts(component) -> list:
+    """Every fact a component publishes, direct or under an option."""
+    return [f.fact for f in component.facts] + [
+        f.fact for o in component.options for f in o.facts
+    ]
+
+
+def _prose_texts(component, option_key: str = "") -> list[str]:
+    """The exact source extents that govern a component, at one scope."""
+    return [
+        _span_text[e.span_id]
+        for e in component.governing_prose
+        if isinstance(e, SourceProse) and e.option_key == option_key
+    ]
+
+
+# 1. Dash: one allowance, two bases, exactly one of which is measured.
+_dash_move = _comp(DASH, "dash_movement")
+_dash_dur = _comp(DASH, "dash_duration")
+_dash_arms = {o.semantic_key: [f.fact for f in o.facts] for o in _dash_move.options}
+DASH_PROOF = {
+    "component_facts_outside_the_choice": len(_dash_move.facts),
+    "arms": {k: [type(f).__name__ for f in v] for k, v in sorted(_dash_arms.items())},
+    "bases": {
+        k: [f.basis.value for f in v] for k, v in sorted(_dash_arms.items())
+    },
+    "movement_allowances_reachable_in_one_dash": max(
+        sum(1 for f in v if isinstance(f, MovementAllowanceFact))
+        for v in _dash_arms.values()
+    )
+    + sum(1 for f in _dash_move.facts if isinstance(f.fact, MovementAllowanceFact)),
+    "duration_component_facts": [type(f.fact).__name__ for f in _dash_dur.facts],
+    "duration_facts_inside_either_arm": sum(
+        1 for v in _dash_arms.values() for f in v if isinstance(f, EffectDurationFact)
+    ),
+    "movement_allowances_elsewhere_in_action_dash": sum(
+        1
+        for c in EFFECTIVE[DASH].components
+        if c.semantic_key != "dash_movement"
+        for f in _all_facts(c)
+        if isinstance(f, MovementAllowanceFact)
+    ),
+    "counterexample": (
+        "Taking Dash once selects one arm. The standard arm publishes OWN_SPEED "
+        "and the special arm OWN_SPECIAL_SPEED, and no third MovementAllowanceFact "
+        "exists anywhere in action.dash - so no reading of this record grants both "
+        "a Speed allowance and a special-speed allowance for one Dash. 'instead of "
+        "your Speed' is what the source says, and exclusivity is what the option "
+        "set means (EffectiveOption: options are mutually exclusive)."
+    ),
+}
+assert DASH_PROOF["component_facts_outside_the_choice"] == 0, DASH_PROOF
+assert sorted(_dash_arms) == ["special_speed", "standard_speed"], DASH_PROOF
+assert DASH_PROOF["bases"] == {
+    "special_speed": ["own_special_speed"],
+    "standard_speed": ["own_speed"],
+}, DASH_PROOF
+assert DASH_PROOF["movement_allowances_reachable_in_one_dash"] == 1, DASH_PROOF
+assert DASH_PROOF["duration_component_facts"] == ["EffectDurationFact"], DASH_PROOF
+assert DASH_PROOF["duration_facts_inside_either_arm"] == 0, DASH_PROOF
+assert DASH_PROOF["movement_allowances_elsewhere_in_action_dash"] == 0, DASH_PROOF
+
+# 2. Activation-cost eligibility: which spells and objects a mechanic reaches.
+_eligibility = sorted(
+    (rk, c.semantic_key, f.subject.value, f.cost.value)
+    for rk, rec in EFFECTIVE.items()
+    for c in rec.components
+    for f in _all_facts(c)
+    if isinstance(f, ActivationCostEligibilityFact)
+)
+ELIGIBILITY_PROOF = {
+    "holders": [list(e) for e in _eligibility],
+    "admitted_pairs": sorted({(e[2], e[3]) for e in _eligibility}),
+    "counterexample": (
+        "Eligible: a spell whose printed Casting Time is Action satisfies "
+        "(spell, action) and is reached by both Magic and Ready. Ineligible: a "
+        "spell whose printed Casting Time is a Bonus Action, a Reaction, or 1 "
+        "minute matches no eligibility fact this batch publishes - the admitted "
+        "set is exactly {(spell, action), (object, action)} - so neither Magic "
+        "nor Ready reaches it. Before this correction Ready L8 and Magic K1 held "
+        "no eligibility fact at all, and the consumer view admitted every spell."
+    ),
+}
+assert ELIGIBILITY_PROOF["admitted_pairs"] == [
+    ("object", "action"),
+    ("spell", "action"),
+], ELIGIBILITY_PROOF
+assert [(e[0], e[1]) for e in _eligibility] == [
+    (MAGI, "magic_activation"),
+    (REDY, "ready_spell"),
+    (UTIL, "utilize_action"),
+], ELIGIBILITY_PROOF
+
+# 3. Help: the qualification that decides which later roll benefits.
+_help = _comp(HELP, "help_choice")
+_help_facts = {o.semantic_key: [f.fact for f in o.facts] for o in _help.options}
+HELP_PROOF = {
+    "arms": sorted(_help_facts),
+    "advantage_fact_fields": sorted(f.name for f in fields(AdvantageFact)),
+    "governing_prose_by_arm": {
+        k: _prose_texts(_help, k) for k in sorted(_help_facts)
+    },
+    "counterexample": (
+        "The typed facts say only that an ally has Advantage on their next "
+        "ability check or attack roll: AdvantageFact enumerates no proficiency "
+        "and no target, so on the facts alone an unrelated next roll - a "
+        "different skill, or an attack against a different enemy - would read as "
+        "benefiting. The qualifying roll is distinguished only by the governing "
+        "prose, which is why 'with the chosen skill or tool' and 'against that "
+        "enemy' are carried at their own extents and at arm scope rather than "
+        "absorbed into a neighbouring span."
+    ),
+}
+assert any(
+    t.endswith("skill or tool.")
+    for t in HELP_PROOF["governing_prose_by_arm"]["assist_ability_check"]
+), HELP_PROOF
+assert any(
+    t.endswith("against that enemy.")
+    for t in HELP_PROOF["governing_prose_by_arm"]["assist_attack_roll"]
+), HELP_PROOF
+assert "proficiency" not in HELP_PROOF["advantage_fact_fields"], HELP_PROOF
+assert "target" not in HELP_PROOF["advantage_fact_fields"], HELP_PROOF
+
+# 4. Influence: the condition under which a check is required at all.
+_infl = _comp(INFL, "influence_check")
+INFLUENCE_PROOF = {
+    "governing_prose": _prose_texts(_infl),
+    "typed_facts": [type(f).__name__ for f in _all_facts(_infl)],
+    "counterexample": (
+        "AbilityCheckFact states which check and at what DC, never whether one "
+        "is called for. Willing and Unwilling monsters need no check at all "
+        "(J3, J4), so publishing the check ungated would require a roll the "
+        "source does not. The hesitancy gate is carried at its own extent, under "
+        "gamemaster_latitude, because J2 hands the determination to the GM "
+        "outright rather than because the schema lacks a word for it."
+    ),
+}
+assert any(
+    t.endswith("hesitant to do,") for t in INFLUENCE_PROOF["governing_prose"]
+), INFLUENCE_PROOF
+
+# 5. Magic: the long-casting clauses reach the consumer as nothing at all.
+_magic_components = [c.semantic_key for c in EFFECTIVE[MAGI].components]
+_magic_fact_types = sorted(
+    {type(f).__name__ for c in EFFECTIVE[MAGI].components for f in _all_facts(c)}
+)
+_k_spans = sorted({sid for oid in ("K2", "K3", "K4") for sid in obligation_spans[oid]})
+_k_dispositions = sorted({_disp[sid].value for sid in _k_spans})
+_residue = GateResult(
+    passed=False,
+    projection_uuid="(not persisted: no publication is attempted here)",
+    oracle_identity="(none)",
+    failures=tuple(
+        GateFailure(
+            GateFailureCategory.UNRESOLVED_RESIDUE,
+            f"span {sid}: unresolved classification",
+        )
+        for sid in sorted(
+            s_.span_id
+            for s_ in spans
+            if s_.disposition is SemanticDisposition.UNRESOLVED
+        )
+    ),
+    obligations=(),
+    expected_projection_uuid=None,
+    persisted_state_digest=None,
+    diagnostics={},
+)
+MAGIC_PROOF = {
+    "components": _magic_components,
+    "published_fact_types": _magic_fact_types,
+    "k2_k3_k4_spans": _k_spans,
+    "k2_k3_k4_dispositions": _k_dispositions,
+    "gate_outcome_for_that_residue": _outcome_for(_residue).value,
+    "residue_span_ids": [f.detail.split()[1].rstrip(":") for f in _residue.failures],
+    "counterexample": (
+        "The gate is 'a casting time of 1 minute or longer'. Published without "
+        "it, RecurringActionRequirementFact would require a Magic action on every "
+        "turn of every casting, SustainedStateRequirementFact would require "
+        "Concentration for every Magic action, and ResourceExpenditureFact would "
+        "say a broken Concentration expends no slot for spells that never had a "
+        "casting to break - each one false of the Action-casting-time spells K1 "
+        "reaches. So action.magic publishes the activation component only, the "
+        "three clauses stay UNRESOLVED, and the publication gate refuses the "
+        "batch for them by name (SCHEMA_STOP)."
+    ),
+}
+assert _magic_components == ["magic_activation"], MAGIC_PROOF
+assert "RecurringActionRequirementFact" not in _magic_fact_types, MAGIC_PROOF
+assert "SustainedStateRequirementFact" not in _magic_fact_types, MAGIC_PROOF
+assert "EffectTerminationFact" not in _magic_fact_types, MAGIC_PROOF
+assert "ResourceExpenditureFact" not in _magic_fact_types, MAGIC_PROOF
+assert _k_dispositions == ["unresolved"], MAGIC_PROOF
+assert len(_k_spans) == 3, MAGIC_PROOF
+assert MAGIC_PROOF["residue_span_ids"] == _k_spans, MAGIC_PROOF
+assert (
+    MAGIC_PROOF["gate_outcome_for_that_residue"] == PublicationOutcome.UNRESOLVED.value
+), MAGIC_PROOF
+
+CONSUMER_PROOFS = {
+    "boundary": (
+        "services/rules_authority/application.py::_base_records, applied to the "
+        "merged candidate (accepted prior + this batch). No acceptance, no "
+        "publication, no persistence: the projection is built in memory and read."
+    ),
+    "dash_one_allowance": DASH_PROOF,
+    "activation_cost_eligibility": ELIGIBILITY_PROOF,
+    "help_qualified_next_roll": HELP_PROOF,
+    "influence_hesitancy_gate": INFLUENCE_PROOF,
+    "magic_long_casting_unresolved": MAGIC_PROOF,
+}
 
 # --- Substantive judgment changes from discovery ----------------------------
 # Named because the Owner asked for them, and stated as reasons rather than as
@@ -2156,6 +2487,349 @@ JUDGMENT_CHANGES = [
             "authority exactly as in hazards-1"
         ),
         "why": "re-derived from `exclusion_reason_for` against the bound ledger",
+    },
+    {
+        "id": "JC-10",
+        "what": "Dash is one allowance whose basis is chosen, plus its own duration",
+        "was": (
+            "dash_movement granted an OWN_SPEED allowance outright and "
+            "dash_speed_choice separately offered OWN_SPEED / OWN_SPECIAL_SPEED, "
+            "so the consumer view carried two movement allowances for one Dash"
+        ),
+        "now": (
+            "dash_movement holds the two bases as the two arms of one choice and "
+            "no facts of its own; dash_duration holds the single END_OF_TURN "
+            "duration"
+        ),
+        "why": (
+            "'you can use that speed instead of your Speed when you take this "
+            "action' is a replacement, not an addition: one allowance is measured "
+            "per Dash and the source only says which speed measures it. The "
+            "duration is a component of its own for the reason JC-6 gives - a "
+            "component holds either facts or options, never both, so the only "
+            "alternative was to repeat the duration inside both arms, which would "
+            "publish two durations for one allowance and read as a reviewer-"
+            "convenient composition rather than the printed rule. D1 ('you gain "
+            "extra movement') states the allowance before either basis is named, "
+            "so the owning component claims it PRIMARY and both option facts take "
+            "CONTEXTUAL edges there - the same shape L-1 uses for Attack."
+        ),
+    },
+    {
+        "id": "JC-11",
+        "what": "Magic K1 and Ready L8 hold SPELL activation-cost eligibility",
+        "was": (
+            "Magic K1 carried only ActionEconomyFact(action) and Ready L8 was "
+            "supporting authority owned by ready_spell"
+        ),
+        "now": (
+            "both hold ActivationCostEligibilityFact(spell, action), beside "
+            "Utilize O2's (object, action)"
+        ),
+        "why": (
+            "ADR-005d decides it in terms: eligibility is substantive authority, "
+            "not supporting prose, because 'a spell must have a casting time of "
+            "an action' states which spells the mechanic reaches over a printed, "
+            "enumerable field. The fact's own docstring names these three records "
+            "as its three instances. Utilize was already typed; Magic and Ready "
+            "were the two that had not been, and without them the consumer view "
+            "admitted every spell. The same fact in two records is admissible: "
+            "the duplicated-authority rule refuses an equivalent fact held by two "
+            "components of ONE record, and these are two."
+        ),
+    },
+    {
+        "id": "JC-12",
+        "what": (
+            "Help's two narrowing clauses and Influence's hesitancy gate survive "
+            "as governing prose at their own extents"
+        ),
+        "was": (
+            "'with the chosen skill or tool' and 'against that enemy' were "
+            "absorbed into the spans claimed by the two AdvantageFacts, and "
+            "'that it is hesitant to do' into the span claimed by "
+            "AbilityCheckFact - covered, but stating nothing"
+        ),
+        "now": (
+            "three additional spans, each PRIMARY by a prose binding at exactly "
+            "its clause: two at option scope on help_choice, one on "
+            "influence_check"
+        ),
+        "why": (
+            "full clause coverage is not the same as full clause representation. "
+            "Each of the three narrows a mechanic the schema types beside it, and "
+            "none is a vocabulary gap dressed as irreducibility: AdvantageFact "
+            "enumerates neither a proficiency nor a target because which "
+            "proficiency was chosen and which enemy was distracted are facts of "
+            "the fiction, and J2 hands the hesitancy determination to the GM "
+            "outright. contextual_applicability and gamemaster_latitude are "
+            "literally true of them, and both were already the owning component's "
+            "reason, so no reason code was invented and R-help-reason is "
+            "unchanged."
+        ),
+    },
+    {
+        "id": "JC-13",
+        "what": "Magic K2, K3 and K4 are UNRESOLVED, and hold no components",
+        "was": (
+            "magic_long_casting and magic_concentration_break published the "
+            "recurring-action, Concentration, termination and slot facts with no "
+            "representation of 'a casting time of 1 minute or longer'"
+        ),
+        "now": (
+            "three UNRESOLVED spans claimed by nothing; the two components are "
+            "not authored at all, so action.magic publishes magic_activation only"
+        ),
+        "why": (
+            "the gate has no admissible shape under this schema (SCHEMA_STOP), "
+            "and every alternative asserts something false. Published ungated, "
+            "the facts state that every Magic action requires an action on each "
+            "turn and Concentration throughout. Prose-bound under an "
+            "irreducibility reason, they would record a vocabulary gap as an "
+            "affirmative claim that the clause is irreducible - which it is not: "
+            "the clause is determinate, and the schema already enumerates a "
+            "spell's casting time in SpellCastingTime. UNRESOLVED is the "
+            "treatment the Applicability contract itself prescribes for a "
+            "condition stated over something outside its vocabularies, and it "
+            "blocks publication rather than hiding the gap."
+        ),
+    },
+]
+
+# --- The bounded schema stop, stated exactly ---------------------------------
+#
+# Returned rather than worked around. Nothing here changes the schema or the
+# pin; what it does is name the one clause that cannot be said, the shapes that
+# were tried, and the capability that is missing - so the decision to widen the
+# union or leave the clause unresolved is the Owner's and is made on evidence.
+SCHEMA_STOP = {
+    "id": "S-1",
+    "where": "action.magic, leaf b196aa1b (SRD 5.2.1 p185), obligations K2/K3/K4",
+    "clause": (
+        "If you cast a spell that has a casting time of 1 minute or longer, you "
+        "must take the Magic action on each turn of that casting, and you must "
+        "maintain Concentration while you do so. If your Concentration is broken, "
+        "the spell fails, but you don't expend a spell slot."
+    ),
+    "what_cannot_be_expressed": (
+        "the qualification 'a casting time of 1 minute or longer' - a comparison "
+        "against the elapsed-time arm of a spell's printed casting time. The "
+        "three mechanics it governs are all typed (RecurringActionRequirementFact, "
+        "SustainedStateRequirementFact, EffectTerminationFact, "
+        "ResourceExpenditureFact); it is only the gate that has no shape."
+    ),
+    "attempted_admissible_shapes": [
+        {
+            "shape": "ActivationCostEligibilityFact(subject=SPELL, cost=...)",
+            "why_refused": (
+                "`cost` is `ActionCost` - action | bonus_action | reaction | "
+                "legendary_action | none | special. No member denotes '1 minute "
+                "or longer', and the fact has no arm for SpellCastingTime's "
+                "amount/unit pair at all. This is the fact that carries the "
+                "sibling clause in K1 and L8, which is exactly why its ceiling "
+                "is the right place to look: it ranges over the cost arm only."
+            ),
+        },
+        {
+            "shape": "Applicability(kind=ELAPSED_DURATION, value=1, unit=MINUTE)",
+            "why_refused": (
+                "false, not merely lossy. ELAPSED_DURATION is about time that has "
+                "passed in play. A spell's stated casting time is a printed "
+                "property of the spell, and the gate reads it before any time "
+                "elapses: a 1-minute casting qualifies at the instant it begins."
+            ),
+        },
+        {
+            "shape": "Applicability(kind=QUANTITY_THRESHOLD, quantity=..., ...)",
+            "why_refused": (
+                "`TrackedQuantity` is speed | condition_level | weight. Casting "
+                "time is not among them, and Applicability is deliberately not a "
+                "predicate language: there is no operator, no nesting, and no way "
+                "to build a third predicate from two of these."
+            ),
+        },
+        {
+            "shape": (
+                "MIXED component: the three facts, plus a prose binding carrying "
+                "the gate under an irreducibility reason"
+            ),
+            "why_refused": (
+                "this is the shape that would have made the batch look clean, and "
+                "it is the one the authorization forbids. An irreducibility "
+                "reason is an affirmative claim that the clause cannot be reduced. "
+                "This clause is determinate, and the schema itself enumerates the "
+                "field it ranges over (SpellCastingTime carries an amount/unit "
+                "arm). Recording a vocabulary gap as irreducibility would put a "
+                "false reason code in accepted authority - and the facts would "
+                "still publish ungated beside it."
+            ),
+        },
+    ],
+    "missing_capability": (
+        "an eligibility fact - or an ApplicabilityKind - that ranges over the "
+        "ELAPSED-TIME arm of SpellCastingTime with a comparison operator: the "
+        "exact analogue of ActivationCostEligibilityFact for `amount`/`unit` "
+        "rather than `cost`. Something of the shape "
+        "(subject=SPELL, at_least=(1, MINUTE)). Nothing weaker suffices: the "
+        "clause is a threshold ('or longer'), not an equality, so an enumerated "
+        "casting-time member would not carry it either."
+    ),
+    "treatment_taken_instead": (
+        "K2, K3 and K4 are classified UNRESOLVED. The text is read and its "
+        "extents are recorded, no element claims it, and no component of "
+        "action.magic holds the facts it governs. This is what "
+        "SemanticDisposition.UNRESOLVED is for - an honest 'cannot classify "
+        "safely yet' that blocks publication - and it is distinct from a missing "
+        "span, which would mean nobody looked."
+    ),
+    "what_it_costs": (
+        "action.magic's authority stops at K1. A consumer asking what a "
+        "1-minute casting requires gets nothing from this batch rather than "
+        "something wrong, and the batch cannot be published until the gate is "
+        "expressible - a second, independent block beside the five cross-batch "
+        "citations."
+    ),
+    "not_done_here": (
+        "the schema and its pin are unchanged, the accepted prior is unchanged, "
+        "and no ruling is made about what the printed rules mean. Widening the "
+        "union is an Owner decision and a schema-7 question."
+    ),
+}
+_stop_spans = sorted(
+    {sid for oid in ("K2", "K3", "K4") for sid in obligation_spans[oid]}
+)
+assert MAGIC_PROOF["k2_k3_k4_spans"] == _stop_spans, _stop_spans
+assert all(_disp[sid] is SemanticDisposition.UNRESOLVED for sid in _stop_spans)
+
+# --- Bounded sibling dispositions --------------------------------------------
+#
+# Two review rounds hit the same two families - "a composition that publishes
+# more than the source grants" and "a clause covered but not represented" - so
+# the siblings were swept rather than only the two named instances patched.
+SIBLING_DISPOSITIONS = [
+    {
+        "family": "one grant published twice by two components of one record",
+        "trigger": "Dash's dash_movement + dash_speed_choice",
+        "inspected": [
+            {
+                "where": "action.dash/dash_movement + dash_duration",
+                "disposition": "patched (JC-10)",
+            },
+            {
+                "where": "action.dodge/dodge_duration + its two benefits",
+                "disposition": (
+                    "already safe - the standalone-duration shape Dash now "
+                    "adopts; JC-6 settled it and nothing changed"
+                ),
+            },
+            {
+                "where": "action.ready/ready_response (chosen_action | move_up_to_speed)",
+                "disposition": (
+                    "already safe - both arms take AE_REACTION as CONTEXTUAL "
+                    "edges from ready_reaction_grant's single PRIMARY span, so "
+                    "the reaction is granted once"
+                ),
+            },
+            {
+                "where": "action.attack/attack_equipment_change",
+                "disposition": (
+                    "already safe, disclosed as L-1 - the four options are the "
+                    "cross product of two axes and are closed without change"
+                ),
+            },
+            {
+                "where": "action.help/help_choice",
+                "disposition": (
+                    "already safe - the two arms are alternatives of one Help "
+                    "action and neither publishes the other's Advantage"
+                ),
+            },
+            {
+                "where": "glossary.action/action_allowance + action_choice",
+                "disposition": "already safe - one allowance, one open effect space",
+            },
+        ],
+        "regression_coverage": (
+            "CONSUMER_PROOFS['dash_one_allowance'] asserts at most one "
+            "MovementAllowanceFact is reachable per Dash, no duration inside "
+            "either arm, and no movement allowance anywhere else in action.dash; "
+            "SIBLING_PAIRS asserts no two components of one record hold an "
+            "equivalent fact on a shared substantive span."
+        ),
+    },
+    {
+        "family": (
+            "a clause fully covered by a span whose claimant does not state it"
+        ),
+        "trigger": "Ready L8 as supporting authority; Help H3/H6; Influence J6",
+        "inspected": [
+            {
+                "where": "action.ready/ready_spell L8",
+                "disposition": "patched (JC-11) - typed eligibility",
+            },
+            {
+                "where": "action.magic/magic_activation K1",
+                "disposition": "patched (JC-11) - typed eligibility, K1 split in three",
+            },
+            {
+                "where": "action.utilize/utilize_action O2",
+                "disposition": (
+                    "already safe - the working sibling; typed since JC-8 and "
+                    "the model for the other two"
+                ),
+            },
+            {
+                "where": "action.help/help_choice H3 and H6",
+                "disposition": "patched (JC-12) - two option-scope prose bindings",
+            },
+            {
+                "where": "action.influence/influence_check J6",
+                "disposition": "patched (JC-12) - one prose binding at the gate",
+            },
+            {
+                "where": "action.magic K2/K3/K4",
+                "disposition": (
+                    "schema stop (S-1) - the gate has no admissible shape, so the "
+                    "clauses are UNRESOLVED and the facts are not published"
+                ),
+            },
+            {
+                "where": "action.hide/hide_check, hide_end",
+                "disposition": (
+                    "already safe - both gates are carried by a real "
+                    "Applicability (any_of over condition_state / obscurement / "
+                    "cover) rather than by prose"
+                ),
+            },
+            {
+                "where": "action.dodge/dodge_attack_disadvantage",
+                "disposition": (
+                    "already safe - the 'unimpaired' condition is a negated "
+                    "any_of applicability, not an absorbed clause"
+                ),
+            },
+            {
+                "where": "action.attack/attack_movement_interleave B7",
+                "disposition": (
+                    "already safe - the interleave condition is prose-bound at "
+                    "its own extent with the typed fact beside it"
+                ),
+            },
+            {
+                "where": "action.search / action.study table rows",
+                "disposition": (
+                    "out of scope - guidance, closed by JC-2 and the Owner's "
+                    "clarification; random-table selection is not reopened"
+                ),
+            },
+        ],
+        "regression_coverage": (
+            "CONSUMER_PROOFS asserts the admitted eligibility pairs are exactly "
+            "{(spell, action), (object, action)} over exactly three holders, that "
+            "each Help arm's governing prose ends at its own qualification, that "
+            "influence_check's prose carries the hesitancy gate, and that "
+            "action.magic publishes none of the four long-casting fact types."
+        ),
     },
 ]
 
@@ -2276,7 +2950,10 @@ COUNTS = {
     "obligations": len(OBLIGATION_IDS),
 }
 assert COUNTS["spans"] == len(audit) == len(proposed), COUNTS
-assert COUNTS["provenance_edges"] == len(spans) + extra_edges, COUNTS
+assert (
+    COUNTS["provenance_edges"]
+    == len(spans) - COUNTS["unresolved"] + extra_edges
+), COUNTS
 assert (
     COUNTS["substantive"]
     + COUNTS["supporting_authority"]
@@ -2328,7 +3005,8 @@ AUDIT_DOC = {
         "audit only: nothing accepted, published, activated or retired. Zero "
         "validator findings would be necessary and insufficient - and this batch "
         "does not even have zero: it cites five records no accepted batch "
-        "defines, so it is explicitly NOT publishable on its own."
+        "defines, and it leaves three spans UNRESOLVED at a named schema stop, "
+        "so it is explicitly NOT publishable on its own."
     ),
     "proposal_identity": ident,
     "identity_is_pinned": False,
@@ -2429,11 +3107,13 @@ AUDIT_DOC = {
         "blocked_on": sorted(t for _f, t in _cross_batch),
         "statement": (
             "actions-1 is complete as a batch of its own boundary - every one of "
-            "the 92 represented leaves is partitioned and claimed, and every one "
-            "of the 78 discovery obligations is discharged - and it is not a "
-            "publishable unit, because five source-authored citations point at "
-            "records no accepted batch defines yet. Naming that precisely is the "
-            "point; calling this batch clean would not be."
+            "the 92 represented leaves is partitioned, and every one of the 78 "
+            "discovery obligations is discharged - and it is not a publishable "
+            "unit, for two independent reasons. Five source-authored citations "
+            "point at records no accepted batch defines yet, and three spans "
+            "(Magic K2/K3/K4) are UNRESOLVED because their governing "
+            "casting-time threshold has no shape in this schema (S-1). Naming "
+            "both precisely is the point; calling this batch clean would not be."
         ),
     },
     "disjointness_from_the_accepted_prior": DISJOINT,
@@ -2442,6 +3122,9 @@ AUDIT_DOC = {
     "ownership_integrity": OWNERSHIP,
     "schema_6_structures_demonstrated": SCHEMA6_STRUCTURES,
     "substantive_judgment_changes": JUDGMENT_CHANGES,
+    "consumer_boundary_proofs": CONSUMER_PROOFS,
+    "schema_stop": SCHEMA_STOP,
+    "sibling_dispositions": SIBLING_DISPOSITIONS,
     "disclosed_representation_limits": DISCLOSED_LIMITS,
     "obligation_closure": OBLIGATION_CLOSURE,
     "schema_succession": {
@@ -2479,11 +3162,14 @@ AUDIT_DOC = {
         "open_semantic_questions": [],
         "residues": ["R-help-reason"],
         "disclosed_representation_limits": [d["id"] for d in DISCLOSED_LIMITS],
+        "schema_stops": [SCHEMA_STOP["id"]],
         "statement": (
             "Prepared for semantic review, not recommended for acceptance. "
-            "Acceptance is a separate Owner step and is not performed here, and "
-            "this batch cannot be published until its five cross-batch citations "
-            "have targets."
+            "Acceptance is a separate Owner step and is not performed here. This "
+            "batch cannot be published for two independent reasons: five "
+            "cross-batch citations have no target yet, and three spans are "
+            "UNRESOLVED because Magic's long-casting gate has no admissible "
+            "shape under representation schema 6 (S-1)."
         ),
     },
     "repository_inputs": INPUT_PATHS,
@@ -2674,11 +3360,21 @@ print()
 print(f"wire trip      {WIRE_ROUND_TRIP}")
 print(f"obligations    {len(OBLIGATION_IDS)} declared, all discharged, 0 open")
 print(f"missing refs   {sorted(t for _f, t in _cross_batch)}")
-print("publishable    False  (five cross-batch citations have no target yet)")
+print(
+    "publishable    False  (five cross-batch citations have no target yet; "
+    "three spans UNRESOLVED at schema stop S-1)"
+)
 print(f"sibling pairs  {len(SIBLING_PAIRS)} (all legal: no shared substantive span)")
 print(f"ownership      {json.dumps({k: v for k, v in OWNERSHIP.items() if k != 'spans_carrying_more_than_one_claim'})}")
 print(f"residues       {AUDIT_DOC['review_disposition']['residues']}")
 print(f"disclosed      {[d['id'] for d in DISCLOSED_LIMITS]}")
+print(f"schema stop    {SCHEMA_STOP['id']} at {SCHEMA_STOP['where']}")
+print(
+    f"consumer proof dash={DASH_PROOF['movement_allowances_reachable_in_one_dash']} "
+    f"allowance | eligibility={ELIGIBILITY_PROOF['admitted_pairs']} | "
+    f"magic components={MAGIC_PROOF['components']} -> "
+    f"{MAGIC_PROOF['gate_outcome_for_that_residue']}"
+)
 print(f"judgment chg   {[j['id'] for j in JUDGMENT_CHANGES]}")
 for _rec in LIFT_RECORDS:
     print(
