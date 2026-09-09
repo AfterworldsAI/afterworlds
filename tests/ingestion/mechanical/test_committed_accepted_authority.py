@@ -448,6 +448,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
         "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS

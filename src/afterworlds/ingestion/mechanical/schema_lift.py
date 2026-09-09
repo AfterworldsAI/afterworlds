@@ -89,6 +89,8 @@ __all__ = [
     "SchemaLiftError",
     "SCHEMA_6_HASH",
     "SCHEMA_6_VERSION",
+    "SCHEMA_7_HASH",
+    "SCHEMA_7_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -107,6 +109,9 @@ SCHEMA_5_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c4
 SCHEMA_6_VERSION = "5d-representation-schema-6"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_6_HASH = "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_7_VERSION = "5d-representation-schema-7"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_7_HASH = "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -236,6 +241,26 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "cannot carry backwards; it fails closed in the projection rather "
             "than being flattened to its component, because flattening would "
             "widen governing prose to arms the source does not govern."
+        ),
+    ),
+    (SCHEMA_6_VERSION, SCHEMA_6_HASH): SchemaLift(
+        lift_id="5d-lift-schema-6-to-7",
+        from_version=SCHEMA_6_VERSION,
+        from_hash=SCHEMA_6_HASH,
+        to_version=SCHEMA_7_VERSION,
+        to_hash=SCHEMA_7_HASH,
+        rationale=(
+            "Schema 7 closes the actions-1 schema stop S-1 and nothing else: one "
+            "applicability kind, spell_casting_time, over one closed value "
+            "object, CastingTimeThreshold, with the two intrinsic rules that "
+            "make a threshold name a real printed casting time. It adds no fact "
+            "family, no ownership form, no nullable field, and no required "
+            "field. The one key it adds is omitted from the canonical payload "
+            "when it carries no meaning, so every accepted applicability, fact "
+            "key and provenance coordinate has the same canonical form under "
+            "both contracts — which verify_lift proves element by element "
+            "rather than asserting. A schema-6 applicability is the only shape "
+            "this succession carries, and it carries every one of them."
         ),
     ),
 }

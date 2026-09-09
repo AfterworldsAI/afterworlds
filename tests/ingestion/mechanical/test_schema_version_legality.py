@@ -152,6 +152,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_VERSION,
     SCHEMA_5_HASH,
     SCHEMA_5_VERSION,
+    SCHEMA_6_HASH,
+    SCHEMA_6_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -978,9 +980,11 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_3_VERSION, SCHEMA_3_HASH),
         (SCHEMA_4_VERSION, SCHEMA_4_HASH),
         # Schema 5 joins the set by becoming the *source* of a registered lift,
-        # which is exactly how schema 3 and schema 4 are here. The rule is the
-        # registry, not a list of versions somebody kept up to date.
+        # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
+        # the same way at schema 7. The rule is the registry, not a list of
+        # versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
+        (SCHEMA_6_VERSION, SCHEMA_6_HASH),
     }
 
 

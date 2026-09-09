@@ -381,6 +381,40 @@ and it moves three of those groups:
   coordinates artifact and its pinned source digest. **No new family is proposed here**, and
   `actions-1` is not accepted, so the span partition remains a proposal's decision.
 
+**Narrowed by representation schema 7 (the `actions-1` residue S-1).** Independent review of the
+schema-6 batch confirmed one remaining stop, and it is the reason `Magic` K2, K3 and K4 were unresolved
+together. *"If you cast a spell that has a casting time of 1 minute or longer"* (`Magic`, p185) is a
+threshold over a spell's **printed casting-time descriptor**. `ActivationCostEligibilityFact` ranges
+over `ActionCost`, which prints no amount and no unit; `ApplicabilityKind.ELAPSED_DURATION` would have
+meant time *already spent* casting, which is false at the moment the clause first applies. Schema 7 adds
+one applicability kind, `SPELL_CASTING_TIME`, over one closed value object, `CastingTimeThreshold`.
+
+* **narrowed, still deferred — *eligibility*.** The group above is unchanged in its closure standard,
+  and this is a second, adjacent axis rather than a widening of the first. The threshold gate and the
+  activation-cost eligibility fact range over the two different arms of one printed descriptor: which
+  spells a mechanic *reaches* by the cost they print, and which spells a further requirement *applies
+  to* by the duration they print. A one-minute spell falls outside `Magic` K1, **not** outside the Magic
+  action. Not discharged: `SPELL_CASTING_TIME` has one instance in one record, which is the weakest
+  closure evidence this document admits, and the comparable-clause check that established the bounded
+  vocabulary was scoped to casting-time eligibility rather than run as a corpus sweep. Revisit when a
+  batch forces a second threshold instance or a subject the two eligibility members do not reach.
+
+New residue recorded with the mint, and open:
+
+* **No conversion constant between printed time units.** `casting_time_meets` ranks unit *names* —
+  `SECOND < ROUND < TURN < MINUTE < HOUR < DAY` — and compares amounts only *within* a unit. A casting
+  time printed in a unit shorter than the threshold's therefore never meets it, whatever its amount,
+  including a hundred rounds against a one-minute threshold. That is deliberately under-inclusive rather
+  than a modelled equivalence: declaring `1 minute = 10 rounds` would state a conversion the SRD's
+  casting-time descriptors never print, and the corpus contains no casting time in seconds or rounds, so
+  nothing is currently reached by the refusal. Revisit when a batch forces a cross-unit comparison — at
+  which point the question is where the conversion is *stated*, not how to compute it.
+* **A component carries exactly one `applies_when`.** Where two components of one record sit inside the
+  same printed condition, the second restates it, and its evidence edge on the shared span is
+  `CONTEXTUAL` because there is no position for a condition two components share. This is a structural
+  limit of the union, recorded rather than worked around: `Magic` K2's gate is the only instance the
+  batch forces, and a shared-scope structure is not proposed on one.
+
 Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
 members each required siblings in more than one section, and neither group above meets it yet.
 

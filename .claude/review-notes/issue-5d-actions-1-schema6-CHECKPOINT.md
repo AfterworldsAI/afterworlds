@@ -436,3 +436,101 @@ Not done, and not to be done without a further Owner authorization: `accept_prop
 publish, activate, retire, merge, closing #137, changing 5c or downstream ownership,
 or changing the representation schema or its pin. The branch stays local — no push,
 no PR.
+
+## 15. Amendment — S-1 closed at representation schema 7
+
+Independent review of this checkpoint cleared the `Dash` correction, the
+`Magic`/`Ready` activation-cost eligibility reclassification and the
+`Help`/`Influence` governing prose, and confirmed **S-1**. Schema 7 has since been
+minted to close it. Everything above records the state at the schema-6 checkpoint
+and is left standing; this section states what has changed and corrects three
+pieces of language above that were imprecise or are now stale.
+
+### 15.1 What schema 7 adds
+
+One `ApplicabilityKind` member, `SPELL_CASTING_TIME`, over one closed value object,
+`CastingTimeThreshold(at_least_amount, at_least_unit)` — the shape §7's *Missing
+capability* named, chosen as an applicability rather than an eligibility fact for
+the reason in 15.2. No fact family, no ownership form, no nullable field, no
+predicate language, no executable rule. Destination pin
+`80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`; the committed
+artifact still declares schema 5 and now reaches schema 7 across
+`5d-lift-schema-5-to-6` then `5d-lift-schema-6-to-7`.
+
+Two intrinsic invariants are declared inside schema identity: an amount below 1
+states no duration, and `ROUND`/`TURN` are cadences of the initiative cycle rather
+than units a casting time is printed in. `casting_time_meets` ranks unit *names* and
+declares **no conversion constant**, so a shorter printed unit never meets the
+threshold at any amount. That limitation is declared, not discovered, and recorded
+in `known_unknowns.md`.
+
+### 15.2 Why applicability rather than a fact
+
+§7's *Missing capability* proposed `(subject=SPELL, at_least=(1, MINUTE))` — an
+eligibility-shaped fact. That shape does not survive the composition. K2's
+requirement and K4's consequences are two components of one record, both inside the
+same printed condition. A gate carried as a *fact* and restated on both components
+is refused by `_validate_duplicated_fact_authority`: one source statement would have
+become two copies of the same authority. Applicability may repeat across components,
+because a condition two structures share is one condition. That asymmetry is what
+makes it the scope-preserving carrier, and it is asserted in test rather than argued.
+
+*"If your Concentration is broken"* rides `FactQualifier` on each of the two
+consequence facts, because a component has exactly one `applies_when` and the gate
+occupies it. Qualifiers compose conjunctively inward — a long casting, whose
+Concentration is broken — which is the reading the source prints. A component
+stating only `CONCENTRATION_BROKEN` would reach every broken Concentration in the
+game.
+
+### 15.3 Corrections to the language above
+
+* **§7 *Not done here* is stale.** "The schema and its pin are unchanged … Widening
+  the union is an Owner decision and a schema-7 question" was true of that
+  checkpoint. The schema *has* since been widened, under a subsequent authorization,
+  and the pin has moved. §13's closing paragraph is stale in the same way and for the
+  same reason. The accepted prior remains unchanged — it is **lifted, never
+  rewritten** — and no ruling has been made about what the printed rules mean: this
+  is representation work under contract 3, not a reading of the game rule.
+* **"Obligations answered" is three states, not two.** §§2 and 11 count obligations
+  as *accounted for* — read, extent recorded, disposition assigned. That is weaker
+  than **represented** (a typed element or a prose binding claims the span) and both
+  are distinct from **unresolved** (read, no claim, publication blocked). At the
+  schema-6 checkpoint K2/K3/K4 were *accounted for* and **not** represented. They are
+  now represented in the schema-7 test evidence; they are **not** accepted, because
+  regeneration remains paused.
+* **The §8 counterexamples are illustrative, not resolutions.** The
+  *counterexample* rows are shape assertions against `_base_records` — they show what
+  a differently-composed record *would* publish. They are not source-prose
+  resolutions of the clauses they mention. In particular the Magic row's "a spell
+  printed with a Bonus Action, Reaction, or 1-minute casting time matches no
+  eligibility fact this batch publishes" is correct about the *batch* and was never a
+  finding about the Magic action: **a one-minute spell falls outside `Magic` K1, not
+  outside the Magic action.** K1 says which spells the action *reaches* by the cost
+  they print; K2 states a further requirement *inside* the action. §12's list of what
+  is machine-proved should be read with that distinction: the compositions are proved
+  as shapes, and the readings behind them remain for review.
+
+### 15.4 Evidence, and its limits
+
+`tests/ingestion/mechanical/test_schema_7_casting_time_gate.py` — 44 tests, all
+passing — carries the persisted-gate proof: the threshold's reach and its declared
+limits; the two gated components validated by `validate_representation` against the
+six-span partition of K2/K3/K4; the duplicated-fact refusal beside the admitted
+shared gate; one primary owner per substantive span; the canonical round trip;
+malformed-input refusal; the three sibling rebuilders (stored state, accepted
+authority, override patches); and the omission rule that leaves accepted payloads
+unmoved. Its literals are checked against
+`.claude/review-notes/issue-5d-actions-1-obligation-coordinates.json` at pinned
+source digest `8974902d…e3d87`, so a same-length paraphrase fails.
+
+Limits, stated rather than left to be inferred: `actions-1` is **not accepted** and
+the acceptance-ready regeneration stays **paused**; the ledger in that module carries
+the six spans the demonstration claims, not `Magic`'s whole leaf partition; chunk ids
+are local to the module; and the comparable-clause check that established the bounded
+vocabulary was scoped to casting-time eligibility rather than run as a corpus sweep,
+so `SPELL_CASTING_TIME` stands on one instance in one record and is **narrowed, still
+deferred** in `known_unknowns.md` rather than discharged.
+
+Nothing is accepted, published, activated, retired, pushed or merged by this
+amendment. The five pending cross-batch references, both batch anchors and the frozen
+prior are unchanged.

@@ -55,6 +55,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_5_VERSION,
     SCHEMA_6_HASH,
     SCHEMA_6_VERSION,
+    SCHEMA_7_HASH,
+    SCHEMA_7_VERSION,
     lift_accepted_inputs,
 )
 
@@ -126,7 +128,7 @@ def test_the_prior_is_not_current_authority_until_it_is_lifted() -> None:
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings != ()
-    assert any(SCHEMA_6_VERSION in f for f in findings), findings
+    assert any(SCHEMA_7_VERSION in f for f in findings), findings
 
 
 # ---------------------------------------------------------------------------
@@ -134,15 +136,17 @@ def test_the_prior_is_not_current_authority_until_it_is_lifted() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_the_registered_chain_reaches_schema_6_one_crossing_at_a_time() -> None:
-    """One new crossing, and the two already run retained beside it as evidence.
+def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time() -> (
+    None
+):
+    """Every crossing since the artifact was reviewed, and the earlier ones kept.
 
-    The artifact declares schema 5, so reaching schema 6 is a single registered
-    step. The crossings that carried ``conditions-1`` up from schema 3 are not
-    re-run — they already happened, and the file records them — so what this
-    asserts is that the retained evidence and the new record together name the
-    whole path, one row per crossing, never collapsed into a transition the
-    registry has no row for.
+    The artifact still declares schema 5, so reaching current authority is now
+    two registered steps rather than one: schema 6, then schema 7. The crossings
+    that carried ``conditions-1`` up from schema 3 are not re-run — they already
+    happened, and the file records them — so what this asserts is that the
+    retained evidence and the new records together name the whole path, one row
+    per crossing, never collapsed into a transition the registry has no row for.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     lifted, records = lift_accepted_inputs(inputs, TARGET)
@@ -151,19 +155,27 @@ def test_the_registered_chain_reaches_schema_6_one_crossing_at_a_time() -> None:
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
     ]
-    assert [r.lift_id for r in records] == ["5d-lift-schema-5-to-6"]
+    assert [r.lift_id for r in records] == [
+        "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
+    ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
-    assert (records[-1].from_version, records[-1].from_hash) == (
+    assert (records[0].from_version, records[0].from_hash) == (
         SCHEMA_5_VERSION,
         SCHEMA_5_HASH,
     )
-    assert (records[-1].to_version, records[-1].to_hash) == (
+    # Continuous: each record's destination is the next record's source.
+    assert (records[0].to_version, records[0].to_hash) == (
         SCHEMA_6_VERSION,
         SCHEMA_6_HASH,
     )
-    assert lifted.oracle.schema_version == SCHEMA_6_VERSION
-    assert lifted.oracle.schema_hash == SCHEMA_6_HASH
+    assert (records[-1].to_version, records[-1].to_hash) == (
+        SCHEMA_7_VERSION,
+        SCHEMA_7_HASH,
+    )
+    assert lifted.oracle.schema_version == SCHEMA_7_VERSION
+    assert lifted.oracle.schema_hash == SCHEMA_7_HASH
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
 
 

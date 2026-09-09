@@ -113,6 +113,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
+    build_casting_time_threshold,
     build_consumption_band,
     fact_from_payload,
     fact_key,
@@ -527,6 +528,18 @@ def _applicability_from_row(
                 None
                 if raw.get("band") is None
                 else build_consumption_band(raw["band"], f"{where}.band")
+            ),
+            # Schema 7's threshold, read the same way and for the same
+            # reason: the key is omitted when it carries no meaning, so a
+            # payload written under any earlier contract has no such key
+            # and dropping it would rebuild an applicability whose
+            # required operand is absent.
+            casting_time=(
+                None
+                if raw.get("casting_time") is None
+                else build_casting_time_threshold(
+                    raw["casting_time"], f"{where}.casting_time"
+                )
             ),
         )
     except (KeyError, TypeError, ValueError) as exc:

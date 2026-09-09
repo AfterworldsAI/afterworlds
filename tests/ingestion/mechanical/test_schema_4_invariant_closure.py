@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
+    CastingTimeThreshold,
     Comparison,
     ComponentDraft,
     ConditionKind,
@@ -104,7 +105,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
-    SCHEMA_6_HASH,
+    SCHEMA_7_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -830,6 +831,36 @@ CASES: dict[str, tuple[object, object]] = {
             context=RollContext.ABILITY_CHECK,
         ),
     ),
+    # Schema 7. The timed casting-time gate: an amount that states a duration,
+    # and a unit the calendar prints on a spell.
+    "casting_time_threshold.at_least_amount.states-a-duration": (
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=0, at_least_unit=TimeUnit.MINUTE
+            ),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.MINUTE
+            ),
+        ),
+    ),
+    "casting_time_threshold.at_least_unit.calendar-units-only": (
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.ROUND
+            ),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.HOUR
+            ),
+        ),
+    ),
     "any_of.terms.flat-and-canonically-ordered": (
         Applicability(
             kind=ApplicabilityKind.ANY_OF,
@@ -939,7 +970,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_6_HASH
+    assert representation_schema_hash() == SCHEMA_7_HASH
 
 
 # ---------------------------------------------------------------------------

@@ -291,6 +291,61 @@ written.
 Nothing is accepted, published, activated, or retired by the schema change, and acceptance-ready
 regeneration for `actions-1` stays paused until it passes review.
 
+**Amended by representation schema 7 — the `actions-1` residue S-1.** Independent review of the
+schema-6 batch cleared the `Dash` correction, the `Magic`/`Ready` activation-cost eligibility
+reclassification and the `Help`/`Influence` governing prose, and confirmed one stop. *"If you cast a
+spell that has a casting time of 1 minute or longer"* (`Magic`, p185) is a threshold over a spell's
+**printed casting-time descriptor**, and schema 6 had no shape for it. `ActivationCostEligibilityFact`
+ranges over `ActionCost`, which prints no amount and no unit, so it cannot carry a duration;
+`ApplicabilityKind.ELAPSED_DURATION` would have meant time *already spent* casting, which is false at
+the moment the clause first has to apply. `Magic` K2, K3 and K4 stayed unresolved together because the
+recurring action, the Concentration duty and the failure/resource consequences are all consequences of
+that one gate.
+
+Schema 7 is the smallest closed extension that states it: **one** `ApplicabilityKind` member,
+`SPELL_CASTING_TIME`, over **one** closed value object, `CastingTimeThreshold(at_least_amount,
+at_least_unit)` — the same shape schema 5 used for `CONSUMPTION_THRESHOLD`/`ConsumptionBand`. No fact
+family, no ownership form, no nullable field, no predicate language and no executable rule. Three
+decisions inside it are worth recording:
+
+* **Applicability, not a fact, because the gate has to be shared.** K2's requirement and K4's
+  consequences are two components of one record, and both are inside the same printed condition. A gate
+  carried as a *fact* and restated on both is refused by the duplicated-fact-authority rule — correctly,
+  since one source statement would have become two copies of the same authority. Applicability may
+  repeat across components, because a condition two structures share is one condition. That asymmetry
+  is what makes it the scope-preserving carrier, and it is asserted in test rather than argued here.
+* **The break stays conditional inside the gate.** A component has exactly one `applies_when`, which
+  the gate occupies, so *"If your Concentration is broken"* rides `FactQualifier` on each of the two
+  consequence facts. Qualifiers compose conjunctively inward, which is the reading the source prints: a
+  long casting, whose Concentration is broken. A component stating only `CONCENTRATION_BROKEN` would
+  have reached every broken Concentration in the game.
+* **A one-minute spell falls outside `Magic` K1, not outside the Magic action.** K1's eligibility fact
+  says which spells the action *reaches* by the cost they print; a timed casting prints no cost and so
+  matches no eligibility fact. K2 is a different clause about a further requirement **inside** the
+  action. Widening `ActionCost` to carry a duration would have conflated them.
+
+Two intrinsic invariants are declared inside schema identity, so weakening either moves the hash and
+strands the registered lift: an amount below 1 states no duration and would reach every timed casting,
+and `ROUND`/`TURN` are cadences of the initiative cycle rather than units a casting time is printed in.
+`casting_time_meets` ranks unit *names* and declares **no conversion constant**, so a casting time
+printed in a unit shorter than the threshold's never meets it whatever its amount. That is an
+under-inclusive limitation, not a modelled equivalence; no SRD casting time is printed in seconds or
+rounds, so nothing in the corpus is reached by it, and the residue is recorded in `known_unknowns.md`.
+
+The schema-7 destination pin is
+`80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`. Schemas 4, 5 and 6 remain recognized
+contracts with unchanged pins; schema 6 becomes recognized *as the source of a registered lift*, which
+is the registry rule rather than a hand-kept list. Succession stays one row per crossing and resolved as
+a path: the committed artifact still declares schema 5, which is where `hazards-1` was reviewed, and now
+reaches schema 7 across `5d-lift-schema-5-to-6` then `5d-lift-schema-6-to-7`. Nothing accepted moves —
+`Applicability.casting_time` is omitted when unset, so every applicability accepted under schemas 3
+through 6 already has its schema-7 canonical form, and the frozen prior is lifted rather than rewritten.
+
+Nothing is accepted, published, activated, or retired by this schema change either, and acceptance-ready
+regeneration for `actions-1` remains paused. The new composition for `Magic` K2/K3/K4 is demonstrated
+through review and test evidence only — a persisted-gate proof against the pinned source coordinates,
+not a proposal and not an acceptance.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

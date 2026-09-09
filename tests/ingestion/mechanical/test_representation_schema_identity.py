@@ -575,7 +575,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7"  # noqa: E501  # pragma: allowlist secret
+EXPECTED_SCHEMA_HASH = "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

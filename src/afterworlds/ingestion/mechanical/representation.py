@@ -206,6 +206,7 @@ __all__ = [
     "AttackRelativeTiming",
     "BenefitUseLimit",
     "COMPONENT_WIDE_PROSE",
+    "CastingTimeThreshold",
     "CoverDegree",
     "EffectDurationFact",
     "EligibilitySubject",
@@ -231,7 +232,9 @@ __all__ = [
     "Recurrence",
     "RecurrenceBoundary",
     "recurrence_violations",
+    "build_casting_time_threshold",
     "build_consumption_band",
+    "casting_time_meets",
     "component_damage_composition_violations",
     "component_participant_violations",
     "component_roll_outcome_violations",
@@ -1300,6 +1303,10 @@ class ApplicabilityKind(StrEnum):
     #: clause stays honest prose, which is the refusal that keeps this from
     #: becoming the predicate language the module already declined to build.
     ANY_OF = "any_of"
+    #: Schema 7. *"a spell that has a casting time of 1 minute or longer"*
+    #: (``Magic``, p185), over :class:`CastingTimeThreshold` — a threshold on
+    #: the printed casting-time descriptor, not on time elapsed in play.
+    SPELL_CASTING_TIME = "spell_casting_time"
 
 
 class Currency(StrEnum):
@@ -1509,6 +1516,100 @@ class SpellCastingTime:
     cost: ActionCost | None = None
     amount: int | None = None
     unit: TimeUnit | None = None
+
+
+#: The printed time units, ranked by the magnitude of the unit itself.
+#:
+#: An ordering of the words, carrying **no conversion constant**: it can answer
+#: "is an hour longer than a minute" and never "how many minutes are in an
+#: hour". That is the whole of what :func:`casting_time_meets` needs, and
+#: minting a seconds-per-round or minutes-per-hour value here would record a
+#: quantity the bound source never printed at this coordinate.
+#:
+#: ``ROUND`` and ``TURN`` are slices of the initiative cycle and rank below a
+#: minute. :class:`CastingTimeThreshold` refuses them as a threshold unit — the
+#: source states its thresholds in calendar units — so they can appear only on
+#: the casting-time side, where being strictly shorter is the whole answer.
+_TIME_UNIT_ORDER: tuple[TimeUnit, ...] = (
+    TimeUnit.SECOND,
+    TimeUnit.ROUND,
+    TimeUnit.TURN,
+    TimeUnit.MINUTE,
+    TimeUnit.HOUR,
+    TimeUnit.DAY,
+)
+
+#: The units a threshold may be stated in: the calendar units, and never a
+#: cadence of the initiative cycle. Keyed as its own set rather than written
+#: inside the checker so the refusal is auditable beside the ordering it
+#: depends on.
+_THRESHOLD_UNITS: frozenset[TimeUnit] = frozenset(_TIME_UNIT_ORDER) - frozenset(
+    {TimeUnit.ROUND, TimeUnit.TURN}
+)
+
+
+@dataclass(frozen=True)
+class CastingTimeThreshold:
+    """A least casting time a spell must print for a rule to reach it.
+
+    Schema 7, and the whole of it. *"If you cast a spell that has a casting time
+    of 1 minute or longer"* (``Magic``, p185) is a threshold over
+    :class:`SpellCastingTime`'s **elapsed-time arm** — a printed property of the
+    spell, read before any time passes — so a 1-minute casting satisfies it at
+    the instant it begins.
+
+    **Not** :attr:`ApplicabilityKind.ELAPSED_DURATION`, which ranges over time
+    that has already passed in play. Stating this clause there would mean "once
+    a minute of casting has been spent", which reaches the same spell a minute
+    late and reaches a short spell that has been held for a minute.
+
+    **Not** :class:`ActivationCostEligibilityFact` either, and the difference is
+    what each clause does. ``Magic`` K1's *"a casting time of an action"* says
+    which spells the **Magic action reaches**; this says which spells a
+    *further requirement inside that action* applies to. A spell with a
+    1-minute casting time falls outside K1, not outside the Magic action.
+
+    **The immediate cases fall outside by structure, not by comparison.** A
+    spell whose casting time is an Action, a Bonus Action or a Reaction states
+    no amount and no unit at all — :class:`SpellCastingTime` admits exactly one
+    arm — so there is nothing for an amount threshold to meet and no comparison
+    that could be got wrong.
+
+    **What it cannot answer, stated rather than guessed.** With no conversion
+    constant (see :data:`_TIME_UNIT_ORDER`), a casting time printed in a unit
+    *shorter* than the threshold's never meets it, whatever its amount. No SRD
+    casting time is printed in seconds, so nothing in the corpus is reached by
+    that refusal; a batch that forces one is a schema question rather than an
+    arithmetic one, and is recorded in ``known_unknowns.md``.
+    """
+
+    #: At least this many of :attr:`at_least_unit`. Never below one: a
+    #: threshold of zero reaches every timed casting and states nothing.
+    at_least_amount: int
+    at_least_unit: TimeUnit
+
+
+def casting_time_meets(
+    threshold: CastingTimeThreshold, casting_time: SpellCastingTime
+) -> bool:
+    """Whether a printed casting time satisfies *threshold*.
+
+    Hand-authored code reading declarative data, which is what ADR-005d
+    Decision 4 permits; there is no expression to interpret, no operator to
+    select, and nothing here is authored in the projection.
+
+    Answers only what :data:`_TIME_UNIT_ORDER` can support: a strictly longer
+    unit meets the threshold at any amount, the same unit is compared by
+    amount, and a strictly shorter unit does not meet it. The cost arm meets
+    nothing, because it states no amount to compare.
+    """
+    if casting_time.amount is None or casting_time.unit is None:
+        return False
+    printed = _TIME_UNIT_ORDER.index(casting_time.unit)
+    least = _TIME_UNIT_ORDER.index(threshold.at_least_unit)
+    if printed != least:
+        return printed > least
+    return casting_time.amount >= threshold.at_least_amount
 
 
 @dataclass(frozen=True)
@@ -3755,6 +3856,35 @@ def _check_consumption_band(value: object, field: str) -> list[str]:
     return findings
 
 
+def _check_casting_time_threshold(value: object, field: str) -> list[str]:
+    """Invariants of the casting-time threshold shape.
+
+    A threshold that reaches every timed casting states nothing, and one stated
+    in a cadence of the initiative cycle names no unit the source prints a
+    casting time in. Both are refused rather than interpreted.
+    """
+    if findings := _vo_field(value, CastingTimeThreshold, field):
+        return findings
+    threshold = cast(CastingTimeThreshold, value)
+    findings = [
+        *_int_field(threshold.at_least_amount, f"{field}.at_least_amount"),
+        *_enum_field(threshold.at_least_unit, TimeUnit, f"{field}.at_least_unit"),
+    ]
+    if findings:
+        return findings
+    if threshold.at_least_amount < 1:
+        findings.append(
+            f"{field}.at_least_amount {threshold.at_least_amount} is not a "
+            "duration, so the threshold reaches every timed casting"
+        )
+    if threshold.at_least_unit not in _THRESHOLD_UNITS:
+        findings.append(
+            f"{field}.at_least_unit {threshold.at_least_unit.value} is a cadence "
+            "of the initiative cycle, not a unit a casting time is printed in"
+        )
+    return findings
+
+
 def _check_money(value: object, field: str) -> list[str]:
     if findings := _vo_field(value, Money, field):
         return findings
@@ -4821,6 +4951,7 @@ def _build_applicability(value: object, where: str) -> Applicability:
             "obscurement",
             "cover",
             "any_of_terms",
+            "casting_time",
         ),
     )
     _reject_at(
@@ -4912,6 +5043,7 @@ def _build_applicability(value: object, where: str) -> Applicability:
             )
         )
     raw_band = p.get("band")
+    raw_casting_time = p.get("casting_time")
     built = Applicability(
         kind=ApplicabilityKind(p["kind"]),
         negated=p["negated"],
@@ -4945,6 +5077,11 @@ def _build_applicability(value: object, where: str) -> Applicability:
             None
             if raw_band is None
             else build_consumption_band(raw_band, f"{where}.band")
+        ),
+        casting_time=(
+            None
+            if raw_casting_time is None
+            else build_casting_time_threshold(raw_casting_time, f"{where}.casting_time")
         ),
     )
     _reject_at(where, applicability_violations(built))
@@ -5170,6 +5307,27 @@ def build_consumption_band(value: object, where: str) -> ConsumptionBand:
         ),
     )
     _reject_at(where, _check_consumption_band(built, where))
+    return built
+
+
+def build_casting_time_threshold(value: object, where: str) -> CastingTimeThreshold:
+    """Rebuild a casting-time threshold, or refuse.
+
+    Both keys are required on the wire, for the reason
+    :func:`build_consumption_band` states: the threshold is not a
+    post-schema-3 field of its own, and an omitted amount or unit would have to
+    rebuild as some default, which would be a threshold nobody wrote.
+    """
+    p = _json_object(value, ("at_least_amount", "at_least_unit"), where)
+    _reject_at(
+        where,
+        _json_enum(p["at_least_unit"], TimeUnit, f"{where}.at_least_unit"),
+    )
+    built = CastingTimeThreshold(
+        at_least_amount=p["at_least_amount"],
+        at_least_unit=TimeUnit(p["at_least_unit"]),
+    )
+    _reject_at(where, _check_casting_time_threshold(built, where))
     return built
 
 
@@ -6074,7 +6232,16 @@ assert (
 #: per rather than beside (:class:`DamageInterval`), with :class:`DistanceUnit`
 #: as its closed vocabulary. Each closes a case where two mechanically distinct
 #: source meanings shared one canonical payload.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-6"
+#:
+#: Version ``7`` closes the ``actions-1`` schema stop S-1 and nothing else:
+#: :class:`CastingTimeThreshold` and the one
+#: :attr:`ApplicabilityKind.SPELL_CASTING_TIME` kind that ranges over it, so
+#: *"a spell that has a casting time of 1 minute or longer"* can gate the
+#: requirements it governs. No fact family, no widened eligibility fact, and no
+#: comparison the schema cannot state without a conversion constant it does not
+#: declare. Schema 6 is merged and therefore reachable, so it is succeeded
+#: rather than corrected in place.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-7"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -6536,6 +6703,14 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_6)
             for member in members
         )
+    # Schema 7 adds one applicability kind and no family, no ownership form and
+    # no nullable field. Its value object is described by the ``components``
+    # half of the payload, and its intrinsic rules by the invariant manifest.
+    for vocabulary, members in _SCHEMA_7_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_7)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -6591,6 +6766,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         _SCHEMA_4_VOCABULARY_ALL.get(owner)
         or _SCHEMA_5_VOCABULARY_ALL.get(owner)
         or _SCHEMA_6_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_7_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -6681,6 +6857,7 @@ def _collect_post_schema_3(
             (_SCHEMA_4_MEMBER_INDEX, SCHEMA_4),
             (_SCHEMA_5_MEMBER_INDEX, SCHEMA_5),
             (_SCHEMA_6_MEMBER_INDEX, SCHEMA_6),
+            (_SCHEMA_7_MEMBER_INDEX, SCHEMA_7),
         ):
             if (
                 type(value).__name__,
@@ -6950,6 +7127,28 @@ _SCHEMA_6_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_7 = "5d-representation-schema-7"
+
+#: Schema 7 adds **no fact family**. Its whole surface is one applicability
+#: kind, one closed value object the ``components`` half of the payload already
+#: describes by shape, and the intrinsic rules that make a threshold name a real
+#: casting time. That is deliberately the smallest extension that closes the
+#: ``actions-1`` schema stop S-1, and nothing else rides along with it.
+_SCHEMA_7_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": (ApplicabilityKind.SPELL_CASTING_TIME.value,),
+}
+
+_SCHEMA_7_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+}
+
+_SCHEMA_7_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_7_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+
 #: Every family-bearing succession, newest last. A family added later must join
 #: this table rather than the one comparison schema 4 was checked by, which
 #: could only ever ask about schema 4.
@@ -7024,6 +7223,7 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
     # silently inherit a row nobody reviewed.
     SCHEMA_5: frozenset({"5d-representation-schema-4", SCHEMA_5}),
     SCHEMA_6: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6}),
+    SCHEMA_7: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7}),
 }
 
 _register_post_schema_3(
@@ -7063,6 +7263,14 @@ _register_post_schema_3(
         owner="Applicability",
         key="band",
         introduced_in=SCHEMA_5,
+        is_empty=_empty_none,
+    ),
+    # Schema 7. Omitted when unset, so every applicability accepted under
+    # schemas 3 through 6 keeps the exact canonical form it was accepted with.
+    _PostSchema3Field(
+        owner="Applicability",
+        key="casting_time",
+        introduced_in=SCHEMA_7,
         is_empty=_empty_none,
     ),
     _PostSchema3Field(
@@ -7303,6 +7511,12 @@ class Applicability:
     #: the requirement, so *"eats but consumes less than half"* and *"eats
     #: nothing"* shared a payload. See :class:`ConsumptionBand`.
     band: ConsumptionBand | None = None
+    #: SPELL_CASTING_TIME, schema 7. One closed threshold over the printed
+    #: casting-time descriptor. Named apart from ``value``/``unit``, which
+    #: ``ELAPSED_DURATION`` ranges over: the two mean different things about
+    #: the same minute, and one shared pair of fields would give them one
+    #: canonical payload.
+    casting_time: CastingTimeThreshold | None = None
 
 
 @dataclass(frozen=True)
@@ -7762,6 +7976,8 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     ApplicabilityKind.OBSCUREMENT: frozenset({"obscurement"}),
     ApplicabilityKind.COVER: frozenset({"cover"}),
     ApplicabilityKind.ANY_OF: frozenset({"any_of_terms"}),
+    # Schema 7: one closed threshold over the printed casting-time descriptor.
+    ApplicabilityKind.SPELL_CASTING_TIME: frozenset({"casting_time"}),
 }
 
 #: Kinds whose ``value`` is a count rather than an arbitrary integer. Keyed by
@@ -7792,6 +8008,7 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
         "obscurement",
         "cover",
         "any_of_terms",
+        "casting_time",
     }
 )
 
@@ -7805,6 +8022,7 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
 _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
     {
         Applicability,
+        CastingTimeThreshold,
         ComponentOption,
         ConsumptionBand,
         DamageInterval,
@@ -9012,6 +9230,28 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "and the amount is at least one"
         ),
     ),
+    # Schema 7. The kind ranges over one closed threshold, and the rules that
+    # make a threshold name a real printed casting time are part of that
+    # contract rather than beside it.
+    _Invariant(
+        id="casting_time_threshold.at_least_amount.states-a-duration",
+        locus=_shape_locus(CastingTimeThreshold),
+        field="at_least_amount",
+        rule=(
+            "an integer of at least one, so a threshold never reaches every "
+            "timed casting"
+        ),
+    ),
+    _Invariant(
+        id="casting_time_threshold.at_least_unit.calendar-units-only",
+        locus=_shape_locus(CastingTimeThreshold),
+        field="at_least_unit",
+        rule=(
+            "a second, minute, hour or day — never a round or a turn, which are "
+            "cadences of the initiative cycle rather than units a printed "
+            "casting time is measured in"
+        ),
+    ),
     _Invariant(
         id="quantity_threshold.value.not-below-zero",
         locus="applicability:quantity_threshold",
@@ -9428,6 +9668,11 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         []
         if applicability.band is None
         else _check_consumption_band(applicability.band, "band")
+    )
+    typed.extend(
+        []
+        if applicability.casting_time is None
+        else _check_casting_time_threshold(applicability.casting_time, "casting_time")
     )
     if typed:
         return typed
