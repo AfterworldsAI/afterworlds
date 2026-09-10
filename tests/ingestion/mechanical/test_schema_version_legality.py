@@ -77,6 +77,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ApplicabilityKind,
     AttackRelativeTiming,
+    Attitude,
     AutomaticOutcome,
     BenefitUseLimit,
     Comparison,
@@ -94,6 +95,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageOutcome,
     DamageType,
     DcKind,
+    DefaultAttitudeFact,
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
@@ -154,6 +156,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_5_VERSION,
     SCHEMA_6_HASH,
     SCHEMA_6_VERSION,
+    SCHEMA_7_HASH,
+    SCHEMA_7_VERSION,
+    SCHEMA_8_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -471,6 +476,18 @@ SCHEMA_6_ONLY = [
 ]
 
 
+#: One live object per axis schema 8 added — a single vocabulary, ``Attitude``,
+#: carried by the single family that states it. Schema 7 needed no list of its
+#: own: its addition was an :class:`ApplicabilityKind` member whose manifest
+#: group the schema-4 exemplars already exercise.
+SCHEMA_8_ONLY = [
+    pytest.param(
+        DefaultAttitudeFact(attitude=Attitude.INDIFFERENT),
+        id="vocabulary-attitude",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -485,7 +502,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
     here instead of being trusted.
     """
     exercised: set[str] = set()
-    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY, *SCHEMA_6_ONLY):
+    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY, *SCHEMA_6_ONLY, *SCHEMA_8_ONLY):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
     assert _MANIFEST_GROUPS - exercised == set(), sorted(_MANIFEST_GROUPS - exercised)
@@ -521,6 +538,22 @@ def _groups_exercised_by(obj: object) -> set[str]:
         for row in introduction_manifest()
         if any(repr(row["name"]) in f for f in findings)
     }
+
+
+@pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
+def test_schema_7_refuses_every_schema_8_only_type_or_value(obj: object) -> None:
+    """The succession attitudes-1 needed, in the direction that makes it one.
+
+    If schema 7 admitted this the lift would be decoration: a version that can
+    already state the content crosses nothing.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_7_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
+def test_schema_8_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_8_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_5_ONLY)
@@ -981,10 +1014,11 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_4_VERSION, SCHEMA_4_HASH),
         # Schema 5 joins the set by becoming the *source* of a registered lift,
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
-        # the same way at schema 7. The rule is the registry, not a list of
-        # versions somebody kept up to date.
+        # the same way at schema 7, and schema 7 at schema 8. The rule is the
+        # registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
+        (SCHEMA_7_VERSION, SCHEMA_7_HASH),
     }
 
 

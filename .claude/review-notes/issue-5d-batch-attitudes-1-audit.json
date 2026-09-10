@@ -1,0 +1,1762 @@
+{
+ "_": "DISPOSABLE REVIEW MATERIAL for CRD Issue 5d batch attitudes-1. Emitted by issue-5d-batch-attitudes-1-generator.py. This run accepts nothing, publishes nothing, activates nothing, retires nothing, writes no database and never executes the publication gate. It is material for semantic review.",
+ "proposal_identity": "5ea537a1b0a936c4ebc7389ffc2b3402c7d416177a04c72c6eefc9372b5bea7f",
+ "batch_selection": {
+  "batch_id": "attitudes-1",
+  "chosen_by": "complete source membership",
+  "rule": "the shape the three accepted batches established: a source-tagged entry class plus the untagged umbrella glossary rule that defines the tag. conditions-1 = 15 + Condition; hazards-1 = 5 + Hazard; actions-1 = 12 + Action; attitudes-1 = 3 + Attitude.",
+  "membership": {
+   "Attitude": "glossary.attitude",
+   "Friendly [Attitude]": "attitude.friendly",
+   "Hostile [Attitude]": "attitude.hostile",
+   "Indifferent [Attitude]": "attitude.indifferent"
+  },
+  "tag_classes_in_the_source": {
+   "Action": 12,
+   "Area of Effect": 6,
+   "Attitude": 3,
+   "Condition": 15,
+   "Hazard": 5
+  },
+  "accepted_classes": [
+   "Condition",
+   "Hazard",
+   "Action"
+  ],
+  "this_class": "Attitude",
+  "remaining_unaccepted_class": {
+   "tag": "Area of Effect",
+   "entries": [
+    "Cone [Area of Effect]",
+    "Cube [Area of Effect]",
+    "Cylinder [Area of Effect]",
+    "Emanation [Area of Effect]",
+    "Line [Area of Effect]",
+    "Sphere [Area of Effect]"
+   ],
+   "why_not_this_batch": "it needs an entire spatial-geometry family — point of origin, shape dimensions, origin inclusion, line of effect blocked by Total Cover — that no current fact carries, and that sits against the settled 'no general rules engine' boundary. Next candidate, not this one."
+  },
+  "relationship_to_the_five_missing_targets": "That three of accepted authority's five unresolved reference targets are attitude.friendly, attitude.hostile and attitude.indifferent is a CONSEQUENCE of representing a complete source class, not the reason for choosing it. The batch was not assembled to close a list: glossary.concentration and glossary.speed are untagged entries in other source groups and stay unresolved after this batch."
+ },
+ "representation_schema": {
+  "version": "5d-representation-schema-8",
+  "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"
+ },
+ "schema_extension": {
+  "extends_the_schema": true,
+  "from_schema": "5d-representation-schema-7",
+  "to_schema": "5d-representation-schema-8",
+  "new_vocabularies": {
+   "Attitude": [
+    "friendly",
+    "hostile",
+    "indifferent"
+   ]
+  },
+  "new_fact_families": [
+   "default_attitude"
+  ],
+  "registered_transitions_touched": [
+   "5d-lift-schema-7-to-8"
+  ],
+  "accepted_families_changed": [],
+  "note": "One extension, and only what schema stop S-2 requires: the fact family default_attitude over the closed vocabulary Attitude, admitted at its printed closure. Every other mechanic in this batch has an admissible shape under schema 7 as accepted. No field is added to, made required on, or made nullable on any accepted family and no ownership form changes, which is what makes the crossing a re-declaration rather than a rewrite."
+ },
+ "semantic_policy": {
+  "version": "5d-semantic-policy-1",
+  "hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"
+ },
+ "release_binding": {
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "derivation": "five of six values re-derived from the committed PDF by the 5c pipeline and asserted; persisted_corpus_digest is a function of persisted rows and verified vector state, so it is carried from the published CRD Issue 5c release record and disclosed as such."
+ },
+ "boundary": {
+  "derived_from": "'[Attitude]'-tagged entries under Rules Definitions, plus the untagged 'Attitude' umbrella, checked against the names the umbrella's own See-also prints",
+  "labels": [
+   "Attitude",
+   "Friendly [Attitude]",
+   "Hostile [Attitude]",
+   "Indifferent [Attitude]"
+  ],
+  "printed_pages": [
+   177,
+   182,
+   183,
+   184
+  ],
+  "policy_exclusions": [],
+  "canaries": {
+   "records": {
+    "derived": 4,
+    "expected": 4
+   },
+   "represented_leaves": {
+    "derived": 16,
+    "expected": 16
+   },
+   "policy_exclusions": {
+    "derived": 0,
+    "expected": 0
+   },
+   "container_leaves": {
+    "derived": 16,
+    "expected": 16
+   }
+  }
+ },
+ "counts": {
+  "records": 4,
+  "represented_leaves": 16,
+  "policy_exclusions": 0,
+  "spans": 24,
+  "substantive": 5,
+  "supporting_authority": 19,
+  "non_mechanical": 0,
+  "unresolved": 0,
+  "components": 3,
+  "components_structured": 1,
+  "components_mixed": 2,
+  "components_prose_bound": 0,
+  "facts": 3,
+  "prose_bindings": 2,
+  "references": 7,
+  "record_owned_references": 7,
+  "relationships": 0,
+  "provenance_edges": 24,
+  "obligations": 15
+ },
+ "count_derivation": {
+  "records": "one per source entry in the boundary: the Attitude umbrella plus the three [Attitude] entries",
+  "represented_leaves": "distinct leaf ids the spans cover; all 16 of the boundary's 16 container leaves, because this boundary has no policy exclusion",
+  "spans": "the partition cells: 4 leaves x 4 records, cut where an element's claim starts or stops",
+  "references": "the umbrella's four See-also citations plus one per entry; every one record-owned, because no component of this batch is the thing doing the citing",
+  "components": "three: Friendly's and Hostile's influence modifiers, MIXED, plus Indifferent's default_attitude, STRUCTURED. The umbrella holds none, which is glossary.hazard's accepted shape",
+  "unresolved": "none. Schema stop S-2 was the only candidate and schema 8 closes it with a typed family, so no span is emitted UNRESOLVED"
+ },
+ "per_record": {
+  "attitude.friendly": {
+   "leaves": 4,
+   "spans": 6
+  },
+  "attitude.hostile": {
+   "leaves": 4,
+   "spans": 6
+  },
+  "attitude.indifferent": {
+   "leaves": 4,
+   "spans": 5
+  },
+  "glossary.attitude": {
+   "leaves": 4,
+   "spans": 7
+  }
+ },
+ "record_shapes": {
+  "attitude.friendly": {
+   "kind": "glossary_rule",
+   "components": [
+    "influence_advantage"
+   ],
+   "prose_bindings": 1,
+   "references": 1
+  },
+  "attitude.hostile": {
+   "kind": "glossary_rule",
+   "components": [
+    "influence_disadvantage"
+   ],
+   "prose_bindings": 1,
+   "references": 1
+  },
+  "attitude.indifferent": {
+   "kind": "glossary_rule",
+   "components": [
+    "default_attitude"
+   ],
+   "prose_bindings": 0,
+   "references": 1
+  },
+  "glossary.attitude": {
+   "kind": "glossary_rule",
+   "components": [],
+   "prose_bindings": 0,
+   "references": 4
+  }
+ },
+ "validation": {
+  "seams_reporting_findings": {
+   "build-time draft shape (representation_draft_violations)": 0,
+   "held authority shape (held_structure_violations)": 0,
+   "component rules (damage + roll outcome + option sets)": 0,
+   "representation gate, standalone (validate_representation)": 4,
+   "representation gate, merged with the accepted three-batch prior": 2,
+   "committed-loader round trip (representation_payload -> _representation)": 0,
+   "partition accounting (validate_partition)": 0,
+   "reason codes (validate_reason_codes)": 0
+  },
+  "expected_nonzero": {
+   "representation gate, standalone (validate_representation)": 4,
+   "representation gate, merged with the accepted three-batch prior": 2
+  },
+  "wire_round_trip": true,
+  "partition": [],
+  "reason_codes": [],
+  "structural": [],
+  "component_rules": [],
+  "standalone_findings": [
+   "reference srd-5.2.1/rules-glossary:'Influence': unknown target record action.influence",
+   "reference srd-5.2.1/rules-glossary:'Influence': unknown target record action.influence",
+   "reference srd-5.2.1/rules-glossary:'Influence': unknown target record action.influence",
+   "reference srd-5.2.1/rules-glossary:'Influence': unknown target record action.influence"
+  ],
+  "merged_findings": [
+   "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed",
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration"
+  ]
+ },
+ "classification_partitions": {
+  "0575042d-a15d-5c6b-8514-0529db16a209": {
+   "record": "attitude.indifferent",
+   "printed_page": 184,
+   "content": "Indifferent [Attitude]",
+   "cells": [
+    {
+     "range": [
+      0,
+      22
+     ],
+     "text": "Indifferent [Attitude]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "064fd787-0aed-56ce-bd7c-300ee8cc24fe": {
+   "record": "glossary.attitude",
+   "printed_page": 177,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "1432dd73-692a-5b71-a833-b9c9b863621c": {
+   "record": "attitude.friendly",
+   "printed_page": 182,
+   "content": "Friendly [Attitude]",
+   "cells": [
+    {
+     "range": [
+      0,
+      19
+     ],
+     "text": "Friendly [Attitude]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "27af8939-40e1-51cc-8fd5-04adbb95f7a8": {
+   "record": "attitude.friendly",
+   "printed_page": 182,
+   "content": "“Influence.”",
+   "cells": [
+    {
+     "range": [
+      0,
+      12
+     ],
+     "text": "“Influence.”",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "4400343f-91f2-5554-9144-d8b91b19fc6b": {
+   "record": "attitude.hostile",
+   "printed_page": 183,
+   "content": "“Influence.”",
+   "cells": [
+    {
+     "range": [
+      0,
+      12
+     ],
+     "text": "“Influence.”",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "55344df1-2799-52e8-9342-4abf95774500": {
+   "record": "attitude.friendly",
+   "printed_page": 182,
+   "content": "A Friendly creature views you favorably. You have Advantage on an ability check to influence a Friendly creature.",
+   "cells": [
+    {
+     "range": [
+      0,
+      40
+     ],
+     "text": "A Friendly creature views you favorably.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      40,
+      79
+     ],
+     "text": " You have Advantage on an ability check",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      79,
+      113
+     ],
+     "text": " to influence a Friendly creature.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "67f4ba93-a5a3-531d-95fb-cf99bc0c6131": {
+   "record": "attitude.friendly",
+   "printed_page": 182,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "6c3c8674-8025-5f3c-82ce-cdbc7a703a7e": {
+   "record": "glossary.attitude",
+   "printed_page": 177,
+   "content": "A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent.",
+   "cells": [
+    {
+     "range": [
+      0,
+      95
+     ],
+     "text": "A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "6f8c4210-51e1-5daf-9e0b-0248381f721a": {
+   "record": "attitude.indifferent",
+   "printed_page": 184,
+   "content": "“Influence.”",
+   "cells": [
+    {
+     "range": [
+      0,
+      12
+     ],
+     "text": "“Influence.”",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "71149706-6f3b-51bc-b945-5c90f0c5c5b6": {
+   "record": "attitude.hostile",
+   "printed_page": 183,
+   "content": "A Hostile creature views you unfavorably. You have Disadvantage on an ability check to influence a Hostile creature.",
+   "cells": [
+    {
+     "range": [
+      0,
+      41
+     ],
+     "text": "A Hostile creature views you unfavorably.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      41,
+      83
+     ],
+     "text": " You have Disadvantage on an ability check",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      83,
+      116
+     ],
+     "text": " to influence a Hostile creature.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "989d1e9e-d9c0-5cf1-b61a-ca292ff59468": {
+   "record": "attitude.indifferent",
+   "printed_page": 184,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "aa15a843-842a-5008-8975-1ddda24dd00c": {
+   "record": "glossary.attitude",
+   "printed_page": 177,
+   "content": "“Friendly,” “Hostile,” “Indifferent,” and “Influence.”",
+   "cells": [
+    {
+     "range": [
+      0,
+      11
+     ],
+     "text": "“Friendly,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      11,
+      22
+     ],
+     "text": " “Hostile,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      22,
+      37
+     ],
+     "text": " “Indifferent,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      37,
+      54
+     ],
+     "text": " and “Influence.”",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "bf296ecc-94be-5283-993a-73c869ed53ec": {
+   "record": "attitude.indifferent",
+   "printed_page": 184,
+   "content": "An Indifferent creature has no desire to help or hinder you. Indifferent is the default attitude of a monster.",
+   "cells": [
+    {
+     "range": [
+      0,
+      60
+     ],
+     "text": "An Indifferent creature has no desire to help or hinder you.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      60,
+      110
+     ],
+     "text": " Indifferent is the default attitude of a monster.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "c40da74e-36e5-5b6b-824e-afbc1999f1b8": {
+   "record": "attitude.hostile",
+   "printed_page": 183,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "d230dfbe-67d2-59dc-852f-496acbd9aa30": {
+   "record": "attitude.hostile",
+   "printed_page": 183,
+   "content": "Hostile [Attitude]",
+   "cells": [
+    {
+     "range": [
+      0,
+      18
+     ],
+     "text": "Hostile [Attitude]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "d40394ab-21d1-5fe5-93d5-288029a65549": {
+   "record": "glossary.attitude",
+   "printed_page": 177,
+   "content": "Attitude",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "Attitude",
+     "disposition": "supporting_authority"
+    }
+   ]
+  }
+ },
+ "reference_scope": {
+  "references_emitted": 7,
+  "record_owned": 7,
+  "targets_defined_by_this_batch": [
+   "attitude.friendly",
+   "attitude.hostile",
+   "attitude.indifferent"
+  ],
+  "cross_batch_citations": [
+   "attitude.friendly -> action.influence",
+   "attitude.hostile -> action.influence",
+   "attitude.indifferent -> action.influence",
+   "glossary.attitude -> action.influence"
+  ],
+  "cross_batch_citations_all_resolve_into_the_accepted_prior": true,
+  "unresolved_targets_before_this_batch": [
+   "attitude.friendly",
+   "attitude.hostile",
+   "attitude.indifferent",
+   "glossary.concentration",
+   "glossary.speed"
+  ],
+  "unresolved_targets_after_the_merge": [
+   "glossary.concentration",
+   "glossary.speed"
+  ],
+  "resolved_by_this_batch": [
+   "attitude.friendly",
+   "attitude.hostile",
+   "attitude.indifferent"
+  ],
+  "publishable_alone": false,
+  "note": "This batch adds no unresolved citation of its own: all four of its cross-batch references target action.influence, which accepted authority already carries. It resolves three of the prior's five unresolved targets as a CONSEQUENCE of representing a complete source class. glossary.concentration and glossary.speed are untagged entries in other source groups and remain unresolved, so the merged validator still reports exactly two. Schema stop S-2 leaves no UNRESOLVED span: schema 8 closes it with a typed family. Nothing here is accepted, activated or published, and the publication gate is not executed by this run at all.",
+  "validator_findings": {
+   "standalone": {
+    "findings": 4,
+    "distinct_targets": [
+     "action.influence"
+    ],
+    "citations_per_target": {
+     "action.influence": 4
+    }
+   },
+   "merged": {
+    "findings": 2,
+    "distinct_targets": [
+     "glossary.concentration",
+     "glossary.speed"
+    ],
+    "citations_per_target": {
+     "glossary.concentration": 1,
+     "glossary.speed": 1
+    }
+   }
+  }
+ },
+ "reference_siting": {
+  "rule": "a reference is emitted where the source cites a record as a defined term, not at every place it says the word",
+  "accepted_precedent": [
+   "glossary.hazard emits its five references from its quoted See-also list; 'A hazard is an environmental danger.' is supporting authority",
+   "action.dash emits 'Speed' from its See-also leaf while its body's other mentions of Speed carry facts",
+   "glossary.condition and glossary.action emit from their printed enumerations, the only place they cite their members"
+  ],
+  "applied_here": "glossary.attitude's four references come from its See-also leaf; its body sentence is the record's own definitional framing. Siting them at both places would also have collided: reference_target_key keys on source_text and the term is spelled the same in both leaves.",
+  "reference_keys_are_distinct": true
+ },
+ "schema_stops": [
+  {
+   "id": "S-2",
+   "status": "closed by representation schema 8",
+   "obligation": "I2",
+   "record": "attitude.indifferent",
+   "text": "Indifferent is the default attitude of a monster.",
+   "what_it_states": "a determinate rule: absent any other specification a monster's attitude is Indifferent, which then feeds action.influence's check with neither Advantage nor Disadvantage.",
+   "what_was_missing_under_schema_7": "no fact family carried 'this record is the default member of its class'. No composition of existing families stated it either: a default is not an effect, a duration, an allowance, a roll, or a state transition.",
+   "why_not_prose_bound": {
+    "contextual_applicability": "false: the rule has no predicate. It does not apply *when* anything — it states the value a monster's attitude takes absent other specification, which is the opposite of a condition on applicability.",
+    "subjective_judgment": "false: nothing is left to anyone's judgment. 'Indifferent' is a named member of a closed three-member class, not an assessment.",
+    "open_ended_effect": "false: the effect is closed and singular — one attitude, chosen from three. There is nothing unbounded to enumerate.",
+    "gamemaster_latitude": "false: the source delegates nothing here. It states the default rather than inviting the GM to pick one.",
+    "natural_language_exception": "false: this is the rule, not an exception carved out of one. Nothing in the batch it could be an exception to states a different default.",
+    "fiction_dependent_consequence": "false: the consequence is mechanical and immediate — which attitude feeds action.influence's check — and depends on no fiction at all.",
+    "conclusion": "none of the six closed reasons is true of it, so binding it under one anyway would record a vocabulary gap as an irreducibility — which is exactly the misfiling the closed catalog exists to prevent."
+   },
+   "how_it_is_closed": {
+    "governing_rule": "#137 contract 3: if a substantive family cannot be represented by the current union, add a specific typed family or classify the affected component honestly as prose-bound. The prose-bound branch is unavailable (see why_not_prose_bound), so the typed branch is the only one left open.",
+    "schema": "5d-representation-schema-8",
+    "fact_family": "default_attitude",
+    "vocabulary": {
+     "Attitude": [
+      "friendly",
+      "hostile",
+      "indifferent"
+     ]
+    },
+    "vocabulary_scope": "admitted at its printed closure - 'A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent.' enumerates the class in one line - rather than at the single member this batch uses, which is MovementMode's accepted reasoning.",
+    "registered_transition": "5d-lift-schema-7-to-8",
+    "adr_005d_decision_4": "satisfied: a specific typed family with a closed vocabulary, schema and tests. No generic numeric or key-value escape hatch, no runtime-interpreted script, no general rules DSL.",
+    "not_widened": "the fact states a DEFAULT, not an attitude a creature currently has, and adjudicates nothing at runtime. Friendly and Hostile keep condition.charmed's accepted AdvantageFact shape on a MIXED component and gain nothing from this family.",
+    "sibling_count_disclosure": {
+     "pattern": "\\bis the default\\b",
+     "represented_leaves_scanned": 28109,
+     "matching_leaves": 1,
+     "sections": [
+      "Rules Glossary"
+     ],
+     "matches": [
+      {
+       "printed_page": 184,
+       "text": "An Indifferent creature has no desire to help or hinder you. Indifferent is the default attitude of a monster."
+      }
+     ],
+     "what_this_measures": "an exact-phrase count of 'is the default' over the represented leaves, and nothing more. It shows this clause is the only leaf that states a default IN THOSE WORDS; a paraphrase would not match, so it is not evidence that no semantically related default exists elsewhere in the corpus.",
+     "what_this_is_not": "an admission test. #137 contract 3 states the gate - add a specific typed family or classify honestly as prose-bound - and ADR-005d Decision 4 constrains its shape. A universal cross-section sibling-count precondition was explicitly WITHDRAWN by issue-5d-actions-1-SCHEMA-STOP-CHECKPOINT.md section 6, and the accepted union records the counterexample: MovementPermissionFact is 'the thinnest family admitted here', two instances, and its docstring says 'its vocabulary is stronger than its sibling count.' BenefitUseLimit has one member. Sibling count is evidence a reviewer weighs; it is not a barrier and it is not an Owner Decision."
+    }
+   },
+   "disposition": "SUBSTANTIVE, typed under schema 8"
+  }
+ ],
+ "typed_prose_dispositions": {
+  "typed": [
+   {
+    "record": "attitude.friendly",
+    "component": "influence_advantage",
+    "fact": "383043486420f221",
+    "text": "You have Advantage on an ability check"
+   },
+   {
+    "record": "attitude.hostile",
+    "component": "influence_disadvantage",
+    "fact": "6a9629fc758f68b4",
+    "text": "You have Disadvantage on an ability check"
+   },
+   {
+    "record": "attitude.indifferent",
+    "component": "default_attitude",
+    "fact": "390ab69baf5b1cf2",
+    "text": "Indifferent is the default attitude of a monster.",
+    "schema": "5d-representation-schema-8",
+    "why": "schema stop S-2, closed by the schema-8 family rather than left UNRESOLVED or misfiled under an irreducibility reason none of whose six codes is true of it."
+   }
+  ],
+  "prose_bound": [
+   {
+    "record": "attitude.friendly",
+    "component": "influence_advantage",
+    "reason": "contextual_applicability",
+    "text": " to influence a Friendly creature.",
+    "why": "which ability check the modifier applies to — the one made to influence this creature — ranges over fiction the projection cannot enumerate. Widening RollContext or RollActor for it is what RollActor's docstring explicitly declined to do for the identical Charmed clause."
+   },
+   {
+    "record": "attitude.hostile",
+    "component": "influence_disadvantage",
+    "reason": "contextual_applicability",
+    "text": " to influence a Hostile creature.",
+    "why": "which ability check the modifier applies to — the one made to influence this creature — ranges over fiction the projection cannot enumerate. Widening RollContext or RollActor for it is what RollActor's docstring explicitly declined to do for the identical Charmed clause."
+   }
+  ],
+  "supporting_authority": [
+   {
+    "record": "glossary.attitude",
+    "text": "Attitude"
+   },
+   {
+    "record": "glossary.attitude",
+    "text": "A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent."
+   },
+   {
+    "record": "glossary.attitude",
+    "text": "See also"
+   },
+   {
+    "record": "attitude.friendly",
+    "text": "Friendly [Attitude]"
+   },
+   {
+    "record": "attitude.friendly",
+    "text": "A Friendly creature views you favorably."
+   },
+   {
+    "record": "attitude.friendly",
+    "text": "See also"
+   },
+   {
+    "record": "attitude.hostile",
+    "text": "Hostile [Attitude]"
+   },
+   {
+    "record": "attitude.hostile",
+    "text": "A Hostile creature views you unfavorably."
+   },
+   {
+    "record": "attitude.hostile",
+    "text": "See also"
+   },
+   {
+    "record": "attitude.indifferent",
+    "text": "Indifferent [Attitude]"
+   },
+   {
+    "record": "attitude.indifferent",
+    "text": "An Indifferent creature has no desire to help or hinder you."
+   },
+   {
+    "record": "attitude.indifferent",
+    "text": "See also"
+   }
+  ],
+  "unresolved": []
+ },
+ "precedent": {
+  "accepted": {
+   "component": "condition.charmed/social_advantage",
+   "handling": "mixed",
+   "state": "advantage",
+   "roll_actor": "against_subject",
+   "roll_context": "ability_check",
+   "irreducibility_reason_code": "contextual_applicability"
+  },
+  "this_batch": {
+   "attitude.friendly": {
+    "component": "influence_advantage",
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "state": "advantage",
+    "roll_actor": "against_subject",
+    "roll_context": "ability_check",
+    "roll_ability": null,
+    "fact_span_ids": [
+     "9661f80d-63d5-593a-9adc-2400539378c9"
+    ],
+    "fact_span_text": [
+     " You have Advantage on an ability check"
+    ],
+    "governing_prose_extents": 1
+   },
+   "attitude.hostile": {
+    "component": "influence_disadvantage",
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "state": "disadvantage",
+    "roll_actor": "against_subject",
+    "roll_context": "ability_check",
+    "roll_ability": null,
+    "fact_span_ids": [
+     "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+    ],
+    "fact_span_text": [
+     " You have Disadvantage on an ability check"
+    ],
+    "governing_prose_extents": 1
+   }
+  },
+  "identical_axes": [
+   "handling",
+   "roll_actor",
+   "roll_context",
+   "roll.ability is None",
+   "irreducibility_reason_code"
+  ],
+  "differing_axis": "state (advantage vs disadvantage)",
+  "note": "RollActor's own docstring names this case: the charmer's actor restriction 'is applicability prose on a MIXED component, and admitting a member for it would have widened the union on speculation'. Friendly and Hostile are the same sentence with the polarity flipped, so they take the same shape and widen nothing."
+ },
+ "consumer_boundary_proofs": {
+  "glossary.attitude": {
+   "kind": "glossary_rule",
+   "component_keys": [],
+   "span_ids": 3
+  },
+  "attitude.friendly": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "influence_advantage"
+   ],
+   "span_ids": 3
+  },
+  "attitude.hostile": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "influence_disadvantage"
+   ],
+   "span_ids": 3
+  },
+  "attitude.indifferent": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "default_attitude"
+   ],
+   "span_ids": 3
+  },
+  "action.influence -> attitudes now resolve": {
+   "cited": [
+    "attitude.friendly",
+    "attitude.hostile",
+    "attitude.indifferent"
+   ],
+   "all_assembled_by_the_projection": true,
+   "note": "accepted actions-1 authority cites all three by name; before this batch none of them existed as a record, so the citation dangled."
+  },
+  "polarity_read_back_off_the_projection": {
+   "attitude.friendly": {
+    "component": "influence_advantage",
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "state": "advantage",
+    "roll_actor": "against_subject",
+    "roll_context": "ability_check",
+    "roll_ability": null,
+    "fact_span_ids": [
+     "9661f80d-63d5-593a-9adc-2400539378c9"
+    ],
+    "fact_span_text": [
+     " You have Advantage on an ability check"
+    ],
+    "governing_prose_extents": 1
+   },
+   "attitude.hostile": {
+    "component": "influence_disadvantage",
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "state": "disadvantage",
+    "roll_actor": "against_subject",
+    "roll_context": "ability_check",
+    "roll_ability": null,
+    "fact_span_ids": [
+     "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+    ],
+    "fact_span_text": [
+     " You have Disadvantage on an ability check"
+    ],
+    "governing_prose_extents": 1
+   }
+  },
+  "default_attitude_read_back_off_the_projection": {
+   "record": "attitude.indifferent",
+   "component": "default_attitude",
+   "handling": "structured",
+   "fact_family": "default_attitude",
+   "attitude": "indifferent",
+   "fact_key": "390ab69baf5b1cf2",
+   "fact_span_text": [
+    " Indifferent is the default attitude of a monster."
+   ],
+   "governing_prose_extents": 0,
+   "note": "the value is stated by the fact, not inferred from the record key attitude.indifferent, and it is a default rather than an attitude any creature currently holds - the projection models no runtime state."
+  }
+ },
+ "schema_succession": {
+  "prior_schema": "5d-representation-schema-7",
+  "batch_schema": "5d-representation-schema-8",
+  "lift_required": true,
+  "steps": [
+   "5d-lift-schema-7-to-8"
+  ],
+  "verified_collections": [
+   [
+    "components",
+    "prose_bindings",
+    "provenance",
+    "records",
+    "references",
+    "relationships"
+   ]
+  ],
+  "note": "the accepted prior is anchored at 5d-representation-schema-7 and this batch proposes under 5d-representation-schema-8, which schema stop S-2 required. Exactly one registered transition separates them and it is exercised here rather than described. The transition adds a fact family and a vocabulary; it adds no field to an accepted family, no ownership form, no nullable field and no required field, so every accepted fact key, component key and provenance coordinate has the same canonical form under both contracts."
+ },
+ "accepted_prior": {
+  "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1.json",
+  "content_sha256": "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc",
+  "blob": "a729a797594e1156b279fac76c3073c733707a2f",
+  "identity": "8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee",
+  "batch_ids": [
+   "actions-1",
+   "conditions-1",
+   "hazards-1"
+  ],
+  "records": 35,
+  "spans": 463,
+  "schema_version": "5d-representation-schema-7",
+  "read_only": true,
+  "content_sha256_after": "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc",
+  "unchanged": true
+ },
+ "disjointness_from_the_accepted_prior": {
+  "span_overlap": [],
+  "leaf_overlap": [],
+  "collection_overlap": {
+   "records": [],
+   "components": [],
+   "prose_bindings": [],
+   "relationships": [],
+   "references": [],
+   "provenance": []
+  },
+  "prior_spans_retained": 463,
+  "zero_movement": {
+   "records": {
+    "prior_elements": 35,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 35,
+     "new": 4,
+     "merged": 39,
+     "sums": true
+    }
+   },
+   "components": {
+    "prior_elements": 106,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 106,
+     "new": 3,
+     "merged": 109,
+     "sums": true
+    }
+   },
+   "prose_bindings": {
+    "prior_elements": 47,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 47,
+     "new": 2,
+     "merged": 49,
+     "sums": true
+    }
+   },
+   "relationships": {
+    "prior_elements": 0,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 0,
+     "new": 0,
+     "merged": 0,
+     "sums": true
+    }
+   },
+   "references": {
+    "prior_elements": 39,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 39,
+     "new": 7,
+     "merged": 46,
+     "sums": true
+    }
+   },
+   "provenance": {
+    "prior_elements": 480,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 480,
+     "new": 24,
+     "merged": 504,
+     "sums": true
+    }
+   }
+  }
+ },
+ "obligation_closure": {
+  "T1": {
+   "clause": "the umbrella names the term",
+   "spans": [
+    "9312bcc5-b023-5a10-9c00-a79fc2619a52"
+   ],
+   "claimants": [
+    "glossary.attitude"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "Attitude"
+   ]
+  },
+  "T2": {
+   "clause": "a monster has a starting attitude, drawn from exactly three",
+   "spans": [
+    "1295e03c-e741-512c-bbc0-0e8cb4f66a2c"
+   ],
+   "claimants": [
+    "glossary.attitude"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent."
+   ]
+  },
+  "T3": {
+   "clause": "the umbrella cites its three members",
+   "spans": [
+    "d800f1a6-a3fa-5d3e-ba7c-b6006228b989",
+    "6b77920b-7622-5693-9061-a20b34c15a2c",
+    "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683",
+    "9335a2f3-9397-5868-989e-e539195e1719"
+   ],
+   "claimants": [
+    "glossary.attitude",
+    "glossary.attitude -> attitude.friendly",
+    "glossary.attitude -> attitude.hostile",
+    "glossary.attitude -> attitude.indifferent"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "See also",
+    "“Friendly,”",
+    " “Hostile,”",
+    " “Indifferent,”"
+   ]
+  },
+  "T4": {
+   "clause": "the umbrella cites the action its members affect",
+   "spans": [
+    "39ba4b77-436c-5f3a-9859-b16831536ca9"
+   ],
+   "claimants": [
+    "glossary.attitude -> action.influence"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    " and “Influence.”"
+   ]
+  },
+  "F1": {
+   "clause": "what a Friendly creature is",
+   "spans": [
+    "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752",
+    "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f"
+   ],
+   "claimants": [
+    "attitude.friendly"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "Friendly [Attitude]",
+    "A Friendly creature views you favorably."
+   ]
+  },
+  "F2": {
+   "clause": "Advantage on the check",
+   "spans": [
+    "9661f80d-63d5-593a-9adc-2400539378c9"
+   ],
+   "claimants": [
+    "attitude.friendly/influence_advantage/383043486420f221"
+   ],
+   "dispositions": [
+    "substantive"
+   ],
+   "text": [
+    " You have Advantage on an ability check"
+   ]
+  },
+  "F3": {
+   "clause": "which check: the one made to influence a Friendly creature",
+   "spans": [
+    "497eebf5-de04-5c4d-ac67-57778dee9d02"
+   ],
+   "claimants": [
+    "attitude.friendly/influence_advantage (contextual_applicability)"
+   ],
+   "dispositions": [
+    "substantive"
+   ],
+   "text": [
+    " to influence a Friendly creature."
+   ]
+  },
+  "F4": {
+   "clause": "Friendly cites the action it affects",
+   "spans": [
+    "3a44296e-1562-569e-89f9-2877d9d3de3e",
+    "8a96f09b-6a25-5059-83ea-372d61e69c81"
+   ],
+   "claimants": [
+    "attitude.friendly",
+    "attitude.friendly -> action.influence"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "See also",
+    "“Influence.”"
+   ]
+  },
+  "H1": {
+   "clause": "what a Hostile creature is",
+   "spans": [
+    "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593",
+    "9cd85974-aec4-569a-b280-e15f3545c01a"
+   ],
+   "claimants": [
+    "attitude.hostile"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "Hostile [Attitude]",
+    "A Hostile creature views you unfavorably."
+   ]
+  },
+  "H2": {
+   "clause": "Disadvantage on the check",
+   "spans": [
+    "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+   ],
+   "claimants": [
+    "attitude.hostile/influence_disadvantage/6a9629fc758f68b4"
+   ],
+   "dispositions": [
+    "substantive"
+   ],
+   "text": [
+    " You have Disadvantage on an ability check"
+   ]
+  },
+  "H3": {
+   "clause": "which check: the one made to influence a Hostile creature",
+   "spans": [
+    "9a953d25-99b6-5390-9b74-03dd83cacae6"
+   ],
+   "claimants": [
+    "attitude.hostile/influence_disadvantage (contextual_applicability)"
+   ],
+   "dispositions": [
+    "substantive"
+   ],
+   "text": [
+    " to influence a Hostile creature."
+   ]
+  },
+  "H4": {
+   "clause": "Hostile cites the action it affects",
+   "spans": [
+    "1015c00e-62a2-5baa-9a1e-90d550bac360",
+    "fcd321e6-517c-5047-98dd-aec102802b5c"
+   ],
+   "claimants": [
+    "attitude.hostile",
+    "attitude.hostile -> action.influence"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "See also",
+    "“Influence.”"
+   ]
+  },
+  "I1": {
+   "clause": "what an Indifferent creature is",
+   "spans": [
+    "030717db-df98-55a2-9caf-bfd723694c9c",
+    "044a6f6b-0732-5f3e-94c6-1a1e91137847"
+   ],
+   "claimants": [
+    "attitude.indifferent"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "Indifferent [Attitude]",
+    "An Indifferent creature has no desire to help or hinder you."
+   ]
+  },
+  "I2": {
+   "clause": "Indifferent is the default attitude of a monster",
+   "spans": [
+    "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+   ],
+   "claimants": [
+    "attitude.indifferent/default_attitude/390ab69baf5b1cf2"
+   ],
+   "dispositions": [
+    "substantive"
+   ],
+   "text": [
+    " Indifferent is the default attitude of a monster."
+   ]
+  },
+  "I3": {
+   "clause": "Indifferent cites the action it affects",
+   "spans": [
+    "545ee26b-363b-58b2-b8e6-77e7ca33a92c",
+    "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
+   ],
+   "claimants": [
+    "attitude.indifferent",
+    "attitude.indifferent -> action.influence"
+   ],
+   "dispositions": [
+    "supporting_authority"
+   ],
+   "text": [
+    "See also",
+    "“Influence.”"
+   ]
+  }
+ },
+ "obligation_accounting": {
+  "supporting_authority_only": [
+   "T1",
+   "T2",
+   "T3",
+   "T4",
+   "F1",
+   "F4",
+   "H1",
+   "H4",
+   "I1",
+   "I3"
+  ],
+  "typed": [
+   "F2",
+   "H2",
+   "I2"
+  ],
+  "prose_bound": [
+   "F3",
+   "H3"
+  ],
+  "tally": {
+   "prose_bound": 2,
+   "supporting_authority_only": 10,
+   "typed": 3
+  }
+ },
+ "evidence_classes": [
+  {
+   "class": "source extraction and partition reconstruction",
+   "executed_here": true,
+   "strength": "strong for coverage and span boundaries; says nothing about whether the meaning assigned to a span is right — that is what semantic review is for"
+  },
+  {
+   "class": "structural validation",
+   "executed_here": true,
+   "strength": "the repository's own checkers over the emitted draft and over the merge acceptance would validate. Zero findings is explicitly insufficient: these judge shape, not fidelity"
+  },
+  {
+   "class": "consumer projection assertion",
+   "executed_here": true,
+   "strength": "_base_records is applied to the merged candidate in memory and values are read back off those objects. Nothing is persisted"
+  },
+  {
+   "class": "sibling sweep for a new fact family",
+   "executed_here": true,
+   "strength": "measured over all represented leaves of the bound source, not recalled: one match, one section"
+  },
+  {
+   "class": "publication gate",
+   "executed_here": false,
+   "strength": "NOT run. There is no persisted projection to run it over, and this generator must not create one"
+  },
+  {
+   "class": "acceptance",
+   "executed_here": false,
+   "strength": "NOT run. accept_proposal is never called; the live oracle is read as a mutation sentinel only"
+  }
+ ],
+ "review_disposition": {
+  "open_schema_stops": [],
+  "residues": [
+   "no UNRESOLVED span remains; S-2 is closed by schema 8 and the registered transition 5d-lift-schema-7-to-8 is exercised above",
+   "glossary.concentration and glossary.speed remain unresolved after the merge; they belong to a later glossary batch"
+  ],
+  "requires_owner_authorization_before": [
+   "any acceptance of this batch into committed authority",
+   "any acceptance is also what would carry the accepted prior across 5d-lift-schema-7-to-8; this run proves the crossing and performs none of it"
+  ]
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "review_prior": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. The live accepted-authority oracle is deliberately absent: it is not an input. This run reads it only as a mutation sentinel and records neither its path nor its digest, because an accumulating artifact's identity goes stale at the next acceptance."
+ },
+ "spans": [
+  {
+   "record": "glossary.attitude",
+   "obligation": "T1",
+   "obligation_text": "the umbrella names the term",
+   "leaf": "d40394ab-21d1-5fe5-93d5-288029a65549",
+   "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52",
+   "range": [
+    0,
+    8
+   ],
+   "text": "Attitude",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.attitude",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T2",
+   "obligation_text": "a monster has a starting attitude, drawn from exactly three",
+   "leaf": "6c3c8674-8025-5f3c-82ce-cdbc7a703a7e",
+   "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c",
+   "range": [
+    0,
+    95
+   ],
+   "text": "A monster has a starting attitude toward a player character: Friendly, Hostile, or Indifferent.",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.attitude",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T3",
+   "obligation_text": "the umbrella cites its three members",
+   "leaf": "064fd787-0aed-56ce-bd7c-300ee8cc24fe",
+   "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "glossary.attitude",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T3",
+   "obligation_text": "the umbrella cites its three members",
+   "leaf": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c",
+   "range": [
+    0,
+    11
+   ],
+   "text": "“Friendly,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.attitude -> attitude.friendly",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T3",
+   "obligation_text": "the umbrella cites its three members",
+   "leaf": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683",
+   "range": [
+    11,
+    22
+   ],
+   "text": " “Hostile,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.attitude -> attitude.hostile",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T3",
+   "obligation_text": "the umbrella cites its three members",
+   "leaf": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "span_id": "9335a2f3-9397-5868-989e-e539195e1719",
+   "range": [
+    22,
+    37
+   ],
+   "text": " “Indifferent,”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.attitude -> attitude.indifferent",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "glossary.attitude",
+   "obligation": "T4",
+   "obligation_text": "the umbrella cites the action its members affect",
+   "leaf": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9",
+   "range": [
+    37,
+    54
+   ],
+   "text": " and “Influence.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "glossary.attitude -> action.influence",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F1",
+   "obligation_text": "what a Friendly creature is",
+   "leaf": "1432dd73-692a-5b71-a833-b9c9b863621c",
+   "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752",
+   "range": [
+    0,
+    19
+   ],
+   "text": "Friendly [Attitude]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.friendly",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F1",
+   "obligation_text": "what a Friendly creature is",
+   "leaf": "55344df1-2799-52e8-9342-4abf95774500",
+   "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f",
+   "range": [
+    0,
+    40
+   ],
+   "text": "A Friendly creature views you favorably.",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.friendly",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F2",
+   "obligation_text": "Advantage on the check",
+   "leaf": "55344df1-2799-52e8-9342-4abf95774500",
+   "span_id": "9661f80d-63d5-593a-9adc-2400539378c9",
+   "range": [
+    40,
+    79
+   ],
+   "text": " You have Advantage on an ability check",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "attitude.friendly/influence_advantage/383043486420f221",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F3",
+   "obligation_text": "which check: the one made to influence a Friendly creature",
+   "leaf": "55344df1-2799-52e8-9342-4abf95774500",
+   "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02",
+   "range": [
+    79,
+    113
+   ],
+   "text": " to influence a Friendly creature.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "attitude.friendly/influence_advantage (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is typed beside it"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F4",
+   "obligation_text": "Friendly cites the action it affects",
+   "leaf": "67f4ba93-a5a3-531d-95fb-cf99bc0c6131",
+   "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.friendly",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.friendly",
+   "obligation": "F4",
+   "obligation_text": "Friendly cites the action it affects",
+   "leaf": "27af8939-40e1-51cc-8fd5-04adbb95f7a8",
+   "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81",
+   "range": [
+    0,
+    12
+   ],
+   "text": "“Influence.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "attitude.friendly -> action.influence",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H1",
+   "obligation_text": "what a Hostile creature is",
+   "leaf": "d230dfbe-67d2-59dc-852f-496acbd9aa30",
+   "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593",
+   "range": [
+    0,
+    18
+   ],
+   "text": "Hostile [Attitude]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.hostile",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H1",
+   "obligation_text": "what a Hostile creature is",
+   "leaf": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a",
+   "range": [
+    0,
+    41
+   ],
+   "text": "A Hostile creature views you unfavorably.",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.hostile",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H2",
+   "obligation_text": "Disadvantage on the check",
+   "leaf": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0",
+   "range": [
+    41,
+    83
+   ],
+   "text": " You have Disadvantage on an ability check",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "attitude.hostile/influence_disadvantage/6a9629fc758f68b4",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H3",
+   "obligation_text": "which check: the one made to influence a Hostile creature",
+   "leaf": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6",
+   "range": [
+    83,
+    116
+   ],
+   "text": " to influence a Hostile creature.",
+   "disposition": "substantive",
+   "kind": "P",
+   "claimant_kind": "prose_binding",
+   "claimant": "attitude.hostile/influence_disadvantage (contextual_applicability)",
+   "role": "primary",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is typed beside it"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H4",
+   "obligation_text": "Hostile cites the action it affects",
+   "leaf": "c40da74e-36e5-5b6b-824e-afbc1999f1b8",
+   "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.hostile",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.hostile",
+   "obligation": "H4",
+   "obligation_text": "Hostile cites the action it affects",
+   "leaf": "4400343f-91f2-5554-9144-d8b91b19fc6b",
+   "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c",
+   "range": [
+    0,
+    12
+   ],
+   "text": "“Influence.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "attitude.hostile -> action.influence",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "record": "attitude.indifferent",
+   "obligation": "I1",
+   "obligation_text": "what an Indifferent creature is",
+   "leaf": "0575042d-a15d-5c6b-8514-0529db16a209",
+   "span_id": "030717db-df98-55a2-9caf-bfd723694c9c",
+   "range": [
+    0,
+    22
+   ],
+   "text": "Indifferent [Attitude]",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.indifferent",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.indifferent",
+   "obligation": "I1",
+   "obligation_text": "what an Indifferent creature is",
+   "leaf": "bf296ecc-94be-5283-993a-73c869ed53ec",
+   "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847",
+   "range": [
+    0,
+    60
+   ],
+   "text": "An Indifferent creature has no desire to help or hinder you.",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.indifferent",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.indifferent",
+   "obligation": "I2",
+   "obligation_text": "Indifferent is the default attitude of a monster",
+   "leaf": "bf296ecc-94be-5283-993a-73c869ed53ec",
+   "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90",
+   "range": [
+    60,
+    110
+   ],
+   "text": " Indifferent is the default attitude of a monster.",
+   "disposition": "substantive",
+   "kind": "F",
+   "claimant_kind": "fact",
+   "claimant": "attitude.indifferent/default_attitude/390ab69baf5b1cf2",
+   "role": "primary",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "record": "attitude.indifferent",
+   "obligation": "I3",
+   "obligation_text": "Indifferent cites the action it affects",
+   "leaf": "989d1e9e-d9c0-5cf1-b61a-ca292ff59468",
+   "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "kind": "R",
+   "claimant_kind": "record",
+   "claimant": "attitude.indifferent",
+   "role": "contextual",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "record": "attitude.indifferent",
+   "obligation": "I3",
+   "obligation_text": "Indifferent cites the action it affects",
+   "leaf": "6f8c4210-51e1-5daf-9e0b-0248381f721a",
+   "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d",
+   "range": [
+    0,
+    12
+   ],
+   "text": "“Influence.”",
+   "disposition": "supporting_authority",
+   "kind": "X",
+   "claimant_kind": "reference",
+   "claimant": "attitude.indifferent -> action.influence",
+   "role": "contextual",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one"
+  }
+ ],
+ "determinism": {
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "e33a505e4af8881de3f5c5385364772a9ae5552eb5e6e831d16b10ab2ebf1389",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout."
+ }
+}

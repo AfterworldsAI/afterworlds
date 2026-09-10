@@ -460,9 +460,9 @@ def test_the_schema_version_and_hash_are_unchanged() -> None:
     the pair is the contract, and asserting one against the live value would
     make this test agree with whatever the build currently is.
     """
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-7"
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-8"
     assert representation_schema_hash() == (
-        "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
+        "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"  # noqa: E501  # pragma: allowlist secret
     )
 
 

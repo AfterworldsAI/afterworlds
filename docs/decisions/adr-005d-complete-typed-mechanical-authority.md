@@ -386,6 +386,59 @@ not a proposal and not an acceptance.
 > `Magic` K2/K3/K4 demonstration named above was no part of the accepted batch and remains
 > demonstration evidence only.
 
+**Amended by representation schema 8 — the `attitudes-1` stop S-2.** *"Indifferent is the default
+attitude of a monster."* (`Indifferent`, p184) states which member of a closed class applies when
+nothing else has been specified, and schema 7 had no shape for it. No composition of accepted families
+says it either: a default is not an effect, a duration, an allowance, a roll, or a state transition.
+The gate is **#137 contract 3** — add a specific typed family, or classify the affected component
+honestly as prose-bound — read under **Decision 4** above, which constrains the shape. The prose-bound
+branch is unavailable rather than declined: none of the six closed irreducibility reason codes is
+affirmatively true of the clause, and the batch's audit prints the per-code disposition. So schema 8
+adds exactly one family, `DefaultAttitudeFact`, over exactly one closed vocabulary, `Attitude`
+(`friendly`, `hostile`, `indifferent`). Nothing else moves: no field is added to, made required on, or
+made nullable on any accepted family, and no ownership form changes.
+
+The vocabulary is admitted at its **printed closure** — *"A monster has a starting attitude toward a
+player character: Friendly, Hostile, or Indifferent."* enumerates the class in one line — rather than at
+the single member this batch uses. That is `MovementMode`'s accepted reasoning: a closure that tracked
+whichever member happened to be represented first would be a property of the batch order, not of the
+source. Sibling count is not the gate here and is not treated as one; the standard this document states
+for **discharging** a Known-Unknown group (`known_unknowns.md`) governs discharge of those groups, not
+admission of a family under contract 3, and the accepted union already records the counterexample —
+`MovementPermissionFact`, *"the thinnest family admitted here"*, whose *"vocabulary is stronger than its
+sibling count."*
+
+Decisions worth recording, because each was a shape considered and rejected. `is_default: bool` would
+have left *which* member to whoever read the record's semantic key — a by-convention inference, and one
+that silently produces a different mechanic on a record named differently; the field is a stated value.
+An `Applicability` was rejected because a default is not a gate: it does not say *when* something
+applies, it says what holds absent other specification. A single-member vocabulary was rejected for the
+closure reason above. A creature-kind or subject field was rejected as a generic escape hatch — the
+family carries no beneficiary, subject or creature category, because it states a default rather than
+assigning one; *"of a monster"* is scope that lives in the family's name and its record, and nothing is
+adjudicated at runtime. Friendly's and Hostile's influence-check bias is unchanged by all of this: it
+stays `condition.charmed`'s accepted `AdvantageFact` shape on a `MIXED` component with prose-bound
+`contextual_applicability`, and `RollContext` is deliberately not widened.
+
+The schema-8 destination pin is
+`8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff`. Schemas 3 through 7 remain
+recognized contracts with unchanged pins, and succession stays one row per crossing: exactly one
+registered transition, `5d-lift-schema-7-to-8`, separates schema 7 from schema 8, and the batch
+exercises it with `verify_lift_path` rather than describing it. **Nothing accepted moves.** The
+committed artifact and the frozen prior both still declare schema 7 after this change; were
+`attitudes-1` ever accepted, the path from the committed artifact would resolve as
+`5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8`, and the prior would be lifted
+rather than rewritten.
+
+Nothing is accepted, published, activated, or retired by this schema change. `attitudes-1` is a
+**proposal**, `5ea537a1b0a936c4ebc7389ffc2b3402c7d416177a04c72c6eefc9372b5bea7f`, reviewable material
+only; the accepted mechanical identity is still
+`8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee`. Because nothing is accepted,
+`attitude.friendly`, `attitude.hostile` and `attitude.indifferent` remain **unresolved** reference
+targets and remain publication blockers, exactly as `known_unknowns.md` records them. Schema 8 narrows
+no Known Unknown group listed there and discharges none, so that document is amended only with a
+pointer to this change and not otherwise.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

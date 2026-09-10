@@ -436,6 +436,19 @@ action a subject readies (`Ready` L4 — both arms are typed; the identity of th
 records the arm a clause governs without typing its content. Each is contract 3's second branch used as
 intended rather than a deferral: a catalog reason is affirmatively true of every one of them.
 
+**Representation schema 8 (the `attitudes-1` stop S-2) narrows nothing here, and that is recorded
+rather than left silent.** *"Indifferent is the default attitude of a monster."* had no shape under
+schema 7, so schema 8 adds one family, `DefaultAttitudeFact`, over one closed vocabulary, `Attitude`,
+under #137 contract 3 and ADR-005d Decision 4 — see the schema-8 amendment in
+`docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. It belongs to none of the groups
+above, discharges none of them, and changes no closure standard stated in this document. **The
+discharge standard stated above is a standard for discharging these groups; it is not an admission gate
+on new families under contract 3.** An `attitudes-1` draft read it as the latter, which reinstated a
+sibling-count precondition that `issue-5d-actions-1-SCHEMA-STOP-CHECKPOINT.md` §6 had explicitly
+withdrawn; the misreading is corrected in that batch's artifacts and is noted here so the standard is
+not read that way again. `attitudes-1` is a proposal, so the three `attitude.*` reference targets below
+stay unresolved.
+
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Three batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
 2026-09-03 and `actions-1` on 2026-09-09; all three are committed as accepted authority for the

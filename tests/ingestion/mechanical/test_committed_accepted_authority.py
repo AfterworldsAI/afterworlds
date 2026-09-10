@@ -396,38 +396,56 @@ def test_each_batch_still_states_the_schema_it_was_reviewed_under() -> None:
     )
 
 
-def test_the_committed_artifact_is_buildable_and_the_legacy_form_is_not() -> None:
+def test_the_committed_artifact_is_lifted_rather_than_rewritten() -> None:
     """Both halves of the fail-closed rule, in one place.
 
-    ``actions-1`` was reviewed under schema 7, which is the schema this build
-    implements, so the committed artifact declares current authority and is
-    admitted exactly as it sits. That is the half the rule *permits*, and it is
-    asserted against ``REPRESENTATION_SCHEMA_VERSION`` rather than a literal, so
-    the next succession moves this test rather than quietly passing it.
+    ``actions-1`` was reviewed under schema 7 and the committed artifact still
+    declares it. This build implements schema 8, so the artifact is **not**
+    current authority as it sits — and that is correct rather than a
+    regression. Accepted authority is never restamped in place: a projection
+    built under a wider union is a different projection (ADR-005d Decision 6),
+    and the authorized way through is the registered lift, which leaves the
+    committed bytes alone.
 
-    The refusal has not gone anywhere — it belongs to whichever artifact still
-    declares a superseded contract, which is now the frozen schema-3 specimen
-    alone. That specimen is **not** current authority as it stands, and that is
-    correct rather than a regression: a projection built under a wider union is
-    a different projection (ADR-005d Decision 6), and the authorized way
-    through is the registered lift.
+    The previous revision of this test asserted the opposite half — that the
+    artifact declared current authority and needed no lift — against
+    ``REPRESENTATION_SCHEMA_VERSION`` rather than a literal, precisely so the
+    next succession would move it rather than quietly pass it. Schema 8 is that
+    succession, and this is the move.
+
+    The frozen schema-3 specimen is the same case two crossings further back,
+    and is asserted beside it so the rule is stated over an artifact that has
+    always needed a lift as well as one that has just started to.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     assert inputs.oracle.schema_version == SCHEMA_7_VERSION
-    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert inputs.oracle.schema_hash == representation_schema_hash()
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
-
-    legacy = load_accepted_inputs(LEGACY_PATH)
-    assert legacy.oracle.schema_version == SCHEMA_3_VERSION
-    findings = validate_schema_binding(candidate_from_accepted_inputs(legacy))
+    assert inputs.oracle.schema_version != REPRESENTATION_SCHEMA_VERSION
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings != ()
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    lifted, _ = lift_accepted_inputs(
+    lifted, records = lift_accepted_inputs(
+        inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    )
+    assert [r.lift_id for r in records] == ["5d-lift-schema-7-to-8"]
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
+    # Carried by identity: the accepted representation is the same object, and
+    # the committed file is untouched.
+    assert lifted.oracle.representation is inputs.oracle.representation
+    assert oracle_identity(inputs.oracle) == ORACLE_IDENTITY
+
+    legacy = load_accepted_inputs(LEGACY_PATH)
+    assert legacy.oracle.schema_version == SCHEMA_3_VERSION
+    legacy_findings = validate_schema_binding(candidate_from_accepted_inputs(legacy))
+    assert legacy_findings != ()
+    assert any(
+        REPRESENTATION_SCHEMA_VERSION in f for f in legacy_findings
+    ), legacy_findings
+
+    legacy_lifted, _ = lift_accepted_inputs(
         legacy, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
+    assert validate_schema_binding(candidate_from_accepted_inputs(legacy_lifted)) == ()
 
 
 # ---------------------------------------------------------------------------
@@ -503,6 +521,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         "5d-lift-schema-4-to-5",
         "5d-lift-schema-5-to-6",
         "5d-lift-schema-6-to-7",
+        "5d-lift-schema-7-to-8",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
