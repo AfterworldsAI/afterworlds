@@ -69,6 +69,13 @@ COMMITTED = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 FROZEN_CONTENT_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
 FROZEN_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
 
+#: The committed artifact's own digest. It was the same file as the frozen copy
+#: until the Owner accepted ``actions-1`` into it, and reusing one constant for
+#: both only ever worked because of that coincidence. Two constants, because
+#: they are two files: the sentinel below has to be able to fail for one and
+#: pass for the other.
+COMMITTED_CONTENT_SHA256 = "d247aed8ab98dab8e71da322de224449f0fe7a46b782c6447010f330d8e87987"  # noqa: E501  # pragma: allowlist secret
+
 #: The accepted oracle's own identity. Derived from the semantic content the
 #: Owner accepted, and the one figure a succession may not move at all.
 ACCEPTED_ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245"  # noqa: E501  # pragma: allowlist secret
@@ -307,11 +314,19 @@ def test_no_accepted_file_was_rewritten_by_this_schema_step(
 
     A succession that quietly edited accepted authority to make itself work
     would satisfy every other assertion in this module. Both files are pinned
-    by content digest, and the committed artifact's own pins live beside it in
+    by content digest — each by its own, since ``actions-1`` was accepted into
+    the committed artifact and not into the frozen copy — and the committed
+    artifact's full set of pins lives beside it in
     ``test_committed_accepted_authority``.
+
+    What this asserts is unchanged by that acceptance: a *lift* may not rewrite
+    either file. An Owner acceptance may extend the committed one, which is why
+    its digest is a separate constant rather than a claim that the two files are
+    the same bytes.
     """
     digests = {
         FROZEN_PRIOR: FROZEN_CONTENT_SHA256,
-        COMMITTED: FROZEN_CONTENT_SHA256,
+        COMMITTED: COMMITTED_CONTENT_SHA256,
     }
     assert _lf_digest(path) == digests[path]
+    assert FROZEN_CONTENT_SHA256 != COMMITTED_CONTENT_SHA256
