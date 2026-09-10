@@ -32,17 +32,23 @@ from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
+    ActionAllowanceFact,
+    ActionCost,
+    ActivationCostEligibilityFact,
     AdvantageFact,
     AdvantageState,
+    AllowanceScope,
     Applicability,
     ApplicabilityKind,
     AutomaticOutcome,
+    CastingTimeThreshold,
     Comparison,
     ComponentDraft,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     ConsumptionBand,
+    CoverDegree,
     CreatureChallengeFact,
     CreatureSize,
     DamageFact,
@@ -55,13 +61,19 @@ from afterworlds.ingestion.mechanical.representation import (
     DiceExpression,
     DieSize,
     DistanceUnit,
+    EffectDurationFact,
+    EligibilitySubject,
+    GrantedActivity,
     LevelDirection,
     MeasureUnit,
+    ObscurementState,
     Phase,
     Rational,
     Recurrence,
     RecurrenceBoundary,
+    RecurringActionRequirementFact,
     RequiredQuantity,
+    RetryRestrictionFact,
     RollActor,
     RollContext,
     RollSpec,
@@ -93,7 +105,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
-    SCHEMA_5_HASH,
+    SCHEMA_7_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -126,6 +138,15 @@ def _canonical(*rolls: RollSpec) -> tuple[RollSpec, ...]:
     test pass by agreeing with itself about what canonical means.
     """
     return tuple(sorted(rolls, key=lambda r: canonical_bytes(_payload_of(r))))
+
+
+def _canonical_terms(*terms: Applicability) -> tuple[Applicability, ...]:
+    """Canonical order, derived rather than hand-sorted.
+
+    The invariant requires it, so writing the order out here by hand would let
+    the exemplar pass by agreeing with itself about what canonical means.
+    """
+    return tuple(sorted(terms, key=lambda a: canonical_bytes(_dataclass_payload(a))))
 
 
 def _payload_of(roll: RollSpec) -> dict[str, object]:
@@ -236,6 +257,35 @@ def _findings(obj: object) -> list[str]:
 #: independent rules can constrain the same field — a scaling threshold's range
 #: and a scaling increment's exclusivity both live on ``fact:scaling`` — so a
 #: field-keyed table would let one rule's witness stand in for the other's.
+#: *"while you're Heavily Obscured or behind Three-Quarters Cover or Total
+#: Cover"* — Hide, p183: three printed states of two different closed
+#: vocabularies, which is the case a homogeneous set cannot reach.
+_COVER_TOTAL = Applicability(kind=ApplicabilityKind.COVER, cover=CoverDegree.TOTAL)
+_HIDE_TERMS = _canonical_terms(
+    Applicability(
+        kind=ApplicabilityKind.OBSCUREMENT,
+        obscurement=ObscurementState.HEAVILY_OBSCURED,
+    ),
+    Applicability(kind=ApplicabilityKind.COVER, cover=CoverDegree.THREE_QUARTERS),
+    _COVER_TOTAL,
+)
+#: *"You lose these benefits if you have the Incapacitated condition or if your
+#: Speed is 0."* — Dodge, p181: a condition state disjoined with a quantity
+#: threshold.
+_DODGE_TERMS = _canonical_terms(
+    Applicability(
+        kind=ApplicabilityKind.CONDITION_STATE,
+        condition=ConditionKind.INCAPACITATED,
+    ),
+    Applicability(
+        kind=ApplicabilityKind.QUANTITY_THRESHOLD,
+        quantity=TrackedQuantity.SPEED,
+        comparison=Comparison.EQUALS,
+        value=0,
+    ),
+)
+
+
 CASES: dict[str, tuple[object, object]] = {
     # Shared rational rules — exercised through a fact that does nothing but
     # delegate, so a finding here is the delegation and not a second rule.
@@ -643,6 +693,188 @@ CASES: dict[str, tuple[object, object]] = {
             floor_unit=TimeUnit.SECOND,
         ),
     ),
+    # -----------------------------------------------------------------------
+    # Schema 6, batch actions-1.
+    # -----------------------------------------------------------------------
+    "action_allowance.axis.exactly-one": (
+        ActionAllowanceFact(
+            count=1,
+            per=AllowanceScope.TURN,
+            cost=ActionCost.ACTION,
+            activity=GrantedActivity.ATTACK_ROLL,
+        ),
+        # *"On your turn, you can take one action."* — Action, p176.
+        ActionAllowanceFact(count=1, per=AllowanceScope.TURN, cost=ActionCost.ACTION),
+    ),
+    "action_allowance.count.at-least-one": (
+        ActionAllowanceFact(
+            count=0, per=AllowanceScope.OWNING_EFFECT, cost=ActionCost.REACTION
+        ),
+        # *"a Reaction before the start of your next turn"* — Ready, p186.
+        ActionAllowanceFact(
+            count=1, per=AllowanceScope.OWNING_EFFECT, cost=ActionCost.REACTION
+        ),
+    ),
+    "effect_duration.whose.turn-boundary-only": (
+        EffectDurationFact(until=RecurrenceBoundary.START_OF_TURN, whose=None),
+        # *"until the start of your next turn"* — Dodge, p181.
+        EffectDurationFact(
+            until=RecurrenceBoundary.START_OF_TURN, whose=RollActor.SUBJECT
+        ),
+    ),
+    "effect_duration.whose.subject-polarity-only": (
+        EffectDurationFact(
+            until=RecurrenceBoundary.START_OF_TURN, whose=RollActor.ALLY
+        ),
+        EffectDurationFact(
+            until=RecurrenceBoundary.END_OF_TURN, whose=RollActor.SUBJECT
+        ),
+    ),
+    "recurrence.whose.subject-polarity-only": (
+        Recurrence(boundary=RecurrenceBoundary.END_OF_TURN, whose=RollActor.ALLY),
+        Recurrence(
+            boundary=RecurrenceBoundary.END_OF_TURN, whose=RollActor.AGAINST_SUBJECT
+        ),
+    ),
+    "retry_restriction.amount.at-least-one": (
+        RetryRestrictionFact(
+            amount=0, unit=TimeUnit.HOUR, gamemaster_may_set_other=True
+        ),
+        # *"you must wait 24 hours (or a duration set by the GM)"* —
+        # Influence, p184.
+        RetryRestrictionFact(
+            amount=24, unit=TimeUnit.HOUR, gamemaster_may_set_other=True
+        ),
+    ),
+    "recurring_action_requirement.per.turn-scale-cadence": (
+        RecurringActionRequirementFact(cost=ActionCost.ACTION, per=TimeUnit.DAY),
+        # *"you must take the Magic action on each turn of that casting"* —
+        # Magic, p185.
+        RecurringActionRequirementFact(cost=ActionCost.ACTION, per=TimeUnit.TURN),
+    ),
+    "recurring_action_requirement.cost.names-a-real-slot": (
+        RecurringActionRequirementFact(cost=ActionCost.NONE, per=TimeUnit.TURN),
+        RecurringActionRequirementFact(cost=ActionCost.ACTION, per=TimeUnit.TURN),
+    ),
+    "activation_cost_eligibility.cost.names-a-real-threshold": (
+        ActivationCostEligibilityFact(
+            subject=EligibilitySubject.SPELL, cost=ActionCost.SPECIAL
+        ),
+        # *"To be readied, a spell must have a casting time of an action"* —
+        # Ready, p187.
+        ActivationCostEligibilityFact(
+            subject=EligibilitySubject.SPELL, cost=ActionCost.ACTION
+        ),
+    ),
+    "ability_check.ability.absence-states-neither-skill-nor-alternatives": (
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            skill=Skill.PERSUASION,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        # *"you must make an ability check ... which has a default DC equal to
+        # 15 or the monster's Intelligence score, whichever is higher"* —
+        # Influence, p184. The GM chooses the ability; the DC is printed.
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE,
+            dc_value=15,
+            dc_ability=AbilityScore.INTELLIGENCE,
+            context=RollContext.ABILITY_CHECK,
+        ),
+    ),
+    "ability_check.dc_value.kinds-that-carry-a-number": (
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE,
+            dc_value=None,
+            dc_ability=AbilityScore.INTELLIGENCE,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        AbilityCheckFact(
+            ability=AbilityScore.WISDOM,
+            dc_kind=DcKind.GAMEMASTER_SET,
+            context=RollContext.ABILITY_CHECK,
+        ),
+    ),
+    "ability_check.dc_ability.two-sided-dc-only": (
+        AbilityCheckFact(
+            ability=AbilityScore.WISDOM,
+            dc_kind=DcKind.GAMEMASTER_SET,
+            dc_ability=AbilityScore.INTELLIGENCE,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE,
+            dc_value=15,
+            dc_ability=AbilityScore.INTELLIGENCE,
+            context=RollContext.ABILITY_CHECK,
+        ),
+    ),
+    "ability_check.against_subject.recorded-total-only": (
+        AbilityCheckFact(
+            ability=AbilityScore.WISDOM,
+            dc_kind=DcKind.GAMEMASTER_SET,
+            against_subject=True,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        # *"the DC for a creature to find you with a Wisdom (Perception)
+        # check"* — Hide, p183.
+        AbilityCheckFact(
+            ability=AbilityScore.WISDOM,
+            dc_kind=DcKind.RECORDED_CHECK_TOTAL,
+            skill=Skill.PERCEPTION,
+            against_subject=True,
+            context=RollContext.ABILITY_CHECK,
+        ),
+    ),
+    # Schema 7. The timed casting-time gate: an amount that states a duration,
+    # and a unit the calendar prints on a spell.
+    "casting_time_threshold.at_least_amount.states-a-duration": (
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=0, at_least_unit=TimeUnit.MINUTE
+            ),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.MINUTE
+            ),
+        ),
+    ),
+    "casting_time_threshold.at_least_unit.calendar-units-only": (
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.ROUND
+            ),
+        ),
+        Applicability(
+            kind=ApplicabilityKind.SPELL_CASTING_TIME,
+            casting_time=CastingTimeThreshold(
+                at_least_amount=1, at_least_unit=TimeUnit.HOUR
+            ),
+        ),
+    ),
+    "any_of.terms.flat-and-canonically-ordered": (
+        Applicability(
+            kind=ApplicabilityKind.ANY_OF,
+            any_of_terms=(
+                Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=_HIDE_TERMS),
+                _COVER_TOTAL,
+            ),
+        ),
+        Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=_HIDE_TERMS),
+    ),
+    "any_of.terms.at-least-two": (
+        Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=(_COVER_TOTAL,)),
+        Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=_DODGE_TERMS),
+    ),
 }
 
 
@@ -738,7 +970,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_5_HASH
+    assert representation_schema_hash() == SCHEMA_7_HASH
 
 
 # ---------------------------------------------------------------------------

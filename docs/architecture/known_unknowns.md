@@ -341,15 +341,113 @@ audit and is deliberately not decided here:
   closed vocabularies. Related to the targeting-restriction disposition above: revisit when a batch
   forces a referent set that closes.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
-accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on
-2026-09-03; both are committed as accepted authority for the production SRD 5.2.1 release, so that
-release resolves to a committed oracle — but that oracle covers **22 records and 281 spans** (15
-conditions and 5 hazards, plus the glossary entry defining each list), not the corpus. Batch
-`actions-1` has not begun. The publication path therefore returns `INCOMPLETE` for the production
-projection rather than `ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical
-projection has been published or activated, and later batches extend the same release artifact through
-`accept_proposal`'s `prior=` merge rather than committing a second one — as `hazards-1` did. The obsolete `MechanicalEntity` path and the legacy
+**Narrowed by representation schema 6 (the `actions-1` schema stop).** Discovery over the thirteen
+`actions-1` records stopped at the schema before generating a proposal: 21 blocking families across 35
+`UNRESOLVED` obligations. Schema 6 is the batch-driven accounting the *untouched* list above anticipated,
+and it moves three of those groups:
+
+* **narrowed, still deferred — *eligibility*.** `ActivationCostEligibilityFact` carries *"a spell must
+  have a casting time of an action"* over the printed, enumerable casting-time field, with three
+  instances in three records (`Ready` L8, `Magic` K1, `Utilize` O2). Reclassifying L8 from supporting
+  authority to substantive is a correction recorded with the schema, not a silent move. Not
+  discharged: `EligibilitySubject.SPELL` has siblings in more than one section, but `.OBJECT` has a
+  single instance in a single one, and no corpus sweep has shown what else a mechanic can be made
+  eligible by. Revisit when a batch forces a subject the two members do not reach;
+* **narrowed, still deferred — *sequencing*.** Split rather than unified: `MovementInterleaveFact`
+  locates a point inside a repeated action, `TriggeredResolutionFact` locates one relative to a
+  trigger. One enum spanning both would be the cross-domain vocabulary the module refuses — but each
+  vocabulary currently holds **one member with one instance**, which is the weakest closure evidence
+  this document admits, and no sequencing sweep has been run. Two typed families are what these two
+  clauses forced, not a demonstration that sequencing closes;
+* **narrowed, still deferred — *choices*.** `ProseBindingDraft.option_key` lets prose govern one arm of
+  an exhaustive choice, which is what `Help` and `Ready` L4 both need: one clause governs one arm and says
+  nothing about its sibling. Both are authorable under the union as it stands — L4's arms each state
+  `ActionEconomyFact(REACTION)`, the consumption the source names, with the own-Speed allowance on the
+  second and *which* action left to option-grain prose. Three earlier readings held L4 unauthorable; each
+  looked only at the allowance families, where typing arm 1 would have published a grant the source never
+  makes, and each is recorded as refuted in the batch checkpoint.
+
+  It does **not** make every printed "or" an option set: `Attack` B2 is one entitlement with an instrument
+  qualification, refused by `option_set_violations` rather than by choice. The group stays open because
+  deciding whether a printed alternation is a choice is still case-by-case work — not because of any span
+  budget. An earlier note here said L4's encoding needs five primary provenance claims over one printed
+  sentence; it does not, and the reading behind it was wrong. Every authoritative element needs *evidence*
+  of any role, and only a substantive *span* needs one *primary owner*. L4's real coordinates satisfy both
+  with four spans: L2, L4 split once at its printed `or`, and L6, with the shared Reaction evidenced
+  contextually on L2. Those edges are contextual because of what L2 *scopes*, not because of what L4
+  omits: L2 states the slot once for the whole readied response, so it supports each arm's copy without
+  stating that *this alternative* is what spends it. Verified on the real leaf ids, extents and printed
+  text in `test_schema_6_ready_source_provenance`, which checks its literals against the committed
+  coordinates artifact and its pinned source digest. **No new family is proposed here**, and the span
+  partition was a proposal's decision, not this note's — the Owner accepted that proposal on
+  2026-09-09, which settled the partition without discharging this group.
+
+**Narrowed by representation schema 7 (the `actions-1` residue S-1).** Independent review of the
+schema-6 batch confirmed one remaining stop, and it is the reason `Magic` K2, K3 and K4 were unresolved
+together. *"If you cast a spell that has a casting time of 1 minute or longer"* (`Magic`, p185) is a
+threshold over a spell's **printed casting-time descriptor**. `ActivationCostEligibilityFact` ranges
+over `ActionCost`, which prints no amount and no unit; `ApplicabilityKind.ELAPSED_DURATION` would have
+meant time *already spent* casting, which is false at the moment the clause first applies. Schema 7 adds
+one applicability kind, `SPELL_CASTING_TIME`, over one closed value object, `CastingTimeThreshold`.
+
+* **narrowed, still deferred — *eligibility*.** The group above is unchanged in its closure standard,
+  and this is a second, adjacent axis rather than a widening of the first. The threshold gate and the
+  activation-cost eligibility fact range over the two different arms of one printed descriptor: which
+  spells a mechanic *reaches* by the cost they print, and which spells a further requirement *applies
+  to* by the duration they print. A one-minute spell falls outside `Magic` K1, **not** outside the Magic
+  action. Not discharged: `SPELL_CASTING_TIME` has one instance in one record, which is the weakest
+  closure evidence this document admits, and the comparable-clause check that established the bounded
+  vocabulary was scoped to casting-time eligibility rather than run as a corpus sweep. Revisit when a
+  batch forces a second threshold instance or a subject the two eligibility members do not reach.
+
+New residue recorded with the mint, and open:
+
+* **A round and a turn have no length this layer may read.** `casting_time_meets` compares two stated
+  durations by magnitude across the calendar units whose length is fixed — second, minute, hour, day —
+  so cross-unit comparisons are ordinary arithmetic and are *not* an open question. `ROUND` and `TURN`
+  are slices of the initiative cycle, and no printed casting-time descriptor states how long one lasts.
+  Rather than assign a guessed length or answer `False` — which would report the substantive
+  *"this rule does not reach that spell"* for a comparison never made — the comparison **raises**
+  `UncomparableCastingTimeError`. The corpus prints no casting time in rounds or turns, so nothing is
+  currently reached by the refusal. Revisit when a batch forces one — at which point the question is
+  where a round's length is *stated*, not how to compute with it.
+* **A component carries exactly one `applies_when`.** Where two components of one record sit inside the
+  same printed condition, the second restates it, and its evidence edge on the shared span is
+  `CONTEXTUAL` because there is no position for a condition two components share. This is a structural
+  limit of the union, recorded rather than worked around: `Magic` K2's gate is the only instance the
+  batch forces, and a shared-scope structure is not proposed on one.
+
+Nothing in this group is **discharged**. This document's standard for that is a closed vocabulary whose
+members each required siblings in more than one section, and neither group above meets it yet.
+
+*Contests*, *explicit probability* and *random-table selection* remain **untouched**, due no later than
+full-corpus closure, and this batch contributes no evidence to any of them. The suggested skill tables in
+`Influence`, `Search` and `Study` were briefly recorded as three surfaced instances of random-table
+selection; **that was an error, and the Owner has clarified what they are: exemplars and DM guidance.**
+The GM chooses, nothing is rolled, and no row is selected — so they neither instantiate that group nor
+stand as an obstacle to it. Their advisory content is preserved as the governing prose it always was,
+under `gamemaster_latitude` and `subjective_judgment`. The earlier note that a printed table's row keys
+range over no closed vocabulary is withdrawn with the claim it supported: the full-corpus random-table
+work remains deferred on its own evidence and borrows none from these tables.
+
+Known residue from this batch, prose-bound at the scope where it applies rather than typed: *which*
+action a subject readies (`Ready` L4 — both arms are typed; the identity of the chosen action is open),
+`Attack` B2's instrument qualification, and the option-scoped clauses on `Help`. In each case `option_key`
+records the arm a clause governs without typing its content. Each is contract 3's second branch used as
+intended rather than a deferral: a catalog reason is affirmatively true of every one of them.
+
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Three batches are
+accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
+2026-09-03 and `actions-1` on 2026-09-09; all three are committed as accepted authority for the
+production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
+**35 records and 463 spans** (15 conditions, 5 hazards and 12 actions, plus the glossary entry
+defining each list), not the corpus. Five cross-batch reference targets named by accepted content —
+`attitude.friendly`, `attitude.hostile`, `attitude.indifferent`, `glossary.concentration`,
+`glossary.speed` — are still unresolved, and no target was invented for them. The publication path
+therefore returns `INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding
+still reports `UNPUBLISHED` because no mechanical projection has been published or activated, and
+later batches extend the same release artifact through `accept_proposal`'s `prior=` merge rather than
+committing a second one — as `hazards-1` and `actions-1` both did. The obsolete `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.
 

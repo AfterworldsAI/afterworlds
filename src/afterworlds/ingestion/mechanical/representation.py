@@ -199,11 +199,42 @@ __all__ = [
     "SKILL_ABILITY",
     "TerminationScope",
     "TimePeriod",
+    # Schema 6 — batch actions-1.
+    "ActionAllowanceFact",
+    "ActivationCostEligibilityFact",
+    "AllowanceScope",
+    "AttackRelativeTiming",
+    "BenefitUseLimit",
+    "COMPONENT_WIDE_PROSE",
+    "CastingTimeThreshold",
+    "CoverDegree",
+    "EffectDurationFact",
+    "EligibilitySubject",
+    "EquipmentChange",
+    "EquipmentChangeFact",
+    "ExpendableResource",
+    "GrantedActivity",
+    "InterleavePoint",
+    "MovementAllowanceBasis",
+    "MovementAllowanceFact",
+    "MovementInterleaveFact",
+    "ObscurementState",
+    "ReactionProvocationFact",
+    "RecurringActionRequirementFact",
+    "ResolutionTiming",
+    "ResourceExpenditureFact",
+    "RetryRestrictionFact",
+    "SustainedState",
+    "SustainedStateRequirementFact",
+    "TriggeredReaction",
+    "TriggeredResolutionFact",
     "FactQualifier",
     "Recurrence",
     "RecurrenceBoundary",
     "recurrence_violations",
+    "build_casting_time_threshold",
     "build_consumption_band",
+    "casting_time_meets",
     "component_damage_composition_violations",
     "component_participant_violations",
     "component_roll_outcome_violations",
@@ -224,6 +255,7 @@ __all__ = [
     "RepresentationDraft",
     # Errors and helpers
     "MalformedFactPayloadError",
+    "UncomparableCastingTimeError",
     "UnknownFactFamilyError",
     "UnsupportedRepresentationShapeError",
     "fact_from_payload",
@@ -392,15 +424,33 @@ class SpellSchool(StrEnum):
 class DcKind(StrEnum):
     """Where a check's difficulty class comes from.
 
-    A missing source value is never invented: ``FIXED`` is the only kind that
-    carries a number, and the others say *where the number comes from* rather
-    than guessing one.
+    A missing source value is never invented. Two kinds carry a number and both
+    are named here rather than left to a reader: ``FIXED`` is a stated DC, and
+    ``HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE`` states a floor the source prints
+    beside the statistic it is compared against. Every other kind says *where
+    the number comes from* rather than guessing one.
+
+    **Schema 6 corrects the "only ``FIXED`` carries a number" rule** rather than
+    working around it. ``Influence`` (p184) prints *"a default DC equal to 15 or
+    the monster's Intelligence score, whichever is higher"*: the 15 is stated,
+    so refusing to carry it would drop printed authority, and ``GAMEMASTER_SET``
+    is false — only the *check* is GM-chosen, the DC is stated.
     """
 
     FIXED = "fixed"
     SPELL_SAVE_DC = "spell_save_dc"
     CONTESTED = "contested"
     GAMEMASTER_SET = "gamemaster_set"
+    #: *"Make note of your check's total, which is the DC for a creature to find
+    #: you with a Wisdom (Perception) check."* (``Hide``, p183). Schema 6.
+    #: ``CONTESTED`` is the near miss and is false: a contest resolves two rolls
+    #: against each other at one moment, while this records a value now and
+    #: reuses it as a fixed DC later, by a different creature, repeatedly.
+    RECORDED_CHECK_TOTAL = "recorded_check_total"
+    #: *"a default DC equal to 15 or the monster's Intelligence score, whichever
+    #: is higher"* (``Influence``, p184). Schema 6. ``dc_value`` carries the
+    #: printed floor and ``dc_ability`` names the statistic it yields to.
+    HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE = "higher_of_fixed_or_target_ability_score"
 
 
 class DieSize(StrEnum):
@@ -679,18 +729,34 @@ class RollActor(StrEnum):
     Measured corpus-wide, not inferred from the conditions: 60 occurrences of
     *"attack rolls against …"* across ten sections.
 
-    Two members, deliberately. A third-party actor — *"the charmer has
-    Advantage on any ability check to interact with you socially"* — is a roll
-    directed at the subject whose *actor restriction* is applicability prose on
-    a ``MIXED`` component, which is the representation this module already
-    defines for a stated qualifier. Adding a member no corpus evidence forces
-    would widen the union on speculation.
+    Two members until schema 6, and the reasoning for stopping there is kept
+    because it is still right about the case it addressed: *"the charmer has
+    Advantage on any ability check to interact with you socially"* is a roll
+    **directed at the subject** whose actor restriction is applicability prose
+    on a ``MIXED`` component, and admitting a member for it would have widened
+    the union on speculation.
+
+    **Schema 6 admits a third member, and it is not that case.** ``Help``
+    (pp182-183) confers a benefit on a roll that is neither the subject's nor
+    directed at the subject: *"That ally has Advantage on the next ability check
+    **they** make"* is the ally's own check, resolved against a DC, and *"giving
+    Advantage to the next attack roll by one of your allies **against that
+    enemy**"* is the ally's roll against a **third** creature. ``SUBJECT`` is
+    false of both and ``AGAINST_SUBJECT`` is false of both, so under the
+    two-member vocabulary the two arms of one stated choice produce identical
+    typed authority — the exact collapse this axis exists to prevent.
+
+    The member names a *beneficiary relationship*, not a participant slot: which
+    creature's roll is affected, relative to the subject of the rule.
     """
 
     #: The subject of the rule makes the roll. "your attack rolls"
     SUBJECT = "subject"
     #: Someone else makes the roll against the subject. "attack rolls against you"
     AGAINST_SUBJECT = "against_subject"
+    #: A creature allied to the subject makes the roll, and the roll is not
+    #: directed at the subject. ``Help``, both arms. Schema 6.
+    ALLY = "ally"
 
 
 class AutomaticOutcome(StrEnum):
@@ -959,6 +1025,216 @@ class Phase(StrEnum):
     ON_END = "on_end"
 
 
+# ---------------------------------------------------------------------------
+# Schema 6 vocabularies — CRD Issue 5d, batch actions-1
+# ---------------------------------------------------------------------------
+#
+# Declared as one block rather than scattered beside their kin because they
+# arrive together and are read together. ``actions-1`` is the first content
+# whose subject *grants, spends and sequences* an economy rather than
+# describing a state, and these are the closed sets that do it. Each names the
+# printed record and clause that forced it; none is admitted on speculation.
+
+
+class AllowanceScope(StrEnum):
+    """Per what an allowance is counted.
+
+    Not a duration. *"On your turn, you can take one action"* renews per turn;
+    *"one weapon when you make an attack"* renews per attack; a Readied
+    Reaction is granted once per exercise of the mechanic granting it. How long
+    the grant then lasts is an :class:`EffectDurationFact` beside it, because
+    ``Ready`` states both in one sentence and one field would lose one.
+    """
+
+    #: Once per exercise of the mechanic stating it — ``Attack``'s *"you can
+    #: make one attack roll"*, ``Ready``'s granted Reaction.
+    OWNING_EFFECT = "owning_effect"
+    #: *"On your turn, you can take one action."* (``Action``, p176)
+    TURN = "turn"
+    #: *"one weapon when you make an attack"* (``Attack``, p177) — renewed per
+    #: attack of an action that may make several.
+    ATTACK = "attack"
+
+
+class GrantedActivity(StrEnum):
+    """What an allowance grants where no action-economy slot is what is granted.
+
+    Deliberately **disjoint from** :class:`ActionCost` rather than a superset of
+    it. Two vocabularies admitting overlapping values render identically in
+    :func:`representation_schema_payload` — no payload carries a type tag — so a
+    second spelling of ``action`` would be indistinguishable from the first on
+    the wire. :class:`ActionAllowanceFact` therefore states exactly one of the
+    two axes, and this holds only what the economy vocabulary has no member for.
+    """
+
+    #: *"you can make one attack roll"* (``Attack``, p177). Not
+    #: :class:`AttackRollFact`, which records a stat block's printed *"Melee
+    #: Attack Roll: +5"* and requires a to-hit bonus this record never prints.
+    ATTACK_ROLL = "attack_roll"
+    #: *"You can either equip or unequip one weapon when you make an attack"*
+    #: (``Attack``, p177) — the count. The change itself is
+    #: :class:`EquipmentChangeFact`.
+    EQUIPMENT_CHANGE = "equipment_change"
+
+
+class EquipmentChange(StrEnum):
+    """Taking a weapon in hand, or putting it away.
+
+    Printed rather than inferred: *"Equipping a weapon includes drawing it from
+    a sheath or picking it up. Unequipping a weapon includes sheathing, stowing,
+    or dropping it."* (``Attack``, p177) defines both terms in the source's own
+    words.
+    """
+
+    EQUIP = "equip"
+    UNEQUIP = "unequip"
+
+
+class AttackRelativeTiming(StrEnum):
+    """When, relative to the attack it accompanies, a change happens.
+
+    *"You do so either before or after the attack."* (``Attack``, p177) — a
+    stated binary, and the second axis of one permitted set. Flattening the two
+    axes into four options is the exact permitted set and collapses no meaning.
+    """
+
+    BEFORE = "before"
+    AFTER = "after"
+
+
+class MovementAllowanceBasis(StrEnum):
+    """Which of the subject's own speeds a granted movement budget equals.
+
+    Never a number. *"The increase equals your Speed after applying any
+    modifiers"* (``Dash``, p180) states a quantity no integer can carry: a fixed
+    number would be false for every creature but one, :class:`MovementAmount`
+    admits only ``FEET`` and ``HALF_SPEED``, and a doubling is a different
+    claim. :class:`SpeedModificationFact` changes Speed rather than granting
+    budget measured by it.
+    """
+
+    #: *"equals your Speed after applying any modifiers"* (``Dash``); ``Ready``'s
+    #: *"move up to your Speed"*.
+    OWN_SPEED = "own_speed"
+    #: *"If you have a special speed, such as a Fly Speed or Swim Speed, you can
+    #: use that speed instead of your Speed"* (``Dash``, p180). The source names
+    #: no single mode — *"such as"* — so neither does this.
+    OWN_SPECIAL_SPEED = "own_special_speed"
+
+
+class InterleavePoint(StrEnum):
+    """Where an already-budgeted movement may be spent.
+
+    A sequencing permission, not a grant: the movement is the subject's own and
+    already paid for, and this says where inside another action it may be placed.
+    """
+
+    #: *"you can use some or all of that movement to move between those
+    #: attacks"* (``Attack``, p177), of an action that makes more than one.
+    REPEATED_ATTACKS = "repeated_attacks"
+
+
+class ResolutionTiming(StrEnum):
+    """When a triggered effect resolves, relative to its trigger."""
+
+    #: *"you can either take your Reaction right after the trigger finishes or
+    #: ignore the trigger"* (``Ready``, p187).
+    IMMEDIATELY_AFTER_TRIGGER = "immediately_after_trigger"
+
+
+class TriggeredReaction(StrEnum):
+    """A named reaction another creature's rules give it.
+
+    Distinct from :class:`ActionCost`'s ``REACTION``, which is a slot *the
+    subject* spends. This names the printed reaction a subject's action may or
+    may not provoke in somebody else — a claim ``ActionRestrictionFact`` cannot
+    make, since it states a slot the subject cannot use.
+    """
+
+    #: *"your movement doesn't provoke Opportunity Attacks"* (``Disengage``,
+    #: p181). ``Opportunity Attack`` is its own Rules Glossary entry.
+    OPPORTUNITY_ATTACK = "opportunity_attack"
+
+
+class SustainedState(StrEnum):
+    """A state the subject must keep up for an ongoing effect to continue.
+
+    Three claims are kept apart because the source keeps them apart:
+    :class:`StateEffectKind`'s ``CONCENTRATION_BROKEN`` is the negative *event*,
+    :attr:`SpellDescriptorFact.concentration` is what a *spell* prints in its
+    own descriptor, and this is a duty an *action* imposes — *"you must maintain
+    Concentration while you do so"* (``Magic``, p185) and *"holding on to the
+    spell's magic requires Concentration"* (``Ready``, p187).
+    """
+
+    #: ``Concentration`` is its own Rules Glossary entry (p179).
+    CONCENTRATION = "concentration"
+
+
+class ExpendableResource(StrEnum):
+    """A resource a rule states is, or is not, spent.
+
+    An expenditure *event*, which is why :class:`SpellSlotProgressionFact` —
+    a printed progression table — cannot carry it.
+    """
+
+    #: *"you don't expend a spell slot"* (``Magic``, p185).
+    SPELL_SLOT = "spell_slot"
+    #: *"expending any resources used to cast it"* (``Ready``, p187) — the
+    #: source's own collective term. Enumerating it would invent a list this
+    #: record does not print.
+    CASTING_RESOURCES = "casting_resources"
+
+
+class EligibilitySubject(StrEnum):
+    """What an activation-cost eligibility rule ranges over."""
+
+    #: *"a spell that has a casting time of an action"* (``Magic``, p185);
+    #: *"To be readied, a spell must have a casting time of an action"*
+    #: (``Ready``, p187).
+    SPELL = "spell"
+    #: *"When an object requires an action for its use"* (``Utilize``, p191).
+    OBJECT = "object"
+
+
+class BenefitUseLimit(StrEnum):
+    """How a conferred benefit is used up, where the source states a limit.
+
+    Never a bare count. *"Advantage on the **next** ability check they make"*
+    (``Help``, p182) fixes *which* roll, not merely how many: a one-use benefit
+    could be held back for a later qualifying roll, and this cannot.
+    """
+
+    NEXT_QUALIFYING_ROLL = "next_qualifying_roll"
+
+
+class ObscurementState(StrEnum):
+    """A printed degree of obscurement.
+
+    ``Heavily Obscured`` is its own Rules Glossary entry (p182). Kept apart from
+    :class:`CoverDegree` because the source keeps them apart — obscurement is
+    about vision, cover about attacks and Dexterity saves — and ``Hide``
+    disjoins them precisely because two *different* states both permit hiding.
+    One merged vocabulary would assert a union the source never makes.
+    """
+
+    HEAVILY_OBSCURED = "heavily_obscured"
+
+
+class CoverDegree(StrEnum):
+    """A printed degree of cover.
+
+    The two degrees ``Hide`` (p183) states. ``Cover`` (p179) prints a third,
+    Half Cover; it is outside this batch's cut and is admitted by the batch that
+    states it — the way :class:`ApplicabilityKind` and :class:`TimeUnit` already
+    gained members across a succession, rather than by transcribing a page this
+    projection has not read.
+    """
+
+    THREE_QUARTERS = "three_quarters"
+    TOTAL = "total"
+
+
 class CreatureSize(StrEnum):
     """The printed size categories — Rules Glossary > Size."""
 
@@ -999,6 +1275,39 @@ class ApplicabilityKind(StrEnum):
     CONSUMPTION_THRESHOLD = "consumption_threshold"
     #: "A creature that eats nothing for 5 days".
     ELAPSED_DURATION = "elapsed_duration"
+    #: Schema 6. *"if you have the Incapacitated condition"* (``Dodge``, p181),
+    #: over the already-closed :class:`ConditionKind`.
+    CONDITION_STATE = "condition_state"
+    #: Schema 6. *"If your Concentration is broken"* (``Magic`` p185, ``Ready``
+    #: p187), over the already-closed :class:`StateEffectKind`. Two kinds rather
+    #: than one, because a condition and a state effect are two closed
+    #: vocabularies and no closed union of them exists.
+    EFFECT_STATE = "effect_state"
+    #: Schema 6. *"while you're Heavily Obscured"* (``Hide``, p183).
+    OBSCUREMENT = "obscurement"
+    #: Schema 6. *"behind Three-Quarters Cover or Total Cover"* (``Hide``, p183).
+    COVER = "cover"
+    #: Schema 6. A **flat** set of complete applicability values of possibly
+    #: different kinds, satisfied when any member is.
+    #:
+    #: Strictly weaker than a predicate language, and deliberately so: no
+    #: nesting, no conjunction, no negation of a sub-term, no operators. It
+    #: exists because the source states disjunctions **across** kinds that a
+    #: homogeneous set cannot reach — ``Dodge``'s *"if you have the Incapacitated
+    #: condition **or** if your Speed is 0"* joins a condition state to a
+    #: quantity threshold, and ``Hide``'s prerequisite joins an obscurement to
+    #: two cover degrees.
+    #:
+    #: What it still refuses is the point. ``Hide``'s four-way stop list — two
+    #: of whose arms are fiction no closed vocabulary reaches — cannot be stated
+    #: here, because a flat disjunction cannot hold an untypeable arm. That
+    #: clause stays honest prose, which is the refusal that keeps this from
+    #: becoming the predicate language the module already declined to build.
+    ANY_OF = "any_of"
+    #: Schema 7. *"a spell that has a casting time of 1 minute or longer"*
+    #: (``Magic``, p185), over :class:`CastingTimeThreshold` — a threshold on
+    #: the printed casting-time descriptor, not on time elapsed in play.
+    SPELL_CASTING_TIME = "spell_casting_time"
 
 
 class Currency(StrEnum):
@@ -1133,6 +1442,22 @@ class FactFamily(StrEnum):
     DERIVED_QUANTITY = "derived_quantity"
     EFFECT_TERMINATION = "effect_termination"
     SIZE_KEYED_QUANTITY = "size_keyed_quantity"
+    #: Schema 6, batch ``actions-1``. Admitted on the same rule and with the
+    #: same evidence discipline: substantive source meaning the union cannot
+    #: state, for which no member of the closed irreducibility catalog is
+    #: affirmatively true, so contract 3's prose-bound branch is unavailable.
+    ACTION_ALLOWANCE = "action_allowance"
+    ACTIVATION_COST_ELIGIBILITY = "activation_cost_eligibility"
+    EFFECT_DURATION = "effect_duration"
+    EQUIPMENT_CHANGE = "equipment_change"
+    MOVEMENT_ALLOWANCE = "movement_allowance"
+    MOVEMENT_INTERLEAVE = "movement_interleave"
+    REACTION_PROVOCATION = "reaction_provocation"
+    RECURRING_ACTION_REQUIREMENT = "recurring_action_requirement"
+    RESOURCE_EXPENDITURE = "resource_expenditure"
+    RETRY_RESTRICTION = "retry_restriction"
+    SUSTAINED_STATE_REQUIREMENT = "sustained_state_requirement"
+    TRIGGERED_RESOLUTION = "triggered_resolution"
 
 
 # ---------------------------------------------------------------------------
@@ -1192,6 +1517,124 @@ class SpellCastingTime:
     cost: ActionCost | None = None
     amount: int | None = None
     unit: TimeUnit | None = None
+
+
+#: How long each printed calendar unit lasts, in seconds.
+#:
+#: Only the units the calendar itself fixes: sixty seconds in a minute, sixty
+#: minutes in an hour, twenty-four hours in a day. These are properties of the
+#: words, not rulings about the corpus, and they are what lets
+#: :func:`casting_time_meets` compare two stated durations by magnitude instead
+#: of by the rank of a unit's name.
+#:
+#: ``ROUND`` and ``TURN`` are slices of the initiative cycle whose length no
+#: printed casting time states, so they are absent rather than assigned a
+#: guessed one. :class:`CastingTimeThreshold` refuses them as a threshold unit,
+#: and :func:`casting_time_meets` refuses them explicitly on the casting-time
+#: side rather than answering a comparison it cannot make.
+_CALENDAR_SECONDS: Mapping[TimeUnit, int] = {
+    TimeUnit.SECOND: 1,
+    TimeUnit.MINUTE: 60,
+    TimeUnit.HOUR: 60 * 60,
+    TimeUnit.DAY: 24 * 60 * 60,
+}
+
+#: The units a threshold may be stated in: exactly those with a fixed length,
+#: and never a cadence of the initiative cycle. Derived from the conversion
+#: table so no unit can be admitted as a threshold without a length to compare
+#: it by.
+_THRESHOLD_UNITS: frozenset[TimeUnit] = frozenset(_CALENDAR_SECONDS)
+
+
+@dataclass(frozen=True)
+class CastingTimeThreshold:
+    """A least casting time a spell must print for a rule to reach it.
+
+    Schema 7, and the whole of it. *"If you cast a spell that has a casting time
+    of 1 minute or longer"* (``Magic``, p185) is a threshold over
+    :class:`SpellCastingTime`'s **elapsed-time arm** — a printed property of the
+    spell, read before any time passes — so a 1-minute casting satisfies it at
+    the instant it begins.
+
+    **Not** :attr:`ApplicabilityKind.ELAPSED_DURATION`, which ranges over time
+    that has already passed in play. Stating this clause there would mean "once
+    a minute of casting has been spent", which reaches the same spell a minute
+    late and reaches a short spell that has been held for a minute.
+
+    **Not** :class:`ActivationCostEligibilityFact` either, and the difference is
+    what each clause does. ``Magic`` K1's *"a casting time of an action"* says
+    which spells the **Magic action reaches**; this says which spells a
+    *further requirement inside that action* applies to. A spell with a
+    1-minute casting time falls outside K1, not outside the Magic action.
+
+    **The immediate cases fall outside by structure, not by comparison.** A
+    spell whose casting time is an Action, a Bonus Action or a Reaction states
+    no amount and no unit at all — :class:`SpellCastingTime` admits exactly one
+    arm — so there is nothing for an amount threshold to meet and no comparison
+    that could be got wrong.
+
+    **What it cannot answer, refused rather than guessed.** A round and a turn
+    state no fixed length (see :data:`_CALENDAR_SECONDS`), so a casting time
+    printed in one cannot be compared against a threshold at all:
+    :func:`casting_time_meets` raises rather than returning an answer. Every
+    other printed unit is compared by magnitude. No SRD casting time is printed
+    in rounds or turns, so nothing in the corpus is reached by that refusal; a
+    batch that forces one is a schema question rather than an arithmetic one,
+    and is recorded in ``known_unknowns.md``.
+    """
+
+    #: At least this many of :attr:`at_least_unit`. Never below one: a
+    #: threshold of zero reaches every timed casting and states nothing.
+    at_least_amount: int
+    at_least_unit: TimeUnit
+
+
+class UncomparableCastingTimeError(ValueError):
+    """Raised when a stated casting time has no length to compare.
+
+    Fail loudly, deliberately. ``False`` is a substantive answer — *"this rule
+    does not reach that spell"* — and returning it for a comparison that was
+    never made would put a wrong eligibility decision behind a plain Boolean.
+    """
+
+
+def casting_time_meets(
+    threshold: CastingTimeThreshold, casting_time: SpellCastingTime
+) -> bool:
+    """Whether a printed casting time satisfies *threshold*.
+
+    Hand-authored code reading declarative data, which is what ADR-005d
+    Decision 4 permits; there is no expression to interpret, no operator to
+    select, and nothing here is authored in the projection.
+
+    Both sides are reduced to seconds through :data:`_CALENDAR_SECONDS`, so the
+    comparison respects the magnitude of the stated duration rather than the
+    rank of the unit's name: 60 seconds meets a 1-minute threshold, 1 hour does
+    not meet a 120-minute one, and 120 minutes meets a 1-hour one.
+
+    The cost arm returns ``False``, and that is an answer rather than a gap: a
+    spell cast as an Action, a Bonus Action or a Reaction prints no amount and
+    no unit, so it states no duration for a duration threshold to reach.
+
+    A round or a turn on either side raises
+    :class:`UncomparableCastingTimeError`, because their length is not fixed by
+    anything this module may read.
+    """
+    if casting_time.amount is None or casting_time.unit is None:
+        return False
+    if (
+        casting_time.unit not in _CALENDAR_SECONDS
+        or threshold.at_least_unit not in _CALENDAR_SECONDS
+    ):
+        raise UncomparableCastingTimeError(
+            f"a casting time of {casting_time.amount} "
+            f"{casting_time.unit.value} cannot be compared against a threshold "
+            f"of {threshold.at_least_amount} {threshold.at_least_unit.value}: "
+            "a round and a turn state no fixed length"
+        )
+    return casting_time.amount * _CALENDAR_SECONDS[casting_time.unit] >= (
+        threshold.at_least_amount * _CALENDAR_SECONDS[threshold.at_least_unit]
+    )
 
 
 @dataclass(frozen=True)
@@ -1406,14 +1849,32 @@ class AbilityCheckFact:
 
     Deliberately **not** migrated onto :class:`RollSpec`. This family states
     *that a roll is called for and where its DC comes from*; ``RollSpec`` says
-    *which roll a stated modification applies to*. A DC source has no actor
-    polarity — the DC is the same value whoever rolls against it — so folding
-    the two together would give this family a field it can never populate.
+    *which roll a stated modification applies to*, and it selects that roll by
+    a :class:`RollActor` polarity this family has no use for.
+
+    Schema 6 added ``against_subject``, which is not that polarity returning by
+    another name. It is a single boolean, admitted only where the DC is a
+    *recorded check total*, and it names who makes the check the DC is stated
+    for — the reading a two-member actor vocabulary cannot express and a merge
+    onto ``RollSpec`` would still get wrong.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_CHECK
 
-    ability: AbilityScore
+    #: The ability the source names, or ``None`` where it deliberately names
+    #: none. **Optional since schema 6**, and never omitted from the canonical
+    #: payload: this is a schema-1 field, so ``"ability": null`` is an explicit
+    #: statement that the source fixed no ability rather than an absence that
+    #: could also read as a default.
+    #:
+    #: ``Influence`` (p184) is the forced case: *"you must make an ability
+    #: check"* whose ability the GM chooses, beside a **stated** DC. Under a
+    #: required ability the fact cannot be emitted at all, and the printed DC
+    #: loses its carrier — so requiring the field suppressed authority the
+    #: source prints rather than protecting it. A fact stating no ability states
+    #: no skill and offers no alternatives either, since both are pairings with
+    #: an ability that is not there.
+    ability: AbilityScore | None
     dc_kind: DcKind
     #: Which of the D20 Tests the source calls for. **Required, and schema 5.**
     #:
@@ -1446,6 +1907,26 @@ class AbilityCheckFact:
     #: named wherever it is stated, which is the whole point of admitting it.
     context: RollContext = declared_field(kw_only=True)
     dc_value: int | None = None
+    #: The statistic a two-sided DC yields to, stated exactly for
+    #: ``HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE``. Schema 6, and omitted from
+    #: the canonical payload when unset, so every schema-1 through schema-5
+    #: ability check keeps the exact key it was accepted with.
+    #:
+    #: A separate field from ``ability`` because they name different creatures'
+    #: statistics: ``ability`` is what the *roller* rolls, this is a score of
+    #: whatever the action is directed at. Folding them would state that the
+    #: subject rolls against their own Intelligence.
+    dc_ability: AbilityScore | None = None
+    #: The roll this DC is stated for is made by someone other than the subject,
+    #: against them. Schema 6, and omitted when false.
+    #:
+    #: ``Hide`` (p183) states its own Stealth check and then a **second** check
+    #: — *"the DC for a creature to find you with a Wisdom (Perception) check"* —
+    #: made by the finder. Without this the second fact reads as the subject
+    #: making a Perception check to find themselves, which is false rather than
+    #: lossy. Restricted to the one DC source that states such a roll, so an
+    #: absent flag keeps exactly one reading.
+    against_subject: bool = False
     #: The skill the source prints in parentheses after the ability, when it
     #: prints one. Its governing ability must be ``ability`` — the Skills table
     #: fixes that pairing, so a mismatch is a build-time error rather than data
@@ -1774,6 +2255,15 @@ class AdvantageFact:
 
     state: AdvantageState
     roll: RollSpec
+    #: How the benefit is used up, where the source states a limit. Schema 6,
+    #: and omitted from the canonical payload when unset, so every advantage
+    #: accepted before it keeps the exact key it already had.
+    #:
+    #: ``Help`` (pp182-183) states one on both arms — *"the **next** ability
+    #: check they make"*, *"the **next** attack roll"* — beside an expiry.
+    #: Without it the grant reads as unlimited advantage until the expiry, which
+    #: is a stronger rule than the source states.
+    use_limit: BenefitUseLimit | None = None
 
 
 @dataclass(frozen=True)
@@ -2221,6 +2711,257 @@ class DerivedQuantityFact:
     floor_unit: TimeUnit | None = None
 
 
+# ---------------------------------------------------------------------------
+# Schema 6 families — CRD Issue 5d, batch actions-1
+# ---------------------------------------------------------------------------
+#
+# Every family below is admitted under #137 contract 3: substantive source
+# meaning the closed union cannot represent, for which no member of the closed
+# irreducibility catalog is affirmatively true, so an honest prose-bound
+# classification is unavailable and a typed family is what the contract asks
+# for. Each states the record and clause forcing it.
+
+
+@dataclass(frozen=True)
+class ActionAllowanceFact:
+    """An allowance of N of something, per a named scope.
+
+    The inverse of :class:`ActionEconomyFact`, and the reason that family could
+    not carry this: *consuming* an action and *being granted* one are opposite
+    claims about the same slot. :class:`ActionRestrictionFact` is a third —
+    a slot the subject may not use.
+
+    **Exactly one of ``cost`` and ``activity``**, the shape
+    :class:`SpellCastingTime` already uses for the same reason: an action, a
+    Bonus Action and a Reaction are :class:`ActionCost` members, while an attack
+    roll and a weapon change are not, and minting a second vocabulary spanning
+    both would render identically to the first on the wire.
+
+    *"On your turn, you can take one action."* (``Action``, p176) ·
+    *"you can make one attack roll"* (``Attack``, p177) · *"You can either equip
+    or unequip one weapon when you make an attack"* (``Attack``) · *"which lets
+    you act by taking a Reaction before the start of your next turn"*
+    (``Ready``, p186). Four records.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ACTION_ALLOWANCE
+
+    count: int
+    per: AllowanceScope
+    cost: ActionCost | None = None
+    activity: GrantedActivity | None = None
+
+
+@dataclass(frozen=True)
+class MovementAllowanceFact:
+    """A movement budget granted, measured by one of the subject's own speeds.
+
+    *"you gain extra movement … The increase equals your Speed after applying
+    any modifiers."* (``Dash``, p180) · *"you can use that speed instead of your
+    Speed"* (``Dash``) · *"you choose to move up to your Speed"* (``Ready``,
+    p186). Two records.
+
+    Kept out of :class:`ActionAllowanceFact` because the quantity domains
+    differ: a count of slots is an integer, and this is a quantity no integer
+    can state.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_ALLOWANCE
+
+    basis: MovementAllowanceBasis
+
+
+@dataclass(frozen=True)
+class MovementInterleaveFact:
+    """Movement already budgeted may be spent inside a repeated action.
+
+    *"If you move on your turn and have a feature, such as Extra Attack, that
+    gives you more than one attack as part of the Attack action, you can use
+    some or all of that movement to move between those attacks."* (``Attack``,
+    p177). The gating feature is contextual prose beside this; the permission
+    itself is determinate and no catalog reason is true of it.
+
+    Distinct from :class:`MovementPermissionFact`, which names a *locomotion
+    mode* the subject may use and says nothing about when movement is spent.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_INTERLEAVE
+
+    between: InterleavePoint
+
+
+@dataclass(frozen=True)
+class EffectDurationFact:
+    """When a stated benefit or effect ends.
+
+    A distinct axis from :class:`Recurrence`, which says how often something
+    repeats, and from :class:`EffectTerminationFact`, which says *that* an
+    effect ends without saying when. ``Dodge`` states an applicability and a
+    duration at once, which is why the component's ``applies_when`` cannot carry
+    this.
+
+    *"until the start of your next turn"* (``Dodge`` p181, ``Help`` p182) ·
+    *"for the current turn"* (``Dash`` p180) · *"for the rest of the current
+    turn"* (``Disengage`` p181) · *"before the start of your next turn"* and
+    *"up to the start of your next turn"* (``Ready`` pp186-187). Five records.
+
+    ``whose`` follows :class:`Recurrence`'s rule exactly: required for a turn
+    boundary, forbidden for the day boundary, and never an ally's — a turn
+    belongs to a creature, a day does not, and this axis cannot address a third
+    creature's clock.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EFFECT_DURATION
+
+    until: RecurrenceBoundary
+    whose: RollActor | None = None
+
+
+@dataclass(frozen=True)
+class ReactionProvocationFact:
+    """Whether a subject's action provokes another creature's named reaction.
+
+    *"your movement doesn't provoke Opportunity Attacks"* (``Disengage``, p181).
+    :class:`ActionRestrictionFact` states that *the subject* cannot use a slot,
+    which is a different and false claim about this clause.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.REACTION_PROVOCATION
+
+    reaction: TriggeredReaction
+    provokes: bool
+
+
+@dataclass(frozen=True)
+class RetryRestrictionFact:
+    """A repeat is barred until a stated clock runs out.
+
+    *"On a failed check, you must wait 24 hours (or a duration set by the GM)
+    before urging it in the same way again."* (``Influence``, p184).
+
+    :class:`RecoveryTrigger` admits no elapsed-time member, and an
+    ``ELAPSED_DURATION`` applicability says when a component *applies*, not that
+    a repeat is barred until a clock runs. ``gamemaster_may_set_other`` records
+    the source's own stated override of its own default rather than dropping it.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.RETRY_RESTRICTION
+
+    amount: int
+    unit: TimeUnit
+    gamemaster_may_set_other: bool
+
+
+@dataclass(frozen=True)
+class RecurringActionRequirementFact:
+    """An ongoing effect continues only while the subject keeps spending a slot.
+
+    *"you must take the Magic action on each turn of that casting"* (``Magic``,
+    p185). A ``START_OF_TURN`` :class:`Recurrence` would be **false** rather
+    than lossy: it states that an effect fires at a turn boundary, not that the
+    subject must spend an action each turn for the effect to continue at all.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.RECURRING_ACTION_REQUIREMENT
+
+    cost: ActionCost
+    per: TimeUnit
+
+
+@dataclass(frozen=True)
+class SustainedStateRequirementFact:
+    """An ongoing effect continues only while the subject sustains a state.
+
+    *"and you must maintain Concentration while you do so"* (``Magic``, p185) ·
+    *"holding on to the spell's magic requires Concentration"* (``Ready``,
+    p187). Two records.
+
+    Kept a sibling of :class:`RecurringActionRequirementFact` rather than folded
+    into it: one discriminator over two operand domains would have to refuse
+    both cross combinations — an action sustained continuously, a state spent
+    each turn — which is two families wearing one field.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SUSTAINED_STATE_REQUIREMENT
+
+    state: SustainedState
+
+
+@dataclass(frozen=True)
+class ResourceExpenditureFact:
+    """A resource a rule states is, or explicitly is not, spent.
+
+    *"the spell fails, but you don't expend a spell slot"* (``Magic``, p185) ·
+    *"you cast it as normal (expending any resources used to cast it)"*
+    (``Ready``, p187). Two records, and the source states both polarities, which
+    is why ``expended`` is stated rather than implied by the fact's presence.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.RESOURCE_EXPENDITURE
+
+    resource: ExpendableResource
+    expended: bool
+
+
+@dataclass(frozen=True)
+class EquipmentChangeFact:
+    """Equipping or unequipping a weapon, at a stated point around an attack.
+
+    *"You can either equip or unequip one weapon when you make an attack as part
+    of this action. You do so either before or after the attack."* (``Attack``,
+    p177). Two stated binary axes over one permitted set.
+
+    :class:`EquipmentDescriptorFact` is a price and a weight;
+    :class:`WeaponPropertyFact` is a printed property. Neither states a change
+    of what is held.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EQUIPMENT_CHANGE
+
+    change: EquipmentChange
+    timing: AttackRelativeTiming
+
+
+@dataclass(frozen=True)
+class TriggeredResolutionFact:
+    """When a granted, triggered effect resolves — and that taking it is optional.
+
+    *"When the trigger occurs, you can either take your Reaction right after the
+    trigger finishes or ignore the trigger."* (``Ready``, p187).
+
+    ``optional`` is stated because the source states its own negative arm
+    outright. A positive timing alone would assert *when* the reaction resolves
+    while dropping that it may be declined.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TRIGGERED_RESOLUTION
+
+    timing: ResolutionTiming
+    optional: bool
+
+
+@dataclass(frozen=True)
+class ActivationCostEligibilityFact:
+    """Which things a mechanic reaches, by the activation cost they print.
+
+    *"you cast a spell that has a casting time of an action"* (``Magic``, p185)
+    · *"To be readied, a spell must have a casting time of an action"*
+    (``Ready``, p187) · *"When an object requires an action for its use, you
+    take the Utilize action."* (``Utilize``, p191). Three records.
+
+    Substantive eligibility authority, not supporting prose and not contextual
+    applicability: a spell's casting time is a printed, enumerable
+    :class:`SpellDescriptorFact` field, so nothing here is unenumerable fiction.
+    The clause *limits which things the mechanic applies to*, and that limit is
+    the rule.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ACTIVATION_COST_ELIGIBILITY
+
+    subject: EligibilitySubject
+    cost: ActionCost
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -2259,6 +3000,18 @@ MechanicalFact = (
     | DerivedQuantityFact
     | EffectTerminationFact
     | SizeKeyedQuantityFact
+    | ActionAllowanceFact
+    | ActivationCostEligibilityFact
+    | EffectDurationFact
+    | EquipmentChangeFact
+    | MovementAllowanceFact
+    | MovementInterleaveFact
+    | ReactionProvocationFact
+    | RecurringActionRequirementFact
+    | ResourceExpenditureFact
+    | RetryRestrictionFact
+    | SustainedStateRequirementFact
+    | TriggeredResolutionFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -2299,6 +3052,18 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.DERIVED_QUANTITY: DerivedQuantityFact,
     FactFamily.EFFECT_TERMINATION: EffectTerminationFact,
     FactFamily.SIZE_KEYED_QUANTITY: SizeKeyedQuantityFact,
+    FactFamily.ACTION_ALLOWANCE: ActionAllowanceFact,
+    FactFamily.ACTIVATION_COST_ELIGIBILITY: ActivationCostEligibilityFact,
+    FactFamily.EFFECT_DURATION: EffectDurationFact,
+    FactFamily.EQUIPMENT_CHANGE: EquipmentChangeFact,
+    FactFamily.MOVEMENT_ALLOWANCE: MovementAllowanceFact,
+    FactFamily.MOVEMENT_INTERLEAVE: MovementInterleaveFact,
+    FactFamily.REACTION_PROVOCATION: ReactionProvocationFact,
+    FactFamily.RECURRING_ACTION_REQUIREMENT: RecurringActionRequirementFact,
+    FactFamily.RESOURCE_EXPENDITURE: ResourceExpenditureFact,
+    FactFamily.RETRY_RESTRICTION: RetryRestrictionFact,
+    FactFamily.SUSTAINED_STATE_REQUIREMENT: SustainedStateRequirementFact,
+    FactFamily.TRIGGERED_RESOLUTION: TriggeredResolutionFact,
 }
 
 
@@ -2620,9 +3385,11 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
     which is that a saving throw offers no choice of checks at all.
     """
     vocabulary = [
-        *_enum_field(fact.ability, AbilityScore, "ability"),
+        *_optional_enum_field(fact.ability, AbilityScore, "ability"),
         *_enum_field(fact.dc_kind, DcKind, "dc_kind"),
         *_enum_field(fact.context, RollContext, "context"),
+        *_optional_enum_field(fact.dc_ability, AbilityScore, "dc_ability"),
+        *_bool_field(fact.against_subject, "against_subject"),
     ]
     if vocabulary:
         return vocabulary
@@ -2645,6 +3412,20 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
                 "ability checks belongs to an ability check, and one DC does "
                 "not govern two kinds of roll"
             )
+    if fact.ability is None:
+        # Schema 6. Both are pairings with an ability that is not there, so
+        # neither can be stated beside its absence. Reported before the pairing
+        # and completeness rules below, which would otherwise name the symptom.
+        if fact.skill is not None:
+            findings.append(
+                "an ability check stating no ability states a skill; a skill is "
+                "a pairing with the ability that governs it"
+            )
+        if fact.alternatives:
+            findings.append(
+                "an ability check stating no ability offers alternatives; a "
+                "closed choice of rolls is a choice between stated abilities"
+            )
     if findings:
         return findings
 
@@ -2659,15 +3440,43 @@ def _check_ability_check(fact: AbilityCheckFact) -> list[str]:
         # The DC relationship below reads dc_kind and dc_value; checking it
         # against mistyped values would report a second, misleading violation.
         return findings
-    if fact.dc_kind is DcKind.FIXED:
+    if fact.dc_kind in _DC_VALUE_KINDS:
         if fact.dc_value is None:
-            findings.append("fixed DC without a dc_value")
+            findings.append(f"{fact.dc_kind.value} DC without a dc_value")
     elif fact.dc_value is not None:
         findings.append(
             f"{fact.dc_kind.value} DC carries dc_value {fact.dc_value}; the "
             "value comes from the named source, not from the fact"
         )
+    if fact.dc_kind is DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE:
+        if fact.dc_ability is None:
+            findings.append(
+                "a two-sided DC states no dc_ability; the score it yields to is "
+                "half of what the source prints"
+            )
+    elif fact.dc_ability is not None:
+        findings.append(
+            f"{fact.dc_kind.value} DC carries dc_ability "
+            f"{fact.dc_ability.value}, which it does not range over"
+        )
+    if fact.against_subject and fact.dc_kind is not DcKind.RECORDED_CHECK_TOTAL:
+        # Restricted to the one DC source that states such a roll, so an absent
+        # flag keeps exactly one reading and cannot become a free second
+        # spelling of "the subject rolls".
+        findings.append(
+            f"a {fact.dc_kind.value} DC is stated against the subject; only a "
+            "recorded check total states a DC for a roll made by someone else"
+        )
     return findings
+
+
+#: The DC sources that carry a printed number. Two since schema 6: a stated DC,
+#: and a stated floor beside the statistic it yields to. Declared as a set rather
+#: than as a comparison against ``FIXED`` so a third source carrying a number
+#: must join the rule rather than fall through its ``else``.
+_DC_VALUE_KINDS: frozenset[DcKind] = frozenset(
+    {DcKind.FIXED, DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE}
+)
 
 
 def _check_creature_ability_score(fact: CreatureAbilityScoreFact) -> list[str]:
@@ -2753,6 +3562,58 @@ def _optional_enum_field(
     if value is None:
         return []
     return _enum_field(value, enum_cls, field)
+
+
+#: Action-economy members that name no slot an obligation or an eligibility
+#: threshold could be measured against. ``NONE`` is the explicit absence of a
+#: cost and ``SPECIAL`` is a cost this vocabulary cannot name, so neither states
+#: something a spell must have or an actor must spend.
+_NO_SLOT_COSTS: frozenset[ActionCost] = frozenset({ActionCost.NONE, ActionCost.SPECIAL})
+
+#: Time units at the scale an action obligation can actually recur on. An action
+#: is taken inside a turn, so a longer unit names no schedule an actor could
+#: meet and a shorter one names no moment at which an action is taken.
+_ACTION_CADENCE_UNITS: frozenset[TimeUnit] = frozenset({TimeUnit.TURN, TimeUnit.ROUND})
+
+
+def _turn_boundary_actor_violations(
+    boundary: RecurrenceBoundary, whose: RollActor | None, noun: str
+) -> list[str]:
+    """The shared turn-boundary rule, stated once for the two shapes that hold it.
+
+    :class:`Recurrence` and :class:`EffectDurationFact` both key a boundary to a
+    creature's clock, and both must answer the same three questions: a turn
+    belongs to a creature, a day does not, and — since schema 6 admitted
+    :attr:`RollActor.ALLY` — a third creature's turn is not a clock either of
+    these can address. Written once because a rule enforced in two places
+    drifts; the ally case is exactly the drift this would otherwise have had,
+    since widening the vocabulary silently widened both fields.
+    """
+    turn = boundary in (
+        RecurrenceBoundary.START_OF_TURN,
+        RecurrenceBoundary.END_OF_TURN,
+    )
+    if turn and whose is None:
+        return [f"a turn-boundary {noun} states no whose; a turn belongs to a creature"]
+    if not turn and whose is not None:
+        return [
+            f"a {boundary.value} {noun} carries whose, " "which it does not range over"
+        ]
+    if whose is not None and whose not in _SUBJECT_POLARITIES:
+        return [
+            f"a {noun} on {whose.value} names a clock this axis cannot address; "
+            "a turn boundary runs on the subject's own turn or on that of "
+            "whoever acts against the subject"
+        ]
+    return []
+
+
+#: The two :class:`RollActor` members that name a clock a turn boundary can run
+#: on. Declared as a set rather than as a pair of comparisons so a member added
+#: later must be classified rather than silently admitted.
+_SUBJECT_POLARITIES: frozenset[RollActor] = frozenset(
+    {RollActor.SUBJECT, RollActor.AGAINST_SUBJECT}
+)
 
 
 def exact_type_violations(value: object, cls: type, field: str) -> list[str]:
@@ -3016,6 +3877,35 @@ def _check_consumption_band(value: object, field: str) -> list[str]:
     elif band.sustained_at_least is not None and band.sustained_at_least < 1:
         findings.append(
             f"{field}.sustained_at_least {band.sustained_at_least} is not a duration"
+        )
+    return findings
+
+
+def _check_casting_time_threshold(value: object, field: str) -> list[str]:
+    """Invariants of the casting-time threshold shape.
+
+    A threshold that reaches every timed casting states nothing, and one stated
+    in a cadence of the initiative cycle names no unit the source prints a
+    casting time in. Both are refused rather than interpreted.
+    """
+    if findings := _vo_field(value, CastingTimeThreshold, field):
+        return findings
+    threshold = cast(CastingTimeThreshold, value)
+    findings = [
+        *_int_field(threshold.at_least_amount, f"{field}.at_least_amount"),
+        *_enum_field(threshold.at_least_unit, TimeUnit, f"{field}.at_least_unit"),
+    ]
+    if findings:
+        return findings
+    if threshold.at_least_amount < 1:
+        findings.append(
+            f"{field}.at_least_amount {threshold.at_least_amount} is not a "
+            "duration, so the threshold reaches every timed casting"
+        )
+    if threshold.at_least_unit not in _THRESHOLD_UNITS:
+        findings.append(
+            f"{field}.at_least_unit {threshold.at_least_unit.value} is a cadence "
+            "of the initiative cycle, not a unit a casting time is printed in"
         )
     return findings
 
@@ -3770,6 +4660,138 @@ def _check_weapon_property(fact: WeaponPropertyFact) -> list[str]:
     return findings
 
 
+def _check_action_allowance(fact: ActionAllowanceFact) -> list[str]:
+    findings = [
+        *_int_field(fact.count, "count"),
+        *_enum_field(fact.per, AllowanceScope, "per"),
+        *_optional_enum_field(fact.cost, ActionCost, "cost"),
+        *_optional_enum_field(fact.activity, GrantedActivity, "activity"),
+    ]
+    if findings:
+        return findings
+    stated = (fact.cost is not None) + (fact.activity is not None)
+    if stated != 1:
+        findings.append(
+            "an allowance states exactly one of an action-economy slot or a "
+            f"granted activity; {stated} are stated"
+        )
+    if fact.count < 1:
+        # An allowance of zero is not an allowance. The absence of a grant is
+        # the absence of this fact, not a fact stating none.
+        findings.append(f"an allowance of {fact.count} grants nothing")
+    return findings
+
+
+def _check_movement_allowance(fact: MovementAllowanceFact) -> list[str]:
+    return _enum_field(fact.basis, MovementAllowanceBasis, "basis")
+
+
+def _check_movement_interleave(fact: MovementInterleaveFact) -> list[str]:
+    return _enum_field(fact.between, InterleavePoint, "between")
+
+
+def _check_effect_duration(fact: EffectDurationFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.until, RecurrenceBoundary, "until"),
+        *_optional_enum_field(fact.whose, RollActor, "whose"),
+    ]
+    if findings:
+        return findings
+    findings.extend(_turn_boundary_actor_violations(fact.until, fact.whose, "duration"))
+    return findings
+
+
+def _check_reaction_provocation(fact: ReactionProvocationFact) -> list[str]:
+    return [
+        *_enum_field(fact.reaction, TriggeredReaction, "reaction"),
+        *_bool_field(fact.provokes, "provokes"),
+    ]
+
+
+def _check_retry_restriction(fact: RetryRestrictionFact) -> list[str]:
+    findings = [
+        *_int_field(fact.amount, "amount"),
+        *_enum_field(fact.unit, TimeUnit, "unit"),
+        *_bool_field(fact.gamemaster_may_set_other, "gamemaster_may_set_other"),
+    ]
+    if findings:
+        return findings
+    if fact.amount < 1:
+        findings.append(f"a wait of {fact.amount} {fact.unit.value} bars nothing")
+    return findings
+
+
+def _check_recurring_action_requirement(
+    fact: RecurringActionRequirementFact,
+) -> list[str]:
+    findings = [
+        *_enum_field(fact.cost, ActionCost, "cost"),
+        *_enum_field(fact.per, TimeUnit, "per"),
+    ]
+    if findings:
+        return findings
+    if fact.per not in _ACTION_CADENCE_UNITS:
+        # An action obligation is met inside a turn. A cadence longer than the
+        # round the turn sits in states no schedule an actor could act on, and a
+        # shorter one names no moment at which an action is taken.
+        findings.append(
+            f"an action requirement recurring per {fact.per.value} states no "
+            "cadence an actor could meet"
+        )
+    if fact.cost in _NO_SLOT_COSTS:
+        findings.append(
+            f"an action requirement costing {fact.cost.value} requires nothing"
+        )
+    return findings
+
+
+def _check_sustained_state_requirement(
+    fact: SustainedStateRequirementFact,
+) -> list[str]:
+    return _enum_field(fact.state, SustainedState, "state")
+
+
+def _check_resource_expenditure(fact: ResourceExpenditureFact) -> list[str]:
+    return [
+        *_enum_field(fact.resource, ExpendableResource, "resource"),
+        *_bool_field(fact.expended, "expended"),
+    ]
+
+
+def _check_equipment_change(fact: EquipmentChangeFact) -> list[str]:
+    return [
+        *_enum_field(fact.change, EquipmentChange, "change"),
+        *_enum_field(fact.timing, AttackRelativeTiming, "timing"),
+    ]
+
+
+def _check_triggered_resolution(fact: TriggeredResolutionFact) -> list[str]:
+    return [
+        *_enum_field(fact.timing, ResolutionTiming, "timing"),
+        *_bool_field(fact.optional, "optional"),
+    ]
+
+
+def _check_activation_cost_eligibility(
+    fact: ActivationCostEligibilityFact,
+) -> list[str]:
+    findings = [
+        *_enum_field(fact.subject, EligibilitySubject, "subject"),
+        *_enum_field(fact.cost, ActionCost, "cost"),
+    ]
+    if findings:
+        return findings
+    if fact.cost in _NO_SLOT_COSTS:
+        # Eligibility is a threshold a thing either meets or does not. "Costs
+        # nothing" and "costs something this vocabulary cannot name" are not
+        # thresholds, so neither states an eligibility rule.
+        findings.append(
+            f"eligibility by an activation cost of {fact.cost.value} names no "
+            "threshold a spell or object could meet"
+        )
+    return findings
+
+
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
@@ -3807,6 +4829,18 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.DAMAGE_MODIFICATION: _check_damage_modification,
     FactFamily.DERIVED_QUANTITY: _check_derived_quantity,
     FactFamily.EFFECT_TERMINATION: _check_effect_termination,
+    FactFamily.ACTION_ALLOWANCE: _check_action_allowance,
+    FactFamily.ACTIVATION_COST_ELIGIBILITY: _check_activation_cost_eligibility,
+    FactFamily.EFFECT_DURATION: _check_effect_duration,
+    FactFamily.EQUIPMENT_CHANGE: _check_equipment_change,
+    FactFamily.MOVEMENT_ALLOWANCE: _check_movement_allowance,
+    FactFamily.MOVEMENT_INTERLEAVE: _check_movement_interleave,
+    FactFamily.REACTION_PROVOCATION: _check_reaction_provocation,
+    FactFamily.RECURRING_ACTION_REQUIREMENT: _check_recurring_action_requirement,
+    FactFamily.RESOURCE_EXPENDITURE: _check_resource_expenditure,
+    FactFamily.RETRY_RESTRICTION: _check_retry_restriction,
+    FactFamily.SUSTAINED_STATE_REQUIREMENT: _check_sustained_state_requirement,
+    FactFamily.TRIGGERED_RESOLUTION: _check_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _check_size_keyed_quantity,
 }
 
@@ -3932,7 +4966,18 @@ def _build_applicability(value: object, where: str) -> Applicability:
             "phase",
         ),
         where,
-        optional=("outcome", "damage_outcome", "unit", "band"),
+        optional=(
+            "outcome",
+            "damage_outcome",
+            "unit",
+            "band",
+            "condition",
+            "effect_state",
+            "obscurement",
+            "cover",
+            "any_of_terms",
+            "casting_time",
+        ),
     )
     _reject_at(
         where,
@@ -3949,8 +4994,35 @@ def _build_applicability(value: object, where: str) -> Applicability:
                 p.get("damage_outcome"), DamageOutcome, f"{where}.damage_outcome"
             ),
             *_optional_json_enum(p.get("unit"), TimeUnit, f"{where}.unit"),
+            *_optional_json_enum(
+                p.get("condition"), ConditionKind, f"{where}.condition"
+            ),
+            *_optional_json_enum(
+                p.get("effect_state"), StateEffectKind, f"{where}.effect_state"
+            ),
+            *_optional_json_enum(
+                p.get("obscurement"), ObscurementState, f"{where}.obscurement"
+            ),
+            *_optional_json_enum(p.get("cover"), CoverDegree, f"{where}.cover"),
         ],
     )
+    raw_terms = p.get("any_of_terms") or ()
+    if not isinstance(raw_terms, (list, tuple)):
+        _reject_at(where, [f"{where}.any_of_terms is not an array"])
+    # Depth 1 is the typed contract, and this builder is reached through
+    # ``fact_from_payload`` — so it is the ingress for every applicability held
+    # *inside* a fact, ``ConditionRemovalRestrictionFact.until`` included, and
+    # for the override seam that shares it. A term stating terms of its own is
+    # refused here by name rather than recursed into: an arbitrarily nested
+    # payload would otherwise exhaust the stack and raise ``RecursionError``
+    # from the one layer whose contract is to report malformed input.
+    built_terms: list[Applicability] = []
+    for index, raw in enumerate(raw_terms):
+        at = f"{where}.any_of_terms[{index}]"
+        if isinstance(raw, Mapping) and raw.get("any_of_terms"):
+            _reject_at(where, [f"{at} states terms of its own"])
+        built_terms.append(_build_applicability(raw, at))
+    terms = tuple(built_terms)
     raw_any_of = p["any_of"]
     if not isinstance(raw_any_of, (list, tuple)):
         _reject_at(where, [f"{where}.any_of is not an array"])
@@ -3996,6 +5068,7 @@ def _build_applicability(value: object, where: str) -> Applicability:
             )
         )
     raw_band = p.get("band")
+    raw_casting_time = p.get("casting_time")
     built = Applicability(
         kind=ApplicabilityKind(p["kind"]),
         negated=p["negated"],
@@ -4005,6 +5078,19 @@ def _build_applicability(value: object, where: str) -> Applicability:
         any_of=tuple(comparisons),
         trigger=None if p["trigger"] is None else RecoveryTrigger(p["trigger"]),
         phase=None if p["phase"] is None else Phase(p["phase"]),
+        condition=(
+            None if p.get("condition") is None else ConditionKind(p["condition"])
+        ),
+        effect_state=(
+            None
+            if p.get("effect_state") is None
+            else StateEffectKind(p["effect_state"])
+        ),
+        obscurement=(
+            None if p.get("obscurement") is None else ObscurementState(p["obscurement"])
+        ),
+        cover=(None if p.get("cover") is None else CoverDegree(p["cover"])),
+        any_of_terms=terms,
         outcome=(None if p.get("outcome") is None else AutomaticOutcome(p["outcome"])),
         damage_outcome=(
             None
@@ -4016,6 +5102,11 @@ def _build_applicability(value: object, where: str) -> Applicability:
             None
             if raw_band is None
             else build_consumption_band(raw_band, f"{where}.band")
+        ),
+        casting_time=(
+            None
+            if raw_casting_time is None
+            else build_casting_time_threshold(raw_casting_time, f"{where}.casting_time")
         ),
     )
     _reject_at(where, applicability_violations(built))
@@ -4077,22 +5168,28 @@ def _build_ability_check(p: Mapping[str, Any]) -> AbilityCheckFact:
     _reject(
         FactFamily.ABILITY_CHECK,
         [
-            *_json_enum(p["ability"], AbilityScore, "ability"),
+            *_optional_json_enum(p["ability"], AbilityScore, "ability"),
             *_json_enum(p["dc_kind"], DcKind, "dc_kind"),
             *_json_enum(p["context"], RollContext, "context"),
             *_optional_int_field(p["dc_value"], "dc_value"),
             *_optional_json_enum(p.get("skill"), Skill, "skill"),
+            *_optional_json_enum(p.get("dc_ability"), AbilityScore, "dc_ability"),
+            *_bool_field(p.get("against_subject", False), "against_subject"),
         ],
     )
     raw_alternatives = p.get("alternatives", ())
     if not isinstance(raw_alternatives, (list, tuple)):
         _reject(FactFamily.ABILITY_CHECK, ["alternatives is not an array"])
     return AbilityCheckFact(
-        ability=AbilityScore(p["ability"]),
+        ability=None if p["ability"] is None else AbilityScore(p["ability"]),
         dc_kind=DcKind(p["dc_kind"]),
         context=RollContext(p["context"]),
         dc_value=p["dc_value"],
         skill=None if p.get("skill") is None else Skill(p["skill"]),
+        dc_ability=(
+            None if p.get("dc_ability") is None else AbilityScore(p["dc_ability"])
+        ),
+        against_subject=p.get("against_subject", False),
         alternatives=tuple(
             _build_rollspec(entry, f"alternatives[{i}]")
             for i, entry in enumerate(raw_alternatives)
@@ -4235,6 +5332,27 @@ def build_consumption_band(value: object, where: str) -> ConsumptionBand:
         ),
     )
     _reject_at(where, _check_consumption_band(built, where))
+    return built
+
+
+def build_casting_time_threshold(value: object, where: str) -> CastingTimeThreshold:
+    """Rebuild a casting-time threshold, or refuse.
+
+    Both keys are required on the wire, for the reason
+    :func:`build_consumption_band` states: the threshold is not a
+    post-schema-3 field of its own, and an omitted amount or unit would have to
+    rebuild as some default, which would be a threshold nobody wrote.
+    """
+    p = _json_object(value, ("at_least_amount", "at_least_unit"), where)
+    _reject_at(
+        where,
+        _json_enum(p["at_least_unit"], TimeUnit, f"{where}.at_least_unit"),
+    )
+    built = CastingTimeThreshold(
+        at_least_amount=p["at_least_amount"],
+        at_least_unit=TimeUnit(p["at_least_unit"]),
+    )
+    _reject_at(where, _check_casting_time_threshold(built, where))
     return built
 
 
@@ -4752,9 +5870,19 @@ def _build_resource_recovery(p: Mapping[str, Any]) -> ResourceRecoveryFact:
 
 
 def _build_advantage(p: Mapping[str, Any]) -> AdvantageFact:
-    _reject(FactFamily.ADVANTAGE, _json_enum(p["state"], AdvantageState, "state"))
+    _reject(
+        FactFamily.ADVANTAGE,
+        [
+            *_json_enum(p["state"], AdvantageState, "state"),
+            *_optional_json_enum(p.get("use_limit"), BenefitUseLimit, "use_limit"),
+        ],
+    )
     return AdvantageFact(
-        state=AdvantageState(p["state"]), roll=_build_rollspec(p["roll"], "roll")
+        state=AdvantageState(p["state"]),
+        roll=_build_rollspec(p["roll"], "roll"),
+        use_limit=(
+            None if p.get("use_limit") is None else BenefitUseLimit(p["use_limit"])
+        ),
     )
 
 
@@ -4833,6 +5961,163 @@ def _build_progression_entry(p: Mapping[str, Any]) -> ProgressionEntryFact:
     )
 
 
+def _build_action_allowance(p: Mapping[str, Any]) -> ActionAllowanceFact:
+    _reject(
+        FactFamily.ACTION_ALLOWANCE,
+        [
+            *_int_field(p["count"], "count"),
+            *_json_enum(p["per"], AllowanceScope, "per"),
+            *_optional_json_enum(p["cost"], ActionCost, "cost"),
+            *_optional_json_enum(p["activity"], GrantedActivity, "activity"),
+        ],
+    )
+    return ActionAllowanceFact(
+        count=p["count"],
+        per=AllowanceScope(p["per"]),
+        cost=None if p["cost"] is None else ActionCost(p["cost"]),
+        activity=None if p["activity"] is None else GrantedActivity(p["activity"]),
+    )
+
+
+def _build_movement_allowance(p: Mapping[str, Any]) -> MovementAllowanceFact:
+    _reject(
+        FactFamily.MOVEMENT_ALLOWANCE,
+        _json_enum(p["basis"], MovementAllowanceBasis, "basis"),
+    )
+    return MovementAllowanceFact(basis=MovementAllowanceBasis(p["basis"]))
+
+
+def _build_movement_interleave(p: Mapping[str, Any]) -> MovementInterleaveFact:
+    _reject(
+        FactFamily.MOVEMENT_INTERLEAVE,
+        _json_enum(p["between"], InterleavePoint, "between"),
+    )
+    return MovementInterleaveFact(between=InterleavePoint(p["between"]))
+
+
+def _build_effect_duration(p: Mapping[str, Any]) -> EffectDurationFact:
+    _reject(
+        FactFamily.EFFECT_DURATION,
+        [
+            *_json_enum(p["until"], RecurrenceBoundary, "until"),
+            *_optional_json_enum(p["whose"], RollActor, "whose"),
+        ],
+    )
+    return EffectDurationFact(
+        until=RecurrenceBoundary(p["until"]),
+        whose=None if p["whose"] is None else RollActor(p["whose"]),
+    )
+
+
+def _build_reaction_provocation(p: Mapping[str, Any]) -> ReactionProvocationFact:
+    _reject(
+        FactFamily.REACTION_PROVOCATION,
+        [
+            *_json_enum(p["reaction"], TriggeredReaction, "reaction"),
+            *_bool_field(p["provokes"], "provokes"),
+        ],
+    )
+    return ReactionProvocationFact(
+        reaction=TriggeredReaction(p["reaction"]), provokes=p["provokes"]
+    )
+
+
+def _build_retry_restriction(p: Mapping[str, Any]) -> RetryRestrictionFact:
+    _reject(
+        FactFamily.RETRY_RESTRICTION,
+        [
+            *_int_field(p["amount"], "amount"),
+            *_json_enum(p["unit"], TimeUnit, "unit"),
+            *_bool_field(p["gamemaster_may_set_other"], "gamemaster_may_set_other"),
+        ],
+    )
+    return RetryRestrictionFact(
+        amount=p["amount"],
+        unit=TimeUnit(p["unit"]),
+        gamemaster_may_set_other=p["gamemaster_may_set_other"],
+    )
+
+
+def _build_recurring_action_requirement(
+    p: Mapping[str, Any],
+) -> RecurringActionRequirementFact:
+    _reject(
+        FactFamily.RECURRING_ACTION_REQUIREMENT,
+        [
+            *_json_enum(p["cost"], ActionCost, "cost"),
+            *_json_enum(p["per"], TimeUnit, "per"),
+        ],
+    )
+    return RecurringActionRequirementFact(
+        cost=ActionCost(p["cost"]), per=TimeUnit(p["per"])
+    )
+
+
+def _build_sustained_state_requirement(
+    p: Mapping[str, Any],
+) -> SustainedStateRequirementFact:
+    _reject(
+        FactFamily.SUSTAINED_STATE_REQUIREMENT,
+        _json_enum(p["state"], SustainedState, "state"),
+    )
+    return SustainedStateRequirementFact(state=SustainedState(p["state"]))
+
+
+def _build_resource_expenditure(p: Mapping[str, Any]) -> ResourceExpenditureFact:
+    _reject(
+        FactFamily.RESOURCE_EXPENDITURE,
+        [
+            *_json_enum(p["resource"], ExpendableResource, "resource"),
+            *_bool_field(p["expended"], "expended"),
+        ],
+    )
+    return ResourceExpenditureFact(
+        resource=ExpendableResource(p["resource"]), expended=p["expended"]
+    )
+
+
+def _build_equipment_change(p: Mapping[str, Any]) -> EquipmentChangeFact:
+    _reject(
+        FactFamily.EQUIPMENT_CHANGE,
+        [
+            *_json_enum(p["change"], EquipmentChange, "change"),
+            *_json_enum(p["timing"], AttackRelativeTiming, "timing"),
+        ],
+    )
+    return EquipmentChangeFact(
+        change=EquipmentChange(p["change"]),
+        timing=AttackRelativeTiming(p["timing"]),
+    )
+
+
+def _build_triggered_resolution(p: Mapping[str, Any]) -> TriggeredResolutionFact:
+    _reject(
+        FactFamily.TRIGGERED_RESOLUTION,
+        [
+            *_json_enum(p["timing"], ResolutionTiming, "timing"),
+            *_bool_field(p["optional"], "optional"),
+        ],
+    )
+    return TriggeredResolutionFact(
+        timing=ResolutionTiming(p["timing"]), optional=p["optional"]
+    )
+
+
+def _build_activation_cost_eligibility(
+    p: Mapping[str, Any],
+) -> ActivationCostEligibilityFact:
+    _reject(
+        FactFamily.ACTIVATION_COST_ELIGIBILITY,
+        [
+            *_json_enum(p["subject"], EligibilitySubject, "subject"),
+            *_json_enum(p["cost"], ActionCost, "cost"),
+        ],
+    )
+    return ActivationCostEligibilityFact(
+        subject=EligibilitySubject(p["subject"]), cost=ActionCost(p["cost"])
+    )
+
+
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
@@ -4870,6 +6155,18 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.DAMAGE_MODIFICATION: _build_damage_modification,
     FactFamily.DERIVED_QUANTITY: _build_derived_quantity,
     FactFamily.EFFECT_TERMINATION: _build_effect_termination,
+    FactFamily.ACTION_ALLOWANCE: _build_action_allowance,
+    FactFamily.ACTIVATION_COST_ELIGIBILITY: _build_activation_cost_eligibility,
+    FactFamily.EFFECT_DURATION: _build_effect_duration,
+    FactFamily.EQUIPMENT_CHANGE: _build_equipment_change,
+    FactFamily.MOVEMENT_ALLOWANCE: _build_movement_allowance,
+    FactFamily.MOVEMENT_INTERLEAVE: _build_movement_interleave,
+    FactFamily.REACTION_PROVOCATION: _build_reaction_provocation,
+    FactFamily.RECURRING_ACTION_REQUIREMENT: _build_recurring_action_requirement,
+    FactFamily.RESOURCE_EXPENDITURE: _build_resource_expenditure,
+    FactFamily.RETRY_RESTRICTION: _build_retry_restriction,
+    FactFamily.SUSTAINED_STATE_REQUIREMENT: _build_sustained_state_requirement,
+    FactFamily.TRIGGERED_RESOLUTION: _build_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _build_size_keyed_quantity,
 }
 
@@ -4960,7 +6257,16 @@ assert (
 #: per rather than beside (:class:`DamageInterval`), with :class:`DistanceUnit`
 #: as its closed vocabulary. Each closes a case where two mechanically distinct
 #: source meanings shared one canonical payload.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-5"
+#:
+#: Version ``7`` closes the ``actions-1`` schema stop S-1 and nothing else:
+#: :class:`CastingTimeThreshold` and the one
+#: :attr:`ApplicabilityKind.SPELL_CASTING_TIME` kind that ranges over it, so
+#: *"a spell that has a casting time of 1 minute or longer"* can gate the
+#: requirements it governs. No fact family, no widened eligibility fact, and no
+#: comparison the schema cannot state without a conversion constant it does not
+#: declare. Schema 6 is merged and therefore reachable, so it is succeeded
+#: rather than corrected in place.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-7"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -5012,15 +6318,16 @@ _PRIMITIVE_SHAPES: Mapping[type, str] = {
 }
 
 
-def _shape(annotation: object) -> dict[str, object]:
+def _shape(annotation: object, seen: tuple[type, ...] = ()) -> dict[str, object]:
     """Render one declared annotation as its canonical wire shape.
 
     The grammar is closed: ``integer``, ``string``, ``boolean``,
-    ``enum(values)``, ``object(fields)``, ``array(items)``, and a ``nullable``
-    flag. Every member describes something a JSON payload can exhibit, which is
-    the entire rule — a Python class name describes the implementation, so this
-    grammar has nowhere to put one, and an annotation it cannot describe raises
-    instead of falling back to a name.
+    ``enum(values)``, ``object(fields)``, ``array(items)``, ``self(of)`` for a
+    shape that nests itself, and a ``nullable`` flag. Every member describes
+    something a JSON payload can exhibit, which is the entire rule — a Python
+    class name describes the implementation, so this grammar has nowhere to put
+    one, and an annotation it cannot describe raises instead of falling back to
+    a name.
     """
     if annotation == MechanicalFact:
         # The closed typed-fact union, described once under ``facts`` and
@@ -5043,7 +6350,7 @@ def _shape(annotation: object) -> dict[str, object]:
                 f"{annotation!r} is not an optional of a single shape; the "
                 "closed representation admits no other union at the wire"
             )
-        return {**_shape(inner[0]), "nullable": True}
+        return {**_shape(inner[0], seen), "nullable": True}
 
     if origin in (tuple, list):
         # ``tuple[X, ...]`` and ``list[X]`` are the same JSON array — the
@@ -5054,7 +6361,7 @@ def _shape(annotation: object) -> dict[str, object]:
             raise UnsupportedRepresentationShapeError(
                 f"{annotation!r} is not a homogeneous sequence of one shape"
             )
-        return {"kind": "array", "items": _shape(items[0])}
+        return {"kind": "array", "items": _shape(items[0], seen)}
 
     if origin is None and isinstance(annotation, type):
         primitive = _PRIMITIVE_SHAPES.get(annotation)
@@ -5064,11 +6371,27 @@ def _shape(annotation: object) -> dict[str, object]:
             # A closed vocabulary *is* its admitted value set at the wire.
             return {"kind": "enum", "values": sorted(m.value for m in annotation)}
         if is_dataclass(annotation):
+            if annotation in seen:
+                # A shape that nests itself. Schema 6's flat disjunction is the
+                # first: ``Applicability.any_of_terms`` holds applicabilities.
+                #
+                # Inlining it would not terminate, and naming the type would put
+                # a Python name in the identity, which nothing in this payload
+                # does. So it is identified the way every other tagless value
+                # object here is — by its own sorted field set — which is the
+                # same answer ``_shape_locus`` gives and moves for the same
+                # edits. That the nested term may not itself be a disjunction is
+                # a rule about combinations, and rules about combinations are
+                # declared in ``invariant_manifest``.
+                return {
+                    "kind": "self",
+                    "of": sorted(f.name for f in fields(annotation)),
+                }
             # Inlined, not referenced by name: a nested value object serializes
             # as a bare object carrying no type tag, so there is no name to
             # record and no reference that could dangle or alias. Reshaping one
             # is a contract change, and it shows up here directly.
-            return {"kind": "object", "fields": _wire_fields(annotation)}
+            return {"kind": "object", "fields": _wire_fields(annotation, seen)}
 
     raise UnsupportedRepresentationShapeError(
         f"{annotation!r} has no canonical wire shape in the closed "
@@ -5077,7 +6400,7 @@ def _shape(annotation: object) -> dict[str, object]:
     )
 
 
-def _wire_fields(cls: type) -> list[dict[str, object]]:
+def _wire_fields(cls: type, seen: tuple[type, ...] = ()) -> list[dict[str, object]]:
     """Serialized fields of *cls* — one ``{name, shape}`` entry each, by name.
 
     **Sorted by field name, not by declaration order.** The contract this
@@ -5094,11 +6417,18 @@ def _wire_fields(cls: type) -> list[dict[str, object]]:
     field of every one.
     """
     hints = get_type_hints(cls)
+    # *cls* itself joins the stack before its fields are walked, so a field
+    # annotated with the class that declares it terminates on the first
+    # re-entry rather than on the second.
+    inner = (*seen, cls)
     omitted = _POST_SCHEMA_3_FIELDS.get(cls.__name__, {})
     required_since = _REQUIRED_SINCE.get(cls.__name__, {})
     entries: list[dict[str, object]] = []
     for f in fields(cls):
-        entry: dict[str, object] = {"name": f.name, "shape": _shape(hints[f.name])}
+        entry: dict[str, object] = {
+            "name": f.name,
+            "shape": _shape(hints[f.name], inner),
+        }
         if f.name in required_since:
             # The other half of the same grammar statement: this key is never
             # absent, and an earlier contract could not have carried it. Declared
@@ -5337,6 +6667,13 @@ class _Introduction:
         already; this row is what makes the *legality* contract see it too, so
         ``verify_lift`` and ``accept_proposal`` refuse a restamped prior rather
         than relying on a payload raise from somewhere else.
+    ``nullable_field``
+        A field a later schema made optional on a family an earlier schema
+        already had, so the *null* is the new meaning. ``owner`` is the family
+        discriminator and ``name`` the key. Registered for the same reason the
+        family rows are: the payload's key set is complete under both
+        contracts, so nothing short of the legality contract can tell that the
+        value is one the declared schema never admitted.
     """
 
     kind: str
@@ -5378,6 +6715,32 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_5)
             for member in members
         )
+    # Schema 6 adds twelve families and no ownership form. Its field additions
+    # are all omit-when-empty keys on structures earlier schemas already had, so
+    # the ``components``/``facts`` halves of the payload describe them by shape
+    # and the omission registry states their legality.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_6)
+        for family in _SCHEMA_6_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_6_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_6)
+            for member in members
+        )
+    # Schema 7 adds one applicability kind and no family, no ownership form and
+    # no nullable field. Its value object is described by the ``components``
+    # half of the payload, and its intrinsic rules by the invariant manifest.
+    for vocabulary, members in _SCHEMA_7_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_7)
+            for member in members
+        )
+    rows.extend(
+        _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
+        for owner, keys in _OPTIONAL_SINCE.items()
+        for key, arrived in keys.items()
+    )
     return tuple(sorted(rows, key=lambda r: (r.kind, r.owner, r.name)))
 
 
@@ -5419,11 +6782,17 @@ def introduction_manifest() -> list[dict[str, object]]:
 def _vocabulary_shape(owner: str) -> list[str] | None:
     """The admitted values of *owner*, or ``None`` where it is not a vocabulary.
 
-    ``fact_family`` and ``reference_ownership`` rows name a discriminator and an
-    ownership form respectively; neither is a vocabulary, and inventing a value
-    set for them would assert a shape the wire does not have.
+    ``fact_family``, ``reference_ownership`` and ``nullable_field`` rows name a
+    discriminator, an ownership form and a key respectively; none is a
+    vocabulary, and inventing a value set for them would assert a shape the wire
+    does not have.
     """
-    members = _SCHEMA_4_VOCABULARY_ALL.get(owner) or _SCHEMA_5_VOCABULARY_ALL.get(owner)
+    members = (
+        _SCHEMA_4_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_5_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_6_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_7_VOCABULARY_ALL.get(owner)
+    )
     return None if members is None else sorted(members)
 
 
@@ -5512,6 +6881,8 @@ def _collect_post_schema_3(
         for member_index, arrived in (
             (_SCHEMA_4_MEMBER_INDEX, SCHEMA_4),
             (_SCHEMA_5_MEMBER_INDEX, SCHEMA_5),
+            (_SCHEMA_6_MEMBER_INDEX, SCHEMA_6),
+            (_SCHEMA_7_MEMBER_INDEX, SCHEMA_7),
         ):
             if (
                 type(value).__name__,
@@ -5538,17 +6909,15 @@ def _collect_post_schema_3(
         # A family the declared union did not have. Keyed by discriminator
         # rather than class, because that is what a payload carries.
         family = getattr(declared, "FAMILY", None)
-        if (
-            isinstance(family, FactFamily)
-            and family in _SCHEMA_4_FAMILIES
-            and not _version_states(schema_version, SCHEMA_4)
-        ):
-            findings.append(
-                f"{path or 'fact'}: declares schema {schema_version!r}, whose "
-                f"closed union has no {family.value!r} family — that arrived "
-                f"with {SCHEMA_4}; refusing to read authority the declared "
-                "contract cannot state"
-            )
+        if isinstance(family, FactFamily):
+            for families, arrived in _FAMILY_INTRODUCTIONS:
+                if family in families and not _version_states(schema_version, arrived):
+                    findings.append(
+                        f"{path or 'fact'}: declares schema {schema_version!r}, "
+                        f"whose closed union has no {family.value!r} family — "
+                        f"that arrived with {arrived}; refusing to read "
+                        "authority the declared contract cannot state"
+                    )
         if (
             declared is ReferenceDraft
             and getattr(value, "from_component_key", None) == RECORD_OWNED_REFERENCE
@@ -5572,6 +6941,21 @@ def _collect_post_schema_3(
                     f"{key!r} key — that arrived with {arrived} and is required "
                     "there; refusing to read a distinction the declared contract "
                     "cannot state"
+                )
+        # A field a later schema made *optional* on a family an earlier schema
+        # already had. The key is present under both contracts, so neither the
+        # omission registry nor the required-since one fires: what the earlier
+        # contract cannot state is the null itself.
+        for key, arrived in _OPTIONAL_SINCE.get(declared.__name__, {}).items():
+            if getattr(value, key, None) is None and not _version_states(
+                schema_version, arrived
+            ):
+                where = f"{path}.{key}" if path else key
+                findings.append(
+                    f"{where}: declares schema {schema_version!r}, which "
+                    f"requires {key!r} to be stated — stating none arrived "
+                    f"with {arrived}; refusing to read a distinction the "
+                    "declared contract cannot state"
                 )
         omitted = _POST_SCHEMA_3_FIELDS.get(declared.__name__, {})
         for field in fields(declared):
@@ -5697,6 +7081,107 @@ _SCHEMA_5_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_6 = "5d-representation-schema-6"
+
+#: The families schema 6 admitted, for batch ``actions-1``. Named by member for
+#: the same reason schema 4's are: the set stays auditable at a glance and a
+#: rename cannot leave a stale string behind.
+_SCHEMA_6_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.ACTION_ALLOWANCE,
+    FactFamily.ACTIVATION_COST_ELIGIBILITY,
+    FactFamily.EFFECT_DURATION,
+    FactFamily.EQUIPMENT_CHANGE,
+    FactFamily.MOVEMENT_ALLOWANCE,
+    FactFamily.MOVEMENT_INTERLEAVE,
+    FactFamily.REACTION_PROVOCATION,
+    FactFamily.RECURRING_ACTION_REQUIREMENT,
+    FactFamily.RESOURCE_EXPENDITURE,
+    FactFamily.RETRY_RESTRICTION,
+    FactFamily.SUSTAINED_STATE_REQUIREMENT,
+    FactFamily.TRIGGERED_RESOLUTION,
+)
+
+#: Every vocabulary value schema 6 admitted, by vocabulary — the same two groups
+#: schema 4's table holds, and in one table for the same reason.
+_SCHEMA_6_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    # Added to vocabularies earlier schemas already had. This is the group no
+    # field-keyed registry can catch: the field is old and only the value is new.
+    "ApplicabilityKind": (
+        ApplicabilityKind.ANY_OF.value,
+        ApplicabilityKind.CONDITION_STATE.value,
+        ApplicabilityKind.COVER.value,
+        ApplicabilityKind.EFFECT_STATE.value,
+        ApplicabilityKind.OBSCUREMENT.value,
+    ),
+    "DcKind": (
+        DcKind.HIGHER_OF_FIXED_OR_TARGET_ABILITY_SCORE.value,
+        DcKind.RECORDED_CHECK_TOTAL.value,
+    ),
+    "RollActor": (RollActor.ALLY.value,),
+    # Vocabularies schema 6 introduced whole.
+    "AllowanceScope": tuple(m.value for m in AllowanceScope),
+    "AttackRelativeTiming": tuple(m.value for m in AttackRelativeTiming),
+    "BenefitUseLimit": tuple(m.value for m in BenefitUseLimit),
+    "CoverDegree": tuple(m.value for m in CoverDegree),
+    "EligibilitySubject": tuple(m.value for m in EligibilitySubject),
+    "EquipmentChange": tuple(m.value for m in EquipmentChange),
+    "ExpendableResource": tuple(m.value for m in ExpendableResource),
+    "GrantedActivity": tuple(m.value for m in GrantedActivity),
+    "InterleavePoint": tuple(m.value for m in InterleavePoint),
+    "MovementAllowanceBasis": tuple(m.value for m in MovementAllowanceBasis),
+    "ObscurementState": tuple(m.value for m in ObscurementState),
+    "ResolutionTiming": tuple(m.value for m in ResolutionTiming),
+    "SustainedState": tuple(m.value for m in SustainedState),
+    "TriggeredReaction": tuple(m.value for m in TriggeredReaction),
+}
+
+_SCHEMA_6_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+    "DcKind": tuple(m.value for m in DcKind),
+    "RollActor": tuple(m.value for m in RollActor),
+    **{
+        name: members
+        for name, members in _SCHEMA_6_VOCABULARY_MEMBERS.items()
+        if name not in ("ApplicabilityKind", "DcKind", "RollActor")
+    },
+}
+
+_SCHEMA_6_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_6_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+SCHEMA_7 = "5d-representation-schema-7"
+
+#: Schema 7 adds **no fact family**. Its whole surface is one applicability
+#: kind, one closed value object the ``components`` half of the payload already
+#: describes by shape, and the intrinsic rules that make a threshold name a real
+#: casting time. That is deliberately the smallest extension that closes the
+#: ``actions-1`` schema stop S-1, and nothing else rides along with it.
+_SCHEMA_7_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": (ApplicabilityKind.SPELL_CASTING_TIME.value,),
+}
+
+_SCHEMA_7_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+}
+
+_SCHEMA_7_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_7_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+
+#: Every family-bearing succession, newest last. A family added later must join
+#: this table rather than the one comparison schema 4 was checked by, which
+#: could only ever ask about schema 4.
+_FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
+    (_SCHEMA_4_FAMILIES, SCHEMA_4),
+    (_SCHEMA_6_FAMILIES, SCHEMA_6),
+)
+
 #: Fields a later schema made **required** on a family an earlier schema already
 #: had, by owning dataclass name then field name.
 #:
@@ -5709,8 +7194,47 @@ _SCHEMA_5_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
 #: :attr:`AbilityCheckFact.context` must not have, because an omitted context
 #: and a stated one would then hash alike and re-create the collapse schema 5
 #: exists to close.
+#:
+#: **Schema 6 adds no row here, and that is a decision rather than an
+#: omission.** It made :attr:`AbilityCheckFact.ability` *optional*, which is the
+#: opposite movement: nothing becomes newly required, and the key stays emitted
+#: unconditionally because it is a schema-1 field. That belongs in
+#: :data:`_OPTIONAL_SINCE` instead.
 _REQUIRED_SINCE: dict[str, dict[str, str]] = {
     "AbilityCheckFact": {"context": SCHEMA_5},
+}
+
+#: A field a later schema made **optional** on a family an earlier schema
+#: already had: the key is present under every contract, and it is the *null*
+#: that is new meaning.
+#:
+#: The third legality question, and neither of the other two registries can
+#: answer it. :data:`_POST_SCHEMA_3_FIELDS` gates a key that *carries* meaning
+#: an earlier contract had no name for, and reads absence as the declared
+#: default; here absence is the meaning, and the key is never omitted at all.
+#: :data:`_REQUIRED_SINCE` gates a key made newly *required*, which is this
+#: movement's mirror image and fires on the wrong side of it.
+#:
+#: Without a row here, ``{"ability": null}`` under a schema-5 declaration is a
+#: statement schema 5 cannot make — a check that fixes no ability, beside a
+#: stated DC — read as authority a schema-5 reviewer signed off on. The
+#: canonical payload is *complete* in that case rather than short, so nothing
+#: downstream of the key set has any reason to look twice, which is exactly why
+#: the legality contract has to say it.
+#:
+#: **Historical payloads are unchanged.** A row here refuses a value, never a
+#: shape: every accepted ability check states an ability, so every accepted
+#: payload and every accepted ``fact_key`` is byte-identical either way.
+_OPTIONAL_SINCE: dict[str, dict[str, str]] = {
+    "AbilityCheckFact": {"ability": SCHEMA_6},
+}
+
+#: The family discriminator each :data:`_OPTIONAL_SINCE` owner writes on the
+#: wire. Stated rather than derived from the class name for the reason
+#: :func:`introduction_manifest` gives: no payload carries a type tag, so the
+#: manifest may not either.
+_OPTIONAL_SINCE_FAMILIES: dict[str, str] = {
+    "AbilityCheckFact": FactFamily.ABILITY_CHECK.value,
 }
 
 _VERSION_STATES: dict[str, frozenset[str]] = {
@@ -5723,6 +7247,8 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
     # ``_MERGED_COMPONENT_FIELDS`` writes its rows out: a succession must not
     # silently inherit a row nobody reviewed.
     SCHEMA_5: frozenset({"5d-representation-schema-4", SCHEMA_5}),
+    SCHEMA_6: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6}),
+    SCHEMA_7: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7}),
 }
 
 _register_post_schema_3(
@@ -5764,6 +7290,14 @@ _register_post_schema_3(
         introduced_in=SCHEMA_5,
         is_empty=_empty_none,
     ),
+    # Schema 7. Omitted when unset, so every applicability accepted under
+    # schemas 3 through 6 keeps the exact canonical form it was accepted with.
+    _PostSchema3Field(
+        owner="Applicability",
+        key="casting_time",
+        introduced_in=SCHEMA_7,
+        is_empty=_empty_none,
+    ),
     _PostSchema3Field(
         owner="ConditionLevelFact",
         key="cause_scoped",
@@ -5782,6 +7316,50 @@ _register_post_schema_3(
             "damage_outcome",
             "unit",
         )
+    ),
+    # Schema 6. Every one of these is a *new* key on a structure earlier schemas
+    # already carried, so each is omitted when it carries no meaning and every
+    # accepted fact, applicability and provenance coordinate keeps the exact
+    # canonical form it was accepted with.
+    #
+    # ``AbilityCheckFact.ability`` is deliberately **absent** from this table
+    # even though schema 6 made it optional. It is a schema-1 field, so it has
+    # always been emitted unconditionally; ``"ability": null`` is an explicit
+    # statement that the source fixes none, and registering it here would make
+    # that statement and a legacy absence hash alike — the collapse
+    # ``_REQUIRED_SINCE`` exists to refuse, arrived at from the other direction.
+    _PostSchema3Field(
+        owner="AdvantageFact",
+        key="use_limit",
+        introduced_in=SCHEMA_6,
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="dc_ability",
+        introduced_in=SCHEMA_6,
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="AbilityCheckFact",
+        key="against_subject",
+        introduced_in=SCHEMA_6,
+        is_empty=_empty_false,
+    ),
+    *(
+        _PostSchema3Field(
+            owner="Applicability",
+            key=key,
+            introduced_in=SCHEMA_6,
+            is_empty=_empty_none,
+        )
+        for key in ("condition", "effect_state", "obscurement", "cover")
+    ),
+    _PostSchema3Field(
+        owner="Applicability",
+        key="any_of_terms",
+        introduced_in=SCHEMA_6,
+        is_empty=_empty_seq,
     ),
 )
 
@@ -5934,12 +7512,36 @@ class Applicability:
     damage_outcome: DamageOutcome | None = None
     #: ELAPSED_DURATION — ``value`` carries the count, this its unit.
     unit: TimeUnit | None = None
+    #: CONDITION_STATE, schema 6.
+    condition: ConditionKind | None = None
+    #: EFFECT_STATE, schema 6.
+    effect_state: StateEffectKind | None = None
+    #: OBSCUREMENT, schema 6.
+    obscurement: ObscurementState | None = None
+    #: COVER, schema 6.
+    cover: CoverDegree | None = None
+    #: ANY_OF, schema 6 — the flat cross-kind disjunction. Held in **canonical
+    #: order rather than authoring order**, and the invariant enforces it rather
+    #: than the serializer, exactly as ``AbilityCheckFact.alternatives`` does:
+    #: two authorings of one disjunction are one claim, and an authoring-ordered
+    #: set would give it two keys.
+    #:
+    #: Named apart from ``any_of`` above, which holds the homogeneous size set
+    #: schema 3 declared. Two fields rather than one widened field because the
+    #: element types differ and the accepted payloads of the first must not move.
+    any_of_terms: tuple[Applicability, ...] = ()
     #: CONSUMPTION_THRESHOLD, schema 5. One closed band over one operand,
     #: replacing the ``required_quantity``/``fraction``/``comparison`` triple
     #: schema 4 ranged this kind over. That triple could state only one side of
     #: the requirement, so *"eats but consumes less than half"* and *"eats
     #: nothing"* shared a payload. See :class:`ConsumptionBand`.
     band: ConsumptionBand | None = None
+    #: SPELL_CASTING_TIME, schema 7. One closed threshold over the printed
+    #: casting-time descriptor. Named apart from ``value``/``unit``, which
+    #: ``ELAPSED_DURATION`` ranges over: the two mean different things about
+    #: the same minute, and one shared pair of fields would give them one
+    #: canonical payload.
+    casting_time: CastingTimeThreshold | None = None
 
 
 @dataclass(frozen=True)
@@ -6002,20 +7604,9 @@ def recurrence_violations(recurrence: Recurrence) -> list[str]:
         return [f"{recurrence.boundary!r} is not a declared RecurrenceBoundary"]
     if recurrence.whose is not None and not isinstance(recurrence.whose, RollActor):
         return [f"{recurrence.whose!r} is not a declared RollActor"]
-    turn = recurrence.boundary in (
-        RecurrenceBoundary.START_OF_TURN,
-        RecurrenceBoundary.END_OF_TURN,
+    return _turn_boundary_actor_violations(
+        recurrence.boundary, recurrence.whose, "recurrence"
     )
-    if turn and recurrence.whose is None:
-        return [
-            "a turn-boundary recurrence states no whose; a turn belongs to a creature"
-        ]
-    if not turn and recurrence.whose is not None:
-        return [
-            f"a {recurrence.boundary.value} recurrence carries whose, "
-            "which it does not range over"
-        ]
-    return []
 
 
 @dataclass(frozen=True)
@@ -6159,6 +7750,23 @@ class ProseBindingDraft:
     chunk_char_start: int
     chunk_char_end: int
     irreducibility_reason_code: str
+    #: The :class:`ComponentOption` this binding governs, or
+    #: :data:`COMPONENT_WIDE_PROSE` when it governs the whole component. Schema
+    #: 6, and the same widening :attr:`FactQualifier.option_key` already
+    #: performs for an applicability.
+    #:
+    #: ``Help`` (pp182-183) forces it. The record states an exhaustive actor
+    #: choice — *"you do one of the following"* — and governing prose on each
+    #: arm: *"The GM has final say on whether your assistance is possible"*
+    #: governs the ability-check arm alone, and the five-foot range and the
+    #: *"that enemy"* coreference govern the attack-roll arm alone. Bound at
+    #: component grain each would silently govern the other arm too, which is a
+    #: false statement of scope rather than a lossy one.
+    #:
+    #: Sibling components are not the alternative: components are conjunctive,
+    #: so two of them would assert both benefits apply at once, which the source
+    #: denies.
+    option_key: str = ""
 
 
 @dataclass(frozen=True)
@@ -6177,6 +7785,13 @@ class RelationshipDraft:
 #: :func:`~afterworlds.ingestion.mechanical.validation.validate_representation`
 #: refuses a component with a blank semantic key.
 RECORD_OWNED_REFERENCE = ""
+
+#: ``ProseBindingDraft.option_key`` when the binding governs the whole
+#: component rather than one arm of its choice. Schema 6, and the same spelling
+#: :data:`RECORD_OWNED_REFERENCE` and :func:`fact_target_key` already use: the
+#: sentinel is the *absence* of an option, never an option whose key happens to
+#: be empty, which ``option_set_violations`` refuses outright.
+COMPONENT_WIDE_PROSE = ""
 
 
 @dataclass(frozen=True)
@@ -6310,13 +7925,18 @@ def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
     two clauses of the *same* chunk distinct — without it, a component binding
     two sentences of one paragraph would collapse to one key.
     """
-    return (
+    base = (
         binding.record_key,
         binding.component_key,
         binding.chunk_id,
         binding.span_id,
         binding.irreducibility_reason_code,
     )
+    # Appended only for an option-scoped binding, exactly as
+    # ``fact_target_key`` appends its fourth element: every binding accepted
+    # before schema 6 keeps the five-element key it already has, so no stored
+    # provenance claim, override target or recorded identity moves.
+    return base if not binding.option_key else (*base, binding.option_key)
 
 
 def relationship_target_key(relationship: RelationshipDraft) -> tuple[str, ...]:
@@ -6374,6 +7994,15 @@ _APPLICABILITY_FIELDS: Mapping[ApplicabilityKind, frozenset[str]] = {
     # Schema 5: one closed band, not a triple that could state one side.
     ApplicabilityKind.CONSUMPTION_THRESHOLD: frozenset({"band"}),
     ApplicabilityKind.ELAPSED_DURATION: frozenset({"value", "unit"}),
+    # Schema 6. Each ranges over exactly one already-closed vocabulary, which is
+    # the rule that keeps this a matrix rather than a grammar.
+    ApplicabilityKind.CONDITION_STATE: frozenset({"condition"}),
+    ApplicabilityKind.EFFECT_STATE: frozenset({"effect_state"}),
+    ApplicabilityKind.OBSCUREMENT: frozenset({"obscurement"}),
+    ApplicabilityKind.COVER: frozenset({"cover"}),
+    ApplicabilityKind.ANY_OF: frozenset({"any_of_terms"}),
+    # Schema 7: one closed threshold over the printed casting-time descriptor.
+    ApplicabilityKind.SPELL_CASTING_TIME: frozenset({"casting_time"}),
 }
 
 #: Kinds whose ``value`` is a count rather than an arbitrary integer. Keyed by
@@ -6399,6 +8028,12 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
         "damage_outcome",
         "unit",
         "band",
+        "condition",
+        "effect_state",
+        "obscurement",
+        "cover",
+        "any_of_terms",
+        "casting_time",
     }
 )
 
@@ -6412,6 +8047,7 @@ _APPLICABILITY_ALL_FIELDS = frozenset(
 _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
     {
         Applicability,
+        CastingTimeThreshold,
         ComponentOption,
         ConsumptionBand,
         DamageInterval,
@@ -6431,9 +8067,16 @@ _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
 )
 
 
+#: Applicability fields whose emptiness is an empty container rather than
+#: ``None``. Keyed by name rather than tested by ``isinstance`` so a tuple-valued
+#: field added later has to be classified here instead of silently reading as
+#: "stated" whenever it is empty.
+_APPLICABILITY_SET_FIELDS: frozenset[str] = frozenset({"any_of", "any_of_terms"})
+
+
 def _is_set(applicability: Applicability, field: str) -> bool:
     value = getattr(applicability, field)
-    return bool(value) if field == "any_of" else value is not None
+    return bool(value) if field in _APPLICABILITY_SET_FIELDS else value is not None
 
 
 def _exact_optional_int(value: object, where: str) -> str | None:
@@ -6626,23 +8269,22 @@ def _counterpart_scope_violations(
                 f"{fact_key(fact)} names the counterpart, but nothing in "
                 f"{where} establishes one"
             )
-    for applicability in applicabilities:
-        if type(applicability) is not Applicability:
-            continue
-        any_of = applicability.any_of
-        if type(any_of) is not tuple:
-            continue
-        for comparison in any_of:
-            if type(comparison) is not SizeComparison:
+    for held in applicabilities:
+        for applicability in _stated_applicabilities(held):
+            any_of = applicability.any_of
+            if type(any_of) is not tuple:
                 continue
-            if ParticipantRole.COUNTERPART in (
-                comparison.measured,
-                comparison.reference,
-            ):
-                findings.append(
-                    "size comparison names the counterpart, but nothing in "
-                    f"{where} establishes one"
-                )
+            for comparison in any_of:
+                if type(comparison) is not SizeComparison:
+                    continue
+                if ParticipantRole.COUNTERPART in (
+                    comparison.measured,
+                    comparison.reference,
+                ):
+                    findings.append(
+                        "size comparison names the counterpart, but nothing "
+                        f"in {where} establishes one"
+                    )
     return findings
 
 
@@ -6713,26 +8355,54 @@ def _rolls_established(facts: Sequence[object]) -> int:
     )
 
 
+def _stated_applicabilities(value: object) -> tuple[Applicability, ...]:
+    """One applicability and every condition it actually states.
+
+    ``ANY_OF`` is a condition *holder*: the applicability itself states no
+    operand, and what governs is each of its terms. A scope rule that read only
+    the outer value would therefore see a disjunction as stating nothing, and
+    wrapping a refused condition in one would make it legal — which is a
+    strictly worse outcome than the refusal, because the disjunction's whole
+    point is that any term suffices.
+
+    Depth is 1 by invariant, so this is a flatten rather than a walk. Values
+    outside the closed type are declined here exactly as the callers decline
+    them: another validator has already named them, and reading fields off one
+    would replace a collected report with a crash.
+
+    **The container is checked before it is iterated**, for that same reason
+    one level down. ``any_of_terms`` is a declared field, not a validated one:
+    a draft may hold ``None`` or an integer there, ``applicability_violations``
+    has already reported it as the malformed container it is, and iterating it
+    here would raise ``TypeError`` out of a collecting validator and lose every
+    finding gathered beside it — including that one. A string is refused by the
+    same check rather than iterated into its characters, which would decline
+    each one for the right reason by accident.
+    """
+    if type(value) is not Applicability or type(value.any_of_terms) is not tuple:
+        return ()
+    return (value, *(t for t in value.any_of_terms if type(t) is Applicability))
+
+
 def _roll_outcome_scope_violations(
     conditions: Sequence[object], established: int, whose: str
 ) -> list[str]:
     findings: list[str] = []
-    for condition in conditions:
-        if (
-            type(condition) is not Applicability
-            or condition.kind is not ApplicabilityKind.ROLL_OUTCOME
-        ):
-            continue
-        if established == 0:
-            findings.append(
-                "states a roll outcome, but no fact in scope calls for a roll; "
-                f"{whose} names an outcome of nothing"
-            )
-        elif established > 1:
-            findings.append(
-                f"states a roll outcome, but {whose} calls for {established} "
-                "rolls, so which one the outcome is about is unstated"
-            )
+    for held in conditions:
+        for condition in _stated_applicabilities(held):
+            if condition.kind is not ApplicabilityKind.ROLL_OUTCOME:
+                continue
+            if established == 0:
+                findings.append(
+                    "states a roll outcome, but no fact in scope calls for a "
+                    f"roll; {whose} names an outcome of nothing"
+                )
+            elif established > 1:
+                findings.append(
+                    f"states a roll outcome, but {whose} calls for "
+                    f"{established} rolls, so which one the outcome is about "
+                    "is unstated"
+                )
     return findings
 
 
@@ -7585,6 +9255,28 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "and the amount is at least one"
         ),
     ),
+    # Schema 7. The kind ranges over one closed threshold, and the rules that
+    # make a threshold name a real printed casting time are part of that
+    # contract rather than beside it.
+    _Invariant(
+        id="casting_time_threshold.at_least_amount.states-a-duration",
+        locus=_shape_locus(CastingTimeThreshold),
+        field="at_least_amount",
+        rule=(
+            "an integer of at least one, so a threshold never reaches every "
+            "timed casting"
+        ),
+    ),
+    _Invariant(
+        id="casting_time_threshold.at_least_unit.calendar-units-only",
+        locus=_shape_locus(CastingTimeThreshold),
+        field="at_least_unit",
+        rule=(
+            "a second, minute, hour or day — never a round or a turn, which are "
+            "cadences of the initiative cycle rather than units a printed "
+            "casting time is measured in"
+        ),
+    ),
     _Invariant(
         id="quantity_threshold.value.not-below-zero",
         locus="applicability:quantity_threshold",
@@ -7763,6 +9455,145 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "interval and increased beside itself"
         ),
     ),
+    # -----------------------------------------------------------------------
+    # Schema 6, batch ``actions-1``. Same scope rule as above: every intrinsic
+    # invariant this succession settled, plus the full extent of a shared rule
+    # it joined — the turn-boundary rule gained an actor clause because schema 6
+    # widened the vocabulary that clause ranges over, so the clause is declared
+    # on both shapes that hold it rather than on the one that forced it.
+    # -----------------------------------------------------------------------
+    _Invariant(
+        id="action_allowance.axis.exactly-one",
+        locus="fact:action_allowance",
+        field="cost+activity",
+        rule=(
+            "exactly one of an action-economy slot or a granted activity; the "
+            "two vocabularies are disjoint, and stating both or neither names "
+            "no allowance"
+        ),
+    ),
+    _Invariant(
+        id="action_allowance.count.at-least-one",
+        locus="fact:action_allowance",
+        field="count",
+        rule=(
+            "an integer of at least one; the absence of a grant is the absence "
+            "of this fact, not a fact granting none"
+        ),
+    ),
+    _Invariant(
+        id="effect_duration.whose.turn-boundary-only",
+        locus="fact:effect_duration",
+        field="whose",
+        rule="stated exactly for a turn boundary, and never for another boundary",
+    ),
+    _Invariant(
+        id="effect_duration.whose.subject-polarity-only",
+        locus="fact:effect_duration",
+        field="whose",
+        rule=(
+            "the subject's own turn or that of whoever acts against the "
+            "subject; an ally's turn is a clock this axis cannot address"
+        ),
+    ),
+    _Invariant(
+        id="recurrence.whose.subject-polarity-only",
+        locus=_shape_locus(Recurrence),
+        field="whose",
+        rule=(
+            "the subject's own turn or that of whoever acts against the "
+            "subject; an ally's turn is a clock this axis cannot address"
+        ),
+    ),
+    _Invariant(
+        id="retry_restriction.amount.at-least-one",
+        locus="fact:retry_restriction",
+        field="amount",
+        rule="an integer of at least one; a wait of none bars nothing",
+    ),
+    _Invariant(
+        id="recurring_action_requirement.per.turn-scale-cadence",
+        locus="fact:recurring_action_requirement",
+        field="per",
+        rule=(
+            "a turn or a round; an action is taken inside a turn, so a longer "
+            "unit states no schedule an actor could meet"
+        ),
+    ),
+    _Invariant(
+        id="recurring_action_requirement.cost.names-a-real-slot",
+        locus="fact:recurring_action_requirement",
+        field="cost",
+        rule=(
+            "never none or special: an obligation to spend a slot the "
+            "vocabulary does not name, or no slot at all, requires nothing"
+        ),
+    ),
+    _Invariant(
+        id="activation_cost_eligibility.cost.names-a-real-threshold",
+        locus="fact:activation_cost_eligibility",
+        field="cost",
+        rule=(
+            "never none or special: eligibility is a threshold a thing meets, "
+            "and neither of those names one"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.ability.absence-states-neither-skill-nor-alternatives",
+        locus="fact:ability_check",
+        field="ability+skill+alternatives",
+        rule=(
+            "a fact stating no ability states no skill and offers no "
+            "alternatives; both are pairings with an ability that is not there"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.dc_value.kinds-that-carry-a-number",
+        locus="fact:ability_check",
+        field="dc_kind+dc_value",
+        rule=(
+            "a fixed DC and a two-sided DC each state a value; every other "
+            "source states none, because the number comes from the source it "
+            "names rather than from the fact"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.dc_ability.two-sided-dc-only",
+        locus="fact:ability_check",
+        field="dc_kind+dc_ability",
+        rule=(
+            "stated exactly for a DC that is the higher of a fixed value and a "
+            "target's ability score, whose second half it names"
+        ),
+    ),
+    _Invariant(
+        id="ability_check.against_subject.recorded-total-only",
+        locus="fact:ability_check",
+        field="dc_kind+against_subject",
+        rule=(
+            "stated only for a DC recorded from an earlier check total, the "
+            "one source that states a DC for a roll made by someone else"
+        ),
+    ),
+    _Invariant(
+        id="any_of.terms.flat-and-canonically-ordered",
+        locus="applicability:any_of",
+        field="any_of_terms",
+        rule=(
+            "a flat set: no term is itself a disjunction, each is a valid "
+            "applicability on its own, none repeats another, and the set is "
+            "held in canonical order rather than authoring order"
+        ),
+    ),
+    _Invariant(
+        id="any_of.terms.at-least-two",
+        locus="applicability:any_of",
+        field="any_of_terms",
+        rule=(
+            "at least two terms; a disjunction of one is a plain applicability "
+            "misdescribed"
+        ),
+    ),
 )
 
 
@@ -7834,6 +9665,10 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         ("outcome", AutomaticOutcome),
         ("damage_outcome", DamageOutcome),
         ("unit", TimeUnit),
+        ("condition", ConditionKind),
+        ("effect_state", StateEffectKind),
+        ("obscurement", ObscurementState),
+        ("cover", CoverDegree),
     ):
         held = getattr(applicability, name)
         if held is not None and not isinstance(held, member):
@@ -7844,6 +9679,10 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         typed.extend(drift)
     elif any(type(c) is not SizeComparison for c in applicability.any_of):
         typed.append("any_of is not a tuple of size comparisons")
+    if drift := exact_tuple_violations(applicability.any_of_terms, "any_of_terms"):
+        typed.extend(drift)
+    elif any(type(a) is not Applicability for a in applicability.any_of_terms):
+        typed.append("any_of_terms is not a tuple of applicabilities")
     # Delegated, never restated. The exact-type refusal is only half of what a
     # Rational has to satisfy: a zero or negative denominator is not a number,
     # and a negative numerator is not a *share* of a requirement. Checking the
@@ -7854,6 +9693,11 @@ def applicability_violations(applicability: Applicability) -> list[str]:
         []
         if applicability.band is None
         else _check_consumption_band(applicability.band, "band")
+    )
+    typed.extend(
+        []
+        if applicability.casting_time is None
+        else _check_casting_time_threshold(applicability.casting_time, "casting_time")
     )
     if typed:
         return typed
@@ -7891,6 +9735,52 @@ def applicability_violations(applicability: Applicability) -> list[str]:
             if comparison in seen:
                 findings.append("duplicate size comparison in one applicability")
             seen.add(comparison)
+    elif applicability.kind is ApplicabilityKind.ANY_OF:
+        findings.extend(_any_of_term_violations(applicability.any_of_terms))
+    return findings
+
+
+def _any_of_term_violations(terms: tuple[Applicability, ...]) -> list[str]:
+    """The flat disjunction's own contract — the three rules that keep it flat.
+
+    **Depth one.** A term that is itself a disjunction would make this a tree,
+    and a tree with a stated ``negated`` on each node is a Boolean expression
+    language. Refused outright rather than flattened, because flattening would
+    silently rewrite what an author stated.
+
+    **Canonical order.** Two authorings of one disjunction are one claim, so the
+    order is derived from the terms' own canonical payloads rather than from the
+    order they were written in. Enforced here rather than fixed by the
+    serializer, exactly as ``AbilityCheckFact.alternatives`` is: a serializer
+    that reordered would hide an authoring mistake instead of reporting it.
+
+    **At least two, each distinct and each valid on its own.** A disjunction of
+    one is a plain applicability misdescribed, and a repeated term offers the
+    same condition under two spellings.
+    """
+    findings: list[str] = []
+    for index, term in enumerate(terms):
+        if term.kind is ApplicabilityKind.ANY_OF:
+            findings.append(
+                f"any_of_terms[{index}] is itself a disjunction; the set is flat, "
+                "and a nested one would make this a predicate language"
+            )
+            continue
+        findings.extend(
+            f"any_of_terms[{index}]: {v}" for v in applicability_violations(term)
+        )
+    if findings:
+        return findings
+    if len(terms) < 2:
+        findings.append(
+            f"a disjunction of {len(terms)} term(s); a choice of one is a plain "
+            "applicability misdescribed"
+        )
+    payloads = [canonical_bytes(_dataclass_payload(a)) for a in terms]
+    if payloads != sorted(payloads):
+        findings.append("any_of_terms is not in canonical order")
+    if len(set(payloads)) != len(payloads):
+        findings.append("any_of_terms repeats a term")
     return findings
 
 

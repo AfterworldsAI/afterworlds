@@ -34,14 +34,18 @@ from afterworlds.ingestion.mechanical.projection import (
 from afterworlds.ingestion.mechanical.representation import (
     AbilityCheckFact,
     AbilityScore,
+    ActionAllowanceFact,
     ActionCost,
     ActionEconomyFact,
     ActionRestrictionFact,
+    ActivationCostEligibilityFact,
     AdvantageFact,
     AdvantageState,
+    AllowanceScope,
     Applicability,
     ApplicabilityKind,
     AttackKind,
+    AttackRelativeTiming,
     AttackRollFact,
     AutomaticOutcome,
     AutomaticOutcomeFact,
@@ -72,17 +76,26 @@ from afterworlds.ingestion.mechanical.representation import (
     DiceExpression,
     DieSize,
     DurationKind,
+    EffectDurationFact,
     EffectTerminationFact,
+    EligibilitySubject,
+    EquipmentChange,
+    EquipmentChangeFact,
     EquipmentDescriptorFact,
+    ExpendableResource,
     FactFamily,
     HealingFact,
+    InterleavePoint,
     LevelDirection,
     MalformedFactPayloadError,
     MeasureUnit,
     Money,
+    MovementAllowanceBasis,
+    MovementAllowanceFact,
     MovementAmount,
     MovementCostFact,
     MovementCostKind,
+    MovementInterleaveFact,
     MovementMode,
     MovementPermissionFact,
     MovementTransportFact,
@@ -91,14 +104,20 @@ from afterworlds.ingestion.mechanical.representation import (
     QuantityMultiplierFact,
     RangeKind,
     Rational,
+    ReactionProvocationFact,
     RecordDraft,
     RecordKind,
     RecoveryTrigger,
+    RecurrenceBoundary,
+    RecurringActionRequirementFact,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
     RequiredQuantity,
+    ResolutionTiming,
+    ResourceExpenditureFact,
     ResourceRecoveryFact,
+    RetryRestrictionFact,
     RollActor,
     RollContext,
     RollSpec,
@@ -121,12 +140,16 @@ from afterworlds.ingestion.mechanical.representation import (
     SpellSlotProgressionFact,
     StateEffectFact,
     StateEffectKind,
+    SustainedState,
+    SustainedStateRequirementFact,
     TimePeriod,
     TimeUnit,
     TrackedQuantity,
     TransformationFact,
     TransformedForm,
     TransportKind,
+    TriggeredReaction,
+    TriggeredResolutionFact,
     UnknownFactFamilyError,
     WeaponProperty,
     WeaponPropertyFact,
@@ -345,6 +368,60 @@ EXEMPLARS: dict[FactFamily, Any] = {
         unit=TimeUnit.MINUTE,
         floor_amount=30,
         floor_unit=TimeUnit.SECOND,
+    ),
+    # Schema 6. Each quotes the ``actions-1`` clause that forced it.
+    # Action: "On your turn, you can take one action."
+    FactFamily.ACTION_ALLOWANCE: ActionAllowanceFact(
+        count=1, per=AllowanceScope.TURN, cost=ActionCost.ACTION
+    ),
+    # Ready: "To be readied, a spell must have a casting time of an action."
+    FactFamily.ACTIVATION_COST_ELIGIBILITY: ActivationCostEligibilityFact(
+        subject=EligibilitySubject.SPELL, cost=ActionCost.ACTION
+    ),
+    # Dodge: "until the start of your next turn".
+    FactFamily.EFFECT_DURATION: EffectDurationFact(
+        until=RecurrenceBoundary.START_OF_TURN, whose=RollActor.SUBJECT
+    ),
+    # Attack: "You can either equip or unequip one weapon when you make an
+    # attack as part of this action. You do so either before or after the
+    # attack."
+    FactFamily.EQUIPMENT_CHANGE: EquipmentChangeFact(
+        change=EquipmentChange.EQUIP, timing=AttackRelativeTiming.BEFORE
+    ),
+    # Dash: "The increase equals your Speed after applying any modifiers."
+    FactFamily.MOVEMENT_ALLOWANCE: MovementAllowanceFact(
+        basis=MovementAllowanceBasis.OWN_SPEED
+    ),
+    # Attack: "you can use some or all of that movement to move between those
+    # attacks".
+    FactFamily.MOVEMENT_INTERLEAVE: MovementInterleaveFact(
+        between=InterleavePoint.REPEATED_ATTACKS
+    ),
+    # Disengage: "your movement doesn't provoke Opportunity Attacks".
+    FactFamily.REACTION_PROVOCATION: ReactionProvocationFact(
+        reaction=TriggeredReaction.OPPORTUNITY_ATTACK, provokes=False
+    ),
+    # Magic: "you must take the Magic action on each turn of that casting".
+    FactFamily.RECURRING_ACTION_REQUIREMENT: RecurringActionRequirementFact(
+        cost=ActionCost.ACTION, per=TimeUnit.TURN
+    ),
+    # Magic: "the spell fails, but you don't expend a spell slot".
+    FactFamily.RESOURCE_EXPENDITURE: ResourceExpenditureFact(
+        resource=ExpendableResource.SPELL_SLOT, expended=False
+    ),
+    # Influence: "you must wait 24 hours (or a duration set by the GM) before
+    # urging it in the same way again".
+    FactFamily.RETRY_RESTRICTION: RetryRestrictionFact(
+        amount=24, unit=TimeUnit.HOUR, gamemaster_may_set_other=True
+    ),
+    # Magic: "and you must maintain Concentration while you do so".
+    FactFamily.SUSTAINED_STATE_REQUIREMENT: SustainedStateRequirementFact(
+        state=SustainedState.CONCENTRATION
+    ),
+    # Ready: "you can either take your Reaction right after the trigger
+    # finishes or ignore the trigger".
+    FactFamily.TRIGGERED_RESOLUTION: TriggeredResolutionFact(
+        timing=ResolutionTiming.IMMEDIATELY_AFTER_TRIGGER, optional=True
     ),
 }
 

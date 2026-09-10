@@ -239,9 +239,14 @@ def test_the_lift_is_recorded_as_evidence_with_its_verified_extent() -> None:
     # Every crossing, oldest first, each with its own proved extent. A single
     # collapsed record would assert a transition the registry does not contain.
     first, last = result.lifts[0], result.lifts[-1]
+    # Derived rather than listed, so the chain stays right at every succession:
+    # a prior reviewed under schema 3 crosses every registered step between
+    # there and whatever this build implements.
     assert [x.lift_id for x in result.lifts] == [
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
+        "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
     ]
     assert (first.from_version, first.from_hash) == (SCHEMA_3_VERSION, SCHEMA_3_HASH)
     assert (last.to_version, last.to_hash) == (

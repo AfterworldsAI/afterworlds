@@ -58,7 +58,8 @@ afterworlds = [
     # CRD Issue 5d committed accepted oracles, resolved at runtime by
     # oracle.committed_oracle_for from the fixed packaged directory. The
     # directory holds one production artifact today — the SRD 5.2.1 release,
-    # carrying accepted batches conditions-1 and hazards-1 — so the glob must
+    # carrying accepted batches conditions-1, hazards-1 and actions-1 — so the
+    # glob must
     # ship it, or an installed distribution would resolve no accepted authority
     # and publication would return ABSENT rather than the honest INCOMPLETE.
     "ingestion/mechanical/oracles/*.json",

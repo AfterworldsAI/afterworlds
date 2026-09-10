@@ -210,6 +210,182 @@ identity, the batch anchor still at schema 3, and the committed file never writt
 moves at the new required axis because the accepted artifact holds no ability-check fact at all, which
 is asserted against the artifact rather than assumed.
 
+**Amended by representation schema 6 — the `actions-1` schema stop.** Discovery over the thirteen
+`actions-1` records reached a schema stop before any proposal was generated: 21 blocking families across
+35 `UNRESOLVED` obligations, none of which schema 5's union could carry without either losing a
+distinction the source draws or asserting one it does not. Schema 6 answers them under contract 3's first
+branch — twelve typed families and a set of widenings — and leaves the rest under its second, as prose
+bound at the scope where it applies. Answering the batch's obligations is not the same as discharging a
+contract-3 family group: `known_unknowns.md` records each affected group against its own closure
+standard, and none of them reaches **discharged** on this batch's evidence.
+
+The twelve families are `ActionAllowanceFact`, `MovementAllowanceFact`, `MovementInterleaveFact`,
+`EffectDurationFact`, `ReactionProvocationFact`, `RetryRestrictionFact`, `RecurringActionRequirementFact`,
+`SustainedStateRequirementFact`, `ResourceExpenditureFact`, `EquipmentChangeFact`,
+`TriggeredResolutionFact`, and `ActivationCostEligibilityFact`. Three of the decisions inside that set
+are the ones worth recording here, because each refuses a shape that would have been smaller:
+
+* **An allowance states either a slot or an activity, never both, and never one vocabulary spanning
+  the two.** *"You can take one additional action"* and *"you can make one additional attack"* are
+  different grants; a single enum admitting overlapping members would render them identically on the
+  wire.
+* **A sequencing point is two families, not one discriminator.** *"between attacks"* and *"immediately
+  after the trigger"* locate a thing in different domains, and one enum spanning both would have to
+  refuse most of its own cross products — two families wearing one field. The same argument keeps
+  `RecurringActionRequirementFact` and `SustainedStateRequirementFact` apart, and keeps obscurement's
+  vocabulary apart from cover's.
+* **Eligibility is substantive authority, not supporting prose.** *"To be readied, a spell must have a
+  casting time of an action"* states **which spells the mechanic reaches**, over a printed, enumerable
+  field. `Ready` L8 had been classified as supporting; the sweep for comparable clauses confirmed
+  `Magic` K1 and `Utilize` O2 were already typed, so it is the only reclassification.
+
+The widenings: `RollActor.ALLY`, admitted because `Help`'s two arms are neither the subject's roll nor a
+roll directed at the subject and so produced identical typed authority; two `DcKind` members, one of
+which carries a number, correcting the family's earlier "only `FIXED` carries a number" declaration;
+`AbilityCheckFact.ability` made **optional** — an ability the GM chooses, beside a printed DC, was
+otherwise unrepresentable — with `dc_ability` and `against_subject` beside it; `AdvantageFact.use_limit`;
+five `ApplicabilityKind` members including a **depth-1, canonically ordered, at-least-two**
+disjunction; and `ProseBindingDraft.option_key`, which lets prose govern one arm of a choice where
+component-grain binding would be false rather than merely lossy. `option_key` appends a sixth element to
+the provenance coordinate **only when non-empty**, so all twenty accepted five-element coordinates are
+unchanged.
+
+**Amended in the same review round, before anything was accepted under it.** Schema 6 was reviewed
+against its own consuming paths and four things it declared were not yet true of them. Each is a defect
+of *propagation* — new meaning that existing contracts had not been carried across — rather than a
+reason to revisit the twelve families, and one of them changes this ADR's own contract:
+
+* **Option-scoped prose reaches a consumer.** The effective view discarded `option_key`, so `Help`'s two
+  arms published the same governing passage twice and moving a clause between arms produced an
+  identical effective record. `SourceProse` now carries the scope, and the component-wide scope stays
+  the empty string every accepted binding states.
+* **A schema-6 null is refused under an earlier declaration.** `AbilityCheckFact.ability` became
+  optional at schema 6, and nothing enforced that: an artifact declaring schema 5 could state
+  `"ability": null` — a check fixing no ability, beside a printed DC — and be read as authority a
+  schema-5 reviewer signed off on. The key is a schema-1 field, so the payload is *complete* either way
+  and only the value is new; neither the omission registry nor the required-since registry can see that
+  shape. A third registry states it, and **it is part of the version-legality contract, so it is inside
+  the schema hash**: the destination pin is now
+  `0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b7`, replacing the
+  `d4584a74…c1d6` recorded above before review. Nothing accepted moves — every accepted ability check
+  states an ability, so every accepted payload and `fact_key` is byte-identical — and no batch had been
+  accepted under the earlier pin.
+* **A disjunction is not a place to hide a condition from its scope rule.** `ANY_OF` states no operand
+  of its own, so the roll-outcome and counterpart-establishment rules read it as stating nothing:
+  wrapping a refused condition in one made it legal, in component, option, fact-qualifier and override
+  scope alike. Both rules now read a disjunction's terms, which is a flatten rather than a walk because
+  depth is 1 by invariant.
+* **Every applicability ingress refuses depth before it recurses.** The builder reached through
+  `fact_from_payload` — and therefore `ConditionRemovalRestrictionFact.until`, and the override seam —
+  rebuilt terms as deep as the payload asked, so a 600-level payload raised `RecursionError` from the
+  one layer whose contract is to report malformed input.
+
+Schema 4 and schema 5 remain
+recognized contracts and their pins are unchanged. Succession stays one row per crossing and resolved as
+a path: the committed artifact declares schema 5, which is where `hazards-1` was reviewed, and reaches
+schema 6 across `5d-lift-schema-5-to-6`. Zero movement was re-run against the finalized destination —
+all six collections byte-identical, 281 spans and every accepted provenance coordinate carried by object
+identity, both batch anchors still at the schema each was reviewed under, and the committed file never
+written.
+
+Nothing is accepted, published, activated, or retired by the schema change, and acceptance-ready
+regeneration for `actions-1` stays paused until it passes review.
+
+> **Historical — the state at the schema-6 amendment.** The two paragraphs above record what was true
+> when schema 6 was registered, and are kept as written. The committed artifact declared schema 5 then;
+> it declares schema 7 now, and `hazards-1` is no longer the batch the newest acceptance was reviewed
+> under. The pause stated here ended on 2026-09-09; see the note under the schema-7 amendment below.
+> Every pin, anchor and lift row recorded above is unchanged.
+
+**Amended by representation schema 7 — the `actions-1` residue S-1.** Independent review of the
+schema-6 batch cleared the `Dash` correction, the `Magic`/`Ready` activation-cost eligibility
+reclassification and the `Help`/`Influence` governing prose, and confirmed one stop. *"If you cast a
+spell that has a casting time of 1 minute or longer"* (`Magic`, p185) is a threshold over a spell's
+**printed casting-time descriptor**, and schema 6 had no shape for it. `ActivationCostEligibilityFact`
+ranges over `ActionCost`, which prints no amount and no unit, so it cannot carry a duration;
+`ApplicabilityKind.ELAPSED_DURATION` would have meant time *already spent* casting, which is false at
+the moment the clause first has to apply. `Magic` K2, K3 and K4 stayed unresolved together because the
+recurring action, the Concentration duty and the failure/resource consequences are all consequences of
+that one gate.
+
+Schema 7 is the smallest closed extension that states it: **one** `ApplicabilityKind` member,
+`SPELL_CASTING_TIME`, over **one** closed value object, `CastingTimeThreshold(at_least_amount,
+at_least_unit)` — the same shape schema 5 used for `CONSUMPTION_THRESHOLD`/`ConsumptionBand`. No fact
+family, no ownership form, no nullable field, no predicate language and no executable rule. Three
+decisions inside it are worth recording:
+
+* **Applicability, not a fact, because the gate has to be shared.** K2's requirement and K4's
+  consequences are two components of one record, and both are inside the same printed condition. A gate
+  carried as a *fact* and restated on both is refused by the duplicated-fact-authority rule — correctly,
+  since one source statement would have become two copies of the same authority. Applicability may
+  repeat across components, because a condition two structures share is one condition. That asymmetry
+  is what makes it the scope-preserving carrier, and it is asserted in test rather than argued here.
+* **The break stays conditional inside the gate.** A component has exactly one `applies_when`, which
+  the gate occupies, so *"If your Concentration is broken"* rides `FactQualifier` on each of the two
+  consequence facts. Qualifiers compose conjunctively inward, which is the reading the source prints: a
+  long casting, whose Concentration is broken. A component stating only `CONCENTRATION_BROKEN` would
+  have reached every broken Concentration in the game.
+* **A one-minute spell falls outside `Magic` K1, not outside the Magic action.** K1's eligibility fact
+  says which spells the action *reaches* by the cost they print; a timed casting prints no cost and so
+  matches no eligibility fact. K2 is a different clause about a further requirement **inside** the
+  action. Widening `ActionCost` to carry a duration would have conflated them.
+
+Two intrinsic invariants are declared inside schema identity, so weakening either moves the hash and
+strands the registered lift: an amount below 1 states no duration and would reach every timed casting,
+and `ROUND`/`TURN` are cadences of the initiative cycle rather than units a casting time is printed in.
+`casting_time_meets` compares the two **stated durations by magnitude**, reducing each through the
+fixed calendar length of its unit — second, minute, hour, day. A 120-minute threshold is therefore not
+met by a 1-hour casting, and a 1-minute threshold is met by a 60-second one. *(An earlier draft of this
+helper ranked the unit *names* and dropped both amounts whenever the units differed, which was
+over-inclusive in the first direction and under-inclusive in the second. Corrected before any
+acceptance; recorded here rather than silently replaced.)* A round and a turn are slices of the
+initiative cycle whose length no printed casting time states, so a casting time or threshold in either
+**raises** rather than answering — `False` is the substantive answer *"this rule does not reach that
+spell"*, and returning it for a comparison never made would hide a wrong eligibility decision behind a
+Boolean. That refusal is the boundary of the supported forms; no SRD casting time is printed in rounds
+or turns, so nothing in the corpus is reached by it, and the residue is recorded in
+`known_unknowns.md`. The conversion table is a property of the calendar words, not a ruling about the
+corpus, and the general eligibility question stays deferred.
+
+The schema-7 destination pin is
+`80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`. Schemas 4, 5 and 6 remain recognized
+contracts with unchanged pins; schema 6 becomes recognized *as the source of a registered lift*, which
+is the registry rule rather than a hand-kept list. Succession stays one row per crossing and resolved as
+a path: the committed artifact still declares schema 5, which is where `hazards-1` was reviewed, and now
+reaches schema 7 across `5d-lift-schema-5-to-6` then `5d-lift-schema-6-to-7`. Nothing accepted moves —
+`Applicability.casting_time` is omitted when unset, so every applicability accepted under schemas 3
+through 6 already has its schema-7 canonical form, and the frozen prior is lifted rather than rewritten.
+
+Nothing is accepted, published, activated, or retired by this schema change either, and acceptance-ready
+regeneration for `actions-1` remains paused. The new composition for `Magic` K2/K3/K4 is demonstrated
+through review and test evidence only — a persisted-gate proof against the pinned source coordinates,
+not a proposal and not an acceptance.
+
+> **Historical — the state at the schema-7 amendment, superseded by Owner Decision 2026-09-09.** The
+> paragraph above records the state when schema 7 was registered and is kept as written; the pause it
+> states has since ended. On 2026-09-09 the Owner accepted this exact schema-7 proposal,
+> `62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c`, as batch `actions-1` — all 182
+> spans and the complete representation, extending the preserved `conditions-1`/`hazards-1` prior
+> through the registered transitions. **No unresolved architectural choice remains here and no further
+> Owner ruling is required**; this note reconciles the description with a decision already recorded, and
+> amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 7 rather than schema 5, and
+> carries a third anchor, `actions-1` at schema 7. What it did not change: `conditions-1` stays anchored
+> at schema 3 and `hazards-1` at schema 5, where each was reviewed; succession is still one row per
+> crossing, resolved as the path `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7`; schemas 4, 5
+> and 6 remain recognized contracts with the pins above; and the schema-7 destination pin is still
+> `80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`. The accepted mechanical identity is
+> `8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee`.
+>
+> What remains open is unchanged by it. The acceptance published, activated and retired **nothing**, and
+> it resolved no reference it did not define: `glossary.speed`, `glossary.concentration`,
+> `attitude.friendly`, `attitude.hostile` and `attitude.indifferent` are still unresolved and are still
+> explicit publication blockers. General casting-time eligibility stays a deferred Known Unknown,
+> recorded in `known_unknowns.md`, together with representation limit L-1 and residue R-help-reason. The
+> `Magic` K2/K3/K4 demonstration named above was no part of the accepted batch and remains
+> demonstration evidence only.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

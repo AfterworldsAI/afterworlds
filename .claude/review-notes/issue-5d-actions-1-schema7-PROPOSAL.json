@@ -1,0 +1,5214 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py (CRD Issue 5d batch actions-1, representation schema 7)",
+ "proposal_schema_version": "5d-proposal-1",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": null,
+         "actor": "ally",
+         "context": "ability_check"
+        },
+        "state": "advantage",
+        "use_limit": "next_qualifying_roll"
+       },
+       {
+        "family": "effect_duration",
+        "until": "start_of_turn",
+        "whose": "subject"
+       }
+      ],
+      "semantic_key": "assist_ability_check"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": null,
+         "actor": "ally",
+         "context": "attack_roll"
+        },
+        "state": "advantage",
+        "use_limit": "next_qualifying_roll"
+       },
+       {
+        "family": "effect_duration",
+        "until": "start_of_turn",
+        "whose": "subject"
+       }
+      ],
+      "semantic_key": "assist_attack_roll"
+     }
+    ],
+    "record_key": "action.help",
+    "semantic_key": "help_choice"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "mixed",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "basis": "own_speed",
+        "family": "movement_allowance"
+       },
+       {
+        "cost": "reaction",
+        "family": "action_economy"
+       }
+      ],
+      "semantic_key": "move_up_to_speed"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "cost": "reaction",
+        "family": "action_economy"
+       }
+      ],
+      "semantic_key": "chosen_action"
+     }
+    ],
+    "record_key": "action.ready",
+    "semantic_key": "ready_response"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_unwilling"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "fiction_dependent_consequence",
+    "options": [],
+    "record_key": "action.hide",
+    "semantic_key": "hide_awareness"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_disposition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_attempt"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_success"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_willing"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_trigger"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "glossary.action",
+    "semantic_key": "action_choice"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "subjective_judgment",
+    "options": [],
+    "record_key": "action.study",
+    "semantic_key": "study_areas"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "basis": "own_special_speed",
+        "family": "movement_allowance"
+       }
+      ],
+      "semantic_key": "special_speed"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "basis": "own_speed",
+        "family": "movement_allowance"
+       }
+      ],
+      "semantic_key": "standard_speed"
+     }
+    ],
+    "record_key": "action.dash",
+    "semantic_key": "dash_movement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "change": "equip",
+        "family": "equipment_change",
+        "timing": "after"
+       }
+      ],
+      "semantic_key": "equip_after"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "change": "equip",
+        "family": "equipment_change",
+        "timing": "before"
+       }
+      ],
+      "semantic_key": "equip_before"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "change": "unequip",
+        "family": "equipment_change",
+        "timing": "after"
+       }
+      ],
+      "semantic_key": "unequip_after"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "change": "unequip",
+        "family": "equipment_change",
+        "timing": "before"
+       }
+      ],
+      "semantic_key": "unequip_before"
+     }
+    ],
+    "record_key": "action.attack",
+    "semantic_key": "attack_equipment_change"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "intelligence",
+      "context": "ability_check",
+      "dc_kind": "gamemaster_set",
+      "dc_value": null,
+      "family": "ability_check"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.study",
+    "semantic_key": "study_check"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "wisdom",
+      "against_subject": true,
+      "context": "ability_check",
+      "dc_kind": "recorded_check_total",
+      "dc_value": null,
+      "family": "ability_check",
+      "skill": "perception"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.hide",
+    "semantic_key": "hide_discovery_dc"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "wisdom",
+      "context": "ability_check",
+      "dc_kind": "gamemaster_set",
+      "dc_value": null,
+      "family": "ability_check"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "subjective_judgment",
+    "options": [],
+    "record_key": "action.search",
+    "semantic_key": "search_check"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": "attack_roll",
+      "cost": null,
+      "count": 1,
+      "family": "action_allowance",
+      "per": "owning_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.attack",
+    "semantic_key": "attack_allowance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": "equipment_change",
+      "cost": null,
+      "count": 1,
+      "family": "action_allowance",
+      "per": "attack"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.attack",
+    "semantic_key": "attack_equipment_allowance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": null,
+      "cost": "action",
+      "count": 1,
+      "family": "action_allowance",
+      "per": "turn"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.action",
+    "semantic_key": "action_allowance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": null,
+      "cost": "reaction",
+      "count": 1,
+      "family": "action_allowance",
+      "per": "owning_effect"
+     },
+     {
+      "family": "effect_duration",
+      "until": "start_of_turn",
+      "whose": "subject"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_reaction_grant"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "between": "repeated_attacks",
+      "family": "movement_interleave"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "action.attack",
+    "semantic_key": "attack_movement_interleave"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "action_economy"
+     },
+     {
+      "cost": "action",
+      "family": "activation_cost_eligibility",
+      "subject": "object"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.utilize",
+    "semantic_key": "utilize_action"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "action_economy"
+     },
+     {
+      "cost": "action",
+      "family": "activation_cost_eligibility",
+      "subject": "spell"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "action.magic",
+    "semantic_key": "magic_activation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "action_economy"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_action"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "activation_cost_eligibility",
+      "subject": "spell"
+     },
+     {
+      "expended": true,
+      "family": "resource_expenditure",
+      "resource": "casting_resources"
+     },
+     {
+      "family": "effect_duration",
+      "until": "start_of_turn",
+      "whose": "subject"
+     },
+     {
+      "family": "sustained_state_requirement",
+      "state": "concentration"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_spell"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_duration",
+      "until": "end_of_turn",
+      "whose": "subject"
+     },
+     {
+      "family": "reaction_provocation",
+      "provokes": false,
+      "reaction": "opportunity_attack"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.disengage",
+    "semantic_key": "disengage_movement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_duration",
+      "until": "end_of_turn",
+      "whose": "subject"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.dash",
+    "semantic_key": "dash_duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_duration",
+      "until": "start_of_turn",
+      "whose": "subject"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.dodge",
+    "semantic_key": "dodge_duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "action.hide",
+    "semantic_key": "hide_end"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "triggered_resolution",
+      "optional": true,
+      "timing": "immediately_after_trigger"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_resolution"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "failure",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "6d18295fd1eaebb3",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": null,
+      "context": "ability_check",
+      "dc_ability": "intelligence",
+      "dc_kind": "higher_of_fixed_or_target_ability_score",
+      "dc_value": 15,
+      "family": "ability_check"
+     },
+     {
+      "amount": 24,
+      "family": "retry_restriction",
+      "gamemaster_may_set_other": true,
+      "unit": "hour"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "action.influence",
+    "semantic_key": "influence_check"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "any_of_terms": [
+      {
+       "any_of": [],
+       "comparison": "equals",
+       "kind": "quantity_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": "speed",
+       "trigger": null,
+       "value": 0
+      },
+      {
+       "any_of": [],
+       "comparison": null,
+       "condition": "incapacitated",
+       "kind": "condition_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     ],
+     "comparison": null,
+     "kind": "any_of",
+     "negated": true,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.dodge",
+    "semantic_key": "dodge_saving_throws"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "any_of_terms": [
+      {
+       "any_of": [],
+       "comparison": "equals",
+       "kind": "quantity_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": "speed",
+       "trigger": null,
+       "value": 0
+      },
+      {
+       "any_of": [],
+       "comparison": null,
+       "condition": "incapacitated",
+       "kind": "condition_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     ],
+     "comparison": null,
+     "kind": "any_of",
+     "negated": true,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "action.dodge",
+    "semantic_key": "dodge_attack_disadvantage"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "any_of_terms": [
+      {
+       "any_of": [],
+       "comparison": null,
+       "cover": "three_quarters",
+       "kind": "cover",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      {
+       "any_of": [],
+       "comparison": null,
+       "cover": "total",
+       "kind": "cover",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      {
+       "any_of": [],
+       "comparison": null,
+       "kind": "obscurement",
+       "negated": false,
+       "obscurement": "heavily_obscured",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     ],
+     "comparison": null,
+     "kind": "any_of",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "success",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "bf98743ba886bb2f",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "dexterity",
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 15,
+      "family": "ability_check",
+      "skill": "stealth"
+     },
+     {
+      "condition": "invisible",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "action.hide",
+    "semantic_key": "hide_check"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "casting_time": {
+      "at_least_amount": 1,
+      "at_least_unit": "minute"
+     },
+     "comparison": null,
+     "kind": "spell_casting_time",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "recurring_action_requirement",
+      "per": "turn"
+     },
+     {
+      "family": "sustained_state_requirement",
+      "state": "concentration"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.magic",
+    "semantic_key": "magic_long_casting"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "casting_time": {
+      "at_least_amount": 1,
+      "at_least_unit": "minute"
+     },
+     "comparison": null,
+     "kind": "spell_casting_time",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "effect_state": "concentration_broken",
+       "kind": "effect_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "08d4572fe00ecf1e",
+      "option_key": ""
+     },
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "effect_state": "concentration_broken",
+       "kind": "effect_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "f48175a8ab780dcd",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "expended": false,
+      "family": "resource_expenditure",
+      "resource": "spell_slot"
+     },
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.magic",
+    "semantic_key": "magic_concentration_break"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "comparison": null,
+     "effect_state": "concentration_broken",
+     "kind": "effect_state",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "action.ready",
+    "semantic_key": "ready_concentration_break"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 121,
+    "chunk_char_start": 0,
+    "chunk_id": "c015c628-de90-5c0c-aa55-18a3ce9426a5",
+    "component_key": "influence_unwilling",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "action.influence",
+    "span_id": "976672e3-0f20-56c7-b33a-c3327693f7b9"
+   },
+   {
+    "chunk_char_end": 132,
+    "chunk_char_start": 0,
+    "chunk_id": "be9d66ad-8c81-5f0c-9be6-b645ee6ab155",
+    "component_key": "attack_movement_interleave",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "action.attack",
+    "span_id": "9a735d22-e9f2-5930-9fd4-f7aaf4afbc33"
+   },
+   {
+    "chunk_char_end": 135,
+    "chunk_char_start": 0,
+    "chunk_id": "54eef020-bd4d-5e06-b631-6ff30fb2d375",
+    "component_key": "influence_willing",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.influence",
+    "span_id": "1db6c3e8-6b68-517b-b519-b93319393eb4"
+   },
+   {
+    "chunk_char_end": 138,
+    "chunk_char_start": 118,
+    "chunk_id": "aa1fac84-7f67-577d-a7dd-749286c5f1a0",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_attack_roll",
+    "record_key": "action.help",
+    "span_id": "0c8c6278-2053-5864-959c-72613d698765"
+   },
+   {
+    "chunk_char_end": 138,
+    "chunk_char_start": 38,
+    "chunk_id": "904e98e8-ca12-5135-8c67-8784215fa4f7",
+    "component_key": "action_choice",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "glossary.action",
+    "span_id": "245b5c9c-7d7d-573d-aa3d-4a8a17b7c2a0"
+   },
+   {
+    "chunk_char_end": 162,
+    "chunk_char_start": 85,
+    "chunk_id": "5bbc9ab9-2cad-5e23-82e3-2db4c081feeb",
+    "component_key": "magic_activation",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.magic",
+    "span_id": "92ee5864-9b22-5d96-ae12-31d26dc013a3"
+   },
+   {
+    "chunk_char_end": 171,
+    "chunk_char_start": 140,
+    "chunk_id": "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_ability_check",
+    "record_key": "action.help",
+    "span_id": "5007ed4a-92f4-5f04-b8db-7b8313f47e7e"
+   },
+   {
+    "chunk_char_end": 175,
+    "chunk_char_start": 147,
+    "chunk_id": "59747634-73ec-5540-b00f-72dd2f541d9c",
+    "component_key": "dodge_attack_disadvantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "action.dodge",
+    "span_id": "69f7f056-f978-5a3e-9297-6060760fa212"
+   },
+   {
+    "chunk_char_end": 192,
+    "chunk_char_start": 0,
+    "chunk_id": "961df5d1-a442-508b-b8f3-e01550bccdc7",
+    "component_key": "influence_attempt",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.influence",
+    "span_id": "571d8db6-8741-561a-b87a-8e192698038e"
+   },
+   {
+    "chunk_char_end": 192,
+    "chunk_char_start": 62,
+    "chunk_id": "d473d4c8-6c48-5d9a-80dc-3dafdc7fd3c5",
+    "component_key": "study_check",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.study",
+    "span_id": "2ba1f6e8-7881-5a70-aeb3-7f9e1663ef6d"
+   },
+   {
+    "chunk_char_end": 221,
+    "chunk_char_start": 97,
+    "chunk_id": "13427491-0884-5159-921a-16c5c60559ff",
+    "component_key": "search_check",
+    "irreducibility_reason_code": "subjective_judgment",
+    "record_key": "action.search",
+    "span_id": "e78995c4-99bf-5a8e-8447-dc6d289d18ed"
+   },
+   {
+    "chunk_char_end": 237,
+    "chunk_char_start": 187,
+    "chunk_id": "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+    "component_key": "hide_check",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "action.hide",
+    "span_id": "8dd334b0-9798-5338-b245-1e63c724aa28"
+   },
+   {
+    "chunk_char_end": 276,
+    "chunk_char_start": 200,
+    "chunk_id": "ac36f3e1-f888-5618-8a5f-8fa01d66569f",
+    "component_key": "ready_trigger",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.ready",
+    "span_id": "fb7e343e-d6e5-5028-9707-f31e61717ee2"
+   },
+   {
+    "chunk_char_end": 289,
+    "chunk_char_start": 192,
+    "chunk_id": "d473d4c8-6c48-5d9a-80dc-3dafdc7fd3c5",
+    "component_key": "study_areas",
+    "irreducibility_reason_code": "subjective_judgment",
+    "record_key": "action.study",
+    "span_id": "5f356f7f-113a-50fb-b4b7-1f01d91fa20b"
+   },
+   {
+    "chunk_char_end": 304,
+    "chunk_char_start": 237,
+    "chunk_id": "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+    "component_key": "hide_awareness",
+    "irreducibility_reason_code": "fiction_dependent_consequence",
+    "record_key": "action.hide",
+    "span_id": "cb7598ca-791b-5b9d-9db5-eb127bd91925"
+   },
+   {
+    "chunk_char_end": 316,
+    "chunk_char_start": 255,
+    "chunk_id": "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_ability_check",
+    "record_key": "action.help",
+    "span_id": "75213732-5ea1-583f-b70c-123d2ad42414"
+   },
+   {
+    "chunk_char_end": 335,
+    "chunk_char_start": 221,
+    "chunk_id": "848a546d-dc6f-5340-b96e-4508664f62e4",
+    "component_key": "influence_check",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "action.influence",
+    "span_id": "2e362c4d-8ded-5d65-a7b4-17e54f73e519"
+   },
+   {
+    "chunk_char_end": 347,
+    "chunk_char_start": 276,
+    "chunk_id": "ac36f3e1-f888-5618-8a5f-8fa01d66569f",
+    "component_key": "ready_response",
+    "irreducibility_reason_code": "open_ended_effect",
+    "option_key": "chosen_action",
+    "record_key": "action.ready",
+    "span_id": "d148c3b8-4aef-5767-9532-0ce48f0c79f1"
+   },
+   {
+    "chunk_char_end": 361,
+    "chunk_char_start": 335,
+    "chunk_id": "848a546d-dc6f-5340-b96e-4508664f62e4",
+    "component_key": "influence_check",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "action.influence",
+    "span_id": "72d5fd9a-1a4d-5f94-a77d-288db70f1f25"
+   },
+   {
+    "chunk_char_end": 388,
+    "chunk_char_start": 192,
+    "chunk_id": "961df5d1-a442-508b-b8f3-e01550bccdc7",
+    "component_key": "influence_disposition",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "action.influence",
+    "span_id": "c774f247-33de-5eb8-8ec4-7284bdf805d5"
+   },
+   {
+    "chunk_char_end": 504,
+    "chunk_char_start": 454,
+    "chunk_id": "848a546d-dc6f-5340-b96e-4508664f62e4",
+    "component_key": "influence_success",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "action.influence",
+    "span_id": "9b39680c-a3ce-5a6a-8f45-b22c1aa055f3"
+   },
+   {
+    "chunk_char_end": 55,
+    "chunk_char_start": 0,
+    "chunk_id": "aa1fac84-7f67-577d-a7dd-749286c5f1a0",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_attack_roll",
+    "record_key": "action.help",
+    "span_id": "df47c20f-cc51-5eb5-81c4-16ed9e1b0be3"
+   },
+   {
+    "chunk_char_end": 66,
+    "chunk_char_start": 0,
+    "chunk_id": "848a546d-dc6f-5340-b96e-4508664f62e4",
+    "component_key": "influence_check",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "action.influence",
+    "span_id": "dd3350de-7940-5a75-b183-3d46cc66f495"
+   },
+   {
+    "chunk_char_end": 684,
+    "chunk_char_start": 507,
+    "chunk_id": "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+    "component_key": "hide_end",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "action.hide",
+    "span_id": "e0364014-3a15-5741-9673-dfcdc89040a0"
+   },
+   {
+    "chunk_char_end": 71,
+    "chunk_char_start": 0,
+    "chunk_id": "1ce37d7f-d6bc-54a3-a6fe-964963c6b1c7",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_ability_check",
+    "record_key": "action.help",
+    "span_id": "1d0b3b11-82da-5a5b-8feb-bc8d0dabf83d"
+   },
+   {
+    "chunk_char_end": 80,
+    "chunk_char_start": 0,
+    "chunk_id": "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+    "component_key": "help_choice",
+    "irreducibility_reason_code": "contextual_applicability",
+    "option_key": "assist_ability_check",
+    "record_key": "action.help",
+    "span_id": "f4b17d87-acf4-5cbb-84e2-44ddab77ef88"
+   },
+   {
+    "chunk_char_end": 97,
+    "chunk_char_start": 56,
+    "chunk_id": "13427491-0884-5159-921a-16c5c60559ff",
+    "component_key": "search_check",
+    "irreducibility_reason_code": "subjective_judgment",
+    "record_key": "action.search",
+    "span_id": "1bc497a2-02f9-5521-9a18-0f2e80a85941"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "00a2a29f-5f45-54ac-befa-bce53a8d6815",
+    "target_key": [
+     "action.ready",
+     "ready_action"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "024c39a4-e13e-5a8c-9bdc-6a3c2651c7e9",
+    "target_key": [
+     "action.disengage",
+     "disengage_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "48475b02f4ea47a0",
+     "equip_before"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "56002d4950118087",
+     "unequip_after"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "e626e529b5b239e1",
+     "unequip_before"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "f6d6544014be8624",
+     "equip_after"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "05d3e681-0456-5a6a-a650-cfadd5c0ec11",
+    "target_key": [
+     "action.dodge",
+     "dodge_saving_throws"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "077279c7-c773-5382-897d-f657fa437e6f",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "07bf6658-78ad-58a1-9bc1-2bf2eaf53ef3",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b208860-0b07-5eab-84b0-c5aaad23140b",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Hide",
+     "srd-5.2.1/rules-glossary",
+     "action.hide"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0bb7e900-8b70-5f7f-a3a2-206a595b9c49",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0bf798af-8fe7-5067-a2ed-250db13cd83c",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0c31d045-1f30-516a-a496-761322651883",
+    "target_key": [
+     "action.dodge",
+     "dodge_attack_disadvantage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0c31d045-1f30-516a-a496-761322651883",
+    "target_key": [
+     "action.dodge",
+     "dodge_saving_throws"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0df10445-d77e-5f3c-8ca5-486656f70153",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0f8da977-10a6-5fb8-9362-4e9e36760313",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "112e065a-a3d2-59b5-9ddc-bf576f2a2e7b",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "12a3163c-f233-5d16-8044-a1c2a6653bf2",
+    "target_key": [
+     "action.help"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "132d3bae-b227-5498-a782-e4de6b85e934",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14cc70a3-6d06-5fc9-a44f-9fc68a995c3a",
+    "target_key": [
+     "glossary.action"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "19dfdb24-8ea3-532f-901d-88fb2a46f13f",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "Hostile",
+     "srd-5.2.1/rules-glossary",
+     "attitude.hostile"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "21e1314d-4362-525b-9736-5471904d21a1",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "24c88490-0154-5c91-a0ad-9250dfd9f769",
+    "target_key": [
+     "action.disengage"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "288556b3-c860-528f-80b2-f9f4c0fc3614",
+    "target_key": [
+     "action.help",
+     "help_choice"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "288e442a-80e6-5c6f-b4ae-d38baab01aab",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2a361474-64b4-556f-9c3b-276e3253c435",
+    "target_key": [
+     "action.dash",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "48475b02f4ea47a0",
+     "equip_before"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "56002d4950118087",
+     "unequip_after"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "e626e529b5b239e1",
+     "unequip_before"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change",
+     "f6d6544014be8624",
+     "equip_after"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2e971417-b32a-5781-91c4-376a6e5ff91a",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "315f23ea-7b63-5ee7-9a91-2976723712e9",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "33f3d6a1-ebe6-5361-91ac-9077aa9b5291",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "34f06ac3-f281-5581-8dae-cc71996cfe71",
+    "target_key": [
+     "action.ready",
+     "ready_trigger"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3825bd22-10e8-5bfe-92b8-6f32df53c5f3",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "38931668-2b31-59e3-a0c5-cd6af05566d6",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c046338-a91f-5182-b525-04d54d3f10b9",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Dodge",
+     "srd-5.2.1/rules-glossary",
+     "action.dodge"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c5577f5-ce87-5ce7-b053-3375933e8220",
+    "target_key": [
+     "action.dash"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c73914d-6d0f-5c9e-a369-85ba1715b8d1",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3dd02aef-3e26-57c0-a236-37b66f921a44",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3dd1a234-b17c-5d4c-b0b0-ce72d2c80236",
+    "target_key": [
+     "action.study"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41321169-f0dc-5cf7-8fc6-2c66ede6ca38",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Magic",
+     "srd-5.2.1/rules-glossary",
+     "action.magic"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4867251c-70b2-5eef-8c12-07fddab03b6d",
+    "target_key": [
+     "action.magic",
+     "magic_concentration_break",
+     "f48175a8ab780dcd",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4a1bcf80-2486-50a4-ab96-97b44fd7025a",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Help",
+     "srd-5.2.1/rules-glossary",
+     "action.help"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4b14473b-b358-5576-a8b0-e3ca46cc2111",
+    "target_key": [
+     "glossary.action"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4bcb6e21-2e2b-585c-8745-4c97f3914393",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "52995e5f-41d2-5e19-a648-87bf4ab9b4b4",
+    "target_key": [
+     "action.search"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "53e9ed08-f963-5018-b42e-9807fe77c583",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "58a4615c-b1e7-5b66-97a4-8c1fc1a7d1f8",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "58ecb334-ef63-5dd9-94d1-2e53c00afcea",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5951c532-9369-551c-ba29-1dd0ab9046c6",
+    "target_key": [
+     "action.hide"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5ada84da-4eba-5660-bec6-8eb79a2fba99",
+    "target_key": [
+     "action.magic"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5c14919c-d38c-536e-8569-cf94a97ee166",
+    "target_key": [
+     "action.ready",
+     "ready_spell"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "607e46ed-86f4-56bd-9580-564656c09e83",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "60b9bac8-8778-58f5-b590-d1a90eb7ffcf",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "Friendly",
+     "srd-5.2.1/rules-glossary",
+     "attitude.friendly"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "632b002d-b305-561a-a9e3-b6978354b694",
+    "target_key": [
+     "action.help",
+     "help_choice"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "645e8dda-8a3b-5cdb-9b56-f94c279cd2f8",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "658a41ee-aac7-582b-8176-ef40b8f8fed7",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "67842429-f8e8-52d5-a14f-a9b917805f86",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Disengage",
+     "srd-5.2.1/rules-glossary",
+     "action.disengage"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "698d1de8-0e9c-5839-98bf-4fe32c7f230c",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6aeaf037-7700-50a8-9258-2684af95a203",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Dash",
+     "srd-5.2.1/rules-glossary",
+     "action.dash"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6ca5b063-ea60-50ff-b89a-a50f1d377bf3",
+    "target_key": [
+     "action.attack",
+     "attack_movement_interleave"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6f1a1b9f-0acc-5d70-af44-a2f78ec03616",
+    "target_key": [
+     "action.dash"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "71bf5e1b-6c75-5727-8341-ba3a2d59fc2f",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "773023b4-e8df-55e9-8b3c-397d50db82ef",
+    "target_key": [
+     "action.influence"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "78fd717e-edd2-5448-8b7a-164d3e2072f8",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7948ba25-f146-5ea2-b783-78a58d7eeb8a",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Utilize",
+     "srd-5.2.1/rules-glossary",
+     "action.utilize"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7996dd22-8107-5419-bca0-2e57a3251978",
+    "target_key": [
+     "action.magic",
+     "magic_concentration_break"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7a314d32-7069-5f7e-bab1-b4c70dd0d459",
+    "target_key": [
+     "action.hide"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7baf6b3f-8da6-5858-9cfe-be9a8428bcbd",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7ec9fc4e-3048-517b-903d-8b697a85dafd",
+    "target_key": [
+     "action.ready",
+     "ready_response",
+     "9a446b7e43c85d53",
+     "chosen_action"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7ec9fc4e-3048-517b-903d-8b697a85dafd",
+    "target_key": [
+     "action.ready",
+     "ready_response",
+     "9a446b7e43c85d53",
+     "move_up_to_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "81d1edd9-bd96-51ec-96e2-3e0a37bf842e",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "83ef0f35-7bf9-5c17-9e0a-24c43268b586",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "85d510cc-2034-57ff-aab4-89c372d0f080",
+    "target_key": [
+     "action.ready"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "893e492d-f789-5d0c-9f42-0789eb456044",
+    "target_key": [
+     "action.influence",
+     "influence_unwilling"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8bcc1f41-9493-5b1d-9b8d-20ab71613d81",
+    "target_key": [
+     "action.influence",
+     "influence_willing"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9089a817-dc82-5371-974a-8647135354e0",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9235a2df-1034-5180-885c-7538555ed33a",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92e33a2f-686f-5e0b-8490-ecbdd52cca9e",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "933291eb-c670-5655-9256-b9af5f5a2127",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "95155c45-13e6-5525-9eee-94565163829e",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Search",
+     "srd-5.2.1/rules-glossary",
+     "action.search"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9a6bc7d4-9419-5f9f-b0b7-b97aaad43b1f",
+    "target_key": [
+     "action.utilize",
+     "utilize_action"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9e5f5351-edde-504d-8a28-9b258644f89f",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9eb047ef-ef10-5e14-8130-398b12a6c33b",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a467dd34-a42c-58f0-b08a-660ef7a95a47",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aad5174c-6a94-5bc6-a1f7-3a8453cdecf8",
+    "target_key": [
+     "action.utilize"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ae56f540-61ea-5e2b-880a-fc1796530800",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "Indifferent",
+     "srd-5.2.1/rules-glossary",
+     "attitude.indifferent"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c2185a28-fae3-502a-9401-69d9d174e0a9",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c451d12e-a021-5f36-8500-b10a5e7806ef",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cc861e7b-32bd-51ce-978c-19a40a352275",
+    "target_key": [
+     "action.study",
+     "study_areas"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d2ffefa1-130c-5b21-9649-7181b2318363",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d300d15a-0269-5e98-911c-92ab800cb371",
+    "target_key": [
+     "action.dodge"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d46ec182-6d5e-5f4a-aead-961ccc8a5e00",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Study",
+     "srd-5.2.1/rules-glossary",
+     "action.study"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d7d947d4-4db1-5bf6-b3fb-c69134342c3c",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d87df4eb-9bac-5a18-ac0d-db9b01dcb223",
+    "target_key": [
+     "action.dash",
+     "dash_movement",
+     "19e79a3af45f2eb9",
+     "standard_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d87df4eb-9bac-5a18-ac0d-db9b01dcb223",
+    "target_key": [
+     "action.dash",
+     "dash_movement",
+     "4b2caa04b9e30828",
+     "special_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "da08cf1e-b5de-524a-9268-fc735968c475",
+    "target_key": [
+     "glossary.action"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "da84f700-fb30-5b46-b35c-1b8961f534b3",
+    "target_key": [
+     "action.hide",
+     "hide_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "db23a56e-cf11-5c0c-96d4-83d0377596ea",
+    "target_key": [
+     "action.search",
+     "search_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "dddfb422-bf33-5cc0-b762-0454a205ad09",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Attack",
+     "srd-5.2.1/rules-glossary",
+     "action.attack"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e9875a1a-8d2b-595c-bbb1-941cbd3760e6",
+    "target_key": [
+     "action.attack"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e9c6276b-1080-575f-90d8-5e790138a0fa",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ea3fd2ed-1d95-524b-b2e7-f7814ec5e828",
+    "target_key": [
+     "action.attack",
+     "attack_allowance"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "eafebadc-a060-5e25-8362-2886fab1bb26",
+    "target_key": [
+     "glossary.action",
+     "action_choice"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ed67d129-5b3e-5d08-b42a-5714db11f3a2",
+    "target_key": [
+     "action.magic"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ee98695f-3109-523b-af60-c46eaac9d6f4",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ef887049-4d28-59e7-a23f-6f78e0613f78",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "Ready",
+     "srd-5.2.1/rules-glossary",
+     "action.ready"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f05629b3-e4c2-5bdc-bfc9-abc1287eb9e2",
+    "target_key": [
+     "action.magic",
+     "",
+     "Concentration",
+     "srd-5.2.1/rules-glossary",
+     "glossary.concentration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f0f6b884-d2fa-5fdc-b68d-33ece75e23d8",
+    "target_key": [
+     "action.influence",
+     "influence_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f1df1ccc-0301-5966-9d19-f139396d687f",
+    "target_key": [
+     "action.ready",
+     "ready_trigger"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f2c1d232-2c04-5b3f-b608-e5d36ce5885b",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f4650484-d7b1-55ae-ad93-143d49c25eef",
+    "target_key": [
+     "action.dodge"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f4ec1a37-50ba-5646-95cb-aa711f3dbe60",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f540b1ed-ecf5-5e78-a5fe-b7529c7a9659",
+    "target_key": [
+     "action.dodge"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "primary",
+    "span_id": "02520181-45ae-5b7e-90c0-7b95498ffb4f",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "05d3e681-0456-5a6a-a650-cfadd5c0ec11",
+    "target_key": [
+     "action.dodge",
+     "dodge_attack_disadvantage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "07d6936a-903c-5e44-b6df-10c294013d0f",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "5b740198082726b7",
+     "assist_ability_check"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "09e7433a-9b0b-54c7-a220-f213714518d2",
+    "target_key": [
+     "action.dodge",
+     "dodge_attack_disadvantage",
+     "dd70d9ceb5cc3837"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "0a2cddbf-225d-5734-8405-91cf549deb90",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "0c31d045-1f30-516a-a496-761322651883",
+    "target_key": [
+     "action.dodge",
+     "dodge_duration",
+     "5b740198082726b7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "0c8c6278-2053-5864-959c-72613d698765",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "aa1fac84-7f67-577d-a7dd-749286c5f1a0",
+     "0c8c6278-2053-5864-959c-72613d698765",
+     "contextual_applicability",
+     "assist_attack_roll"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0f824db0-d118-5dbf-95e9-2326f5f98d51",
+    "target_key": [
+     "action.ready",
+     "ready_action",
+     "fe97b30136297ea9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "11b65835-55b5-521e-b692-e80ff260c420",
+    "target_key": [
+     "action.dash",
+     "dash_duration",
+     "d1571f5f71cce907"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "176df53b-a92e-573f-b18d-cb31ce896752",
+    "target_key": [
+     "action.study",
+     "study_check",
+     "097ef7d135c73401"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "193105a9-a737-5a09-acab-2c84ff69db4d",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "6c8900586960c7ad",
+     "assist_ability_check"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "1bc497a2-02f9-5521-9a18-0f2e80a85941",
+    "target_key": [
+     "action.search",
+     "search_check",
+     "13427491-0884-5159-921a-16c5c60559ff",
+     "1bc497a2-02f9-5521-9a18-0f2e80a85941",
+     "subjective_judgment"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1d0b3b11-82da-5a5b-8feb-bc8d0dabf83d",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "1ce37d7f-d6bc-54a3-a6fe-964963c6b1c7",
+     "1d0b3b11-82da-5a5b-8feb-bc8d0dabf83d",
+     "contextual_applicability",
+     "assist_ability_check"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1d0e7c61-5b12-57e7-8788-6c0335df1e9a",
+    "target_key": [
+     "action.search",
+     "search_check",
+     "a94e954adc5cd42b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "1db6c3e8-6b68-517b-b519-b93319393eb4",
+    "target_key": [
+     "action.influence",
+     "influence_willing",
+     "54eef020-bd4d-5e06-b631-6ff30fb2d375",
+     "1db6c3e8-6b68-517b-b519-b93319393eb4",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "23a38508-62af-5bc4-8e76-e6cfa451f1c6",
+    "target_key": [
+     "action.ready",
+     "ready_spell",
+     "d389954c36659e07"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "245b5c9c-7d7d-573d-aa3d-4a8a17b7c2a0",
+    "target_key": [
+     "glossary.action",
+     "action_choice",
+     "904e98e8-ca12-5135-8c67-8784215fa4f7",
+     "245b5c9c-7d7d-573d-aa3d-4a8a17b7c2a0",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_change"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "2ba1f6e8-7881-5a70-aeb3-7f9e1663ef6d",
+    "target_key": [
+     "action.study",
+     "study_check",
+     "d473d4c8-6c48-5d9a-80dc-3dafdc7fd3c5",
+     "2ba1f6e8-7881-5a70-aeb3-7f9e1663ef6d",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2bdd79d5-2add-5aa4-ad4f-b60452211c30",
+    "target_key": [
+     "action.magic",
+     "magic_concentration_break",
+     "f48175a8ab780dcd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "2cb27740-1ac8-5499-9c26-0e70fd4fdfdd",
+    "target_key": [
+     "action.utilize",
+     "utilize_action",
+     "399a1aca0e2d4930"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "2e362c4d-8ded-5d65-a7b4-17e54f73e519",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "848a546d-dc6f-5340-b96e-4508664f62e4",
+     "2e362c4d-8ded-5d65-a7b4-17e54f73e519",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3332633d-e85a-531a-b276-9d7c66d5db09",
+    "target_key": [
+     "glossary.action",
+     "action_allowance",
+     "198a9fc9ac39ffe0"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3454ee6b-5a5c-5a07-aa03-5f993dda773d",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "a667776d6a57411e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "38d60326-4e0b-5fb5-8f7b-e202607445b3",
+    "target_key": [
+     "action.hide",
+     "hide_discovery_dc",
+     "04226721f50eda58"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3a19b9ea-a2f9-55a4-973e-adcb53218225",
+    "target_key": [
+     "action.hide",
+     "hide_check",
+     "57e3be6f0ade9aeb"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "3bfc5224-898e-5a15-98ec-0c540c9105a4",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "6d18295fd1eaebb3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "417de2ce-6f66-52ca-b1e5-a5b0863e1950",
+    "target_key": [
+     "action.utilize",
+     "utilize_action",
+     "fe97b30136297ea9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "41859d36-91ee-51f7-8b12-96980391c2fc",
+    "target_key": [
+     "action.hide",
+     "hide_check",
+     "bf98743ba886bb2f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "46aee386-ce79-5cde-9429-a1ba2562b36e",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "6d18295fd1eaebb3",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "4867251c-70b2-5eef-8c12-07fddab03b6d",
+    "target_key": [
+     "action.magic",
+     "magic_concentration_break",
+     "08d4572fe00ecf1e",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "4fab02fd-b007-5070-8e63-7a81970c4bfa",
+    "target_key": [
+     "action.help",
+     "help_choice"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "5007ed4a-92f4-5f04-b8db-7b8313f47e7e",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+     "5007ed4a-92f4-5f04-b8db-7b8313f47e7e",
+     "contextual_applicability",
+     "assist_ability_check"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "55a386c6-e0e0-52b4-bea0-3c828a1a12bf",
+    "target_key": [
+     "action.attack",
+     "attack_allowance",
+     "4262815dc9e75637"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "571d8db6-8741-561a-b87a-8e192698038e",
+    "target_key": [
+     "action.influence",
+     "influence_attempt",
+     "961df5d1-a442-508b-b8f3-e01550bccdc7",
+     "571d8db6-8741-561a-b87a-8e192698038e",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5c2d17e6-f33c-55c6-99d7-9b92e11b68a4",
+    "target_key": [
+     "action.magic",
+     "magic_long_casting",
+     "096eddb9536f112a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "5f356f7f-113a-50fb-b4b7-1f01d91fa20b",
+    "target_key": [
+     "action.study",
+     "study_areas",
+     "d473d4c8-6c48-5d9a-80dc-3dafdc7fd3c5",
+     "5f356f7f-113a-50fb-b4b7-1f01d91fa20b",
+     "subjective_judgment"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "61c6031a-1d54-5172-86e7-916258c5d0ad",
+    "target_key": [
+     "action.dash",
+     "dash_movement",
+     "4b2caa04b9e30828",
+     "special_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "6948cd25-1322-5c50-b1c5-9bffac2f7a99",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "72372a7254e16715",
+     "assist_attack_roll"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "69f22ef1-c5f8-5fac-a0f6-37d7230c1b4b",
+    "target_key": [
+     "action.magic",
+     "magic_concentration_break",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "69f7f056-f978-5a3e-9297-6060760fa212",
+    "target_key": [
+     "action.dodge",
+     "dodge_attack_disadvantage",
+     "59747634-73ec-5540-b00f-72dd2f541d9c",
+     "69f7f056-f978-5a3e-9297-6060760fa212",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6a9c9af3-cd52-54ff-9559-d1b109fbd2ac",
+    "target_key": [
+     "action.ready",
+     "ready_resolution",
+     "ddbfcb376e144f5f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "72d5fd9a-1a4d-5f94-a77d-288db70f1f25",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "848a546d-dc6f-5340-b96e-4508664f62e4",
+     "72d5fd9a-1a4d-5f94-a77d-288db70f1f25",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "75213732-5ea1-583f-b70c-123d2ad42414",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+     "75213732-5ea1-583f-b70c-123d2ad42414",
+     "contextual_applicability",
+     "assist_ability_check"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7996dd22-8107-5419-bca0-2e57a3251978",
+    "target_key": [
+     "action.magic",
+     "magic_long_casting"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "79c6fdb5-b0ba-53f9-a81a-e2eb5a7597b2",
+    "target_key": [
+     "action.magic",
+     "magic_activation",
+     "d389954c36659e07"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7ec9fc4e-3048-517b-903d-8b697a85dafd",
+    "target_key": [
+     "action.ready",
+     "ready_reaction_grant",
+     "66bc0a44fb5081d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8054fd4b-caa0-50f8-bee3-1c3d3fc50dce",
+    "target_key": [
+     "action.disengage",
+     "disengage_movement",
+     "c0b748cf8af3f9fb"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8dd334b0-9798-5338-b245-1e63c724aa28",
+    "target_key": [
+     "action.hide",
+     "hide_check",
+     "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+     "8dd334b0-9798-5338-b245-1e63c724aa28",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "92ee5864-9b22-5d96-ae12-31d26dc013a3",
+    "target_key": [
+     "action.magic",
+     "magic_activation",
+     "5bbc9ab9-2cad-5e23-82e3-2db4c081feeb",
+     "92ee5864-9b22-5d96-ae12-31d26dc013a3",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "976672e3-0f20-56c7-b33a-c3327693f7b9",
+    "target_key": [
+     "action.influence",
+     "influence_unwilling",
+     "c015c628-de90-5c0c-aa55-18a3ce9426a5",
+     "976672e3-0f20-56c7-b33a-c3327693f7b9",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9a735d22-e9f2-5930-9fd4-f7aaf4afbc33",
+    "target_key": [
+     "action.attack",
+     "attack_movement_interleave",
+     "be9d66ad-8c81-5f0c-9be6-b645ee6ab155",
+     "9a735d22-e9f2-5930-9fd4-f7aaf4afbc33",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9abca2b9-9430-5a6b-9217-bc4370460992",
+    "target_key": [
+     "action.ready",
+     "ready_concentration_break",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9b39680c-a3ce-5a6a-8f45-b22c1aa055f3",
+    "target_key": [
+     "action.influence",
+     "influence_success",
+     "848a546d-dc6f-5340-b96e-4508664f62e4",
+     "9b39680c-a3ce-5a6a-8f45-b22c1aa055f3",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a5773ce3-7c1a-5dfc-9d91-3ecd0fb87d3e",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "5b740198082726b7",
+     "assist_attack_roll"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "aa99e0c4-e485-57cb-94c3-1aa5eb26c7b8",
+    "target_key": [
+     "action.ready",
+     "ready_response",
+     "19e79a3af45f2eb9",
+     "move_up_to_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "aca6caa8-8ae9-574e-bffb-087ccdae9d1c",
+    "target_key": [
+     "action.ready",
+     "ready_spell",
+     "97d8386ce7f85d18"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "b2b5f56f-b65e-5c0a-939d-da36e0e3464a",
+    "target_key": [
+     "action.ready",
+     "ready_reaction_grant",
+     "5b740198082726b7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "b9c06dd1-597b-5ac8-805f-233572477f3a",
+    "target_key": [
+     "action.hide",
+     "hide_check"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "c69177cd-5f32-5e89-aa01-899d79a815c5",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "a667776d6a57411e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c6be2578-7404-54f7-8368-690c9b502b52",
+    "target_key": [
+     "action.attack",
+     "attack_equipment_allowance",
+     "82e14126d227182b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "c774f247-33de-5eb8-8ec4-7284bdf805d5",
+    "target_key": [
+     "action.influence",
+     "influence_disposition",
+     "961df5d1-a442-508b-b8f3-e01550bccdc7",
+     "c774f247-33de-5eb8-8ec4-7284bdf805d5",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb7598ca-791b-5b9d-9db5-eb127bd91925",
+    "target_key": [
+     "action.hide",
+     "hide_awareness",
+     "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+     "cb7598ca-791b-5b9d-9db5-eb127bd91925",
+     "fiction_dependent_consequence"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d0cd4d30-2202-5edf-817d-19772cf3ca7b",
+    "target_key": [
+     "action.ready",
+     "ready_spell",
+     "5b740198082726b7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d148c3b8-4aef-5767-9532-0ce48f0c79f1",
+    "target_key": [
+     "action.ready",
+     "ready_response",
+     "ac36f3e1-f888-5618-8a5f-8fa01d66569f",
+     "d148c3b8-4aef-5767-9532-0ce48f0c79f1",
+     "open_ended_effect",
+     "chosen_action"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d2ebb26a-c96f-54f5-8781-b2c66208fc94",
+    "target_key": [
+     "action.magic",
+     "magic_long_casting",
+     "97d8386ce7f85d18"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d5971952-09e4-5aaa-854e-8e1fa0c073a9",
+    "target_key": [
+     "action.dash",
+     "dash_movement",
+     "19e79a3af45f2eb9",
+     "standard_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d87df4eb-9bac-5a18-ac0d-db9b01dcb223",
+    "target_key": [
+     "action.dash",
+     "dash_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "dd3350de-7940-5a75-b183-3d46cc66f495",
+    "target_key": [
+     "action.influence",
+     "influence_check",
+     "848a546d-dc6f-5340-b96e-4508664f62e4",
+     "dd3350de-7940-5a75-b183-3d46cc66f495",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "de210020-daf8-5121-b7e2-632a9f48fe34",
+    "target_key": [
+     "action.ready",
+     "ready_spell",
+     "cadb1acbc53e232b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "df47c20f-cc51-5eb5-81c4-16ed9e1b0be3",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "aa1fac84-7f67-577d-a7dd-749286c5f1a0",
+     "df47c20f-cc51-5eb5-81c4-16ed9e1b0be3",
+     "contextual_applicability",
+     "assist_attack_roll"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e0364014-3a15-5741-9673-dfcdc89040a0",
+    "target_key": [
+     "action.hide",
+     "hide_end",
+     "685d6327-f7a4-5b8d-b352-181caa1b7eae",
+     "e0364014-3a15-5741-9673-dfcdc89040a0",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e432b6c2-5ec6-50d7-9a1e-b028fbf4b366",
+    "target_key": [
+     "action.ready",
+     "ready_concentration_break"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "e719fd20-3eb4-5e26-9c51-74cd73ddfa08",
+    "target_key": [
+     "action.hide",
+     "hide_end",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "e75baa1c-7528-5fbd-a053-a01466c7b6a1",
+    "target_key": [
+     "action.dash",
+     "dash_movement",
+     "4b2caa04b9e30828",
+     "special_speed"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "e78995c4-99bf-5a8e-8447-dc6d289d18ed",
+    "target_key": [
+     "action.search",
+     "search_check",
+     "13427491-0884-5159-921a-16c5c60559ff",
+     "e78995c4-99bf-5a8e-8447-dc6d289d18ed",
+     "subjective_judgment"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e8738f42-4a8f-55d2-9ddd-c08fc0bc633b",
+    "target_key": [
+     "action.magic",
+     "magic_activation",
+     "fe97b30136297ea9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "e8957b66-499f-5814-a40a-5eca40fa4729",
+    "target_key": [
+     "action.attack",
+     "attack_movement_interleave",
+     "fe401bd65ff96b76"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "ef256fde-88bb-5b67-be12-97d9dd7262b6",
+    "target_key": [
+     "action.hide",
+     "hide_check",
+     "bf98743ba886bb2f",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "primary",
+    "span_id": "f4b17d87-acf4-5cbb-84e2-44ddab77ef88",
+    "target_key": [
+     "action.help",
+     "help_choice",
+     "0d86bbcf-d15b-59c1-bd28-8ab473a9d612",
+     "f4b17d87-acf4-5cbb-84e2-44ddab77ef88",
+     "contextual_applicability",
+     "assist_ability_check"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fb7e343e-d6e5-5028-9707-f31e61717ee2",
+    "target_key": [
+     "action.ready",
+     "ready_trigger",
+     "ac36f3e1-f888-5618-8a5f-8fa01d66569f",
+     "fb7e343e-d6e5-5028-9707-f31e61717ee2",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fcd3f347-35b0-53ba-83c0-278ffbff345e",
+    "target_key": [
+     "action.disengage",
+     "disengage_movement",
+     "d1571f5f71cce907"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "fd572342-5d8a-58b5-a5ad-fd5ef927e8f1",
+    "target_key": [
+     "action.dodge",
+     "dodge_saving_throws",
+     "0ebc325984500bda"
+    ],
+    "target_kind": "fact"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.attack"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.dash"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.disengage"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.dodge"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.help"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.hide"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.influence"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.magic"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.ready"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.search"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.study"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "action.utilize"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.action"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "action.dash",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "action.magic",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Concentration",
+    "target_record_key": "glossary.concentration"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Attack",
+    "target_record_key": "action.attack"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dash",
+    "target_record_key": "action.dash"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Disengage",
+    "target_record_key": "action.disengage"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dodge",
+    "target_record_key": "action.dodge"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Help",
+    "target_record_key": "action.help"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hide",
+    "target_record_key": "action.hide"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Magic",
+    "target_record_key": "action.magic"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Ready",
+    "target_record_key": "action.ready"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Search",
+    "target_record_key": "action.search"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Study",
+    "target_record_key": "action.study"
+   },
+   {
+    "from_component_key": "action_choice",
+    "from_record_key": "glossary.action",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Utilize",
+    "target_record_key": "action.utilize"
+   },
+   {
+    "from_component_key": "influence_check",
+    "from_record_key": "action.influence",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Friendly",
+    "target_record_key": "attitude.friendly"
+   },
+   {
+    "from_component_key": "influence_check",
+    "from_record_key": "action.influence",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hostile",
+    "target_record_key": "attitude.hostile"
+   },
+   {
+    "from_component_key": "influence_check",
+    "from_record_key": "action.influence",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Indifferent",
+    "target_record_key": "attitude.indifferent"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_spans": [
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "3c839508-52a7-50ea-87a6-ab337a1063c2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "db23a56e-cf11-5c0c-96d4-83d0377596ea"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "72e486bb-4adb-5959-852e-0d8668bf7f93",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "893e492d-f789-5d0c-9f42-0789eb456044"
+  },
+  {
+   "char_end": 10,
+   "char_start": 5,
+   "disposition": "supporting_authority",
+   "leaf_id": "eb323c9a-47dc-51e5-9d62-165c607c3012",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "4a1bcf80-2486-50a4-ab96-97b44fd7025a"
+  },
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f616e08a-84e9-574d-b12a-8b66a1f531df",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "38931668-2b31-59e3-a0c5-cd6af05566d6"
+  },
+  {
+   "char_end": 11,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e68c6022-5edb-54ce-992f-6ffe7e5dc3d3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "d7d947d4-4db1-5bf6-b3fb-c69134342c3c"
+  },
+  {
+   "char_end": 11,
+   "char_start": 6,
+   "disposition": "supporting_authority",
+   "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "6aeaf037-7700-50a8-9258-2684af95a203"
+  },
+  {
+   "char_end": 111,
+   "char_start": 58,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3a19b9ea-a2f9-55a4-973e-adcb53218225"
+  },
+  {
+   "char_end": 117,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "dd988728-ac2f-5e04-af4c-9d861702a34f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "698d1de8-0e9c-5839-98bf-4fe32c7f230c"
+  },
+  {
+   "char_end": 117,
+   "char_start": 83,
+   "disposition": "substantive",
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "fcd3f347-35b0-53ba-83c0-278ffbff345e"
+  },
+  {
+   "char_end": 118,
+   "char_start": 55,
+   "disposition": "substantive",
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "6948cd25-1322-5c50-b1c5-9bffac2f7a99"
+  },
+  {
+   "char_end": 12,
+   "char_start": 6,
+   "disposition": "supporting_authority",
+   "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "d46ec182-6d5e-5f4a-aead-961ccc8a5e00"
+  },
+  {
+   "char_end": 121,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2db001c2-80f4-5ddf-bbfb-1a0ac32e271c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "976672e3-0f20-56c7-b33a-c3327693f7b9"
+  },
+  {
+   "char_end": 124,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "9a6bc7d4-9419-5f9f-b0b7-b97aaad43b1f"
+  },
+  {
+   "char_end": 124,
+   "char_start": 79,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "0f824db0-d118-5dbf-95e9-2326f5f98d51"
+  },
+  {
+   "char_end": 127,
+   "char_start": 67,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "5c2d17e6-f33c-55c6-99d7-9b92e11b68a4"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4330265c-f00a-5308-b019-d057d2ee4df6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "5951c532-9369-551c-ba29-1dd0ab9046c6"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "729faadf-66d9-5c27-bcab-3f2944c61d6f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "288e442a-80e6-5c6f-b4ae-d38baab01aab"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "87663a42-8869-5888-82cd-3a3c5c2d8b42",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "12a3163c-f233-5d16-8044-a1c2a6653bf2"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "bb7c7fee-92ee-5df7-9b91-6da3ecc09189",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "21e1314d-4362-525b-9736-5471904d21a1"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e7a2204d-414c-5ef9-b9f1-708db8f372ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "3c5577f5-ce87-5ce7-b053-3375933e8220"
+  },
+  {
+   "char_end": 131,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "78fd717e-edd2-5448-8b7a-164d3e2072f8"
+  },
+  {
+   "char_end": 132,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2a4a9331-f52b-5d86-9e68-e1242e49eb49",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "9a735d22-e9f2-5930-9fd4-f7aaf4afbc33"
+  },
+  {
+   "char_end": 135,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "eeda1b62-45de-576a-82a5-e5cbea43056c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "1db6c3e8-6b68-517b-b519-b93319393eb4"
+  },
+  {
+   "char_end": 135,
+   "char_start": 90,
+   "disposition": "substantive",
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "2a3683c5-3c13-53ee-8626-0a1f58cab3cd"
+  },
+  {
+   "char_end": 137,
+   "char_start": 75,
+   "disposition": "substantive",
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "d5971952-09e4-5aaa-854e-8e1fa0c073a9"
+  },
+  {
+   "char_end": 138,
+   "char_start": 118,
+   "disposition": "substantive",
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "0c8c6278-2053-5864-959c-72613d698765"
+  },
+  {
+   "char_end": 138,
+   "char_start": 38,
+   "disposition": "substantive",
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "245b5c9c-7d7d-573d-aa3d-4a8a17b7c2a0"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "55c693e2-6966-56c9-bdb1-b1697af24b85",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "5ada84da-4eba-5660-bec6-8eb79a2fba99"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "5cf65e7f-4532-53ac-981b-4b8ba1cb96f2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f540b1ed-ecf5-5e78-a5fe-b7529c7a9659"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e0be6832-22bf-5433-b951-7690e0918713",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "85d510cc-2034-57ff-aab4-89c372d0f080"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f5470a60-5691-5ab7-a8a2-1aa1cb6e2a47",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "3dd1a234-b17c-5d4c-b0b0-ce72d2c80236"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "fd5903b7-d978-51fb-8d89-f649bc21dfc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "132d3bae-b227-5498-a782-e4de6b85e934"
+  },
+  {
+   "char_end": 140,
+   "char_start": 80,
+   "disposition": "substantive",
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "193105a9-a737-5a09-acab-2c84ff69db4d"
+  },
+  {
+   "char_end": 143,
+   "char_start": 98,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "d2ffefa1-130c-5b21-9649-7181b2318363"
+  },
+  {
+   "char_end": 144,
+   "char_start": 137,
+   "disposition": "supporting_authority",
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "e9c6276b-1080-575f-90d8-5e790138a0fa"
+  },
+  {
+   "char_end": 147,
+   "char_start": 96,
+   "disposition": "substantive",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "09e7433a-9b0b-54c7-a220-f213714518d2"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "77f16205-c984-504c-b3ac-8e3c1a767aa8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "112e065a-a3d2-59b5-9ddc-bf576f2a2e7b"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "acb1965b-c900-57c6-b7ad-5fb627a876a7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "e9875a1a-8d2b-595c-bbb1-941cbd3760e6"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d16a338e-c0e3-531a-9dc9-3165d01938b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "52995e5f-41d2-5e19-a648-87bf4ab9b4b4"
+  },
+  {
+   "char_end": 15,
+   "char_start": 10,
+   "disposition": "supporting_authority",
+   "leaf_id": "eb323c9a-47dc-51e5-9d62-165c607c3012",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "0b208860-0b07-5eab-84b0-c5aaad23140b"
+  },
+  {
+   "char_end": 15,
+   "char_start": 9,
+   "disposition": "supporting_authority",
+   "leaf_id": "cee71353-43a1-53a1-8fb3-d8351803b881",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "41321169-f0dc-5cf7-8fc6-2c66ede6ca38"
+  },
+  {
+   "char_end": 156,
+   "char_start": 143,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "ae56f540-61ea-5e2b-880a-fc1796530800"
+  },
+  {
+   "char_end": 16,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2d530cf9-39c6-5164-9364-c13847a641c2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "aad5174c-6a94-5bc6-a1f7-3a8453cdecf8"
+  },
+  {
+   "char_end": 16,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d407d33d-3d6f-53e3-a752-e43e64922754",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "f05629b3-e4c2-5bdc-bfc9-abc1287eb9e2"
+  },
+  {
+   "char_end": 162,
+   "char_start": 85,
+   "disposition": "substantive",
+   "leaf_id": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "92ee5864-9b22-5d96-ae12-31d26dc013a3"
+  },
+  {
+   "char_end": 163,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e0859b5d-2345-5510-a0ce-c1edf2e57ab2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "71bf5e1b-6c75-5727-8341-ba3a2d59fc2f"
+  },
+  {
+   "char_end": 164,
+   "char_start": 124,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "7ec9fc4e-3048-517b-903d-8b697a85dafd"
+  },
+  {
+   "char_end": 166,
+   "char_start": 156,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "60b9bac8-8778-58f5-b590-d1a90eb7ffcf"
+  },
+  {
+   "char_end": 17,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "9d094e31-7390-57b9-9cb8-334ec226bf29",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "53e9ed08-f963-5018-b42e-9807fe77c583"
+  },
+  {
+   "char_end": 171,
+   "char_start": 124,
+   "disposition": "substantive",
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "2cb27740-1ac8-5499-9c26-0e70fd4fdfdd"
+  },
+  {
+   "char_end": 171,
+   "char_start": 140,
+   "disposition": "substantive",
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "5007ed4a-92f4-5f04-b8db-7b8313f47e7e"
+  },
+  {
+   "char_end": 175,
+   "char_start": 147,
+   "disposition": "substantive",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "69f7f056-f978-5a3e-9297-6060760fa212"
+  },
+  {
+   "char_end": 178,
+   "char_start": 166,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "19dfdb24-8ea3-532f-901d-88fb2a46f13f"
+  },
+  {
+   "char_end": 18,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "6773ee2a-7cf1-5d13-aba0-a85781b9cf99",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "773023b4-e8df-55e9-8b3c-397d50db82ef"
+  },
+  {
+   "char_end": 18,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7eb7570f-9468-5ead-a971-b14ee6b64c44",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "33f3d6a1-ebe6-5361-91ac-9077aa9b5291"
+  },
+  {
+   "char_end": 18,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "db909b80-7d4e-5b41-aab6-ae67270f10ef",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "24c88490-0154-5c91-a0ad-9250dfd9f769"
+  },
+  {
+   "char_end": 180,
+   "char_start": 127,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "d2ebb26a-c96f-54f5-8781-b2c66208fc94"
+  },
+  {
+   "char_end": 181,
+   "char_start": 175,
+   "disposition": "supporting_authority",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f4650484-d7b1-55ae-ad93-143d49c25eef"
+  },
+  {
+   "char_end": 187,
+   "char_start": 111,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "b9c06dd1-597b-5ac8-805f-233572477f3a"
+  },
+  {
+   "char_end": 191,
+   "char_start": 138,
+   "disposition": "substantive",
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a5773ce3-7c1a-5dfc-9d91-3ecd0fb87d3e"
+  },
+  {
+   "char_end": 192,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "571d8db6-8741-561a-b87a-8e192698038e"
+  },
+  {
+   "char_end": 192,
+   "char_start": 62,
+   "disposition": "substantive",
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "2ba1f6e8-7881-5a70-aeb3-7f9e1663ef6d"
+  },
+  {
+   "char_end": 20,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c22e9bd0-5b30-514c-9e10-eac4d4389807",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "58a4615c-b1e7-5b66-97a4-8c1fc1a7d1f8"
+  },
+  {
+   "char_end": 20,
+   "char_start": 12,
+   "disposition": "supporting_authority",
+   "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "7948ba25-f146-5ea2-b783-78a58d7eeb8a"
+  },
+  {
+   "char_end": 200,
+   "char_start": 164,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "b2b5f56f-b65e-5c0a-939d-da36e0e3464a"
+  },
+  {
+   "char_end": 200,
+   "char_start": 171,
+   "disposition": "substantive",
+   "leaf_id": "08086c0d-a91a-5316-bcb0-d40f3039c35a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "417de2ce-6f66-52ca-b1e5-a5b0863e1950"
+  },
+  {
+   "char_end": 204,
+   "char_start": 132,
+   "disposition": "substantive",
+   "leaf_id": "2a4a9331-f52b-5d86-9e68-e1242e49eb49",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e8957b66-499f-5814-a40a-5eca40fa4729"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "3ea6292c-1bbb-5c3d-a507-11e1a7df1d14",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "0f8da977-10a6-5fb8-9362-4e9e36760313"
+  },
+  {
+   "char_end": 21,
+   "char_start": 11,
+   "disposition": "supporting_authority",
+   "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "67842429-f8e8-52d5-a14f-a9b917805f86"
+  },
+  {
+   "char_end": 21,
+   "char_start": 15,
+   "disposition": "supporting_authority",
+   "leaf_id": "cee71353-43a1-53a1-8fb3-d8351803b881",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "ef887049-4d28-59e7-a23f-6f78e0613f78"
+  },
+  {
+   "char_end": 211,
+   "char_start": 96,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "6a9c9af3-cd52-54ff-9559-d1b109fbd2ac"
+  },
+  {
+   "char_end": 214,
+   "char_start": 180,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "4867251c-70b2-5eef-8c12-07fddab03b6d"
+  },
+  {
+   "char_end": 217,
+   "char_start": 135,
+   "disposition": "supporting_authority",
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "645e8dda-8a3b-5cdb-9b56-f94c279cd2f8"
+  },
+  {
+   "char_end": 22,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "09f28fab-fdb8-5585-8892-222e9beefae8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "0bf798af-8fe7-5067-a2ed-250db13cd83c"
+  },
+  {
+   "char_end": 22,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0c421a48-e2bc-5897-9136-eb2ff52786f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "632b002d-b305-561a-a9e3-b6978354b694"
+  },
+  {
+   "char_end": 22,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4931c340-2cba-57b4-bdbd-201dcff15a13",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "3825bd22-10e8-5bfe-92b8-6f32df53c5f3"
+  },
+  {
+   "char_end": 221,
+   "char_start": 178,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "607e46ed-86f4-56bd-9580-564656c09e83"
+  },
+  {
+   "char_end": 221,
+   "char_start": 97,
+   "disposition": "substantive",
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "e78995c4-99bf-5a8e-8447-dc6d289d18ed"
+  },
+  {
+   "char_end": 228,
+   "char_start": 181,
+   "disposition": "substantive",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "fd572342-5d8a-58b5-a5ad-fd5ef927e8f1"
+  },
+  {
+   "char_end": 228,
+   "char_start": 221,
+   "disposition": "supporting_authority",
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "9235a2df-1034-5180-885c-7538555ed33a"
+  },
+  {
+   "char_end": 23,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1bc03d6b-97c5-53a6-a9b0-13a611dd4926",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "c451d12e-a021-5f36-8500-b10a5e7806ef"
+  },
+  {
+   "char_end": 23,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7aed0944-935d-56db-b6e0-e847971d4fff",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "6ca5b063-ea60-50ff-b89a-a50f1d377bf3"
+  },
+  {
+   "char_end": 231,
+   "char_start": 214,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "69f22ef1-c5f8-5fac-a0f6-37d7230c1b4b"
+  },
+  {
+   "char_end": 234,
+   "char_start": 131,
+   "disposition": "substantive",
+   "leaf_id": "4524429a-4c85-5159-b92a-0af217da998b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "61c6031a-1d54-5172-86e7-916258c5d0ad"
+  },
+  {
+   "char_end": 237,
+   "char_start": 187,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "8dd334b0-9798-5338-b245-1e63c724aa28"
+  },
+  {
+   "char_end": 24,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0359338d-0686-53d8-8dc4-2fd8b586227b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "3c73914d-6d0f-5c9e-a369-85ba1715b8d1"
+  },
+  {
+   "char_end": 24,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "08258187-108f-5d6d-85ca-d622b9753fca",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "288556b3-c860-528f-80b2-f9f4c0fc3614"
+  },
+  {
+   "char_end": 24,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "eb1fe09f-f871-5c62-aa57-b6e91308a45c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "f0f6b884-d2fa-5fdc-b68d-33ece75e23d8"
+  },
+  {
+   "char_end": 255,
+   "char_start": 171,
+   "disposition": "substantive",
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "07d6936a-903c-5e44-b6df-10c294013d0f"
+  },
+  {
+   "char_end": 265,
+   "char_start": 231,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "2bdd79d5-2add-5aa4-ad4f-b60452211c30"
+  },
+  {
+   "char_end": 276,
+   "char_start": 200,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "fb7e343e-d6e5-5028-9707-f31e61717ee2"
+  },
+  {
+   "char_end": 28,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f9730b5f-d9be-5aad-af7e-fb1cd6d4a018",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "3dd02aef-3e26-57c0-a236-37b66f921a44"
+  },
+  {
+   "char_end": 289,
+   "char_start": 192,
+   "disposition": "substantive",
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "5f356f7f-113a-50fb-b4b7-1f01d91fa20b"
+  },
+  {
+   "char_end": 299,
+   "char_start": 211,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "de210020-daf8-5121-b7e2-632a9f48fe34"
+  },
+  {
+   "char_end": 30,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "f4ec1a37-50ba-5646-95cb-aa711f3dbe60"
+  },
+  {
+   "char_end": 304,
+   "char_start": 237,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "cb7598ca-791b-5b9d-9db5-eb127bd91925"
+  },
+  {
+   "char_end": 31,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e8738f42-4a8f-55d2-9ddd-c08fc0bc633b"
+  },
+  {
+   "char_end": 31,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "da08cf1e-b5de-524a-9268-fc735968c475"
+  },
+  {
+   "char_end": 316,
+   "char_start": 228,
+   "disposition": "substantive",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "05d3e681-0456-5a6a-a650-cfadd5c0ec11"
+  },
+  {
+   "char_end": 316,
+   "char_start": 255,
+   "disposition": "substantive",
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "75213732-5ea1-583f-b70c-123d2ad42414"
+  },
+  {
+   "char_end": 32,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e75baa1c-7528-5fbd-a053-a01466c7b6a1"
+  },
+  {
+   "char_end": 328,
+   "char_start": 304,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "ef256fde-88bb-5b67-be12-97d9dd7262b6"
+  },
+  {
+   "char_end": 33,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "024c39a4-e13e-5a8c-9bdc-6a3c2651c7e9"
+  },
+  {
+   "char_end": 335,
+   "char_start": 221,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "2e362c4d-8ded-5d65-a7b4-17e54f73e519"
+  },
+  {
+   "char_end": 34,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e3f9e1e6-70c7-5931-904b-3ba4ce7cd79b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "0df10445-d77e-5f3c-8ca5-486656f70153"
+  },
+  {
+   "char_end": 347,
+   "char_start": 276,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "d148c3b8-4aef-5767-9532-0ce48f0c79f1"
+  },
+  {
+   "char_end": 35,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e4ba97fe-c01e-5dd0-a664-66af39750b88",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "02520181-45ae-5b7e-90c0-7b95498ffb4f"
+  },
+  {
+   "char_end": 354,
+   "char_start": 217,
+   "disposition": "supporting_authority",
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "ee98695f-3109-523b-af60-c46eaac9d6f4"
+  },
+  {
+   "char_end": 36,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0176a010-5a58-51cc-8e03-d3b642896af8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "315f23ea-7b63-5ee7-9a91-2976723712e9"
+  },
+  {
+   "char_end": 361,
+   "char_start": 335,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "72d5fd9a-1a4d-5f94-a77d-288db70f1f25"
+  },
+  {
+   "char_end": 37,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "32c16067-d42c-5d19-b389-124bbb2313af",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "9eb047ef-ef10-5e14-8130-398b12a6c33b"
+  },
+  {
+   "char_end": 37,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "fa1c8355-d239-5b47-82a5-be4300bf5860",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "c2185a28-fae3-502a-9401-69d9d174e0a9"
+  },
+  {
+   "char_end": 375,
+   "char_start": 328,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "41859d36-91ee-51f7-8b12-96980391c2fc"
+  },
+  {
+   "char_end": 38,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1ab39be0-08db-5555-aba5-3031b148221a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3332633d-e85a-531a-b276-9d7c66d5db09"
+  },
+  {
+   "char_end": 382,
+   "char_start": 299,
+   "disposition": "supporting_authority",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "5c14919c-d38c-536e-8569-cf94a97ee166"
+  },
+  {
+   "char_end": 388,
+   "char_start": 192,
+   "disposition": "substantive",
+   "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "c774f247-33de-5eb8-8ec4-7284bdf805d5"
+  },
+  {
+   "char_end": 40,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d48b74d9-f5e9-5a40-9ec9-601d9ae8fce0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "0bb7e900-8b70-5f7f-a3a2-206a595b9c49"
+  },
+  {
+   "char_end": 405,
+   "char_start": 347,
+   "disposition": "substantive",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "aa99e0c4-e485-57cb-94c3-1aa5eb26c7b8"
+  },
+  {
+   "char_end": 41,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2ae61ef9-ba6a-5b42-a0df-b0f2a99913c4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "077279c7-c773-5382-897d-f657fa437e6f"
+  },
+  {
+   "char_end": 42,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44"
+  },
+  {
+   "char_end": 444,
+   "char_start": 382,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "23a38508-62af-5bc4-8e76-e6cfa451f1c6"
+  },
+  {
+   "char_end": 451,
+   "char_start": 405,
+   "disposition": "supporting_authority",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "f1df1ccc-0301-5966-9d19-f139396d687f"
+  },
+  {
+   "char_end": 454,
+   "char_start": 361,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3454ee6b-5a5c-5a07-aa03-5f993dda773d"
+  },
+  {
+   "char_end": 47,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "7a314d32-7069-5f7e-bab1-b4c70dd0d459"
+  },
+  {
+   "char_end": 485,
+   "char_start": 375,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "38d60326-4e0b-5fb5-8f7b-e202607445b3"
+  },
+  {
+   "char_end": 49,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c5e32691-8ec5-5150-8369-5dfa0cb381b5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "f2c1d232-2c04-5b3f-b608-e5d36ce5885b"
+  },
+  {
+   "char_end": 49,
+   "char_start": 32,
+   "disposition": "substantive",
+   "leaf_id": "baa8bf30-7f61-5d58-b36b-ad3cfc49d85d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "0a2cddbf-225d-5734-8405-91cf549deb90"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ad7b798c-3b73-5216-94d1-fedb7bc4275e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "cc861e7b-32bd-51ce-978c-19a40a352275"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b6323b48-bc0d-5bcd-83e6-df96753a5bea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "58ecb334-ef63-5dd9-94d1-2e53c00afcea"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d31f589a-7728-5dc9-b99d-f7d5db65d84c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "933291eb-c670-5655-9256-b9af5f5a2127"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "eb323c9a-47dc-51e5-9d62-165c607c3012",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "3c046338-a91f-5182-b525-04d54d3f10b9"
+  },
+  {
+   "char_end": 504,
+   "char_start": 444,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "aca6caa8-8ae9-574e-bffb-087ccdae9d1c"
+  },
+  {
+   "char_end": 504,
+   "char_start": 454,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "9b39680c-a3ce-5a6a-8f45-b22c1aa055f3"
+  },
+  {
+   "char_end": 507,
+   "char_start": 485,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e719fd20-3eb4-5e26-9c51-74cd73ddfa08"
+  },
+  {
+   "char_end": 523,
+   "char_start": 504,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states the condition on one fact of a component that its siblings do not share; carried by that fact's own qualifier",
+   "span_id": "46aee386-ce79-5cde-9429-a1ba2562b36e"
+  },
+  {
+   "char_end": 54,
+   "char_start": 30,
+   "disposition": "substantive",
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "d87df4eb-9bac-5a18-ac0d-db9b01dcb223"
+  },
+  {
+   "char_end": 55,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "df47c20f-cc51-5eb5-81c4-16ed9e1b0be3"
+  },
+  {
+   "char_end": 56,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "1d0e7c61-5b12-57e7-8788-6c0335df1e9a"
+  },
+  {
+   "char_end": 562,
+   "char_start": 504,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "d0cd4d30-2202-5edf-817d-19772cf3ca7b"
+  },
+  {
+   "char_end": 58,
+   "char_start": 47,
+   "disposition": "supporting_authority",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "da84f700-fb30-5b46-b35c-1b8961f534b3"
+  },
+  {
+   "char_end": 59,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7e1a032c-9c1a-5728-a01c-f6ba5d14de40",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "4fab02fd-b007-5070-8e63-7a81970c4bfa"
+  },
+  {
+   "char_end": 595,
+   "char_start": 562,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "e432b6c2-5ec6-50d7-9a1e-b028fbf4b366"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1490ebb7-9b83-5528-8ab7-b0f9de2f2324",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "92e33a2f-686f-5e0b-8490-ecbdd52cca9e"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "14af33e8-9c0d-5ec1-a41f-eec3627125c4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "14cc70a3-6d06-5fc9-a44f-9fc68a995c3a"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "dddfb422-bf33-5cc0-b762-0454a205ad09"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "95155c45-13e6-5525-9eee-94565163829e"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "dbe5c512-12a9-5a8c-b28b-6bf8dee2af04",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "a467dd34-a42c-58f0-b08a-660ef7a95a47"
+  },
+  {
+   "char_end": 61,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "55a386c6-e0e0-52b4-bea0-3c828a1a12bf"
+  },
+  {
+   "char_end": 616,
+   "char_start": 523,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "3bfc5224-898e-5a15-98ec-0c540c9105a4"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e976a566-357e-5584-96fa-c8ffc57e856f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "176df53b-a92e-573f-b18d-cb31ce896752"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "d300d15a-0269-5e98-911c-92ab800cb371"
+  },
+  {
+   "char_end": 633,
+   "char_start": 616,
+   "disposition": "supporting_authority",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "07bf6658-78ad-58a1-9bc1-2bf2eaf53ef3"
+  },
+  {
+   "char_end": 639,
+   "char_start": 595,
+   "disposition": "substantive",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "9abca2b9-9430-5a6b-9217-bc4370460992"
+  },
+  {
+   "char_end": 66,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "dd3350de-7940-5a75-b183-3d46cc66f495"
+  },
+  {
+   "char_end": 67,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b196aa1b-4e06-5e14-b1a5-1fd930e1d2da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states when its component applies, or which axis of an actor choice the component offers; the owning component is the element that carries the claim, because no single option states it",
+   "span_id": "7996dd22-8107-5419-bca0-2e57a3251978"
+  },
+  {
+   "char_end": 684,
+   "char_start": 507,
+   "disposition": "substantive",
+   "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "e0364014-3a15-5741-9673-dfcdc89040a0"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0dc61963-a67f-5dea-b834-b1dc64869198",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "658a41ee-aac7-582b-8176-ef40b8f8fed7"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "79d26ad4-6797-5cdb-b9f1-d6d40a04e1c0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "2e971417-b32a-5781-91c4-376a6e5ff91a"
+  },
+  {
+   "char_end": 71,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a6f0faa2-ad42-5e77-a4b7-35e4ce353d61",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "1d0b3b11-82da-5a5b-8feb-bc8d0dabf83d"
+  },
+  {
+   "char_end": 75,
+   "char_start": 54,
+   "disposition": "substantive",
+   "leaf_id": "2dc8c968-bec7-5510-ab10-929b182750ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "11b65835-55b5-521e-b692-e80ff260c420"
+  },
+  {
+   "char_end": 79,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "00a2a29f-5f45-54ac-befa-bce53a8d6815"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "18c872cc-0415-5eb3-9fb6-f25c88ae7901",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "4bcb6e21-2e2b-585c-8745-4c97f3914393"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "319ae274-cae6-58aa-9184-26a6940bf266",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "2a361474-64b4-556f-9c3b-276e3253c435"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "47bce016-6358-52ce-90b9-60b63fae2f86",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "4b14473b-b358-5576-a8b0-e3ca46cc2111"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "869c0a0b-93a3-58e2-9f40-b60d6da1f56b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "6f1a1b9f-0acc-5d70-af44-a2f78ec03616"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "916892b1-0d65-5f1c-9e86-0970307b3cdc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "81d1edd9-bd96-51ec-96e2-3e0a37bf842e"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a874caf3-9c4d-5dd6-8b4a-5319fd2817c7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "identifies, frames, or exemplifies the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "ed67d129-5b3e-5d08-b42a-5714db11f3a2"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ba34d2df-ba69-504e-b557-37b6fe97da31",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "9089a817-dc82-5371-974a-8647135354e0"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d1a853d4-3e28-5dfc-b704-cffef3fceabe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "8bcc1f41-9493-5b1d-9b8d-20ab71613d81"
+  },
+  {
+   "char_end": 80,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6e7c9ae8-a57e-5e9d-b2d3-42a65898fecf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "f4b17d87-acf4-5cbb-84e2-44ddab77ef88"
+  },
+  {
+   "char_end": 83,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "bde2b6c2-6289-52bf-afd6-2042999fb3bb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "9e5f5351-edde-504d-8a28-9b258644f89f"
+  },
+  {
+   "char_end": 83,
+   "char_start": 33,
+   "disposition": "substantive",
+   "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "8054fd4b-caa0-50f8-bee3-1c3d3fc50dce"
+  },
+  {
+   "char_end": 85,
+   "char_start": 31,
+   "disposition": "substantive",
+   "leaf_id": "e3f3f5e1-fded-574a-8702-986eecb7c35f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "79c6fdb5-b0ba-53f9-a81a-e2eb5a7597b2"
+  },
+  {
+   "char_end": 85,
+   "char_start": 31,
+   "disposition": "supporting_authority",
+   "leaf_id": "f38c47eb-469b-540a-be6c-c3687cab3e02",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "eafebadc-a060-5e25-8362-2886fab1bb26"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "cee71353-43a1-53a1-8fb3-d8351803b881",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "7baf6b3f-8da6-5858-9cfe-be9a8428bcbd"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f45c09d8-e12a-5f96-8e4b-5839dae451f4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "83ef0f35-7bf9-5c17-9e0a-24c43268b586"
+  },
+  {
+   "char_end": 90,
+   "char_start": 42,
+   "disposition": "substantive",
+   "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c6be2578-7404-54f7-8368-690c9b502b52"
+  },
+  {
+   "char_end": 96,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "34f06ac3-f281-5581-8dae-cc71996cfe71"
+  },
+  {
+   "char_end": 96,
+   "char_start": 62,
+   "disposition": "substantive",
+   "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "0c31d045-1f30-516a-a496-761322651883"
+  },
+  {
+   "char_end": 97,
+   "char_start": 56,
+   "disposition": "substantive",
+   "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, or the effect space is unbounded, and whatever mechanic it governs is typed beside it",
+   "span_id": "1bc497a2-02f9-5521-9a18-0f2e80a85941"
+  },
+  {
+   "char_end": 97,
+   "char_start": 61,
+   "disposition": "supporting_authority",
+   "leaf_id": "c33a980f-7f42-5359-99e0-6d276d217764",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "names, frames, limits, or exemplifies what a component states; supporting authority owned by that component",
+   "span_id": "ea3fd2ed-1d95-524b-b2e7-f7814ec5e828"
+  },
+  {
+   "char_end": 98,
+   "char_start": 66,
+   "disposition": "substantive",
+   "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-actions-1-schema7-PROPOSAL-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "c69177cd-5f32-5e89-aa01-899d79a815c5"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d",
+  "version": "5d-representation-schema-7"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1"
+}

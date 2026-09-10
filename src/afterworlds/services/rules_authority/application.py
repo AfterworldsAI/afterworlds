@@ -167,6 +167,18 @@ class SourceProse:
     other components' authority, or none, and returning it would overstate what
     governs this component. ``span_id`` names the accepted span itself, so a
     reader can tie the passage back to the classification that accepted it.
+
+    ``option_key`` is the arm this passage governs, or ``""`` where it governs
+    the component as a whole. Carried through rather than flattened at this
+    boundary: ``Help``'s two arms are governed by two different clauses of the
+    same paragraph, and a component-grain entry would say each clause governs
+    both — false about the arm it does not describe, not merely imprecise.
+    Component-wide prose keeps the empty scope, which is what all twenty
+    accepted bindings state, so nothing accepted changes shape here.
+
+    ``option_key`` is *not* a fifth identity element: it is content of the
+    effective view, and the build-time provenance coordinate that owns identity
+    is ``prose_binding_target_key``.
     """
 
     chunk_id: str
@@ -174,6 +186,7 @@ class SourceProse:
     char_start: int
     char_end: int
     text: str | None = None
+    option_key: str = ""
 
 
 @dataclass(frozen=True)
@@ -356,7 +369,16 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
     prose: dict[tuple[str, str], list[SourceProse]] = {}
     for binding in sorted(
         draft.prose_bindings,
-        key=lambda b: (b.chunk_id, b.chunk_char_start, b.chunk_char_end, b.span_id),
+        key=lambda b: (
+            b.chunk_id,
+            b.chunk_char_start,
+            b.chunk_char_end,
+            b.span_id,
+            # Two arms of one choice may bind the same extent of the same
+            # chunk, so the scope is part of the order or the two entries have
+            # no deterministic one.
+            b.option_key,
+        ),
     ):
         prose.setdefault((binding.record_key, binding.component_key), []).append(
             SourceProse(
@@ -364,6 +386,7 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 span_id=binding.span_id,
                 char_start=binding.chunk_char_start,
                 char_end=binding.chunk_char_end,
+                option_key=binding.option_key,
             )
         )
 

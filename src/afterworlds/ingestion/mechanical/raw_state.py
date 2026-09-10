@@ -292,6 +292,19 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
                 f"{[binding.record_key, binding.component_key]} with no row in "
                 "this projection"
             )
+        elif (
+            binding.option_key
+            and (
+                binding.record_key,
+                binding.component_key,
+                binding.option_key,
+            )
+            not in option_keys
+        ):
+            problems.append(
+                f"rp_mech_prose_bindings row {binding.row_id}: names option "
+                f"{binding.option_key!r} with no row in this projection"
+            )
 
     for relationship in raw.relationships:
         for field, related in (

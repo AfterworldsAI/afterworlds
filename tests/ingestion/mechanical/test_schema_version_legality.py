@@ -68,15 +68,24 @@ from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
     AbilityCheckFact,
     AbilityScore,
+    ActionAllowanceFact,
+    ActionCost,
+    ActivationCostEligibilityFact,
+    AdvantageFact,
+    AdvantageState,
+    AllowanceScope,
     Applicability,
     ApplicabilityKind,
+    AttackRelativeTiming,
     AutomaticOutcome,
+    BenefitUseLimit,
     Comparison,
     ComponentDraft,
     ConditionKind,
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     ConsumptionBand,
+    CoverDegree,
     CreatureSize,
     DamageFact,
     DamageInterval,
@@ -90,11 +99,22 @@ from afterworlds.ingestion.mechanical.representation import (
     DieSize,
     DistanceUnit,
     EffectTerminationFact,
+    EligibilitySubject,
+    EquipmentChange,
+    EquipmentChangeFact,
+    ExpendableResource,
     FactFamily,
+    GrantedActivity,
+    InterleavePoint,
     LevelDirection,
     MeasureUnit,
+    MovementAllowanceBasis,
+    MovementAllowanceFact,
+    MovementInterleaveFact,
+    ObscurementState,
     Phase,
     Rational,
+    ReactionProvocationFact,
     RecordDraft,
     RecordKind,
     Recurrence,
@@ -102,6 +122,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     RepresentationDraft,
     RequiredQuantity,
+    ResolutionTiming,
+    ResourceExpenditureFact,
     RollActor,
     RollContext,
     RollSpec,
@@ -111,10 +133,14 @@ from afterworlds.ingestion.mechanical.representation import (
     SizeKeyedQuantityFact,
     SizeQuantity,
     Skill,
+    SustainedState,
+    SustainedStateRequirementFact,
     TerminationScope,
     TimePeriod,
     TimeUnit,
     TrackedQuantity,
+    TriggeredReaction,
+    TriggeredResolutionFact,
     introduction_manifest,
     post_schema_3_violations,
     representation_schema_hash,
@@ -126,6 +152,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_VERSION,
     SCHEMA_5_HASH,
     SCHEMA_5_VERSION,
+    SCHEMA_6_HASH,
+    SCHEMA_6_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -337,6 +365,112 @@ SCHEMA_3_LEGAL = [
 ]
 
 
+#: One live object per *axis* schema 6 added, for the same reason
+#: :data:`SCHEMA_4_ONLY` and :data:`SCHEMA_5_ONLY` exist: the coverage guard
+#: below reads the manifest and refuses a vocabulary nothing here demonstrates.
+#: Families need no separate entry — every schema-6 family row belongs to the
+#: ``fact_family`` group that the schema-4 exemplars already exercise — so what
+#: is listed is one carrier per *vocabulary*.
+SCHEMA_6_ONLY = [
+    pytest.param(
+        ActionAllowanceFact(count=1, per=AllowanceScope.TURN, cost=ActionCost.ACTION),
+        id="vocabulary-allowance_scope",
+    ),
+    pytest.param(
+        ActionAllowanceFact(
+            count=1,
+            per=AllowanceScope.OWNING_EFFECT,
+            activity=GrantedActivity.ATTACK_ROLL,
+        ),
+        id="vocabulary-granted_activity",
+    ),
+    pytest.param(
+        EquipmentChangeFact(
+            change=EquipmentChange.EQUIP, timing=AttackRelativeTiming.BEFORE
+        ),
+        id="vocabulary-equipment_change-and-attack_relative_timing",
+    ),
+    pytest.param(
+        MovementAllowanceFact(basis=MovementAllowanceBasis.OWN_SPEED),
+        id="vocabulary-movement_allowance_basis",
+    ),
+    pytest.param(
+        MovementInterleaveFact(between=InterleavePoint.REPEATED_ATTACKS),
+        id="vocabulary-interleave_point",
+    ),
+    pytest.param(
+        TriggeredResolutionFact(
+            timing=ResolutionTiming.IMMEDIATELY_AFTER_TRIGGER, optional=True
+        ),
+        id="vocabulary-resolution_timing",
+    ),
+    pytest.param(
+        ReactionProvocationFact(
+            reaction=TriggeredReaction.OPPORTUNITY_ATTACK, provokes=False
+        ),
+        id="vocabulary-triggered_reaction",
+    ),
+    pytest.param(
+        SustainedStateRequirementFact(state=SustainedState.CONCENTRATION),
+        id="vocabulary-sustained_state",
+    ),
+    pytest.param(
+        ResourceExpenditureFact(resource=ExpendableResource.SPELL_SLOT, expended=False),
+        id="vocabulary-expendable_resource",
+    ),
+    pytest.param(
+        ActivationCostEligibilityFact(
+            subject=EligibilitySubject.SPELL, cost=ActionCost.ACTION
+        ),
+        id="vocabulary-eligibility_subject",
+    ),
+    pytest.param(
+        AdvantageFact(
+            state=AdvantageState.ADVANTAGE,
+            roll=RollSpec(actor=RollActor.ALLY, context=RollContext.ABILITY_CHECK),
+            use_limit=BenefitUseLimit.NEXT_QUALIFYING_ROLL,
+        ),
+        id="vocabulary-roll_actor-and-benefit_use_limit",
+    ),
+    pytest.param(
+        AbilityCheckFact(
+            ability=AbilityScore.WISDOM,
+            dc_kind=DcKind.RECORDED_CHECK_TOTAL,
+            skill=Skill.PERCEPTION,
+            against_subject=True,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        id="vocabulary-dc_kind",
+    ),
+    pytest.param(
+        Applicability(
+            kind=ApplicabilityKind.OBSCUREMENT,
+            obscurement=ObscurementState.HEAVILY_OBSCURED,
+        ),
+        id="vocabulary-obscurement_state",
+    ),
+    pytest.param(
+        Applicability(kind=ApplicabilityKind.COVER, cover=CoverDegree.TOTAL),
+        id="vocabulary-cover_degree",
+    ),
+    # The nullable-field axis. `Influence`'s forced case: *"you must make an
+    # ability check"* whose ability the GM chooses, beside a printed DC. The
+    # key is emitted under every contract because it is a schema-1 field, so
+    # the payload is complete and only the *value* is one no earlier schema
+    # admitted - which is why neither the omission registry nor the
+    # required-since one can see it.
+    pytest.param(
+        AbilityCheckFact(
+            ability=None,
+            dc_kind=DcKind.FIXED,
+            dc_value=15,
+            context=RollContext.ABILITY_CHECK,
+        ),
+        id="nullable_field-ability_check-ability",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -351,7 +485,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
     here instead of being trusted.
     """
     exercised: set[str] = set()
-    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY):
+    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY, *SCHEMA_6_ONLY):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
     assert _MANIFEST_GROUPS - exercised == set(), sorted(_MANIFEST_GROUPS - exercised)
@@ -621,10 +755,19 @@ def test_serialization_refuses_the_h8_ownership_under_schema_3() -> None:
 
 
 def test_the_manifest_is_carried_inside_the_schema_identity() -> None:
-    """What makes the contract unloosenable without invalidating the lift."""
+    """What makes the contract unloosenable without invalidating the lift.
+
+    Asserted against the *registry* rather than against a version literal, so
+    the property survives a succession: whatever schema this build declares,
+    its hash is the destination of a registered lift, and dropping a manifest
+    row would move that hash and strand the transition.
+    """
     payload = representation_schema_payload()
     assert payload["introductions"] == introduction_manifest()
-    assert representation_schema_hash() == SCHEMA_5_HASH
+    from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_LIFTS
+
+    live = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    assert live in {(li.to_version, li.to_hash) for li in SCHEMA_LIFTS.values()}
 
 
 def test_dropping_a_manifest_row_moves_the_hash_and_breaks_the_pin() -> None:
@@ -836,6 +979,12 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash()),
         (SCHEMA_3_VERSION, SCHEMA_3_HASH),
         (SCHEMA_4_VERSION, SCHEMA_4_HASH),
+        # Schema 5 joins the set by becoming the *source* of a registered lift,
+        # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
+        # the same way at schema 7. The rule is the registry, not a list of
+        # versions somebody kept up to date.
+        (SCHEMA_5_VERSION, SCHEMA_5_HASH),
+        (SCHEMA_6_VERSION, SCHEMA_6_HASH),
     }
 
 

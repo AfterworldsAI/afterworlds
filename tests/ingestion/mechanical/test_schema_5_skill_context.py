@@ -60,7 +60,6 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_from_payload,
     fact_invariant_violations,
     fact_payload,
-    representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_HASH,
@@ -484,8 +483,26 @@ def test_the_committed_loader_refuses_it(tmp_path: object) -> None:
 
 
 def test_the_pinned_schema_5_hash_covers_this_correction() -> None:
-    """The rule is declared, so it is inside the identity that governs it."""
-    assert representation_schema_hash() == SCHEMA_5_HASH
+    """The rule is declared, so it is inside the identity that governs it.
+
+    Asserted against the manifest rather than against a hash literal, because
+    the literal is the *schema-5* pin and this build declares schema 6. What
+    must remain true across a succession is that the rule is still carried
+    inside whatever identity is current — dropping it would move that hash and
+    strand the registered lift, which is the property the pin stood for.
+    """
+    from afterworlds.ingestion.mechanical.representation import (
+        invariant_manifest,
+        representation_schema_payload,
+    )
+
+    assert SCHEMA_5_HASH == (
+        "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert any(
+        row["id"] == "roll.skill.ability-check-only" for row in invariant_manifest()
+    )
+    assert representation_schema_payload()["invariants"] == invariant_manifest()
 
 
 def test_schema_4_is_untouched_by_this_correction() -> None:

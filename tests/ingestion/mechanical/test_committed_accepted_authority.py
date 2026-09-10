@@ -1,19 +1,21 @@
-"""The committed accepted authority — CRD Issue 5d, batches 1 and 2.
+"""The committed accepted authority — CRD Issue 5d, batches 1 through 3.
 
-Two Owner authorizations, one file. 2026-08-23 accepted ``conditions-1``
+Three Owner authorizations, one file. 2026-08-23 accepted ``conditions-1``
 (proposal ``14587d5b…``, reviewed under representation schema 3); 2026-09-03
-accepted ``hazards-1`` (proposal ``f7ce4491…``, reviewed under schema 5). The
-artifact that records both actions is committed under the oracle directory, and
-this module is what keeps it honest: the file is the acceptance action of
-record, so a change to it that no one reviewed must fail here.
+accepted ``hazards-1`` (proposal ``f7ce4491…``, reviewed under schema 5);
+2026-09-09 accepted ``actions-1`` (proposal ``62202e9a…``, reviewed under
+schema 7). The artifact that records all three actions is committed under the
+oracle directory, and this module is what keeps it honest: the file is the
+acceptance action of record, so a change to it that no one reviewed must fail
+here.
 
 Six properties, each of which could break independently:
 
 * the release resolves to **this** artifact and only this one;
 * each batch's proposal identity, reviewer, scope, and counts are exact, and the
-  two scopes are disjoint;
+  scopes are pairwise disjoint;
 * the schema each batch was *reviewed* under is retained beside it, and the
-  registered succession that carried the older one forward is recorded;
+  registered succession that carried the older ones forward is recorded;
 * the committed bytes round-trip strictly and reproduce every derived identity;
 * the refused candidates cannot be selected; and
 * the corpus is still incomplete, so nothing here can publish.
@@ -22,7 +24,12 @@ The end-to-end publication refusal lives in ``test_production_release`` and
 ``test_runtime_production_release``, which carry the real SRD fixture. What is
 asserted here is the reason it refuses: this artifact judges 15 conditions, the
 glossary entry that defines them, 5 hazards and the glossary entry that defines
-*those* — 22 records, not the release.
+*those*, and 12 actions plus the glossary entry that defines *those* — 35
+records, not the release.
+
+``batches`` is keyed rather than ordered: ``load_accepted_inputs`` returns it in
+canonical id order, so every assertion below looks a batch up by id. Acceptance
+order is asserted where the artifact actually records it — ``schema_anchors``.
 
 **The legacy form is no longer here.** Until ``hazards-1`` was accepted, this
 file was also the repository's only specimen of a single-batch, schema-3,
@@ -67,6 +74,11 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_HASH,
+    SCHEMA_3_VERSION,
+    SCHEMA_5_HASH,
+    SCHEMA_5_VERSION,
+    SCHEMA_7_HASH,
+    SCHEMA_7_VERSION,
     lift_accepted_inputs,
 )
 
@@ -91,8 +103,10 @@ BATCH_ID = "conditions-1"
 PROPOSAL_IDENTITY = "14587d5b5d51ad282f3d16510e015cd7116adcbd3877964bf034eef96780b0eb"  # noqa: E501  # pragma: allowlist secret
 HAZARDS_BATCH_ID = "hazards-1"
 HAZARDS_PROPOSAL_IDENTITY = "f7ce449174102f1cdb7087a806d1f594add384282e54fb17181c4f5168c40417"  # noqa: E501  # pragma: allowlist secret
+ACTIONS_BATCH_ID = "actions-1"
+ACTIONS_PROPOSAL_IDENTITY = "62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c"  # noqa: E501  # pragma: allowlist secret
 
-ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356245"  # noqa: E501  # pragma: allowlist secret
+ORACLE_IDENTITY = "8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee"  # noqa: E501  # pragma: allowlist secret
 
 #: The whole committed file, by two identities the oracle identity does not
 #: cover. ``oracle_identity`` is content-only **by design** — reviewer and
@@ -105,10 +119,10 @@ ORACLE_IDENTITY = "c794bde48a6fbe6c59e5cc901a30f092524fe0ceecdc60b7ba080f11fd356
 #: The content digest normalizes CRLF to LF, which is what ``.gitattributes``
 #: declares this file is stored as; the blob id is Git's own content identity,
 #: computed from those same bytes rather than read out of ``.git``.
-ARTIFACT_CONTENT_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
-ARTIFACT_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
-PROJECTION_UUID = "f4ab8dd0-dfaf-543e-b54e-20a4f6b26f9e"
-PROJECTION_PAYLOAD_HASH = "d19e70575eb60dc2dcb4f6535d512140ea70a549de4854c5201b9d2cd69adecb"  # noqa: E501  # pragma: allowlist secret
+ARTIFACT_CONTENT_SHA256 = "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc"  # noqa: E501  # pragma: allowlist secret
+ARTIFACT_BLOB = "a729a797594e1156b279fac76c3073c733707a2f"  # pragma: allowlist secret
+PROJECTION_UUID = "9da8e85e-1d3d-55a6-ac9a-bb35e06d6322"
+PROJECTION_PAYLOAD_HASH = "7c4c1bd4d636dcb5dc09ead85b2ed843f3e838b097952d164b85adad231222a7"  # noqa: E501  # pragma: allowlist secret
 
 #: What each batch accepted, and what the file therefore holds. Kept per batch
 #: rather than only as totals: a merged count that is right for the wrong reason
@@ -137,7 +151,24 @@ HAZARDS = {
     "substantive": 65,
     "supporting": 31,
 }
-MERGED = {k: CONDITIONS[k] + HAZARDS[k] for k in CONDITIONS}
+ACTIONS = {
+    "spans": 182,
+    "records": 13,
+    "components": 37,
+    "facts": 48,
+    "prose_bindings": 27,
+    "relationships": 0,
+    "references": 17,
+    "provenance": 199,
+    "substantive": 84,
+    "supporting": 98,
+}
+BATCH_COUNTS = {
+    BATCH_ID: CONDITIONS,
+    HAZARDS_BATCH_ID: HAZARDS,
+    ACTIONS_BATCH_ID: ACTIONS,
+}
+MERGED = {k: sum(c[k] for c in BATCH_COUNTS.values()) for k in CONDITIONS}
 
 SPANS = MERGED["spans"]
 RECORDS = MERGED["records"]
@@ -206,20 +237,25 @@ def test_the_batch_records_the_authorized_acceptance_exactly() -> None:
     accepted authority over content nobody reviewed.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    conditions, hazards = inputs.batches
-    for batch, batch_id, identity, counts in (
-        (conditions, BATCH_ID, PROPOSAL_IDENTITY, CONDITIONS),
-        (hazards, HAZARDS_BATCH_ID, HAZARDS_PROPOSAL_IDENTITY, HAZARDS),
+    batches = {b.batch_id: b for b in inputs.batches}
+    assert len(batches) == len(inputs.batches), "a batch id is recorded twice"
+    assert sorted(batches) == sorted(BATCH_COUNTS)
+    for batch_id, identity in (
+        (BATCH_ID, PROPOSAL_IDENTITY),
+        (HAZARDS_BATCH_ID, HAZARDS_PROPOSAL_IDENTITY),
+        (ACTIONS_BATCH_ID, ACTIONS_PROPOSAL_IDENTITY),
     ):
-        assert batch.batch_id == batch_id
+        batch = batches[batch_id]
+        counts = BATCH_COUNTS[batch_id]
         assert batch.proposal_identity == identity
         assert len(batch.resolved_scope) == counts["spans"]
         assert len(set(batch.resolved_scope)) == counts["spans"], "the scope repeats"
         assert len(batch.diff) == counts["spans"]
         assert batch.rule.strip()
-    # Disjoint, which is what makes a second batch an extension rather than a
-    # re-judgement of something already accepted.
-    assert not set(conditions.resolved_scope) & set(hazards.resolved_scope)
+    # Pairwise disjoint, which is what makes each later batch an extension
+    # rather than a re-judgement of something already accepted.
+    scopes = [set(b.resolved_scope) for b in inputs.batches]
+    assert len(set().union(*scopes)) == sum(len(scope) for scope in scopes)
 
 
 def test_every_span_has_exactly_one_acceptance_record() -> None:
@@ -240,18 +276,18 @@ def test_every_span_has_exactly_one_acceptance_record() -> None:
     assert set(accepted_ids) == {
         span_id for batch in inputs.batches for span_id in batch.resolved_scope
     }
-    assert {a.batch_id for a in inputs.acceptances} == {BATCH_ID, HAZARDS_BATCH_ID}
+    assert {a.batch_id for a in inputs.acceptances} == set(BATCH_COUNTS)
     assert {a.reviewer for a in inputs.acceptances} == {REVIEWER}
-    # One acceptance action per batch, so one timestamp within each and two
-    # across the file — the second acceptance must not restamp the first.
-    for batch_id, counts in ((BATCH_ID, CONDITIONS), (HAZARDS_BATCH_ID, HAZARDS)):
+    # One acceptance action per batch, so one timestamp within each and three
+    # across the file — a later acceptance must not restamp an earlier one.
+    for batch_id, counts in BATCH_COUNTS.items():
         stamps = {a.accepted_at for a in inputs.acceptances if a.batch_id == batch_id}
         assert len(stamps) == 1, batch_id
         assert (
             len([a for a in inputs.acceptances if a.batch_id == batch_id])
             == counts["spans"]
         )
-    assert len({a.accepted_at for a in inputs.acceptances}) == 2
+    assert len({a.accepted_at for a in inputs.acceptances}) == len(BATCH_COUNTS)
 
 
 def test_the_accepted_scope_and_counts_are_exact() -> None:
@@ -308,61 +344,90 @@ def test_each_batch_still_states_the_schema_it_was_reviewed_under() -> None:
     """The declaration follows the newest acceptance; the anchors do not move.
 
     An accepted artifact records the contract a human reviewed it under, and
-    that record is per batch, not per file. ``hazards-1`` was reviewed under
-    schema 5, so the file now declares schema 5 — but ``conditions-1`` is still
-    anchored at schema 3, which is where *its* review happened, and restamping
-    that anchor to match the declaration is exactly the attack
-    ``BatchSchemaAnchor`` exists to refuse.
+    that record is per batch, not per file. ``conditions-1`` was reviewed under
+    schema 3, ``hazards-1`` under schema 5, ``actions-1`` under schema 7, so
+    those are the three anchors — and restamping any of them to match whatever
+    the build currently implements is exactly the attack ``BatchSchemaAnchor``
+    exists to refuse. Accepting ``actions-1`` moved the file's *declaration* to
+    schema 7, because that is the schema the newest acceptance was reviewed
+    under; it did not touch either earlier anchor, which is the whole reason
+    they sit beside the batches rather than in the header.
 
-    The registered succession is what connects the two, and it is retained in
-    full: schema 3 → 4 → 5, one row per crossing, never collapsed into a
-    transition the registry has no row for.
+    The anchors are also the only place the artifact records acceptance
+    *order*: ``batches`` comes back in canonical id order, so ``actions-1``
+    sorts first while having been accepted last.
+
+    The retained succession is the one that has actually run: schema
+    3 → 4 → 5 → 6 → 7, one row per crossing, never collapsed into a transition
+    the registry has no row for.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert inputs.oracle.schema_hash == representation_schema_hash()
+    assert inputs.oracle.schema_version == SCHEMA_7_VERSION
+    assert inputs.oracle.schema_hash == SCHEMA_7_HASH
 
+    assert [a.batch_id for a in inputs.schema_anchors] == [
+        BATCH_ID,
+        HAZARDS_BATCH_ID,
+        ACTIONS_BATCH_ID,
+    ]
     anchors = {a.batch_id: a for a in inputs.schema_anchors}
-    assert sorted(anchors) == sorted([BATCH_ID, HAZARDS_BATCH_ID])
-    assert anchors[BATCH_ID].schema_version == "5d-representation-schema-3"
-    assert anchors[BATCH_ID].schema_hash == SCHEMA_3_HASH
-    assert anchors[BATCH_ID].proposal_identity == PROPOSAL_IDENTITY
-    assert anchors[HAZARDS_BATCH_ID].schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert anchors[HAZARDS_BATCH_ID].schema_hash == representation_schema_hash()
-    assert anchors[HAZARDS_BATCH_ID].proposal_identity == HAZARDS_PROPOSAL_IDENTITY
+    for batch_id, version, schema_hash, identity in (
+        (BATCH_ID, SCHEMA_3_VERSION, SCHEMA_3_HASH, PROPOSAL_IDENTITY),
+        (HAZARDS_BATCH_ID, SCHEMA_5_VERSION, SCHEMA_5_HASH, HAZARDS_PROPOSAL_IDENTITY),
+        (ACTIONS_BATCH_ID, SCHEMA_7_VERSION, SCHEMA_7_HASH, ACTIONS_PROPOSAL_IDENTITY),
+    ):
+        assert anchors[batch_id].schema_version == version, batch_id
+        assert anchors[batch_id].schema_hash == schema_hash, batch_id
+        assert anchors[batch_id].proposal_identity == identity, batch_id
 
     assert [lift.lift_id for lift in inputs.lifts] == [
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
+        "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
     ]
     assert (inputs.lifts[0].from_version, inputs.lifts[0].from_hash) == (
-        "5d-representation-schema-3",
+        SCHEMA_3_VERSION,
         SCHEMA_3_HASH,
     )
     assert (inputs.lifts[-1].to_version, inputs.lifts[-1].to_hash) == (
-        REPRESENTATION_SCHEMA_VERSION,
-        representation_schema_hash(),
+        SCHEMA_7_VERSION,
+        SCHEMA_7_HASH,
     )
 
 
 def test_the_committed_artifact_is_buildable_and_the_legacy_form_is_not() -> None:
     """Both halves of the fail-closed rule, in one place.
 
-    The committed artifact declares the contract this build implements, so it
-    builds as current authority — that is what accepting a batch reviewed under
-    the current schema *means*.
+    ``actions-1`` was reviewed under schema 7, which is the schema this build
+    implements, so the committed artifact declares current authority and is
+    admitted exactly as it sits. That is the half the rule *permits*, and it is
+    asserted against ``REPRESENTATION_SCHEMA_VERSION`` rather than a literal, so
+    the next succession moves this test rather than quietly passing it.
 
-    The refusal it used to demonstrate is not weakened, it has moved to the
-    specimen: a schema-3 artifact still cannot be built as authority under a
-    later union it never agreed to, and the authorized way through is still a
-    registered lift.
+    The refusal has not gone anywhere — it belongs to whichever artifact still
+    declares a superseded contract, which is now the frozen schema-3 specimen
+    alone. That specimen is **not** current authority as it stands, and that is
+    correct rather than a regression: a projection built under a wider union is
+    a different projection (ADR-005d Decision 6), and the authorized way
+    through is the registered lift.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
+    assert inputs.oracle.schema_version == SCHEMA_7_VERSION
+    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
+    assert inputs.oracle.schema_hash == representation_schema_hash()
     assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
 
     legacy = load_accepted_inputs(LEGACY_PATH)
-    assert legacy.oracle.schema_version == "5d-representation-schema-3"
-    assert validate_schema_binding(candidate_from_accepted_inputs(legacy)) != ()
+    assert legacy.oracle.schema_version == SCHEMA_3_VERSION
+    findings = validate_schema_binding(candidate_from_accepted_inputs(legacy))
+    assert findings != ()
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
+
+    lifted, _ = lift_accepted_inputs(
+        legacy, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    )
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
 
 
 # ---------------------------------------------------------------------------
@@ -391,11 +456,16 @@ def test_the_accepted_candidate_reproduces_every_derived_identity() -> None:
     and the build would produce another.
 
     Asserted **under the schema the artifact declares**, which since
-    ``hazards-1`` is the schema this build implements: the artifact is built as
-    current authority, and the test above asserts that it is admitted rather
-    than refused. The refusal that used to belong in this sentence is not gone —
-    it applies to the frozen schema-3 specimen, and the test above asserts it
-    there.
+    ``actions-1`` is again the schema this build implements: the artifact is
+    built as current authority, and the test above asserts that it is admitted
+    rather than refused. The refusal that used to belong in this sentence is not
+    gone — it applies to the frozen schema-3 specimen, and the test above
+    asserts it there.
+
+    Both pins moved when ``actions-1`` was accepted, and had to: the projection
+    covers strictly more records under a schema whose declaration is itself
+    identity-bearing (ADR-005d Decision 6). The property is not that they never
+    move — it is that they move only when an Owner accepted something.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     identified = identify_projection(candidate_from_accepted_inputs(inputs))
@@ -431,6 +501,8 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
     assert [r.lift_id for r in records] == [
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
+        "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
@@ -544,13 +616,18 @@ def test_no_refused_candidate_is_selectable() -> None:
         for p in COMMITTED_ORACLE_DIR.glob("*.json")
         for b in load_accepted_inputs(p).batches
     }
-    assert named == {PROPOSAL_IDENTITY, HAZARDS_PROPOSAL_IDENTITY}
+    assert named == {
+        PROPOSAL_IDENTITY,
+        HAZARDS_PROPOSAL_IDENTITY,
+        ACTIONS_PROPOSAL_IDENTITY,
+    }
     for refused in REFUSED:
         assert refused not in named
     assert PROPOSAL_IDENTITY not in REFUSED
     # The rejected schema-4 hazards proposal is in REFUSED, and the accepted
     # hazards batch is a different identity against a different schema.
     assert HAZARDS_PROPOSAL_IDENTITY not in REFUSED
+    assert ACTIONS_PROPOSAL_IDENTITY not in REFUSED
 
 
 # ---------------------------------------------------------------------------
@@ -558,10 +635,10 @@ def test_no_refused_candidate_is_selectable() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_the_accepted_authority_covers_conditions_and_hazards_only() -> None:
+def test_the_accepted_authority_covers_the_three_accepted_batches_only() -> None:
     """Why the release still cannot publish, stated at the artifact level.
 
-    Every accepted record belongs to one of the two accepted batches. The
+    Every accepted record belongs to one of the three accepted batches. The
     publication gate compares accepted authority against the *whole* persisted
     projection, so a projection over the full SRD still carries records this
     artifact does not accept — the end-to-end refusal is asserted in
@@ -571,11 +648,12 @@ def test_the_accepted_authority_covers_conditions_and_hazards_only() -> None:
     keys = sorted(r.semantic_key for r in oracle.representation.records)
     assert len(keys) == RECORDS
 
-    # Fifteen conditions plus the glossary entry that defines the list; five
-    # hazards plus the glossary entry that defines those. Nothing from any
-    # other CRD Issue 5d batch is in here.
+    # Fifteen conditions, five hazards, twelve actions, and the glossary entry
+    # that defines each of the three lists. Nothing from any other CRD Issue 5d
+    # batch is in here.
     conditions = [k for k in keys if k.startswith("condition.")]
     hazards = [k for k in keys if k.startswith("hazard.")]
+    actions = [k for k in keys if k.startswith("action.")]
     assert len(conditions) == 15, conditions
     assert hazards == [
         "hazard.burning",
@@ -584,7 +662,22 @@ def test_the_accepted_authority_covers_conditions_and_hazards_only() -> None:
         "hazard.malnutrition",
         "hazard.suffocation",
     ], hazards
-    assert sorted(set(keys) - set(conditions) - set(hazards)) == [
+    assert actions == [
+        "action.attack",
+        "action.dash",
+        "action.disengage",
+        "action.dodge",
+        "action.help",
+        "action.hide",
+        "action.influence",
+        "action.magic",
+        "action.ready",
+        "action.search",
+        "action.study",
+        "action.utilize",
+    ], actions
+    assert sorted(set(keys) - set(conditions) - set(hazards) - set(actions)) == [
+        "glossary.action",
         "glossary.condition",
         "glossary.hazard",
     ], keys
@@ -595,16 +688,25 @@ def test_the_accepted_authority_covers_conditions_and_hazards_only() -> None:
 
 
 def test_a_later_batch_extended_this_artifact_rather_than_adding_one() -> None:
-    """The extension contract, now demonstrated rather than anticipated.
+    """The extension contract, now demonstrated twice rather than anticipated.
 
     ``accept_proposal`` takes prior accepted inputs and merges, and the resolver
     refuses two artifacts for one release. Together those made "extend the file"
-    the only representable way to add a batch. ``hazards-1`` did exactly that:
-    two batches, in order, in one file, for one release — and the batches are
-    appended, so the first acceptance is still first.
+    the only representable way to add a batch. ``hazards-1`` did exactly that,
+    and ``actions-1`` did it again: three batches, one file, one release.
+
+    Acceptance order is asserted through ``schema_anchors`` rather than through
+    ``batches``, which is canonically keyed — ``actions-1`` sorts first and was
+    accepted last, so reading order out of ``batches`` would assert the
+    opposite of the truth.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
-    assert [b.batch_id for b in inputs.batches] == [BATCH_ID, HAZARDS_BATCH_ID]
+    assert sorted(b.batch_id for b in inputs.batches) == sorted(BATCH_COUNTS)
+    assert [a.batch_id for a in inputs.schema_anchors] == [
+        BATCH_ID,
+        HAZARDS_BATCH_ID,
+        ACTIONS_BATCH_ID,
+    ]
     same_release = [
         p
         for p in COMMITTED_ORACLE_DIR.glob("*.json")
@@ -655,23 +757,27 @@ def test_the_whole_acceptance_record_is_pinned_not_only_the_oracle() -> None:
     assert oracle_identity(inputs.oracle) == ORACLE_IDENTITY
 
     # The evidence the two file-level pins are what actually protect.
-    assert [b.batch_id for b in inputs.batches] == [BATCH_ID, HAZARDS_BATCH_ID]
-    assert [b.proposal_identity for b in inputs.batches] == [
-        PROPOSAL_IDENTITY,
-        HAZARDS_PROPOSAL_IDENTITY,
-    ]
+    assert {b.batch_id: b.proposal_identity for b in inputs.batches} == {
+        BATCH_ID: PROPOSAL_IDENTITY,
+        HAZARDS_BATCH_ID: HAZARDS_PROPOSAL_IDENTITY,
+        ACTIONS_BATCH_ID: ACTIONS_PROPOSAL_IDENTITY,
+    }
     assert {a.reviewer for a in inputs.acceptances} == {REVIEWER}
     assert {a.accepted_at for a in inputs.acceptances} == {
         "2026-08-23T09:53:55Z",
         "2026-09-03T10:58:59Z",
+        "2026-09-09T20:45:32Z",
     }
     assert [a.schema_version for a in inputs.schema_anchors] == [
-        "5d-representation-schema-3",
-        REPRESENTATION_SCHEMA_VERSION,
+        SCHEMA_3_VERSION,
+        SCHEMA_5_VERSION,
+        SCHEMA_7_VERSION,
     ]
     assert [lift.lift_id for lift in inputs.lifts] == [
         "5d-lift-schema-3-to-4",
         "5d-lift-schema-4-to-5",
+        "5d-lift-schema-5-to-6",
+        "5d-lift-schema-6-to-7",
     ]
     assert all(b.rule.strip() for b in inputs.batches)
 

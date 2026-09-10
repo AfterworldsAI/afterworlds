@@ -34,10 +34,10 @@ independent accepted authority with its own publication proof. Re-declaring
 without adding a second opinion.
 
 **What is committed today.** ``oracles/`` holds accepted authority for the
-production SRD 5.2.1 release covering CRD Issue 5d batches ``conditions-1`` and
-``hazards-1`` — 22 records and 281 spans — so that release resolves to a
-committed oracle, but not to full-corpus authority: ``actions-1`` has not begun
-and the corpus remains incomplete. A projection over the whole release therefore
+production SRD 5.2.1 release covering CRD Issue 5d batches ``conditions-1``,
+``hazards-1`` and ``actions-1`` — 35 records and 463 spans — so that release
+resolves to a committed oracle, but not to full-corpus authority: the corpus
+remains incomplete. A projection over the whole release therefore
 fails the gate as incomplete rather than as unjudged, and nothing over it has
 been published or activated. Later content batches extend that same artifact
 through the
@@ -78,6 +78,7 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    COMPONENT_WIDE_PROSE,
     RECURRENCE_KEYS,
     Applicability,
     ApplicabilityKind,
@@ -85,11 +86,14 @@ from afterworlds.ingestion.mechanical.representation import (
     Comparison,
     ComponentDraft,
     ComponentOption,
+    ConditionKind,
+    CoverDegree,
     CreatureSize,
     DamageOutcome,
     FactFamily,
     FactQualifier,
     MalformedFactPayloadError,
+    ObscurementState,
     ParticipantRole,
     Phase,
     ProseBindingDraft,
@@ -108,10 +112,12 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     SizeComparison,
     SizeRelation,
+    StateEffectKind,
     TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
+    build_casting_time_threshold,
     build_consumption_band,
     fact_from_payload,
     recurrence_violations,
@@ -500,6 +506,16 @@ def _applicability(raw: object, where: str) -> Applicability | None:
     # before anything is constructed.
     if shape := applicability_payload_violations(raw):
         raise OracleLoadError(f"{where}: {'; '.join(shape)}")
+    # A disjunction's terms are whole applicabilities, so they are rebuilt by
+    # this same loader: one statement of the shape, one layer's error type, and
+    # a term that is not an object was already refused by the key-set gate.
+    terms = []
+    for index, raw_term in enumerate(raw.get("any_of_terms") or ()):
+        at = f"{where}.any_of_terms[{index}]"
+        term = _applicability(raw_term, at)
+        if term is None:
+            raise OracleLoadError(f"{at}: a disjunction term may not be null")
+        terms.append(term)
     try:
         built = Applicability(
             kind=ApplicabilityKind(raw["kind"]),
@@ -555,10 +571,40 @@ def _applicability(raw: object, where: str) -> Applicability | None:
                 else DamageOutcome(raw["damage_outcome"])
             ),
             unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
+            # Schema 6's operands, read the same way and for the same reason.
+            condition=(
+                None
+                if raw.get("condition") is None
+                else ConditionKind(raw["condition"])
+            ),
+            effect_state=(
+                None
+                if raw.get("effect_state") is None
+                else StateEffectKind(raw["effect_state"])
+            ),
+            obscurement=(
+                None
+                if raw.get("obscurement") is None
+                else ObscurementState(raw["obscurement"])
+            ),
+            cover=None if raw.get("cover") is None else CoverDegree(raw["cover"]),
+            any_of_terms=tuple(terms),
             band=(
                 None
                 if raw.get("band") is None
                 else build_consumption_band(raw["band"], f"{where}.band")
+            ),
+            # Schema 7's threshold, read the same way and for the same
+            # reason: the key is omitted when it carries no meaning, so a
+            # payload written under any earlier contract has no such key
+            # and dropping it would rebuild an applicability whose
+            # required operand is absent.
+            casting_time=(
+                None
+                if raw.get("casting_time") is None
+                else build_casting_time_threshold(
+                    raw["casting_time"], f"{where}.casting_time"
+                )
             ),
         )
     except (KeyError, TypeError, ValueError) as exc:
@@ -780,6 +826,10 @@ def _representation(payload: object) -> RepresentationDraft:
                 "irreducibility_reason_code",
             ),
             where,
+            # Schema 6, and absent from every payload written before it. The
+            # canonical form omits it when the binding governs the whole
+            # component, so its absence has exactly one reading.
+            optional=("option_key",),
         )
         prose_bindings.append(
             ProseBindingDraft(
@@ -794,6 +844,11 @@ def _representation(payload: object) -> RepresentationDraft:
                 irreducibility_reason_code=_string(
                     b["irreducibility_reason_code"],
                     f"{where}.irreducibility_reason_code",
+                ),
+                option_key=(
+                    COMPONENT_WIDE_PROSE
+                    if b.get("option_key") is None
+                    else _string(b["option_key"], f"{where}.option_key")
                 ),
             )
         )

@@ -575,7 +575,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = "2803840899363988cc2f67e0d9f310d9baffe394d52ca0919d11388bcd7f4c40"  # noqa: E501  # pragma: allowlist secret
+EXPECTED_SCHEMA_HASH = "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:
@@ -642,7 +642,19 @@ def test_the_schema_hash_covers_declared_invariants_and_not_checker_code() -> No
         if row["locus"] == "fact:critical_hit_rule"  # type: ignore[index]
     ]
     # And the declaration is prose about rules, never about the code holding them.
-    assert "def " not in rendered and "_check_" not in rendered
+    #
+    # The checker-name probe is scoped to the invariant rows rather than run
+    # over the whole render. Schema 6 admits ``DcKind.recorded_check_total`` —
+    # a printed source value that contains ``_check_`` and nothing to do with
+    # ``_check_ability_check`` — so a substring probe over the payload would
+    # start refusing the vocabulary instead of the code.
+    assert "def " not in rendered
+    declaration = json.dumps(representation_schema_payload()["invariants"])
+    assert "def " not in declaration
+    assert not any(
+        name in declaration
+        for name in ("_check_ability_check", "_check_scaling", "_check_damage")
+    )
     assert representation_schema_hash() == EXPECTED_SCHEMA_HASH
 
 

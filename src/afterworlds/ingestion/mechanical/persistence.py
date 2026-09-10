@@ -82,11 +82,14 @@ from afterworlds.ingestion.mechanical.representation import (
     Comparison,
     ComponentDraft,
     ComponentOption,
+    ConditionKind,
+    CoverDegree,
     CreatureSize,
     DamageOutcome,
     FactQualifier,
     MalformedFactPayloadError,
     MechanicalFact,
+    ObscurementState,
     ParticipantRole,
     Phase,
     ProseBindingDraft,
@@ -105,10 +108,12 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     SizeComparison,
     SizeRelation,
+    StateEffectKind,
     TimeUnit,
     TrackedQuantity,
     UnknownFactFamilyError,
     applicability_violations,
+    build_casting_time_threshold,
     build_consumption_band,
     fact_from_payload,
     fact_key,
@@ -325,6 +330,7 @@ def persist_draft(
                 chunk_char_start=binding.chunk_char_start,
                 chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
+                option_key=binding.option_key,
             )
         )
 
@@ -432,6 +438,17 @@ def _applicability_from_row(
     # was never checked.
     if shape := applicability_payload_violations(raw):
         raise PersistedStateReconstructionError(f"{table} {where}: {'; '.join(shape)}")
+    # A disjunction's terms are whole applicabilities, so they are rebuilt by
+    # this same loader rather than by a second statement of the shape.
+    terms = []
+    for index, raw_term in enumerate(raw.get("any_of_terms") or ()):
+        at = f"{where}.any_of_terms[{index}]"
+        term = _applicability_from_row(raw_term, table, at)
+        if term is None:
+            raise PersistedStateReconstructionError(
+                f"{table} {at}: a disjunction term may not be null"
+            )
+        terms.append(term)
     try:
         built = Applicability(
             kind=ApplicabilityKind(raw["kind"]),
@@ -489,10 +506,40 @@ def _applicability_from_row(
                 else DamageOutcome(raw["damage_outcome"])
             ),
             unit=None if raw.get("unit") is None else TimeUnit(raw["unit"]),
+            # Schema 6's operands, read the same way and for the same reason.
+            condition=(
+                None
+                if raw.get("condition") is None
+                else ConditionKind(raw["condition"])
+            ),
+            effect_state=(
+                None
+                if raw.get("effect_state") is None
+                else StateEffectKind(raw["effect_state"])
+            ),
+            obscurement=(
+                None
+                if raw.get("obscurement") is None
+                else ObscurementState(raw["obscurement"])
+            ),
+            cover=None if raw.get("cover") is None else CoverDegree(raw["cover"]),
+            any_of_terms=tuple(terms),
             band=(
                 None
                 if raw.get("band") is None
                 else build_consumption_band(raw["band"], f"{where}.band")
+            ),
+            # Schema 7's threshold, read the same way and for the same
+            # reason: the key is omitted when it carries no meaning, so a
+            # payload written under any earlier contract has no such key
+            # and dropping it would rebuild an applicability whose
+            # required operand is absent.
+            casting_time=(
+                None
+                if raw.get("casting_time") is None
+                else build_casting_time_threshold(
+                    raw["casting_time"], f"{where}.casting_time"
+                )
             ),
         )
     except (KeyError, TypeError, ValueError) as exc:
@@ -754,6 +801,7 @@ def reconstruct_candidate(
                 chunk_char_start=p.chunk_char_start,
                 chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
+                option_key=p.option_key,
             )
             for p in raw.prose_bindings
         ),
