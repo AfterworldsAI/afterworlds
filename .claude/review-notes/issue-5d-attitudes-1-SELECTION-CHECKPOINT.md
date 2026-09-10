@@ -196,7 +196,10 @@ source authority rather than being pulled into it:
 `DefaultAttitudeFact` deliberately does **not** carry a beneficiary, a subject
 or a creature category. It states a default, not an assignment: no creature is
 given an attitude by it, nothing is adjudicated at runtime, and the "monster"
-scope lives in the family's name and docstring rather than in a creature-kind
+scope is carried by the fact's own provenance span — I2, *"Indifferent is the
+default attitude of a monster."* (`Indifferent`, p184) — together with T2's
+supporting authority on `glossary.attitude`. It is not in the family's name,
+which says only `DefaultAttitudeFact`, and it is not in a creature-kind
 field, because `RecordKind` and `EligibilitySubject` have no such member and
 minting one for a single source instance is the generic escape hatch ADR-005d
 Decision 4 forbids.

@@ -415,7 +415,10 @@ An `Applicability` was rejected because a default is not a gate: it does not say
 applies, it says what holds absent other specification. A single-member vocabulary was rejected for the
 closure reason above. A creature-kind or subject field was rejected as a generic escape hatch — the
 family carries no beneficiary, subject or creature category, because it states a default rather than
-assigning one; *"of a monster"* is scope that lives in the family's name and its record, and nothing is
+assigning one. *"of a monster"* is scope carried by the fact's own provenance span — the clause
+*"Indifferent is the default attitude of a monster."* (`Indifferent`, p184) — and by the umbrella's
+supporting authority on `glossary.attitude`, *"A monster has a starting attitude toward a player
+character"* (`Attitude`, p177). Neither the family name nor the record key states it, and nothing is
 adjudicated at runtime. Friendly's and Hostile's influence-check bias is unchanged by all of this: it
 stays `condition.charmed`'s accepted `AdvantageFact` shape on a `MIXED` component with prose-bound
 `contextual_applicability`, and `RollContext` is deliberately not widened.

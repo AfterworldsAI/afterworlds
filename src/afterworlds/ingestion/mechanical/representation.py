@@ -3019,10 +3019,11 @@ class DefaultAttitudeFact:
     :class:`MovementTransportFact` refuses for the same reason: a consumer must
     not have to know a naming rule to read authority.
 
-    **Scoped to a monster by the family, not by a field.** *"of a monster"* is
-    the only default attitude the corpus states, and the umbrella supplies the
-    rest of the scope — *"A monster has a **starting** attitude toward a player
-    character"* (``Attitude``, p177). A ``subject`` field would need a creature
+    **Scoped to a monster by its provenance, not by a field or by this
+    name.** The scope is in the clause this fact's provenance span points at,
+    which is the only default attitude the corpus states, and the umbrella
+    supplies the rest of it — *"A monster has a **starting** attitude toward a
+    player character"* (``Attitude``, p177). A ``subject`` field would need a creature
     vocabulary the source gives no second member for, which is the generic
     escape hatch Decision 4 forbids. A later default over a different subject
     is a later succession's field, not a speculative one now.
