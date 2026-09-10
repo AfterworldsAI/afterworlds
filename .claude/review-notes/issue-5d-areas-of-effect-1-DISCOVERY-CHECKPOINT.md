@@ -13,7 +13,7 @@ observation; §2 below measures it.
 
 ```bash
 python .claude/review-notes/issue-5d-areas-of-effect-1-discovery.py
-pytest -q tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prior.py
+pytest -q --no-cov tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prior.py
 ```
 
 The first writes `.claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json`
@@ -234,7 +234,7 @@ vocabulary instead.
 |---|---|---|---|---|---|
 | **G1** — a shape has a point of origin | `Area of Effect/5/0`, and the opening clause of all six shapes | **none.** `SpellRange(kind: RangeKind, feet)` is the nearest and is about *range* — where an effect can reach — not about an *area*; `RangeKind` has no area member. `SpellDescriptorFact.spell_range` carries it for spells only | that each shape record has an origin, and what kind of thing the origin is | none identified | the record says an origin exists and what type it is; *where it is placed in play* is chosen at cast time |
 | **G2** — per-shape origin placement rule | `Cone/1/0`, `Cube/1/0`, `Cylinder/1/0`, `Emanation/1/0`, `Line/1/0`, `Sphere/1/0` | none | a closed six-member vocabulary drawn from the printed clauses: creator-chosen direction; anywhere on a face; center of the circular top or bottom; a creature or object; a straight path along the length; outward in all directions | none identified. **Emanation is the discriminating witness:** its origin is *a creature or an object*, not a point, so a vocabulary that assumed a point origin would silently lose it | the record names the placement rule; resolving it to coordinates is adapter work |
-| **G3** — dimension parameters supplied by the creating effect | `Cone/1/3`, `Cube/1/1`, `Cylinder/1/1`, `Emanation/1/1`, `Line/1/1`, `Sphere/1/1` | `DistanceUnit.FOOT` exists and is exact — the SRD prints every distance in feet. The *parameter set* has no carrier | which parameters each shape requires, and that the value comes from the effect rather than from the shape | **arity varies:** Cylinder needs two (base radius, height) and Line needs two (length, width); the other four need one. A single-slot shape would defeat itself on Cylinder and Line | the record declares the required parameter names and unit; the values arrive with the spell or feature that creates the area |
+| **G3** — dimension parameters supplied by the creating effect | `Cone/1/3`, `Cube/1/1`, `Cylinder/1/1`, `Emanation/1/1`, `Line/1/1`, `Sphere/1/1` | `DistanceUnit.FOOT` exists and is exact, and is the vocabulary the *value* would carry — but no substantive clause here prints a unit (the only “feet” in the class is `Cone/1/2`, the worked example). The *parameter set* has no carrier | which parameters each shape requires, and that the value comes from the effect rather than from the shape | **arity varies:** Cylinder needs two (base radius, height) and Line needs two (length, width); the other four need one. A single-slot shape would defeat itself on Cylinder and Line | the record declares the required parameter *names*, which are what this class prints; the unit and the values arrive with the spell or feature that creates the area |
 | **G4** — origin-inclusion polarity | `Cone/1/4`, `Cube/1/2`, `Cylinder/1/2`, `Emanation/1/3`, `Line/1/2`, `Sphere/1/2` | none | a closed two-member state, printed and complete over the class: **included** (Cylinder, Sphere) and **excluded unless its creator decides otherwise** (Cone, Cube, Line, Emanation) | none identified | the record states the default and that the creator may override it; *whether the creator did* is a per-cast choice |
 | **G5** — Cone's width relation | `Cone/1/1` | none | a named closed taper rule — *width at a point equals that point's distance from the origin* | this is the sharpest declarative/runtime crossing in the class; see the note below | the record names the rule; computing a width at a distance is adapter arithmetic |
 | **G6** — Emanation movement and its exception | `Emanation/1/2` | `DurationKind.INSTANTANEOUS` exists and is exact for half the exception | that an Emanation moves with its origin, and the two effect kinds that suspend it | **"stationary effect" has no vocabulary member** anywhere in schema 8 — not in `DurationKind`, not in `SustainedState`, not in `EffectTerminationFact`. It is a distinct printed kind, not a synonym for instantaneous | the record states the movement rule and its two exceptions; tracking an origin's motion is runtime state |
@@ -322,9 +322,11 @@ keys are listed in `review_prior.record_keys`.
   judges that one belongs, that is an addition to make deliberately, not a boundary this
   checkpoint may lean on.
 * **The phrase "no general rules engine" is not accepted-authority wording.** It occurs only
-  in `.claude/review-notes/` and in `attitudes-1`'s generator docstring. The accepted
-  wording is ADR-005c Decision 3's, quoted verbatim in §4, and it permits declarative typed
-  facts explicitly.
+  in `.claude/review-notes/` and in `attitudes-1`'s generator docstring. The nearest accepted
+  wording is ADR-005d Decision 4's title, *“Closed typed facts, no generated rules
+  engine”* — one word off, and the difference is the word doing the work. The binding text
+  is that Decision's body and ADR-005c Decision 3's, both quoted verbatim in §4, and both
+  permit declarative typed facts explicitly.
 * **The `attitudes-1` deferral rationale is a starting observation, and it was measured.**
   It reads *"point of origin, shape dimensions, origin inclusion, line of effect blocked by
   Total Cover."* All four are real (G1/G3/G4/G7). What it does **not** survive is the
@@ -349,7 +351,7 @@ keys are listed in `review_prior.record_keys`.
 
 | Check | Result |
 |---|---|
-| `pytest -q tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prior.py` (7 tests) + the three-batch prior's 7 | 14 passed |
+| `pytest -q --no-cov tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prior.py` (7 tests) + the three-batch prior's 7 | 14 passed |
 | Five release-binding values re-derived from the committed PDF and asserted | pass |
 | Tag-class sizes re-measured | `{Action: 12, Area of Effect: 6, Attitude: 3, Condition: 15, Hazard: 5}` |
 | Umbrella enumeration ⇔ tag membership, asserted equal both directions | pass |
@@ -361,6 +363,7 @@ keys are listed in `review_prior.record_keys`.
 | Live accepted artifact read as a mutation sentinel, never as an input | unmoved |
 | Every other file in `.claude/review-notes/` digested before and after | unmoved |
 | Manifest reproducibility | rerun byte-identical, sha256 `7fb1cec3a39253fe2e7546f1905a5a13296c5bff8f6b02f982557744a68b13ec` |
+| Manifest reproduced from a clean `git archive HEAD` export, outside the working tree | byte-identical, same sha256 |
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it
 over), the semantic validator (there is no draft), any acceptance script, any lift.
