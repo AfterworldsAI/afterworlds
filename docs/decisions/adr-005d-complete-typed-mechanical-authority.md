@@ -291,6 +291,12 @@ written.
 Nothing is accepted, published, activated, or retired by the schema change, and acceptance-ready
 regeneration for `actions-1` stays paused until it passes review.
 
+> **Historical — the state at the schema-6 amendment.** The two paragraphs above record what was true
+> when schema 6 was registered, and are kept as written. The committed artifact declared schema 5 then;
+> it declares schema 7 now, and `hazards-1` is no longer the batch the newest acceptance was reviewed
+> under. The pause stated here ended on 2026-09-09; see the note under the schema-7 amendment below.
+> Every pin, anchor and lift row recorded above is unchanged.
+
 **Amended by representation schema 7 — the `actions-1` residue S-1.** Independent review of the
 schema-6 batch cleared the `Dash` correction, the `Magic`/`Ready` activation-cost eligibility
 reclassification and the `Help`/`Influence` governing prose, and confirmed one stop. *"If you cast a
@@ -354,6 +360,31 @@ Nothing is accepted, published, activated, or retired by this schema change eith
 regeneration for `actions-1` remains paused. The new composition for `Magic` K2/K3/K4 is demonstrated
 through review and test evidence only — a persisted-gate proof against the pinned source coordinates,
 not a proposal and not an acceptance.
+
+> **Historical — the state at the schema-7 amendment, superseded by Owner Decision 2026-09-09.** The
+> paragraph above records the state when schema 7 was registered and is kept as written; the pause it
+> states has since ended. On 2026-09-09 the Owner accepted this exact schema-7 proposal,
+> `62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c`, as batch `actions-1` — all 182
+> spans and the complete representation, extending the preserved `conditions-1`/`hazards-1` prior
+> through the registered transitions. **No unresolved architectural choice remains here and no further
+> Owner ruling is required**; this note reconciles the description with a decision already recorded, and
+> amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 7 rather than schema 5, and
+> carries a third anchor, `actions-1` at schema 7. What it did not change: `conditions-1` stays anchored
+> at schema 3 and `hazards-1` at schema 5, where each was reviewed; succession is still one row per
+> crossing, resolved as the path `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7`; schemas 4, 5
+> and 6 remain recognized contracts with the pins above; and the schema-7 destination pin is still
+> `80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d`. The accepted mechanical identity is
+> `8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee`.
+>
+> What remains open is unchanged by it. The acceptance published, activated and retired **nothing**, and
+> it resolved no reference it did not define: `glossary.speed`, `glossary.concentration`,
+> `attitude.friendly`, `attitude.hostile` and `attitude.indifferent` are still unresolved and are still
+> explicit publication blockers. General casting-time eligibility stays a deferred Known Unknown,
+> recorded in `known_unknowns.md`, together with representation limit L-1 and residue R-help-reason. The
+> `Magic` K2/K3/K4 demonstration named above was no part of the accepted batch and remains
+> demonstration evidence only.
 
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
