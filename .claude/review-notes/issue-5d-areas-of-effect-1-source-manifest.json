@@ -1,0 +1,978 @@
+{
+  "artifact_kind": "source_discovery_manifest",
+  "batch_id": "areas-of-effect-1",
+  "issue": "CRD Issue 5d (#137)",
+  "generated_by": "issue-5d-areas-of-effect-1-discovery.py",
+  "note": "Discovery only. No draft, proposal, acceptance, lift, publication or schema change is produced by this run, and no disposition is encoded here; the checkpoint document carries the judgments and cites these clause ids.",
+  "input_paths": {
+    "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+    "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+    "review_prior": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json",
+    "afterworlds_package": "src/afterworlds",
+    "output": ".claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json"
+  },
+  "release_binding": {
+    "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+    "release_version": "5.2.1-corpus.36b786d8-fa2",
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+    "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+    "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+    "persisted_corpus_digest_note": "Not independently derivable here: a function of persisted rp_sources rows and verified Chroma state. Taken from the published CRD Issue 5c release record and disclosed as such. The five values above are re-derived from the committed PDF by this run and asserted."
+  },
+  "representation_schema": {
+    "version": "5d-representation-schema-8",
+    "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"
+  },
+  "review_prior": {
+    "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json",
+    "content_sha256": "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab",
+    "blob": "2346404005618b0389b4e4f66d2e96c5c35b200f",
+    "oracle_identity": "c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa",
+    "batch_ids": [
+      "actions-1",
+      "attitudes-1",
+      "conditions-1",
+      "hazards-1"
+    ],
+    "record_keys": [
+      "action.attack",
+      "action.dash",
+      "action.disengage",
+      "action.dodge",
+      "action.help",
+      "action.hide",
+      "action.influence",
+      "action.magic",
+      "action.ready",
+      "action.search",
+      "action.study",
+      "action.utilize",
+      "attitude.friendly",
+      "attitude.hostile",
+      "attitude.indifferent",
+      "condition.blinded",
+      "condition.charmed",
+      "condition.deafened",
+      "condition.exhaustion",
+      "condition.frightened",
+      "condition.grappled",
+      "condition.incapacitated",
+      "condition.invisible",
+      "condition.paralyzed",
+      "condition.petrified",
+      "condition.poisoned",
+      "condition.prone",
+      "condition.restrained",
+      "condition.stunned",
+      "condition.unconscious",
+      "glossary.action",
+      "glossary.attitude",
+      "glossary.condition",
+      "glossary.hazard",
+      "hazard.burning",
+      "hazard.dehydration",
+      "hazard.falling",
+      "hazard.malnutrition",
+      "hazard.suffocation"
+    ],
+    "unresolved_targets": [
+      "glossary.concentration",
+      "glossary.speed"
+    ]
+  },
+  "tag_class_sizes": {
+    "Action": 12,
+    "Area of Effect": 6,
+    "Attitude": 3,
+    "Condition": 15,
+    "Hazard": 5
+  },
+  "tag_classes": {
+    "Action": [
+      "Attack [Action]",
+      "Dash [Action]",
+      "Disengage [Action]",
+      "Dodge [Action]",
+      "Help [Action]",
+      "Hide [Action]",
+      "Influence [Action]",
+      "Magic [Action]",
+      "Ready [Action]",
+      "Search [Action]",
+      "Study [Action]",
+      "Utilize [Action]"
+    ],
+    "Area of Effect": [
+      "Cone [Area of Effect]",
+      "Cube [Area of Effect]",
+      "Cylinder [Area of Effect]",
+      "Emanation [Area of Effect]",
+      "Line [Area of Effect]",
+      "Sphere [Area of Effect]"
+    ],
+    "Attitude": [
+      "Friendly [Attitude]",
+      "Hostile [Attitude]",
+      "Indifferent [Attitude]"
+    ],
+    "Condition": [
+      "Blinded [Condition]",
+      "Charmed [Condition]",
+      "Deafened [Condition]",
+      "Exhaustion [Condition]",
+      "Frightened [Condition]",
+      "Grappled [Condition]",
+      "Incapacitated [Condition]",
+      "Invisible [Condition]",
+      "Paralyzed [Condition]",
+      "Petrified [Condition]",
+      "Poisoned [Condition]",
+      "Prone [Condition]",
+      "Restrained [Condition]",
+      "Stunned [Condition]",
+      "Unconscious [Condition]"
+    ],
+    "Hazard": [
+      "Burning [Hazard]",
+      "Dehydration [Hazard]",
+      "Falling [Hazard]",
+      "Malnutrition [Hazard]",
+      "Suffocation [Hazard]"
+    ]
+  },
+  "membership": {
+    "umbrella": "Area of Effect",
+    "tagged": [
+      "Cone [Area of Effect]",
+      "Cube [Area of Effect]",
+      "Cylinder [Area of Effect]",
+      "Emanation [Area of Effect]",
+      "Line [Area of Effect]",
+      "Sphere [Area of Effect]"
+    ],
+    "record_count": 7,
+    "leaf_count": 20,
+    "clause_count": 43,
+    "policy_excluded": []
+  },
+  "membership_cross_check": {
+    "tag_derived": [
+      "Cone",
+      "Cube",
+      "Cylinder",
+      "Emanation",
+      "Line",
+      "Sphere"
+    ],
+    "umbrella_enumerated": [
+      "Cone",
+      "Cube",
+      "Cylinder",
+      "Emanation",
+      "Line",
+      "Sphere"
+    ],
+    "agree": true,
+    "shapes_printing_a_see_also": [],
+    "shape_bodies_naming_the_umbrella_term": [
+      "Cone [Area of Effect]",
+      "Cube [Area of Effect]",
+      "Cylinder [Area of Effect]",
+      "Emanation [Area of Effect]",
+      "Line [Area of Effect]",
+      "Sphere [Area of Effect]"
+    ]
+  },
+  "records": [
+    {
+      "label": "Area of Effect",
+      "candidate_record_key": "glossary.area_of_effect",
+      "container_id": "e07faf20-6331-5ab0-8098-007dabde8d85",
+      "pages": [
+        176
+      ],
+      "leaves": [
+        {
+          "leaf_id": "8b1fed74-61ce-5334-a4fd-b9fba71c072f",
+          "ordinal": 0,
+          "page_index": 176,
+          "leaf_type": "heading",
+          "length": 14,
+          "content": "Area of Effect",
+          "clause_ids": [
+            "Area of Effect/0/0"
+          ]
+        },
+        {
+          "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+          "ordinal": 1,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 184,
+          "content": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes. These shapes are defined elsewhere in this glossary:",
+          "clause_ids": [
+            "Area of Effect/1/0",
+            "Area of Effect/1/1"
+          ]
+        },
+        {
+          "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
+          "ordinal": 2,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 9,
+          "content": "Cone Cube",
+          "clause_ids": [
+            "Area of Effect/2/0",
+            "Area of Effect/2/1"
+          ]
+        },
+        {
+          "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+          "ordinal": 3,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 18,
+          "content": "Cylinder Emanation",
+          "clause_ids": [
+            "Area of Effect/3/0",
+            "Area of Effect/3/1"
+          ]
+        },
+        {
+          "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+          "ordinal": 4,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 11,
+          "content": "Line Sphere",
+          "clause_ids": [
+            "Area of Effect/4/0",
+            "Area of Effect/4/1"
+          ]
+        },
+        {
+          "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+          "ordinal": 5,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 376,
+          "content": "An area of effect has a point of origin, a location from which the effect’s energy erupts. The rules for each shape specify how to position its point of origin. If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect. To block a line, an obstruction must provide Total Cover.",
+          "clause_ids": [
+            "Area of Effect/5/0",
+            "Area of Effect/5/1",
+            "Area of Effect/5/2",
+            "Area of Effect/5/3"
+          ]
+        },
+        {
+          "leaf_id": "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766",
+          "ordinal": 6,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 8,
+          "content": "See also",
+          "clause_ids": [
+            "Area of Effect/6/0"
+          ]
+        },
+        {
+          "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+          "ordinal": 7,
+          "page_index": 176,
+          "leaf_type": "paragraph",
+          "length": 221,
+          "content": "“Cover.” If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction.",
+          "clause_ids": [
+            "Area of Effect/7/0",
+            "Area of Effect/7/1"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Cone [Area of Effect]",
+      "candidate_record_key": "area_of_effect.cone",
+      "container_id": "f7fc3ac5-2ee3-5c93-abfb-47d2875706b6",
+      "pages": [
+        178
+      ],
+      "leaves": [
+        {
+          "leaf_id": "9208b6e4-4afa-58cf-a226-43f4b95b35e8",
+          "ordinal": 0,
+          "page_index": 178,
+          "leaf_type": "heading",
+          "length": 21,
+          "content": "Cone [Area of Effect]",
+          "clause_ids": [
+            "Cone/0/0"
+          ]
+        },
+        {
+          "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+          "ordinal": 1,
+          "page_index": 178,
+          "leaf_type": "paragraph",
+          "length": 489,
+          "content": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses. A Cone’s width at any point along its length is equal to that point’s distance from the point of origin. For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin. The effect that creates a Cone specifies its maximum length. A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+          "clause_ids": [
+            "Cone/1/0",
+            "Cone/1/1",
+            "Cone/1/2",
+            "Cone/1/3",
+            "Cone/1/4"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Cube [Area of Effect]",
+      "candidate_record_key": "area_of_effect.cube",
+      "container_id": "b024c1b5-26da-5722-b540-14d109968fc5",
+      "pages": [
+        178
+      ],
+      "leaves": [
+        {
+          "leaf_id": "74587a82-5acc-5b79-bf6c-9500a48592ea",
+          "ordinal": 0,
+          "page_index": 178,
+          "leaf_type": "heading",
+          "length": 21,
+          "content": "Cube [Area of Effect]",
+          "clause_ids": [
+            "Cube/0/0"
+          ]
+        },
+        {
+          "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+          "ordinal": 1,
+          "page_index": 178,
+          "leaf_type": "paragraph",
+          "length": 306,
+          "content": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube. The effect that creates a Cube specifies its size, which is the length of each side. A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+          "clause_ids": [
+            "Cube/1/0",
+            "Cube/1/1",
+            "Cube/1/2"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Cylinder [Area of Effect]",
+      "candidate_record_key": "area_of_effect.cylinder",
+      "container_id": "77e2f856-dd7d-5a84-8564-93163b8cf895",
+      "pages": [
+        179
+      ],
+      "leaves": [
+        {
+          "leaf_id": "16894c5c-319b-5ce0-aeef-e7aca9805a38",
+          "ordinal": 0,
+          "page_index": 179,
+          "leaf_type": "heading",
+          "length": 25,
+          "content": "Cylinder [Area of Effect]",
+          "clause_ids": [
+            "Cylinder/0/0"
+          ]
+        },
+        {
+          "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+          "ordinal": 1,
+          "page_index": 179,
+          "leaf_type": "paragraph",
+          "length": 324,
+          "content": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder. The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height. A Cylinder’s point of origin is included in the area of effect.",
+          "clause_ids": [
+            "Cylinder/1/0",
+            "Cylinder/1/1",
+            "Cylinder/1/2"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Emanation [Area of Effect]",
+      "candidate_record_key": "area_of_effect.emanation",
+      "container_id": "af91e02a-1761-53b3-9b9e-95971c0ad829",
+      "pages": [
+        180
+      ],
+      "leaves": [
+        {
+          "leaf_id": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
+          "ordinal": 0,
+          "page_index": 180,
+          "leaf_type": "heading",
+          "length": 26,
+          "content": "Emanation [Area of Effect]",
+          "clause_ids": [
+            "Emanation/0/0"
+          ]
+        },
+        {
+          "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+          "ordinal": 1,
+          "page_index": 180,
+          "leaf_type": "paragraph",
+          "length": 422,
+          "content": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions. The effect that creates an Emanation specifies the distance it extends. An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect. An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise.",
+          "clause_ids": [
+            "Emanation/1/0",
+            "Emanation/1/1",
+            "Emanation/1/2",
+            "Emanation/1/3"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Line [Area of Effect]",
+      "candidate_record_key": "area_of_effect.line",
+      "container_id": "4658119c-58f8-56d6-ac01-0aadd43fde3b",
+      "pages": [
+        183
+      ],
+      "leaves": [
+        {
+          "leaf_id": "9e2d76bb-c579-5789-964f-406b39b02673",
+          "ordinal": 0,
+          "page_index": 183,
+          "leaf_type": "heading",
+          "length": 21,
+          "content": "Line [Area of Effect]",
+          "clause_ids": [
+            "Line/0/0"
+          ]
+        },
+        {
+          "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+          "ordinal": 1,
+          "page_index": 183,
+          "leaf_type": "paragraph",
+          "length": 303,
+          "content": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width. The effect that creates a Line specifies its length and width. A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+          "clause_ids": [
+            "Line/1/0",
+            "Line/1/1",
+            "Line/1/2"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Sphere [Area of Effect]",
+      "candidate_record_key": "area_of_effect.sphere",
+      "container_id": "1858eb63-ebc0-59b0-a13f-7958131ec152",
+      "pages": [
+        187
+      ],
+      "leaves": [
+        {
+          "leaf_id": "dafddf9b-a89d-557f-9b8f-1081bd7e170f",
+          "ordinal": 0,
+          "page_index": 187,
+          "leaf_type": "heading",
+          "length": 23,
+          "content": "Sphere [Area of Effect]",
+          "clause_ids": [
+            "Sphere/0/0"
+          ]
+        },
+        {
+          "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+          "ordinal": 1,
+          "page_index": 187,
+          "leaf_type": "paragraph",
+          "length": 277,
+          "content": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions. The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere. A Sphere’s point of origin is included in the Sphere’s area of effect.",
+          "clause_ids": [
+            "Sphere/1/0",
+            "Sphere/1/1",
+            "Sphere/1/2"
+          ]
+        }
+      ]
+    }
+  ],
+  "clauses": [
+    {
+      "clause_id": "Area of Effect/0/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "8b1fed74-61ce-5334-a4fd-b9fba71c072f",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 14,
+      "text": "Area of Effect"
+    },
+    {
+      "clause_id": "Area of Effect/1/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 131,
+      "text": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes."
+    },
+    {
+      "clause_id": "Area of Effect/1/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+      "page_index": 176,
+      "char_start": 131,
+      "char_end": 184,
+      "text": " These shapes are defined elsewhere in this glossary:"
+    },
+    {
+      "clause_id": "Area of Effect/2/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 4,
+      "text": "Cone"
+    },
+    {
+      "clause_id": "Area of Effect/2/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
+      "page_index": 176,
+      "char_start": 4,
+      "char_end": 9,
+      "text": " Cube"
+    },
+    {
+      "clause_id": "Area of Effect/3/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 8,
+      "text": "Cylinder"
+    },
+    {
+      "clause_id": "Area of Effect/3/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+      "page_index": 176,
+      "char_start": 8,
+      "char_end": 18,
+      "text": " Emanation"
+    },
+    {
+      "clause_id": "Area of Effect/4/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 4,
+      "text": "Line"
+    },
+    {
+      "clause_id": "Area of Effect/4/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+      "page_index": 176,
+      "char_start": 4,
+      "char_end": 11,
+      "text": " Sphere"
+    },
+    {
+      "clause_id": "Area of Effect/5/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 90,
+      "text": "An area of effect has a point of origin, a location from which the effect’s energy erupts."
+    },
+    {
+      "clause_id": "Area of Effect/5/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+      "page_index": 176,
+      "char_start": 90,
+      "char_end": 160,
+      "text": " The rules for each shape specify how to position its point of origin."
+    },
+    {
+      "clause_id": "Area of Effect/5/2",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+      "page_index": 176,
+      "char_start": 160,
+      "char_end": 318,
+      "text": " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect."
+    },
+    {
+      "clause_id": "Area of Effect/5/3",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+      "page_index": 176,
+      "char_start": 318,
+      "char_end": 376,
+      "text": " To block a line, an obstruction must provide Total Cover."
+    },
+    {
+      "clause_id": "Area of Effect/6/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 8,
+      "text": "See also"
+    },
+    {
+      "clause_id": "Area of Effect/7/0",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+      "page_index": 176,
+      "char_start": 0,
+      "char_end": 8,
+      "text": "“Cover.”"
+    },
+    {
+      "clause_id": "Area of Effect/7/1",
+      "record_key": "glossary.area_of_effect",
+      "label": "Area of Effect",
+      "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+      "page_index": 176,
+      "char_start": 8,
+      "char_end": 221,
+      "text": " If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction."
+    },
+    {
+      "clause_id": "Cone/0/0",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "9208b6e4-4afa-58cf-a226-43f4b95b35e8",
+      "page_index": 178,
+      "char_start": 0,
+      "char_end": 21,
+      "text": "Cone [Area of Effect]"
+    },
+    {
+      "clause_id": "Cone/1/0",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+      "page_index": 178,
+      "char_start": 0,
+      "char_end": 117,
+      "text": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses."
+    },
+    {
+      "clause_id": "Cone/1/1",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+      "page_index": 178,
+      "char_start": 117,
+      "char_end": 222,
+      "text": " A Cone’s width at any point along its length is equal to that point’s distance from the point of origin."
+    },
+    {
+      "clause_id": "Cone/1/2",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+      "page_index": 178,
+      "char_start": 222,
+      "char_end": 328,
+      "text": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin."
+    },
+    {
+      "clause_id": "Cone/1/3",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+      "page_index": 178,
+      "char_start": 328,
+      "char_end": 389,
+      "text": " The effect that creates a Cone specifies its maximum length."
+    },
+    {
+      "clause_id": "Cone/1/4",
+      "record_key": "area_of_effect.cone",
+      "label": "Cone [Area of Effect]",
+      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+      "page_index": 178,
+      "char_start": 389,
+      "char_end": 489,
+      "text": " A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    },
+    {
+      "clause_id": "Cube/0/0",
+      "record_key": "area_of_effect.cube",
+      "label": "Cube [Area of Effect]",
+      "leaf_id": "74587a82-5acc-5b79-bf6c-9500a48592ea",
+      "page_index": 178,
+      "char_start": 0,
+      "char_end": 21,
+      "text": "Cube [Area of Effect]"
+    },
+    {
+      "clause_id": "Cube/1/0",
+      "record_key": "area_of_effect.cube",
+      "label": "Cube [Area of Effect]",
+      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+      "page_index": 178,
+      "char_start": 0,
+      "char_end": 121,
+      "text": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube."
+    },
+    {
+      "clause_id": "Cube/1/1",
+      "record_key": "area_of_effect.cube",
+      "label": "Cube [Area of Effect]",
+      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+      "page_index": 178,
+      "char_start": 121,
+      "char_end": 206,
+      "text": " The effect that creates a Cube specifies its size, which is the length of each side."
+    },
+    {
+      "clause_id": "Cube/1/2",
+      "record_key": "area_of_effect.cube",
+      "label": "Cube [Area of Effect]",
+      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+      "page_index": 178,
+      "char_start": 206,
+      "char_end": 306,
+      "text": " A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    },
+    {
+      "clause_id": "Cylinder/0/0",
+      "record_key": "area_of_effect.cylinder",
+      "label": "Cylinder [Area of Effect]",
+      "leaf_id": "16894c5c-319b-5ce0-aeef-e7aca9805a38",
+      "page_index": 179,
+      "char_start": 0,
+      "char_end": 25,
+      "text": "Cylinder [Area of Effect]"
+    },
+    {
+      "clause_id": "Cylinder/1/0",
+      "record_key": "area_of_effect.cylinder",
+      "label": "Cylinder [Area of Effect]",
+      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+      "page_index": 179,
+      "char_start": 0,
+      "char_end": 154,
+      "text": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder."
+    },
+    {
+      "clause_id": "Cylinder/1/1",
+      "record_key": "area_of_effect.cylinder",
+      "label": "Cylinder [Area of Effect]",
+      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+      "page_index": 179,
+      "char_start": 154,
+      "char_end": 260,
+      "text": " The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height."
+    },
+    {
+      "clause_id": "Cylinder/1/2",
+      "record_key": "area_of_effect.cylinder",
+      "label": "Cylinder [Area of Effect]",
+      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+      "page_index": 179,
+      "char_start": 260,
+      "char_end": 324,
+      "text": " A Cylinder’s point of origin is included in the area of effect."
+    },
+    {
+      "clause_id": "Emanation/0/0",
+      "record_key": "area_of_effect.emanation",
+      "label": "Emanation [Area of Effect]",
+      "leaf_id": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
+      "page_index": 180,
+      "char_start": 0,
+      "char_end": 26,
+      "text": "Emanation [Area of Effect]"
+    },
+    {
+      "clause_id": "Emanation/1/0",
+      "record_key": "area_of_effect.emanation",
+      "label": "Emanation [Area of Effect]",
+      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+      "page_index": 180,
+      "char_start": 0,
+      "char_end": 112,
+      "text": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions."
+    },
+    {
+      "clause_id": "Emanation/1/1",
+      "record_key": "area_of_effect.emanation",
+      "label": "Emanation [Area of Effect]",
+      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+      "page_index": 180,
+      "char_start": 112,
+      "char_end": 184,
+      "text": " The effect that creates an Emanation specifies the distance it extends."
+    },
+    {
+      "clause_id": "Emanation/1/2",
+      "record_key": "area_of_effect.emanation",
+      "label": "Emanation [Area of Effect]",
+      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+      "page_index": 180,
+      "char_start": 184,
+      "char_end": 304,
+      "text": " An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect."
+    },
+    {
+      "clause_id": "Emanation/1/3",
+      "record_key": "area_of_effect.emanation",
+      "label": "Emanation [Area of Effect]",
+      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+      "page_index": 180,
+      "char_start": 304,
+      "char_end": 422,
+      "text": " An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise."
+    },
+    {
+      "clause_id": "Line/0/0",
+      "record_key": "area_of_effect.line",
+      "label": "Line [Area of Effect]",
+      "leaf_id": "9e2d76bb-c579-5789-964f-406b39b02673",
+      "page_index": 183,
+      "char_start": 0,
+      "char_end": 21,
+      "text": "Line [Area of Effect]"
+    },
+    {
+      "clause_id": "Line/1/0",
+      "record_key": "area_of_effect.line",
+      "label": "Line [Area of Effect]",
+      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+      "page_index": 183,
+      "char_start": 0,
+      "char_end": 140,
+      "text": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width."
+    },
+    {
+      "clause_id": "Line/1/1",
+      "record_key": "area_of_effect.line",
+      "label": "Line [Area of Effect]",
+      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+      "page_index": 183,
+      "char_start": 140,
+      "char_end": 203,
+      "text": " The effect that creates a Line specifies its length and width."
+    },
+    {
+      "clause_id": "Line/1/2",
+      "record_key": "area_of_effect.line",
+      "label": "Line [Area of Effect]",
+      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+      "page_index": 183,
+      "char_start": 203,
+      "char_end": 303,
+      "text": " A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    },
+    {
+      "clause_id": "Sphere/0/0",
+      "record_key": "area_of_effect.sphere",
+      "label": "Sphere [Area of Effect]",
+      "leaf_id": "dafddf9b-a89d-557f-9b8f-1081bd7e170f",
+      "page_index": 187,
+      "char_start": 0,
+      "char_end": 23,
+      "text": "Sphere [Area of Effect]"
+    },
+    {
+      "clause_id": "Sphere/1/0",
+      "record_key": "area_of_effect.sphere",
+      "label": "Sphere [Area of Effect]",
+      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+      "page_index": 187,
+      "char_start": 0,
+      "char_end": 110,
+      "text": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions."
+    },
+    {
+      "clause_id": "Sphere/1/1",
+      "record_key": "area_of_effect.sphere",
+      "label": "Sphere [Area of Effect]",
+      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+      "page_index": 187,
+      "char_start": 110,
+      "char_end": 206,
+      "text": " The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere."
+    },
+    {
+      "clause_id": "Sphere/1/2",
+      "record_key": "area_of_effect.sphere",
+      "label": "Sphere [Area of Effect]",
+      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+      "page_index": 187,
+      "char_start": 206,
+      "char_end": 277,
+      "text": " A Sphere’s point of origin is included in the Sphere’s area of effect."
+    }
+  ],
+  "reference_targets": {
+    "Cone": {
+      "candidate_target_key": "area_of_effect.cone",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Cube": {
+      "candidate_target_key": "area_of_effect.cube",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Cylinder": {
+      "candidate_target_key": "area_of_effect.cylinder",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Emanation": {
+      "candidate_target_key": "area_of_effect.emanation",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Line": {
+      "candidate_target_key": "area_of_effect.line",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Sphere": {
+      "candidate_target_key": "area_of_effect.sphere",
+      "in_this_batch": true,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    },
+    "Cover": {
+      "candidate_target_key": "glossary.cover",
+      "in_this_batch": false,
+      "in_frozen_prior": false,
+      "source_entry_exists": true
+    }
+  }
+}
