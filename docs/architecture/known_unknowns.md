@@ -378,8 +378,9 @@ and it moves three of those groups:
   omits: L2 states the slot once for the whole readied response, so it supports each arm's copy without
   stating that *this alternative* is what spends it. Verified on the real leaf ids, extents and printed
   text in `test_schema_6_ready_source_provenance`, which checks its literals against the committed
-  coordinates artifact and its pinned source digest. **No new family is proposed here**, and
-  `actions-1` is not accepted, so the span partition remains a proposal's decision.
+  coordinates artifact and its pinned source digest. **No new family is proposed here**, and the span
+  partition was a proposal's decision, not this note's — the Owner accepted that proposal on
+  2026-09-09, which settled the partition without discharging this group.
 
 **Narrowed by representation schema 7 (the `actions-1` residue S-1).** Independent review of the
 schema-6 batch confirmed one remaining stop, and it is the reason `Magic` K2, K3 and K4 were unresolved
