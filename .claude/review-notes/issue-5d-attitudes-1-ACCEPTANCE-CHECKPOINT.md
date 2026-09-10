@@ -56,7 +56,7 @@ The Owner's sentence is stored verbatim in the run as `AUTHORIZATION` and report
 **There is no `attitudes-1` review-scope manifest, and none was invented.** `actions-1` had
 `actions-1-schema7-review-scope.json`, which enumerated its span ids and record keys; this batch's
 retained independent evidence is a **probe** document,
-`.codex/visualizations/2026/09/05/01a07071-8e0c-7502-b149-77574cc34096/attitudes-1-final-independent-probe.json`,
+`.claude/review-notes/issue-5d-attitudes-1-final-independent-probe.json`,
 which carries the proposal identity, the file digests, the reviewed head and the counts but **no span
 list**. The accepted scope is therefore derived from the proposal itself and never from the probe;
 the probe is cross-checked on exactly the fourteen fields it actually carries, each reported
@@ -69,6 +69,37 @@ separately so a probe that had drifted fails by name rather than by total:
 This is the one process deviation from the `actions-1` precedent. It is stated in the script's module
 docstring as well as here, because "we cross-checked a manifest" and "we cross-checked a probe that
 has no span list" are different claims and the weaker one is the true one.
+
+### The probe is retained in the repository, not on the reviewer's machine
+
+Corrected in remediation of PR #164 review comment 3983245787. The script originally read the probe
+from the reviewer's own `C:/Users/…/.codex/visualizations/…` path, unconditionally and in `--verify`
+too, so the documented re-check could only run on one machine and this checkpoint described evidence
+no other checkout could open. The probe now lives beside the script at the path above, content-
+identical to the reviewer's original, and is **pinned** by canonical-LF digest
+`0cf8c9251258253d53f4f95d0ac509617555a66a2022469dc2259f18e80a74c4` as `REVIEW_PROBE_SHA256` — so the
+checkpoint's claim is "pinned", not merely "copied", and a substituted probe fails the run rather
+than quietly weakening the cross-check. Every input `--verify` requires is now a tracked repository
+file.
+
+Two layers fail closed, both demonstrated by running them and then restoring the file: tampering with
+the probe's `head` field stops at the digest pin (`AssertionError` naming the probe); re-aiming the
+pin at the tampered digest then stops at the field check, reporting `'reviewed_head': False` by name
+inside `matches_review_probe`. Neither run wrote anything — the accepted artifact's Git blob is
+`2346404005618b0389b4e4f66d2e96c5c35b200f` before and after every `--verify` in this remediation.
+
+The probe records its subjects by the reviewer's absolute Windows paths, so the lookup that maps them
+to file names now uses `PureWindowsPath`. Plain `Path` would have taken
+`D:\AI\...\issue-5d-batch-attitudes-1-PROPOSAL.json` as a single file name on Linux or macOS and
+raised `KeyError` — moving the file into the repository would not have fixed that, because the
+backslashed keys travel inside the evidence. The fix is verified by the stdlib contrast rather than by
+a POSIX run, which this Windows checkout cannot perform: `PurePosixPath(k).name` returns the whole
+backslashed string, `PureWindowsPath(k).name` returns the file name, on every platform.
+
+The report's three per-collection dicts iterated `REPRESENTATION_COLLECTIONS`, a `frozenset`, so their
+key order moved with `PYTHONHASHSEED` and two runs of an unchanged verifier diffed non-empty. They are
+`sorted()` now. Values were never affected — the post-remediation report parses **equal** to the one
+taken at acceptance — and two consecutive runs are byte-identical.
 
 The semantic diff is retained in full inside the batch record, 24 entries, tallying
 `none → substantive: 5` and `none → supporting_authority: 19`. Nothing was previously judged, so no
@@ -268,6 +299,13 @@ exclusion or inline allowlist changed.
 `python -m detect_secrets.pre_commit_hook --baseline .secrets.baseline <files>` — the exact
 invocation `.pre-commit-config.yaml` declares — exits **0** on every changed file.
 
+The PR #164 remediation added the retained probe, whose four recorded digests the entropy plugin
+flags on six lines. One new results block was added the same way, through the `detect_secrets` API
+with the baseline's own `plugins_used` and `filters_used`, asserting before the write that every
+other file's block is unchanged: **+44 lines, 0 removed**, six entries for one new file, no detector,
+filter, plugin, exclusion or inline allowlist touched. The hook then exits **0** on all four staged
+files.
+
 ## Gates
 
 | gate | result |
@@ -277,6 +315,15 @@ invocation `.pre-commit-config.yaml` declares — exits **0** on every changed f
 | `mypy src/` | `Success: no issues found in 225 source files` |
 | `pytest tests/ingestion/mechanical tests/services/rules_authority -q --no-cov` | **2766 passed**, 0 failed, 197.14s — run attached to completion |
 | `detect-secrets` pre-commit hook form | exit **0** |
+
+Re-run unchanged on the PR #164 remediation head: `black --check src/ tests/` 464 files unchanged ·
+`ruff check src/ tests/` clean · `mypy src/` 225 files clean · the same focused suite **2766 passed**
+in 198.14s, attached · `detect_secrets.pre_commit_hook` exit **0**. The remediation touches no file
+under `src/` or `tests/`, so the suite result is a regression check rather than new coverage; the
+verifier itself is exercised by running `--verify`, which exits **0**. `ruff check` on the verifier
+passes; `black` would reformat three pre-existing spots in it that this change did not touch, as it
+would at `HEAD` — `.claude/` is outside the `black src/ tests/` gate, and reflowing it was left out
+to keep the remediation diff bounded.
 
 The full suite and PR preparation are Codex's after handoff, per the governing instruction; no
 model-owned background full suite was started.
@@ -293,6 +340,15 @@ One process deviation from the `actions-1` precedent, stated rather than papered
 `attitudes-1` review-scope manifest**, so the independent cross-check is a probe document without a
 span list, and the accepted scope comes from the proposal alone. Scope was verified against the probe
 on the fourteen fields it does carry.
+
+Remediating PR #164 review comment 3983245787 changed the verifier's **evidence location and nothing
+else**: the probe moved into the repository under a digest pin, its Windows-shaped keys are read with
+`PureWindowsPath`, and the report's collection order is sorted. No identity, scope, disposition or
+preservation check was removed, weakened or added, and no accepted authority, proposal, audit, frozen
+prior, schema pin or Owner statement changed by a byte. `issue-5d-actions-1-ACCEPT.py` carries the
+same host-bound `.codex` path for its own review-scope manifest; that is a **known sibling, left out
+of scope** — it belongs to an already-accepted batch outside this PR, and the finding was classified
+as isolated with no sibling audit triggered.
 
 ## Stop conditions honoured
 

@@ -46,10 +46,14 @@ two after it; both sets are asserted, so neither can drift silently.
 
 **There is no review-scope manifest for this batch** of the kind `actions-1` had.
 The retained independent-review evidence is a probe document
-(`attitudes-1-final-independent-probe.json`) recording the proposal identity, the
-proposal, audit and prior digests, the reviewed head and the batch counts — but
-no span list. It is cross-checked here on exactly the fields it carries, and the
-accepted scope is derived from the proposal itself, never from the probe.
+(`issue-5d-attitudes-1-final-independent-probe.json`) recording the proposal
+identity, the proposal, audit and prior digests, the reviewed head and the batch
+counts — but no span list. It is cross-checked here on exactly the fields it
+carries, and the accepted scope is derived from the proposal itself, never from
+the probe. The probe is retained **in the repository beside this script**, a
+copy of the reviewer's original pinned by canonical-LF digest below, so
+`--verify` reproduces on any checkout rather than only on the machine the review
+ran on.
 """
 
 from __future__ import annotations
@@ -60,7 +64,7 @@ import os
 import runpy
 import sys
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
@@ -82,12 +86,15 @@ ACCEPTED_PATH = (
 #: here only to cross-check identities this script derives independently, on the
 #: fields it actually carries. It holds no span list, so it cannot define — and
 #: is never used to build — the accepted scope.
-REVIEW_PROBE = Path(
-    "C:/Users/raven/.codex/visualizations/2026/09/05"
-    "/01a07071-8e0c-7502-b149-77574cc34096/attitudes-1-final-independent-probe.json"
-)
+#:
+#: Retained in the repository, content-identical to the reviewer's original
+#: outside it, and pinned by canonical-LF digest so a corrupted or substituted
+#: copy fails the run instead of silently weakening the cross-check. Every input
+#: this script requires is therefore a tracked repository file.
+REVIEW_PROBE = HERE / "issue-5d-attitudes-1-final-independent-probe.json"
+REVIEW_PROBE_SHA256 = "0cf8c9251258253d53f4f95d0ac509617555a66a2022469dc2259f18e80a74c4"  # noqa: E501  # pragma: allowlist secret
 
-for _p in (GENERATOR, PROPOSAL_FILE, AUDIT_FILE, ACCEPTED_PATH):
+for _p in (GENERATOR, PROPOSAL_FILE, AUDIT_FILE, ACCEPTED_PATH, REVIEW_PROBE):
     assert _p.exists(), _p
 
 # --- The pinned reviewed proposal ------------------------------------------
@@ -550,8 +557,14 @@ DISPOSITIONS = {d.value: n for d, n in _by_disposition.items()}
 #: this script derived on its own. The probe carries no span list, so it is
 #: cross-checked on identity, digests, reviewed head and counts only. Reported as
 #: a dict so a mismatch names the field rather than only failing.
+assert _identifiers(REVIEW_PROBE)[1] == REVIEW_PROBE_SHA256, REVIEW_PROBE
 _probe = json.loads(REVIEW_PROBE.read_text(encoding="utf-8"))
-_probe_hashes = {Path(k).name: v for k, v in _probe["unchanged_hashes"].items()}
+#: The probe recorded its subjects by the reviewer's absolute Windows paths.
+#: `PureWindowsPath` reads those keys on every platform; plain `Path` would take
+#: the whole backslashed string as the file name on POSIX and fail the lookup.
+_probe_hashes = {
+    PureWindowsPath(k).name: v for k, v in _probe["unchanged_hashes"].items()
+}
 MATCHES_REVIEW_PROBE = {
     "proposal_identity": _probe["proposal_identity"] == PROPOSAL_IDENTITY,
     "proposal_sha256": _probe_hashes[PROPOSAL_FILE.name] == PROPOSAL_CONTENT_SHA256,
@@ -682,7 +695,7 @@ MEASURED = {
     "acceptances": len(RESULT.acceptances),
     **{
         coll: len(getattr(RESULT.oracle.representation, coll))
-        for coll in REPRESENTATION_COLLECTIONS
+        for coll in sorted(REPRESENTATION_COLLECTIONS)
     },
 }
 assert MEASURED == MERGED_COUNTS, (MEASURED, MERGED_COUNTS)
@@ -714,7 +727,7 @@ PRESERVATION = {
             element in _merged_representation_payload[coll]
             for element in PRIOR_PAYLOAD["representation"][coll]
         )
-        for coll in REPRESENTATION_COLLECTIONS
+        for coll in sorted(REPRESENTATION_COLLECTIONS)
     },
     "prior_obligations_preserved": all(
         obligation in RESULT_PAYLOAD["obligations"]
@@ -739,7 +752,7 @@ MISSING_PRIOR_ELEMENTS = {
         for element in PRIOR_PAYLOAD["representation"][coll]
         if element not in _merged_representation_payload[coll]
     ]
-    for coll in REPRESENTATION_COLLECTIONS
+    for coll in sorted(REPRESENTATION_COLLECTIONS)
 }
 for _coll in REPRESENTATION_COLLECTIONS:
     if not VERIFY_ONLY:
