@@ -34,10 +34,10 @@ independent accepted authority with its own publication proof. Re-declaring
 without adding a second opinion.
 
 **What is committed today.** ``oracles/`` holds accepted authority for the
-production SRD 5.2.1 release covering CRD Issue 5d batches ``conditions-1`` and
-``hazards-1`` — 22 records and 281 spans — so that release resolves to a
-committed oracle, but not to full-corpus authority: ``actions-1`` has not begun
-and the corpus remains incomplete. A projection over the whole release therefore
+production SRD 5.2.1 release covering CRD Issue 5d batches ``conditions-1``,
+``hazards-1`` and ``actions-1`` — 35 records and 463 spans — so that release
+resolves to a committed oracle, but not to full-corpus authority: the corpus
+remains incomplete. A projection over the whole release therefore
 fails the gate as incomplete rather than as unjudged, and nothing over it has
 been published or activated. Later content batches extend that same artifact
 through the

@@ -435,15 +435,18 @@ action a subject readies (`Ready` L4 — both arms are typed; the identity of th
 records the arm a clause governs without typing its content. Each is contract 3's second branch used as
 intended rather than a deferral: a catalog reason is affirmatively true of every one of them.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Two batches are
-accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23 and `hazards-1` on
-2026-09-03; both are committed as accepted authority for the production SRD 5.2.1 release, so that
-release resolves to a committed oracle — but that oracle covers **22 records and 281 spans** (15
-conditions and 5 hazards, plus the glossary entry defining each list), not the corpus. Batch
-`actions-1` has not begun. The publication path therefore returns `INCOMPLETE` for the production
-projection rather than `ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical
-projection has been published or activated, and later batches extend the same release artifact through
-`accept_proposal`'s `prior=` merge rather than committing a second one — as `hazards-1` did. The obsolete `MechanicalEntity` path and the legacy
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Three batches are
+accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
+2026-09-03 and `actions-1` on 2026-09-09; all three are committed as accepted authority for the
+production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
+**35 records and 463 spans** (15 conditions, 5 hazards and 12 actions, plus the glossary entry
+defining each list), not the corpus. Five cross-batch reference targets named by accepted content —
+`attitude.friendly`, `attitude.hostile`, `attitude.indifferent`, `glossary.concentration`,
+`glossary.speed` — are still unresolved, and no target was invented for them. The publication path
+therefore returns `INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding
+still reports `UNPUBLISHED` because no mechanical projection has been published or activated, and
+later batches extend the same release artifact through `accept_proposal`'s `prior=` merge rather than
+committing a second one — as `hazards-1` and `actions-1` both did. The obsolete `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.
 

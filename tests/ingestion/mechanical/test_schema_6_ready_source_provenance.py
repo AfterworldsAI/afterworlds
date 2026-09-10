@@ -84,9 +84,11 @@ binding, because nothing in its clause is left untyped.
   (11 obligation spans, 9 single-character gaps, 451 + 639 characters); every
   substantive span needs a primary owner, so a ledger holding all of them would
   require the whole record encoded. That is the eventual proposal's work.
-* ``actions-1`` is **not accepted** — the committed oracle carries
-  ``conditions-1`` and ``hazards-1`` only. This is a demonstration against the
-  existing contract, not a proposal and not an acceptance.
+* This module is still a **demonstration against the existing contract**, not
+  a proposal and not an acceptance. ``actions-1`` has since been accepted, from
+  a proposal reviewed under schema 7 — nothing here was any part of that review,
+  and the fixtures below are local to this module rather than read out of the
+  committed artifact.
 """
 
 from __future__ import annotations

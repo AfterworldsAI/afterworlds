@@ -34,10 +34,10 @@ of that decision:
 
 **Limits, stated so this is not read for more than it proves.**
 
-* ``actions-1`` is **not accepted**. The committed oracle carries
-  ``conditions-1`` and ``hazards-1`` only. This is a demonstration against the
-  contract schema 7 now states — not a proposal, not an acceptance — and the
-  acceptance-ready regeneration remains paused.
+* This is a demonstration against the contract schema 7 now states — not a
+  proposal and not an acceptance. ``actions-1`` has since been accepted, from a
+  separately reviewed schema-7 proposal; the spans below are this module's own
+  fixtures and were no part of that review.
 * The ledger carries the **six spans this demonstration claims**, the partition
   of K2, K3 and K4, not ``Magic``'s whole leaf partition. K1 is compared as a
   *value* here rather than composed, because
