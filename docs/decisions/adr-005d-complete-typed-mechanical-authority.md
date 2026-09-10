@@ -419,8 +419,8 @@ assigning one. *"of a monster"* is scope carried by the **declared vocabulary**:
 as a monster's stance toward a player character, so `DefaultAttitudeFact(attitude=INDIFFERENT)` states a
 monster-scoped default in the typed contract itself, and that member is exactly what both consumer views
 deliver — the typed view carries the fact, the GameMaster view carries it in `structured_context` on a
-`STRUCTURED` component whose `governing_prose` is empty and whose citations are span ids, not text.
-Provenance establishes the **source** of that declared contract — *"Indifferent is the default attitude
+`STRUCTURED` component that resolves no prose and cites no span of its own, and the fact entry there
+names the clause by span id, not as text. Provenance establishes the **source** of that declared contract — *"Indifferent is the default attitude
 of a monster."* (`Indifferent`, p184), at the closure *"A monster has a starting attitude toward a player
 character"* (`Attitude`, p177) — rather than carrying the scope to a consumer. Neither the family name
 nor the record key states it, and nothing is adjudicated at runtime. Friendly's and Hostile's influence-check bias is unchanged by all of this: it

@@ -201,8 +201,8 @@ monster's stance toward a player character — so the fact states a
 monster-scoped default in the typed contract itself, and that enum member is
 all either consumer view delivers: the typed view carries the fact, and the
 GameMaster view carries it in `structured_context` on a `STRUCTURED` component
-whose `governing_prose` is empty and whose citations are span ids rather than
-text. Provenance establishes the **source** of that contract — I2, *"Indifferent
+that resolves no prose and cites no span of its own — the fact entry there names
+the clause by span id, never as text. Provenance establishes the **source** of that contract — I2, *"Indifferent
 is the default attitude of a monster."* (`Indifferent`, p184), at T2's closure
 on `glossary.attitude` — rather than carrying the scope to a consumer; the
 componentless umbrella contributes no GameMaster component at all. The scope is

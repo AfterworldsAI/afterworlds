@@ -3025,8 +3025,9 @@ class DefaultAttitudeFact:
     monster-scoped default in the typed contract itself. That is what both
     consumer views hand a reader and all they hand one: the typed view carries
     the member, and the GameMaster view carries it in ``structured_context``
-    on a ``STRUCTURED`` component whose ``governing_prose`` is empty and whose
-    citations are span ids rather than text. Provenance establishes which
+    on a ``STRUCTURED`` component that resolves no prose and cites no span of
+    its own — the fact entry there names the clause by span id, never as
+    text. Provenance establishes which
     printed clauses the declared contract rests on — *"Indifferent is the
     default attitude of a monster."* (``Indifferent``, p184), at the closure
     *"A monster has a **starting** attitude toward a player character"*
