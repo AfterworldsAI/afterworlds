@@ -3019,14 +3019,22 @@ class DefaultAttitudeFact:
     :class:`MovementTransportFact` refuses for the same reason: a consumer must
     not have to know a naming rule to read authority.
 
-    **Scoped to a monster by its provenance, not by a field or by this
-    name.** The scope is in the clause this fact's provenance span points at,
-    and the umbrella supplies the rest of it — *"A monster has a **starting**
-    attitude toward a player character"* (``Attitude``, p177). A ``subject``
-    field would need a creature vocabulary the source gives no second member
-    for, which is the generic escape hatch Decision 4 forbids. A later default
-    over a different subject is a later succession's field, not a speculative
-    one now.
+    **The scope is the declared vocabulary, not a field and not provenance.**
+    :class:`Attitude` is declared as a monster's stance toward a player
+    character, so ``DefaultAttitudeFact(attitude=INDIFFERENT)`` states a
+    monster-scoped default in the typed contract itself. That is what both
+    consumer views hand a reader and all they hand one: the typed view carries
+    the member, and the GameMaster view carries it in ``structured_context``
+    on a ``STRUCTURED`` component whose ``governing_prose`` is empty and whose
+    citations are span ids rather than text. Provenance establishes which
+    printed clauses the declared contract rests on — *"Indifferent is the
+    default attitude of a monster."* (``Indifferent``, p184), at the closure
+    *"A monster has a **starting** attitude toward a player character"*
+    (``Attitude``, p177) — rather than carrying the scope to a consumer. A
+    ``subject`` field would need a creature vocabulary the source gives no
+    second member for, which is the generic escape hatch Decision 4 forbids; a
+    later default over a different subject is a later succession's field, not
+    a speculative one now.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.DEFAULT_ATTITUDE

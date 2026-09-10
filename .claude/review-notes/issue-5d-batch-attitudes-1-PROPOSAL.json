@@ -1,6 +1,6 @@
 {
  "artifact_kind": "machine_proposal",
- "proposal_origin": "issue-5d-batch-attitudes-1-generator.py (CRD Issue 5d batch attitudes-1, representation schema 7)",
+ "proposal_origin": "issue-5d-batch-attitudes-1-generator.py (CRD Issue 5d batch attitudes-1, representation schema 8)",
  "proposal_schema_version": "5d-proposal-1",
  "proposed_representation": {
   "components": [

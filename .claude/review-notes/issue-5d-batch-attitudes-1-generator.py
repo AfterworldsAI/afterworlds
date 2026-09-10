@@ -1644,7 +1644,7 @@ PROPOSAL = MechanicalProposal(
     proposed_spans=tuple(proposed),
     proposed_representation=DRAFT,
     proposal_origin=(
-        f"{ORIGIN} (CRD Issue 5d batch attitudes-1, representation schema 7)"
+        f"{ORIGIN} (CRD Issue 5d batch attitudes-1, representation schema 8)"
     ),
 )
 payload = proposal_payload(PROPOSAL)

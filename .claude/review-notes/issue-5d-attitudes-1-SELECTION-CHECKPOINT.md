@@ -195,14 +195,21 @@ source authority rather than being pulled into it:
 
 `DefaultAttitudeFact` deliberately does **not** carry a beneficiary, a subject
 or a creature category. It states a default, not an assignment: no creature is
-given an attitude by it, nothing is adjudicated at runtime, and the "monster"
-scope is carried by the fact's own provenance span — I2, *"Indifferent is the
-default attitude of a monster."* (`Indifferent`, p184) — together with T2's
-supporting authority on `glossary.attitude`. It is not in the family's name,
-which says only `DefaultAttitudeFact`, and it is not in a creature-kind
-field, because `RecordKind` and `EligibilitySubject` have no such member and
-minting one for a single source instance is the generic escape hatch ADR-005d
-Decision 4 forbids.
+given an attitude by it and nothing is adjudicated at runtime. The "monster"
+scope is carried by the **declared vocabulary** — `Attitude` is declared as a
+monster's stance toward a player character — so the fact states a
+monster-scoped default in the typed contract itself, and that enum member is
+all either consumer view delivers: the typed view carries the fact, and the
+GameMaster view carries it in `structured_context` on a `STRUCTURED` component
+whose `governing_prose` is empty and whose citations are span ids rather than
+text. Provenance establishes the **source** of that contract — I2, *"Indifferent
+is the default attitude of a monster."* (`Indifferent`, p184), at T2's closure
+on `glossary.attitude` — rather than carrying the scope to a consumer; the
+componentless umbrella contributes no GameMaster component at all. The scope is
+not in the family's name, which says only `DefaultAttitudeFact`, and it is not
+in a creature-kind field, because `RecordKind` and `EligibilitySubject` have no
+such member and minting one for a single source instance is the generic escape
+hatch ADR-005d Decision 4 forbids.
 
 ---
 
@@ -372,14 +379,14 @@ does not do and does not request.
 Deterministic native loading and validation, re-executed in a separate process:
 
 ```
-identity       5ea537a1b0a936c4ebc7389ffc2b3402c7d416177a04c72c6eefc9372b5bea7f
+identity       c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22
 schema         5d-representation-schema-8 / 8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff
 prior schema   5d-representation-schema-7 / 80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d
 policy         5d-semantic-policy-1 / e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454
 deterministic  True  (final bytes, parent vs separate process)
 newlines       LF (asserted: no CR byte in either artifact)
-final proposal sha256  e33a505e4af8881de3f5c5385364772a9ae5552eb5e6e831d16b10ab2ebf1389
-final audit    sha256  02ceab3f52ccef6c22e6a76b811d6727544920d4385dd484352964df5c5b17fb
+final proposal sha256  b310565f60374e8d169ceb992fb73e6c9f82768ee7664673c48bd56180d80763
+final audit    sha256  d59ced7472fb21491ecf5e32233dd5121bbf83d4815c8b7841ed8b58dfd80a8c
 ```
 
 | Seam | Findings |

@@ -1,6 +1,6 @@
 {
  "_": "DISPOSABLE REVIEW MATERIAL for CRD Issue 5d batch attitudes-1. Emitted by issue-5d-batch-attitudes-1-generator.py. This run accepts nothing, publishes nothing, activates nothing, retires nothing, writes no database and never executes the publication gate. It is material for semantic review.",
- "proposal_identity": "5ea537a1b0a936c4ebc7389ffc2b3402c7d416177a04c72c6eefc9372b5bea7f",
+ "proposal_identity": "c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22",
  "batch_selection": {
   "batch_id": "attitudes-1",
   "chosen_by": "complete source membership",
@@ -1756,7 +1756,7 @@
  "determinism": {
   "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
   "newlines": "LF, written explicitly, on every platform",
-  "proposal_sha256": "e33a505e4af8881de3f5c5385364772a9ae5552eb5e6e831d16b10ab2ebf1389",
+  "proposal_sha256": "b310565f60374e8d169ceb992fb73e6c9f82768ee7664673c48bd56180d80763",
   "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout."
  }
 }

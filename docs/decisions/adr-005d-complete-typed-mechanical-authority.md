@@ -415,11 +415,15 @@ An `Applicability` was rejected because a default is not a gate: it does not say
 applies, it says what holds absent other specification. A single-member vocabulary was rejected for the
 closure reason above. A creature-kind or subject field was rejected as a generic escape hatch — the
 family carries no beneficiary, subject or creature category, because it states a default rather than
-assigning one. *"of a monster"* is scope carried by the fact's own provenance span — the clause
-*"Indifferent is the default attitude of a monster."* (`Indifferent`, p184) — and by the umbrella's
-supporting authority on `glossary.attitude`, *"A monster has a starting attitude toward a player
-character"* (`Attitude`, p177). Neither the family name nor the record key states it, and nothing is
-adjudicated at runtime. Friendly's and Hostile's influence-check bias is unchanged by all of this: it
+assigning one. *"of a monster"* is scope carried by the **declared vocabulary**: `Attitude` is declared
+as a monster's stance toward a player character, so `DefaultAttitudeFact(attitude=INDIFFERENT)` states a
+monster-scoped default in the typed contract itself, and that member is exactly what both consumer views
+deliver — the typed view carries the fact, the GameMaster view carries it in `structured_context` on a
+`STRUCTURED` component whose `governing_prose` is empty and whose citations are span ids, not text.
+Provenance establishes the **source** of that declared contract — *"Indifferent is the default attitude
+of a monster."* (`Indifferent`, p184), at the closure *"A monster has a starting attitude toward a player
+character"* (`Attitude`, p177) — rather than carrying the scope to a consumer. Neither the family name
+nor the record key states it, and nothing is adjudicated at runtime. Friendly's and Hostile's influence-check bias is unchanged by all of this: it
 stays `condition.charmed`'s accepted `AdvantageFact` shape on a `MIXED` component with prose-bound
 `contextual_applicability`, and `RollContext` is deliberately not widened.
 
@@ -434,7 +438,7 @@ committed artifact and the frozen prior both still declare schema 7 after this c
 rather than rewritten.
 
 Nothing is accepted, published, activated, or retired by this schema change. `attitudes-1` is a
-**proposal**, `5ea537a1b0a936c4ebc7389ffc2b3402c7d416177a04c72c6eefc9372b5bea7f`, reviewable material
+**proposal**, `c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22`, reviewable material
 only; the accepted mechanical identity is still
 `8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee`. Because nothing is accepted,
 `attitude.friendly`, `attitude.hostile` and `attitude.indifferent` remain **unresolved** reference
