@@ -54,9 +54,15 @@ from the retained pre-correction bytes in **exactly 182 lines, every one of them
 *content*, and a timestamp is evidence. The content digest and blob moved because those two pins
 deliberately cover evidence as well, which is exactly why they exist.
 
-No second acceptance was created. The script replays the **same** single `accept_proposal` call over
-the frozen pre-acceptance fixture, which it now reads in both modes; reading the live artifact would
-have made a re-run try to accept over its own result. Nothing mechanical was regenerated.
+No second acceptance was created. The correction replayed the **same** single `accept_proposal` call
+over the frozen pre-acceptance fixture — a **one-off operation, performed once and recorded here**,
+not a change to what the script does. `ACCEPT.py` remains a one-time action: in acceptance mode its
+prior is the **live** artifact, pinned by content digest and Git blob, so running it against current
+authority stops at that pin before the generator runs and long before anything is written. Accepting
+over a frozen copy as ordinary behaviour would let this older three-batch merge overwrite a later
+accepted batch while still satisfying every pin in the table above, because those pins describe *this
+output*, not the authority it would replace. `--verify` reads the frozen fixture and never writes.
+Nothing mechanical was regenerated.
 
 ## The acceptance authority, and what was retained beside it
 

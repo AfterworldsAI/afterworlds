@@ -28,15 +28,25 @@ extend. Three things it deliberately does not do:
   claiming one release, so this batch *extends* the existing one;
 * it does not publish, activate, or retire anything, and it closes nothing.
 
-It is **re-executable, not repeatable**: the prior it accepts over is always the
-frozen pre-acceptance fixture, never the live artifact, so a re-run replays the
-same single acceptance and rewrites the same bytes rather than accepting a
-second time. `accept_proposal` would in any case refuse a batch id its prior
-already records. Every input is pinned by digest and the accepted timestamp is a
-constant, so the merged content digest, Git blob and oracle identity asserted
-below are the only outcome a re-run can have. Pass `--verify` to re-check the
-post-acceptance assertions against the committed artifact without re-executing
-the acceptance at all.
+Re-running it is refused once the acceptance exists: `accept_proposal` rejects a
+batch id the prior already records, which is the correct behaviour for a
+one-time action. It is refused earlier than that, and that is the point — in
+acceptance mode the prior is the **live** artifact, pinned by content digest and
+Git blob, so the moment accepted authority moves past this batch the run stops
+before the generator executes and long before anything is written. A script that
+accepted over a frozen copy instead would happily overwrite a later accepted
+batch with this older merge and still satisfy every pin below, because those
+pins describe this output rather than the authority it would replace. Pass
+`--verify` to re-check the post-acceptance assertions against the committed
+artifact without attempting the acceptance again.
+
+**One correction has been replayed since, once, by hand.** The accepted
+timestamp below was corrected from a synthetic midnight to the observed
+execution time; that replay was performed deliberately against the frozen
+pre-acceptance fixture and is recorded in
+`issue-5d-actions-1-ACCEPTANCE-CHECKPOINT.md`. It was a one-off operation, not
+this script's behaviour: the file is a one-time action again, and running it
+against current authority refuses.
 
 **What acceptance did not make true.** `actions-1` cites five records no
 accepted batch defines — `glossary.speed`, `glossary.concentration`,
@@ -348,16 +358,20 @@ def _write_artifact(path: Path, payload: dict[str, object]) -> bytes:
 
 VERIFY_ONLY = "--verify" in sys.argv
 
-#: The frozen pre-acceptance fixture in **both** modes. It is byte-identical to
-#: the live artifact as it stood when this acceptance first ran, so accepting
-#: over it replays that one acceptance exactly; reading the live file instead
-#: would make a re-run try to accept over its own result, and would make every
-#: preservation comparison below compare the merged artifact to itself.
-PRIOR_PATH = FROZEN_PRIOR_PATH
+#: Where the prior comes from, and it is a different file in each mode. During
+#: the acceptance the prior is the live artifact being extended — never a frozen
+#: copy, so this script can only ever extend the authority that actually exists
+#: and refuses the moment that authority has moved on. Afterwards the live file
+#: *is* the merged result, so verification reads the frozen fixture instead,
+#: which is byte-identical to the pre-acceptance artifact and is never written.
+PRIOR_PATH = ACCEPTED_PATH if not VERIFY_ONLY else FROZEN_PRIOR_PATH
 _prior_raw_sha, _prior_content_sha, _prior_blob = _identifiers(PRIOR_PATH)
 
-#: Asserted against the two pinned values before anything is read out of the
-#: file. There is one prior identity, and the fixture must still carry it.
+#: Asserted in **both** modes against the same two pinned values, because the
+#: frozen fixture is byte-identical to the pre-acceptance artifact. There is one
+#: prior identity, not two. In acceptance mode this is also the guard that stops
+#: a stale re-run: it fails against current authority before a single byte is
+#: generated or written.
 assert _prior_content_sha == PRIOR_CONTENT_SHA256, (PRIOR_PATH, _prior_content_sha)
 assert _prior_blob == PRIOR_BLOB, (PRIOR_PATH, _prior_blob)
 
