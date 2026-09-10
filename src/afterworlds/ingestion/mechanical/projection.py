@@ -80,6 +80,7 @@ __all__ = [
     "SCHEMA_5_VERSION",
     "SCHEMA_6_VERSION",
     "SCHEMA_7_VERSION",
+    "SCHEMA_8_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -149,6 +150,7 @@ SCHEMA_4_VERSION = "5d-representation-schema-4"
 SCHEMA_5_VERSION = "5d-representation-schema-5"
 SCHEMA_6_VERSION = "5d-representation-schema-6"
 SCHEMA_7_VERSION = "5d-representation-schema-7"
+SCHEMA_8_VERSION = "5d-representation-schema-8"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -298,6 +300,12 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_7_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # Its own row, written out rather than inherited. Schema 8's whole addition
+    # is one fact family and the closed vocabulary it ranges over, and a fact is
+    # not a component key, so this is schema 7's set repeated deliberately.
+    SCHEMA_8_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -332,14 +340,20 @@ def _emitted_component_fields(schema_version: str) -> frozenset[str]:
 #: Explicit membership, never ordering, for the same reason ``_VERSION_STATES``
 #: is: an unrecognised declaration states nothing and fails closed.
 _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_4_VERSION, SCHEMA_5_VERSION, SCHEMA_6_VERSION, SCHEMA_7_VERSION}
+    {
+        SCHEMA_4_VERSION,
+        SCHEMA_5_VERSION,
+        SCHEMA_6_VERSION,
+        SCHEMA_7_VERSION,
+        SCHEMA_8_VERSION,
+    }
 )
 
 #: The versions whose prose bindings may be scoped to one option of a choice.
 #: Schema 6 and later; stated as a set rather than a comparison for the same
 #: reason ``_MERGED_COMPONENT_FIELDS`` is a registry.
 _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_6_VERSION, SCHEMA_7_VERSION}
+    {SCHEMA_6_VERSION, SCHEMA_7_VERSION, SCHEMA_8_VERSION}
 )
 
 

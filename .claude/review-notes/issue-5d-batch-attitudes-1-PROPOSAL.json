@@ -1,0 +1,650 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-batch-attitudes-1-generator.py (CRD Issue 5d batch attitudes-1, representation schema 8)",
+ "proposal_schema_version": "5d-proposal-1",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "attitude": "indifferent",
+      "family": "default_attitude"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "attitude.indifferent",
+    "semantic_key": "default_attitude"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "ability_check"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "attitude.friendly",
+    "semantic_key": "influence_advantage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "ability_check"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "attitude.hostile",
+    "semantic_key": "influence_disadvantage"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 113,
+    "chunk_char_start": 79,
+    "chunk_id": "25d7e0b7-4106-575e-8efa-792b144f4772",
+    "component_key": "influence_advantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "attitude.friendly",
+    "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+   },
+   {
+    "chunk_char_end": 116,
+    "chunk_char_start": 83,
+    "chunk_id": "1ab959c8-ea23-57d7-9130-a434d6459ef7",
+    "component_key": "influence_disadvantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "attitude.hostile",
+    "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "030717db-df98-55a2-9caf-bfd723694c9c",
+    "target_key": [
+     "attitude.indifferent"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847",
+    "target_key": [
+     "attitude.indifferent"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360",
+    "target_key": [
+     "attitude.hostile"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c",
+    "target_key": [
+     "glossary.attitude"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683",
+    "target_key": [
+     "glossary.attitude",
+     "",
+     "Hostile",
+     "srd-5.2.1/rules-glossary",
+     "attitude.hostile"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9",
+    "target_key": [
+     "glossary.attitude",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e",
+    "target_key": [
+     "attitude.friendly"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f",
+    "target_key": [
+     "attitude.friendly"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c",
+    "target_key": [
+     "attitude.indifferent"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c",
+    "target_key": [
+     "glossary.attitude",
+     "",
+     "Friendly",
+     "srd-5.2.1/rules-glossary",
+     "attitude.friendly"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81",
+    "target_key": [
+     "attitude.friendly",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52",
+    "target_key": [
+     "glossary.attitude"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9335a2f3-9397-5868-989e-e539195e1719",
+    "target_key": [
+     "glossary.attitude",
+     "",
+     "Indifferent",
+     "srd-5.2.1/rules-glossary",
+     "attitude.indifferent"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a",
+    "target_key": [
+     "attitude.hostile"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d",
+    "target_key": [
+     "attitude.indifferent",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752",
+    "target_key": [
+     "attitude.friendly"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593",
+    "target_key": [
+     "attitude.hostile"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989",
+    "target_key": [
+     "glossary.attitude"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c",
+    "target_key": [
+     "attitude.hostile",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02",
+    "target_key": [
+     "attitude.friendly",
+     "influence_advantage",
+     "25d7e0b7-4106-575e-8efa-792b144f4772",
+     "497eebf5-de04-5c4d-ac67-57778dee9d02",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0",
+    "target_key": [
+     "attitude.hostile",
+     "influence_disadvantage",
+     "6a9629fc758f68b4"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90",
+    "target_key": [
+     "attitude.indifferent",
+     "default_attitude",
+     "390ab69baf5b1cf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9661f80d-63d5-593a-9adc-2400539378c9",
+    "target_key": [
+     "attitude.friendly",
+     "influence_advantage",
+     "383043486420f221"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6",
+    "target_key": [
+     "attitude.hostile",
+     "influence_disadvantage",
+     "1ab959c8-ea23-57d7-9130-a434d6459ef7",
+     "9a953d25-99b6-5390-9b74-03dd83cacae6",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "attitude.friendly"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "attitude.hostile"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "attitude.indifferent"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.attitude"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "attitude.friendly",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "attitude.hostile",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "attitude.indifferent",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.attitude",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Friendly",
+    "target_record_key": "attitude.friendly"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.attitude",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hostile",
+    "target_record_key": "attitude.hostile"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.attitude",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Indifferent",
+    "target_record_key": "attitude.indifferent"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.attitude",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_spans": [
+  {
+   "char_end": 11,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c"
+  },
+  {
+   "char_end": 110,
+   "char_start": 60,
+   "disposition": "substantive",
+   "leaf_id": "bf296ecc-94be-5283-993a-73c869ed53ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+  },
+  {
+   "char_end": 113,
+   "char_start": 79,
+   "disposition": "substantive",
+   "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is typed beside it",
+   "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+  },
+  {
+   "char_end": 116,
+   "char_start": 83,
+   "disposition": "substantive",
+   "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "affirmatively irreducible under a closed reason code: the predicate ranges over fiction the projection cannot enumerate, and the mechanic it governs is typed beside it",
+   "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "27af8939-40e1-51cc-8fd5-04adbb95f7a8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4400343f-91f2-5554-9144-d8b91b19fc6b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "6f8c4210-51e1-5daf-9e0b-0248381f721a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
+  },
+  {
+   "char_end": 18,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d230dfbe-67d2-59dc-852f-496acbd9aa30",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593"
+  },
+  {
+   "char_end": 19,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "1432dd73-692a-5b71-a833-b9c9b863621c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752"
+  },
+  {
+   "char_end": 22,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0575042d-a15d-5c6b-8514-0529db16a209",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "030717db-df98-55a2-9caf-bfd723694c9c"
+  },
+  {
+   "char_end": 22,
+   "char_start": 11,
+   "disposition": "supporting_authority",
+   "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683"
+  },
+  {
+   "char_end": 37,
+   "char_start": 22,
+   "disposition": "supporting_authority",
+   "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "9335a2f3-9397-5868-989e-e539195e1719"
+  },
+  {
+   "char_end": 40,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f"
+  },
+  {
+   "char_end": 41,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a"
+  },
+  {
+   "char_end": 54,
+   "char_start": 37,
+   "disposition": "supporting_authority",
+   "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "a source-authored mechanical reference, resolved at build time within a committed scope to an exact target record; supporting authority, because naming a rule is not stating one",
+   "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "bf296ecc-94be-5283-993a-73c869ed53ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847"
+  },
+  {
+   "char_end": 79,
+   "char_start": 40,
+   "disposition": "substantive",
+   "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "9661f80d-63d5-593a-9adc-2400539378c9"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "064fd787-0aed-56ce-bd7c-300ee8cc24fe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "67f4ba93-a5a3-531d-95fb-cf99bc0c6131",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "989d1e9e-d9c0-5cf1-b61a-ca292ff59468",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c40da74e-36e5-5b6b-824e-afbc1999f1b8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d40394ab-21d1-5fe5-93d5-288029a65549",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52"
+  },
+  {
+   "char_end": 83,
+   "char_start": 41,
+   "disposition": "substantive",
+   "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+  },
+  {
+   "char_end": 95,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "6c3c8674-8025-5f3c-82ce-cdbc7a703a7e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-attitudes-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
+  "version": "5d-representation-schema-8"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1"
+}

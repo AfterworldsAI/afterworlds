@@ -47,6 +47,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackKind,
     AttackRelativeTiming,
     AttackRollFact,
+    Attitude,
     AutomaticOutcome,
     AutomaticOutcomeFact,
     ComponentDraft,
@@ -72,6 +73,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageScope,
     DamageType,
     DcKind,
+    DefaultAttitudeFact,
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
@@ -423,6 +425,8 @@ EXEMPLARS: dict[FactFamily, Any] = {
     FactFamily.TRIGGERED_RESOLUTION: TriggeredResolutionFact(
         timing=ResolutionTiming.IMMEDIATELY_AFTER_TRIGGER, optional=True
     ),
+    # Indifferent: "Indifferent is the default attitude of a monster."
+    FactFamily.DEFAULT_ATTITUDE: DefaultAttitudeFact(attitude=Attitude.INDIFFERENT),
 }
 
 FAMILY_IDS = [f.value for f in EXEMPLARS]

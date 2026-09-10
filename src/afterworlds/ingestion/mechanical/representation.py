@@ -94,6 +94,7 @@ __all__ = [
     "ActionCost",
     "AdvantageState",
     "AttackKind",
+    "Attitude",
     "AutomaticOutcome",
     "ConditionEffectKind",
     "ConditionKind",
@@ -147,6 +148,7 @@ __all__ = [
     "CreatureSpeedFact",
     "DamageFact",
     "DamageResponseFact",
+    "DefaultAttitudeFact",
     "EquipmentDescriptorFact",
     "HealingFact",
     "MechanicalFact",
@@ -1171,6 +1173,27 @@ class SustainedState(StrEnum):
     CONCENTRATION = "concentration"
 
 
+class Attitude(StrEnum):
+    """A monster's stance toward a player character, as the glossary prints it.
+
+    The **printed closure**, not the subset one entry uses: *"A monster has a
+    starting attitude toward a player character: Friendly, Hostile, or
+    Indifferent."* (``Attitude``, p177) enumerates the class in one line, and
+    each member has its own Rules Glossary entry (pp182-184).
+
+    Admitted for :class:`DefaultAttitudeFact`, which states one of these as the
+    default. The two attitudes that state an influence-check bias state it as
+    an :class:`AdvantageFact` on a ``MIXED`` component instead, exactly as
+    Charmed's social clause does, so nothing here carries an attitude a
+    creature currently *has* — that would be runtime state this module does not
+    model.
+    """
+
+    FRIENDLY = "friendly"
+    HOSTILE = "hostile"
+    INDIFFERENT = "indifferent"
+
+
 class ExpendableResource(StrEnum):
     """A resource a rule states is, or is not, spent.
 
@@ -1458,6 +1481,12 @@ class FactFamily(StrEnum):
     RETRY_RESTRICTION = "retry_restriction"
     SUSTAINED_STATE_REQUIREMENT = "sustained_state_requirement"
     TRIGGERED_RESOLUTION = "triggered_resolution"
+    #: Schema 8, batch ``attitudes-1``. Admitted on the same rule: substantive
+    #: source meaning the union cannot state, for which no member of the closed
+    #: irreducibility catalog is affirmatively true, so contract 3's
+    #: prose-bound branch is unavailable (#137 contract 3, ADR-005d
+    #: Decision 4).
+    DEFAULT_ATTITUDE = "default_attitude"
 
 
 # ---------------------------------------------------------------------------
@@ -2962,6 +2991,58 @@ class ActivationCostEligibilityFact:
     cost: ActionCost
 
 
+@dataclass(frozen=True)
+class DefaultAttitudeFact:
+    """Which attitude applies when nothing else has been specified.
+
+    *"Indifferent is the default attitude of a monster."* (``Indifferent``,
+    p184). One instance in one section, and stated as such: this is a thinner
+    family than :class:`MovementPermissionFact`, which is the thinnest one
+    schema 6 and earlier admitted. Sibling count is evidence a reviewer weighs,
+    not an admission gate — #137 contract 3 states the gate, and its
+    prose-bound branch is unavailable here because no member of the closed
+    irreducibility catalog is affirmatively true of this clause: it is not
+    contextual, subjective, unbounded, delegated to the GM, an exception, or
+    fiction-dependent.
+
+    **A default, not a current state.** It says what holds *absent other
+    specification*, which is why no existing family reaches it: an effect, a
+    duration, an allowance, a roll and a state transition all describe
+    something that has happened. Nothing here asserts that any particular
+    monster is Indifferent now, and nothing adjudicates when the default is
+    overridden — the source states neither, and inventing either would be the
+    runtime rules engine ADR-005d Decision 4 forbids.
+
+    **The attitude is stated rather than inferred from the record it sits on.**
+    The record key ``attitude.indifferent`` and the value ``INDIFFERENT`` agree
+    today, but reading the value off the key is the by-convention inference
+    :class:`MovementTransportFact` refuses for the same reason: a consumer must
+    not have to know a naming rule to read authority.
+
+    **The scope is the declared vocabulary, not a field and not provenance.**
+    :class:`Attitude` is declared as a monster's stance toward a player
+    character, so ``DefaultAttitudeFact(attitude=INDIFFERENT)`` states a
+    monster-scoped default in the typed contract itself. That is what both
+    consumer views hand a reader and all they hand one: the typed view carries
+    the member, and the GameMaster view carries it in ``structured_context``
+    on a ``STRUCTURED`` component that resolves no prose and cites no span of
+    its own — the fact entry there names the clause by span id, never as
+    text. Provenance establishes which
+    printed clauses the declared contract rests on — *"Indifferent is the
+    default attitude of a monster."* (``Indifferent``, p184), at the closure
+    *"A monster has a **starting** attitude toward a player character"*
+    (``Attitude``, p177) — rather than carrying the scope to a consumer. A
+    ``subject`` field would need a creature vocabulary the source gives no
+    second member for, which is the generic escape hatch Decision 4 forbids; a
+    later default over a different subject is a later succession's field, not
+    a speculative one now.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DEFAULT_ATTITUDE
+
+    attitude: Attitude
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -3012,6 +3093,7 @@ MechanicalFact = (
     | RetryRestrictionFact
     | SustainedStateRequirementFact
     | TriggeredResolutionFact
+    | DefaultAttitudeFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -3064,6 +3146,7 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.RETRY_RESTRICTION: RetryRestrictionFact,
     FactFamily.SUSTAINED_STATE_REQUIREMENT: SustainedStateRequirementFact,
     FactFamily.TRIGGERED_RESOLUTION: TriggeredResolutionFact,
+    FactFamily.DEFAULT_ATTITUDE: DefaultAttitudeFact,
 }
 
 
@@ -4792,6 +4875,10 @@ def _check_activation_cost_eligibility(
     return findings
 
 
+def _check_default_attitude(fact: DefaultAttitudeFact) -> list[str]:
+    return [*_enum_field(fact.attitude, Attitude, "attitude")]
+
+
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
@@ -4842,6 +4929,7 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.SUSTAINED_STATE_REQUIREMENT: _check_sustained_state_requirement,
     FactFamily.TRIGGERED_RESOLUTION: _check_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _check_size_keyed_quantity,
+    FactFamily.DEFAULT_ATTITUDE: _check_default_attitude,
 }
 
 
@@ -6118,6 +6206,14 @@ def _build_activation_cost_eligibility(
     )
 
 
+def _build_default_attitude(p: Mapping[str, Any]) -> DefaultAttitudeFact:
+    _reject(
+        FactFamily.DEFAULT_ATTITUDE,
+        [*_json_enum(p["attitude"], Attitude, "attitude")],
+    )
+    return DefaultAttitudeFact(attitude=Attitude(p["attitude"]))
+
+
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
@@ -6168,6 +6264,7 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.SUSTAINED_STATE_REQUIREMENT: _build_sustained_state_requirement,
     FactFamily.TRIGGERED_RESOLUTION: _build_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _build_size_keyed_quantity,
+    FactFamily.DEFAULT_ATTITUDE: _build_default_attitude,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -6266,7 +6363,15 @@ assert (
 #: comparison the schema cannot state without a conversion constant it does not
 #: declare. Schema 6 is merged and therefore reachable, so it is succeeded
 #: rather than corrected in place.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-7"
+#:
+#: Version ``8`` closes the ``attitudes-1`` schema stop S-2 and nothing else:
+#: one fact family, :class:`DefaultAttitudeFact`, over one closed vocabulary,
+#: :class:`Attitude`, so *"Indifferent is the default attitude of a monster."*
+#: can be stated rather than left ``UNRESOLVED``. No field is added to, made
+#: required on, or made nullable on any accepted family, and no ownership form
+#: changes, so every accepted fact key and provenance coordinate has the same
+#: canonical form under both contracts.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-8"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -6736,6 +6841,17 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_7)
             for member in members
         )
+    # Schema 8 adds one family and one whole vocabulary, and no ownership form,
+    # no required field and no nullable field.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_8)
+        for family in _SCHEMA_8_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_8_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_8)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -6792,6 +6908,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_5_VOCABULARY_ALL.get(owner)
         or _SCHEMA_6_VOCABULARY_ALL.get(owner)
         or _SCHEMA_7_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_8_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -6883,6 +7000,7 @@ def _collect_post_schema_3(
             (_SCHEMA_5_MEMBER_INDEX, SCHEMA_5),
             (_SCHEMA_6_MEMBER_INDEX, SCHEMA_6),
             (_SCHEMA_7_MEMBER_INDEX, SCHEMA_7),
+            (_SCHEMA_8_MEMBER_INDEX, SCHEMA_8),
         ):
             if (
                 type(value).__name__,
@@ -7173,6 +7291,32 @@ _SCHEMA_7_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_8 = "5d-representation-schema-8"
+
+#: The one family schema 8 admitted, for batch ``attitudes-1``. Named by member
+#: for the same reason schema 4's and schema 6's are.
+_SCHEMA_8_FAMILIES: tuple[FactFamily, ...] = (FactFamily.DEFAULT_ATTITUDE,)
+
+#: Schema 8 introduces :class:`Attitude` whole and adds nothing to a vocabulary
+#: an earlier schema already had. Every member is registered, including the two
+#: no fact in this build instantiates: the vocabulary is admitted at its
+#: *printed* closure, and a member reachable only through a family this schema
+#: also introduced is registered redundantly for the reason
+#: :class:`_Introduction` states.
+_SCHEMA_8_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "Attitude": tuple(m.value for m in Attitude),
+}
+
+_SCHEMA_8_VOCABULARY_ALL: dict[str, tuple[str, ...]] = dict(
+    _SCHEMA_8_VOCABULARY_MEMBERS
+)
+
+_SCHEMA_8_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_8_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 
 #: Every family-bearing succession, newest last. A family added later must join
 #: this table rather than the one comparison schema 4 was checked by, which
@@ -7180,6 +7324,7 @@ _SCHEMA_7_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
 _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_4_FAMILIES, SCHEMA_4),
     (_SCHEMA_6_FAMILIES, SCHEMA_6),
+    (_SCHEMA_8_FAMILIES, SCHEMA_8),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -7249,6 +7394,9 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
     SCHEMA_5: frozenset({"5d-representation-schema-4", SCHEMA_5}),
     SCHEMA_6: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6}),
     SCHEMA_7: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7}),
+    SCHEMA_8: frozenset(
+        {"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8}
+    ),
 }
 
 _register_post_schema_3(

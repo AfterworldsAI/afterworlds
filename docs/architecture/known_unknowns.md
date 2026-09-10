@@ -436,18 +436,33 @@ action a subject readies (`Ready` L4 — both arms are typed; the identity of th
 records the arm a clause governs without typing its content. Each is contract 3's second branch used as
 intended rather than a deferral: a catalog reason is affirmatively true of every one of them.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Three batches are
+**Representation schema 8 (the `attitudes-1` stop S-2) narrows nothing here, and that is recorded
+rather than left silent.** *"Indifferent is the default attitude of a monster."* had no shape under
+schema 7, so schema 8 adds one family, `DefaultAttitudeFact`, over one closed vocabulary, `Attitude`,
+under #137 contract 3 and ADR-005d Decision 4 — see the schema-8 amendment in
+`docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. It belongs to none of the groups
+above, discharges none of them, and changes no closure standard stated in this document. **The
+discharge standard stated above is a standard for discharging these groups; it is not an admission gate
+on new families under contract 3.** An `attitudes-1` draft read it as the latter, which reinstated a
+sibling-count precondition that `issue-5d-actions-1-SCHEMA-STOP-CHECKPOINT.md` §6 had explicitly
+withdrawn; the misreading is corrected in that batch's artifacts and is noted here so the standard is
+not read that way again. `attitudes-1` has since been accepted, which resolved the three `attitude.*`
+reference targets it also defines.
+
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Four batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
-2026-09-03 and `actions-1` on 2026-09-09; all three are committed as accepted authority for the
-production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
-**35 records and 463 spans** (15 conditions, 5 hazards and 12 actions, plus the glossary entry
-defining each list), not the corpus. Five cross-batch reference targets named by accepted content —
-`attitude.friendly`, `attitude.hostile`, `attitude.indifferent`, `glossary.concentration`,
-`glossary.speed` — are still unresolved, and no target was invented for them. The publication path
-therefore returns `INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding
-still reports `UNPUBLISHED` because no mechanical projection has been published or activated, and
-later batches extend the same release artifact through `accept_proposal`'s `prior=` merge rather than
-committing a second one — as `hazards-1` and `actions-1` both did. The obsolete `MechanicalEntity` path and the legacy
+2026-09-03, `actions-1` on 2026-09-09 and `attitudes-1` on 2026-09-10; all four are committed as
+accepted authority for the production SRD 5.2.1 release, so that release resolves to a committed
+oracle — but that oracle covers **39 records and 487 spans** (15 conditions, 5 hazards, 12 actions and
+3 attitudes, plus the glossary entry defining each list), not the corpus. Two cross-batch reference
+targets named by accepted content — `glossary.concentration` and `glossary.speed` — are still
+unresolved, and no target was invented for them; `attitudes-1` closed the other three by accepting the
+complete source-defined Attitude class, which is a consequence of that scope rather than the reason
+for it. The publication path therefore returns `INCOMPLETE` for the production projection rather than
+`ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical projection has been
+published or activated, and later batches extend the same release artifact through `accept_proposal`'s
+`prior=` merge rather than committing a second one — as `hazards-1`, `actions-1` and `attitudes-1`
+each did. The obsolete `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.
 

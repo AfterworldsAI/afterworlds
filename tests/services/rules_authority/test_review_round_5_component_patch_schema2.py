@@ -759,11 +759,11 @@ def test_retained_replay_survives_editing_and_deleting_the_authoring_row(
 def test_the_representation_schema_hash_is_untouched() -> None:
     """``ComponentBody`` is patch-layer shape, not representation shape.
 
-    The literal moved to schema 3's hash because schema 3 changed the
-    representation contract deliberately. What this test asserts is unchanged:
-    the *patch layer* does not participate in representation identity, so this
-    canary may only move when the representation itself does.
+    The literal has moved with each deliberate representation change — schema 3,
+    schema 7, and now schema 8's one added family. What this test asserts is
+    unchanged: the *patch layer* does not participate in representation
+    identity, so this canary may only move when the representation itself does.
     """
     assert representation_schema_hash() == (
-        "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
+        "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"  # noqa: E501  # pragma: allowlist secret
     )

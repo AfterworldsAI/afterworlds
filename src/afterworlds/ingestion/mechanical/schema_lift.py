@@ -91,6 +91,8 @@ __all__ = [
     "SCHEMA_6_VERSION",
     "SCHEMA_7_HASH",
     "SCHEMA_7_VERSION",
+    "SCHEMA_8_HASH",
+    "SCHEMA_8_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -112,6 +114,9 @@ SCHEMA_6_HASH = "0e4b4378bf1409ed3ffbbec61a279430689ce4a0d3b70b1b3e9d886f66ae20b
 SCHEMA_7_VERSION = "5d-representation-schema-7"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_7_HASH = "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_8_VERSION = "5d-representation-schema-8"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_8_HASH = "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -261,6 +266,27 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "both contracts — which verify_lift proves element by element "
             "rather than asserting. A schema-6 applicability is the only shape "
             "this succession carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_7_VERSION, SCHEMA_7_HASH): SchemaLift(
+        lift_id="5d-lift-schema-7-to-8",
+        from_version=SCHEMA_7_VERSION,
+        from_hash=SCHEMA_7_HASH,
+        to_version=SCHEMA_8_VERSION,
+        to_hash=SCHEMA_8_HASH,
+        rationale=(
+            "Schema 8 closes the attitudes-1 schema stop S-2 and nothing else: "
+            "one fact family, default_attitude, over one closed vocabulary, "
+            "Attitude, so an attitude the source names as the default absent "
+            "other specification can be stated rather than left UNRESOLVED. It "
+            "adds no field to an accepted family, no ownership form, no "
+            "nullable field and no required field, and it changes no accepted "
+            "vocabulary — Attitude is introduced whole at its printed closure. "
+            "Every accepted fact payload, fact key, component key and "
+            "provenance coordinate therefore has the same canonical form under "
+            "both contracts, which verify_lift proves element by element "
+            "rather than asserting. A schema-7 artifact is the only shape this "
+            "succession carries, and it carries every one of them."
         ),
     ),
 }

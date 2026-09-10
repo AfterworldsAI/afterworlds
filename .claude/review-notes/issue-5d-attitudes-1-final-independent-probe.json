@@ -1,0 +1,188 @@
+{
+  "head": "1e6ecc95d0c830f4357de4c55502a51a606ffb7c",
+  "proposal_identity": "c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22",
+  "counts": {
+    "records": 4,
+    "represented_leaves": 16,
+    "policy_exclusions": 0,
+    "spans": 24,
+    "substantive": 5,
+    "supporting_authority": 19,
+    "non_mechanical": 0,
+    "unresolved": 0,
+    "components": 3,
+    "components_structured": 1,
+    "components_mixed": 2,
+    "components_prose_bound": 0,
+    "facts": 3,
+    "prose_bindings": 2,
+    "references": 7,
+    "record_owned_references": 7,
+    "relationships": 0,
+    "provenance_edges": 24,
+    "obligations": 15
+  },
+  "source_clause": [
+    " Indifferent is the default attitude of a monster."
+  ],
+  "typed_view": {
+    "binding": {
+      "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+      "release_version": "5.2.1-corpus.36b786d8-fa2",
+      "mechanical_projection_uuid": "00000000-0000-0000-0000-000000000000",
+      "override_set_uuid": "00000000-0000-0000-0000-000000000000"
+    },
+    "records": [
+      {
+        "semantic_key": "attitude.indifferent",
+        "kind": "glossary_rule",
+        "parent_key": null,
+        "components": [
+          {
+            "record_key": "attitude.indifferent",
+            "semantic_key": "default_attitude",
+            "handling": "structured",
+            "irreducibility_reason_code": null,
+            "facts": [
+              {
+                "fact_key": "390ab69baf5b1cf2",
+                "fact": {
+                  "attitude": "indifferent"
+                },
+                "option_key": null,
+                "span_ids": [
+                  "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+                ],
+                "supplied_by_override_id": null,
+                "supplied_by_origin": null,
+                "qualifier": null
+              }
+            ],
+            "options": [],
+            "applies_when": null,
+            "governing_prose": [],
+            "recurs": null,
+            "span_ids": [],
+            "supplied_by_override_id": null,
+            "supplied_by_origin": null
+          }
+        ],
+        "span_ids": [
+          "030717db-df98-55a2-9caf-bfd723694c9c",
+          "044a6f6b-0732-5f3e-94c6-1a1e91137847",
+          "545ee26b-363b-58b2-b8e6-77e7ca33a92c"
+        ],
+        "supplied_by_override_id": null,
+        "supplied_by_origin": null
+      }
+    ],
+    "applied_overrides": []
+  },
+  "gamemaster_view": {
+    "binding": {
+      "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+      "release_version": "5.2.1-corpus.36b786d8-fa2",
+      "mechanical_projection_uuid": "00000000-0000-0000-0000-000000000000",
+      "override_set_uuid": "00000000-0000-0000-0000-000000000000"
+    },
+    "components": [
+      {
+        "record_key": "attitude.indifferent",
+        "record_kind": "glossary_rule",
+        "component_key": "default_attitude",
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "governing_prose": [],
+        "structured_context": [
+          {
+            "fact_key": "390ab69baf5b1cf2",
+            "fact": {
+              "attitude": "indifferent"
+            },
+            "option_key": null,
+            "span_ids": [
+              "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+            ],
+            "supplied_by_override_id": null,
+            "supplied_by_origin": null,
+            "qualifier": null
+          }
+        ],
+        "span_ids": [],
+        "supplied_by_override_id": null,
+        "options": [],
+        "applies_when": null,
+        "recurs": null
+      }
+    ],
+    "applied_overrides": []
+  },
+  "native_fact_type": "DefaultAttitudeFact",
+  "native_attitude_type": "Attitude",
+  "sibling_compositions": [
+    {
+      "record": "attitude.friendly",
+      "fact_type": "AdvantageFact",
+      "payload": {
+        "family": "advantage",
+        "state": "advantage",
+        "roll": {
+          "actor": "against_subject",
+          "context": "ability_check",
+          "ability": null
+        }
+      },
+      "governing_prose": [
+        {
+          "chunk_id": "25d7e0b7-4106-575e-8efa-792b144f4772",
+          "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02",
+          "char_start": 79,
+          "char_end": 113,
+          "text": " to influence a Friendly creature.",
+          "option_key": ""
+        }
+      ]
+    },
+    {
+      "record": "attitude.hostile",
+      "fact_type": "AdvantageFact",
+      "payload": {
+        "family": "advantage",
+        "state": "disadvantage",
+        "roll": {
+          "actor": "against_subject",
+          "context": "ability_check",
+          "ability": null
+        }
+      },
+      "governing_prose": [
+        {
+          "chunk_id": "1ab959c8-ea23-57d7-9130-a434d6459ef7",
+          "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6",
+          "char_start": 83,
+          "char_end": 116,
+          "text": " to influence a Hostile creature.",
+          "option_key": ""
+        }
+      ]
+    },
+    {
+      "record": "attitude.indifferent",
+      "fact_type": "DefaultAttitudeFact",
+      "payload": {
+        "family": "default_attitude",
+        "attitude": "indifferent"
+      },
+      "governing_prose": []
+    }
+  ],
+  "unchanged_hashes": {
+    "D:\\AI\\Claude\\afterworlds\\.claude\\review-notes\\issue-5d-batch-attitudes-1-PROPOSAL.json": "b310565f60374e8d169ceb992fb73e6c9f82768ee7664673c48bd56180d80763",
+    "D:\\AI\\Claude\\afterworlds\\.claude\\review-notes\\issue-5d-batch-attitudes-1-audit.json": "d59ced7472fb21491ecf5e32233dd5121bbf83d4815c8b7841ed8b58dfd80a8c",
+    "D:\\AI\\Claude\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-36b786d8-fa2.json": "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc"
+  },
+  "runtime_ast_unchanged": true,
+  "proposal_only_origin_changed": true,
+  "test_clauses_equal_native_source": true,
+  "observation": "Provenance IDs do not resolve scope text in either consumer. However, the native Attitude enum explicitly defines monster-to-player-character semantics and survives both views. A missing field is NOT established: the documentation now reconciles this contract and the source-composition tests use the exact printed clauses. No acceptance or publication was performed."
+}
