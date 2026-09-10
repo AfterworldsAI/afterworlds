@@ -1468,6 +1468,208 @@
         "semantic_diff_hash": "a816d5dd47a5b7798ea921d58ddda3e22fe0c4db2346e4bde9ce491bed7a76b8"
       },
       {
+        "batch_id": "attitudes-1",
+        "diff": [
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "9661f80d-63d5-593a-9adc-2400539378c9"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "030717db-df98-55a2-9caf-bfd723694c9c"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "9335a2f3-9397-5868-989e-e539195e1719"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c"
+          }
+        ],
+        "proposal_identity": "c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22",
+        "resolved_scope": [
+          "9312bcc5-b023-5a10-9c00-a79fc2619a52",
+          "1295e03c-e741-512c-bbc0-0e8cb4f66a2c",
+          "d800f1a6-a3fa-5d3e-ba7c-b6006228b989",
+          "6b77920b-7622-5693-9061-a20b34c15a2c",
+          "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683",
+          "9335a2f3-9397-5868-989e-e539195e1719",
+          "39ba4b77-436c-5f3a-9859-b16831536ca9",
+          "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752",
+          "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f",
+          "9661f80d-63d5-593a-9adc-2400539378c9",
+          "497eebf5-de04-5c4d-ac67-57778dee9d02",
+          "3a44296e-1562-569e-89f9-2877d9d3de3e",
+          "8a96f09b-6a25-5059-83ea-372d61e69c81",
+          "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593",
+          "9cd85974-aec4-569a-b280-e15f3545c01a",
+          "6efa207b-1be1-522d-89cb-fa3efa1e7ab0",
+          "9a953d25-99b6-5390-9b74-03dd83cacae6",
+          "1015c00e-62a2-5baa-9a1e-90d550bac360",
+          "fcd321e6-517c-5047-98dd-aec102802b5c",
+          "030717db-df98-55a2-9caf-bfd723694c9c",
+          "044a6f6b-0732-5f3e-94c6-1a1e91137847",
+          "6f01aaf3-b8d3-5f26-a16e-207705e87b90",
+          "545ee26b-363b-58b2-b8e6-77e7ca33a92c",
+          "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
+        ],
+        "rule": "Owner authorization of 2026-09-10, verbatim: 'I accept all 24 spans and the complete representation of proposal c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22 as batch attitudes-1, extending the preserved prior through the registered schema transitions.' Applied to CRD Issue 5d batch attitudes-1, proposal identity c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22 under representation schema 5d-representation-schema-8 over 5c release 4458fa10-4a66-5e0e-9ecc-ea37530ad2b4/5.2.1-corpus.36b786d8-fa2. The scope is the complete proposed span set and nothing outside it: 24 spans over 16 represented 5c leaves and 4 records — the Attitude umbrella glossary rule and the three attitude entries Friendly, Hostile and Indifferent — with 5 substantive and 19 supporting-authority dispositions, and zero unresolved and zero non-mechanical. Schema stop S-2, the default attitude of a monster, which no schema-7 family could carry, was closed at representation schema 8 before review by adding the DefaultAttitudeFact family and the closed Attitude vocabulary friendly/hostile/indifferent; the prior accepted schema-7 authority is carried forward by the registered lift 5d-lift-schema-7-to-8. Fifteen source obligations are discharged by carriage rather than by assertion: 3 typed, 2 prose-bound and 10 supporting-authority-only. This acceptance resolves three of the five citations the prior could not resolve — attitude.friendly, attitude.hostile and attitude.indifferent — which is a consequence of accepting a complete source class and not the reason for accepting it. glossary.concentration and glossary.speed are untagged entries in other source groups, were not resolved by this acceptance, and remain publication blockers until the batches that define them are accepted. Disclosed and still deferred: [Area of Effect], the remaining complete tagged class, on the spatial-geometry family it would require. Recorded by an agent executing this authorization; the decision is the Owner's and the execution is not a review.",
+        "semantic_diff_hash": "c06808528d73ada315e6002ca7484b22be829733dc81c314ae51baeae9872323"
+      },
+      {
         "batch_id": "conditions-1",
         "diff": [
           {
@@ -3788,6 +3990,21 @@
         "lift_id": "5d-lift-schema-6-to-7",
         "to_hash": "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d",
         "to_version": "5d-representation-schema-7",
+        "verified_collections": [
+          "components",
+          "prose_bindings",
+          "provenance",
+          "records",
+          "references",
+          "relationships"
+        ]
+      },
+      {
+        "from_hash": "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d",
+        "from_version": "5d-representation-schema-7",
+        "lift_id": "5d-lift-schema-7-to-8",
+        "to_hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
+        "to_version": "5d-representation-schema-8",
         "verified_collections": [
           "components",
           "prose_bindings",
@@ -6576,6 +6793,150 @@
         "batch_id": "actions-1",
         "reviewer": "Ravenlok (Owner)",
         "span_id": "fd572342-5d8a-58b5-a5ad-fd5ef927e8f1"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "030717db-df98-55a2-9caf-bfd723694c9c"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "9335a2f3-9397-5868-989e-e539195e1719"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "9661f80d-63d5-593a-9adc-2400539378c9"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989"
+      },
+      {
+        "accepted_at": "2026-09-10T18:53:49Z",
+        "batch_id": "attitudes-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c"
       }
     ],
     "schema_anchors": [
@@ -6596,6 +6957,12 @@
         "proposal_identity": "62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c",
         "schema_hash": "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d",
         "schema_version": "5d-representation-schema-7"
+      },
+      {
+        "batch_id": "attitudes-1",
+        "proposal_identity": "c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22",
+        "schema_hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
+        "schema_version": "5d-representation-schema-8"
       }
     ]
   },
@@ -6860,6 +7227,16 @@
     {
       "kind": "glossary_rule",
       "prose_bound_components": [
+        "influence_advantage"
+      ],
+      "record_key": "attitude.friendly",
+      "structured_fact_families": [
+        "advantage"
+      ]
+    },
+    {
+      "kind": "glossary_rule",
+      "prose_bound_components": [
         "influence_attempt",
         "influence_check",
         "influence_disposition",
@@ -6871,6 +7248,16 @@
       "structured_fact_families": [
         "ability_check",
         "retry_restriction"
+      ]
+    },
+    {
+      "kind": "glossary_rule",
+      "prose_bound_components": [
+        "influence_disadvantage"
+      ],
+      "record_key": "attitude.hostile",
+      "structured_fact_families": [
+        "advantage"
       ]
     },
     {
@@ -6980,6 +7367,20 @@
         "action_economy",
         "activation_cost_eligibility"
       ]
+    },
+    {
+      "kind": "glossary_rule",
+      "prose_bound_components": [],
+      "record_key": "attitude.indifferent",
+      "structured_fact_families": [
+        "default_attitude"
+      ]
+    },
+    {
+      "kind": "glossary_rule",
+      "prose_bound_components": [],
+      "record_key": "glossary.attitude",
+      "structured_fact_families": []
     },
     {
       "kind": "glossary_rule",
@@ -7606,6 +8007,21 @@
         "options": [],
         "record_key": "condition.exhaustion",
         "semantic_key": "speed_reduced"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
+            "attitude": "indifferent",
+            "family": "default_attitude"
+          }
+        ],
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "options": [],
+        "record_key": "attitude.indifferent",
+        "semantic_key": "default_attitude"
       },
       {
         "applies_when": null,
@@ -8287,8 +8703,48 @@
         "handling": "mixed",
         "irreducibility_reason_code": "contextual_applicability",
         "options": [],
+        "record_key": "attitude.friendly",
+        "semantic_key": "influence_advantage"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
+            "family": "advantage",
+            "roll": {
+              "ability": null,
+              "actor": "against_subject",
+              "context": "ability_check"
+            },
+            "state": "advantage"
+          }
+        ],
+        "handling": "mixed",
+        "irreducibility_reason_code": "contextual_applicability",
+        "options": [],
         "record_key": "condition.charmed",
         "semantic_key": "social_advantage"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
+            "family": "advantage",
+            "roll": {
+              "ability": null,
+              "actor": "against_subject",
+              "context": "ability_check"
+            },
+            "state": "disadvantage"
+          }
+        ],
+        "handling": "mixed",
+        "irreducibility_reason_code": "contextual_applicability",
+        "options": [],
+        "record_key": "attitude.hostile",
+        "semantic_key": "influence_disadvantage"
       },
       {
         "applies_when": null,
@@ -9766,6 +10222,24 @@
         "span_id": "92db3fb5-916c-54e9-8cce-f3dfdc0572da"
       },
       {
+        "chunk_char_end": 113,
+        "chunk_char_start": 79,
+        "chunk_id": "25d7e0b7-4106-575e-8efa-792b144f4772",
+        "component_key": "influence_advantage",
+        "irreducibility_reason_code": "contextual_applicability",
+        "record_key": "attitude.friendly",
+        "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+      },
+      {
+        "chunk_char_end": 116,
+        "chunk_char_start": 83,
+        "chunk_id": "1ab959c8-ea23-57d7-9130-a434d6459ef7",
+        "component_key": "influence_disadvantage",
+        "irreducibility_reason_code": "contextual_applicability",
+        "record_key": "attitude.hostile",
+        "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
+      },
+      {
         "chunk_char_end": 121,
         "chunk_char_start": 0,
         "chunk_id": "c015c628-de90-5c0c-aa55-18a3ce9426a5",
@@ -10224,6 +10698,22 @@
       },
       {
         "role": "contextual",
+        "span_id": "030717db-df98-55a2-9caf-bfd723694c9c",
+        "target_key": [
+          "attitude.indifferent"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
+        "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847",
+        "target_key": [
+          "attitude.indifferent"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44",
         "target_key": [
           "action.attack",
@@ -10382,6 +10872,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360",
+        "target_key": [
+          "attitude.hostile"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "1119b6f6-2e8d-5567-88f9-e33d420b6f27",
         "target_key": [
           "condition.unconscious",
@@ -10397,6 +10895,14 @@
           "search_check"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c",
+        "target_key": [
+          "glossary.attitude"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -10763,6 +11269,18 @@
       },
       {
         "role": "contextual",
+        "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683",
+        "target_key": [
+          "glossary.attitude",
+          "",
+          "Hostile",
+          "srd-5.2.1/rules-glossary",
+          "attitude.hostile"
+        ],
+        "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
         "span_id": "33ed01b6-1834-547d-9afa-14ef2c36bbfa",
         "target_key": [
           "condition.restrained"
@@ -10834,6 +11352,18 @@
       },
       {
         "role": "contextual",
+        "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9",
+        "target_key": [
+          "glossary.attitude",
+          "",
+          "Influence",
+          "srd-5.2.1/rules-glossary",
+          "action.influence"
+        ],
+        "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
         "span_id": "39baeecc-b36b-5650-9b50-07436109a035",
         "target_key": [
           "glossary.condition",
@@ -10843,6 +11373,14 @@
           "condition.exhaustion"
         ],
         "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
+        "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e",
+        "target_key": [
+          "attitude.friendly"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -10927,6 +11465,14 @@
           "action.magic"
         ],
         "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
+        "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f",
+        "target_key": [
+          "attitude.friendly"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -11047,6 +11593,14 @@
           "influence_check"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c",
+        "target_key": [
+          "attitude.indifferent"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -11242,6 +11796,18 @@
           "Dash",
           "srd-5.2.1/rules-glossary",
           "action.dash"
+        ],
+        "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
+        "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c",
+        "target_key": [
+          "glossary.attitude",
+          "",
+          "Friendly",
+          "srd-5.2.1/rules-glossary",
+          "attitude.friendly"
         ],
         "target_kind": "reference"
       },
@@ -11565,6 +12131,18 @@
       },
       {
         "role": "contextual",
+        "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81",
+        "target_key": [
+          "attitude.friendly",
+          "",
+          "Influence",
+          "srd-5.2.1/rules-glossary",
+          "action.influence"
+        ],
+        "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
         "span_id": "8bcc1f41-9493-5b1d-9b8d-20ab71613d81",
         "target_key": [
           "action.influence",
@@ -11610,6 +12188,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52",
+        "target_key": [
+          "glossary.attitude"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "932cd5e7-eb9f-57bc-802f-85c0a2370632",
         "target_key": [
           "hazard.malnutrition",
@@ -11625,6 +12211,18 @@
           "search_check"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "9335a2f3-9397-5868-989e-e539195e1719",
+        "target_key": [
+          "glossary.attitude",
+          "",
+          "Indifferent",
+          "srd-5.2.1/rules-glossary",
+          "attitude.indifferent"
+        ],
+        "target_kind": "reference"
       },
       {
         "role": "contextual",
@@ -11652,6 +12250,14 @@
         "span_id": "9ac36f5d-a2f3-5cd0-b46d-d59442d6a24b",
         "target_key": [
           "condition.deafened"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
+        "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a",
+        "target_key": [
+          "attitude.hostile"
         ],
         "target_kind": "record"
       },
@@ -11709,6 +12315,18 @@
       },
       {
         "role": "contextual",
+        "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d",
+        "target_key": [
+          "attitude.indifferent",
+          "",
+          "Influence",
+          "srd-5.2.1/rules-glossary",
+          "action.influence"
+        ],
+        "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
         "span_id": "a7c95fbb-6268-5920-bb09-b30276b51b61",
         "target_key": [
           "hazard.burning"
@@ -11720,6 +12338,14 @@
         "span_id": "aad5174c-6a94-5bc6-a1f7-3a8453cdecf8",
         "target_key": [
           "action.utilize"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
+        "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752",
+        "target_key": [
+          "attitude.friendly"
         ],
         "target_kind": "record"
       },
@@ -11898,6 +12524,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593",
+        "target_key": [
+          "attitude.hostile"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "c14b1abb-d39c-54ad-a0a4-200155d50572",
         "target_key": [
           "condition.prone",
@@ -12039,6 +12673,14 @@
           "influence_check"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989",
+        "target_key": [
+          "glossary.attitude"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -12437,6 +13079,18 @@
           "burning_damage"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c",
+        "target_key": [
+          "attitude.hostile",
+          "",
+          "Influence",
+          "srd-5.2.1/rules-glossary",
+          "action.influence"
+        ],
+        "target_kind": "reference"
       },
       {
         "role": "contextual",
@@ -13216,6 +13870,18 @@
       },
       {
         "role": "primary",
+        "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02",
+        "target_key": [
+          "attitude.friendly",
+          "influence_advantage",
+          "25d7e0b7-4106-575e-8efa-792b144f4772",
+          "497eebf5-de04-5c4d-ac67-57778dee9d02",
+          "contextual_applicability"
+        ],
+        "target_kind": "prose_binding"
+      },
+      {
+        "role": "primary",
         "span_id": "49b81357-5bf1-5050-9f96-517273c52bb4",
         "target_key": [
           "hazard.dehydration",
@@ -13546,6 +14212,26 @@
           "restricted_movement",
           "c27aeb895bc35859",
           "stand"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0",
+        "target_key": [
+          "attitude.hostile",
+          "influence_disadvantage",
+          "6a9629fc758f68b4"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90",
+        "target_key": [
+          "attitude.indifferent",
+          "default_attitude",
+          "390ab69baf5b1cf2"
         ],
         "target_kind": "fact"
       },
@@ -13921,6 +14607,16 @@
       },
       {
         "role": "primary",
+        "span_id": "9661f80d-63d5-593a-9adc-2400539378c9",
+        "target_key": [
+          "attitude.friendly",
+          "influence_advantage",
+          "383043486420f221"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "9744c19f-5121-5e16-a99d-8607ee60a7f3",
         "target_key": [
           "condition.prone",
@@ -13949,6 +14645,18 @@
           "attack_movement_interleave",
           "be9d66ad-8c81-5f0c-9be6-b645ee6ab155",
           "9a735d22-e9f2-5930-9fd4-f7aaf4afbc33",
+          "contextual_applicability"
+        ],
+        "target_kind": "prose_binding"
+      },
+      {
+        "role": "primary",
+        "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6",
+        "target_key": [
+          "attitude.hostile",
+          "influence_disadvantage",
+          "1ab959c8-ea23-57d7-9130-a434d6459ef7",
+          "9a953d25-99b6-5390-9b74-03dd83cacae6",
           "contextual_applicability"
         ],
         "target_kind": "prose_binding"
@@ -15050,7 +15758,27 @@
       {
         "kind": "glossary_rule",
         "parent_key": null,
+        "semantic_key": "attitude.friendly"
+      },
+      {
+        "kind": "glossary_rule",
+        "parent_key": null,
+        "semantic_key": "attitude.hostile"
+      },
+      {
+        "kind": "glossary_rule",
+        "parent_key": null,
+        "semantic_key": "attitude.indifferent"
+      },
+      {
+        "kind": "glossary_rule",
+        "parent_key": null,
         "semantic_key": "glossary.action"
+      },
+      {
+        "kind": "glossary_rule",
+        "parent_key": null,
+        "semantic_key": "glossary.attitude"
       },
       {
         "kind": "glossary_rule",
@@ -15102,6 +15830,55 @@
         "scope_key": "srd-5.2.1/rules-glossary",
         "source_text": "Concentration",
         "target_record_key": "glossary.concentration"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "attitude.friendly",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Influence",
+        "target_record_key": "action.influence"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "attitude.hostile",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Influence",
+        "target_record_key": "action.influence"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "attitude.indifferent",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Influence",
+        "target_record_key": "action.influence"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "glossary.attitude",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Friendly",
+        "target_record_key": "attitude.friendly"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "glossary.attitude",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Hostile",
+        "target_record_key": "attitude.hostile"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "glossary.attitude",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Indifferent",
+        "target_record_key": "attitude.indifferent"
+      },
+      {
+        "from_component_key": "",
+        "from_record_key": "glossary.attitude",
+        "scope_key": "srd-5.2.1/rules-glossary",
+        "source_text": "Influence",
+        "target_record_key": "action.influence"
       },
       {
         "from_component_key": "",
@@ -15366,8 +16143,8 @@
     "relationships": []
   },
   "representation_schema": {
-    "hash": "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d",
-    "version": "5d-representation-schema-7"
+    "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
+    "version": "5d-representation-schema-8"
   },
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
   "semantic_policy_version": "5d-semantic-policy-1",
@@ -15520,6 +16297,14 @@
       "char_end": 11,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+      "non_mechanical_reason_code": null,
+      "span_id": "6b77920b-7622-5693-9061-a20b34c15a2c"
+    },
+    {
+      "char_end": 11,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "e68c6022-5edb-54ce-992f-6ffe7e5dc3d3",
       "non_mechanical_reason_code": null,
       "span_id": "d7d947d4-4db1-5bf6-b3fb-c69134342c3c"
@@ -15531,6 +16316,14 @@
       "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
       "non_mechanical_reason_code": null,
       "span_id": "6aeaf037-7700-50a8-9258-2684af95a203"
+    },
+    {
+      "char_end": 110,
+      "char_start": 60,
+      "disposition": "substantive",
+      "leaf_id": "bf296ecc-94be-5283-993a-73c869ed53ec",
+      "non_mechanical_reason_code": null,
+      "span_id": "6f01aaf3-b8d3-5f26-a16e-207705e87b90"
     },
     {
       "char_end": 111,
@@ -15549,12 +16342,28 @@
       "span_id": "3a19b9ea-a2f9-55a4-973e-adcb53218225"
     },
     {
+      "char_end": 113,
+      "char_start": 79,
+      "disposition": "substantive",
+      "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+      "non_mechanical_reason_code": null,
+      "span_id": "497eebf5-de04-5c4d-ac67-57778dee9d02"
+    },
+    {
       "char_end": 116,
       "char_start": 58,
       "disposition": "substantive",
       "leaf_id": "adde6748-bf5f-5486-96ec-95b5c6aceb42",
       "non_mechanical_reason_code": null,
       "span_id": "25109f67-83b0-53f3-9995-901dbd343e04"
+    },
+    {
+      "char_end": 116,
+      "char_start": 83,
+      "disposition": "substantive",
+      "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+      "non_mechanical_reason_code": null,
+      "span_id": "9a953d25-99b6-5390-9b74-03dd83cacae6"
     },
     {
       "char_end": 117,
@@ -15587,6 +16396,30 @@
       "leaf_id": "698a60f6-6ea3-5966-9078-85ee1994f0b3",
       "non_mechanical_reason_code": null,
       "span_id": "6948cd25-1322-5c50-b1c5-9bffac2f7a99"
+    },
+    {
+      "char_end": 12,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "27af8939-40e1-51cc-8fd5-04adbb95f7a8",
+      "non_mechanical_reason_code": null,
+      "span_id": "8a96f09b-6a25-5059-83ea-372d61e69c81"
+    },
+    {
+      "char_end": 12,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "4400343f-91f2-5554-9144-d8b91b19fc6b",
+      "non_mechanical_reason_code": null,
+      "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c"
+    },
+    {
+      "char_end": 12,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "6f8c4210-51e1-5daf-9e0b-0248381f721a",
+      "non_mechanical_reason_code": null,
+      "span_id": "a7aad7c5-7384-5834-9fc9-4d7e14c58c0d"
     },
     {
       "char_end": 12,
@@ -16344,6 +17177,14 @@
       "char_end": 18,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "d230dfbe-67d2-59dc-852f-496acbd9aa30",
+      "non_mechanical_reason_code": null,
+      "span_id": "bf7b9304-d6bb-5d81-ab4d-9a2aee86a593"
+    },
+    {
+      "char_end": 18,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "db909b80-7d4e-5b41-aab6-ae67270f10ef",
       "non_mechanical_reason_code": null,
       "span_id": "24c88490-0154-5c91-a0ad-9250dfd9f769"
@@ -16379,6 +17220,14 @@
       "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
       "non_mechanical_reason_code": null,
       "span_id": "b9c06dd1-597b-5ac8-805f-233572477f3a"
+    },
+    {
+      "char_end": 19,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "1432dd73-692a-5b71-a833-b9c9b863621c",
+      "non_mechanical_reason_code": null,
+      "span_id": "ab4a1c0f-bdfb-5114-bbbe-ff7f6dad3752"
     },
     {
       "char_end": 19,
@@ -16664,6 +17513,14 @@
       "char_end": 22,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "0575042d-a15d-5c6b-8514-0529db16a209",
+      "non_mechanical_reason_code": null,
+      "span_id": "030717db-df98-55a2-9caf-bfd723694c9c"
+    },
+    {
+      "char_end": 22,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "09f28fab-fdb8-5585-8892-222e9beefae8",
       "non_mechanical_reason_code": null,
       "span_id": "0bf798af-8fe7-5067-a2ed-250db13cd83c"
@@ -16707,6 +17564,14 @@
       "leaf_id": "e40daac6-6bc4-5252-bad5-3d6ed9ef5e19",
       "non_mechanical_reason_code": null,
       "span_id": "ef5563f9-b314-5f7f-9216-444e894a81c0"
+    },
+    {
+      "char_end": 22,
+      "char_start": 11,
+      "disposition": "supporting_authority",
+      "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+      "non_mechanical_reason_code": null,
+      "span_id": "33ea25cc-8ad9-5763-a5f5-87e2ba8e3683"
     },
     {
       "char_end": 22,
@@ -17541,6 +18406,14 @@
       "span_id": "c2185a28-fae3-502a-9401-69d9d174e0a9"
     },
     {
+      "char_end": 37,
+      "char_start": 22,
+      "disposition": "supporting_authority",
+      "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+      "non_mechanical_reason_code": null,
+      "span_id": "9335a2f3-9397-5868-989e-e539195e1719"
+    },
+    {
       "char_end": 375,
       "char_start": 328,
       "disposition": "substantive",
@@ -17712,6 +18585,14 @@
       "char_end": 40,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+      "non_mechanical_reason_code": null,
+      "span_id": "42e23bfa-c58b-54eb-8a00-03e9f19d1f2f"
+    },
+    {
+      "char_end": 40,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "d48b74d9-f5e9-5a40-9ec9-601d9ae8fce0",
       "non_mechanical_reason_code": null,
       "span_id": "0bb7e900-8b70-5f7f-a3a2-206a595b9c49"
@@ -17747,6 +18628,14 @@
       "leaf_id": "2ae61ef9-ba6a-5b42-a0df-b0f2a99913c4",
       "non_mechanical_reason_code": null,
       "span_id": "077279c7-c773-5382-897d-f657fa437e6f"
+    },
+    {
+      "char_end": 41,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+      "non_mechanical_reason_code": null,
+      "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a"
     },
     {
       "char_end": 42,
@@ -18109,6 +18998,14 @@
       "span_id": "d87df4eb-9bac-5a18-ac0d-db9b01dcb223"
     },
     {
+      "char_end": 54,
+      "char_start": 37,
+      "disposition": "supporting_authority",
+      "leaf_id": "aa15a843-842a-5008-8975-1ddda24dd00c",
+      "non_mechanical_reason_code": null,
+      "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9"
+    },
+    {
       "char_end": 55,
       "char_start": 0,
       "disposition": "substantive",
@@ -18275,6 +19172,14 @@
       "leaf_id": "dbe5c512-12a9-5a8c-b28b-6bf8dee2af04",
       "non_mechanical_reason_code": null,
       "span_id": "a467dd34-a42c-58f0-b08a-660ef7a95a47"
+    },
+    {
+      "char_end": 60,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "bf296ecc-94be-5283-993a-73c869ed53ec",
+      "non_mechanical_reason_code": null,
+      "span_id": "044a6f6b-0732-5f3e-94c6-1a1e91137847"
     },
     {
       "char_end": 60,
@@ -18629,6 +19534,14 @@
       "span_id": "eb7113af-0206-5c11-9989-7d23b8045667"
     },
     {
+      "char_end": 79,
+      "char_start": 40,
+      "disposition": "substantive",
+      "leaf_id": "55344df1-2799-52e8-9342-4abf95774500",
+      "non_mechanical_reason_code": null,
+      "span_id": "9661f80d-63d5-593a-9adc-2400539378c9"
+    },
+    {
       "char_end": 8,
       "char_start": 0,
       "disposition": "substantive",
@@ -18651,6 +19564,14 @@
       "leaf_id": "e5debac8-d74b-525f-8e41-e6d273056886",
       "non_mechanical_reason_code": null,
       "span_id": "05b99d36-265c-541f-97d0-2d3c85c0b0c4"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "064fd787-0aed-56ce-bd7c-300ee8cc24fe",
+      "non_mechanical_reason_code": null,
+      "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989"
     },
     {
       "char_end": 8,
@@ -18720,6 +19641,14 @@
       "char_end": 8,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "67f4ba93-a5a3-531d-95fb-cf99bc0c6131",
+      "non_mechanical_reason_code": null,
+      "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "752c95c2-1ad3-5365-a39d-74a01bb23089",
       "non_mechanical_reason_code": null,
       "span_id": "22b87581-7849-53b1-9726-7249fc99bde5"
@@ -18739,6 +19668,14 @@
       "leaf_id": "916892b1-0d65-5f1c-9e86-0970307b3cdc",
       "non_mechanical_reason_code": null,
       "span_id": "81d1edd9-bd96-51ec-96e2-3e0a37bf842e"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "989d1e9e-d9c0-5cf1-b61a-ca292ff59468",
+      "non_mechanical_reason_code": null,
+      "span_id": "545ee26b-363b-58b2-b8e6-77e7ca33a92c"
     },
     {
       "char_end": 8,
@@ -18768,6 +19705,14 @@
       "char_end": 8,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "c40da74e-36e5-5b6b-824e-afbc1999f1b8",
+      "non_mechanical_reason_code": null,
+      "span_id": "1015c00e-62a2-5baa-9a1e-90d550bac360"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "c83dc7e5-81b3-5473-b022-3ba21779acc4",
       "non_mechanical_reason_code": null,
       "span_id": "00bcfe5b-c5e6-5445-abec-bccb882ebc56"
@@ -18779,6 +19724,14 @@
       "leaf_id": "d1a853d4-3e28-5dfc-b704-cffef3fceabe",
       "non_mechanical_reason_code": null,
       "span_id": "8bcc1f41-9493-5b1d-9b8d-20ab71613d81"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "d40394ab-21d1-5fe5-93d5-288029a65549",
+      "non_mechanical_reason_code": null,
+      "span_id": "9312bcc5-b023-5a10-9c00-a79fc2619a52"
     },
     {
       "char_end": 8,
@@ -18883,6 +19836,14 @@
       "leaf_id": "e65d8a7b-f1dd-5f29-8c8f-66c5f048ebc4",
       "non_mechanical_reason_code": null,
       "span_id": "8054fd4b-caa0-50f8-bee3-1c3d3fc50dce"
+    },
+    {
+      "char_end": 83,
+      "char_start": 41,
+      "disposition": "substantive",
+      "leaf_id": "71149706-6f3b-51bc-b945-5c90f0c5c5b6",
+      "non_mechanical_reason_code": null,
+      "span_id": "6efa207b-1be1-522d-89cb-fa3efa1e7ab0"
     },
     {
       "char_end": 84,
@@ -19019,6 +19980,14 @@
       "leaf_id": "905a9e2f-487d-5153-877d-5c4cf5b976d2",
       "non_mechanical_reason_code": null,
       "span_id": "399df6ca-aab6-5922-8fb2-3ec6140bdb01"
+    },
+    {
+      "char_end": 95,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "6c3c8674-8025-5f3c-82ce-cdbc7a703a7e",
+      "non_mechanical_reason_code": null,
+      "span_id": "1295e03c-e741-512c-bbc0-0e8cb4f66a2c"
     },
     {
       "char_end": 96,

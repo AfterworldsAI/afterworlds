@@ -16,7 +16,8 @@ any of them.
 `srd-5-2-1-corpus-36b786d8-fa2.json` — accepted authority for the SRD 5.2.1
 release (`4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` /
 `5.2.1-corpus.36b786d8-fa2`), currently holding **batches `conditions-1`,
-`hazards-1` and `actions-1`** — 35 accepted records over 463 accepted spans.
+`hazards-1`, `actions-1` and `attitudes-1`** — 39 accepted records over 487
+accepted spans.
 
 The file is named for the release, not for the batch, because the resolver
 matches on the release binding and refuses outright when two artifacts claim one
@@ -24,12 +25,14 @@ release. A later batch therefore **extends this file** — `accept_proposal` tak
 the loaded artifact as `prior` and merges, so an added batch cannot silently
 discard an earlier one's reviewed work — rather than adding a second file. That
 is how `hazards-1` was accepted on 2026-09-03 over the `conditions-1` prior,
-and how `actions-1` was accepted on 2026-09-09 over both.
+how `actions-1` was accepted on 2026-09-09 over both, and how `attitudes-1` was
+accepted on 2026-09-10 over all three — that one also crossing a schema, from 7
+to 8, through the registered lift rather than by restamping the file.
 
 **The CRD Issue 5d corpus is incomplete, so this release still cannot publish.**
-Batches beyond `actions-1` have not begun, five cross-batch reference targets
-named by accepted content are still unresolved, and nothing is published or
-activated.
+Batches beyond `attitudes-1` have not begun, two cross-batch reference targets
+named by accepted content — `glossary.concentration` and `glossary.speed` — are
+still unresolved, and nothing is published or activated.
 Accepted authority now exists and resolves, but the publication gate compares it
 against the *whole* persisted projection: a projection carrying any record this
 artifact does not accept fails with `MISSING_AUTHORITY` / `UNEXPECTED_AUTHORITY`.

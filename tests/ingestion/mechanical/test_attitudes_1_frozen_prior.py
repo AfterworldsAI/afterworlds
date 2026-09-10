@@ -15,13 +15,16 @@ same-schema batch, and the schema-8 succession it eventually needed is exactly
 the case the freeze was for: the bytes are untouched, so the prior a reviewer
 reads is the prior the proposal was built against, and the one registered
 crossing between it and the current union is *stated* here rather than assumed.
-It is the same bytes as the committed artifact today and will not be the same
-bytes after the next acceptance.
+It was the same bytes as the committed artifact until the Owner accepted
+``attitudes-1`` on 2026-09-10; since then the committed artifact extends it and
+this copy has not moved, which is the whole point of taking it.
 
-**What this module does not do.** It proves nothing about any unaccepted batch.
-It pins what accepted authority *is*, including the five reference targets it
-currently cannot resolve — the honest starting position successor work is
-measured from, not a list to be worked through.
+**What this module does not do.** It proves nothing about the live artifact
+beyond the one extension assertion at the end. Every pin below describes the
+*frozen* file: the three batches it holds, the 35 records, and the five
+reference targets it cannot resolve — the honest starting position
+``attitudes-1`` was measured from, not a list to be worked through. The
+committed artifact's own pins live in ``test_committed_accepted_authority``.
 """
 
 from __future__ import annotations
@@ -223,13 +226,21 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_frozen_copy_and_the_committed_artifact_are_the_same_bytes_today() -> None:
-    """True now, and expected to stop being true — which is why the copy exists.
+def test_the_committed_artifact_extends_this_frozen_copy_by_exactly_one_batch() -> None:
+    """The successor relationship, now that the two files have parted.
 
-    The next Owner acceptance extends the committed artifact and leaves this
-    file alone. When that happens this assertion is the one that must be
-    *deleted*, and the copy has earned its keep; until then it documents that
-    the frozen prior was taken from live authority rather than assembled.
+    The previous revision asserted the two were the same bytes and said in its
+    own docstring that the next Owner acceptance would end that. ``attitudes-1``
+    did, on 2026-09-10. Deleting the assertion would have left the copy
+    unattached to the thing it was copied from, so it is replaced by the
+    stronger claim the freeze existed to make checkable: the live artifact is
+    this prior plus exactly one batch, and every earlier batch's acceptance
+    evidence came through the schema-8 succession untouched.
     """
-    assert _lf_digest(COMMITTED) == FROZEN_CONTENT_SHA256
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
+    assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
+
+    frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
+    committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
+    assert set(committed) - set(frozen) == {"attitudes-1"}
+    assert {k: committed[k] for k in frozen} == frozen

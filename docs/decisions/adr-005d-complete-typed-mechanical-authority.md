@@ -446,6 +446,34 @@ targets and remain publication blockers, exactly as `known_unknowns.md` records 
 no Known Unknown group listed there and discharges none, so that document is amended only with a
 pointer to this change and not otherwise.
 
+> **Historical — the state at the schema-8 amendment, superseded by Owner Decision 2026-09-10.** The
+> two paragraphs above record the state when schema 8 was registered and are kept as written; the
+> "nothing is accepted" they state has since ended. On 2026-09-10 the Owner accepted this exact
+> schema-8 proposal, `c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22`, as batch
+> `attitudes-1` — all 24 spans and the complete representation, extending the preserved
+> `conditions-1`/`hazards-1`/`actions-1` prior through the registered transitions. **No unresolved
+> architectural choice remains here and no further Owner ruling is required**; this note reconciles the
+> description with a decision already recorded, and amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 8 rather than schema 7, and
+> carries a fourth anchor, `attitudes-1` at schema 8. The conditional above is now the fact — the path
+> resolved as `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8`, and the prior was
+> lifted rather than rewritten. What it did not change: `conditions-1` stays anchored at schema 3,
+> `hazards-1` at schema 5 and `actions-1` at schema 7, where each was reviewed; the frozen prior
+> `accepted_prior_conditions_1_hazards_1_actions_1.json` is untouched at schema 7 and keeps its own
+> digest; schemas 3 through 7 remain recognized contracts with the pins above; and the schema-8
+> destination pin is still `8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff`. The
+> accepted mechanical identity is now
+> `c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa`, over 39 records and 487 spans.
+>
+> What remains open is narrowed but not closed by it. The acceptance published, activated and retired
+> **nothing**. It did resolve three reference targets it also defines — `attitude.friendly`,
+> `attitude.hostile` and `attitude.indifferent` are no longer unresolved — which is a consequence of
+> accepting a complete source class rather than the reason for accepting it. `glossary.concentration`
+> and `glossary.speed` are still unresolved and are still explicit publication blockers, so the corpus
+> stays incomplete and runtime-unpublished. `[Area of Effect]`, the remaining complete tagged class,
+> stays disclosed and deferred on the spatial-geometry family it would require.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

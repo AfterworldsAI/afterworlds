@@ -1,5 +1,15 @@
 # CRD Issue 5d — batch `attitudes-1`: selection, membership, and proposal evidence
 
+> **Superseded on 2026-09-10 — this document is the selection record, kept as
+> written.** The status line below was true when this checkpoint was authored and
+> is preserved rather than rewritten: it is the evidence of what was put in front
+> of the Owner. The Owner then authorized acceptance of proposal
+> `c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22` as batch
+> `attitudes-1`, and it was accepted. Current acceptance status lives in
+> `issue-5d-attitudes-1-ACCEPTANCE-CHECKPOINT.md`. The §7 prior pins below still
+> describe the frozen three-batch prior, which the acceptance did not touch.
+> Nothing was published, activated or retired then either.
+
 Status: **proposed, not accepted.** Nothing in this batch is accepted, activated,
 published or retired. The publication gate is not executed at all. New semantic
 acceptance requires explicit Owner authorization, which this checkpoint does not
