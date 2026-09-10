@@ -28,10 +28,15 @@ extend. Three things it deliberately does not do:
   claiming one release, so this batch *extends* the existing one;
 * it does not publish, activate, or retire anything, and it closes nothing.
 
-Re-running it is refused once the acceptance exists: `accept_proposal` rejects a
-batch id the prior already records, which is the correct behaviour for a
-one-time action. Pass `--verify` to re-check the post-acceptance assertions
-against the committed artifact without attempting the acceptance again.
+It is **re-executable, not repeatable**: the prior it accepts over is always the
+frozen pre-acceptance fixture, never the live artifact, so a re-run replays the
+same single acceptance and rewrites the same bytes rather than accepting a
+second time. `accept_proposal` would in any case refuse a batch id its prior
+already records. Every input is pinned by digest and the accepted timestamp is a
+constant, so the merged content digest, Git blob and oracle identity asserted
+below are the only outcome a re-run can have. Pass `--verify` to re-check the
+post-acceptance assertions against the committed artifact without re-executing
+the acceptance at all.
 
 **What acceptance did not make true.** `actions-1` cites five records no
 accepted batch defines — `glossary.speed`, `glossary.concentration`,
@@ -134,15 +139,33 @@ FROZEN_PRIOR_PATH = (
 #: **evidence** - reviewer, timestamp, batch rule, resolved scope, anchors and
 #: lifts - which the oracle identity deliberately excludes, because re-reviewing
 #: an unchanged classification must not remint a projection.
-MERGED_CONTENT_SHA256 = "d247aed8ab98dab8e71da322de224449f0fe7a46b782c6447010f330d8e87987"  # noqa: E501  # pragma: allowlist secret
-MERGED_BLOB = "b0bb88a3d1f245141f5c2d60cacb68869ab9440c"  # pragma: allowlist secret
+MERGED_CONTENT_SHA256 = "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc"  # noqa: E501  # pragma: allowlist secret
+MERGED_BLOB = "a729a797594e1156b279fac76c3073c733707a2f"  # pragma: allowlist secret
 MERGED_ORACLE_IDENTITY = "8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee"  # noqa: E501  # pragma: allowlist secret
 
-#: Fixed, not `now()`. The Owner's decision has a date, and pinning it is what
-#: makes the merged artifact reproducible: a wall-clock timestamp would give the
-#: same accepted content a different file digest on every run, so the three pins
-#: above could never be asserted.
-ACCEPTED_AT = "2026-09-09T00:00:00Z"
+#: The **observed execution time** of the acceptance, truncated to the second.
+#: Fixed rather than `now()`, because pinning it is what makes the merged
+#: artifact reproducible: a wall-clock timestamp would give the same accepted
+#: content a different file digest on every run, so the three pins above could
+#: never be asserted. It is not invented, and it is not a synthetic midnight —
+#: the value is the time the acceptance actually ran, retained so the run can be
+#: replayed deterministically, with its basis recorded beside it below rather
+#: than left to be taken on trust.
+ACCEPTED_AT = "2026-09-09T20:45:32Z"
+
+#: How that time is known. The evidence is retained beside the review scope
+#: manifest, in the same directory, as `actions-1-acceptance-time-observation.json`.
+ACCEPTED_AT_BASIS = (
+    "Observed execution time of the native accept_proposal call, not a wall "
+    "clock read at replay and not a synthetic date. The call ran under tool use "
+    "toolu_01RZZbJpjAXj1rsrq8XG6mPu, entered 2026-09-09T20:44:59.149Z and "
+    "returned 2026-09-09T20:45:33.46Z; the artifact it wrote was observed with "
+    "LastWriteTimeUtc 2026-09-09T20:45:32.9698861Z, which is truncated — not "
+    "rounded — to second precision here. Evidence: "
+    "actions-1-acceptance-time-observation.json, retained beside the review "
+    "scope manifest. The Owner's authorization is of the same UTC day, "
+    f"{ACCEPTED_AT[:10]}, and is unchanged by this correction."
+)
 
 # --- Expected merged shape, stated before it is computed --------------------
 PRIOR_COUNTS = {
@@ -325,15 +348,16 @@ def _write_artifact(path: Path, payload: dict[str, object]) -> bytes:
 
 VERIFY_ONLY = "--verify" in sys.argv
 
-#: Where the prior comes from, and it is a different file in each mode. During
-#: the acceptance the prior is the live artifact being extended; afterwards that
-#: file is the merged result, so verification reads the frozen fixture instead.
-PRIOR_PATH = ACCEPTED_PATH if not VERIFY_ONLY else FROZEN_PRIOR_PATH
+#: The frozen pre-acceptance fixture in **both** modes. It is byte-identical to
+#: the live artifact as it stood when this acceptance first ran, so accepting
+#: over it replays that one acceptance exactly; reading the live file instead
+#: would make a re-run try to accept over its own result, and would make every
+#: preservation comparison below compare the merged artifact to itself.
+PRIOR_PATH = FROZEN_PRIOR_PATH
 _prior_raw_sha, _prior_content_sha, _prior_blob = _identifiers(PRIOR_PATH)
 
-#: Asserted in **both** modes against the same two pinned values, because the
-#: frozen fixture is byte-identical to the pre-acceptance artifact. There is one
-#: prior identity, not two.
+#: Asserted against the two pinned values before anything is read out of the
+#: file. There is one prior identity, and the fixture must still carry it.
 assert _prior_content_sha == PRIOR_CONTENT_SHA256, (PRIOR_PATH, _prior_content_sha)
 assert _prior_blob == PRIOR_BLOB, (PRIOR_PATH, _prior_blob)
 
@@ -780,6 +804,7 @@ REPORT = {
         "reviewed nothing"
     ),
     "accepted_at": ACCEPTED_AT,
+    "accepted_at_basis": ACCEPTED_AT_BASIS,
     "authorization": AUTHORIZATION,
     "proposal_identity": PROPOSAL_IDENTITY,
     "proposal_payload_hash": PROPOSAL_PAYLOAD_HASH,

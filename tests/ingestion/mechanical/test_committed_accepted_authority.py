@@ -119,8 +119,8 @@ ORACLE_IDENTITY = "8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6
 #: The content digest normalizes CRLF to LF, which is what ``.gitattributes``
 #: declares this file is stored as; the blob id is Git's own content identity,
 #: computed from those same bytes rather than read out of ``.git``.
-ARTIFACT_CONTENT_SHA256 = "d247aed8ab98dab8e71da322de224449f0fe7a46b782c6447010f330d8e87987"  # noqa: E501  # pragma: allowlist secret
-ARTIFACT_BLOB = "b0bb88a3d1f245141f5c2d60cacb68869ab9440c"  # pragma: allowlist secret
+ARTIFACT_CONTENT_SHA256 = "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc"  # noqa: E501  # pragma: allowlist secret
+ARTIFACT_BLOB = "a729a797594e1156b279fac76c3073c733707a2f"  # pragma: allowlist secret
 PROJECTION_UUID = "9da8e85e-1d3d-55a6-ac9a-bb35e06d6322"
 PROJECTION_PAYLOAD_HASH = "7c4c1bd4d636dcb5dc09ead85b2ed843f3e838b097952d164b85adad231222a7"  # noqa: E501  # pragma: allowlist secret
 
@@ -766,7 +766,7 @@ def test_the_whole_acceptance_record_is_pinned_not_only_the_oracle() -> None:
     assert {a.accepted_at for a in inputs.acceptances} == {
         "2026-08-23T09:53:55Z",
         "2026-09-03T10:58:59Z",
-        "2026-09-09T00:00:00Z",
+        "2026-09-09T20:45:32Z",
     }
     assert [a.schema_version for a in inputs.schema_anchors] == [
         SCHEMA_3_VERSION,

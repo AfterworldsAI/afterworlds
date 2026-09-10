@@ -74,7 +74,7 @@ FROZEN_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist se
 #: both only ever worked because of that coincidence. Two constants, because
 #: they are two files: the sentinel below has to be able to fail for one and
 #: pass for the other.
-COMMITTED_CONTENT_SHA256 = "d247aed8ab98dab8e71da322de224449f0fe7a46b782c6447010f330d8e87987"  # noqa: E501  # pragma: allowlist secret
+COMMITTED_CONTENT_SHA256 = "87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc"  # noqa: E501  # pragma: allowlist secret
 
 #: The accepted oracle's own identity. Derived from the semantic content the
 #: Owner accepted, and the one figure a succession may not move at all.

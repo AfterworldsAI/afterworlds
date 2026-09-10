@@ -16,7 +16,7 @@ field of its own rather than leaving the distinction to a reader.
 |---|---|
 | Batch | `actions-1` |
 | Reviewer (accepting) | Ravenlok (Owner) |
-| Accepted at | `2026-09-09T00:00:00Z` — one timestamp across all 182 records |
+| Accepted at | `2026-09-09T20:45:32Z` — the observed execution time, one timestamp across all 182 records |
 | Proposal identity | `62202e9a4b9e0cb539c770e1244b3aa322d8f988e82a544991998fd8fb363b5c` |
 | Proposal payload hash | identical to the identity, asserted |
 | Proposal content SHA-256 / Git blob | `e08759e7…33c03` / `dcb8e2bb…3ad` — unchanged by the acceptance |
@@ -24,12 +24,39 @@ field of its own rather than leaving the distinction to a reader.
 | Schema | `5d-representation-schema-7` / `80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43d` |
 | Scope | 182 spans · 92 leaves · 13 records · 84 substantive / 98 supporting / **0** unresolved / **0** non-mechanical |
 | Accepted oracle identity | `8c41b01e92878c614fad5c039c006c66221a4cc55cfab68698ef9302865a6eee` |
-| Accepted artifact content SHA-256 | `d247aed8ab98dab8e71da322de224449f0fe7a46b782c6447010f330d8e87987` |
-| Accepted artifact Git blob | `b0bb88a3d1f245141f5c2d60cacb68869ab9440c` |
+| Accepted artifact content SHA-256 | `87864b6ac81e4f8baf57eddf9524dade1b2045a5fc804c79b3d57412c87f46fc` |
+| Accepted artifact Git blob | `a729a797594e1156b279fac76c3073c733707a2f` |
 
 Every SHA-256 here is a **canonical-LF content digest**, so verification fails on an edited artifact
 and never on a checkout's line endings. Raw on-disk digests survive only as `..._raw_sha256_diagnostic`
 fields in the report and decide nothing.
+
+## The accepted timestamp is observed, not invented
+
+The acceptance first recorded `2026-09-09T00:00:00Z`. That was a synthetic midnight: it preceded the
+Owner's authorization, and on local time it fell on the previous calendar day. Deterministic replay
+needs the time the acceptance **actually ran**, which is what `hazards-1` already retained, so the
+value is now `2026-09-09T20:45:32Z` and its basis is recorded in the script and in the report as
+`accepted_at_basis` rather than left to be taken on trust: the native `accept_proposal` call ran under
+tool use `toolu_01RZZbJpjAXj1rsrq8XG6mPu`, entered `2026-09-09T20:44:59.149Z` and returned
+`2026-09-09T20:45:33.46Z`, and the artifact it wrote was observed with `LastWriteTimeUtc`
+`2026-09-09T20:45:32.9698861Z` — **truncated, not rounded**, to second precision. The observation is
+retained beside the review scope manifest as `actions-1-acceptance-time-observation.json`, and the
+pre-correction bytes as `actions-1-accepted-before-time-correction.json`.
+
+It stays a **constant**, not `now()`, because the three pins above are only assertable if the run is
+reproducible. The correction is evidence-only and was verified as such: the corrected artifact differs
+from the retained pre-correction bytes in **exactly 182 lines, every one of them this batch's
+`accepted_at`**, with identical line count and no other changed line. `conditions-1`
+(`2026-08-23T09:53:55Z`) and `hazards-1` (`2026-09-03T10:58:59Z`) are untouched, and
+`prior_acceptance_records_identical` is `true`. **The accepted oracle identity is unchanged** at
+`8c41b01e…76ee` — which is the design working, not a coincidence: the oracle identity covers accepted
+*content*, and a timestamp is evidence. The content digest and blob moved because those two pins
+deliberately cover evidence as well, which is exactly why they exist.
+
+No second acceptance was created. The script replays the **same** single `accept_proposal` call over
+the frozen pre-acceptance fixture, which it now reads in both modes; reading the live artifact would
+have made a re-run try to accept over its own result. Nothing mechanical was regenerated.
 
 ## The acceptance authority, and what was retained beside it
 
