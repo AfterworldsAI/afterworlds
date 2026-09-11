@@ -63,6 +63,10 @@ from afterworlds.ingestion.mechanical.representation import (
     ActionEconomyFact,
     Applicability,
     ApplicabilityKind,
+    AreaDimension,
+    AreaDimensionRequirementFact,
+    AreaMovementSuspension,
+    AreaOriginMovementFact,
     ComponentDraft,
     ComponentOption,
     CoverDegree,
@@ -805,6 +809,14 @@ def _damage_response(except_types: object) -> DamageResponseFact:
     )
 
 
+def _area_dimensions(dimensions: object) -> AreaDimensionRequirementFact:
+    return AreaDimensionRequirementFact(dimensions=cast(Any, dimensions))
+
+
+def _area_origin_movement(suspended_by_any_of: object) -> AreaOriginMovementFact:
+    return AreaOriginMovementFact(suspended_by_any_of=cast(Any, suspended_by_any_of))
+
+
 def _size_applicability(any_of: object) -> Applicability:
     return Applicability(
         kind=ApplicabilityKind.SIZE_COMPARISON,
@@ -889,6 +901,20 @@ NESTED_TUPLE_FIELDS = [
         id="DamageResponseFact.except_types",
     ),
     pytest.param(
+        lambda c: _with_fact(
+            _area_dimensions(c((AreaDimension.LENGTH, AreaDimension.WIDTH)))
+        ),
+        "dimensions",
+        id="AreaDimensionRequirementFact.dimensions",
+    ),
+    pytest.param(
+        lambda c: _with_fact(
+            _area_origin_movement(c((AreaMovementSuspension.INSTANTANEOUS_EFFECT,)))
+        ),
+        "suspended_by_any_of",
+        id="AreaOriginMovementFact.suspended_by_any_of",
+    ),
+    pytest.param(
         lambda c: _with_applicability(_size_applicability(c(SIZE_COMPARISONS))),
         "any_of",
         id="Applicability.any_of",
@@ -939,9 +965,11 @@ def test_the_audited_inventory_is_the_whole_declared_surface() -> None:
 
     Derives every tuple-valued field of every serialized authority dataclass
     from ``fields()`` and asserts the parametrized table above accounts for all
-    of them — the nine nested ones by name, and the six top-level collections as
-    the boundary round 10 already closed. A new authority dataclass with a tuple
-    field fails here rather than shipping unaudited.
+    of them — each nested one by name, and the six top-level collections as the
+    boundary round 10 already closed. A new authority dataclass with a tuple
+    field fails here rather than shipping unaudited: schema 9's two — an area's
+    required dimensions and an Emanation's movement exceptions — were added to
+    the table because this assertion demanded them.
     """
     declared = {
         f"{cls.__name__}.{field.name}"

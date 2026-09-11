@@ -18,11 +18,13 @@ stronger claim that the live artifact extends this prior by exactly one batch.
 Deleting it instead would leave the copy unattached to the thing it was copied
 from.
 
-**Same schema, for now.** The prior declares schema 8 and schema 8 is current,
-so no registered crossing separates them and none is asserted here. Whether
-``areas-of-effect-1`` needs a schema step is the open question its discovery
-checkpoint exists to answer; this module states the starting position rather
-than pre-deciding it.
+**No longer the same schema.** When this module was written the prior declared
+schema 8 and schema 8 was current, so no registered crossing separated them and
+none was asserted. The discovery checkpoint answered the open question the other
+way: the Area of Effect class prints twenty-four substantive clauses schema 8
+cannot state, so this build mints schema 9 and exactly one registered crossing
+now separates the prior from it. That is the visible edit this module promised
+to make rather than drift into.
 
 **What this module does not do.** It proves nothing about the live artifact
 beyond the final identity assertion. Every pin below describes the *frozen*
@@ -57,6 +59,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_8_HASH,
     SCHEMA_8_VERSION,
     UnknownSchemaLiftError,
+    lift_accepted_inputs,
     lift_path,
 )
 
@@ -169,14 +172,16 @@ def test_the_prior_declares_schema_8_and_records_the_five_lifts_that_got_it_ther
     ]
 
 
-def test_no_registered_crossing_yet_separates_the_prior_from_this_build() -> None:
-    """The starting position, stated rather than assumed.
+def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+    """The position after the checkpoint, stated rather than assumed.
 
-    Schema 8 is current, so the prior is current too: reading it as current is
-    not a finding, and there is no lift to take. Whether ``areas-of-effect-1``
-    needs a schema step is what its discovery checkpoint is for; if it does,
-    this test is the one that must change, and changing it is a visible edit
-    rather than a silent drift.
+    This is the edit the previous form of this test said would be needed if
+    ``areas-of-effect-1`` turned out to want a schema step. It does: schema 9
+    admits seven families the prior's contract cannot state, so the prior is no
+    longer current and reading it as current is a *finding* rather than a silent
+    pass. One registered step closes the gap, and the identity the Owner
+    accepted survives it — ``lift`` re-declares the binding and proves the
+    content unmoved, it does not rewrite content.
 
     A self-lift stays unregistered, so a generator that reached for one here
     would raise rather than silently no-op.
@@ -184,12 +189,24 @@ def test_no_registered_crossing_yet_separates_the_prior_from_this_build() -> Non
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
-    assert prior == current
+    assert prior == (SCHEMA_8_VERSION, SCHEMA_8_HASH)
+    assert prior != current
 
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings, "reading a superseded prior as current must be visible"
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
+
+    assert [step.lift_id for step in lift_path(prior, current)] == [
+        "5d-lift-schema-8-to-9"
+    ]
+    lifted, records = lift_accepted_inputs(inputs, current)
+    assert [record.lift_id for record in records] == ["5d-lift-schema-8-to-9"]
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
+    assert lifted.oracle.representation is inputs.oracle.representation
+    assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
 
     try:
-        lift_path(prior, current)
+        lift_path(current, current)
     except UnknownSchemaLiftError:
         pass
     else:  # pragma: no cover - would mean a self-lift got registered

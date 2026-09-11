@@ -44,12 +44,26 @@ from afterworlds.ingestion.mechanical.representation import (
     AllowanceScope,
     Applicability,
     ApplicabilityKind,
+    AreaDimension,
+    AreaDimensionRequirementFact,
+    AreaExtentPattern,
+    AreaMovementSuspension,
+    AreaOriginFact,
+    AreaOriginInclusion,
+    AreaOriginInclusionFact,
+    AreaOriginKind,
+    AreaOriginMovementFact,
+    AreaOriginPlacement,
+    AreaWidthRelation,
+    AreaWidthRelationFact,
     AttackKind,
     AttackRelativeTiming,
     AttackRollFact,
     Attitude,
     AutomaticOutcome,
     AutomaticOutcomeFact,
+    BlockedLineExclusionFact,
+    BlockedLineQuantifier,
     ComponentDraft,
     ConditionEffectFact,
     ConditionEffectKind,
@@ -57,6 +71,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     ConsumptionBand,
+    CoverDegree,
     CreatureAbilityScoreFact,
     CreatureChallengeFact,
     CreatureDefenseFact,
@@ -88,6 +103,7 @@ from afterworlds.ingestion.mechanical.representation import (
     FactFamily,
     HealingFact,
     InterleavePoint,
+    InterveningObstruction,
     LevelDirection,
     MalformedFactPayloadError,
     MeasureUnit,
@@ -114,6 +130,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RecurringActionRequirementFact,
     RelationshipDraft,
     RelationshipKind,
+    RelocatedOrigin,
     RepresentationDraft,
     RequiredQuantity,
     ResolutionTiming,
@@ -153,6 +170,8 @@ from afterworlds.ingestion.mechanical.representation import (
     TriggeredReaction,
     TriggeredResolutionFact,
     UnknownFactFamilyError,
+    UnseenOriginRelocationFact,
+    UnseenPlacement,
     WeaponProperty,
     WeaponPropertyFact,
     fact_from_payload,
@@ -427,6 +446,54 @@ EXEMPLARS: dict[FactFamily, Any] = {
     ),
     # Indifferent: "Indifferent is the default attitude of a monster."
     FactFamily.DEFAULT_ATTITUDE: DefaultAttitudeFact(attitude=Attitude.INDIFFERENT),
+    # Cylinder: "A Cylinder is an area of effect that extends in straight lines
+    # from a point of origin located at the center of the circular top or
+    # bottom of the Cylinder."
+    FactFamily.AREA_ORIGIN: AreaOriginFact(
+        origin=AreaOriginKind.POINT,
+        extent=AreaExtentPattern.STRAIGHT_LINES,
+        placement=AreaOriginPlacement.CENTER_OF_THE_CIRCULAR_TOP_OR_BOTTOM,
+    ),
+    # Cylinder: "The effect that creates a Cylinder specifies the radius of the
+    # Cylinder's base and the Cylinder's height." Two parameters, printed order.
+    FactFamily.AREA_DIMENSION_REQUIREMENT: AreaDimensionRequirementFact(
+        dimensions=(AreaDimension.RADIUS_OF_THE_BASE, AreaDimension.HEIGHT)
+    ),
+    # Cone: "A Cone's point of origin isn't included in the area of effect
+    # unless its creator decides otherwise."
+    FactFamily.AREA_ORIGIN_INCLUSION: AreaOriginInclusionFact(
+        inclusion=AreaOriginInclusion.EXCLUDED_UNLESS_ITS_CREATOR_DECIDES_OTHERWISE
+    ),
+    # Cone: "A Cone's width at any point along its length is equal to that
+    # point's distance from the point of origin."
+    FactFamily.AREA_WIDTH_RELATION: AreaWidthRelationFact(
+        relation=AreaWidthRelation.EQUAL_TO_THAT_POINTS_DISTANCE_FROM_THE_POINT_OF_ORIGIN
+    ),
+    # Emanation: "An Emanation moves with the creature or object that is its
+    # origin unless it is an instantaneous or a stationary effect."
+    FactFamily.AREA_ORIGIN_MOVEMENT: AreaOriginMovementFact(
+        suspended_by_any_of=(
+            AreaMovementSuspension.INSTANTANEOUS_EFFECT,
+            AreaMovementSuspension.STATIONARY_EFFECT,
+        )
+    ),
+    # Area of Effect: "If all straight lines extending from the point of origin
+    # to a location in the area of effect are blocked, that location isn't
+    # included in the area of effect." / "To block a line, an obstruction must
+    # provide Total Cover."
+    FactFamily.BLOCKED_LINE_EXCLUSION: BlockedLineExclusionFact(
+        blocked=BlockedLineQuantifier.ALL_STRAIGHT_LINES_FROM_THE_POINT_OF_ORIGIN,
+        blocking_cover=CoverDegree.TOTAL,
+    ),
+    # Area of Effect: "If the creator of an area of effect places it at an
+    # unseen point and an obstruction—such as a wall—is between the creator and
+    # that point, the point of origin comes into being on the near side of the
+    # obstruction."
+    FactFamily.UNSEEN_ORIGIN_RELOCATION: UnseenOriginRelocationFact(
+        placement=UnseenPlacement.AT_AN_UNSEEN_POINT,
+        obstruction=InterveningObstruction.BETWEEN_THE_CREATOR_AND_THE_POINT,
+        relocated_to=RelocatedOrigin.NEAR_SIDE_OF_THE_OBSTRUCTION,
+    ),
 }
 
 FAMILY_IDS = [f.value for f in EXEMPLARS]

@@ -93,6 +93,8 @@ __all__ = [
     "SCHEMA_7_VERSION",
     "SCHEMA_8_HASH",
     "SCHEMA_8_VERSION",
+    "SCHEMA_9_HASH",
+    "SCHEMA_9_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -117,6 +119,9 @@ SCHEMA_7_HASH = "80e853ef9433ba2e7232c384a7192235692463c9954f5ff766be1fafade6f43
 SCHEMA_8_VERSION = "5d-representation-schema-8"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_8_HASH = "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_9_VERSION = "5d-representation-schema-9"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_9_HASH = "0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -287,6 +292,33 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "both contracts, which verify_lift proves element by element "
             "rather than asserting. A schema-7 artifact is the only shape this "
             "succession carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_8_VERSION, SCHEMA_8_HASH): SchemaLift(
+        lift_id="5d-lift-schema-8-to-9",
+        from_version=SCHEMA_8_VERSION,
+        from_hash=SCHEMA_8_HASH,
+        to_version=SCHEMA_9_VERSION,
+        to_hash=SCHEMA_9_HASH,
+        rationale=(
+            "Schema 9 closes the areas-of-effect-1 schema stop and nothing "
+            "else: seven fact families over eleven closed vocabularies, one "
+            "per distinct rule the Area of Effect class prints, so a point of "
+            "origin, a shape's extent and placement, the parameters a creating "
+            "effect must supply, whether the origin is included, a Cone's "
+            "width relation, an Emanation's movement and its two exceptions, "
+            "the all-lines-blocked exclusion with its Total Cover threshold, "
+            "and the unseen-origin relocation can be stated rather than left "
+            "UNRESOLVED. It reuses CoverDegree exactly as schema 6 declared "
+            "it and adds no member to it or to any other accepted vocabulary; "
+            "it adds no field to an accepted family, no ownership form, no "
+            "nullable field and no required field on any family an earlier "
+            "schema already had. Every accepted fact payload, fact key, "
+            "component key and provenance coordinate therefore has the same "
+            "canonical form under both contracts, which verify_lift proves "
+            "element by element rather than asserting. A schema-8 artifact is "
+            "the only shape this succession carries, and it carries every one "
+            "of them."
         ),
     ),
 }

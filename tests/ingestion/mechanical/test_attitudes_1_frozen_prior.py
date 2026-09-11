@@ -163,14 +163,18 @@ def test_the_prior_declares_schema_7_and_records_the_four_lifts_that_got_it_ther
     ]
 
 
-def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
-    """The succession ``attitudes-1`` takes, named rather than counted.
+def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
+    """The succession ``attitudes-1``'s prior takes, named rather than counted.
 
-    Schema 8 admits one family the prior's contract cannot state, so the prior
-    is no longer current and reading it as current is a *finding* rather than a
-    silent pass. Exactly one registered step closes the gap, and the identity
-    the Owner accepted survives it — ``lift`` re-declares the binding and proves
-    the content unmoved, it does not rewrite content.
+    Schema 8 admitted one family this prior's contract cannot state, and schema
+    9 admitted seven more for ``areas-of-effect-1``. The prior is therefore no
+    longer current and reading it as current is a *finding* rather than a silent
+    pass. The registered steps that close the gap are named here in order, and
+    the identity the Owner accepted survives them — ``lift`` re-declares the
+    binding and proves the content unmoved, it does not rewrite content.
+
+    The list, not its length, is the claim: a step appearing here that nobody
+    registered, or a registered step missing from it, both fail.
 
     A self-lift stays unregistered, so a generator that reached for one would
     raise rather than silently no-op.
@@ -184,11 +188,10 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    assert [step.lift_id for step in lift_path(prior, current)] == [
-        "5d-lift-schema-7-to-8"
-    ]
+    expected = ["5d-lift-schema-7-to-8", "5d-lift-schema-8-to-9"]
+    assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
-    assert [record.lift_id for record in records] == ["5d-lift-schema-7-to-8"]
+    assert [record.lift_id for record in records] == expected
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY

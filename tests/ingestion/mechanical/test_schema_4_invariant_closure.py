@@ -105,7 +105,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
-    SCHEMA_8_HASH,
+    SCHEMA_9_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -970,7 +970,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_8_HASH
+    assert representation_schema_hash() == SCHEMA_9_HASH
 
 
 # ---------------------------------------------------------------------------

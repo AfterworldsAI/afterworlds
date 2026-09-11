@@ -440,33 +440,38 @@ def test_each_batch_still_states_the_schema_it_was_reviewed_under() -> None:
 def test_accepted_authority_is_lifted_rather_than_restamped() -> None:
     """Both halves of the fail-closed rule, one specimen each.
 
-    ``attitudes-1`` was reviewed under schema 8, which is what this build
-    implements, so the committed artifact declares current authority and needs
-    no lift: the succession is a no-op that returns the inputs unchanged and
-    records no crossing. This assertion is written against
-    ``REPRESENTATION_SCHEMA_VERSION`` rather than a literal precisely so the
-    *next* succession moves it rather than quietly passing — which is exactly
-    what schema 8 did to the revision of this test that ``actions-1`` left
-    behind.
+    ``attitudes-1`` was reviewed under schema 8 and this build implements schema
+    9, so the committed artifact no longer declares current authority: reading
+    it as current is a finding, and one registered crossing closes the gap. The
+    assertions here are written against ``REPRESENTATION_SCHEMA_VERSION`` rather
+    than a literal precisely so each succession moves them rather than quietly
+    passing — which is what schema 9 has just done to the revision of this test
+    that ``attitudes-1`` left behind.
 
-    Accepted authority is never restamped in place. What carried the four
-    earlier declarations forward into this file was the registered lift chain,
-    not an edit: a projection built under a wider union is a different
-    projection (ADR-005d Decision 6). The frozen schema-3 specimen is the half
-    of the rule this artifact cannot currently demonstrate — an artifact that
-    has always needed a lift — so it is asserted right beside it.
+    Accepted authority is never restamped in place. What carries an earlier
+    declaration forward is the registered lift chain, not an edit: a projection
+    built under a wider union is a different projection (ADR-005d Decision 6).
+    The lift returns the artifact's own representation **by identity**, so the
+    committed file is what the succession carried rather than something rebuilt
+    to look like it. The frozen schema-3 specimen is the far end of the same
+    rule — an artifact that has always needed a lift — so it is asserted right
+    beside it.
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     assert inputs.oracle.schema_version == SCHEMA_8_VERSION
-    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert inputs.oracle.schema_hash == representation_schema_hash()
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    assert inputs.oracle.schema_version != REPRESENTATION_SCHEMA_VERSION
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings, "reading a superseded artifact as current must be visible"
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
     lifted, records = lift_accepted_inputs(
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert records == ()
-    assert lifted is inputs
+    assert [r.lift_id for r in records] == ["5d-lift-schema-8-to-9"]
+    assert lifted.oracle.representation is inputs.oracle.representation
+    assert lifted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
+    assert lifted.oracle.schema_hash == representation_schema_hash()
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     # The committed file is untouched by asking.
     assert oracle_identity(inputs.oracle) == ORACLE_IDENTITY
 
@@ -558,6 +563,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         "5d-lift-schema-5-to-6",
         "5d-lift-schema-6-to-7",
         "5d-lift-schema-7-to-8",
+        "5d-lift-schema-8-to-9",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
