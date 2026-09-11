@@ -474,6 +474,94 @@ pointer to this change and not otherwise.
 > stays incomplete and runtime-unpublished. `[Area of Effect]`, the remaining complete tagged class,
 > stays disclosed and deferred on the spatial-geometry family it would require.
 
+**Amended by representation schema 9 — the `areas-of-effect-1` class.** `[Area of Effect]` is the
+last complete tagged class in the bound release: seven Rules Glossary entries, 43 clauses, of which 24
+are substantive. Schema 8 can state **none** of the 24. The prose-bound branch is unavailable rather
+than declined — no clause in the class matches any of the six closed reason codes in
+`policy.IRREDUCIBILITY_REASONS`; every one states a closed, printed, non-delegated rule — so **#137
+contract 3** read under **Decision 4** requires typed families. Schema 9 adds seven, over eleven closed
+vocabularies: `AreaOriginFact`, `AreaDimensionRequirementFact`, `AreaOriginInclusionFact`,
+`AreaWidthRelationFact`, `AreaOriginMovementFact`, `BlockedLineExclusionFact` and
+`UnseenOriginRelocationFact`. Nothing else moves: no field is added to, made required on, or made
+nullable on any accepted family, and no ownership form changes.
+
+The deferral this supersedes was framed in grid vocabulary the source does not use. The bound text
+contains no `square`, `grid`, `battle`, `map`, `token` or `space` in any of the 43 clauses; it says
+*point of origin*. "Whether the origin square is included" sounds like grid simulation, and *"A
+Cylinder's point of origin is included in the area of effect"* is a printed declarative state. No
+spatial-geometry family is admitted here and none is needed: **no parameter value, unit, coordinate or
+grid semantic is represented anywhere in schema 9.**
+
+Decisions worth recording, because each was a shape considered and rejected.
+
+- **One family per gap was rejected for G1/G2.** The general rule — every area has a point of origin —
+  and the per-shape placement rule are fields of one `AreaOriginFact`, so a shape record states both
+  without either restating the other, and the two coexist faithfully. Emanation is the discriminating
+  witness: its origin is *a creature or an object*, so `AreaOriginKind` carries `CREATURE_OR_OBJECT`
+  beside `POINT` and a point-only origin would have silently lost the printed distinction.
+- **A single dimension slot was rejected.** Arity is printed and varies: Cylinder requires the radius of
+  the base *and* the height, Line requires length *and* width, the other four require one.
+  `AreaDimensionRequirementFact` carries an ordered tuple of `AreaDimension` **parameter names**. The
+  creating effect supplies the values, which is what the source says; the only "feet" in the class is
+  `Cone/1/2`, a worked example, and `DistanceUnit` is deliberately not reached for.
+- **A formula for Cone's taper was rejected** as exactly the executable expression Decision 4 forbids.
+  `AreaWidthRelation.EQUAL_TO_THAT_POINTS_DISTANCE_FROM_THE_POINT_OF_ORIGIN` names the printed relation
+  as a closed member a hand-authored adapter interprets. Computing a width at a distance is adapter
+  arithmetic and stays outside.
+- **A boolean origin-inclusion flag was rejected.** The printed state is not two-valued in the way a
+  bool suggests: four shapes print *excluded unless its creator decides otherwise*, and dropping the
+  creator's control would publish a stricter rule than the source states. `AreaOriginInclusion` carries
+  the exception in the member.
+- **Reusing `DurationKind.INSTANTANEOUS` alone for G6 was rejected.** Emanation moves with its origin
+  except for two effect kinds, and *"stationary effect"* has no member anywhere in schema 8 — not in
+  `DurationKind`, not in `SustainedState`, not in `EffectTerminationFact`. Both exceptions are carried,
+  as a tuple over `AreaMovementSuspension`, because either alone is a different rule.
+- **The G7 quantifier is a stated member, not an implicit reading.** The rule excludes a location when
+  **all** straight lines from the point of origin to it are blocked; one blocked line among many
+  excludes nothing. `BlockedLineQuantifier.ALL_STRAIGHT_LINES_FROM_THE_POINT_OF_ORIGIN` states it, so
+  *all blocked* and *some blocked* are distinguishable in the typed contract rather than in a reader's
+  head. `blocking_cover` is typed as the whole `CoverDegree` and pinned to `TOTAL` by the fact this
+  batch states: the field's type is the kind of thing that blocks, the printed threshold is the value,
+  and `CoverDegree` — a schema-6 vocabulary — is therefore not re-declared as a schema-9 one.
+- **An obstruction vocabulary was rejected for G8.** *"such as a wall"* is inline exemplification inside
+  a substantive clause, not a closed enumeration, and reading it as one would publish a list the source
+  does not print. `UnseenOriginRelocationFact` carries the printed **conjunction** — an unseen point
+  *and* an intervening obstruction — and the printed result, the near side of the obstruction. Deleting
+  either condition is refused, because a single-condition form is a different rule.
+
+None of this evaluates anything. Every member names what a rule *says*; nothing carries an expression, a
+predicate, a formula, a free-form value or a dispatch table, and the vocabularies are closed, so a
+consumer meeting a member it does not handle fails rather than interprets. That is the line **#137**
+draws between its Out of scope — *"Generated executable mechanics, a runtime rules language, a generic
+rules engine, or a cross-system plugin framework"* — and its In scope — *"Typed deterministic-consumer
+and GameMaster-facing authority views"* and *"Typed record/component/fact `RuleOverride` application
+with existing precedence semantics."* Declarative representation is in scope; runtime execution is not.
+Runtime geometry, grid simulation, adapter execution and downstream adjudication all stay outside, where
+Decision 11 and #137 leave them.
+
+The schema-9 destination pin is
+`0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9`. Schemas 3 through 8 remain
+recognized contracts with unchanged pins, and succession stays one row per crossing: exactly one
+registered transition, `5d-lift-schema-8-to-9`, separates schema 8 from schema 9, and the build
+exercises it rather than describing it. **Nothing accepted moves.** The committed artifact and both
+frozen priors still declare the schema they were accepted under after this change — schema 8 and schema
+7 respectively — each keeps its own digest, every per-batch anchor is retained (`conditions-1`→3,
+`hazards-1`→5, `actions-1`→7, `attitudes-1`→8), and the lift re-declares the binding and proves the
+content unmoved rather than rewriting it: `oracle_identity` is
+`c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa` before and after.
+
+Nothing is accepted, published, activated, or retired by this schema change, and no proposal exists for
+`areas-of-effect-1` yet. The accepted mechanical identity is still
+`c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa`, over 39 records and 487 spans. The
+class cites `Cover`, an untagged Rules Glossary entry no accepted batch has represented, so composing it
+**adds** a third unresolved reference target, `glossary.cover`, beside `glossary.concentration` and
+`glossary.speed`; all three are publication blockers and the corpus stays incomplete and
+runtime-unpublished. That is a consequence of representing a complete source class, not a reason to
+represent it, and sequencing a `cover-1` batch is ordinary engineering under #137 rather than an Owner
+Decision. Schema 9 narrows no Known Unknown group listed in `known_unknowns.md` and discharges none, so
+that document is amended only with a pointer to this change and not otherwise. The full-corpus work
+Decision 5 requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

@@ -449,6 +449,23 @@ withdrawn; the misreading is corrected in that batch's artifacts and is noted he
 not read that way again. `attitudes-1` has since been accepted, which resolved the three `attitude.*`
 reference targets it also defines.
 
+**Representation schema 9 (the `areas-of-effect-1` class) narrows nothing here either, and the same
+is recorded rather than left silent.** `[Area of Effect]` — seven Rules Glossary entries, 43 clauses,
+24 of them substantive — had **no** shape under schema 8, and no reason code in
+`policy.IRREDUCIBILITY_REASONS` is affirmatively true of any of its clauses, so schema 9 adds seven
+families over eleven closed vocabularies under #137 contract 3 and ADR-005d Decision 4; see the
+schema-9 amendment in `docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. It belongs to
+none of the groups above, discharges none of them, and changes no closure standard stated in this
+document — the discharge-standard clarification in the paragraph above applies here unchanged. **No
+spatial-geometry Known Unknown is created, narrowed or leaned on.** The class prints no grid vocabulary
+at all, and schema 9 represents no parameter value, unit, coordinate or grid semantic; runtime geometry
+stays outside, where #137's Out of scope and ADR-005d Decision 11 leave it. What the batch does add is
+residue: the class cites `Cover`, an untagged Rules Glossary entry no accepted batch represents, so
+composing it produces a third unresolved reference target, `glossary.cover`, beside the two below.
+Sequencing a batch that states `Cover` is ordinary engineering under #137, not an Owner Decision, and
+nothing in this document anticipates that entry's content. Nothing about `areas-of-effect-1` is
+accepted or proposed.
+
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Four batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
 2026-09-03, `actions-1` on 2026-09-09 and `attitudes-1` on 2026-09-10; all four are committed as

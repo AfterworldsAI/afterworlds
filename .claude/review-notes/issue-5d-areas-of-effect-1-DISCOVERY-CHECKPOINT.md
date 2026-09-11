@@ -4,6 +4,15 @@
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.
 
+**Amended 2026-09-10 — §9.** Discovery membership and the 43-clause inventory passed
+independent review unchanged. Four statements elsewhere in this document were wrong or
+imprecise and are corrected in place, each marked *(corrected 2026-09-10)*: the G7
+quantifier (§4), the reference-collision explanation (§5c), the cover-sequencing
+classification (§5b and §8 question 2), and the reading of #137's rules-engine exclusion
+(§6). §1's two departure bullets are now historical and carry a superseded note rather
+than a rewrite. §9 records what was built against this discovery and what it did not
+close. Nothing in §2, §3 or §7 moved.
+
 **Authority.** #137; ADR-005d; ADR-005c Decision 3; `docs/architecture/known_unknowns.md`;
 `CLAUDE.md`. The `attitudes-1` selection checkpoint §1 named `[Area of Effect]` as the
 remaining complete tagged class and observed a seven-record candidate. That was an
@@ -59,6 +68,16 @@ starting position differs and both stated rather than papered over:
 * **The final test asserts identity, not extension.** Its predecessor did the same until
   `attitudes-1` was accepted. When a fifth batch is accepted this assertion fails first,
   and it is then replaced by the extends-by-exactly-one-batch claim, not deleted.
+
+**Superseded 2026-09-10 — both bullets are historical.** §4 answered the schema question
+the first bullet left open, so schema 9 exists and exactly one registered crossing
+(`5d-lift-schema-8-to-9`) now separates the prior from the current union.
+`test_areas_of_effect_1_frozen_prior.py` was edited to state that — `prior != current`,
+`validate_schema_binding` reports a finding on the unlifted prior, `lift_path` returns the
+single step, and `oracle_identity` survives it — which is the visible edit the test's own
+docstring promised rather than drift. The second bullet still holds: the final test asserts
+the live artifact and the frozen copy are the same bytes, because no fifth batch has been
+accepted.
 
 The three-batch prior and its test are untouched; their `!=` assertion is still true.
 
@@ -238,7 +257,7 @@ vocabulary instead.
 | **G4** — origin-inclusion polarity | `Cone/1/4`, `Cube/1/2`, `Cylinder/1/2`, `Emanation/1/3`, `Line/1/2`, `Sphere/1/2` | none | a closed two-member state, printed and complete over the class: **included** (Cylinder, Sphere) and **excluded unless its creator decides otherwise** (Cone, Cube, Line, Emanation) | none identified | the record states the default and that the creator may override it; *whether the creator did* is a per-cast choice |
 | **G5** — Cone's width relation | `Cone/1/1` | none | a named closed taper rule — *width at a point equals that point's distance from the origin* | this is the sharpest declarative/runtime crossing in the class; see the note below | the record names the rule; computing a width at a distance is adapter arithmetic |
 | **G6** — Emanation movement and its exception | `Emanation/1/2` | `DurationKind.INSTANTANEOUS` exists and is exact for half the exception | that an Emanation moves with its origin, and the two effect kinds that suspend it | **"stationary effect" has no vocabulary member** anywhere in schema 8 — not in `DurationKind`, not in `SustainedState`, not in `EffectTerminationFact`. It is a distinct printed kind, not a synonym for instantaneous | the record states the movement rule and its two exceptions; tracking an origin's motion is runtime state |
-| **G7** — line-of-effect blocking | `Area of Effect/5/2`, `Area of Effect/5/3` | `CoverDegree.TOTAL` exists and is exactly the printed degree. The **predicate** that binds it — *a blocked line excludes that location* — has no carrier | that inclusion is conditioned on an unblocked straight line, and that Total Cover is the blocking threshold | none identified | the record states the rule and the threshold; *which* locations are blocked in a given situation is geometry the adapter computes and is explicitly outside 5d |
+| **G7** — line-of-effect blocking *(corrected 2026-09-10)* | `Area of Effect/5/2`, `Area of Effect/5/3` | `CoverDegree.TOTAL` exists and is exactly the printed degree. The **predicate** that binds it has no carrier | that a location is excluded when **all** straight lines from the point of origin to it are blocked, and that Total Cover is what blocks a line | none identified. **The quantifier is the whole rule.** The shorthand used earlier in this document — *"a blocked line excludes that location"* — drops it and states a strictly stronger, wrong rule: one blocked line among many does not exclude anything. The represented shape must distinguish *all blocked* from *some blocked*, so the quantifier is a named closed member rather than an implicit reading | the record states the rule and the threshold; *which* locations are blocked in a given situation is geometry the adapter computes and is explicitly outside 5d |
 | **G8** — unseen-point origin relocation | `Area of Effect/7/1` | none | a closed conditional: creator places the area at an unseen point **and** an obstruction is between them → the origin comes into being on the near side of the obstruction | *"such as a wall"* is inline exemplification, not a closed obstruction vocabulary; it is supporting text inside a substantive clause and must not be read as an enumeration | the record states the relocation rule; identifying the obstruction and the near side is adapter work |
 
 **On G5, and on what the governing text actually forbids.** ADR-005d Decision 4 prohibits,
@@ -256,8 +275,10 @@ Encoding the Cone taper as a formula the projection evaluates would be an execut
 expression and is forbidden. Encoding it as a **named closed member** — one value in a
 closed vocabulary that a hand-authored adapter interprets — is precisely the "approved and
 bounded typed mechanic shape" both decisions describe. The same reading disposes of G7: the
-projection records *"a blocked line excludes the location, and Total Cover is what blocks,"*
-and never computes which locations are blocked.
+projection records *"a location is excluded when all straight lines from the point of origin
+to it are blocked, and Total Cover is what blocks a line,"* and never computes which lines
+are blocked in a given situation. *(Quantifier corrected 2026-09-10; the earlier phrasing
+here said "a blocked line excludes the location", which is a different and wrong rule.)*
 
 **Distinguishing a missing vocabulary from an open question.** All eight gaps are missing
 vocabulary. Each is a closed, printed, enumerable distinction with no product decision, no
@@ -292,10 +313,16 @@ states it."*
 authority's residue is `glossary.concentration` and `glossary.speed`, both publication
 blockers; `areas-of-effect-1` resolves neither and adds `glossary.cover`. That is a stated
 consequence of picking a complete source class, exactly as `attitudes-1` resolving three
-targets was a consequence rather than a reason. **Whether to sequence a `cover-1` batch
-before, with, or after this one is the one decision in this checkpoint that is properly the
-Owner's**, and it is a sequencing question about publication readiness — not a schema gap
-and not a Known Unknown.
+targets was a consequence rather than a reason. **Corrected 2026-09-10: this is ordinary engineering under #137, not an Owner
+Decision.** #137 already owns build-time reference resolution and already carries two
+unresolved targets through four accepted batches; adding a third changes nothing about
+ownership, product semantics or any accepted contract, and no authority conflicts with any
+other. Batch sequencing is a scheduling choice the implementer makes. This batch therefore
+continues and retains `glossary.cover` as unresolved residue alongside
+`glossary.concentration` and `glossary.speed`. Cover ingestion is not in this batch, the
+batch was not expanded to reach it, and no reference closure was invented for it — the
+composition's single validator finding is that citation, quoted in §9. It remains a
+publication blocker and is discharged by the batch that states `Cover`.
 
 **(c) Candidate in-text terms, unclassified.** All six shape bodies use the term *"area of
 effect"* definitionally (`membership_cross_check.shape_bodies_naming_the_umbrella_term`
@@ -304,8 +331,17 @@ source does not cite the umbrella as a defined term from the shape entries, so n
 back-reference is derivable; recording one would be the projection asserting a citation the
 source does not make. Left as a candidate for the proposal stage rather than decided here.
 The same applies to *"Total Cover"* inside `Area of Effect/5/3`, which is a term in use
-inside a substantive clause and whose citation is already sited at `Area of Effect/7/0`;
-siting it twice would also collide, since `reference_target_key` keys on `source_text`.
+inside a substantive clause and is not a citation the source authors. *(Corrected
+2026-09-10.)* The earlier reason given here — *"siting it twice would collide, since
+`reference_target_key` keys on `source_text`"* — was wrong on both counts and is withdrawn:
+two references with different `source_text` do not thereby share a
+`reference_target_key`, so no collision follows. The criterion is the siting rule the
+accepted batches already use: the projection emits a reference where the **source** authors
+a citation, and the source authors exactly one here — the *"Cover."* under *See also* at
+`Area of Effect/7/0`. Emitting a second from a term in running prose would be the
+projection asserting a citation the source does not make. That is also why the blocking
+threshold in `Area of Effect/5/3` is represented as a typed `CoverDegree` member inside the
+fact rather than as a second reference.
 
 **(d) Targets supplied by the frozen prior.** None. No clause in this class cites a record
 `conditions-1`, `hazards-1`, `actions-1` or `attitudes-1` defines. The prior's 39 record
@@ -321,12 +357,25 @@ keys are listed in `review_prior.record_keys`.
   exits 1 with no output. No Known Unknown is cited here and none is invented. If Codex
   judges that one belongs, that is an addition to make deliberately, not a boundary this
   checkpoint may lean on.
-* **The phrase "no general rules engine" is not accepted-authority wording.** It occurs only
-  in `.claude/review-notes/` and in `attitudes-1`'s generator docstring. The nearest accepted
-  wording is ADR-005d Decision 4's title, *“Closed typed facts, no generated rules
-  engine”* — one word off, and the difference is the word doing the work. The binding text
-  is that Decision's body and ADR-005c Decision 3's, both quoted verbatim in §4, and both
-  permit declarative typed facts explicitly.
+* **#137 excludes a generic rules engine explicitly, and this build does not approach it.**
+  *(Corrected 2026-09-10. The earlier bullet here argued that "no general rules engine" was
+  not accepted-authority wording. It is: #137's own Out of scope list carries it, and the
+  argument is withdrawn as beside the point — the exclusion is real and the reconciliation
+  below is what actually matters.)* #137 Out of scope reads *"Generated executable
+  mechanics, a runtime rules language, a generic rules engine, or a cross-system plugin
+  framework."* The same issue's In scope reads *"Typed deterministic-consumer and
+  GameMaster-facing authority views"* and *"Typed record/component/fact `RuleOverride`
+  application with existing precedence semantics."* Both are true at once, and the line
+  between them is **declarative representation versus runtime execution**: what a rule
+  *says*, in closed typed members a hand-authored adapter interprets, is in scope; anything
+  that *evaluates* a rule at runtime is not. Every schema-9 family states a printed rule as
+  named members. None carries an expression, a predicate to evaluate, a formula, a
+  free-form value or a dispatch table; the vocabularies are closed and exhaustively
+  enumerated, so a consumer that met a member it did not handle would fail rather than
+  interpret. Cone's taper is the name of the printed relation, not arithmetic; G7 is the
+  name of the printed condition, not a line-of-sight test; G8 is the name of the printed
+  relocation, not obstruction detection. ADR-005d Decision 4 and ADR-005c Decision 3, both
+  quoted verbatim in §4, draw the same line in the same place.
 * **The `attitudes-1` deferral rationale is a starting observation, and it was measured.**
   It reads *"point of origin, shape dimensions, origin inclusion, line of effect blocked by
   Total Cover."* All four are real (G1/G3/G4/G7). What it does **not** survive is the
@@ -383,5 +432,97 @@ activation, retirement or parent-issue state change.
    family with four or five closed vocabularies — or does any of them read to Codex as a
    product or ownership question this checkpoint has under-called? G5 and G7 are where a
    reasonable reviewer would push.
-2. `glossary.cover` (§5b). This batch adds a publication blocker rather than removing one.
-   Sequence `cover-1` first, together, or after?
+2. ~~`glossary.cover` (§5b). Sequence `cover-1` first, together, or after?~~ **Settled
+   2026-09-10 as ordinary engineering, not an Owner Decision** — see the corrected §5b.
+   This batch continues and retains `glossary.cover` as unresolved residue; cover ingestion
+   is a later batch and nothing here anticipates its content.
+
+---
+
+## 9. Implementation record — 2026-09-10
+
+Written after the review this checkpoint was raised for. Discovery membership and the
+43-clause inventory are unchanged; this section records what was built against them.
+
+**Representation schema 9.** Seven fact families over eleven closed vocabularies, one per
+gap in §4 except that G1 and G2 share `area_origin` — the general point-of-origin rule and
+the per-shape placement rule are one fact's fields, so the two coexist on a shape record
+without either restating the other, and Emanation states a creature-or-object origin in the
+same field where the other five state a point. `REPRESENTATION_SCHEMA_VERSION` is
+`5d-representation-schema-9`; the derived hash is
+`0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9`. One registered crossing,
+`5d-lift-schema-8-to-9`, joins it to schema 8. Accepted bytes are not re-declared: the
+committed artifact still says schema 8, still records its own five lifts, and
+`oracle_identity` is unmoved on both frozen priors after lifting.
+
+**Vocabulary boundaries chosen here.** Each vocabulary holds exactly the members the 43
+clauses print, spelled as the source spells them. `blocking_cover` is typed as the whole
+`CoverDegree` from schema 6 rather than pinned to `TOTAL`, because the field's type is the
+*kind* of thing that blocks and the printed threshold is the *value*; `CoverDegree` is
+therefore deliberately not a schema-9 vocabulary. No parameter value, unit, coordinate or
+grid semantic is represented anywhere: `AreaDimension` names the parameters the source
+prints and says the creating effect supplies them, and Cylinder's two and Line's two arrive
+as an ordered tuple rather than a fixed slot.
+
+**Clause to fact, all 23.** Twenty-four substantive clauses become twenty-three facts:
+`Area of Effect/5/2` and `5/3` jointly state one `BlockedLineExclusionFact`, and both claim
+it as PRIMARY on their own spans. The remaining 19 clauses are supporting authority and
+claim CONTEXTUAL. Generated from the committed composition, not transcribed.
+
+| Record | Clauses | Component | Family | What the fact states |
+|---|---|---|---|---|
+| `glossary.area_of_effect` | `Area of Effect/5/0` | `area_origin` | `AreaOriginFact` | origin = `point` |
+| `glossary.area_of_effect` | `Area of Effect/5/2`, `Area of Effect/5/3` | `blocked_line_exclusion` | `BlockedLineExclusionFact` | blocked = `all_straight_lines_from_the_point_of_origin`; blocking_cover = `total` |
+| `glossary.area_of_effect` | `Area of Effect/7/1` | `unseen_origin_relocation` | `UnseenOriginRelocationFact` | placement = `at_an_unseen_point`; obstruction = `between_the_creator_and_the_point`; relocated_to = `near_side_of_the_obstruction` |
+| `area_of_effect.cone` | `Cone/1/0` | `area_origin` | `AreaOriginFact` | origin = `point`; extent = `straight_lines_in_a_direction_its_creator_chooses` |
+| `area_of_effect.cone` | `Cone/1/1` | `area_width_relation` | `AreaWidthRelationFact` | relation = `equal_to_that_points_distance_from_the_point_of_origin` |
+| `area_of_effect.cone` | `Cone/1/3` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `maximum_length` |
+| `area_of_effect.cone` | `Cone/1/4` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `excluded_unless_its_creator_decides_otherwise` |
+| `area_of_effect.cube` | `Cube/1/0` | `area_origin` | `AreaOriginFact` | origin = `point`; extent = `straight_lines`; placement = `anywhere_on_a_face_of_the_cube` |
+| `area_of_effect.cube` | `Cube/1/1` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `size_the_length_of_each_side` |
+| `area_of_effect.cube` | `Cube/1/2` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `excluded_unless_its_creator_decides_otherwise` |
+| `area_of_effect.cylinder` | `Cylinder/1/0` | `area_origin` | `AreaOriginFact` | origin = `point`; extent = `straight_lines`; placement = `center_of_the_circular_top_or_bottom` |
+| `area_of_effect.cylinder` | `Cylinder/1/1` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `radius_of_the_base`, `height` |
+| `area_of_effect.cylinder` | `Cylinder/1/2` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `included` |
+| `area_of_effect.emanation` | `Emanation/1/0` | `area_origin` | `AreaOriginFact` | origin = `creature_or_object`; extent = `straight_lines_in_all_directions` |
+| `area_of_effect.emanation` | `Emanation/1/1` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `distance_it_extends` |
+| `area_of_effect.emanation` | `Emanation/1/2` | `area_origin_movement` | `AreaOriginMovementFact` | suspended_by_any_of = `instantaneous_effect`, `stationary_effect` |
+| `area_of_effect.emanation` | `Emanation/1/3` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `excluded_unless_its_creator_decides_otherwise` |
+| `area_of_effect.line` | `Line/1/0` | `area_origin` | `AreaOriginFact` | origin = `point`; extent = `straight_path_along_its_length_covering_the_area_its_width_defines` |
+| `area_of_effect.line` | `Line/1/1` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `length`, `width` |
+| `area_of_effect.line` | `Line/1/2` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `excluded_unless_its_creator_decides_otherwise` |
+| `area_of_effect.sphere` | `Sphere/1/0` | `area_origin` | `AreaOriginFact` | origin = `point`; extent = `straight_lines_outward_in_all_directions` |
+| `area_of_effect.sphere` | `Sphere/1/1` | `area_dimension_requirement` | `AreaDimensionRequirementFact` | dimensions = `distance_it_extends_as_the_radius` |
+| `area_of_effect.sphere` | `Sphere/1/2` | `area_origin_inclusion` | `AreaOriginInclusionFact` | inclusion = `included` |
+
+**Evidence.** `tests/ingestion/mechanical/test_schema_9_areas_of_effect.py` composes the
+class from the reviewed manifest — clause text is read byte-exact from
+`issue-5d-areas-of-effect-1-source-manifest.json`, never retyped — and carries it through
+construction, `validate_representation`, serialization, persistence and reconstruction,
+`_base_records`, both consumer views, and identity. Refusals cover the all-versus-some
+quantifier, the Total Cover threshold, out-of-closure members, a placement without an
+extent, field deletion from the unseen-origin conjunction, malformed collections, and the
+claim that schema 8 can state none of it. The GameMaster view is asserted to render no
+clause text. Override-seam cases live in
+`tests/services/rules_authority/test_expanded_families_overrides.py`: one appending
+area-of-effect fact reaches the typed view with no span ids and its override id attached,
+and three widening payloads are `INVALID_OVERRIDE`.
+
+**The validator result, stated exactly.** The composition does **not** validate clean. It
+produces exactly one finding:
+
+```
+reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover
+```
+
+That tuple is asserted exactly rather than filtered, so a second finding cannot hide behind
+the first. It is the §5b residue and it clears when `Cover` is ingested. Accepted authority
+carries two findings of precisely this class today, for `Speed` and `Concentration`;
+`_validate_relationships_and_references` was run against the committed artifact to confirm
+that rather than assumed.
+
+**What this section does not claim.** No proposal exists, nothing is accepted, published,
+activated or retired, and no parent-issue state changed. The full-corpus work #137 governs
+is untouched and undischarged: this batch represents one tagged class. Architecture Notes
+for the eventual PR are carried by this checkpoint until proposal generation, which is a
+later invocation.
