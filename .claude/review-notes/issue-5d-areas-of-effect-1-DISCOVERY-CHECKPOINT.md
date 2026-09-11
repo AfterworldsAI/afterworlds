@@ -26,8 +26,16 @@ pytest -q --no-cov tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prio
 ```
 
 The first writes `.claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json`
-(LF, sha256 `7fb1cec3a39253fe2e7546f1905a5a13296c5bff8f6b02f982557744a68b13ec`,
-byte-identical on rerun). Every clause id cited below is a row in its `clauses` array,
+(LF, sha256 `5932c353dfd7d67756eeac72876705f5a60c5f2fe8175a7e78fdc0eb8c0d8b9c`,
+byte-identical on rerun). *Re-pinned 2026-09-10.* Discovery ran under schema 8 and the
+manifest still records that binding, because it is the frozen prior's and discovery is
+independent of the checkout's representation. An earlier form of the script read the live
+schema instead and asserted it equalled schema 8, so minting schema 9 broke this command
+against evidence that had not moved; the script now reads the prior's binding, asserts
+separately that the checkout is that binding or a registered successor of it, and labels
+which of the two the manifest names. Source membership, extents, clause bytes and every
+frozen digest are unchanged — the manifest gained exactly one note line, which is the whole
+of the digest movement. Every clause id cited below is a row in its `clauses` array,
 addressable as `leaf_id[char_start:char_end)`. No judgment in this document is encoded in
 the script: a discovery run that shipped its own conclusions would be proposing.
 
@@ -412,8 +420,8 @@ keys are listed in `review_prior.record_keys`.
 | Frozen prior digest, blob and `oracle_identity` before and after the run | unmoved |
 | Live accepted artifact read as a mutation sentinel, never as an input | unmoved |
 | Every other file in `.claude/review-notes/` digested before and after | unmoved |
-| Manifest reproducibility | rerun byte-identical, sha256 `7fb1cec3a39253fe2e7546f1905a5a13296c5bff8f6b02f982557744a68b13ec` |
-| Manifest reproduced from a clean `git archive HEAD` export, outside the working tree | byte-identical, same sha256 |
+| Manifest reproducibility | rerun byte-identical, sha256 `5932c353dfd7d67756eeac72876705f5a60c5f2fe8175a7e78fdc0eb8c0d8b9c` (re-run 2026-09-10 on the schema-9 checkout; `7fb1cec3…b13ec` under the schema-8 form of the script) |
+| Manifest reproduced from a clean `git archive HEAD` export, outside the working tree | byte-identical, same sha256 (re-run 2026-09-10) |
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it
 over), the semantic validator (there is no draft), any acceptance script, any lift. *(True
