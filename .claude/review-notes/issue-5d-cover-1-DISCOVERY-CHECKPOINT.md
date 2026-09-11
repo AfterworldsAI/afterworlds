@@ -10,6 +10,20 @@ implemented. It ends here.
 > a proposal now exists — **§9** records it. Nothing is accepted, published, activated or
 > retired, then or now.
 
+> **Superseded on 2026-09-11 — this document is the discovery and proposal record, kept
+> as written.** The banner above recorded a true intermediate state and is preserved with
+> it. Every status line below was true when its section was authored: together they are
+> the evidence of what was put in front of the Owner, in the order it was put there.
+> Independent semantic review then completed with no remaining correction, and the Owner
+> authorized acceptance of proposal
+> `1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01` as batch `cover-1`.
+> It was accepted. Current acceptance status lives in
+> `issue-5d-cover-1-ACCEPTANCE-CHECKPOINT.md`. The §7 prior pins below still describe the
+> frozen five-batch prior, which the acceptance did not touch. Nothing was published,
+> activated or retired then either. Of the three missing targets recorded below,
+> `glossary.cover` is the one this batch defined; `glossary.concentration` and
+> `glossary.speed` are still missing.
+
 **Amended 2026-09-11 — four explanations corrected in place.** Independent review
 confirmed the two source locations, the 16 leaves, the 28 clauses and the six schema gaps;
 none of those moved. Four pieces of *reasoning* elsewhere in this document overstated what

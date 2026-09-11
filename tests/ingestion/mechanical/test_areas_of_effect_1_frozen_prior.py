@@ -275,7 +275,7 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None:
+def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None:
     """The copy, attached to what it was copied from.
 
     Taking the freeze changed nothing about accepted authority, and until the
@@ -283,13 +283,18 @@ def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None
     the same content. The previous form of this test named that acceptance as
     the thing that would end it and named what should replace it, so this is
     that replacement rather than a deletion: the live artifact is this prior
-    plus exactly one batch, and every batch the freeze holds is still present
-    and identical.
+    plus exactly the batches accepted since, and every batch the freeze holds
+    is still present and identical. ``cover-1`` makes that two, so the claim is
+    generalized rather than re-pinned to a single batch name, following
+    ``test_attitudes_1_frozen_prior``.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
     assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
 
     frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
     committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
-    assert set(committed) - set(frozen) == {"areas-of-effect-1"}
+    assert set(committed) - set(frozen) == {
+        "areas-of-effect-1",
+        "cover-1",
+    }
     assert {k: committed[k] for k in frozen} == frozen

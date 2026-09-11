@@ -3514,6 +3514,240 @@
         "semantic_diff_hash": "585532bd366eaa86388bfb0359d6478172f5f70a1ebf9317de5434838373158b"
       },
       {
+        "batch_id": "cover-1",
+        "diff": [
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "2cad0e9f-9048-54d8-923c-8531781da346"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "499343fd-43ba-5ed6-84c2-90985b5356dd"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "4b2a83c2-e5de-567f-aae4-cf22808c856e"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "736eff22-b55f-5efb-8be8-574a76524a7b"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "83b298b2-9691-5161-8c1d-202f25060b58"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "90374bba-0361-5e55-b98d-80f197708867"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "90720ac5-b209-5f4f-9ca4-ebd8688590c6"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "abaf5ae7-6033-5834-87fe-df0c696ce94e"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "bdb56803-d8a5-5210-a63f-5e296552c495"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "f17ee754-bc36-5854-b6c4-9c1bc4668296"
+          },
+          {
+            "accepted_disposition": "substantive",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "febf783b-4a35-5e23-9de4-6a12f58180b7"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "0b2c4764-1011-5453-bf61-7d224173ee13"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "31dbb990-cf4e-5a5b-b638-495e5f02106c"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "3683868e-dd0e-52dc-8818-1a2452c663c0"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "42d1d221-12d5-5bc8-9720-5a09a3b158da"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "5ad139a4-6ed2-5431-b726-d4ba4b399125"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "84b2158a-e567-5e96-9130-23aae5357687"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "d33850d4-45b7-5114-9887-a83695f83d35"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "e1921b33-4c79-53ca-bbb1-5c62905a3090"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "e70acc31-2b3b-5c49-828d-373644a14493"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "f704d1e5-05bf-5530-a7bf-232af52c84c0"
+          },
+          {
+            "accepted_disposition": "supporting_authority",
+            "accepted_reason_code": null,
+            "prior_disposition": null,
+            "prior_reason_code": null,
+            "span_id": "fab4a02d-5bfd-5f49-960e-9b373cf55b95"
+          }
+        ],
+        "proposal_identity": "1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01",
+        "resolved_scope": [
+          "0b2c4764-1011-5453-bf61-7d224173ee13",
+          "f704d1e5-05bf-5530-a7bf-232af52c84c0",
+          "f17ee754-bc36-5854-b6c4-9c1bc4668296",
+          "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d",
+          "90720ac5-b209-5f4f-9ca4-ebd8688590c6",
+          "83b298b2-9691-5161-8c1d-202f25060b58",
+          "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb",
+          "d33850d4-45b7-5114-9887-a83695f83d35",
+          "84b2158a-e567-5e96-9130-23aae5357687",
+          "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42",
+          "e70acc31-2b3b-5c49-828d-373644a14493",
+          "e1921b33-4c79-53ca-bbb1-5c62905a3090",
+          "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2",
+          "febf783b-4a35-5e23-9de4-6a12f58180b7",
+          "31dbb990-cf4e-5a5b-b638-495e5f02106c",
+          "3683868e-dd0e-52dc-8818-1a2452c663c0",
+          "5ad139a4-6ed2-5431-b726-d4ba4b399125",
+          "42d1d221-12d5-5bc8-9720-5a09a3b158da",
+          "fab4a02d-5bfd-5f49-960e-9b373cf55b95",
+          "bdb56803-d8a5-5210-a63f-5e296552c495",
+          "736eff22-b55f-5efb-8be8-574a76524a7b",
+          "499343fd-43ba-5ed6-84c2-90985b5356dd",
+          "abaf5ae7-6033-5834-87fe-df0c696ce94e",
+          "5e5846f7-de0c-5df2-9105-d9cbf8b0239a",
+          "4b2a83c2-e5de-567f-aae4-cf22808c856e",
+          "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b",
+          "90374bba-0361-5e55-b98d-80f197708867",
+          "2cad0e9f-9048-54d8-923c-8531781da346"
+        ],
+        "rule": "Owner authorization recorded at 2026-09-11T17:14:44Z, verbatim: 'I accept all 28 spans and the complete representation of proposal 1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01 as batch cover-1, extending the preserved prior through the registered schema transitions.' Applied to CRD Issue 5d batch cover-1, proposal identity 1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01 under representation schema 5d-representation-schema-10 over 5c release 4458fa10-4a66-5e0e-9ecc-ea37530ad2b4/5.2.1-corpus.36b786d8-fa2. The scope is the complete proposed span set and nothing outside it: 28 spans over 16 represented 5c leaves and 1 record — the Cover glossary rule, stated at both of the two sites that print it, the Rules Glossary entry and the Combat chapter's Cover section — with 16 substantive and 12 supporting-authority dispositions, and zero unresolved and zero non-mechanical. All 28 source obligations are discharged by carriage rather than by assertion: 15 typed, 1 typed at component scope, 0 prose-bound and 12 supporting-authority-only (8 record-owned, 3 bounding a component and 1 bounding a fact). The six representation gaps the discovery checkpoint found — G1 the three-degree closure, G2 the defensive bonus, G3 the direct-targeting prohibition, G4 the provision polarity, G5 the opposite-side requirement and G6 most-protective selection, each witnessed by at least one clause in this batch — were all closed at representation schema 10 before review, by adding five fact families over eight new closed vocabularies and admitting the single member 'half' into the accepted CoverDegree vocabulary; no field is added to, made required on, or made nullable on any accepted family and no ownership form changes. The prior accepted schema-9 authority is carried forward by the single registered lift 5d-lift-schema-9-to-10. This acceptance emits no reference of its own and resolves one the prior could not: the Area of Effect umbrella's printed See-also citation of glossary.cover now has the record it names. glossary.concentration and glossary.speed remain unresolved from the prior; both remain publication blockers until the batches that define them are accepted, and no target was invented for either. The four components carry eight facts, seven of which are printed twice and four of those at both sites; each is one fact claimed as PRIMARY by every span that prints it, because the source stated one rule. Schema 10 names Cover; it supplies no runtime geometry, measures no coverage, decides no side and chooses no degree for a scene. Recorded by an agent executing this authorization; the decision is the Owner's and the execution is not a review.",
+        "semantic_diff_hash": "107df1bc1f1b1e6f73eeee01cb448c626556b4d407ec0f6b52e5b789768b5ebb"
+      },
+      {
         "batch_id": "hazards-1",
         "diff": [
           {
@@ -4374,6 +4608,21 @@
         "lift_id": "5d-lift-schema-8-to-9",
         "to_hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
         "to_version": "5d-representation-schema-9",
+        "verified_collections": [
+          "components",
+          "prose_bindings",
+          "provenance",
+          "records",
+          "references",
+          "relationships"
+        ]
+      },
+      {
+        "from_hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
+        "from_version": "5d-representation-schema-9",
+        "lift_id": "5d-lift-schema-9-to-10",
+        "to_hash": "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0",
+        "to_version": "5d-representation-schema-10",
         "verified_collections": [
           "components",
           "prose_bindings",
@@ -7564,6 +7813,174 @@
         "batch_id": "areas-of-effect-1",
         "reviewer": "Ravenlok (Owner)",
         "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "0b2c4764-1011-5453-bf61-7d224173ee13"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "2cad0e9f-9048-54d8-923c-8531781da346"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "31dbb990-cf4e-5a5b-b638-495e5f02106c"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "3683868e-dd0e-52dc-8818-1a2452c663c0"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "42d1d221-12d5-5bc8-9720-5a09a3b158da"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "499343fd-43ba-5ed6-84c2-90985b5356dd"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "4b2a83c2-e5de-567f-aae4-cf22808c856e"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "5ad139a4-6ed2-5431-b726-d4ba4b399125"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "736eff22-b55f-5efb-8be8-574a76524a7b"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "83b298b2-9691-5161-8c1d-202f25060b58"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "84b2158a-e567-5e96-9130-23aae5357687"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "90374bba-0361-5e55-b98d-80f197708867"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "90720ac5-b209-5f4f-9ca4-ebd8688590c6"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "abaf5ae7-6033-5834-87fe-df0c696ce94e"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "bdb56803-d8a5-5210-a63f-5e296552c495"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "d33850d4-45b7-5114-9887-a83695f83d35"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "e1921b33-4c79-53ca-bbb1-5c62905a3090"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "e70acc31-2b3b-5c49-828d-373644a14493"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "f17ee754-bc36-5854-b6c4-9c1bc4668296"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "f704d1e5-05bf-5530-a7bf-232af52c84c0"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "fab4a02d-5bfd-5f49-960e-9b373cf55b95"
+      },
+      {
+        "accepted_at": "2026-09-11T17:14:44Z",
+        "batch_id": "cover-1",
+        "reviewer": "Ravenlok (Owner)",
+        "span_id": "febf783b-4a35-5e23-9de4-6a12f58180b7"
       }
     ],
     "schema_anchors": [
@@ -7596,6 +8013,12 @@
         "proposal_identity": "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878",
         "schema_hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
         "schema_version": "5d-representation-schema-9"
+      },
+      {
+        "batch_id": "cover-1",
+        "proposal_identity": "1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01",
+        "schema_hash": "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0",
+        "schema_version": "5d-representation-schema-10"
       }
     ]
   },
@@ -8086,6 +8509,18 @@
       "prose_bound_components": [],
       "record_key": "glossary.attitude",
       "structured_fact_families": []
+    },
+    {
+      "kind": "glossary_rule",
+      "prose_bound_components": [],
+      "record_key": "glossary.cover",
+      "structured_fact_families": [
+        "cover_benefit_origin",
+        "cover_defensive_bonus",
+        "cover_degree_selection",
+        "cover_provision",
+        "cover_targeting_prohibition"
+      ]
     },
     {
       "kind": "glossary_rule",
@@ -8799,6 +9234,36 @@
         "fact_qualifiers": [],
         "facts": [
           {
+            "bonus": 2,
+            "degree": "half",
+            "family": "cover_defensive_bonus",
+            "to_defense": "armor_class",
+            "to_saving_throw": "dexterity"
+          },
+          {
+            "bonus": 5,
+            "degree": "three_quarters",
+            "family": "cover_defensive_bonus",
+            "to_defense": "armor_class",
+            "to_saving_throw": "dexterity"
+          },
+          {
+            "degree": "total",
+            "family": "cover_targeting_prohibition",
+            "prohibits": "direct_targeting"
+          }
+        ],
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "options": [],
+        "record_key": "glossary.cover",
+        "semantic_key": "degree_benefit"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
             "can_increase": false,
             "change": "set_to",
             "family": "speed_modification",
@@ -9051,6 +9516,22 @@
         "fact_qualifiers": [],
         "facts": [
           {
+            "combination": "not_added_together",
+            "family": "cover_degree_selection",
+            "selects": "most_protective"
+          }
+        ],
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "options": [],
+        "record_key": "glossary.cover",
+        "semantic_key": "degree_selection"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
             "condition": "incapacitated",
             "effect": "applies",
             "family": "condition_effect"
@@ -9266,6 +9747,35 @@
         "options": [],
         "record_key": "action.ready",
         "semantic_key": "ready_spell"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
+            "coverage": "at_least_half",
+            "degree": "half",
+            "family": "cover_provision",
+            "offered_by": "another_creature_or_an_object"
+          },
+          {
+            "coverage": "at_least_three_quarters",
+            "degree": "three_quarters",
+            "family": "cover_provision",
+            "offered_by": "an_object"
+          },
+          {
+            "coverage": "whole_target",
+            "degree": "total",
+            "family": "cover_provision",
+            "offered_by": "an_object"
+          }
+        ],
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "options": [],
+        "record_key": "glossary.cover",
+        "semantic_key": "degree_provision"
       },
       {
         "applies_when": null,
@@ -10251,6 +10761,22 @@
         "options": [],
         "record_key": "condition.unconscious",
         "semantic_key": "saving_throws_affected"
+      },
+      {
+        "applies_when": null,
+        "fact_qualifiers": [],
+        "facts": [
+          {
+            "family": "cover_benefit_origin",
+            "interaction": "an_attack_or_other_effect",
+            "requires_origin": "opposite_side_of_the_cover"
+          }
+        ],
+        "handling": "structured",
+        "irreducibility_reason_code": null,
+        "options": [],
+        "record_key": "glossary.cover",
+        "semantic_key": "benefit_origin"
       },
       {
         "applies_when": null,
@@ -11901,6 +12427,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "0b2c4764-1011-5453-bf61-7d224173ee13",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "0bb7e900-8b70-5f7f-a3a2-206a595b9c49",
         "target_key": [
           "action.influence",
@@ -12352,6 +12886,16 @@
       },
       {
         "role": "contextual",
+        "span_id": "31dbb990-cf4e-5a5b-b638-495e5f02106c",
+        "target_key": [
+          "glossary.cover",
+          "degree_selection",
+          "1fbedb4352b952b7"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "contextual",
         "span_id": "31f1acc0-ecb7-588e-b5e3-aa8e90207c7b",
         "target_key": [
           "glossary.hazard"
@@ -12434,6 +12978,14 @@
           "food_requirement"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "3683868e-dd0e-52dc-8818-1a2452c663c0",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -12580,6 +13132,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "41321169-f0dc-5cf7-8fc6-2c66ede6ca38",
         "target_key": [
           "glossary.action",
@@ -12589,6 +13149,15 @@
           "action.magic"
         ],
         "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
+        "span_id": "42d1d221-12d5-5bc8-9720-5a09a3b158da",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit"
+        ],
+        "target_kind": "component"
       },
       {
         "role": "contextual",
@@ -12788,6 +13357,14 @@
           "attacks_affected"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "5ad139a4-6ed2-5431-b726-d4ba4b399125",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -13213,6 +13790,14 @@
           "hazard.malnutrition"
         ],
         "target_kind": "reference"
+      },
+      {
+        "role": "contextual",
+        "span_id": "84b2158a-e567-5e96-9130-23aae5357687",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -13869,6 +14454,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "d33850d4-45b7-5114-9887-a83695f83d35",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "d46ec182-6d5e-5f4a-aead-961ccc8a5e00",
         "target_key": [
           "glossary.action",
@@ -14008,6 +14601,15 @@
       },
       {
         "role": "contextual",
+        "span_id": "e1921b33-4c79-53ca-bbb1-5c62905a3090",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit"
+        ],
+        "target_kind": "component"
+      },
+      {
+        "role": "contextual",
         "span_id": "e1e6cd23-15ee-5a95-a215-7ffb306ed384",
         "target_key": [
           "condition.unconscious"
@@ -14022,6 +14624,14 @@
           "breath_duration"
         ],
         "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "e70acc31-2b3b-5c49-828d-373644a14493",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -14305,6 +14915,14 @@
       },
       {
         "role": "contextual",
+        "span_id": "f704d1e5-05bf-5530-a7bf-232af52c84c0",
+        "target_key": [
+          "glossary.cover"
+        ],
+        "target_kind": "record"
+      },
+      {
+        "role": "contextual",
         "span_id": "f86e54c0-7eff-51df-b055-35066d94a8ac",
         "target_key": [
           "condition.invisible",
@@ -14336,6 +14954,15 @@
         "target_key": [
           "hazard.dehydration",
           "water_requirement"
+        ],
+        "target_kind": "component"
+      },
+      {
+        "role": "contextual",
+        "span_id": "fab4a02d-5bfd-5f49-960e-9b373cf55b95",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision"
         ],
         "target_kind": "component"
       },
@@ -14858,6 +15485,16 @@
       },
       {
         "role": "primary",
+        "span_id": "2cad0e9f-9048-54d8-923c-8531781da346",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "4f5751578c4ff530"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "2cb27740-1ac8-5499-9c26-0e70fd4fdfdd",
         "target_key": [
           "action.utilize",
@@ -15200,6 +15837,16 @@
       },
       {
         "role": "primary",
+        "span_id": "499343fd-43ba-5ed6-84c2-90985b5356dd",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "8dc446c1f3c25c6d"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "49b81357-5bf1-5050-9f96-517273c52bb4",
         "target_key": [
           "hazard.dehydration",
@@ -15231,6 +15878,16 @@
           "contextual_applicability"
         ],
         "target_kind": "prose_binding"
+      },
+      {
+        "role": "primary",
+        "span_id": "4b2a83c2-e5de-567f-aae4-cf22808c856e",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "7e04f20a16cf38cb"
+        ],
+        "target_kind": "fact"
       },
       {
         "role": "primary",
@@ -15362,6 +16019,16 @@
       },
       {
         "role": "primary",
+        "span_id": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb",
+        "target_key": [
+          "glossary.cover",
+          "degree_selection",
+          "1fbedb4352b952b7"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "5c2d17e6-f33c-55c6-99d7-9b92e11b68a4",
         "target_key": [
           "action.magic",
@@ -15377,6 +16044,16 @@
           "hazard.falling",
           "surface_check",
           "9a446b7e43c85d53"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "4f1d7ffb18cfd8db"
         ],
         "target_kind": "fact"
       },
@@ -15617,6 +16294,16 @@
       },
       {
         "role": "primary",
+        "span_id": "736eff22-b55f-5efb-8be8-574a76524a7b",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "5e4d96e1a9adde6f"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "75213732-5ea1-583f-b70c-123d2ad42414",
         "target_key": [
           "action.help",
@@ -15821,6 +16508,16 @@
       },
       {
         "role": "primary",
+        "span_id": "83b298b2-9691-5161-8c1d-202f25060b58",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "cffc77a875a205b1"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "83c54082-33f8-5978-bb8e-3a6e480a9713",
         "target_key": [
           "hazard.dehydration",
@@ -15984,6 +16681,26 @@
           "condition.exhaustion",
           "exhaustion_levels",
           "deaecb3448ec4319"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "90374bba-0361-5e55-b98d-80f197708867",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "cffc77a875a205b1"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "90720ac5-b209-5f4f-9ca4-ebd8688590c6",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "4f1d7ffb18cfd8db"
         ],
         "target_kind": "fact"
       },
@@ -16284,11 +17001,31 @@
       },
       {
         "role": "primary",
+        "span_id": "abaf5ae7-6033-5834-87fe-df0c696ce94e",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "7e04f20a16cf38cb"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "aca6caa8-8ae9-574e-bffb-087ccdae9d1c",
         "target_key": [
           "action.ready",
           "ready_spell",
           "97d8386ce7f85d18"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2",
+        "target_key": [
+          "glossary.cover",
+          "benefit_origin",
+          "898451fe1d6958e6"
         ],
         "target_kind": "fact"
       },
@@ -16456,6 +17193,16 @@
           "area_of_effect.cone",
           "area_origin",
           "6672338c7118aaaa"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "bdb56803-d8a5-5210-a63f-5e296552c495",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "8dc446c1f3c25c6d"
         ],
         "target_kind": "fact"
       },
@@ -16799,6 +17546,16 @@
       },
       {
         "role": "primary",
+        "span_id": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b",
+        "target_key": [
+          "glossary.cover",
+          "degree_provision",
+          "4f5751578c4ff530"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "dd3350de-7940-5a75-b183-3d46cc66f495",
         "target_key": [
           "action.influence",
@@ -16959,6 +17716,16 @@
       },
       {
         "role": "primary",
+        "span_id": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit",
+          "5e4d96e1a9adde6f"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
         "span_id": "ed3aaf75-519d-579c-accb-6fe4db1449ea",
         "target_key": [
           "hazard.malnutrition",
@@ -16987,6 +17754,15 @@
           ""
         ],
         "target_kind": "fact_qualifier"
+      },
+      {
+        "role": "primary",
+        "span_id": "f17ee754-bc36-5854-b6c4-9c1bc4668296",
+        "target_key": [
+          "glossary.cover",
+          "degree_benefit"
+        ],
+        "target_kind": "component"
       },
       {
         "role": "primary",
@@ -17123,6 +17899,16 @@
           "action.dodge",
           "dodge_saving_throws",
           "0ebc325984500bda"
+        ],
+        "target_kind": "fact"
+      },
+      {
+        "role": "primary",
+        "span_id": "febf783b-4a35-5e23-9de4-6a12f58180b7",
+        "target_key": [
+          "glossary.cover",
+          "degree_selection",
+          "1fbedb4352b952b7"
         ],
         "target_kind": "fact"
       }
@@ -17327,6 +18113,11 @@
         "kind": "glossary_rule",
         "parent_key": null,
         "semantic_key": "glossary.condition"
+      },
+      {
+        "kind": "glossary_rule",
+        "parent_key": null,
+        "semantic_key": "glossary.cover"
       },
       {
         "kind": "glossary_rule",
@@ -17735,8 +18526,8 @@
     "relationships": []
   },
   "representation_schema": {
-    "hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
-    "version": "5d-representation-schema-9"
+    "hash": "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0",
+    "version": "5d-representation-schema-10"
   },
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
   "semantic_policy_version": "5d-semantic-policy-1",
@@ -17844,6 +18635,14 @@
       "leaf_id": "0a6f353d-bce5-595c-9b17-2ffeaee072f6",
       "non_mechanical_reason_code": null,
       "span_id": "ba04d70c-8039-5c11-8f07-b4b9c72b00ae"
+    },
+    {
+      "char_end": 103,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "e70acc31-2b3b-5c49-828d-373644a14493"
     },
     {
       "char_end": 106,
@@ -17958,6 +18757,14 @@
       "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436"
     },
     {
+      "char_end": 112,
+      "char_start": 42,
+      "disposition": "substantive",
+      "leaf_id": "0b5a0f13-fc6f-5785-9589-d5e6cd92b92f",
+      "non_mechanical_reason_code": null,
+      "span_id": "499343fd-43ba-5ed6-84c2-90985b5356dd"
+    },
+    {
       "char_end": 113,
       "char_start": 79,
       "disposition": "substantive",
@@ -18047,6 +18854,14 @@
     },
     {
       "char_end": 12,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "f4d2934b-e115-55c5-a164-40402fea240d",
+      "non_mechanical_reason_code": null,
+      "span_id": "fab4a02d-5bfd-5f49-960e-9b373cf55b95"
+    },
+    {
+      "char_end": 12,
       "char_start": 6,
       "disposition": "supporting_authority",
       "leaf_id": "b717e187-5d0b-549d-8378-f9d827a63ca7",
@@ -18124,6 +18939,14 @@
       "leaf_id": "9c3d1070-7108-5ce8-98b5-2b3154a02017",
       "non_mechanical_reason_code": null,
       "span_id": "7821d7ec-e3b8-592a-a426-c81b1efca843"
+    },
+    {
+      "char_end": 13,
+      "char_start": 0,
+      "disposition": "substantive",
+      "leaf_id": "ea44211d-9fa6-597e-ad6b-14e758c85f3c",
+      "non_mechanical_reason_code": null,
+      "span_id": "abaf5ae7-6033-5834-87fe-df0c696ce94e"
     },
     {
       "char_end": 13,
@@ -18494,6 +19317,14 @@
       "span_id": "41321169-f0dc-5cf7-8fc6-2c66ede6ca38"
     },
     {
+      "char_end": 150,
+      "char_start": 60,
+      "disposition": "substantive",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "f17ee754-bc36-5854-b6c4-9c1bc4668296"
+    },
+    {
       "char_end": 154,
       "char_start": 0,
       "disposition": "substantive",
@@ -18692,6 +19523,14 @@
       "leaf_id": "67ff380d-9f86-5930-b59a-99e465e47d81",
       "non_mechanical_reason_code": null,
       "span_id": "c14b1abb-d39c-54ad-a0a4-200155d50572"
+    },
+    {
+      "char_end": 17,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "75c546c7-bba1-5cae-8d15-a10fc8ec8d46",
+      "non_mechanical_reason_code": null,
+      "span_id": "42d1d221-12d5-5bc8-9720-5a09a3b158da"
     },
     {
       "char_end": 17,
@@ -19134,6 +19973,14 @@
       "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9"
     },
     {
+      "char_end": 207,
+      "char_start": 150,
+      "disposition": "substantive",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d"
+    },
+    {
       "char_end": 21,
       "char_start": 0,
       "disposition": "supporting_authority",
@@ -19348,6 +20195,14 @@
       "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
       "non_mechanical_reason_code": null,
       "span_id": "e78995c4-99bf-5a8e-8447-dc6d289d18ed"
+    },
+    {
+      "char_end": 222,
+      "char_start": 103,
+      "disposition": "supporting_authority",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "e1921b33-4c79-53ca-bbb1-5c62905a3090"
     },
     {
       "char_end": 222,
@@ -19648,6 +20503,14 @@
     {
       "char_end": 26,
       "char_start": 0,
+      "disposition": "substantive",
+      "leaf_id": "ae0d54f5-fd31-5abc-b025-442b4ffb4e22",
+      "non_mechanical_reason_code": null,
+      "span_id": "90374bba-0361-5e55-b98d-80f197708867"
+    },
+    {
+      "char_end": 26,
+      "char_start": 0,
       "disposition": "supporting_authority",
       "leaf_id": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
       "non_mechanical_reason_code": null,
@@ -19692,6 +20555,14 @@
       "leaf_id": "b81d3f34-02d0-5a42-8861-3d0e9e523b8d",
       "non_mechanical_reason_code": null,
       "span_id": "b4458fad-c04a-546d-b5bd-c50e61739604"
+    },
+    {
+      "char_end": 274,
+      "char_start": 207,
+      "disposition": "substantive",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "90720ac5-b209-5f4f-9ca4-ebd8688590c6"
     },
     {
       "char_end": 275,
@@ -19780,6 +20651,14 @@
       "leaf_id": "1022361f-12cf-5e93-93d5-f290c6640282",
       "non_mechanical_reason_code": null,
       "span_id": "de210020-daf8-5121-b7e2-632a9f48fe34"
+    },
+    {
+      "char_end": 30,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "297ec10b-13dd-5dc8-ba15-259b637a9ac6",
+      "non_mechanical_reason_code": null,
+      "span_id": "84b2158a-e567-5e96-9130-23aae5357687"
     },
     {
       "char_end": 30,
@@ -19950,6 +20829,14 @@
       "span_id": "b6053e4d-ed1f-5b28-8070-f8791a936347"
     },
     {
+      "char_end": 320,
+      "char_start": 274,
+      "disposition": "substantive",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "83b298b2-9691-5161-8c1d-202f25060b58"
+    },
+    {
       "char_end": 324,
       "char_start": 260,
       "disposition": "substantive",
@@ -20004,6 +20891,14 @@
       "leaf_id": "1fc21186-9145-5d1d-92c4-3a392504139b",
       "non_mechanical_reason_code": null,
       "span_id": "2e362c4d-8ded-5d65-a7b4-17e54f73e519"
+    },
+    {
+      "char_end": 336,
+      "char_start": 222,
+      "disposition": "substantive",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2"
     },
     {
       "char_end": 339,
@@ -20337,6 +21232,14 @@
       "char_end": 4,
       "char_start": 0,
       "disposition": "substantive",
+      "leaf_id": "21bff720-ab3f-5f40-aac9-7e3bf8662a1a",
+      "non_mechanical_reason_code": null,
+      "span_id": "bdb56803-d8a5-5210-a63f-5e296552c495"
+    },
+    {
+      "char_end": 4,
+      "char_start": 0,
+      "disposition": "substantive",
       "leaf_id": "63cb8191-d113-5d86-9f32-201d3aa4464b",
       "non_mechanical_reason_code": null,
       "span_id": "fc274dd3-8cf8-5d8e-b50c-1667ae19a9f9"
@@ -20518,12 +21421,36 @@
       "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a"
     },
     {
+      "char_end": 417,
+      "char_start": 320,
+      "disposition": "substantive",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb"
+    },
+    {
+      "char_end": 42,
+      "char_start": 0,
+      "disposition": "substantive",
+      "leaf_id": "0b5a0f13-fc6f-5785-9589-d5e6cd92b92f",
+      "non_mechanical_reason_code": null,
+      "span_id": "736eff22-b55f-5efb-8be8-574a76524a7b"
+    },
+    {
       "char_end": 42,
       "char_start": 0,
       "disposition": "substantive",
       "leaf_id": "50b01659-82b4-599d-b294-23c727030bb4",
       "non_mechanical_reason_code": null,
       "span_id": "059e4fdb-572d-51f2-82f0-8cd3ae9d6a44"
+    },
+    {
+      "char_end": 42,
+      "char_start": 0,
+      "disposition": "substantive",
+      "leaf_id": "7e6312ab-c1b9-59ff-b46e-ca02d9656f42",
+      "non_mechanical_reason_code": null,
+      "span_id": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a"
     },
     {
       "char_end": 42,
@@ -20662,6 +21589,14 @@
       "span_id": "7a314d32-7069-5f7e-bab1-b4c70dd0d459"
     },
     {
+      "char_end": 470,
+      "char_start": 336,
+      "disposition": "substantive",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "febf783b-4a35-5e23-9de4-6a12f58180b7"
+    },
+    {
       "char_end": 473,
       "char_start": 427,
       "disposition": "substantive",
@@ -20737,6 +21672,14 @@
       "char_end": 5,
       "char_start": 0,
       "disposition": "substantive",
+      "leaf_id": "165e6e6c-71b8-5cae-9f46-19eae31b81a5",
+      "non_mechanical_reason_code": null,
+      "span_id": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b"
+    },
+    {
+      "char_end": 5,
+      "char_start": 0,
+      "disposition": "substantive",
       "leaf_id": "a05aa0e0-d275-5e96-b042-b0b0aa4cafe1",
       "non_mechanical_reason_code": null,
       "span_id": "c3f93a9a-8512-5894-9dde-de7c2fd9bd93"
@@ -20764,6 +21707,22 @@
       "leaf_id": "11fe0d88-a6bd-504b-a9c0-767d46978558",
       "non_mechanical_reason_code": null,
       "span_id": "006597e6-3c60-5de9-bc9b-f6fe1a73baee"
+    },
+    {
+      "char_end": 5,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "4d39043d-cdb6-5302-95b9-eeb21ee629a7",
+      "non_mechanical_reason_code": null,
+      "span_id": "0b2c4764-1011-5453-bf61-7d224173ee13"
+    },
+    {
+      "char_end": 5,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "9dbd5ece-558c-52d4-89d1-c10b98af25c4",
+      "non_mechanical_reason_code": null,
+      "span_id": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42"
     },
     {
       "char_end": 5,
@@ -20985,6 +21944,14 @@
       "char_end": 59,
       "char_start": 0,
       "disposition": "substantive",
+      "leaf_id": "3d1bf5fb-4437-5c9a-95de-179f0a5247f8",
+      "non_mechanical_reason_code": null,
+      "span_id": "4b2a83c2-e5de-567f-aae4-cf22808c856e"
+    },
+    {
+      "char_end": 59,
+      "char_start": 0,
+      "disposition": "substantive",
       "leaf_id": "7e1a032c-9c1a-5728-a01c-f6ba5d14de40",
       "non_mechanical_reason_code": null,
       "span_id": "4fab02fd-b007-5070-8e63-7a81970c4bfa"
@@ -21065,9 +22032,25 @@
       "char_end": 6,
       "char_start": 0,
       "disposition": "supporting_authority",
+      "leaf_id": "d194524d-267f-5a1a-b0f6-63aee3f6c71c",
+      "non_mechanical_reason_code": null,
+      "span_id": "5ad139a4-6ed2-5431-b726-d4ba4b399125"
+    },
+    {
+      "char_end": 6,
+      "char_start": 0,
+      "disposition": "supporting_authority",
       "leaf_id": "dbe5c512-12a9-5a8c-b28b-6bf8dee2af04",
       "non_mechanical_reason_code": null,
       "span_id": "a467dd34-a42c-58f0-b08a-660ef7a95a47"
+    },
+    {
+      "char_end": 60,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+      "non_mechanical_reason_code": null,
+      "span_id": "f704d1e5-05bf-5530-a7bf-232af52c84c0"
     },
     {
       "char_end": 60,
@@ -21142,6 +22125,22 @@
       "span_id": "d300d15a-0269-5e98-911c-92ab800cb371"
     },
     {
+      "char_end": 625,
+      "char_start": 470,
+      "disposition": "supporting_authority",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "31dbb990-cf4e-5a5b-b638-495e5f02106c"
+    },
+    {
+      "char_end": 631,
+      "char_start": 625,
+      "disposition": "supporting_authority",
+      "leaf_id": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+      "non_mechanical_reason_code": null,
+      "span_id": "3683868e-dd0e-52dc-8818-1a2452c663c0"
+    },
+    {
       "char_end": 633,
       "char_start": 616,
       "disposition": "supporting_authority",
@@ -21164,6 +22163,14 @@
       "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
       "non_mechanical_reason_code": null,
       "span_id": "83c54082-33f8-5978-bb8e-3a6e480a9713"
+    },
+    {
+      "char_end": 65,
+      "char_start": 26,
+      "disposition": "substantive",
+      "leaf_id": "ae0d54f5-fd31-5abc-b025-442b4ffb4e22",
+      "non_mechanical_reason_code": null,
+      "span_id": "2cad0e9f-9048-54d8-923c-8531781da346"
     },
     {
       "char_end": 66,
@@ -21468,6 +22475,14 @@
       "leaf_id": "064fd787-0aed-56ce-bd7c-300ee8cc24fe",
       "non_mechanical_reason_code": null,
       "span_id": "d800f1a6-a3fa-5d3e-ba7c-b6006228b989"
+    },
+    {
+      "char_end": 8,
+      "char_start": 0,
+      "disposition": "supporting_authority",
+      "leaf_id": "08f63b16-ed84-5291-a12b-bc798334914c",
+      "non_mechanical_reason_code": null,
+      "span_id": "d33850d4-45b7-5114-9887-a83695f83d35"
     },
     {
       "char_end": 8,

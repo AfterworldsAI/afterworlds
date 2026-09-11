@@ -485,24 +485,29 @@ this document anticipates that entry's content"* — was followed as written: th
 the bound release rather than anticipated from that sentence, and no Owner Decision was required.
 **`glossary.cover` is not resolved by this change.** A schema can now state the entry; only an accepted
 `cover-1` proposal would define the target, and none exists. The count of unresolved cross-batch
-reference targets below is therefore still three.
+reference targets below is therefore still three. *(That last sentence has since expired: the Owner
+accepted `cover-1` on 2026-09-11, which defined the target and took the count to two. The rest of
+this paragraph stands as written — it records what the schema change alone did.)*
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Five batches are
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Six batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
-2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10 and `areas-of-effect-1` on
-2026-09-11; all five are committed as accepted authority for the production SRD 5.2.1 release, so that
-release resolves to a committed oracle — but that oracle covers **46 records and 530 spans** (15
-conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect, plus the glossary entry defining
-each list), not the corpus. Three cross-batch reference targets named by accepted content —
-`glossary.concentration`, `glossary.cover` and `glossary.speed` — are still unresolved, and no target
+2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10, `areas-of-effect-1` on
+2026-09-11 and `cover-1` later the same day; all six are committed as accepted authority for the
+production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
+**47 records and 558 spans** (15 conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect,
+plus the glossary entry defining each list, and the `Cover` glossary rule, which defines no list of
+its own), not the corpus. Two cross-batch reference targets named by accepted content —
+`glossary.concentration` and `glossary.speed` — are still unresolved, and no target
 was invented for them; `attitudes-1` closed three others by accepting the complete source-defined
-Attitude class, and `areas-of-effect-1` closed none while adding `glossary.cover`. Both are
+Attitude class, `areas-of-effect-1` closed none while adding `glossary.cover`, and `cover-1` closed
+that one by defining the entry `areas-of-effect-1` cites. All three are
 consequences of accepting complete source classes rather than reasons for accepting them, and the
 residue moved in both directions rather than only down. The publication path therefore returns
 `INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding still reports
 `UNPUBLISHED` because no mechanical projection has been published or activated, and later batches
 extend the same release artifact through `accept_proposal`'s `prior=` merge rather than committing a
-second one — as `hazards-1`, `actions-1`, `attitudes-1` and `areas-of-effect-1` each did. The obsolete
+second one — as `hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1` and `cover-1` each did.
+The obsolete
 `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.

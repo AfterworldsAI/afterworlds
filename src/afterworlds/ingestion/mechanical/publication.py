@@ -611,8 +611,9 @@ def publish_from_committed_oracle(
 
     Accepted authority *is* committed for the production SRD 5.2.1 release, but
     it covers CRD Issue 5d batches ``conditions-1``, ``hazards-1``,
-    ``actions-1``, ``attitudes-1`` and ``areas-of-effect-1`` only — 46 records
-    over 530 spans — so this path currently returns ``INCOMPLETE`` for the
+    ``actions-1``, ``attitudes-1``, ``areas-of-effect-1`` and ``cover-1`` only
+    — 47 records over 558 spans — so this path currently returns ``INCOMPLETE``
+    for the
     production projection: the oracle resolves, and the gate then finds
     persisted records it does not accept. That is the honest state — the refusal
     is about coverage, not about absence — and until the remaining batches are

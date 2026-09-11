@@ -263,14 +263,15 @@ def test_an_accepted_artifact_round_trips_through_its_committed_form(
 
 
 def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
-    """The three CRD Issue 5d batches the Owner accepted, and nothing else.
+    """The CRD Issue 5d batches the Owner accepted, and nothing else.
 
     Stated as a test rather than a claim in a PR description, so the day
     somebody commits production authority without review, this fails. It used
     to assert the directory was empty; that claim expired when the Owner
     accepted ``conditions-1``, and again with each batch that extended the same
-    file. The property worth keeping survives all four: **one** artifact, for
-    **this** release, holding exactly the batches the Owner accepted.
+    file. The property worth keeping survives all five extensions: **one**
+    artifact, for **this** release, holding exactly the batches the Owner
+    accepted.
 
     ``batches`` is keyed, not ordered: ``load_accepted_inputs`` returns it in
     canonical id order, so acceptance order is asserted where it is actually
@@ -288,6 +289,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "areas-of-effect-1",
         "attitudes-1",
         "conditions-1",
+        "cover-1",
         "hazards-1",
     ]
     assert [a.batch_id for a in inputs.schema_anchors] == [
@@ -296,6 +298,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "actions-1",
         "attitudes-1",
         "areas-of-effect-1",
+        "cover-1",
     ]
 
 
@@ -306,9 +309,9 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     parameter that would let a caller supply authority of its own. The uuid here
     names no persisted header, so this is the "nothing to publish" refusal —
     distinct from the real release's, which now refuses as ``INCOMPLETE``
-    because ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1`` and
-    ``areas-of-effect-1`` are accepted — 46 records over 530 spans — but the
-    corpus is not finished.
+    because ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1``,
+    ``areas-of-effect-1`` and ``cover-1`` are accepted — 47 records over 558
+    spans — but the corpus is not finished.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT

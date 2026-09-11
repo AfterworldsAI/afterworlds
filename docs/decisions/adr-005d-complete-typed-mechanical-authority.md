@@ -718,6 +718,42 @@ targets — `glossary.concentration`, `glossary.cover` and `glossary.speed` — 
 makes `glossary.cover` *representable*; only accepting a `cover-1` proposal would resolve it, and that
 is a later step. The full-corpus work Decision 5 requires remains undischarged.
 
+> **Historical — the state at the schema-10 registration, superseded by Owner Decision 2026-09-11.**
+> The paragraphs above record the state when schema 10 was registered and are kept as written; the
+> "nothing is accepted and no proposal exists" they state has since ended. On 2026-09-11 the Owner
+> accepted the schema-10 proposal
+> `1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01` as batch `cover-1` — all 28
+> spans and the complete representation, extending the preserved five-batch prior through the
+> registered transitions. **No unresolved architectural choice remains here and no further Owner
+> ruling is required**; this note reconciles the description with a decision already recorded, and
+> amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 10 rather than schema 9,
+> and carries a sixth anchor, `cover-1` at schema 10. The registered path resolved as
+> `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8` → `8-to-9` → `9-to-10`, and the
+> prior was lifted rather than rewritten. What it did not change: `conditions-1` stays anchored at
+> schema 3, `hazards-1` at schema 5, `actions-1` at schema 7, `attitudes-1` at schema 8 and
+> `areas-of-effect-1` at schema 9, where each was reviewed; the frozen priors
+> `accepted_prior_conditions_1_hazards_1_actions_1.json`,
+> `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json` and
+> `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1.json` are untouched
+> at schemas 7, 8 and 9 and keep their own digests; schemas 3 through 9 remain recognized contracts
+> with the pins above; and the schema-10 destination pin is still
+> `c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0`. The accepted mechanical
+> identity is now `86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500`, over 47 records
+> and 558 spans. Because the artifact now declares the schema this build implements, the lifted-copy
+> identity reported above describes the earlier state and no lift stands between the committed file
+> and current authority.
+>
+> What it resolved, and what it did not. This is the first acceptance in the batch series to *narrow*
+> the residue by defining a target another batch already cited: `glossary.cover` — added by
+> `areas-of-effect-1` and made representable by schema 10 — is now defined, and
+> `areas-of-effect-1`'s `Cover` citation resolves. `glossary.concentration` and `glossary.speed`
+> remain unresolved, no target was invented for either, and the batch added none of its own. Both
+> are still explicit publication blockers, so the corpus stays incomplete and runtime-unpublished,
+> the acceptance published, activated and retired **nothing**, and the full-corpus work Decision 5
+> requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

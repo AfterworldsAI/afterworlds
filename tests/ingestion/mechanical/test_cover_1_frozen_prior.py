@@ -10,11 +10,14 @@ silently re-date the evidence — a batch reviewed against a prior that has sinc
 moved was reviewed against something the reviewer never saw.
 
 **The copy is the preservation proof.** The fixture is
-``git cat-file blob 467fcc62c8fb64e54cf74e73a6f55c384129eef7``, which is the
-live accepted artifact's blob, so *fixture blob == live blob* says both things
-at once: the live artifact is untouched, and this copy is the same content
-today. Both identities are pinned — blob sha1 and LF sha256 — and every other
-pin below is derived by loading the file rather than transcribed.
+``git cat-file blob 467fcc62c8fb64e54cf74e73a6f55c384129eef7``, which was the
+live accepted artifact's blob when the freeze was taken. The Owner's
+acceptance of ``cover-1`` on 2026-09-11 extended the live file, so the copy no
+longer matches it byte for byte; what it now proves is that the extension
+*carried* this prior — every batch here is still present in the live artifact
+and identical. Both fixture identities stay pinned — blob sha1 and LF sha256 —
+and every other pin below is derived by loading the file rather than
+transcribed.
 
 **Exactly one crossing is asserted.** The discovery checkpoint answered the
 schema question: ``Cover`` prints six meanings schema 9 cannot state, so this
@@ -25,10 +28,11 @@ previous form of this module named in advance, made the way
 ``test_areas_of_effect_1_frozen_prior`` made its own.
 
 **What this module does not do.** It proves nothing about the live artifact
-beyond the final identity assertion. Every pin describes the *frozen* file: the
+beyond the final extension claim. Every pin describes the *frozen* file: the
 five batches it holds, its 46 records, and the three reference targets it cannot
-resolve — the honest starting position ``cover-1`` is measured from, not a list
-to be worked through. The committed artifact's own pins live in
+resolve — the honest starting position ``cover-1`` was measured from, not a list
+to be worked through. ``cover-1`` resolved one of those three targets; the other
+two remain open and are named as such where the live artifact is pinned, in
 ``test_committed_accepted_authority``.
 """
 
@@ -309,16 +313,27 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_is_still_these_bytes() -> None:
+def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None:
     """The copy, attached to what it was copied from.
 
-    Taking the freeze changed nothing about accepted authority, so the live
-    artifact and this copy are the same content — which is the preservation
-    claim, checked rather than asserted in prose. This is the assertion that
-    fails first the moment a sixth batch is accepted; when that happens it is
-    replaced by the extends-by-exactly-one-batch claim, as its predecessors
-    were, rather than deleted.
+    Taking the freeze changed nothing about accepted authority, and until the
+    Owner accepted ``cover-1`` the live artifact and this copy were the same
+    content. The previous form of this test named that acceptance as the thing
+    that would end it and named what should replace it, so this is that
+    replacement rather than a deletion: the live artifact is this prior plus
+    exactly one batch, and every batch the freeze holds is still present and
+    identical, which is the part that would catch a merge rewriting history.
+
+    The fixture's own two pins are asserted above and are unchanged by the
+    acceptance; what moved is the live file, so its digest is asserted to
+    *differ* rather than transcribed here. The committed artifact's own pins
+    live in ``test_committed_accepted_authority``.
     """
-    assert _lf_digest(COMMITTED) == FROZEN_CONTENT_SHA256
-    assert _blob_id(COMMITTED) == FROZEN_BLOB
-    assert load_accepted_inputs(COMMITTED) == load_accepted_inputs(FROZEN_PRIOR)
+    assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
+    assert _blob_id(FROZEN_PRIOR) == FROZEN_BLOB
+    assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
+
+    frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
+    committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
+    assert set(committed) - set(frozen) == {"cover-1"}
+    assert {k: committed[k] for k in frozen} == frozen

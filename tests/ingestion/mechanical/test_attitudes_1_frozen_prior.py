@@ -235,12 +235,13 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
 
 
 def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None:
-    """The successor relationship, now two acceptances deep.
+    """The successor relationship, now three acceptances deep.
 
     The first revision asserted the two files were the same bytes; the Owner's
     acceptance of ``attitudes-1`` ended that and this became the
-    extends-by-exactly-one claim. ``areas-of-effect-1`` makes it two, so the
-    claim is generalized rather than re-pinned to a single batch name: whatever
+    extends-by-exactly-one claim. ``areas-of-effect-1`` made it two and
+    ``cover-1`` makes it three, so the claim is generalized rather than
+    re-pinned to a single batch name: whatever
     has been accepted since the freeze is named exactly, and every batch the
     freeze holds must still be present and identical, which is the part that
     would catch a merge rewriting history. Narrowing it back to one batch, or
@@ -251,5 +252,9 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
 
     frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
     committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
-    assert set(committed) - set(frozen) == {"attitudes-1", "areas-of-effect-1"}
+    assert set(committed) - set(frozen) == {
+        "attitudes-1",
+        "areas-of-effect-1",
+        "cover-1",
+    }
     assert {k: committed[k] for k in frozen} == frozen

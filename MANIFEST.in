@@ -5,7 +5,8 @@ include src/afterworlds/ingestion/corpus/srd_table_inventory.json
 # CRD Issue 5d committed accepted oracles, resolved at runtime by
 # oracle.committed_oracle_for. One production artifact today: the SRD 5.2.1
 # release carrying accepted batches conditions-1, hazards-1, actions-1,
-# attitudes-1 and areas-of-effect-1. The rule has to ship it, or an sdist
+# attitudes-1, areas-of-effect-1 and cover-1. The rule has to ship it, or an
+# sdist
 # install would resolve no accepted authority and refuse as ABSENT rather than
 # as the honest INCOMPLETE.
 recursive-include src/afterworlds/ingestion/mechanical/oracles *.json
