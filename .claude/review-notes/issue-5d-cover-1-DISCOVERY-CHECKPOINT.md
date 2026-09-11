@@ -520,9 +520,10 @@ progress.
    are untagged table rows with no entry of their own; and `CoverDegree` is already consumed
    as a vocabulary by two accepted facts. If Codex reads the printed table as an enumeration
    in the `glossary.area_of_effect` sense, that changes the shape of every gap in §4.
-2. **§4a — how the doubly-printed rules are disposed.** The checkpoint proposes one fact per
-   component with `PRIMARY` provenance from both sites, and names the validator rule that
-   makes the alternative dishonest rather than merely different. This is the first
+2. **§4a — how the doubly-printed rules are disposed.** The checkpoint proposes one fact for
+   each doubly-printed rule, with `PRIMARY` provenance from both sites, and says why the
+   alternative is dishonest rather than merely different: the source stated the rule once.
+   No validator rejects the two-copy shape on its own. This is the first
    two-chapter record in the build and is where a reviewer should push hardest.
 3. **§4 — do the six gaps read as ordinary closed declarative schema work?** G2 is the one
    with the most surface: it is a defensive bonus family that does not exist, and half of it
@@ -540,20 +541,54 @@ Still true, and restated because it is the point: **nothing is accepted, publish
 retired**, no acceptance script was run, no source corpus changed, machine rows are `PROPOSED`,
 and #137's full-corpus obligation is undischarged.
 
+**(Corrected 2026-09-11.)** Five explanations in this section, in the generator's docstring and
+in the generated audit were inaccurate and are corrected here as one consolidated evidence
+correction. The population, schema, spans, facts and provenance are unchanged, and
+`PROPOSAL.json` is byte-identical — every correction was narrative.
+
+1. §9.1 called the proposal identity a *projection* identity. `proposal.py:161` expressly
+   distinguishes the two; the value is right and its scope is now named correctly.
+2. §9.4 reversed the disposition split. The generator asserts `{substantive: 16,
+   supporting_authority: 12}` (`generator.py:1084`, again at `:2550`), matching §9.2.
+3. §9.2, the generator docstring and the audit said that two equivalent facts in two
+   components is what `_validate_duplicated_fact_authority` rejects. `validation.py:652`
+   also requires the **same substantive source span**; two copies taken from the two
+   *distinct* printings would pass it. §4a had this right already. The single-fact shape is
+   chosen because the source stated one rule, not because a validator forces it.
+4. The boundary's universal *"every excluded leaf uses the rule, none states it"* was false:
+   manifest leaf `7322a0d0-afaf-5df9-97f6-a0e428c81097` (`Spells > Casting Spells > Targets`)
+   **states** the spell-targeting rule that a caster needs a clear path, so the target cannot
+   be behind Total Cover. The reviewed two-entry population is unchanged; the exclusions are
+   now described as other-rule uses or restatements sited outside a `Cover` entry, and the
+   claim that #137 forbids selecting them is withdrawn — they simply stay outside this
+   reviewed population.
+5. §9.3 and the audit said `persisted_corpus_digest` cannot be rederived without a publish.
+   `persistence.recompute_persisted_digest` recomputes it from existing persisted rows plus
+   read-back vector state, and `operational.load_verified_operational_corpus` is the narrower
+   downstream trust seam; neither publishes. The disclosure itself stands unchanged: this run
+   rederived five binding values from the PDF, carried the sixth from the 5c release record,
+   and performed **no operational database evidence**. No publish or operational run was
+   launched for this correction.
+
+The generator and audit rows in §9.1 move with the corrected text; the proposal row does not.
+
 ### 9.1 What was built
 
 Three files, all under `.claude/review-notes/`:
 
 | Path | Bytes | sha256 |
 | --- | --- | --- |
-| `issue-5d-batch-cover-1-generator.py` | 145,809 | `7cc0f037fcf029dd69bf9cc4be31d45bedf30fe3befdc875df131f473e8153a4` |
+| `issue-5d-batch-cover-1-generator.py` | 147,714 | `b0f16434d99a12128cd7873340b390c8fdfe37535d07b613896d14354f45786b` |
 | `issue-5d-batch-cover-1-PROPOSAL.json` | 23,610 | `132bbc9f47104cc5e768ef3a5ee48101ba3c6e8fcdbbaaec8029b3b36083d07e` |
-| `issue-5d-batch-cover-1-audit.json` | 102,744 | `8454ffdf532afce6d3a78541bef60f79637d91ba54df90f6a6de1cdd9c7f5b17` |
+| `issue-5d-batch-cover-1-audit.json` | 103,621 | `927ca2d9985efce3fdcc2c851cff1f4a88d8c7021d15c2cd87f8f9d9abcd97ab` |
 
 **Proposal identity:** `1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01`.
 
-That is the projection identity of *this batch's* candidate. It is not the identity of accepted
-authority and does not become one by being reported here.
+That is the content-derived identity of *this proposal* (`proposal.py:161`): what a review note
+names to say which object it reviewed, and what an acceptance would record it accepted *from*.
+It is expressly **not** a projection identity and never becomes one, and it is not the identity
+of accepted authority — a proposal that is never accepted leaves no trace in any published
+authority. Reporting it here changes none of that.
 
 **Where `PROPOSED` lives.** A reviewer looking for a review state inside `PROPOSAL.json` will not
 find one: `accounting.span_payload` deliberately omits it, because a span set that means the same
@@ -589,8 +624,12 @@ Sixteen substantive clauses yield eight facts because **four rules are printed a
 (`half_benefit`, `three_quarters_benefit`, `total_prohibition`, `most_protective`). Each is
 represented **once**, with `PRIMARY` provenance from *both* sites' spans — the source printed one
 rule twice, and provenance is per span, so several spans claiming one target is the ordinary
-shape. Two equivalent facts in two components is what `_validate_duplicated_fact_authority`
-rejects; a same-component duplicate is what `validation.py:159` rejects. Each of the four is
+shape. No validator forces this: `validation.py:159` rejects two equal-keyed facts inside one
+component, and `_validate_duplicated_fact_authority` (`validation.py:652`) rejects sibling
+components holding an equivalent fact drawn from the **same** substantive span — two
+components each holding a copy taken from the two *distinct* printings would pass both. One
+fact is chosen because both sites state one rule, as §4a settles: two copies would publish two
+claims where the source made one. Each of the four is
 asserted to be claimed `PRIMARY` by exactly two spans, one per site, and the site pair is
 asserted to be `["combat", "glossary"]`.
 
@@ -623,8 +662,12 @@ claim; the 19 accepted component-scope claims in the frozen prior are the preced
    exactly six parts, and those six are asserted to equal five **rederived in this run from the
    source PDF** (`package_uuid`, `release_version`, `authoritative_source_hash`,
    `transform_config_hash`, `bundle_root_hash`) plus one **disclosed** from the committed 5c
-   release record (`persisted_corpus_digest`), which cannot be rederived without a publish. The
-   audit labels each as such. **No operational database evidence was performed by this run**: no
+   release record (`persisted_corpus_digest`). The sixth is disclosed rather than rederived
+   because recomputing it needs a session over the persisted rows plus read-back vector state
+   (`persistence.recompute_persisted_digest`), and verifying a published release against
+   declared values is `operational.load_verified_operational_corpus`, the narrower downstream
+   trust seam. Neither requires a publish; this run simply performs neither. The audit labels
+   each value as such. **No operational database evidence was performed by this run**: no
    session, no `rp_sources`, no Chroma, no persistence layer was touched, and the audit says so in
    those words rather than leaving it to be inferred.
 3. **`validate_candidate` is classified, never filtered.** It returns 27,818 findings for a
@@ -684,7 +727,7 @@ disposition, carrier and witnessed gaps — and only then compared against what 
 produced. Deriving them from generated output would have made the check circular. Each of the 28
 is discharged by exactly one span at exactly the reviewed extent with the expected carrier;
 omission, duplication and carrier drift each fail the run. The literal table is asserted to split
-`{substantive: 12, supporting_authority: 16}` before emission and the gap witnesses are
+`{substantive: 16, supporting_authority: 12}` before emission and the gap witnesses are
 cross-checked against the checkpoint's own list.
 
 Tally: `typed=15, typed_component_scope=1, supporting_authority_record_owned=8,

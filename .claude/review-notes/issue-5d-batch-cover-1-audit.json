@@ -154,7 +154,7 @@
    "disclosed_from_the_published_5c_release_record": [
     "persisted_corpus_digest"
    ],
-   "why_the_sixth_is_disclosed": "persisted_corpus_digest is a function of the persisted rp_sources rows and verified Chroma state, so reproducing it requires an actual publish, which this generator must not do."
+   "why_the_sixth_is_disclosed": "persisted_corpus_digest is a function of the persisted rp_sources rows and the read-back vector state. Recomputing it needs a session over that persisted state (persistence.recompute_persisted_digest); verifying a published release against declared values is operational.load_verified_operational_corpus, the narrower downstream seam. Neither requires a publish, and this run performs neither, so the value is carried from the 5c release record and disclosed."
   },
   "operational_database_evidence": {
    "performed_by_this_run": [],
@@ -187,7 +187,7 @@
    ],
    "lowercase_only_leaf_count": 43,
    "rederived_and_checked_against_the_manifest": true,
-   "note": "every one of these USES the rule; none STATES it. Pulling any of them in would be a batch expansion the governing issue forbids."
+   "note": "each of these uses Cover while stating some other rule, or restates a Cover rule from outside a Cover entry - leaf 7322a0d0-afaf-5df9-97f6-a0e428c81097 (Spells > Casting Spells > Targets) states the spell-targeting rule that a caster needs a clear path, so the target cannot be behind Total Cover. Membership here is the reviewed structural rule - the container labelled Cover - so these leaves stay outside this reviewed population."
   },
   "canaries": {
    "records": {
@@ -464,7 +464,7 @@
    ]
   }
  },
- "shared_provenance_note": "Four rules are printed at both sites and are represented ONCE each, with PRIMARY provenance from both sites' spans, because that is what the source did: it printed one rule twice. Provenance is per span, so several spans claiming one target is the ordinary shape. The alternative - two equivalent facts in two components - is what _validate_duplicated_fact_authority rejects, and a same-component duplicate is what validation.py:159 rejects. Where the second printing DEFERS rather than states ('As detailed in the Cover table') it is supporting authority linked to what it defers to.",
+ "shared_provenance_note": "Four rules are printed at both sites and are represented ONCE each, with PRIMARY provenance from both sites' spans, because that is what the source did: it printed one rule twice. Provenance is per span, so several spans claiming one target is the ordinary shape. No validator forces this: validation.py:159 rejects two equal-keyed facts inside one component, and _validate_duplicated_fact_authority (validation.py:652) rejects sibling components holding an equivalent fact drawn from the SAME substantive span, so two components each holding a copy taken from the two distinct printings would pass both. One fact is chosen because both sites state one rule, and publishing two copies would be two claims where the source made one. Where the second printing DEFERS rather than states ('As detailed in the Cover table') it is supporting authority linked to what it defers to.",
  "validation": {
   "seams_reporting_findings": {
    "build-time draft shape (representation_draft_violations)": 0,

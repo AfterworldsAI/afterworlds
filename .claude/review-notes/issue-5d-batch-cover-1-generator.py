@@ -25,9 +25,15 @@ structure moved fails this run rather than being silently re-cut.
 Printing the word is use, not definition. Thirty other leaves in the bound
 release contain ``Cover`` — spells, class features, magic items, monster stat
 blocks, ``Making an Attack``, ``Targets``, ``Blindsight``, ``Hide [Action]`` and
-the ``Area of Effect`` entry that already cites it in accepted authority. Every
-one of them *uses* the rule; none of them *states* it. The exclusion is
-re-derived here and checked against the reviewed manifest rather than asserted.
+the ``Area of Effect`` entry that already cites it in accepted authority. Each
+uses Cover while stating some *other* rule, or restates a Cover rule from
+outside a Cover entry: ``Targets`` (leaf
+``7322a0d0-afaf-5df9-97f6-a0e428c81097``) states the spell-targeting rule that a
+caster needs a clear path, so the target cannot be behind Total Cover.
+Membership here is the reviewed structural rule — the container labelled
+``Cover`` — so those leaves stay outside this reviewed population. The exclusion
+is re-derived here and checked against the reviewed manifest rather than
+asserted.
 
 One composite record, two printed sites
 ---------------------------------------
@@ -42,10 +48,14 @@ one mechanical entity.
 most-protective/no-adding rule. They are represented **once each**, with
 ``PRIMARY`` provenance from *both* sites' spans, because that is what the source
 did: it printed one rule twice. Provenance is per span, so several spans
-claiming one target is the ordinary shape, not a workaround. The alternative —
-two equivalent facts in two components — is what
-``_validate_duplicated_fact_authority`` rejects, and a same-component duplicate
-is what ``validation.py:159`` rejects. Where the second printing *defers* rather
+claiming one target is the ordinary shape, not a workaround. No validator forces
+this: ``validation.py:159`` rejects two equal-keyed facts inside one component,
+and ``_validate_duplicated_fact_authority`` (``validation.py:652``) rejects
+sibling components holding an equivalent fact drawn from the *same* substantive
+span, so two components each holding a copy taken from the two *distinct*
+printings would pass both. One fact is chosen because both sites state one rule,
+and publishing two copies would be two claims where the source made one. Where
+the second printing *defers* rather
 than states ("As detailed in the Cover table") it is supporting authority linked
 to what it defers to, and that asymmetry is deliberate.
 
@@ -414,10 +424,12 @@ SOURCE_SHA256 = "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d8
 TRANSFORM_CONFIG_HASH = "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"  # noqa: E501  # pragma: allowlist secret
 BUNDLE_ROOT_HASH = "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685"  # noqa: E501  # pragma: allowlist secret
 
-#: The only binding value NOT independently derivable here: a function of the
-#: persisted `rp_sources` rows and verified Chroma state, so reproducing it
-#: requires an actual publish, which this generator must not do. Taken from the
-#: published CRD Issue 5c release record and disclosed as such.
+#: The only binding value not rederived from the PDF here: it is a function of
+#: the persisted `rp_sources` rows and the read-back vector state, so recomputing
+#: it needs a session over that persisted state
+#: (`persistence.recompute_persisted_digest`), which this generator does not open.
+#: No publish is required to recompute or verify it. Taken from the published CRD
+#: Issue 5c release record and disclosed as such.
 PERSISTED_CORPUS_DIGEST = "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b"  # noqa: E501  # pragma: allowlist secret
 
 CAND = build_candidate(SOURCE_PDF, retrieval_config=RetrievalMemoryConfig())
@@ -2708,8 +2720,14 @@ AUDIT_DOC: dict[str, object] = {
             ),
             "why_the_sixth_is_disclosed": (
                 "persisted_corpus_digest is a function of the persisted "
-                "rp_sources rows and verified Chroma state, so reproducing it "
-                "requires an actual publish, which this generator must not do."
+                "rp_sources rows and the read-back vector state. Recomputing it "
+                "needs a session over that persisted state "
+                "(persistence.recompute_persisted_digest); verifying a published "
+                "release against declared values is "
+                "operational.load_verified_operational_corpus, the narrower "
+                "downstream seam. Neither requires a publish, and this run "
+                "performs neither, so the value is carried from the 5c release "
+                "record and disclosed."
             ),
         },
         "operational_database_evidence": {
@@ -2743,9 +2761,14 @@ AUDIT_DOC: dict[str, object] = {
             ],
             "rederived_and_checked_against_the_manifest": True,
             "note": (
-                "every one of these USES the rule; none STATES it. Pulling any "
-                "of them in would be a batch expansion the governing issue "
-                "forbids."
+                "each of these uses Cover while stating some other rule, or "
+                "restates a Cover rule from outside a Cover entry - leaf "
+                "7322a0d0-afaf-5df9-97f6-a0e428c81097 (Spells > Casting Spells "
+                "> Targets) states the spell-targeting rule that a caster needs "
+                "a clear path, so the target cannot be behind Total Cover. "
+                "Membership here is the reviewed structural rule - the container "
+                "labelled Cover - so these leaves stay outside this reviewed "
+                "population."
             ),
         },
         "canaries": {
@@ -2805,10 +2828,14 @@ AUDIT_DOC: dict[str, object] = {
         "Four rules are printed at both sites and are represented ONCE each, "
         "with PRIMARY provenance from both sites' spans, because that is what "
         "the source did: it printed one rule twice. Provenance is per span, so "
-        "several spans claiming one target is the ordinary shape. The "
-        "alternative - two equivalent facts in two components - is what "
-        "_validate_duplicated_fact_authority rejects, and a same-component "
-        "duplicate is what validation.py:159 rejects. Where the second printing "
+        "several spans claiming one target is the ordinary shape. No validator "
+        "forces this: validation.py:159 rejects two equal-keyed facts inside one "
+        "component, and _validate_duplicated_fact_authority (validation.py:652) "
+        "rejects sibling components holding an equivalent fact drawn from the "
+        "SAME substantive span, so two components each holding a copy taken from "
+        "the two distinct printings would pass both. One fact is chosen because "
+        "both sites state one rule, and publishing two copies would be two "
+        "claims where the source made one. Where the second printing "
         "DEFERS rather than states ('As detailed in the Cover table') it is "
         "supporting authority linked to what it defers to."
     ),
