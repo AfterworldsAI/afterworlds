@@ -1,0 +1,1350 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py (CRD Issue 5d batch areas-of-effect-1, representation schema 9)",
+ "proposal_schema_version": "5d-proposal-1",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "blocked": "all_straight_lines_from_the_point_of_origin",
+      "blocking_cover": "total",
+      "family": "blocked_line_exclusion"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "blocked_line_exclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "distance_it_extends"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.emanation",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "distance_it_extends_as_the_radius"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.sphere",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "length",
+       "width"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.line",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "maximum_length"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cone",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "radius_of_the_base",
+       "height"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cylinder",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "dimensions": [
+       "size_the_length_of_each_side"
+      ],
+      "family": "area_dimension_requirement"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cube",
+    "semantic_key": "area_dimension_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_lines",
+      "family": "area_origin",
+      "origin": "point",
+      "placement": "anywhere_on_a_face_of_the_cube"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cube",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_lines",
+      "family": "area_origin",
+      "origin": "point",
+      "placement": "center_of_the_circular_top_or_bottom"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cylinder",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_lines_in_a_direction_its_creator_chooses",
+      "family": "area_origin",
+      "origin": "point",
+      "placement": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cone",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_lines_in_all_directions",
+      "family": "area_origin",
+      "origin": "creature_or_object",
+      "placement": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.emanation",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_lines_outward_in_all_directions",
+      "family": "area_origin",
+      "origin": "point",
+      "placement": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.sphere",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": "straight_path_along_its_length_covering_the_area_its_width_defines",
+      "family": "area_origin",
+      "origin": "point",
+      "placement": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.line",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "extent": null,
+      "family": "area_origin",
+      "origin": "point",
+      "placement": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "area_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "excluded_unless_its_creator_decides_otherwise"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cone",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "excluded_unless_its_creator_decides_otherwise"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cube",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "excluded_unless_its_creator_decides_otherwise"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.emanation",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "excluded_unless_its_creator_decides_otherwise"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.line",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "included"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cylinder",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_inclusion",
+      "inclusion": "included"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.sphere",
+    "semantic_key": "area_origin_inclusion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_origin_movement",
+      "suspended_by_any_of": [
+       "instantaneous_effect",
+       "stationary_effect"
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.emanation",
+    "semantic_key": "area_origin_movement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "area_width_relation",
+      "relation": "equal_to_that_points_distance_from_the_point_of_origin"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "area_of_effect.cone",
+    "semantic_key": "area_width_relation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "unseen_origin_relocation",
+      "obstruction": "between_the_creator_and_the_point",
+      "placement": "at_an_unseen_point",
+      "relocated_to": "near_side_of_the_obstruction"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "unseen_origin_relocation"
+   }
+  ],
+  "prose_bindings": [],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9",
+    "target_key": [
+     "area_of_effect.cube"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Cylinder",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.cylinder"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c",
+    "target_key": [
+     "area_of_effect.cone"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3914ccf0-0a12-5263-8648-e622038d3043",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Line",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.line"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "444755af-296c-5bab-9be9-532f2e592575",
+    "target_key": [
+     "area_of_effect.line"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Sphere",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.sphere"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Emanation",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.emanation"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Cover",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cover"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd",
+    "target_key": [
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b8960978-bf84-5191-8135-013c2cbebbef",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Cube",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.cube"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f",
+    "target_key": [
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724",
+    "target_key": [
+     "area_of_effect.sphere"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90",
+    "target_key": [
+     "area_of_effect.cone",
+     "area_width_relation",
+     "2079399d7f5b6919"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d1422b1e-c238-5069-8145-64707025893d",
+    "target_key": [
+     "area_of_effect.cylinder"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3",
+    "target_key": [
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Cone",
+     "srd-5.2.1/rules-glossary",
+     "area_of_effect.cone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f2096b71-2e95-5698-97df-138c7fc46427",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_origin",
+     "0171f5d7d7581b32"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e",
+    "target_key": [
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c",
+    "target_key": [
+     "area_of_effect.emanation"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "primary",
+    "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d",
+    "target_key": [
+     "glossary.area_of_effect",
+     "unseen_origin_relocation",
+     "9503f1af74b4456b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "0d6471e2-ec81-513b-b37c-07970e517731",
+    "target_key": [
+     "area_of_effect.cone",
+     "area_width_relation",
+     "2079399d7f5b6919"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb",
+    "target_key": [
+     "area_of_effect.sphere",
+     "area_origin",
+     "147f69f0fac3f107"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05",
+    "target_key": [
+     "area_of_effect.cylinder",
+     "area_dimension_requirement",
+     "350299744f9b4a93"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab",
+    "target_key": [
+     "area_of_effect.line",
+     "area_dimension_requirement",
+     "71c60bb8afc8de95"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "64170c93-5588-5547-9841-71e1faaeaaba",
+    "target_key": [
+     "area_of_effect.cylinder",
+     "area_origin_inclusion",
+     "34fd0aed5d886ccd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca",
+    "target_key": [
+     "area_of_effect.sphere",
+     "area_dimension_requirement",
+     "96d4263e30fd1257"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231",
+    "target_key": [
+     "area_of_effect.cylinder",
+     "area_origin",
+     "518de4616f855198"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1",
+    "target_key": [
+     "area_of_effect.emanation",
+     "area_dimension_requirement",
+     "5b13bd4471f9a4dd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e",
+    "target_key": [
+     "area_of_effect.line",
+     "area_origin_inclusion",
+     "a3e05a80559df144"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "81910437-b819-5288-9d96-63f725d3b4bf",
+    "target_key": [
+     "area_of_effect.cube",
+     "area_origin_inclusion",
+     "a3e05a80559df144"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f",
+    "target_key": [
+     "area_of_effect.cube",
+     "area_origin",
+     "9f7322c19b476f7d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9",
+    "target_key": [
+     "area_of_effect.cube",
+     "area_dimension_requirement",
+     "960c3045d10136cb"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436",
+    "target_key": [
+     "area_of_effect.emanation",
+     "area_origin",
+     "254a4f0dfd4af0c0"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b",
+    "target_key": [
+     "area_of_effect.emanation",
+     "area_origin_movement",
+     "7f08dd1bd5047fc2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_origin",
+     "0171f5d7d7581b32"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334",
+    "target_key": [
+     "area_of_effect.line",
+     "area_origin",
+     "d0e9405d335d9ef6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb",
+    "target_key": [
+     "glossary.area_of_effect",
+     "blocked_line_exclusion",
+     "2c3756945346fd66"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645",
+    "target_key": [
+     "area_of_effect.sphere",
+     "area_origin_inclusion",
+     "34fd0aed5d886ccd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b",
+    "target_key": [
+     "area_of_effect.cone",
+     "area_dimension_requirement",
+     "9eccb145ad6c5418"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061",
+    "target_key": [
+     "area_of_effect.emanation",
+     "area_origin_inclusion",
+     "a3e05a80559df144"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1",
+    "target_key": [
+     "area_of_effect.cone",
+     "area_origin",
+     "6672338c7118aaaa"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1",
+    "target_key": [
+     "glossary.area_of_effect",
+     "blocked_line_exclusion",
+     "2c3756945346fd66"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1",
+    "target_key": [
+     "area_of_effect.cone",
+     "area_origin_inclusion",
+     "a3e05a80559df144"
+    ],
+    "target_kind": "fact"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.cone"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.cube"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.cylinder"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.emanation"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.line"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "area_of_effect.sphere"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.area_of_effect"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cone",
+    "target_record_key": "area_of_effect.cone"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cover",
+    "target_record_key": "glossary.cover"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cube",
+    "target_record_key": "area_of_effect.cube"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cylinder",
+    "target_record_key": "area_of_effect.cylinder"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Emanation",
+    "target_record_key": "area_of_effect.emanation"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Line",
+    "target_record_key": "area_of_effect.line"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Sphere",
+    "target_record_key": "area_of_effect.sphere"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_spans": [
+  {
+   "char_end": 11,
+   "char_start": 4,
+   "disposition": "supporting_authority",
+   "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95"
+  },
+  {
+   "char_end": 110,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb"
+  },
+  {
+   "char_end": 112,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436"
+  },
+  {
+   "char_end": 117,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1"
+  },
+  {
+   "char_end": 121,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f"
+  },
+  {
+   "char_end": 131,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "8b1fed74-61ce-5334-a4fd-b9fba71c072f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd"
+  },
+  {
+   "char_end": 140,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334"
+  },
+  {
+   "char_end": 154,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231"
+  },
+  {
+   "char_end": 160,
+   "char_start": 90,
+   "disposition": "supporting_authority",
+   "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record, so the link a reviewer needs is in the provenance instead of in prose",
+   "span_id": "f2096b71-2e95-5698-97df-138c7fc46427"
+  },
+  {
+   "char_end": 18,
+   "char_start": 8,
+   "disposition": "supporting_authority",
+   "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d"
+  },
+  {
+   "char_end": 184,
+   "char_start": 112,
+   "disposition": "substantive",
+   "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1"
+  },
+  {
+   "char_end": 184,
+   "char_start": 131,
+   "disposition": "supporting_authority",
+   "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e"
+  },
+  {
+   "char_end": 203,
+   "char_start": 140,
+   "disposition": "substantive",
+   "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab"
+  },
+  {
+   "char_end": 206,
+   "char_start": 110,
+   "disposition": "substantive",
+   "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca"
+  },
+  {
+   "char_end": 206,
+   "char_start": 121,
+   "disposition": "substantive",
+   "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "74587a82-5acc-5b79-bf6c-9500a48592ea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "9208b6e4-4afa-58cf-a226-43f4b95b35e8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "9e2d76bb-c579-5789-964f-406b39b02673",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "444755af-296c-5bab-9be9-532f2e592575"
+  },
+  {
+   "char_end": 221,
+   "char_start": 8,
+   "disposition": "substantive",
+   "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d"
+  },
+  {
+   "char_end": 222,
+   "char_start": 117,
+   "disposition": "substantive",
+   "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "0d6471e2-ec81-513b-b37c-07970e517731"
+  },
+  {
+   "char_end": 23,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "dafddf9b-a89d-557f-9b8f-1081bd7e170f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724"
+  },
+  {
+   "char_end": 25,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "16894c5c-319b-5ce0-aeef-e7aca9805a38",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "d1422b1e-c238-5069-8145-64707025893d"
+  },
+  {
+   "char_end": 26,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c"
+  },
+  {
+   "char_end": 260,
+   "char_start": 154,
+   "disposition": "substantive",
+   "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05"
+  },
+  {
+   "char_end": 277,
+   "char_start": 206,
+   "disposition": "substantive",
+   "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645"
+  },
+  {
+   "char_end": 303,
+   "char_start": 203,
+   "disposition": "substantive",
+   "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e"
+  },
+  {
+   "char_end": 304,
+   "char_start": 184,
+   "disposition": "substantive",
+   "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b"
+  },
+  {
+   "char_end": 306,
+   "char_start": 206,
+   "disposition": "substantive",
+   "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "81910437-b819-5288-9d96-63f725d3b4bf"
+  },
+  {
+   "char_end": 318,
+   "char_start": 160,
+   "disposition": "substantive",
+   "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb"
+  },
+  {
+   "char_end": 324,
+   "char_start": 260,
+   "disposition": "substantive",
+   "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "64170c93-5588-5547-9841-71e1faaeaaba"
+  },
+  {
+   "char_end": 328,
+   "char_start": 222,
+   "disposition": "supporting_authority",
+   "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record, so the link a reviewer needs is in the provenance instead of in prose",
+   "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90"
+  },
+  {
+   "char_end": 376,
+   "char_start": 318,
+   "disposition": "substantive",
+   "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1"
+  },
+  {
+   "char_end": 389,
+   "char_start": 328,
+   "disposition": "substantive",
+   "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "3914ccf0-0a12-5263-8648-e622038d3043"
+  },
+  {
+   "char_end": 422,
+   "char_start": 304,
+   "disposition": "substantive",
+   "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061"
+  },
+  {
+   "char_end": 489,
+   "char_start": 389,
+   "disposition": "substantive",
+   "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3"
+  },
+  {
+   "char_end": 9,
+   "char_start": 4,
+   "disposition": "supporting_authority",
+   "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one",
+   "span_id": "b8960978-bf84-5191-8135-013c2cbebbef"
+  },
+  {
+   "char_end": 90,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-areas-of-effect-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit",
+   "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
+  "version": "5d-representation-schema-9"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1"
+}

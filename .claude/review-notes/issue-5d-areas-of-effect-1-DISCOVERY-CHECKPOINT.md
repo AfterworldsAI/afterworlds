@@ -570,3 +570,126 @@ activated or retired, and no parent-issue state changed. The full-corpus work #1
 is untouched and undischarged: this batch represents one tagged class. Architecture Notes
 for the eventual PR are carried by this checkpoint until proposal generation, which is a
 later invocation.
+
+## 10. Proposal record — 2026-09-10
+
+This section supersedes §9's "No proposal exists": it does now, and the deferred Architecture
+Notes §9 promised are here. Nothing else in §9 changed — the composition, the refusals and the
+single validator finding are the same ones, now carried by an artifact instead of only by tests.
+Still true, and restated because it is the point: nothing is accepted, published, activated or
+retired, no acceptance script was run, no source changed, and #137's full-corpus obligation is
+undischarged.
+
+### 10.1 What was built
+
+Three files, all under `.claude/review-notes/`:
+
+| Path | Bytes | sha256 |
+| --- | --- | --- |
+| `issue-5d-batch-areas-of-effect-1-generator.py` | 123,094 | `df6c103e3b4ad827582df9b8b7395f5759108ccd99e039f0e65f9a9fbfed2689` |
+| `issue-5d-batch-areas-of-effect-1-PROPOSAL.json` | 43,802 | `f18f909c0af1363e029b71b8e352134929afde8a2cd9c4eb6bc6153edfe184b9` |
+| `issue-5d-batch-areas-of-effect-1-audit.json` | 127,687 | `2b7f0dedff5216bff5083f3adfbce70573fb6a4f678a3321b7e45c2ff605cd32` |
+
+**Proposal identity:** `d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878`.
+
+That identity is the projection identity of *this batch's* candidate. It is not the identity of
+accepted authority and does not become one by being reported here.
+
+### 10.2 Span scope
+
+Seven records over twenty printed leaves on pages 176, 178, 179, 180, 183 and 187 of the bound
+release, all `RecordKind.GLOSSARY_RULE` in scope `srd-5.2.1/rules-glossary`:
+
+* `glossary.area_of_effect` (p176, 8 leaves, 16 clauses)
+* `area_of_effect.cone` (p178), `.cube` (p178), `.cylinder` (p179), `.emanation` (p180),
+  `.line` (p183), `.sphere` (p187) — 2 leaves each, 4 or 5 clauses each
+
+Forty-three reviewed clauses become forty-three spans: 24 `SUBSTANTIVE`, 19
+`SUPPORTING_AUTHORITY`, zero policy exclusions. The forty-three extents partition all twenty
+leaves gap-free — the generator reconstructs each leaf byte-for-byte from its own clause extents
+and refuses to write if a leaf does not reproduce. Spans carry no clause text; the extents are
+the manifest's, and the manifest is read, never retyped.
+
+The composition is 23 components, every one `ComponentHandling.STRUCTURED`, carrying 23 typed
+facts and **zero prose bindings**. Zero is a positive claim, not an omission: schema 9 states
+every reviewed meaning of this class in a closed vocabulary, so no clause needed a prose escape
+hatch. Provenance is 43 claims, exactly one per span: 10 RECORD/CONTEXTUAL, 24 FACT/PRIMARY,
+2 FACT/CONTEXTUAL, 7 REFERENCE/CONTEXTUAL. Relationships are zero.
+
+Twenty-four substantive clauses yield 23 facts because `Area of Effect/5/2` and `5/3` jointly
+state one `BlockedLineExclusionFact`; both are PRIMARY on their own extents rather than one being
+demoted, because each states part of the rule and neither states it alone.
+
+### 10.3 Architecture Notes
+
+**No drift from design principles**, with three deviations stated rather than resolved:
+
+1. **The batch does not validate clean, and says so.** Standalone validation produces exactly one
+   finding, asserted as an exact tuple rather than filtered:
+   `reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover`. Merged with
+   the lifted prior it produces exactly three, adding the inherited `glossary.speed` and
+   `glossary.concentration`. Resolved-by-this-batch is `[]`: this batch adds one unresolved
+   reference and closes none. The *See also* citation to Cover is retained honestly because the
+   source prints it; closing it means ingesting Cover, which is a different batch. No reference
+   closure was invented and no Cover ingestion was attempted.
+2. **`persisted_corpus_digest` is disclosed, not derived.** It is carried from the 5c release
+   record because deriving it requires a publish, and publishing is outside this invocation. The
+   audit labels it as such.
+3. **Two identity scopes are reported separately.** The frozen review prior keeps
+   `c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa` on disk; the in-memory copy
+   lifted to schema 9 has identity `3454f61f51163f5cd3b5cfd24638c2fc89e87f69973f9e92a194739b311c4b95`,
+   reported and deliberately not pinned. The frozen file is read on every path here and written on
+   none. The live accepted artifact is read only as a mutation sentinel and is asserted
+   byte-unchanged.
+
+The eight adequacy gaps §4 found are each witnessed by at least one clause and closed by schema 9:
+G1 point of origin, G2 per-shape placement, G3 dimension parameters, G4 inclusion polarity,
+G5 Cone's width relation, G6 Emanation movement with both exceptions, G7 line-of-effect blocking,
+G8 unseen-point relocation. Schema 9 mints 7 fact families and 11 vocabularies and declares 5
+intrinsic invariants; `CoverDegree` is reused from schema 6 rather than re-minted. Succession from
+schema 8 (`8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff`) to schema 9
+(`f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e`) is the single registered step
+`5d-lift-schema-8-to-9`, verified element by element: `representation_schema` is the only payload
+key the lift moves, and `batches`, `acceptances`, `schema_anchors`, `spans`, `obligations` and the
+representation cross by object identity.
+
+No meaning was found that schema 9 cannot state, so no gap of that kind is surfaced and the schema
+was not widened during authoring.
+
+### 10.4 Obligations
+
+Expected obligations are derived from the reviewed source — 43 literal rows naming clause,
+disposition, carrier and witnessed gaps — and only then compared against what the emission loop
+produced. Each of the 43 is discharged by exactly one span at exactly the reviewed extent with the
+expected carrier; omission, duplication and carrier drift each fail the run. The tally is
+`typed=24, supporting_authority_record_owned=10, supporting_authority_reference_owned=7,
+supporting_authority_bounding_a_fact=2`.
+
+Deriving the obligations from generated output would have made this check circular, which is why
+the rows are typed from the checkpoint's clause tables instead.
+
+### 10.5 Reproduction
+
+From the repository root, on this branch:
+
+```bash
+python .claude/review-notes/issue-5d-batch-areas-of-effect-1-generator.py
+```
+
+The run re-derives the boundary from the tag class, re-pins the manifest digest, rebuilds the
+composition, writes both artifacts with LF endings, and then spawns itself once in a clean child
+process (`AREASOFEFFECT1_RERUN=1`) and asserts the final bytes and the minted identity are
+identical. Inputs are repository-relative only: the source PDF, the source manifest, the frozen
+review prior, the `afterworlds` package. The live accepted artifact is not an input.
+
+Test evidence lives in `tests/ingestion/mechanical/test_schema_9_areas_of_effect.py` (57 tests,
+including an agreement test asserting the committed `proposed_representation` equals the draft this
+module composes independently) and
+`tests/ingestion/mechanical/test_areas_of_effect_1_frozen_prior.py`.
+
+### 10.6 Where this still stops
+
+Independent semantic review of the proposal has not happened. No acceptance, no push, no merge, no
+publication, no activation, no retirement, no runtime geometry or adapter work. `Cover` remains
+uningested and the combined missing targets remain `Concentration`, `Speed` and `Cover`. The
+full-corpus obligation #137 governs is untouched by this batch.

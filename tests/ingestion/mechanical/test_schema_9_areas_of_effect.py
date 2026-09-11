@@ -65,7 +65,10 @@ from afterworlds.ingestion.mechanical.persistence import (
     persist_draft,
     reconstruct_candidate,
 )
-from afterworlds.ingestion.mechanical.projection import identify_projection
+from afterworlds.ingestion.mechanical.projection import (
+    identify_projection,
+    representation_payload,
+)
 from afterworlds.ingestion.mechanical.representation import (
     RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
@@ -1258,3 +1261,33 @@ def test_the_gamemaster_view_names_the_clauses_without_delivering_them() -> None
     rendered = str(view)
     for clause_id in SUBSTANTIVE_CLAUSES:
         assert CLAUSE[clause_id]["text"] not in rendered, clause_id
+
+
+#: The proposal the generator wrote, next to this module in the review notes.
+#: Read, never written: the test is an agreement check on committed bytes, so a
+#: proposal regenerated from a changed composition fails here instead of landing
+#: unnoticed.
+PROPOSAL_PATH = (
+    pathlib.Path(__file__).resolve().parents[3]
+    / ".claude"
+    / "review-notes"
+    / "issue-5d-batch-areas-of-effect-1-PROPOSAL.json"
+)
+
+
+def test_the_committed_proposal_is_the_composition_this_module_states() -> None:
+    """The artifact under review carries exactly this draft, element for element.
+
+    The generator builds its own draft from the same reviewed inventory; this
+    module builds one independently. If the two ever disagree, the committed
+    proposal is no longer evidence for anything this module proves about the
+    composition, and a reviewer reading the tests would be reading a different
+    batch from the one in the artifact.
+
+    Identity is deliberately not pinned here. The proposal identity belongs in
+    the audit and the handoff, where it is reported at the scope it holds; a
+    test that pinned it would make every honest regeneration look like a
+    regression.
+    """
+    proposal = json.loads(PROPOSAL_PATH.read_text(encoding="utf-8"))
+    assert proposal["proposed_representation"] == representation_payload(_draft())
