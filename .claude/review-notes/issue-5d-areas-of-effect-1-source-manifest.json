@@ -24,6 +24,7 @@
     "version": "5d-representation-schema-8",
     "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff"
   },
+  "representation_schema_note": "The frozen review prior's binding, which this discovery ran against. The checkout's own representation schema is not recorded here: source discovery is independent of representation, and recording a value that moves with every schema mint would rot this manifest against evidence that had not moved. The run asserts separately that the checkout is that binding or a registered successor of it.",
   "review_prior": {
     "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json",
     "content_sha256": "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab",

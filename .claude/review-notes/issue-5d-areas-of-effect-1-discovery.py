@@ -131,15 +131,13 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     REPRESENTATION_SCHEMA_VERSION,
     representation_schema_hash,
 )
+from afterworlds.ingestion.mechanical.schema_lift import lift_path  # noqa: E402
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa: E402
 
 import afterworlds  # noqa: E402  # isort: skip
 
 IMPORTED_FROM = Path(afterworlds.__file__).resolve().parent
 assert PACKAGE_ROOT.resolve() == IMPORTED_FROM, (IMPORTED_FROM, PACKAGE_ROOT)
-
-SCHEMA = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
-assert SCHEMA[0] == REVIEW_PRIOR_SCHEMA_VERSION, SCHEMA
 
 # ---------------------------------------------------------------------------
 # Bound release — derived from the committed PDF, asserted against production
@@ -484,6 +482,34 @@ assert CROSS_CHECK["agree"], CROSS_CHECK
 PRIOR = load_accepted_inputs(REVIEW_PRIOR_PATH)
 assert oracle_identity(PRIOR.oracle) == REVIEW_PRIOR_IDENTITY
 assert sorted(b.batch_id for b in PRIOR.batches) == REVIEW_PRIOR_BATCH_IDS
+
+#: **The schema this discovery ran against**, read off the frozen prior rather
+#: than off the checkout. Source discovery states nothing in typed facts: it
+#: reads the corpus and the prior, reports membership, extents and reference
+#: targets, and leaves representation to the build that follows. So the binding
+#: that belongs in its manifest is the prior's, which is frozen, and not the
+#: checkout's, which moves with every schema mint. An earlier form of this
+#: script read the live hash here and asserted it equalled schema 8; minting
+#: schema 9 then broke the documented command against evidence that had not
+#: moved, which is a reproduction defect rather than a discovery finding.
+SCHEMA = (PRIOR.oracle.schema_version, PRIOR.oracle.schema_hash)
+assert SCHEMA[0] == REVIEW_PRIOR_SCHEMA_VERSION, SCHEMA
+
+#: **What the checkout currently represents**, which is a separate claim and is
+#: deliberately not written into the manifest. It is the prior's own binding or
+#: a registered successor of it; anything else means this checkout cannot reach
+#: the prior at all, and the inventory below would be read under a contract no
+#: succession joins to the one it was gathered under.
+CURRENT_SCHEMA = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+CURRENT_SCHEMA_REACHED_BY = (
+    []
+    if CURRENT_SCHEMA == SCHEMA
+    else [step.lift_id for step in lift_path(SCHEMA, CURRENT_SCHEMA)]
+)
+assert CURRENT_SCHEMA == SCHEMA or CURRENT_SCHEMA_REACHED_BY, (
+    SCHEMA,
+    CURRENT_SCHEMA,
+)
 PRIOR_KEYS = sorted(r.semantic_key for r in PRIOR.oracle.representation.records)
 PRIOR_DEFINED = set(PRIOR_KEYS)
 PRIOR_DANGLING = sorted(
@@ -558,6 +584,14 @@ MANIFEST = {
         ),
     },
     "representation_schema": {"version": SCHEMA[0], "hash": SCHEMA[1]},
+    "representation_schema_note": (
+        "The frozen review prior's binding, which this discovery ran against. "
+        "The checkout's own representation schema is not recorded here: source "
+        "discovery is independent of representation, and recording a value "
+        "that moves with every schema mint would rot this manifest against "
+        "evidence that had not moved. The run asserts separately that the "
+        "checkout is that binding or a registered successor of it."
+    ),
     "review_prior": {
         "path": REVIEW_PRIOR_PATH.relative_to(REPO).as_posix(),
         "content_sha256": REVIEW_PRIOR_CONTENT_SHA256,
