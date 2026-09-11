@@ -128,9 +128,11 @@ entry.** That is why the two sites are one population.
 
 **The source owns the boundary.** A leaf is in this population because the bound release
 *attaches* it to an entry labeled `Cover`, directly or through a table beneath it — not
-because it prints the word. Thirty other leaves print `Cover` (§6). Every one of them
-*uses* the rule; none *states* it. Pulling any of them in would be the batch expansion this
-invocation's scope forbids.
+because it prints the word. Thirty other leaves print `Cover` (§6). Each uses Cover while
+stating some *other* rule, or restates a Cover rule from outside a `Cover` entry — `Targets`
+(p105) states the spell-targeting rule that a caster needs a clear path, so the target cannot
+be behind Total Cover. None of them is attached to a `Cover` entry, so none is in this
+population. (Corrected 2026-09-11; see §9.)
 
 **Extraction artifacts, carried verbatim rather than repaired.** Both are properties of the
 frozen 5c release, and the committed `srd_table_inventory.json` is an independent witness
@@ -555,7 +557,8 @@ correction. The population, schema, spans, facts and provenance are unchanged, a
    also requires the **same substantive source span**; two copies taken from the two
    *distinct* printings would pass it. §4a had this right already. The single-fact shape is
    chosen because the source stated one rule, not because a validator forces it.
-4. The boundary's universal *"every excluded leaf uses the rule, none states it"* was false:
+4. The boundary's universal *"every excluded leaf uses the rule, none states it"* — in this
+   section, in §3's boundary paragraph, in the generator docstring and in the audit — was false:
    manifest leaf `7322a0d0-afaf-5df9-97f6-a0e428c81097` (`Spells > Casting Spells > Targets`)
    **states** the spell-targeting rule that a caster needs a clear path, so the target cannot
    be behind Total Cover. The reviewed two-entry population is unchanged; the exclusions are
