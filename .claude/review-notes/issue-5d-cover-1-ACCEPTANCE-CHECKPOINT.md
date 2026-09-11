@@ -71,12 +71,13 @@ The authorization sentence is carried verbatim in the script's `AUTHORIZATION` c
 the report's `authorization` field, so the recorded action and the text that authorized it travel
 together.
 
-### There is no review probe for this batch either, and the checkpoint says so
+### The cross-check subject is the committed audit, not a review probe
 
-`attitudes-1` cross-checked its acceptance against a retained review probe. **No probe exists for
-`cover-1`**, as none existed for `areas-of-effect-1`, and none was synthesized. Inventing one — or
-deriving the expected counts from the artifact being checked — would make the cross-check a
-restatement of its own subject.
+`attitudes-1` cross-checked its acceptance against a review probe committed to the repository,
+`.claude/review-notes/issue-5d-attitudes-1-final-independent-probe.json`. **This acceptance script
+consumes no committed repository review probe**, and none was synthesized. Deriving the expected
+counts from the artifact being checked would make the cross-check a restatement of its own subject,
+so the reproduction is retained from tracked repository inputs alone.
 
 What exists instead is the batch's committed audit,
 `.claude/review-notes/issue-5d-batch-cover-1-audit.json`, written by the generator as the in-repo
@@ -92,10 +93,9 @@ script cross-checks the merge against it on **27 named fields**, each reported s
 `unresolved_before` · `unresolved_after` · `resolved_by_this_batch` · `resolving_citation` ·
 `succession_step` · `no_open_schema_stop` — **all `true`**.
 
-This is the same process deviation `areas-of-effect-1` recorded, and it is the same weaker claim: an
-audit written by the generator is in-repo evidence of what was proposed, not an independent second
-observation of it. The weaker claim is the true one and is stated in the script's module docstring as
-well as here.
+The claim that carries is the weaker one: an audit written by the generator is in-repo evidence of
+what was proposed, not an independent second observation of it. That weaker claim is the true one,
+and it is stated in the script's module docstring as well as here.
 
 The rule prose the artifact now carries permanently is bound to that audit rather than trusted. The
 six representation gaps it names — G1 the three-degree closure, G2 the defensive bonus, G3 the
@@ -201,14 +201,24 @@ None is prose-bound, which is the point the schema-10 amendment turns on: no cla
 population matches any closed reason code in `policy.IRREDUCIBILITY_REASONS`, so typed families were
 required rather than chosen.
 
-`primary_spans_per_fact` is `[1, 2, 2, 2, 2, 2, 2, 2]`. Seven of the eight facts are claimed `PRIMARY`
-by the spans at **both** printings, because both sites genuinely state the rule; `validation.py:622-623`
-rejects a *span* with more than one primary owner, not a fact with more than one primary span, so
-this is shared authority with exact provenance rather than a duplicate.
+`primary_spans_per_fact` is `[1, 2, 2, 2, 2, 2, 2, 2]`. Seven of the eight facts are printed twice
+and are claimed `PRIMARY` by the spans at **both** printings. Only **four** of those seven pairs
+cross both sites, which is what the audit's `facts_printed_at_both_sites` counts: `half_benefit`
+(`glossary/1/2` + `combat/6/0`), `three_quarters_benefit` (`glossary/1/3` + `combat/8/0`),
+`total_prohibition` (`glossary/1/4` + `combat/11/0`) and `most_protective` (`glossary/1/5` +
+`combat/1/3`). The remaining three pair two clauses inside `combat` alone — `half_provision`
+(`combat/5/0` + `combat/6/1`), `three_quarters_provision` (`combat/7/0` + `combat/9/0`) and
+`total_provision` (`combat/10/0` + `combat/11/1`) — and `opposite_side` (`combat/1/2`) is printed
+once. Each is one fact claimed as `PRIMARY` by every span that prints it, because the source stated
+one rule; `validation.py:622-623` rejects a *span* with more than one primary owner, not a fact with
+more than one primary span, so this is shared authority with exact provenance rather than a
+duplicate. The accepted `rule` prose states the same two counts.
 
-## The blocker set moved **down** for the first time, and is asserted in both directions
+## The blocker set moved **down**, and is asserted in both directions
 
-`areas-of-effect-1` closed none and added `glossary.cover`. `cover-1` closes that one and adds none.
+`attitudes-1` closed three targets by accepting the complete source-defined Attitude class, as
+`docs/architecture/known_unknowns.md` records. `areas-of-effect-1` closed none and added
+`glossary.cover`. `cover-1` closes that one and adds none.
 
 | | |
 |---|---|
@@ -365,14 +375,16 @@ remediation is separate work with its own review.
 `No drift from design principles`, with three disclosures that are properties of the accepted content
 rather than deviations from the contract:
 
-1. **The publication blocker set shrank, for the first time in the series.** That is a consequence of
-   defining the entry another batch already cited, not evidence of completion: two targets remain,
-   the corpus is still incomplete, and the residue is asserted in both directions so a fabricated
-   closure would fail.
-2. **The cross-check is an in-repo audit, not an independent probe.** `attitudes-1` had a probe; this
-   batch does not, and none was synthesized. The claim made here is the weaker, true one.
-3. **Seven of the eight facts carry two `PRIMARY` provenance claims.** `Cover` is printed twice and
-   both printings state the same rules, so both sites claim the same fact. That is ADR-005d
+1. **The publication blocker set shrank.** That is a consequence of defining the entry another batch
+   already cited, not evidence of completion, and not the first such narrowing — `attitudes-1`
+   closed three targets, as `known_unknowns.md` records. Two targets remain, the corpus is still
+   incomplete, and the residue is asserted in both directions so a fabricated closure would fail.
+2. **The cross-check is an in-repo audit, not a review probe.** `attitudes-1` consumed a committed
+   probe file; this script consumes no committed repository review probe, and none was synthesized.
+   The claim made here is the weaker, true one.
+3. **Seven of the eight facts carry two `PRIMARY` provenance claims, four of them across both
+   sites.** Each doubly-printed rule is one fact claimed by every span that prints it — four pairs
+   spanning `glossary` and `combat`, three pairing two `combat` clauses. That is ADR-005d
    Decision 3's many-to-many provenance used as intended, not a duplicate the validator failed to
    catch — `validation.py:622-623` constrains spans, not facts.
 

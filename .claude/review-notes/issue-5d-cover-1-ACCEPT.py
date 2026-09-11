@@ -81,7 +81,7 @@ accepted schema-9 authority forward through the one registered lift
 here measures how much of a target an obstacle covers, decides which side an
 effect originated on, or chooses a degree for a scene.
 
-**There is no independent review-probe file for this batch** of the kind
+**This script consumes no committed repository review probe** of the kind
 `attitudes-1` had, and none is synthesized here. The retained review evidence is
 the committed proposal, the committed audit
 (`issue-5d-batch-cover-1-audit.json`) and the discovery checkpoint, all tracked
@@ -303,9 +303,8 @@ COVER_COMPONENT_FACTS = {
 }
 
 #: The prior's three unresolved citations, what this batch resolves, what it adds
-#: (nothing), and what survives. Every one of the four sets is stated, because
-#: this is the first acceptance in the sequence that moves the blocker set
-#: **down** and a description would hide which direction it moved.
+#: (nothing), and what survives. Every one of the four sets is stated, because a
+#: description would hide which direction the blocker set moved.
 PRIOR_MISSING_REFERENCE_TARGETS = frozenset(
     {"glossary.concentration", "glossary.cover", "glossary.speed"}
 )
@@ -765,8 +764,8 @@ MANIFEST_SITES = sorted({str(row["site"]) for row in MANIFEST["clauses"]})
 assert MANIFEST_SITES == ["combat", "glossary"], MANIFEST_SITES
 
 #: What the retained review evidence recorded, checked against what this script
-#: derived on its own. There is no independent probe file for this batch, so the
-#: cross-check subject is the committed audit — a tracked repository file, pinned
+#: derived on its own. No committed repository review probe exists for this batch,
+#: so the cross-check subject is the committed audit — a tracked repository file, pinned
 #: by digest above. It carries no accepted scope and is never used to build one;
 #: it is compared on identity, schema, prior digests, counts, dispositions, the
 #: obligation tally, the reference scope and the succession step. Reported as a
@@ -1469,11 +1468,10 @@ REPORT = {
         "still_blocked": bool(UNRESOLVED_REFERENCES),
         "resolving_citation": list(RESOLVING_CITATION),
         "note": (
-            "accepted, not publishable. This batch is the first to shrink the "
-            "blocker set: it resolved the prior's Cover citation by defining "
-            "the record and added none of its own. Concentration and Speed "
-            "remain explicit unresolved targets and no target was invented for "
-            "either."
+            "accepted, not publishable. This batch resolved the prior's Cover "
+            "citation by defining the record and added none of its own. "
+            "Concentration and Speed remain explicit unresolved targets and no "
+            "target was invented for either."
         ),
     },
     "batch_references": _batch_references,

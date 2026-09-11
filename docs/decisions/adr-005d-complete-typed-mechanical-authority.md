@@ -745,8 +745,8 @@ is a later step. The full-corpus work Decision 5 requires remains undischarged.
 > identity reported above describes the earlier state and no lift stands between the committed file
 > and current authority.
 >
-> What it resolved, and what it did not. This is the first acceptance in the batch series to *narrow*
-> the residue by defining a target another batch already cited: `glossary.cover` — added by
+> What it resolved, and what it did not. This acceptance *narrows* the residue by defining a target
+> another batch already cited: `glossary.cover` — added by
 > `areas-of-effect-1` and made representable by schema 10 — is now defined, and
 > `areas-of-effect-1`'s `Cover` citation resolves. `glossary.concentration` and `glossary.speed`
 > remain unresolved, no target was invented for either, and the batch added none of its own. Both
