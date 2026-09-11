@@ -415,7 +415,8 @@ keys are listed in `review_prior.record_keys`.
 | Manifest reproduced from a clean `git archive HEAD` export, outside the working tree | byte-identical, same sha256 |
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it
-over), the semantic validator (there is no draft), any acceptance script, any lift.
+over), the semantic validator (there is no draft), any acceptance script, any lift. *(True
+as of discovery; section 9 records what was run at implementation.)*
 
 ---
 
@@ -431,7 +432,8 @@ activation, retirement or parent-issue state change.
 1. Do the eight gaps in §4 read as ordinary closed declarative schema work — one new fact
    family with four or five closed vocabularies — or does any of them read to Codex as a
    product or ownership question this checkpoint has under-called? G5 and G7 are where a
-   reasonable reviewer would push.
+   reasonable reviewer would push. **Answered in §9: seven families over eleven closed
+   vocabularies.** The count guessed here was low; the classification it asked about held.
 2. ~~`glossary.cover` (§5b). Sequence `cover-1` first, together, or after?~~ **Settled
    2026-09-10 as ordinary engineering, not an Owner Decision** — see the corrected §5b.
    This batch continues and retains `glossary.cover` as unresolved residue; cover ingestion
@@ -519,7 +521,8 @@ That tuple is asserted exactly rather than filtered, so a second finding cannot 
 the first. It is the §5b residue and it clears when `Cover` is ingested. Accepted authority
 carries two findings of precisely this class today, for `Speed` and `Concentration`;
 `_validate_relationships_and_references` was run against the committed artifact to confirm
-that rather than assumed.
+that rather than assumed — a one-off probe, not retained evidence; the two target keys
+themselves are pinned in `test_areas_of_effect_1_frozen_prior`.
 
 **What this section does not claim.** No proposal exists, nothing is accepted, published,
 activated or retired, and no parent-issue state changed. The full-corpus work #137 governs
