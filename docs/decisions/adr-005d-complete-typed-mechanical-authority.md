@@ -648,10 +648,9 @@ Decisions worth recording, because each was a shape considered.
   three thresholds, each carries its own comparison inside the printed phrase, and no clause in this
   population varies a threshold, derives one, or compares two of them — so a closed three-member
   vocabulary states every printed phrase once, on one axis instead of two, and leaves no fourth value
-  for a consumer to invent. It also lets *the whole target* stay the phrase the page prints rather
-  than forcing a choice between `= 1` and `>= 1` that the page does not make. If a later batch prints
-  a coverage threshold this vocabulary cannot name, the exact numeric carrier is still available and
-  is the natural extension.
+  for a consumer to invent. It also lets *the whole target* stay the phrase the page prints. If a
+  later batch prints a coverage threshold this vocabulary cannot name, the exact numeric carrier is
+  still available and is the natural extension.
 - **Reusing `AreaOriginKind.CREATURE_OR_OBJECT` for the offeror was rejected.** It is precedent that
   *"a creature or an object"* is admissible as a closed member, not a vocabulary to share: merging an
   area-origin kind with a cover offeror would make two unrelated rules move together. `CoverOfferor`

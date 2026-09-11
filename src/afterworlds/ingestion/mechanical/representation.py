@@ -1513,8 +1513,7 @@ class CoverageThreshold(StrEnum):
     inside the printed phrase, and no rule in this population varies one,
     derives one or compares two — so three members say everything the page says
     on one axis instead of two, leave no fourth value to invent, and let *"the
-    whole target"* stay the phrase the page prints rather than forcing a choice
-    between ``== 1`` and ``>= 1`` the page never makes. Nothing here measures:
+    whole target"* stay the phrase the page prints. Nothing here measures:
     a consumer that has a geometry reads the threshold and applies it with its
     own.
     """

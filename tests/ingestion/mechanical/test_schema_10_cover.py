@@ -274,8 +274,8 @@ COMPOSITION: tuple[tuple[str, MechanicalFact, tuple[str, ...]], ...] = (
     ),
     # "Total" / "An object that covers the whole target". "The whole" is not
     # "at least the whole": it is its own printed phrase, and one closed member
-    # states it without this module choosing between ``== 1`` and ``>= 1``. An
-    # exact numeric pair would have been admissible; three members are enough.
+    # states it directly. An exact numeric pair would have been admissible here
+    # too; three members are enough.
     (
         PROVISION,
         CoverProvisionFact(
