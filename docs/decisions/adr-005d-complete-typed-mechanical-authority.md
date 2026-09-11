@@ -560,8 +560,8 @@ frozen priors still declare the schema they were accepted under after this chang
 `hazards-1`→5, `actions-1`→7, `attitudes-1`→8), and the lift re-declares the binding and proves the
 content unmoved rather than rewriting it.
 
-Identity is reported at the scope it holds. The frozen authority on disk is unread-and-unwritten by
-this work and keeps `oracle_identity`
+Identity is reported at the scope it holds. The frozen authority on disk is read by this work and
+never written by it, so it keeps `oracle_identity`
 `c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa`. The **lifted copy** the build
 produces is not that object and does not carry that identity: `oracle_payload` includes
 `representation_schema.{version,hash}`, so re-declaring the binding necessarily re-identifies the copy.

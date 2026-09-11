@@ -223,6 +223,17 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     moved = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
     assert moved == {"representation_schema"}, sorted(moved)
 
+    # Everything the prior carries besides the binding crosses untouched, and
+    # by identity rather than equality -- the lift rebinds, it does not rebuild.
+    # ``schema_anchors`` matters most: each batch's accepted-under hash is the
+    # record that keeps schema 9 from restamping four batches as one, so a lift
+    # that re-derived anchors would erase exactly the distinction the test above
+    # exists to hold.
+    for field in ("batches", "acceptances", "schema_anchors"):
+        assert getattr(lifted, field) is getattr(inputs, field), field
+    assert lifted.oracle.spans is inputs.oracle.spans
+    assert lifted.oracle.obligations is inputs.oracle.obligations
+
     try:
         lift_path(current, current)
     except UnknownSchemaLiftError:
