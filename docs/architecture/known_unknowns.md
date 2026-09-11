@@ -463,23 +463,26 @@ stays outside, where #137's Out of scope and ADR-005d Decision 11 leave it. What
 residue: the class cites `Cover`, an untagged Rules Glossary entry no accepted batch represents, so
 composing it produces a third unresolved reference target, `glossary.cover`, beside the two below.
 Sequencing a batch that states `Cover` is ordinary engineering under #137, not an Owner Decision, and
-nothing in this document anticipates that entry's content. Nothing about `areas-of-effect-1` is
-accepted or proposed.
+nothing in this document anticipates that entry's content. `areas-of-effect-1` has since been accepted,
+which added `glossary.cover` for real rather than in prospect and resolved nothing.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Four batches are
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Five batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
-2026-09-03, `actions-1` on 2026-09-09 and `attitudes-1` on 2026-09-10; all four are committed as
-accepted authority for the production SRD 5.2.1 release, so that release resolves to a committed
-oracle — but that oracle covers **39 records and 487 spans** (15 conditions, 5 hazards, 12 actions and
-3 attitudes, plus the glossary entry defining each list), not the corpus. Two cross-batch reference
-targets named by accepted content — `glossary.concentration` and `glossary.speed` — are still
-unresolved, and no target was invented for them; `attitudes-1` closed the other three by accepting the
-complete source-defined Attitude class, which is a consequence of that scope rather than the reason
-for it. The publication path therefore returns `INCOMPLETE` for the production projection rather than
-`ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical projection has been
-published or activated, and later batches extend the same release artifact through `accept_proposal`'s
-`prior=` merge rather than committing a second one — as `hazards-1`, `actions-1` and `attitudes-1`
-each did. The obsolete `MechanicalEntity` path and the legacy
+2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10 and `areas-of-effect-1` on
+2026-09-11; all five are committed as accepted authority for the production SRD 5.2.1 release, so that
+release resolves to a committed oracle — but that oracle covers **46 records and 530 spans** (15
+conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect, plus the glossary entry defining
+each list), not the corpus. Three cross-batch reference targets named by accepted content —
+`glossary.concentration`, `glossary.cover` and `glossary.speed` — are still unresolved, and no target
+was invented for them; `attitudes-1` closed three others by accepting the complete source-defined
+Attitude class, and `areas-of-effect-1` closed none while adding `glossary.cover`. Both are
+consequences of accepting complete source classes rather than reasons for accepting them, and the
+residue moved in both directions rather than only down. The publication path therefore returns
+`INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding still reports
+`UNPUBLISHED` because no mechanical projection has been published or activated, and later batches
+extend the same release artifact through `accept_proposal`'s `prior=` merge rather than committing a
+second one — as `hazards-1`, `actions-1`, `attitudes-1` and `areas-of-effect-1` each did. The obsolete
+`MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.
 

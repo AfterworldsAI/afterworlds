@@ -9,14 +9,14 @@ committed artifact, so a later acceptance cannot silently re-date the evidence
 — a proposal reviewed against a prior that has since moved was reviewed against
 something the reviewer never saw.
 
-**Same bytes, for now.** This copy is taken while the committed artifact is
-still the four-batch union, so the final test below asserts the two files *are*
-the same bytes. That assertion is the honest claim today and it is the one that
-will fail first the moment a fifth batch is accepted; when it does, it is
-replaced — as its predecessor in ``test_attitudes_1_frozen_prior`` was — by the
-stronger claim that the live artifact extends this prior by exactly one batch.
-Deleting it instead would leave the copy unattached to the thing it was copied
-from.
+**No longer the same bytes.** This copy was taken while the committed
+artifact was still the four-batch union, and the final test below asserted that
+the two files *were* the same bytes — the assertion this module said would fail
+first the moment a fifth batch was accepted. The Owner's acceptance of
+``areas-of-effect-1`` is that moment, so it has been replaced — as its
+predecessor in ``test_attitudes_1_frozen_prior`` was — by the stronger claim
+that the live artifact extends this prior by exactly one batch. Deleting it
+instead would have left the copy unattached to the thing it was copied from.
 
 **No longer the same schema.** When this module was written the prior declared
 schema 8 and schema 8 was current, so no registered crossing separated them and
@@ -27,9 +27,9 @@ now separates the prior from it. That is the visible edit this module promised
 to make rather than drift into.
 
 **What this module does not do.** It proves nothing about the live artifact
-beyond the final identity assertion. Every pin below describes the *frozen*
+beyond the final extension assertion. Every pin below describes the *frozen*
 file: the four batches it holds, the 39 records, and the two reference targets
-it cannot resolve — the honest starting position ``areas-of-effect-1`` is
+it cannot resolve — the honest starting position ``areas-of-effect-1`` was
 measured from, not a list to be worked through. The committed artifact's own
 pins live in ``test_committed_accepted_authority``.
 """
@@ -94,10 +94,13 @@ SPANS = 487
 OBLIGATIONS = 39
 
 #: Reference targets accepted authority cites and does not define, and the two
-#: standing publication blockers. Pinned as a set, not a count: this is the
-#: exact residue ``areas-of-effect-1``'s merge evidence will claim to move or
-#: leave alone, and a batch that resolved a different target than it said it
-#: would must fail here.
+#: standing publication blockers as of this freeze. Pinned as a set, not a
+#: count: this is the exact residue ``areas-of-effect-1``'s merge evidence was
+#: measured against, and a batch that resolved a different target than it said
+#: it would must fail here. ``areas-of-effect-1`` resolved neither and added
+#: ``glossary.cover``; the post-merge residue is pinned in
+#: ``test_committed_accepted_authority``, not here, because this file describes
+#: the prior rather than the union.
 UNRESOLVED_TARGETS = {
     "glossary.concentration",
     "glossary.speed",
@@ -245,9 +248,10 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
 def test_the_unresolved_reference_targets_are_exactly_the_recorded_residue() -> None:
     """What accepted authority cites and cannot yet resolve.
 
-    ``areas-of-effect-1`` records how many of these its merge closes. Pinning
-    the set here is what makes that claim checkable, and these two are the
-    standing publication blockers no accepted batch has yet defined.
+    ``areas-of-effect-1`` recorded how many of these its merge closes: none, and
+    it added one of its own. Pinning the set here is what makes that claim
+    checkable, and these two were the standing publication blockers no accepted
+    batch had defined when the freeze was taken.
     """
     draft = load_accepted_inputs(FROZEN_PRIOR).oracle.representation
     defined = {record.semantic_key for record in draft.records}
@@ -267,14 +271,21 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_is_still_these_exact_bytes() -> None:
+def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None:
     """The copy, attached to what it was copied from.
 
-    Taking the freeze changed nothing about accepted authority, and this is
-    where that is checked: the live artifact and this copy are the same content
-    today. The next Owner acceptance ends it, and this assertion becomes the
-    extends-by-exactly-one-batch claim its predecessor now carries.
+    Taking the freeze changed nothing about accepted authority, and until the
+    Owner accepted ``areas-of-effect-1`` the live artifact and this copy were
+    the same content. The previous form of this test named that acceptance as
+    the thing that would end it and named what should replace it, so this is
+    that replacement rather than a deletion: the live artifact is this prior
+    plus exactly one batch, and every batch the freeze holds is still present
+    and identical.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
-    assert _lf_digest(COMMITTED) == FROZEN_CONTENT_SHA256
-    assert load_accepted_inputs(COMMITTED) == load_accepted_inputs(FROZEN_PRIOR)
+    assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
+
+    frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
+    committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
+    assert set(committed) - set(frozen) == {"areas-of-effect-1"}
+    assert {k: committed[k] for k in frozen} == frozen

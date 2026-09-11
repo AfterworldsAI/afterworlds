@@ -75,10 +75,11 @@ FROZEN_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist se
 
 #: The committed artifact's own digest. It was the same file as the frozen copy
 #: until the Owner accepted ``actions-1`` into it, and has moved again for
-#: ``attitudes-1``; reusing one constant for both only ever worked because of
-#: the original coincidence. Two constants, because they are two files: the
-#: sentinel below has to be able to fail for one and pass for the other.
-COMMITTED_CONTENT_SHA256 = "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab"  # noqa: E501  # pragma: allowlist secret
+#: ``attitudes-1`` and ``areas-of-effect-1``; reusing one constant for both only
+#: ever worked because of the original coincidence. Two constants, because they
+#: are two files: the sentinel below has to be able to fail for one and pass for
+#: the other.
+COMMITTED_CONTENT_SHA256 = "9f3802514298f519120680db4a9a20805f5dcb8a4b00dd8686ed6faddec1e738"  # noqa: E501  # pragma: allowlist secret
 
 #: The accepted oracle's own identity. Derived from the semantic content the
 #: Owner accepted, and the one figure a succession may not move at all.

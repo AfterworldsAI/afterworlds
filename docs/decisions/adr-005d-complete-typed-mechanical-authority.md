@@ -584,6 +584,37 @@ Decision. Schema 9 narrows no Known Unknown group listed in `known_unknowns.md` 
 that document is amended only with a pointer to this change and not otherwise. The full-corpus work
 Decision 5 requires remains undischarged.
 
+> **Historical — the state at the schema-9 registration, superseded by Owner Decision 2026-09-11.** The
+> paragraphs above record the state when schema 9 was registered and are kept as written; the "nothing
+> is accepted and no proposal exists" they state has since ended. On 2026-09-11 the Owner accepted the
+> schema-9 proposal `d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878` as batch
+> `areas-of-effect-1` — all 43 spans and the complete representation, extending the preserved
+> `conditions-1`/`hazards-1`/`actions-1`/`attitudes-1` prior through the registered transitions. **No
+> unresolved architectural choice remains here and no further Owner ruling is required**; this note
+> reconciles the description with a decision already recorded, and amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 9 rather than schema 8, and
+> carries a fifth anchor, `areas-of-effect-1` at schema 9. The conditional above is now the fact — the
+> path resolved as `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8` → `8-to-9`, and
+> the prior was lifted rather than rewritten. What it did not change: `conditions-1` stays anchored at
+> schema 3, `hazards-1` at schema 5, `actions-1` at schema 7 and `attitudes-1` at schema 8, where each
+> was reviewed; the frozen priors
+> `accepted_prior_conditions_1_hazards_1_actions_1.json` and
+> `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json` are untouched at schema 7 and
+> schema 8 and keep their own digests; schemas 3 through 8 remain recognized contracts with the pins
+> above; and the schema-9 destination pin is still
+> `f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e`. The accepted mechanical identity
+> is now `8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40`, over 46 records and 530
+> spans. Because the artifact now declares the schema this build implements, the lifted-copy identity
+> reported above describes the earlier state and no lift stands between the committed file and current
+> authority.
+>
+> What remains open is *widened* by it, and stated that way rather than softened. The acceptance
+> published, activated and retired **nothing**. It resolved **no** reference target, and it added the
+> one the amendment above predicted: `glossary.cover` is now unresolved beside `glossary.concentration`
+> and `glossary.speed`. All three are explicit publication blockers, so the corpus stays incomplete and
+> runtime-unpublished, and the full-corpus work Decision 5 requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

@@ -1,5 +1,17 @@
 # CRD Issue 5d — batch `areas-of-effect-1`: source-discovery and schema-adequacy checkpoint
 
+> **Superseded on 2026-09-11 — this document is the discovery and proposal record, kept
+> as written.** Every status line below was true when its section was authored and is
+> preserved rather than rewritten: together they are the evidence of what was put in
+> front of the Owner, in the order it was put there. Independent semantic review then
+> completed with no remaining correction, and the Owner authorized acceptance of
+> proposal `d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878` as batch
+> `areas-of-effect-1`. It was accepted. Current acceptance status lives in
+> `issue-5d-areas-of-effect-1-ACCEPTANCE-CHECKPOINT.md`. The §7 prior pins below still
+> describe the frozen four-batch prior, which the acceptance did not touch. Nothing was
+> published, activated or retired then either, and the three missing targets §10.6 names
+> are still missing.
+
 **Status.** Discovery stop, for Codex's review. Nothing is proposed, drafted, accepted,
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.

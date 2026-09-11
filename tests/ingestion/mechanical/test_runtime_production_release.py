@@ -7,8 +7,9 @@ PR must not overstate.
 
 The runtime binding path resolves the real release's package and reports
 ``UNPUBLISHED``. Accepted authority for that release *is* committed — CRD Issue
-5d batches ``conditions-1``, ``hazards-1``, ``actions-1`` and ``attitudes-1`` —
-so the oracle resolves; but acceptance is not publication, no mechanical
+5d batches ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1`` and
+``areas-of-effect-1`` — so the oracle resolves; but acceptance is not
+publication, no mechanical
 projection over the release has been published or activated, and so there is no
 active mechanical authority to bind. That is the honest state, and it is
 asserted here as a *typed* outcome rather than as an absence — a resolver that

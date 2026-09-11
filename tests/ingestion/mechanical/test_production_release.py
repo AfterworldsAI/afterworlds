@@ -242,20 +242,20 @@ def test_the_bound_release_supplies_the_accounting_population(
 def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Accepted authority exists for the real SRD release — four accepted batches.
+    """Accepted authority exists for the real SRD release — five accepted batches.
 
-    It judges 39 records — 15 conditions, 5 hazards and 3 attitudes, plus the
-    glossary entry that defines each list, plus the 13 ``actions-1`` records —
-    and nothing else, which is exactly why the publication test below still
-    refuses: the SRD has far more than 39 records.
+    It judges 46 records — 15 conditions, 5 hazards, 12 actions, 3 attitudes and
+    6 areas of effect, plus the glossary entry that defines each of those five
+    lists — and nothing else, which is exactly why the publication test below
+    still refuses: the SRD has far more than 46 records.
     """
     resolved = committed_oracle_for(
         production.binding.package_uuid, production.binding.release_version
     )
     assert resolved is not None
     assert resolved.binding == production.binding
-    assert len(resolved.representation.records) == 39
-    assert len(resolved.spans) == 487
+    assert len(resolved.representation.records) == 46
+    assert len(resolved.spans) == 530
 
 
 def test_the_production_path_refuses_the_real_release(
@@ -265,13 +265,12 @@ def test_the_production_path_refuses_the_real_release(
 
     Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
     judged the release at all. Authority now exists and resolves, so the refusal
-    moves to ``INCOMPLETE`` — the accepted artifact covers 39 records (15
-    conditions, 5 hazards and 3 attitudes, plus the glossary entry defining each
-    list, plus 13 actions) while the persisted projection covers the whole SRD.
-    Each
-    further batch narrowed the gap and did not close it, which is the point:
-    publication is refused because the CRD Issue 5d corpus is unfinished, not
-    because nothing was ever reviewed.
+    moves to ``INCOMPLETE`` — the accepted artifact covers 46 records (15
+    conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect, plus
+    the glossary entry defining each of those five lists) while the persisted
+    projection covers the whole SRD. Each further batch narrowed the gap and did
+    not close it, which is the point: publication is refused because the CRD
+    Issue 5d corpus is unfinished, not because nothing was ever reviewed.
     """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW
